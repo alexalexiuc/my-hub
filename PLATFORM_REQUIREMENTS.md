@@ -11,6 +11,8 @@ Current MVP is a TypeScript/Cloudflare Workers MCP server with two sub-servers:
 Storage today is Google Sheets. OAuth 2.0 is already implemented.
 Goal: migrate to a proper self-hosted platform that is cheap, maintainable, and extensible.
 
+**New platform repo:** https://github.com/alexalexiuc/my-hub
+
 ---
 
 ## Target Architecture
