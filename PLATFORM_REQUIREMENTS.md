@@ -1,0 +1,307 @@
+# Platform Requirements — Self-Hosted Personal MCP Platform
+
+## Context
+
+Current MVP is a TypeScript/Cloudflare Workers MCP server with two sub-servers:
+
+- **Hive Manager** — beekeeping data (logs, profiles, todos, relocations)
+- **Calorie Tracker** — meal logging, nutritional summaries, user profiles
+- **Products Manager** _(planned)_ — home inventory, shopping lists, product catalog
+
+Storage today is Google Sheets. OAuth 2.0 is already implemented.
+Goal: migrate to a proper self-hosted platform that is cheap, maintainable, and extensible.
+
+---
+
+## Target Architecture
+
+### Infrastructure: Hetzner VPS
+
+A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
+
+**Recommended tier:** CX32 (4 vCPU, 8 GB RAM, 80 GB SSD, ~€8/month)
+
+- Comfortable headroom for PostgreSQL + Fastify + Next.js + Nginx
+- Can downgrade to CX22 (2 vCPU, 4 GB RAM, ~€4.5/month) if budget is tight
+
+**Staging:** same VM, separate Docker Compose stack (`docker-compose.staging.yml`), accessible via `staging.mcp.alexiuc.dev` / `staging.admin.alexiuc.dev`.
+
+---
+
+### Services (all Docker containers)
+
+| Service | Technology         | Role                                           |
+| ------- | ------------------ | ---------------------------------------------- |
+| `db`    | PostgreSQL 16      | Primary datastore replacing Google Sheets      |
+| `mcp`   | Node.js / Fastify  | MCP server(s) — hive-manager, calories, future |
+| `admin` | Next.js            | Admin panel / personal cabinet                 |
+| `proxy` | Nginx (or Traefik) | TLS termination, routing, static assets        |
+
+---
+
+### Database
+
+**Choice: PostgreSQL 16**
+
+- Familiar, battle-tested, excellent TypeScript support
+- Relational model is a natural fit for structured hive/calorie data
+- Official Docker image, easy pg_dump backups
+- **ORM: Drizzle** — lightweight, type-safe, schema-as-code, great DX for TypeScript
+- Migration tooling: Drizzle Kit (generate + apply migrations)
+
+---
+
+### MCP Server Layer (Fastify)
+
+- Replace Cloudflare Worker HTTP layer with a Fastify app
+- Expose MCP over HTTP (SSE or Streamable HTTP — MCP SDK supports both)
+- Routes mirroring current structure: `/mcp/hive/:id`, `/mcp/calories/:id`
+- OAuth 2.0 stays — adapt existing implementation from `src/http/`
+- Each MCP sub-server remains its own module (hiveManager, calories, ...)
+- Future MCPs are added as new modules without touching infrastructure
+
+---
+
+### Admin Panel (Next.js)
+
+Minimal personal cabinet with the following sections:
+
+- **OAuth Clients** — create/revoke OAuth credentials for MCP clients
+- **MCP Control** — enable/disable individual MCP servers per user
+- **Data Explorer** — query and edit records (hive logs, meals, profiles, todos)
+  - Initially: raw table views with basic CRUD
+  - Later: domain-specific views (apiary timeline, calorie charts, etc.)
+- **User / Settings** — manage account, API keys, preferences
+
+Auth for the panel itself: simple username + password (bcrypt + JWT session), given single-user/few-friends scope. Or GitHub/Google OAuth login — easy with NextAuth.js.
+
+---
+
+### Reverse Proxy (Nginx / Traefik)
+
+**Recommended: Traefik** over Nginx for Docker deployments:
+
+- Auto-discovers containers via Docker labels (zero manual config per service)
+- Built-in Let's Encrypt / ACME for automatic TLS
+- Dashboard for routing visibility
+- Simpler than writing Nginx configs by hand for each service
+
+If Nginx is preferred (more familiar), it works fine — just requires manual TLS renewal via Certbot.
+
+**Routing (`alexiuc.dev`):**
+
+| Host                | Target                 |
+| ------------------- | ---------------------- |
+| `alexiuc.dev`       | Next.js (CV / landing) |
+| `admin.alexiuc.dev` | Next.js admin panel    |
+| `mcp.alexiuc.dev`   | Fastify MCP server(s)  |
+
+---
+
+## Repository Strategy
+
+**Decision needed** — see Open Questions.
+
+**Preferred option: Monorepo** (restructure current repo)
+
+```
+/
+├── packages/
+│   ├── mcp-server/          # Fastify app + all MCP sub-servers
+│   ├── admin/               # Next.js admin panel
+│   └── shared/              # Types, auth utils, DB schema (Drizzle)
+├── infra/
+│   ├── docker-compose.yml
+│   ├── docker-compose.staging.yml
+│   ├── nginx/ or traefik/   # Proxy config
+│   └── terraform/           # VPS provisioning (Hetzner provider)
+├── .github/
+│   └── workflows/           # CI + deployment pipelines
+└── PLATFORM_REQUIREMENTS.md
+```
+
+npm workspaces (or pnpm workspaces) manage inter-package dependencies.
+
+---
+
+## Environments
+
+| Environment | Purpose                     | Hosting                                  |
+| ----------- | --------------------------- | ---------------------------------------- |
+| local       | Development                 | Docker Compose local                     |
+| staging     | Integration tests, pre-prod | Same Hetzner VPS, separate Compose stack |
+| production  | Live use                    | Hetzner primary VPS                      |
+
+---
+
+## Deployment
+
+**GitHub Actions** for automated CI/CD:
+
+- `pull_request` → run unit tests, type-check, lint
+- `push to staging` → build images, push to GHCR, deploy to staging env
+- `push to main` → build images, push to GHCR, deploy to production
+
+Manual deploy script (`deploy.sh`) as fallback / emergency option.
+
+**Image registry:** GitHub Container Registry (GHCR) — free for public repos.
+
+**Secrets management:**
+
+- GitHub Secrets for CI/CD secrets (DB passwords, SSH keys, etc.)
+- `.env` file on server for runtime secrets (not committed — gitignored)
+- Terraform `terraform.tfvars` file for infra secrets (gitignored or private repo)
+
+---
+
+## Infrastructure as Code
+
+**Terraform** for VPS provisioning:
+
+- Hetzner Cloud provider (`hcloud`)
+- Provisions: server, SSH keys, firewall rules, optionally floating IP
+- Terraform state: local file (fine for personal) or Terraform Cloud free tier
+- Config scripts: public in repo (generic, no secrets)
+- `terraform.tfvars` with actual values: gitignored locally, stored separately
+
+---
+
+## Security
+
+- All traffic over HTTPS (Let's Encrypt via Traefik/Certbot)
+- MCP endpoints protected by existing OAuth 2.0
+- Admin panel protected by session auth (NextAuth.js or custom JWT)
+- PostgreSQL not exposed outside Docker network
+- Firewall: only ports 80, 443, 22 open (Hetzner Cloud Firewall)
+- SSH key-only access, no password auth
+
+---
+
+## Backup
+
+- Daily `pg_dump` → compressed → upload to Hetzner Object Storage (S3-compatible, cheap)
+- Retain last 14 daily backups
+- Cron job inside `db` container or a dedicated `backup` container
+
+---
+
+## Domain
+
+**`alexiuc.dev`** ✅ — registered on Cloudflare Registrar (~€12/year).
+
+| Subdomain           | Purpose                 |
+| ------------------- | ----------------------- |
+| `alexiuc.dev`       | Personal CV / portfolio |
+| `admin.alexiuc.dev` | Next.js admin panel     |
+| `mcp.alexiuc.dev`   | Fastify MCP server(s)   |
+
+DNS managed via Cloudflare — subdomains are free, TLS via Traefik + Let's Encrypt.
+
+---
+
+## Cost Estimate (Monthly)
+
+| Item                         | Cost              |
+| ---------------------------- | ----------------- |
+| Hetzner CX32 (prod)          | ~€8/month         |
+| Hetzner CAX11 (staging)      | — (same VM) ✅    |
+| Hetzner Object Storage (opt) | ~€1/month (10 GB) |
+| Domain `alexiuc.dev`         | ~€1/month         |
+| GitHub Actions               | Free (public)     |
+| **Total (minimal)**          | **~€9/month**     |
+| **Total (with backups)**     | **~€10/month**    |
+
+---
+
+## Data Migration
+
+- One-time migration script: Google Sheets → PostgreSQL
+- Drizzle schema defines tables; migration script reads sheets via API and inserts rows
+- Run manually before cutover
+- Keep Cloudflare Worker running until validated
+
+---
+
+## Decisions Log
+
+| #   | Topic                      | Decision                                          |
+| --- | -------------------------- | ------------------------------------------------- |
+| 1   | Monorepo vs separate repos | Monorepo ✅ — needs final confirmation            |
+| 2   | Infra config location      | Public in this repo, secrets gitignored ✅        |
+| 3   | Deployment trigger         | GitHub Actions ✅                                 |
+| 4   | Staging environment        | Same VM as prod, separate Docker Compose stack ✅ |
+| 5   | Database                   | PostgreSQL + Drizzle ORM ✅                       |
+| 6   | Cost ceiling               | ~€9/month (minimal), ~€10/month (with backups) ✅ |
+| 7   | Domain                     | `alexiuc.dev` ✅ registered on Cloudflare         |
+
+---
+
+## Planned MCP Servers
+
+### Products Manager _(next)_
+
+AI-assisted home inventory and shopping list management.
+
+**Core concepts:**
+
+| Concept             | Description                                                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Product catalog** | Known products: name, category, unit, preferred brand, usual store, default buy quantity, minimum stock level |
+| **Home inventory**  | What is currently at home: product, quantity, location (fridge/pantry/freezer), expiry date                   |
+| **Shopping list**   | Items to buy: product, quantity needed, priority, status (pending/bought)                                     |
+
+**MCP Tools (proposed):**
+
+_Inventory:_
+
+- `products_inventory_get` — list all items at home, optionally filtered by category/location
+- `products_inventory_update` — add or update stock (e.g. "I bought 2 bottles of olive oil")
+- `products_inventory_consume` — reduce stock (e.g. "used the last of the pasta")
+- `products_inventory_get_low_stock` — list items below their minimum stock level
+
+_Shopping list:_
+
+- `products_shopping_list_get` — get current shopping list
+- `products_shopping_list_add` — add item to shopping list
+- `products_shopping_list_mark_bought` — mark item as bought (optionally updates inventory)
+- `products_shopping_list_clear` — clear bought items from list
+- `products_shopping_suggest` — AI-callable: suggest what to buy based on low stock + shopping list
+
+_Catalog:_
+
+- `products_catalog_add` — add a new product to the catalog
+- `products_catalog_get` — look up a product's details
+- `products_catalog_list` — list all known products (filterable by category)
+- `products_catalog_update` — update product details (min stock, preferred brand, etc.)
+
+**DB Schema (PostgreSQL):**
+
+```
+products_catalog (id, name, category, unit, preferred_brand, usual_store, min_stock_qty, default_buy_qty, notes)
+products_inventory (id, product_id FK, quantity, location, expiry_date, updated_at)
+products_shopping_list (id, product_id FK, quantity, priority, notes, status, added_at, bought_at)
+```
+
+**Key AI interaction flows:**
+
+- "What do I need to buy?" → `products_inventory_get_low_stock` + `products_shopping_list_get`
+- "I went shopping, I bought X, Y, Z" → `products_shopping_list_mark_bought` per item → inventory updated
+- "Do I have enough olive oil for this week?" → `products_inventory_get` for olive oil
+- "Add pasta to my shopping list" → `products_shopping_list_add`
+- "Generate a shopping list for me" → `products_shopping_suggest` based on low stock
+
+**Admin panel view (future):**
+
+- Inventory table with inline quantity editing
+- Shopping list with check-off UI
+- Product catalog management
+
+---
+
+## Future Considerations (Out of Scope for Now)
+
+- Nicer domain-specific views (apiary timeline, calorie charts/graphs)
+- Multiple user accounts (currently single user / small invite group)
+- Mobile-friendly admin panel
+- Notification system (e.g., hive inspection reminders, low stock alerts)
+- Barcode scanning integration for inventory updates (mobile)

@@ -1,0 +1,36 @@
+# Staging overrides — extends docker-compose.yml
+# Usage: docker compose -f docker-compose.yml -f docker-compose.staging.yml up
+
+services:
+  db:
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-myhub_staging}
+      POSTGRES_USER: ${POSTGRES_USER:-myhub_staging}
+    volumes:
+      - db_staging_data:/var/lib/postgresql/data
+
+  mcp:
+    environment:
+      NODE_ENV: staging
+      DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mcp.rule=Host(`staging.mcp.alexiuc.dev`)"
+      - "traefik.http.routers.mcp.entrypoints=websecure"
+      - "traefik.http.routers.mcp.tls.certresolver=letsencrypt"
+      - "traefik.http.services.mcp.loadbalancer.server.port=3001"
+
+  admin:
+    environment:
+      NODE_ENV: staging
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://staging.admin.alexiuc.dev}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin.rule=Host(`staging.admin.alexiuc.dev`)"
+      - "traefik.http.routers.admin.entrypoints=websecure"
+      - "traefik.http.routers.admin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.admin.loadbalancer.server.port=3000"
+
+volumes:
+  db_staging_data:

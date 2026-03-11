@@ -1,0 +1,28 @@
+{
+  "name": "@my-hub/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./schema": "./src/db/schema/index.ts",
+    "./types": "./src/types/index.ts",
+    "./auth": "./src/auth/index.ts",
+    "./db": "./src/db/client.ts"
+  },
+  "scripts": {
+    "lint": "pnpm exec eslint src",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.30.10",
+    "postgres": "^3.4.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.2",
+    "drizzle-kit": "^0.21.4",
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Environment files — never commit real secrets
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+# Drizzle generated migrations (keep the directory, ignore generated SQL if preferred)
+# packages/shared/drizzle/
+
+# Terraform state & secrets
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/
+*.tfvars
+!*.tfvars.example
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Docker credentials (if accidentally generated here)
+*.pem
+
+# pnpm lockfile is committed — do not ignore pnpm-lock.yaml
