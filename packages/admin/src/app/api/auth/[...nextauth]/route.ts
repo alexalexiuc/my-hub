@@ -1,7 +1,7 @@
-import NextAuth from "next-auth";
+import NextAuth, { type AuthOptions } from "next-auth";
 import GithubProvider from "next-auth/providers/github";
 
-export const authOptions = {
+export const authOptions: AuthOptions = {
   providers: [
     GithubProvider({
       clientId: process.env["GITHUB_CLIENT_ID"] ?? "",
@@ -9,12 +9,13 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ profile }: { profile?: { login?: string } }) {
+    async signIn(params) {
       // Allow only the configured GitHub username(s)
       const allowedUsers = (process.env["ALLOWED_GITHUB_USERS"] ?? "")
         .split(",")
         .map((u) => u.trim());
-      return allowedUsers.includes(profile?.login ?? "");
+      const githubProfile = params.profile as { login?: string } | undefined;
+      return allowedUsers.includes(githubProfile?.login ?? "");
     },
   },
   pages: {
