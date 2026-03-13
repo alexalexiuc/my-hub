@@ -48,3 +48,5 @@ coverage/
 *.pem
 
 # pnpm lockfile is committed — do not ignore pnpm-lock.yaml
+
+.tmp
