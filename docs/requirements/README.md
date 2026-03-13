@@ -1,7 +1,7 @@
 # Requirements Documentation
 
 This folder contains feature-level requirements for the my-hub platform. It is organised
-into two subfolders that mirror the two main deployable layers of the system.
+into subfolders that mirror deployable layers and cross-cutting platform features.
 
 ## Subfolders
 
@@ -19,6 +19,12 @@ Requirements for the Hub Dashboard webapp — the Next.js UI served at `hub.alex
 Each file describes one functional area of the Hub Dashboard panel: OAuth client management,
 data explorer, user settings, etc.
 
+### `platform/`
+
+Requirements for cross-cutting platform capabilities that span multiple packages or
+services (for example, shared logging, observability, auth foundations, and infra
+contracts used by both Hub and MCP services).
+
 ---
 
 ## File Naming Convention
@@ -35,6 +41,7 @@ Examples:
 - `mcps/feature-calorie-tracker.md`
 - `hub/feature-oauth-clients.md`
 - `hub/feature-data-explorer.md`
+- `platform/feature-api-request-logging.md`
 
 Use `_template.md` (in this folder) as the starting point for every new file.
 

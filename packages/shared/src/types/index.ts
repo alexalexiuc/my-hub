@@ -8,6 +8,7 @@ import type {
   products,
   inventory,
   shoppingListItems,
+  apiRequestLogs,
 } from "../db/schema/index.js";
 
 // Hive
@@ -29,3 +30,7 @@ export type Product = InferSelectModel<typeof products>;
 export type NewProduct = InferInsertModel<typeof products>;
 export type Inventory = InferSelectModel<typeof inventory>;
 export type ShoppingListItem = InferSelectModel<typeof shoppingListItems>;
+
+// API Request Logs
+export type ApiRequestLog = InferSelectModel<typeof apiRequestLogs>;
+export type NewApiRequestLog = InferInsertModel<typeof apiRequestLogs>;
