@@ -18,23 +18,23 @@ analytics while enforcing bounded retention.
 
 ## Functional Requirements
 
-| ID    | Requirement                                                                                                                                  |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| ID    | Requirement                                                                                                                                   |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | FR-01 | The platform must persist structured API log events in PostgreSQL with service, request metadata, response metadata, and optional error text. |
-| FR-02 | The log model must support both service sources: `hub` and `mcp`.                                                                           |
-| FR-03 | Logs older than the configured retention window (14-30 days, default 30 days) must be removable via scheduled cleanup.                     |
+| FR-02 | The log model must support both service sources: `hub` and `mcp`.                                                                             |
+| FR-03 | Logs older than the configured retention window (14-30 days, default 30 days) must be removable via scheduled cleanup.                        |
 
 ---
 
 ## Technical Requirements
 
-| ID    | Requirement                                                                                                                                                         |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TR-01 | PostgreSQL extensions `pgcrypto`, `pg_trgm`, and `pg_stat_statements` must be enabled via migration SQL.                                                         |
+| ID    | Requirement                                                                                                                                                                                  |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TR-01 | PostgreSQL extensions `pgcrypto`, `pg_trgm`, and `pg_stat_statements` must be enabled via migration SQL.                                                                                     |
 | TR-02 | The table `api_request_logs` must include columns: `id`, `service`, `created_at`, `method`, `path`, `status_code`, `duration_ms`, `ip`, `user_id`, `request_body`, `response_body`, `error`. |
-| TR-03 | Indexes must exist on `created_at`, `path`, `user_id`, `status_code`, and `service` for common dashboard and filter queries.                                    |
-| TR-04 | A trigram GIN index on `error` should be present to accelerate fuzzy search across failure messages.                                                              |
-| TR-05 | A typed Drizzle schema definition for `api_request_logs` must be available from `packages/shared/src/db/schema` and exported through shared schema/types barrels. |
+| TR-03 | Indexes must exist on `created_at`, `path`, `user_id`, `status_code`, and `service` for common dashboard and filter queries.                                                                 |
+| TR-04 | A trigram GIN index on `error` should be present to accelerate fuzzy search across failure messages.                                                                                         |
+| TR-05 | A typed Drizzle schema definition for `api_request_logs` must be available from `packages/shared/src/db/schema` and exported through shared schema/types barrels.                            |
 
 ---
 
