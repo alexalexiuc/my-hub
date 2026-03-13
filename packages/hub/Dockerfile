@@ -9,12 +9,12 @@ COPY pnpm-workspace.yaml ./
 COPY package.json ./
 COPY tsconfig.base.json ./
 COPY packages/shared/package.json ./packages/shared/
-COPY packages/admin/package.json ./packages/admin/
+COPY packages/hub/package.json ./packages/hub/
 
 RUN pnpm install --frozen-lockfile
 
 COPY packages/shared ./packages/shared
-COPY packages/admin ./packages/admin
+COPY packages/hub ./packages/hub
 
 RUN pnpm --filter @my-hub/shared build
 RUN pnpm --filter @my-hub/admin build
@@ -27,12 +27,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/packages/admin/.next/standalone ./
-COPY --from=builder /app/packages/admin/.next/static ./packages/admin/.next/static
-COPY --from=builder /app/packages/admin/public ./packages/admin/public
+COPY --from=builder /app/packages/hub/.next/standalone ./
+COPY --from=builder /app/packages/hub/.next/static ./packages/hub/.next/static
+COPY --from=builder /app/packages/hub/public ./packages/hub/public
 
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 
-CMD ["node", "packages/admin/server.js"]
+CMD ["node", "packages/hub/server.js"]

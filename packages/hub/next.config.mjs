@@ -1,3 +1,5 @@
+import "dotenv-mono/load";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",

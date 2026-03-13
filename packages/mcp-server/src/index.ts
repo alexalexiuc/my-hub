@@ -1,3 +1,4 @@
+import "dotenv-mono/load";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { healthRoutes } from "./routes/health.js";

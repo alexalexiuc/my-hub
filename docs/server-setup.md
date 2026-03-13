@@ -196,6 +196,7 @@ reboots and will be used by every `docker compose pull` invocation.
 
 The Docker Compose stack reads secrets from `/opt/my-hub/.env`. This file is
 gitignored and must be created manually on the server.
+This is also the single env file used for local development (via dotenv-mono).
 
 ```bash
 su - deploy
@@ -209,10 +210,10 @@ Fill in every variable:
 | ---------------------- | --------------------------------------------------- |
 | `POSTGRES_PASSWORD`    | Strong random password, e.g. `openssl rand -hex 32` |
 | `NEXTAUTH_SECRET`      | 32-byte random string: `openssl rand -base64 32`    |
-| `GITHUB_CLIENT_ID`     | From your GitHub OAuth App                          |
-| `GITHUB_CLIENT_SECRET` | From your GitHub OAuth App                          |
+| `GOOGLE_CLIENT_ID`     | From your Google OAuth client                       |
+| `GOOGLE_CLIENT_SECRET` | From your Google OAuth client                       |
 | `NEXTAUTH_URL`         | `https://hub.alexiuc.dev`                           |
-| `ALLOWED_GITHUB_USERS` | Your GitHub username(s), comma-separated            |
+| `ALLOWED_EMAILS`       | Allowed email(s), comma-separated                   |
 
 ---
 

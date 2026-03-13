@@ -1,21 +1,26 @@
 import NextAuth, { type AuthOptions } from "next-auth";
-import GithubProvider from "next-auth/providers/github";
+import GoogleProvider from "next-auth/providers/google";
 
 export const authOptions: AuthOptions = {
   providers: [
-    GithubProvider({
-      clientId: process.env["GITHUB_CLIENT_ID"] ?? "",
-      clientSecret: process.env["GITHUB_CLIENT_SECRET"] ?? "",
+    GoogleProvider({
+      clientId: process.env["GOOGLE_CLIENT_ID"] ?? "",
+      clientSecret: process.env["GOOGLE_CLIENT_SECRET"] ?? "",
     }),
   ],
   callbacks: {
-    async signIn(params) {
-      // Allow only the configured GitHub username(s)
-      const allowedUsers = (process.env["ALLOWED_GITHUB_USERS"] ?? "")
+    async signIn({ user }) {
+      // Allow only the configured email(s)
+      const allowedEmails = (process.env["ALLOWED_EMAILS"] ?? "")
         .split(",")
-        .map((u) => u.trim());
-      const githubProfile = params.profile as { login?: string } | undefined;
-      return allowedUsers.includes(githubProfile?.login ?? "");
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean);
+
+      if (allowedEmails.length === 0) return false;
+      const email = user.email?.trim().toLowerCase();
+      if (!email) return false;
+
+      return allowedEmails.includes(email);
     },
   },
   pages: {

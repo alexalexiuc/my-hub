@@ -50,3 +50,7 @@ coverage/
 # pnpm lockfile is committed — do not ignore pnpm-lock.yaml
 
 .tmp
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
