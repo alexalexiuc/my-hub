@@ -42,15 +42,15 @@ depth.
 
 In the Hetzner console → **Firewalls** → create a firewall with these **inbound** rules:
 
-| Protocol | Port(s)  | Source        | Purpose               |
-|----------|----------|---------------|-----------------------|
-| TCP      | 22       | `0.0.0.0/0`  | SSH                   |
-| TCP      | 80       | `0.0.0.0/0`  | HTTP (redirected to HTTPS by Traefik) |
-| TCP      | 443      | `0.0.0.0/0`  | HTTPS                 |
+| Protocol | Port(s) | Source      | Purpose                               |
+| -------- | ------- | ----------- | ------------------------------------- |
+| TCP      | 22      | `0.0.0.0/0` | SSH                                   |
+| TCP      | 80      | `0.0.0.0/0` | HTTP (redirected to HTTPS by Traefik) |
+| TCP      | 443     | `0.0.0.0/0` | HTTPS                                 |
 
 > **Note on SSH exposure:** GitHub Actions runners use dynamically allocated
 > IPs from a large pool, so restricting port 22 to a fixed range is not
-> practical for automated deployments.  The key-only auth configured in §4
+> practical for automated deployments. The key-only auth configured in §4
 > and fail2ban (recommended below) mitigate brute-force risk.
 
 Block **all other inbound ports** (including 5432 — PostgreSQL must never be
@@ -187,14 +187,14 @@ su - deploy
 echo "<YOUR_GHCR_TOKEN>" | docker login ghcr.io -u alexalexiuc --password-stdin
 ```
 
-Docker saves credentials in `~/.docker/config.json`.  They persist across
+Docker saves credentials in `~/.docker/config.json`. They persist across
 reboots and will be used by every `docker compose pull` invocation.
 
 ---
 
 ## 9. Create the `.env` file
 
-The Docker Compose stack reads secrets from `/opt/my-hub/.env`.  This file is
+The Docker Compose stack reads secrets from `/opt/my-hub/.env`. This file is
 gitignored and must be created manually on the server.
 
 ```bash
@@ -205,26 +205,26 @@ nano /opt/my-hub/.env   # or your editor of choice
 
 Fill in every variable:
 
-| Variable                | Notes                                              |
-|-------------------------|----------------------------------------------------|
-| `POSTGRES_PASSWORD`     | Strong random password, e.g. `openssl rand -hex 32` |
-| `NEXTAUTH_SECRET`       | 32-byte random string: `openssl rand -base64 32`   |
-| `GITHUB_CLIENT_ID`      | From your GitHub OAuth App                        |
-| `GITHUB_CLIENT_SECRET`  | From your GitHub OAuth App                        |
-| `NEXTAUTH_URL`          | `https://admin.alexiuc.dev`                       |
-| `ALLOWED_GITHUB_USERS`  | Your GitHub username(s), comma-separated           |
+| Variable               | Notes                                               |
+| ---------------------- | --------------------------------------------------- |
+| `POSTGRES_PASSWORD`    | Strong random password, e.g. `openssl rand -hex 32` |
+| `NEXTAUTH_SECRET`      | 32-byte random string: `openssl rand -base64 32`    |
+| `GITHUB_CLIENT_ID`     | From your GitHub OAuth App                          |
+| `GITHUB_CLIENT_SECRET` | From your GitHub OAuth App                          |
+| `NEXTAUTH_URL`         | `https://hub.alexiuc.dev`                           |
+| `ALLOWED_GITHUB_USERS` | Your GitHub username(s), comma-separated            |
 
 ---
 
 ## 10. Prepare the Traefik ACME directory
 
 Traefik stores Let's Encrypt certificates in a volume mapped to
-`/etc/traefik/acme/acme.json` inside the container.  The Docker volume handles
+`/etc/traefik/acme/acme.json` inside the container. The Docker volume handles
 this automatically, but the file **permissions must be 600** or Traefik will
 refuse to write to it.
 
 The `traefik_acme` named volume is created automatically by Docker Compose on
-first run.  If you ever need to pre-create it manually:
+first run. If you ever need to pre-create it manually:
 
 ```bash
 # Only needed if you mount a host directory instead of a named volume
@@ -241,13 +241,13 @@ chmod 600 /opt/my-hub/infra/traefik/acme/acme.json
 Point the following DNS A records at your server's public IP in Cloudflare
 (or wherever your domain is managed):
 
-| Record              | Type | Value          |
-|---------------------|------|----------------|
-| `admin.alexiuc.dev` | A    | `<SERVER_IP>`  |
-| `mcp.alexiuc.dev`   | A    | `<SERVER_IP>`  |
+| Record            | Type | Value         |
+| ----------------- | ---- | ------------- |
+| `hub.alexiuc.dev` | A    | `<SERVER_IP>` |
+| `mcp.alexiuc.dev` | A    | `<SERVER_IP>` |
 
 Set the Cloudflare proxy status to **DNS only** (grey cloud) while you first
-bring the stack up.  Traefik handles TLS directly; Cloudflare proxying can be
+bring the stack up. Traefik handles TLS directly; Cloudflare proxying can be
 re-enabled later if desired.
 
 ---
@@ -275,11 +275,11 @@ docker compose -f infra/docker-compose.yml logs --tail=50 <service>
 Open **Settings → Secrets and variables → Actions** in the
 `alexalexiuc/my-hub` repository and add the following **repository secrets**:
 
-| Secret name     | Value                                                   |
-|-----------------|---------------------------------------------------------|
-| `VPS_HOST`      | Public IPv4 address of the server                      |
-| `VPS_USER`      | `deploy` (or whichever user you created in §5)         |
-| `VPS_SSH_KEY`   | Contents of the **private** key `~/.ssh/my-hub-deploy` (generated in §5). Paste the full key including `-----BEGIN...` / `-----END...` lines and preserve newlines. |
+| Secret name   | Value                                                                                                                                                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VPS_HOST`    | Public IPv4 address of the server                                                                                                                                   |
+| `VPS_USER`    | `deploy` (or whichever user you created in §5)                                                                                                                      |
+| `VPS_SSH_KEY` | Contents of the **private** key `~/.ssh/my-hub-deploy` (generated in §5). Paste the full key including `-----BEGIN...` / `-----END...` lines and preserve newlines. |
 
 The deploy workflow also uses the built-in `GITHUB_TOKEN` secret
 (auto-provided by GitHub) to log in to GHCR and push/pull images — no
@@ -294,7 +294,7 @@ approval before production deploys.
 
 ## 14. Verify automated deployment
 
-Push a commit to `main`.  The `Deploy` workflow will:
+Push a commit to `main`. The `Deploy` workflow will:
 
 1. Build and push images to GHCR.
 2. SSH into the server as `deploy`.

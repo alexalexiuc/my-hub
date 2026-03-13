@@ -50,17 +50,17 @@ services:
       - "traefik.http.services.mcp.loadbalancer.server.port=3001"
 
   # ---------------------------------------------------------------------------
-  # Admin Panel (Next.js)
+  # hub Panel (Next.js)
   # ---------------------------------------------------------------------------
-  admin:
+  hub:
     build:
       context: ..
-      dockerfile: packages/admin/Dockerfile
+      dockerfile: packages/hub/Dockerfile
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 3000
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://admin.alexiuc.dev}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://hub.alexiuc.dev}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:?GITHUB_CLIENT_ID is required}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:?GITHUB_CLIENT_SECRET is required}
@@ -74,10 +74,10 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.admin.rule=Host(`admin.alexiuc.dev`)"
-      - "traefik.http.routers.admin.entrypoints=websecure"
-      - "traefik.http.routers.admin.tls.certresolver=letsencrypt"
-      - "traefik.http.services.admin.loadbalancer.server.port=3000"
+      - "traefik.http.routers.hub.rule=Host(`hub.alexiuc.dev`)"
+      - "traefik.http.routers.hub.entrypoints=websecure"
+      - "traefik.http.routers.hub.tls.certresolver=letsencrypt"
+      - "traefik.http.services.hub.loadbalancer.server.port=3000"
 
   # ---------------------------------------------------------------------------
   # Traefik v3 reverse proxy
