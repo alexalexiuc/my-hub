@@ -30,9 +30,9 @@ IDs are never reused or renumbered — even when requirements are removed.
 Describe observable behaviour: what the system must accept, return, or enforce.
 -->
 
-| ID    | Requirement |
-| ----- | ----------- |
-| FR-01 | _Describe the first functional requirement here._ |
+| ID    | Requirement                                        |
+| ----- | -------------------------------------------------- |
+| FR-01 | _Describe the first functional requirement here._  |
 | FR-02 | _Describe the second functional requirement here._ |
 
 ---
@@ -44,9 +44,9 @@ TR-xx covers implementation-level constraints: performance targets, security rul
 technology choices, data-model invariants, API contracts, etc.
 -->
 
-| ID    | Requirement |
-| ----- | ----------- |
-| TR-01 | _Describe the first technical requirement here._ |
+| ID    | Requirement                                       |
+| ----- | ------------------------------------------------- |
+| TR-01 | _Describe the first technical requirement here._  |
 | TR-02 | _Describe the second technical requirement here._ |
 
 ---

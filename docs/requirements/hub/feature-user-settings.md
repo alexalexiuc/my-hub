@@ -1,10 +1,10 @@
 # Feature: User & Settings
 
-| Field    | Value                                  |
-| -------- | -------------------------------------- |
-| Status   | draft                                  |
-| Priority | low                                    |
-| File     | `hub/feature-user-settings.md`         |
+| Field    | Value                          |
+| -------- | ------------------------------ |
+| Status   | draft                          |
+| Priority | low                            |
+| File     | `hub/feature-user-settings.md` |
 
 ---
 
@@ -19,26 +19,26 @@ settings page rather than a full multi-user account management system.
 
 ## Functional Requirements
 
-| ID    | Requirement |
-| ----- | ----------- |
-| FR-01 | The admin must be able to change their login password from the settings page. |
+| ID    | Requirement                                                                                                                                                   |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-01 | The admin must be able to change their login password from the settings page.                                                                                 |
 | FR-02 | The admin must be able to view and regenerate any platform-level API keys (e.g. keys used by integrations). Regeneration invalidates the old key immediately. |
-| FR-03 | The admin must be able to update application preferences (e.g. timezone, default daily calorie goal, display language if applicable). |
-| FR-04 | The settings page must display the currently logged-in user's identity (username / email) and session information. |
-| FR-05 | The admin must be able to log out, which invalidates the current session server-side. |
+| FR-03 | The admin must be able to update application preferences (e.g. timezone, default daily calorie goal, display language if applicable).                         |
+| FR-04 | The settings page must display the currently logged-in user's identity (username / email) and session information.                                            |
+| FR-05 | The admin must be able to log out, which invalidates the current session server-side.                                                                         |
 
 ---
 
 ## Technical Requirements
 
-| ID    | Requirement |
-| ----- | ----------- |
+| ID    | Requirement                                                                                                                                               |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | TR-01 | Authentication for the admin panel uses NextAuth.js (credentials provider) or a custom JWT session; the approach must be consistent across all Hub pages. |
-| TR-02 | Passwords are stored as bcrypt hashes; plaintext passwords are never logged or persisted. |
-| TR-03 | Session invalidation on logout must be server-side (token blacklist or database session table) so that stolen tokens cannot be replayed after logout. |
-| TR-04 | API keys are stored as bcrypt hashes; the plaintext is shown only once at generation time. |
-| TR-05 | The settings page lives in `packages/admin` and all write operations go through Next.js Server Actions or API routes. |
-| TR-06 | If GitHub/Google OAuth login is used instead of username/password, the password-change requirement (FR-01) is replaced by a "connected accounts" view. |
+| TR-02 | Passwords are stored as bcrypt hashes; plaintext passwords are never logged or persisted.                                                                 |
+| TR-03 | Session invalidation on logout must be server-side (token blacklist or database session table) so that stolen tokens cannot be replayed after logout.     |
+| TR-04 | API keys are stored as bcrypt hashes; the plaintext is shown only once at generation time.                                                                |
+| TR-05 | The settings page lives in `packages/admin` and all write operations go through Next.js Server Actions or API routes.                                     |
+| TR-06 | If GitHub/Google OAuth login is used instead of username/password, the password-change requirement (FR-01) is replaced by a "connected accounts" view.    |
 
 ---
 

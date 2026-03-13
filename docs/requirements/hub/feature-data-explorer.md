@@ -1,10 +1,10 @@
 # Feature: Data Explorer
 
-| Field    | Value                                  |
-| -------- | -------------------------------------- |
-| Status   | draft                                  |
-| Priority | medium                                 |
-| File     | `hub/feature-data-explorer.md`         |
+| Field    | Value                          |
+| -------- | ------------------------------ |
+| Status   | draft                          |
+| Priority | medium                         |
+| File     | `hub/feature-data-explorer.md` |
 
 ---
 
@@ -22,33 +22,33 @@ apiary inspection timeline and calorie charts.
 
 ### Phase 1 — Raw Table Views
 
-| ID    | Requirement |
-| ----- | ----------- |
+| ID    | Requirement                                                                                                                                                                     |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | FR-01 | The admin must be able to browse any domain table (hive inspections, meals, profiles, hive todos, product inventory, shopping list, product catalog) in a paginated table view. |
-| FR-02 | Each row must be editable inline or via a detail drawer/modal. |
-| FR-03 | The admin must be able to delete a row, with a confirmation prompt before deletion. |
-| FR-04 | The admin must be able to create a new record in any table via a form. |
-| FR-05 | Tables must support sorting by any column and basic text filtering/search. |
+| FR-02 | Each row must be editable inline or via a detail drawer/modal.                                                                                                                  |
+| FR-03 | The admin must be able to delete a row, with a confirmation prompt before deletion.                                                                                             |
+| FR-04 | The admin must be able to create a new record in any table via a form.                                                                                                          |
+| FR-05 | Tables must support sorting by any column and basic text filtering/search.                                                                                                      |
 
 ### Phase 2 — Domain-Specific Views (future)
 
-| ID    | Requirement |
-| ----- | ----------- |
+| ID    | Requirement                                                                                                                       |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------- |
 | FR-06 | An apiary timeline view showing hive inspection history grouped by hive, with observations and actions displayed chronologically. |
-| FR-07 | A calorie chart view showing daily calorie intake over a selectable date range, with macro breakdown. |
+| FR-07 | A calorie chart view showing daily calorie intake over a selectable date range, with macro breakdown.                             |
 
 ---
 
 ## Technical Requirements
 
-| ID    | Requirement |
-| ----- | ----------- |
+| ID    | Requirement                                                                                                                                           |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | TR-01 | The Data Explorer lives entirely in `packages/admin`. Data is fetched via Next.js Server Actions or API routes that query PostgreSQL through Drizzle. |
-| TR-02 | No raw SQL strings are accepted from the browser — all queries are parameterised Drizzle calls to prevent injection. |
-| TR-03 | Only authenticated admin users can access the Data Explorer. |
-| TR-04 | Pagination must be server-side; the browser never receives the full table contents in a single response. |
-| TR-05 | Delete operations must use a soft-delete pattern or a confirmation gate to reduce risk of accidental data loss. |
-| TR-06 | Phase 2 chart views should use a lightweight charting library (e.g. Recharts) already compatible with the Next.js App Router. |
+| TR-02 | No raw SQL strings are accepted from the browser — all queries are parameterised Drizzle calls to prevent injection.                                  |
+| TR-03 | Only authenticated admin users can access the Data Explorer.                                                                                          |
+| TR-04 | Pagination must be server-side; the browser never receives the full table contents in a single response.                                              |
+| TR-05 | Delete operations must use a soft-delete pattern or a confirmation gate to reduce risk of accidental data loss.                                       |
+| TR-06 | Phase 2 chart views should use a lightweight charting library (e.g. Recharts) already compatible with the Next.js App Router.                         |
 
 ---
 
