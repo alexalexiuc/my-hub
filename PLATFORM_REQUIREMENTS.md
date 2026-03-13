@@ -34,7 +34,7 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 
 | Service | Technology         | Role                                           |
 | ------- | ------------------ | ---------------------------------------------- |
-| `db`    | PostgreSQL 16      | Primary datastore replacing Google Sheets      |
+| `db`    | PostgreSQL 18      | Primary datastore replacing Google Sheets      |
 | `mcp`   | Node.js / Fastify  | MCP server(s) — hive-manager, calories, future |
 | `hub`   | Next.js            | Admin panel / personal cabinet                 |
 | `proxy` | Nginx (or Traefik) | TLS termination, routing, static assets        |
@@ -43,7 +43,7 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 
 ### Database
 
-**Choice: PostgreSQL 16**
+**Choice: PostgreSQL 18**
 
 - Familiar, battle-tested, excellent TypeScript support
 - Relational model is a natural fit for structured hive/calorie data
