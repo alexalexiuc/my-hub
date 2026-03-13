@@ -14,6 +14,9 @@ importers:
       '@next/eslint-plugin-next':
         specifier: ^16.1.6
         version: 16.1.6
+      '@types/node':
+        specifier: ^22.13.14
+        version: 22.19.15
       eslint:
         specifier: ^10.0.3
         version: 10.0.3(jiti@1.21.7)
@@ -55,8 +58,8 @@ importers:
         version: 18.3.1(react@18.3.1)
     devDependencies:
       '@types/node':
-        specifier: ^20.14.2
-        version: 20.19.37
+        specifier: ^22.13.14
+        version: 22.19.15
       '@types/react':
         specifier: ^18.3.3
         version: 18.3.28
@@ -77,7 +80,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^1.6.0
-        version: 1.6.1(@types/node@20.19.37)
+        version: 1.6.1(@types/node@22.19.15)
 
   packages/mcp-server:
     dependencies:
@@ -95,8 +98,8 @@ importers:
         version: 4.29.1
     devDependencies:
       '@types/node':
-        specifier: ^20.14.2
-        version: 20.19.37
+        specifier: ^22.13.14
+        version: 22.19.15
       tsx:
         specifier: ^4.15.1
         version: 4.21.0
@@ -105,7 +108,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^1.6.0
-        version: 1.6.1(@types/node@20.19.37)
+        version: 1.6.1(@types/node@22.19.15)
 
   packages/shared:
     dependencies:
@@ -117,8 +120,8 @@ importers:
         version: 3.4.8
     devDependencies:
       '@types/node':
-        specifier: ^20.14.2
-        version: 20.19.37
+        specifier: ^22.13.14
+        version: 22.19.15
       drizzle-kit:
         specifier: ^0.21.4
         version: 0.21.4
@@ -1200,8 +1203,8 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
-  '@types/node@20.19.37':
-    resolution: {integrity: sha512-8kzdPJ3FsNsVIurqBs7oodNnCEVbni9yUEkaHbgptDACOPW04jimGagZ51E6+lXUwJjgnBw+hyko/lkFWCldqw==}
+  '@types/node@22.19.15':
+    resolution: {integrity: sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg==}
 
   '@types/prop-types@15.7.15':
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
@@ -3531,7 +3534,7 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
-  '@types/node@20.19.37':
+  '@types/node@22.19.15':
     dependencies:
       undici-types: 6.21.0
 
@@ -5260,13 +5263,13 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vite-node@1.6.1(@types/node@20.19.37):
+  vite-node@1.6.1(@types/node@22.19.15):
     dependencies:
       cac: 6.7.14
       debug: 4.4.3
       pathe: 1.1.2
       picocolors: 1.1.1
-      vite: 5.4.21(@types/node@20.19.37)
+      vite: 5.4.21(@types/node@22.19.15)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -5278,16 +5281,16 @@ snapshots:
       - supports-color
       - terser
 
-  vite@5.4.21(@types/node@20.19.37):
+  vite@5.4.21(@types/node@22.19.15):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.5.8
       rollup: 4.59.0
     optionalDependencies:
-      '@types/node': 20.19.37
+      '@types/node': 22.19.15
       fsevents: 2.3.3
 
-  vitest@1.6.1(@types/node@20.19.37):
+  vitest@1.6.1(@types/node@22.19.15):
     dependencies:
       '@vitest/expect': 1.6.1
       '@vitest/runner': 1.6.1
@@ -5306,11 +5309,11 @@ snapshots:
       strip-literal: 2.1.1
       tinybench: 2.9.0
       tinypool: 0.8.4
-      vite: 5.4.21(@types/node@20.19.37)
-      vite-node: 1.6.1(@types/node@20.19.37)
+      vite: 5.4.21(@types/node@22.19.15)
+      vite-node: 1.6.1(@types/node@22.19.15)
       why-is-node-running: 2.3.0
     optionalDependencies:
-      '@types/node': 20.19.37
+      '@types/node': 22.19.15
     transitivePeerDependencies:
       - less
       - lightningcss
