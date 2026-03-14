@@ -12,8 +12,7 @@
 
 The Calorie Tracker MCP server lets an AI client log meals, retrieve nutritional
 summaries, and manage the user's dietary profile on behalf of the authenticated user.
-It currently runs on Cloudflare Workers backed by Google Sheets; the target is a
-Fastify module backed by PostgreSQL on the self-hosted platform.
+Implemented as a Fastify module backed by PostgreSQL on the self-hosted platform.
 
 ---
 
@@ -28,7 +27,7 @@ Fastify module backed by PostgreSQL on the self-hosted platform.
 | FR-05 | The server must expose a tool to delete a previously logged meal by ID.                                                                 |
 | FR-06 | The server must expose a tool to get remaining calories for the day (goal minus logged).                                                |
 | FR-07 | All tools must be scoped to the authenticated user.                                                                                     |
-| FR-08 | The server must be reachable at the `/mcp/calories/:userId` route of the shared MCP Fastify app.                                        |
+| FR-08 | The server must be reachable at `POST /mcp/calories` of the shared MCP Fastify app; userId is resolved from the Bearer token.           |
 
 ---
 
@@ -36,12 +35,11 @@ Fastify module backed by PostgreSQL on the self-hosted platform.
 
 | ID    | Requirement                                                                                                               |
 | ----- | ------------------------------------------------------------------------------------------------------------------------- |
-| TR-01 | Implementation lives in `packages/mcp-server` as a self-contained module (e.g. `src/servers/calories/`).                  |
-| TR-02 | The DB schema (meals, user profiles) must be defined in `packages/shared/src/db/schema` using Drizzle ORM.                |
-| TR-03 | Access is protected by OAuth 2.0; the shared OAuth middleware from the Cloudflare Worker must be reused.                  |
-| TR-04 | A one-time migration script must transfer existing meal and profile data from Google Sheets to PostgreSQL before cutover. |
-| TR-05 | The Cloudflare Worker implementation remains running until the new platform is validated in staging.                      |
-| TR-06 | MCP transport must support both SSE and Streamable HTTP as offered by the MCP SDK.                                        |
+| TR-01 | Implementation lives in `packages/mcp-server/src/calories/` — `server.ts` wires tools; `tools/` contains profile, meals, summary handlers. |
+| TR-02 | DB schema (`calorie_profiles`, `meal_logs`) is in `packages/shared/src/db/schema` using Drizzle ORM with `real()` columns for all decimals. |
+| TR-03 | Access is protected by OAuth 2.1 PKCE; `mcpAuthHandler` validates the Bearer token and attaches `userId` to the request.                    |
+| TR-04 | All DB queries go through `packages/shared/src/services/calories/` — no raw Drizzle in mcp-server.                                          |
+| TR-05 | MCP transport uses `WebStandardStreamableHTTPServerTransport` in stateless mode (new server instance per POST).                             |
 
 ---
 
@@ -54,8 +52,8 @@ Fastify module backed by PostgreSQL on the self-hosted platform.
 
 ## Acceptance Criteria
 
-- [ ] All calorie-tracker MCP tools are available on the new Fastify-based server and return the same data shape as the Cloudflare Worker version.
-- [ ] Data previously in Google Sheets is accessible via the new server after running the migration script.
-- [ ] A Claude client authenticated with a valid OAuth token can log a meal, retrieve the daily summary, and delete the meal.
-- [ ] An unauthenticated request returns a 401 error.
+- [x] All calorie-tracker MCP tools are available on the Fastify-based server (`log_meal`, `get_meals`, `delete_meal`, `get_daily_summary`, `get_weekly_summary`, `get_remaining`, `get_profile`, `setup_profile`).
+- [x] A Claude client authenticated with a valid OAuth token can log a meal, retrieve the daily summary, and delete the meal.
+- [x] An unauthenticated request returns 401.
+- [ ] Data previously in Google Sheets is migrated to PostgreSQL (one-time migration script not yet written).
 - [ ] Unit tests cover the core tool handlers.

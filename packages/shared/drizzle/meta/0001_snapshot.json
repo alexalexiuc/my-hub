@@ -85,37 +85,27 @@
       "indexes": {
         "idx_logs_created_at": {
           "name": "idx_logs_created_at",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         },
         "idx_logs_path": {
           "name": "idx_logs_path",
-          "columns": [
-            "path"
-          ],
+          "columns": ["path"],
           "isUnique": false
         },
         "idx_logs_user": {
           "name": "idx_logs_user",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "idx_logs_status": {
           "name": "idx_logs_status",
-          "columns": [
-            "status_code"
-          ],
+          "columns": ["status_code"],
           "isUnique": false
         },
         "idx_logs_service": {
           "name": "idx_logs_service",
-          "columns": [
-            "service"
-          ],
+          "columns": ["service"],
           "isUnique": false
         }
       },
@@ -168,9 +158,7 @@
         "calorie_profiles_user_id_unique": {
           "name": "calorie_profiles_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id"
-          ]
+          "columns": ["user_id"]
         }
       }
     },
@@ -307,12 +295,8 @@
           "name": "hive_logs_hive_id_hives_id_fk",
           "tableFrom": "hive_logs",
           "tableTo": "hives",
-          "columnsFrom": [
-            "hive_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hive_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -369,12 +353,8 @@
           "name": "hive_todos_hive_id_hives_id_fk",
           "tableFrom": "hive_todos",
           "tableTo": "hives",
-          "columnsFrom": [
-            "hive_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hive_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -480,12 +460,8 @@
           "name": "inventory_product_id_products_id_fk",
           "tableFrom": "inventory",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -555,9 +531,7 @@
         "products_barcode_unique": {
           "name": "products_barcode_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "barcode"
-          ]
+          "columns": ["barcode"]
         }
       }
     },
@@ -616,12 +590,8 @@
           "name": "shopping_list_items_product_id_products_id_fk",
           "tableFrom": "shopping_list_items",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }

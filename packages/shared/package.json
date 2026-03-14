@@ -8,7 +8,8 @@
     "./types": "./src/types/index.ts",
     "./auth": "./src/auth/index.ts",
     "./db": "./src/db/client.ts",
-    "./services": "./src/services/index.ts"
+    "./services": "./src/services/index.ts",
+    "./utils": "./src/utils/index.ts"
   },
   "scripts": {
     "lint": "pnpm exec eslint src",

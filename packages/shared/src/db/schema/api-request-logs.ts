@@ -1,23 +1,11 @@
-import {
-  bigserial,
-  index,
-  inet,
-  integer,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { bigserial, index, inet, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const apiRequestLogs = pgTable(
   "api_request_logs",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
     service: text("service").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     method: text("method").notNull(),
     path: text("path").notNull(),
     statusCode: integer("status_code"),

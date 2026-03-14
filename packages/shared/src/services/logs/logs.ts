@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, lte } from "drizzle-orm";
-import { db } from "../db/client.js";
-import { apiRequestLogs } from "../db/schema/api-request-logs.js";
-import type { ApiRequestLog, NewApiRequestLog } from "../types/index.js";
+import { db } from "../../db/client.js";
+import { apiRequestLogs } from "../../db/schema/api-request-logs.js";
+import type { ApiRequestLog, NewApiRequestLog } from "../../types/index.js";
 
 // ---------------------------------------------------------------------------
 // API Request Log service
@@ -25,9 +25,7 @@ export async function putLog(data: PutLogData): Promise<ApiRequestLog> {
   return row;
 }
 
-export async function getLogs(
-  filter: GetLogsFilter = {},
-): Promise<ApiRequestLog[]> {
+export async function getLogs(filter: GetLogsFilter = {}): Promise<ApiRequestLog[]> {
   const { service, userId, statusCode, from, to, limit = 100 } = filter;
 
   return db
@@ -37,9 +35,7 @@ export async function getLogs(
       and(
         service !== undefined ? eq(apiRequestLogs.service, service) : undefined,
         userId !== undefined ? eq(apiRequestLogs.userId, userId) : undefined,
-        statusCode !== undefined
-          ? eq(apiRequestLogs.statusCode, statusCode)
-          : undefined,
+        statusCode !== undefined ? eq(apiRequestLogs.statusCode, statusCode) : undefined,
         from !== undefined ? gte(apiRequestLogs.createdAt, from) : undefined,
         to !== undefined ? lte(apiRequestLogs.createdAt, to) : undefined,
       ),

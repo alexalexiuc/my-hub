@@ -1,5 +1,8 @@
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import type {
+  users,
+  oauthClients,
+  mcpServers,
   hives,
   hiveLogs,
   hiveTodos,
@@ -10,6 +13,14 @@ import type {
   shoppingListItems,
   apiRequestLogs,
 } from "../db/schema/index.js";
+
+// Identity & Auth
+export type User = InferSelectModel<typeof users>;
+export type NewUser = InferInsertModel<typeof users>;
+export type OAuthClient = InferSelectModel<typeof oauthClients>;
+export type NewOAuthClient = InferInsertModel<typeof oauthClients>;
+export type McpServer = InferSelectModel<typeof mcpServers>;
+export type NewMcpServer = InferInsertModel<typeof mcpServers>;
 
 // Hive
 export type Hive = InferSelectModel<typeof hives>;

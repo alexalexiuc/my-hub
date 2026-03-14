@@ -1,12 +1,4 @@
-import {
-  pgTable,
-  serial,
-  text,
-  timestamp,
-  integer,
-  numeric,
-  boolean,
-} from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, numeric, boolean } from "drizzle-orm/pg-core";
 
 // ---------------------------------------------------------------------------
 // Products / Home Inventory tables
@@ -28,9 +20,7 @@ export const inventory = pgTable("inventory", {
   productId: integer("product_id")
     .notNull()
     .references(() => products.id, { onDelete: "cascade" }),
-  quantity: numeric("quantity", { precision: 10, scale: 3 })
-    .notNull()
-    .default("0"),
+  quantity: numeric("quantity", { precision: 10, scale: 3 }).notNull().default("0"),
   location: text("location"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

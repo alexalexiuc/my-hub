@@ -7,19 +7,14 @@ import tseslint from "typescript-eslint";
 
 const sourceFiles = ["**/*.{js,mjs,cjs,ts,tsx}"];
 const tsFiles = ["**/*.{ts,tsx}"];
-const adminFiles = ["packages/admin/**/*.{js,mjs,cjs,ts,tsx}"];
+const hub = ["packages/hub/**/*.{js,mjs,cjs,ts,tsx}"];
 const serverFiles = ["packages/mcp-server/**/*.{js,mjs,cjs,ts,tsx}"];
 const sharedFiles = ["packages/shared/**/*.{js,mjs,cjs,ts,tsx}"];
 const testFiles = ["**/*.{test,spec}.{js,mjs,cjs,ts,tsx}"];
 
 export default [
   {
-    ignores: [
-      "**/.next/**",
-      "**/coverage/**",
-      "**/dist/**",
-      "**/node_modules/**",
-    ],
+    ignores: ["**/.next/**", "**/coverage/**", "**/dist/**", "**/node_modules/**"],
   },
   {
     ...js.configs.recommended,
@@ -58,7 +53,7 @@ export default [
     },
   },
   {
-    files: adminFiles,
+    files: hub,
     plugins: {
       "@next/next": nextPlugin,
     },

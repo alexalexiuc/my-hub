@@ -2,7 +2,7 @@
 
 | Field    | Value                          |
 | -------- | ------------------------------ |
-| Status   | draft                          |
+| Status   | implemented                    |
 | Priority | high                           |
 | File     | `hub/feature-oauth-clients.md` |
 
@@ -31,14 +31,16 @@ for using any MCP tool on the platform.
 
 ## Technical Requirements
 
-| ID    | Requirement                                                                                                                |
-| ----- | -------------------------------------------------------------------------------------------------------------------------- |
-| TR-01 | The OAuth 2.0 implementation is adapted from the existing Cloudflare Worker `src/http/` auth code.                         |
-| TR-02 | Client secrets must be stored as a bcrypt hash; the plaintext is never persisted.                                          |
-| TR-03 | The OAuth clients table is defined in `packages/shared/src/db/schema` (Drizzle ORM, PostgreSQL).                           |
-| TR-04 | The admin panel page lives in `packages/admin` and communicates with the backend via a Next.js Server Action or API route. |
-| TR-05 | Only authenticated admin users (via NextAuth.js or custom JWT session) can access this page.                               |
-| TR-06 | All writes (create, revoke) must be logged for audit traceability.                                                         |
+| ID    | Requirement                                                                                                                                                                   |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TR-01 | OAuth 2.1 with PKCE (S256) is implemented in `packages/mcp-server/src/routes/oauth.ts`.                                                                                      |
+| TR-02 | `clientSecret` is a single UUID (128-bit). It is hashed with bcrypt before storage; the plaintext is shown once and never persisted.                                          |
+| TR-03 | `clientId` uses the prefix `hub_` followed by 8 hex chars for readability (e.g. `hub_3f9a1b2c`).                                                                             |
+| TR-04 | `tokenSigningSecret` is 3 concatenated UUIDs with dashes stripped (288-bit entropy), distinct from `clientSecret` in length and purpose.                                     |
+| TR-05 | The `oauth_clients` table is defined in `packages/shared/src/db/schema` and all queries go through `packages/shared/src/services/oauth-clients/`.                            |
+| TR-06 | The Hub panel lives in `packages/hub` (Next.js App Router). It communicates with the backend via Server Actions or API routes.                                                |
+| TR-07 | Only authenticated users can access OAuth client management pages.                                                                                                            |
+| TR-08 | On first OAuth completion, `ensureAllMcpServers(userId)` provisions a row per MCP server for the user (idempotent via `onConflictDoNothing`).                                 |
 
 ---
 
@@ -52,8 +54,9 @@ for using any MCP tool on the platform.
 
 ## Acceptance Criteria
 
-- [ ] An admin can create an OAuth client, copy the secret, and successfully authenticate a Claude MCP client with it.
+- [x] A user can complete the OAuth 2.1 PKCE flow and receive a signed Bearer token.
+- [x] The Bearer token is validated by `mcpAuthHandler` using the client's `tokenSigningSecret`.
+- [x] After the flow, MCP server rows exist for the user (calories, hive, products).
+- [x] The client secret is not visible in the database or API responses after initial creation.
+- [ ] The Hub UI lists active OAuth clients and allows revocation.
 - [ ] After revocation, the previously issued token is rejected by the MCP server with a 401.
-- [ ] The client secret is not visible in the database or API responses after initial creation.
-- [ ] The clients list correctly reflects active and revoked state.
-- [ ] Accessing the OAuth clients page while unauthenticated redirects to the login page.
