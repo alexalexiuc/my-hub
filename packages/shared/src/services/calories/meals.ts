@@ -7,6 +7,7 @@ export interface GetMealsFilter {
   date?: string;
   mealType?: string;
   limit?: number;
+  /** Number of meal logs to skip for pagination. Defaults to 0 if not provided. */
   offset?: number;
 }
 
@@ -16,6 +17,9 @@ export async function logMeal(data: Omit<NewMealLog, 'id' | 'createdAt' | 'logge
   return row;
 }
 
+/**
+ * Fetch meal logs for a user with optional filtering by date and meal type, and support for pagination via limit and offset.
+ */
 export async function getMeals(userId: string, filter: GetMealsFilter = {}): Promise<MealLog[]> {
   const { date, mealType, limit, offset = 0 } = filter;
 
@@ -23,13 +27,18 @@ export async function getMeals(userId: string, filter: GetMealsFilter = {}): Pro
   if (date !== undefined) conditions.push(eq(mealLogs.date, date));
   if (mealType !== undefined) conditions.push(eq(mealLogs.mealType, mealType));
 
-  const rows = await db
+  const query = db
     .select()
     .from(mealLogs)
     .where(and(...conditions))
-    .orderBy(mealLogs.loggedAt);
+    .orderBy(mealLogs.loggedAt)
+    .offset(offset);
 
-  return limit !== undefined ? rows.slice(offset, offset + limit) : rows.slice(offset);
+  if (limit !== undefined) query.limit(limit);
+
+  const rows = await query;
+
+  return rows;
 }
 
 export async function getMealsForDate(userId: string, date: string): Promise<MealLog[]> {
