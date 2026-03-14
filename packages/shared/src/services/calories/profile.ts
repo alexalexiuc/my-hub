@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
-import { db } from "../../db/client.js";
-import { calorieProfiles } from "../../db/schema/calories.js";
-import type { CalorieProfile } from "../../types/index.js";
+import { db } from "../../db/client";
+import { calorieProfiles } from "../../db/schema/calories";
+import type { CalorieProfile } from "../../types/index";
 
 export type ProfileUpdates = Partial<Omit<typeof calorieProfiles.$inferInsert, "id" | "userId" | "createdAt">>;
 

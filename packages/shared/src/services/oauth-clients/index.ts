@@ -1,1 +1,1 @@
-export * from "./oauth-clients.js";
+export * from "./oauth-clients";

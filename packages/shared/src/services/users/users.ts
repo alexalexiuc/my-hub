@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
-import { db } from "../../db/client.js";
-import { users } from "../../db/schema/users.js";
-import type { User } from "../../types/index.js";
+import { db } from "../../db/client";
+import { users } from "../../db/schema/users";
+import type { User } from "../../types/index";
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
   return db.query.users.findFirst({

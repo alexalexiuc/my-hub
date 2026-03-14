@@ -1,5 +1,5 @@
 import { pgTable, pgEnum, serial, uuid, boolean, timestamp, unique } from "drizzle-orm/pg-core";
-import { users } from "./users.js";
+import { users } from "./users";
 
 export const mcpServerEnum = pgEnum("mcp_server", ["calories", "hive", "products"]);
 

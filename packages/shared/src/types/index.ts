@@ -12,7 +12,7 @@ import type {
   inventory,
   shoppingListItems,
   apiRequestLogs,
-} from "../db/schema/index.js";
+} from "../db/schema/index";
 
 // Identity & Auth
 export type User = InferSelectModel<typeof users>;

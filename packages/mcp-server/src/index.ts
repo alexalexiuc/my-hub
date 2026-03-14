@@ -1,10 +1,10 @@
 import "dotenv-mono/load";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { healthRoutes } from "./routes/health.js";
-import { mcpRoutes } from "./routes/mcp.js";
-import { oauthRoutes } from "./routes/oauth.js";
-import { mcpAuthPlugin } from "./auth.js";
+import { healthRoutes } from "./routes/health";
+import { mcpRoutes } from "./routes/mcp";
+import { oauthRoutes } from "./routes/oauth";
+import { mcpAuthPlugin } from "./auth";
 
 const PORT = Number(process.env["PORT"] ?? 3001);
 const HOST = process.env["HOST"] ?? "0.0.0.0";

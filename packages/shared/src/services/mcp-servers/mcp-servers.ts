@@ -1,5 +1,5 @@
-import { db } from "../../db/client.js";
-import { mcpServers } from "../../db/schema/mcp-servers.js";
+import { db } from "../../db/client";
+import { mcpServers } from "../../db/schema/mcp-servers";
 
 const ALL_SERVER_NAMES = ["calories", "hive", "products"] as const;
 

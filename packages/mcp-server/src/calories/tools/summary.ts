@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getCalorieProfile, getMealsForDate, getMealsForDateRange } from "@my-hub/shared/services";
-import { MealType, MEAL_TYPE_FRACTIONS } from "../constants.js";
-import { calculateTDEE, rowToProfile } from "./profile.js";
-import { rowToMealEntry } from "./meals.js";
+import { MealType, MEAL_TYPE_FRACTIONS } from "../constants";
+import { calculateTDEE, rowToProfile } from "./profile";
+import { rowToMealEntry } from "./meals";
 
 const yyyyMmDdSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD");
 

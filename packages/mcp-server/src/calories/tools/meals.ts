@@ -2,8 +2,8 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { logMeal, getMeals, deleteMeal } from "@my-hub/shared/services";
 import { omitNullish } from "@my-hub/shared/utils";
-import { MealType, DEFAULT_MEAL_LIMIT, MAX_MEAL_LIMIT } from "../constants.js";
-import type { MealEntry } from "../types.js";
+import { MealType, DEFAULT_MEAL_LIMIT, MAX_MEAL_LIMIT } from "../constants";
+import type { MealEntry } from "../types";
 import type { MealLog } from "@my-hub/shared/types";
 
 const yyyyMmDdSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD");

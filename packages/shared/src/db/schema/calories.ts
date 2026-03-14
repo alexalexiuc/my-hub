@@ -1,5 +1,5 @@
 import { pgTable, serial, text, timestamp, integer, real, jsonb, uuid, index } from "drizzle-orm/pg-core";
-import { users } from "./users.js";
+import { users } from "./users";
 
 // ---------------------------------------------------------------------------
 // Calorie Tracker tables

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
-import { db } from "../../db/client.js";
-import { oauthClients } from "../../db/schema/oauth-clients.js";
-import type { OAuthClient, NewOAuthClient } from "../../types/index.js";
+import { db } from "../../db/client";
+import { oauthClients } from "../../db/schema/oauth-clients";
+import type { OAuthClient, NewOAuthClient } from "../../types/index";
 
 export type CreateOAuthClientData = Omit<NewOAuthClient, "id" | "userId" | "createdAt">;
 

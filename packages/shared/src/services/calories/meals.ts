@@ -1,7 +1,7 @@
 import { and, between, eq, isNotNull } from "drizzle-orm";
-import { db } from "../../db/client.js";
-import { mealLogs } from "../../db/schema/calories.js";
-import type { MealLog, NewMealLog } from "../../types/index.js";
+import { db } from "../../db/client";
+import { mealLogs } from "../../db/schema/calories";
+import type { MealLog, NewMealLog } from "../../types/index";
 
 export interface GetMealsFilter {
   date?: string;

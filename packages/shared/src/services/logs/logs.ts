@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, lte } from "drizzle-orm";
-import { db } from "../../db/client.js";
-import { apiRequestLogs } from "../../db/schema/api-request-logs.js";
-import type { ApiRequestLog, NewApiRequestLog } from "../../types/index.js";
+import { db } from "../../db/client";
+import { apiRequestLogs } from "../../db/schema/api-request-logs";
+import type { ApiRequestLog, NewApiRequestLog } from "../../types/index";
 
 // ---------------------------------------------------------------------------
 // API Request Log service

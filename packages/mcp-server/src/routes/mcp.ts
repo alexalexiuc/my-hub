@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { createCaloriesServer } from "../calories/server.js";
-import { mcpAuthHandler } from "../auth.js";
+import { createCaloriesServer } from "../calories/server";
+import { mcpAuthHandler } from "../auth";
 
 /**
  * MCP router — one static route per MCP sub-server.

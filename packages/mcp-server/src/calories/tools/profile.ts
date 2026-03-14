@@ -2,8 +2,8 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getCalorieProfile, upsertCalorieProfile } from "@my-hub/shared/services";
 import { omitNullish } from "@my-hub/shared/utils";
-import { ActivityLevel, Sex, ACTIVITY_MULTIPLIERS } from "../constants.js";
-import type { BodyProfile } from "../types.js";
+import { ActivityLevel, Sex, ACTIVITY_MULTIPLIERS } from "../constants";
+import type { BodyProfile } from "../types";
 import type { CalorieProfile } from "@my-hub/shared/types";
 
 export function calculateTDEE(profile: BodyProfile): {
