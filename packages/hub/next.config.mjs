@@ -1,10 +1,10 @@
-import "dotenv-mono/load";
+import 'dotenv-mono/load';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone",
+  output: 'standalone',
   experimental: {
-    serverComponentsExternalPackages: ["@my-hub/shared"],
+    serverComponentsExternalPackages: ['@my-hub/shared'],
   },
 };
 

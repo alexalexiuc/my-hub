@@ -1,7 +1,7 @@
-import { db } from "../../db/client";
-import { mcpServers } from "../../db/schema/mcp-servers";
+import { db } from '../../db/client';
+import { mcpServers } from '../../db/schema/mcp-servers';
 
-const ALL_SERVER_NAMES = ["calories", "hive", "products"] as const;
+const ALL_SERVER_NAMES = ['calories', 'hive', 'products'] as const;
 
 /**
  * Ensure a row exists for every known server type for the given user.

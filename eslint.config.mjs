@@ -1,28 +1,28 @@
-import js from "@eslint/js";
-import nextPlugin from "@next/eslint-plugin-next";
-import eslintConfigPrettier from "eslint-config-prettier";
-import prettierPlugin from "eslint-plugin-prettier";
-import globals from "globals";
-import tseslint from "typescript-eslint";
+import js from '@eslint/js';
+import nextPlugin from '@next/eslint-plugin-next';
+import eslintConfigPrettier from 'eslint-config-prettier';
+import prettierPlugin from 'eslint-plugin-prettier';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
-const sourceFiles = ["**/*.{js,mjs,cjs,ts,tsx}"];
-const tsFiles = ["**/*.{ts,tsx}"];
-const hub = ["packages/hub/**/*.{js,mjs,cjs,ts,tsx}"];
-const serverFiles = ["packages/mcp-server/**/*.{js,mjs,cjs,ts,tsx}"];
-const sharedFiles = ["packages/shared/**/*.{js,mjs,cjs,ts,tsx}"];
-const testFiles = ["**/*.{test,spec}.{js,mjs,cjs,ts,tsx}"];
+const sourceFiles = ['**/*.{js,mjs,cjs,ts,tsx}'];
+const tsFiles = ['**/*.{ts,tsx}'];
+const hub = ['packages/hub/**/*.{js,mjs,cjs,ts,tsx}'];
+const serverFiles = ['packages/mcp-server/**/*.{js,mjs,cjs,ts,tsx}'];
+const sharedFiles = ['packages/shared/**/*.{js,mjs,cjs,ts,tsx}'];
+const testFiles = ['**/*.{test,spec}.{js,mjs,cjs,ts,tsx}'];
 
 export default [
   {
-    ignores: ["**/.next/**", "**/coverage/**", "**/dist/**", "**/node_modules/**"],
+    ignores: ['**/.next/**', '**/coverage/**', '**/dist/**', '**/node_modules/**'],
   },
   {
     ...js.configs.recommended,
-    files: ["**/*.{js,mjs,cjs}"],
+    files: ['**/*.{js,mjs,cjs}'],
     languageOptions: {
       ...js.configs.recommended.languageOptions,
-      ecmaVersion: "latest",
-      sourceType: "module",
+      ecmaVersion: 'latest',
+      sourceType: 'module',
       globals: {
         ...globals.node,
       },
@@ -35,31 +35,31 @@ export default [
   {
     files: tsFiles,
     languageOptions: {
-      ecmaVersion: "latest",
-      sourceType: "module",
+      ecmaVersion: 'latest',
+      sourceType: 'module',
     },
     rules: {
-      "@typescript-eslint/no-unused-vars": [
-        "error",
+      '@typescript-eslint/no-unused-vars': [
+        'error',
         {
-          argsIgnorePattern: "^_",
-          caughtErrorsIgnorePattern: "^_",
-          destructuredArrayIgnorePattern: "^_",
-          varsIgnorePattern: "^_",
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
           ignoreRestSiblings: true,
         },
       ],
-      "no-undef": "off",
+      'no-undef': 'off',
     },
   },
   {
     files: hub,
     plugins: {
-      "@next/next": nextPlugin,
+      '@next/next': nextPlugin,
     },
     settings: {
       next: {
-        rootDir: "packages/admin",
+        rootDir: 'packages/admin',
       },
     },
     languageOptions: {
@@ -70,8 +70,8 @@ export default [
     },
     rules: {
       ...nextPlugin.configs.recommended.rules,
-      ...nextPlugin.configs["core-web-vitals"].rules,
-      "@next/next/no-html-link-for-pages": "off",
+      ...nextPlugin.configs['core-web-vitals'].rules,
+      '@next/next/no-html-link-for-pages': 'off',
     },
   },
   {
@@ -86,14 +86,14 @@ export default [
     files: testFiles,
     languageOptions: {
       globals: {
-        afterAll: "readonly",
-        afterEach: "readonly",
-        beforeAll: "readonly",
-        beforeEach: "readonly",
-        describe: "readonly",
-        expect: "readonly",
-        it: "readonly",
-        test: "readonly",
+        afterAll: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        beforeEach: 'readonly',
+        describe: 'readonly',
+        expect: 'readonly',
+        it: 'readonly',
+        test: 'readonly',
       },
     },
   },
@@ -104,7 +104,7 @@ export default [
     },
     rules: {
       ...eslintConfigPrettier.rules,
-      "prettier/prettier": "error",
+      'prettier/prettier': 'error',
     },
   },
 ];

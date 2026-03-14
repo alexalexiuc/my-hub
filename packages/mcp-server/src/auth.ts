@@ -1,9 +1,9 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply, FastifyPluginCallback } from "fastify";
-import { findOAuthClient } from "@my-hub/shared/services";
-import { verifyToken, type McpTokenPayload } from "@my-hub/shared/auth";
+import type { FastifyInstance, FastifyRequest, FastifyReply, FastifyPluginCallback } from 'fastify';
+import { findOAuthClient } from '@my-hub/shared/services';
+import { verifyToken, type McpTokenPayload } from '@my-hub/shared/auth';
 
 // Augment the Fastify request type to carry the resolved userId
-declare module "fastify" {
+declare module 'fastify' {
   interface FastifyRequest {
     mcpUserId: string;
   }
@@ -21,42 +21,42 @@ declare module "fastify" {
  *  5. Attach req.mcpUserId = payload.user_id
  */
 export async function mcpAuthHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
-  const authHeader = req.headers["authorization"];
+  const authHeader = req.headers['authorization'];
   if (!authHeader) {
-    return reply.status(401).header("WWW-Authenticate", "Bearer").send({ error: "missing_token" });
+    return reply.status(401).header('WWW-Authenticate', 'Bearer').send({ error: 'missing_token' });
   }
 
-  const [scheme, token] = authHeader.split(" ");
-  if (scheme?.toLowerCase() !== "bearer" || !token) {
-    return reply.status(401).header("WWW-Authenticate", "Bearer").send({ error: "invalid_token" });
+  const [scheme, token] = authHeader.split(' ');
+  if (scheme?.toLowerCase() !== 'bearer' || !token) {
+    return reply.status(401).header('WWW-Authenticate', 'Bearer').send({ error: 'invalid_token' });
   }
 
   // Decode payload without verifying — just to get client_id for key lookup
-  const dot = token.indexOf(".");
+  const dot = token.indexOf('.');
   if (dot === -1) {
-    return reply.status(401).send({ error: "invalid_token" });
+    return reply.status(401).send({ error: 'invalid_token' });
   }
   let rawPayload: McpTokenPayload;
   try {
-    const decoded = Buffer.from(token.slice(0, dot).replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+    const decoded = Buffer.from(token.slice(0, dot).replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
     rawPayload = JSON.parse(decoded) as McpTokenPayload;
   } catch {
-    return reply.status(401).send({ error: "invalid_token" });
+    return reply.status(401).send({ error: 'invalid_token' });
   }
 
   const clientId = rawPayload.client_id;
   if (!clientId) {
-    return reply.status(401).send({ error: "invalid_token" });
+    return reply.status(401).send({ error: 'invalid_token' });
   }
 
   const client = await findOAuthClient(clientId);
   if (!client) {
-    return reply.status(401).send({ error: "invalid_client" });
+    return reply.status(401).send({ error: 'invalid_client' });
   }
 
   const payload = await verifyToken<McpTokenPayload>(token, client.tokenSigningSecret);
   if (!payload) {
-    return reply.status(401).send({ error: "invalid_token" });
+    return reply.status(401).send({ error: 'invalid_token' });
   }
 
   req.mcpUserId = payload.user_id;
@@ -67,6 +67,6 @@ export async function mcpAuthHandler(req: FastifyRequest, reply: FastifyReply): 
  * Register this before routes that need it.
  */
 export const mcpAuthPlugin: FastifyPluginCallback = (fastify: FastifyInstance, _opts, done) => {
-  fastify.decorateRequest("mcpUserId", "");
+  fastify.decorateRequest('mcpUserId', '');
   done();
 };

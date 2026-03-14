@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1741824000000,
-      "tag": "0000_api_request_logs",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1773410897812,
-      "tag": "0001_illegal_red_ghost",
+      "when": 1773520929228,
+      "tag": "0000_tough_madame_hydra",
       "breakpoints": true
     }
   ]

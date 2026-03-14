@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
-import { db } from "../../db/client";
-import { calorieProfiles } from "../../db/schema/calories";
-import type { CalorieProfile } from "../../types/index";
+import { eq } from 'drizzle-orm';
+import { db } from '../../db/client';
+import { calorieProfiles } from '../../db/schema/calories';
+import type { CalorieProfile } from '../../types/index';
 
-export type ProfileUpdates = Partial<Omit<typeof calorieProfiles.$inferInsert, "id" | "userId" | "createdAt">>;
+export type ProfileUpdates = Partial<Omit<typeof calorieProfiles.$inferInsert, 'id' | 'userId' | 'createdAt'>>;
 
 export async function getCalorieProfile(userId: string): Promise<CalorieProfile | undefined> {
   return db.query.calorieProfiles.findFirst({
@@ -20,7 +20,7 @@ export async function upsertCalorieProfile(userId: string, updates: ProfileUpdat
 
   if (existing) {
     const [row] = await db.update(calorieProfiles).set(patch).where(eq(calorieProfiles.userId, userId)).returning();
-    if (!row) throw new Error("Update did not return a row");
+    if (!row) throw new Error('Update did not return a row');
     return row;
   }
 
@@ -28,6 +28,6 @@ export async function upsertCalorieProfile(userId: string, updates: ProfileUpdat
     .insert(calorieProfiles)
     .values({ userId, ...patch })
     .returning();
-  if (!row) throw new Error("Insert did not return a row");
+  if (!row) throw new Error('Insert did not return a row');
   return row;
 }

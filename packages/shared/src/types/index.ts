@@ -1,4 +1,4 @@
-import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import type {
   users,
   oauthClients,
@@ -12,7 +12,7 @@ import type {
   inventory,
   shoppingListItems,
   apiRequestLogs,
-} from "../db/schema/index";
+} from '../db/schema/index';
 
 // Identity & Auth
 export type User = InferSelectModel<typeof users>;

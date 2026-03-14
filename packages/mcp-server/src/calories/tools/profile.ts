@@ -1,10 +1,10 @@
-import { z } from "zod";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { getCalorieProfile, upsertCalorieProfile } from "@my-hub/shared/services";
-import { omitNullish } from "@my-hub/shared/utils";
-import { ActivityLevel, Sex, ACTIVITY_MULTIPLIERS } from "../constants";
-import type { BodyProfile } from "../types";
-import type { CalorieProfile } from "@my-hub/shared/types";
+import { z } from 'zod';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { getCalorieProfile, upsertCalorieProfile } from '@my-hub/shared/services';
+import { omitNullish } from '@my-hub/shared/utils';
+import { ActivityLevel, Sex, ACTIVITY_MULTIPLIERS } from '../constants';
+import type { BodyProfile } from '../types';
+import type { CalorieProfile } from '@my-hub/shared/types';
 
 export function calculateTDEE(profile: BodyProfile): {
   bmr: number | null;
@@ -59,10 +59,10 @@ export function rowToProfile(row: CalorieProfile): BodyProfile {
 }
 
 const UpdateProfileSchema = z.object({
-  name: z.string().optional().describe("Your name"),
-  age: z.number().int().positive().optional().describe("Age in years"),
-  height_cm: z.number().positive().optional().describe("Height in centimeters"),
-  weight_kg: z.number().positive().optional().describe("Weight in kilograms"),
+  name: z.string().optional().describe('Your name'),
+  age: z.number().int().positive().optional().describe('Age in years'),
+  height_cm: z.number().positive().optional().describe('Height in centimeters'),
+  weight_kg: z.number().positive().optional().describe('Weight in kilograms'),
   sex: z.nativeEnum(Sex).optional().describe('Biological sex for BMR calculation: "male" | "female"'),
   activity_level: z
     .nativeEnum(ActivityLevel)
@@ -75,25 +75,25 @@ const UpdateProfileSchema = z.object({
     .int()
     .positive()
     .optional()
-    .describe("Manual daily calorie target override. If not set, calculated TDEE is used."),
-  neck_cm: z.number().positive().optional().describe("Neck circumference in cm"),
-  waist_cm: z.number().positive().optional().describe("Waist circumference in cm"),
+    .describe('Manual daily calorie target override. If not set, calculated TDEE is used.'),
+  neck_cm: z.number().positive().optional().describe('Neck circumference in cm'),
+  waist_cm: z.number().positive().optional().describe('Waist circumference in cm'),
   hips_cm: z
     .number()
     .positive()
     .optional()
-    .describe("Hips circumference in cm (relevant for female body fat estimation)"),
-  notes: z.string().optional().describe("Additional notes about your health goals"),
+    .describe('Hips circumference in cm (relevant for female body fat estimation)'),
+  notes: z.string().optional().describe('Additional notes about your health goals'),
 });
 
 type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 
 export function registerProfileTools(server: McpServer, userId: string) {
   server.registerTool(
-    "calories_update_profile",
+    'calories_update_profile',
     {
       description:
-        "Save or update body measurements and health profile. Used to compute your BMR (Basal Metabolic Rate) and TDEE (Total Daily Energy Expenditure) via the Mifflin-St Jeor equation. Only provided fields are updated — omitted fields retain their current values.",
+        'Save or update body measurements and health profile. Used to compute your BMR (Basal Metabolic Rate) and TDEE (Total Daily Energy Expenditure) via the Mifflin-St Jeor equation. Only provided fields are updated — omitted fields retain their current values.',
       inputSchema: UpdateProfileSchema.shape,
       annotations: { idempotentHint: false, destructiveHint: false },
     },
@@ -126,9 +126,9 @@ export function registerProfileTools(server: McpServer, userId: string) {
   );
 
   server.registerTool(
-    "calories_get_profile",
+    'calories_get_profile',
     {
-      description: "Get the stored body profile including calculated BMR, TDEE, and daily calorie target.",
+      description: 'Get the stored body profile including calculated BMR, TDEE, and daily calorie target.',
       annotations: { readOnlyHint: true },
     },
     async () => {
@@ -137,11 +137,11 @@ export function registerProfileTools(server: McpServer, userId: string) {
       const { bmr, tdee, daily_calories } = calculateTDEE(profile);
 
       const activityDescriptions: Record<string, string> = {
-        sedentary: "Desk job, little or no exercise",
-        lightly_active: "Light exercise 1–3 days/week",
-        moderately_active: "Moderate exercise 3–5 days/week",
-        very_active: "Hard exercise 6–7 days/week",
-        extra_active: "Very hard exercise or physical job",
+        sedentary: 'Desk job, little or no exercise',
+        lightly_active: 'Light exercise 1–3 days/week',
+        moderately_active: 'Moderate exercise 3–5 days/week',
+        very_active: 'Hard exercise 6–7 days/week',
+        extra_active: 'Very hard exercise or physical job',
       };
 
       return toolResponse({
@@ -159,6 +159,6 @@ export function registerProfileTools(server: McpServer, userId: string) {
 
 function toolResponse(payload: unknown) {
   return {
-    content: [{ type: "text" as const, text: JSON.stringify(payload) }],
+    content: [{ type: 'text' as const, text: JSON.stringify(payload) }],
   };
 }

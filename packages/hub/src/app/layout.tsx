@@ -1,9 +1,9 @@
-import "@/styles/globals.css";
-import type { Metadata } from "next";
+import '@/styles/globals.css';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "my-hub admin",
-  description: "Personal platform admin panel",
+  title: 'my-hub admin',
+  description: 'Personal platform admin panel',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

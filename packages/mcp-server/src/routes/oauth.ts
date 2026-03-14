@@ -1,20 +1,20 @@
-import type { FastifyInstance, FastifyRequest } from "fastify";
-import { getToken } from "next-auth/jwt";
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { getToken } from 'next-auth/jwt';
 import {
   findOAuthClient,
   createOAuthClient,
   bindOAuthClientToUser,
   upsertUserByEmail,
   ensureAllMcpServers,
-} from "@my-hub/shared/services";
-import { signToken, verifyToken, verifyPkceS256, type AuthCodePayload } from "@my-hub/shared/auth";
+} from '@my-hub/shared/services';
+import { signToken, verifyToken, verifyPkceS256, type AuthCodePayload } from '@my-hub/shared/auth';
 
-const EMAIL_WHITELIST = (process.env["ALLOWED_EMAILS"] ?? "")
-  .split(",")
+const EMAIL_WHITELIST = (process.env['ALLOWED_EMAILS'] ?? '')
+  .split(',')
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
-const NEXTAUTH_SECRET = process.env["NEXTAUTH_SECRET"] ?? "";
+const NEXTAUTH_SECRET = process.env['NEXTAUTH_SECRET'] ?? '';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -27,10 +27,10 @@ function validateRedirectUri(redirectUri: string): URL | null {
   } catch {
     return null;
   }
-  if (parsed.protocol === "https:") return parsed;
+  if (parsed.protocol === 'https:') return parsed;
   if (
-    parsed.protocol === "http:" &&
-    (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1" || parsed.hostname === "[::1]")
+    parsed.protocol === 'http:' &&
+    (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === '[::1]')
   ) {
     return parsed;
   }
@@ -38,15 +38,15 @@ function validateRedirectUri(redirectUri: string): URL | null {
 }
 
 function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function renderConsentPage(params: URLSearchParams, email: string): string {
-  const clientId = escapeHtml(params.get("client_id") ?? "");
-  const clientName = escapeHtml(params.get("client_name") ?? clientId);
+  const clientId = escapeHtml(params.get('client_id') ?? '');
+  const clientName = escapeHtml(params.get('client_name') ?? clientId);
   const hiddenFields = [...params.entries()]
     .map(([k, v]) => `<input type="hidden" name="${escapeHtml(k)}" value="${escapeHtml(v)}">`)
-    .join("\n    ");
+    .join('\n    ');
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -97,7 +97,7 @@ async function getSessionEmail(req: FastifyRequest): Promise<string | null> {
       body: req.body,
     };
     const token = await getToken({
-      req: adaptedReq as Parameters<typeof getToken>[0]["req"],
+      req: adaptedReq as Parameters<typeof getToken>[0]['req'],
       secret: NEXTAUTH_SECRET,
     });
     if (!token?.email) return null;
@@ -113,35 +113,35 @@ async function getSessionEmail(req: FastifyRequest): Promise<string | null> {
 
 export async function oauthRoutes(app: FastifyInstance) {
   // RFC 8414 — Server Metadata
-  app.get("/.well-known/oauth-authorization-server", async (req, reply) => {
+  app.get('/.well-known/oauth-authorization-server', async (req, reply) => {
     const base = `${req.protocol}://${req.hostname}`;
     return reply.send({
       issuer: base,
       authorization_endpoint: `${base}/authorize`,
       token_endpoint: `${base}/token`,
       registration_endpoint: `${base}/register`,
-      response_types_supported: ["code"],
-      grant_types_supported: ["authorization_code"],
-      code_challenge_methods_supported: ["S256"],
-      token_endpoint_auth_methods_supported: ["client_secret_post"],
+      response_types_supported: ['code'],
+      grant_types_supported: ['authorization_code'],
+      code_challenge_methods_supported: ['S256'],
+      token_endpoint_auth_methods_supported: ['client_secret_post'],
     });
   });
 
   // RFC 7591 — Dynamic Client Registration
-  app.post("/register", async (req, reply) => {
+  app.post('/register', async (req, reply) => {
     const body = req.body as Record<string, unknown>;
-    const clientName = typeof body["client_name"] === "string" ? body["client_name"] : null;
-    const redirectUris: string[] = Array.isArray(body["redirect_uris"])
-      ? (body["redirect_uris"] as string[]).filter((u) => typeof u === "string" && validateRedirectUri(u) !== null)
+    const clientName = typeof body['client_name'] === 'string' ? body['client_name'] : null;
+    const redirectUris: string[] = Array.isArray(body['redirect_uris'])
+      ? (body['redirect_uris'] as string[]).filter((u) => typeof u === 'string' && validateRedirectUri(u) !== null)
       : [];
 
     // hub_<8 hex chars> — short prefix makes it identifiable at a glance
-    const clientId = `hub_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
+    const clientId = `hub_${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`;
     const clientSecret = crypto.randomUUID();
     // 3 UUIDs concatenated → 288 bits of entropy, clearly distinct from the 128-bit clientSecret
     const tokenSigningSecret = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()]
-      .join("")
-      .replace(/-/g, "");
+      .join('')
+      .replace(/-/g, '');
 
     await createOAuthClient({
       clientId,
@@ -160,31 +160,31 @@ export async function oauthRoutes(app: FastifyInstance) {
   });
 
   // GET /authorize — show consent page
-  app.get("/authorize", async (req, reply) => {
+  app.get('/authorize', async (req, reply) => {
     const params = new URLSearchParams(req.query as Record<string, string>);
 
-    const clientId = params.get("client_id");
+    const clientId = params.get('client_id');
     if (!clientId) {
-      return reply.status(400).send("Missing client_id");
+      return reply.status(400).send('Missing client_id');
     }
-    if (params.get("response_type") !== "code") {
-      return reply.status(400).send("Only response_type=code is supported");
+    if (params.get('response_type') !== 'code') {
+      return reply.status(400).send('Only response_type=code is supported');
     }
-    const rawRedirectUri = params.get("redirect_uri");
+    const rawRedirectUri = params.get('redirect_uri');
     if (!rawRedirectUri || !validateRedirectUri(rawRedirectUri)) {
-      return reply.status(400).send("Invalid or missing redirect_uri");
+      return reply.status(400).send('Invalid or missing redirect_uri');
     }
-    const codeChallenge = params.get("code_challenge");
+    const codeChallenge = params.get('code_challenge');
     if (!codeChallenge) {
-      return reply.status(400).send("Missing code_challenge (PKCE required)");
+      return reply.status(400).send('Missing code_challenge (PKCE required)');
     }
-    if (params.get("code_challenge_method") !== "S256") {
-      return reply.status(400).send("Only code_challenge_method=S256 is supported");
+    if (params.get('code_challenge_method') !== 'S256') {
+      return reply.status(400).send('Only code_challenge_method=S256 is supported');
     }
 
     const client = await findOAuthClient(clientId);
     if (!client) {
-      return reply.status(400).send("Unknown client_id");
+      return reply.status(400).send('Unknown client_id');
     }
 
     const email = await getSessionEmail(req);
@@ -194,47 +194,47 @@ export async function oauthRoutes(app: FastifyInstance) {
     }
 
     if (EMAIL_WHITELIST.length > 0 && !EMAIL_WHITELIST.includes(email.toLowerCase())) {
-      return reply.status(403).send("Email not authorized");
+      return reply.status(403).send('Email not authorized');
     }
 
     // Add client_name to params for the consent page
-    if (client.clientName) params.set("client_name", client.clientName);
+    if (client.clientName) params.set('client_name', client.clientName);
 
-    return reply.header("Content-Type", "text/html; charset=utf-8").send(renderConsentPage(params, email));
+    return reply.header('Content-Type', 'text/html; charset=utf-8').send(renderConsentPage(params, email));
   });
 
   // POST /authorize — process consent
-  app.post("/authorize", async (req, reply) => {
+  app.post('/authorize', async (req, reply) => {
     const body = req.body as Record<string, string>;
-    const redirectUri = body["redirect_uri"] ?? "";
-    const state = body["state"] ?? null;
+    const redirectUri = body['redirect_uri'] ?? '';
+    const state = body['state'] ?? null;
 
     const parsedRedirectUri = validateRedirectUri(redirectUri);
     if (!parsedRedirectUri) {
-      return reply.status(400).send("Invalid redirect_uri");
+      return reply.status(400).send('Invalid redirect_uri');
     }
 
     const sendError = (error: string) => {
-      parsedRedirectUri.searchParams.set("error", error);
-      if (state) parsedRedirectUri.searchParams.set("state", state);
+      parsedRedirectUri.searchParams.set('error', error);
+      if (state) parsedRedirectUri.searchParams.set('state', state);
       return reply.redirect(parsedRedirectUri.toString());
     };
 
-    if (body["action"] !== "allow") {
-      return sendError("access_denied");
+    if (body['action'] !== 'allow') {
+      return sendError('access_denied');
     }
 
-    const clientId = body["client_id"];
-    if (!clientId) return reply.status(400).send("Missing client_id");
+    const clientId = body['client_id'];
+    if (!clientId) return reply.status(400).send('Missing client_id');
 
     const client = await findOAuthClient(clientId);
-    if (!client) return sendError("invalid_client");
+    if (!client) return sendError('invalid_client');
 
     const email = await getSessionEmail(req);
-    if (!email) return sendError("login_required");
+    if (!email) return sendError('login_required');
 
     if (EMAIL_WHITELIST.length > 0 && !EMAIL_WHITELIST.includes(email.toLowerCase())) {
-      return sendError("access_denied");
+      return sendError('access_denied');
     }
 
     // Upsert user + bind client + provision MCP server rows
@@ -243,8 +243,8 @@ export async function oauthRoutes(app: FastifyInstance) {
     await ensureAllMcpServers(user.id);
     const userId = user.id;
 
-    const codeChallenge = body["code_challenge"] ?? "";
-    const codeChallengeMethod = body["code_challenge_method"] ?? "S256";
+    const codeChallenge = body['code_challenge'] ?? '';
+    const codeChallengeMethod = body['code_challenge_method'] ?? 'S256';
 
     const authCode = await signToken(
       {
@@ -258,51 +258,51 @@ export async function oauthRoutes(app: FastifyInstance) {
       client.tokenSigningSecret,
     );
 
-    parsedRedirectUri.searchParams.set("code", authCode);
-    if (state) parsedRedirectUri.searchParams.set("state", state);
+    parsedRedirectUri.searchParams.set('code', authCode);
+    if (state) parsedRedirectUri.searchParams.set('state', state);
     return reply.redirect(parsedRedirectUri.toString());
   });
 
   // POST /token — exchange auth code for access token
-  app.post("/token", async (req, reply) => {
+  app.post('/token', async (req, reply) => {
     const body = req.body as Record<string, string>;
 
-    if (body["grant_type"] !== "authorization_code") {
-      const { status, body: b } = tokenError("unsupported_grant_type");
-      return reply.status(status).header("Content-Type", "application/json").send(b);
+    if (body['grant_type'] !== 'authorization_code') {
+      const { status, body: b } = tokenError('unsupported_grant_type');
+      return reply.status(status).header('Content-Type', 'application/json').send(b);
     }
 
     const sendTokenError = (error: string, status = 400) => {
-      return reply.status(status).header("Content-Type", "application/json").send(JSON.stringify({ error }));
+      return reply.status(status).header('Content-Type', 'application/json').send(JSON.stringify({ error }));
     };
 
-    const clientId = body["client_id"];
-    const clientSecret = body["client_secret"];
+    const clientId = body['client_id'];
+    const clientSecret = body['client_secret'];
     if (!clientId || !clientSecret) {
-      return sendTokenError("invalid_client", 401);
+      return sendTokenError('invalid_client', 401);
     }
 
     const client = await findOAuthClient(clientId);
     if (!client || client.clientSecret !== clientSecret) {
-      return sendTokenError("invalid_client", 401);
+      return sendTokenError('invalid_client', 401);
     }
 
-    const code = body["code"];
-    if (!code) return sendTokenError("invalid_request");
+    const code = body['code'];
+    if (!code) return sendTokenError('invalid_request');
 
     const authCodePayload = await verifyToken<AuthCodePayload>(code, client.tokenSigningSecret);
-    if (!authCodePayload) return sendTokenError("invalid_grant");
+    if (!authCodePayload) return sendTokenError('invalid_grant');
 
-    const redirectUri = body["redirect_uri"] ?? "";
+    const redirectUri = body['redirect_uri'] ?? '';
     if (authCodePayload.client_id !== clientId || authCodePayload.redirect_uri !== redirectUri) {
-      return sendTokenError("invalid_grant");
+      return sendTokenError('invalid_grant');
     }
 
-    const codeVerifier = body["code_verifier"];
-    if (!codeVerifier) return sendTokenError("invalid_grant");
+    const codeVerifier = body['code_verifier'];
+    if (!codeVerifier) return sendTokenError('invalid_grant');
 
     const pkceOk = await verifyPkceS256(codeVerifier, authCodePayload.code_challenge);
-    if (!pkceOk) return sendTokenError("invalid_grant");
+    if (!pkceOk) return sendTokenError('invalid_grant');
 
     const accessToken = await signToken(
       {
@@ -313,10 +313,10 @@ export async function oauthRoutes(app: FastifyInstance) {
       client.tokenSigningSecret,
     );
 
-    return reply.header("Content-Type", "application/json").send(
+    return reply.header('Content-Type', 'application/json').send(
       JSON.stringify({
         access_token: accessToken,
-        token_type: "bearer",
+        token_type: 'bearer',
         expires_in: 86400,
       }),
     );

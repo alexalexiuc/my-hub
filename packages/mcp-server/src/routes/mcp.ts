@@ -1,7 +1,7 @@
-import type { FastifyInstance } from "fastify";
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { createCaloriesServer } from "../calories/server";
-import { mcpAuthHandler } from "../auth";
+import type { FastifyInstance } from 'fastify';
+import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
+import { createCaloriesServer } from '../calories/server';
+import { mcpAuthHandler } from '../auth';
 
 /**
  * MCP router — one static route per MCP sub-server.
@@ -12,14 +12,14 @@ import { mcpAuthHandler } from "../auth";
  * Stateless mode (no sessionIdGenerator) — each POST is independent.
  */
 export async function mcpRoutes(app: FastifyInstance) {
-  app.get("/", async (_req, reply) => {
+  app.get('/', async (_req, reply) => {
     return reply.send({
-      message: "MCP endpoint",
-      servers: ["calories"],
+      message: 'MCP endpoint',
+      servers: ['calories'],
     });
   });
 
-  app.post("/calories", { preHandler: mcpAuthHandler }, async (req, reply) => {
+  app.post('/calories', { preHandler: mcpAuthHandler }, async (req, reply) => {
     const server = createCaloriesServer(req.mcpUserId);
     const transport = new WebStandardStreamableHTTPServerTransport({
       enableJsonResponse: true,
@@ -27,7 +27,7 @@ export async function mcpRoutes(app: FastifyInstance) {
 
     await server.connect(transport);
     try {
-      const protocol = req.protocol ?? "http";
+      const protocol = req.protocol ?? 'http';
       const host = (req.headers.host as string | undefined) ?? req.hostname;
       const webRequest = new Request(`${protocol}://${host}${req.url}`, {
         method: req.method,
@@ -44,7 +44,7 @@ export async function mcpRoutes(app: FastifyInstance) {
       return reply.send(await webResponse.text());
     } finally {
       await server.close().catch((err: unknown) => {
-        app.log.warn({ err }, "Failed to close calories MCP server cleanly");
+        app.log.warn({ err }, 'Failed to close calories MCP server cleanly');
       });
     }
   });

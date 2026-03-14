@@ -26,14 +26,14 @@ export interface AuthCodePayload {
 
 function base64urlEncode(buffer: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(buffer)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
 }
 
 function base64urlDecode(str: string): Uint8Array {
-  const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+  const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
   return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
 }
 
@@ -46,9 +46,9 @@ function base64urlDecodeStr(str: string): string {
 }
 
 async function getHmacKey(secret: string) {
-  return crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
-    "sign",
-    "verify",
+  return crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
+    'sign',
+    'verify',
   ]);
 }
 
@@ -59,23 +59,23 @@ async function getHmacKey(secret: string) {
 export async function signToken(payload: object, secret: string): Promise<string> {
   const data = base64urlEncodeStr(JSON.stringify(payload));
   const key = await getHmacKey(secret);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
   return `${data}.${base64urlEncode(sig)}`;
 }
 
 export async function verifyToken<T extends { exp?: number }>(token: string, secret: string): Promise<T | null> {
-  const dot = token.indexOf(".");
+  const dot = token.indexOf('.');
   if (dot === -1) return null;
   const data = token.slice(0, dot);
   const sig = token.slice(dot + 1);
 
   const key = await getHmacKey(secret);
-  const valid = await crypto.subtle.verify("HMAC", key, base64urlDecode(sig), new TextEncoder().encode(data));
+  const valid = await crypto.subtle.verify('HMAC', key, base64urlDecode(sig), new TextEncoder().encode(data));
   if (!valid) return null;
 
   try {
     const parsed = JSON.parse(base64urlDecodeStr(data)) as T;
-    if (typeof parsed.exp === "number" && parsed.exp < Date.now()) {
+    if (typeof parsed.exp === 'number' && parsed.exp < Date.now()) {
       return null;
     }
     return parsed;
@@ -88,7 +88,7 @@ export async function verifyToken<T extends { exp?: number }>(token: string, sec
  * Verify PKCE S256: SHA-256(code_verifier) base64url-encoded must equal code_challenge.
  */
 export async function verifyPkceS256(codeVerifier: string, codeChallenge: string): Promise<boolean> {
-  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(codeVerifier));
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(codeVerifier));
   const encoded = base64urlEncode(hash);
   return encoded === codeChallenge;
 }

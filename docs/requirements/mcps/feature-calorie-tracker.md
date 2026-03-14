@@ -33,9 +33,9 @@ Implemented as a Fastify module backed by PostgreSQL on the self-hosted platform
 
 ## Technical Requirements
 
-| ID    | Requirement                                                                                                               |
-| ----- | ------------------------------------------------------------------------------------------------------------------------- |
-| TR-01 | Implementation lives in `packages/mcp-server/src/calories/` — `server.ts` wires tools; `tools/` contains profile, meals, summary handlers. |
+| ID    | Requirement                                                                                                                                 |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| TR-01 | Implementation lives in `packages/mcp-server/src/calories/` — `server.ts` wires tools; `tools/` contains profile, meals, summary handlers.  |
 | TR-02 | DB schema (`calorie_profiles`, `meal_logs`) is in `packages/shared/src/db/schema` using Drizzle ORM with `real()` columns for all decimals. |
 | TR-03 | Access is protected by OAuth 2.1 PKCE; `mcpAuthHandler` validates the Bearer token and attaches `userId` to the request.                    |
 | TR-04 | All DB queries go through `packages/shared/src/services/calories/` — no raw Drizzle in mcp-server.                                          |

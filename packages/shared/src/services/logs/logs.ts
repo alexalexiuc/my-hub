@@ -1,13 +1,13 @@
-import { and, desc, eq, gte, lte } from "drizzle-orm";
-import { db } from "../../db/client";
-import { apiRequestLogs } from "../../db/schema/api-request-logs";
-import type { ApiRequestLog, NewApiRequestLog } from "../../types/index";
+import { and, desc, eq, gte, lte } from 'drizzle-orm';
+import { db } from '../../db/client';
+import { apiRequestLogs } from '../../db/schema/api-request-logs';
+import type { ApiRequestLog, NewApiRequestLog } from '../../types/index';
 
 // ---------------------------------------------------------------------------
 // API Request Log service
 // ---------------------------------------------------------------------------
 
-export type PutLogData = Omit<NewApiRequestLog, "id" | "createdAt">;
+export type PutLogData = Omit<NewApiRequestLog, 'id' | 'createdAt'>;
 
 export interface GetLogsFilter {
   service?: string;
@@ -21,7 +21,7 @@ export interface GetLogsFilter {
 
 export async function putLog(data: PutLogData): Promise<ApiRequestLog> {
   const [row] = await db.insert(apiRequestLogs).values(data).returning();
-  if (!row) throw new Error("Insert did not return a row");
+  if (!row) throw new Error('Insert did not return a row');
   return row;
 }
 

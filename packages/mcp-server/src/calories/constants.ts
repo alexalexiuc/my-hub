@@ -1,21 +1,21 @@
 export enum MealType {
-  BREAKFAST = "breakfast",
-  LUNCH = "lunch",
-  DINNER = "dinner",
-  SNACK = "snack",
+  BREAKFAST = 'breakfast',
+  LUNCH = 'lunch',
+  DINNER = 'dinner',
+  SNACK = 'snack',
 }
 
 export enum ActivityLevel {
-  SEDENTARY = "sedentary",
-  LIGHTLY_ACTIVE = "lightly_active",
-  MODERATELY_ACTIVE = "moderately_active",
-  VERY_ACTIVE = "very_active",
-  EXTRA_ACTIVE = "extra_active",
+  SEDENTARY = 'sedentary',
+  LIGHTLY_ACTIVE = 'lightly_active',
+  MODERATELY_ACTIVE = 'moderately_active',
+  VERY_ACTIVE = 'very_active',
+  EXTRA_ACTIVE = 'extra_active',
 }
 
 export enum Sex {
-  MALE = "male",
-  FEMALE = "female",
+  MALE = 'male',
+  FEMALE = 'female',
 }
 
 export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {

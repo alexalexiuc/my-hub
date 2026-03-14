@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
-import { db } from "../../db/client";
-import { oauthClients } from "../../db/schema/oauth-clients";
-import type { OAuthClient, NewOAuthClient } from "../../types/index";
+import { eq } from 'drizzle-orm';
+import { db } from '../../db/client';
+import { oauthClients } from '../../db/schema/oauth-clients';
+import type { OAuthClient, NewOAuthClient } from '../../types/index';
 
-export type CreateOAuthClientData = Omit<NewOAuthClient, "id" | "userId" | "createdAt">;
+export type CreateOAuthClientData = Omit<NewOAuthClient, 'id' | 'userId' | 'createdAt'>;
 
 export async function findOAuthClient(clientId: string): Promise<OAuthClient | undefined> {
   return db.query.oauthClients.findFirst({
@@ -13,7 +13,7 @@ export async function findOAuthClient(clientId: string): Promise<OAuthClient | u
 
 export async function createOAuthClient(data: CreateOAuthClientData): Promise<OAuthClient> {
   const [row] = await db.insert(oauthClients).values(data).returning();
-  if (!row) throw new Error("Insert did not return a row");
+  if (!row) throw new Error('Insert did not return a row');
   return row;
 }
 

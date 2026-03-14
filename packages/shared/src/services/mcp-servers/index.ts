@@ -1,1 +1,1 @@
-export * from "./mcp-servers";
+export * from './mcp-servers';

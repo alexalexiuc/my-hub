@@ -1,10 +1,10 @@
-import Link from "next/link";
+import Link from 'next/link';
 
 const sections = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/oauth-clients", label: "OAuth Clients" },
-  { href: "/mcp-control", label: "MCP Control" },
-  { href: "/data-explorer", label: "Data Explorer" },
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/oauth-clients', label: 'OAuth Clients' },
+  { href: '/mcp-control', label: 'MCP Control' },
+  { href: '/data-explorer', label: 'Data Explorer' },
 ];
 
 export default function HomePage() {

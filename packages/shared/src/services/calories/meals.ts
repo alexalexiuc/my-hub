@@ -1,7 +1,7 @@
-import { and, between, eq, isNotNull } from "drizzle-orm";
-import { db } from "../../db/client";
-import { mealLogs } from "../../db/schema/calories";
-import type { MealLog, NewMealLog } from "../../types/index";
+import { and, between, eq, isNotNull } from 'drizzle-orm';
+import { db } from '../../db/client';
+import { mealLogs } from '../../db/schema/calories';
+import type { MealLog, NewMealLog } from '../../types/index';
 
 export interface GetMealsFilter {
   date?: string;
@@ -10,9 +10,9 @@ export interface GetMealsFilter {
   offset?: number;
 }
 
-export async function logMeal(data: Omit<NewMealLog, "id" | "createdAt" | "loggedAt">): Promise<MealLog> {
+export async function logMeal(data: Omit<NewMealLog, 'id' | 'createdAt' | 'loggedAt'>): Promise<MealLog> {
   const [row] = await db.insert(mealLogs).values(data).returning();
-  if (!row) throw new Error("Insert did not return a row");
+  if (!row) throw new Error('Insert did not return a row');
   return row;
 }
 

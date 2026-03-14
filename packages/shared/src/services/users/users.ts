@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
-import { db } from "../../db/client";
-import { users } from "../../db/schema/users";
-import type { User } from "../../types/index";
+import { eq } from 'drizzle-orm';
+import { db } from '../../db/client';
+import { users } from '../../db/schema/users';
+import type { User } from '../../types/index';
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
   return db.query.users.findFirst({
@@ -17,6 +17,6 @@ export async function upsertUserByEmail(email: string): Promise<User> {
   if (existing) return existing;
 
   const [row] = await db.insert(users).values({ email: normalised }).returning();
-  if (!row) throw new Error("Insert did not return a row");
+  if (!row) throw new Error('Insert did not return a row');
   return row;
 }

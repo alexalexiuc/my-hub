@@ -1,2 +1,2 @@
-export * from "./profile";
-export * from "./meals";
+export * from './profile';
+export * from './meals';
