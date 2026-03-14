@@ -12,6 +12,8 @@
     "./utils": "./src/utils/index.ts"
   },
   "scripts": {
+    "build": "tsc",
+    "build:clear": "rimraf dist",
     "lint": "pnpm exec eslint src",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",

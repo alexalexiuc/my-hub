@@ -16,7 +16,7 @@ export async function upsertUserByEmail(email: string): Promise<User> {
   });
   if (existing) return existing;
 
-  const [row] = await db.insert(users).values({ email: normalised }).returning();
+  const [row] = await db.insert(users).values({ email: normalised }).onConflictDoNothing().returning();
   if (!row) throw new Error('Insert did not return a row');
   return row;
 }

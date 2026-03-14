@@ -18,7 +18,7 @@ jobs:
 
     outputs:
       mcp_image: ${{ steps.meta-mcp.outputs.tags }}
-      admin_image: ${{ steps.meta-admin.outputs.tags }}
+      hub_image: ${{ steps.meta-hub.outputs.tags }}
 
     steps:
       - name: Checkout
@@ -55,24 +55,24 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # ---- admin ----
-      - name: Docker meta — admin
-        id: meta-admin
+      # ---- hub ----
+      - name: Docker meta — hub
+        id: meta-hub
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub-admin
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub-hub
           tags: |
             type=sha,prefix=sha-
             type=raw,value=latest
 
-      - name: Build & push — admin
+      - name: Build & push — hub
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: packages/admin/Dockerfile
+          file: packages/hub/Dockerfile
           push: true
-          tags: ${{ steps.meta-admin.outputs.tags }}
-          labels: ${{ steps.meta-admin.outputs.labels }}
+          tags: ${{ steps.meta-hub.outputs.tags }}
+          labels: ${{ steps.meta-hub.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

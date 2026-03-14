@@ -3,5 +3,4 @@ export * from './oauth-clients';
 export * from './mcp-servers';
 export * from './hive';
 export * from './calories';
-export * from './products';
 export * from './api-request-logs';

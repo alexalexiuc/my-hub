@@ -1,6 +1,3 @@
--- Enable pg_trgm extension for trigram-based indexes (if not already enabled).
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-
 DO $$ BEGIN
  CREATE TYPE "public"."mcp_server" AS ENUM('calories', 'hive', 'products');
 EXCEPTION
@@ -22,7 +19,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 CREATE TABLE IF NOT EXISTS "oauth_clients" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"client_id" text NOT NULL,
-	"client_secret" jsonb NOT NULL,
+	"client_secret" text NOT NULL,
 	"token_signing_secret" jsonb NOT NULL,
 	"user_id" uuid,
 	"client_name" text,
@@ -106,36 +103,6 @@ CREATE TABLE IF NOT EXISTS "meal_logs" (
 	CONSTRAINT "meal_logs_meal_id_unique" UNIQUE("meal_id")
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "inventory" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"product_id" integer NOT NULL,
-	"quantity" numeric(10, 3) DEFAULT '0' NOT NULL,
-	"location" text,
-	"updated_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "products" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"name" text NOT NULL,
-	"barcode" text,
-	"category" text,
-	"unit" text,
-	"notes" text,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "products_barcode_unique" UNIQUE("barcode")
-);
---> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "shopping_list_items" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"product_id" integer,
-	"name" text NOT NULL,
-	"quantity" numeric(10, 3),
-	"unit" text,
-	"checked" boolean DEFAULT false NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "api_request_logs" (
 	"id" bigserial PRIMARY KEY NOT NULL,
 	"service" text NOT NULL,
@@ -187,18 +154,6 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "inventory" ADD CONSTRAINT "inventory_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "shopping_list_items" ADD CONSTRAINT "shopping_list_items_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE set null ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_meal_logs_user" ON "meal_logs" ("user_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_meal_logs_date" ON "meal_logs" ("date");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_meal_logs_user_date" ON "meal_logs" ("user_id","date");--> statement-breakpoint
@@ -207,5 +162,3 @@ CREATE INDEX IF NOT EXISTS "idx_logs_path" ON "api_request_logs" ("path");--> st
 CREATE INDEX IF NOT EXISTS "idx_logs_user" ON "api_request_logs" ("user_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_logs_status" ON "api_request_logs" ("status_code");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_logs_service" ON "api_request_logs" ("service");
--- Trigram GIN index on api_request_logs.error to support fuzzy search on error messages.
-CREATE INDEX IF NOT EXISTS "api_request_logs_error_trgm_idx" ON "api_request_logs" USING GIN ("error" gin_trgm_ops);

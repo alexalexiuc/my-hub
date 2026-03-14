@@ -59,7 +59,7 @@ export default [
     },
     settings: {
       next: {
-        rootDir: 'packages/admin',
+        rootDir: 'packages/hub',
       },
     },
     languageOptions: {

@@ -5,22 +5,15 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1773523670967,
-      "tag": "0000_large_thundra",
+      "when": 1773527294463,
+      "tag": "0000_cool_dracula",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "6",
-      "when": 1773910400000,
-      "tag": "0001_encrypt_oauth_secrets",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1773526374062,
-      "tag": "0002_bent_randall",
+      "when": 1742042400000,
+      "tag": "0001_api_logs_trgm_index",
       "breakpoints": true
     }
   ]
