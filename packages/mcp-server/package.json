@@ -17,7 +17,6 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@my-hub/shared": "workspace:*",
     "dotenv-mono": "^1.5.1",
-    "drizzle-orm": "^0.30.10",
     "fastify": "^4.27.0",
     "next-auth": "^4.24.7",
     "zod": "^3.23.8"
