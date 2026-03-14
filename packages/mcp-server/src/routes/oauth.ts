@@ -4,6 +4,7 @@ import {
   findOAuthClient,
   createOAuthClient,
   bindOAuthClientToUser,
+  verifyClientSecret,
   ensureAllMcpServers,
   findUserByEmail,
 } from '@my-hub/shared/services';
@@ -284,8 +285,11 @@ export async function oauthRoutes(app: FastifyInstance) {
       return sendTokenError('invalid_client', 401);
     }
 
-    const client = await findOAuthClient(clientId);
-    if (!client || client.clientSecret !== clientSecret) {
+    const [client, secretOk] = await Promise.all([
+      findOAuthClient(clientId),
+      verifyClientSecret(clientId, clientSecret),
+    ]);
+    if (!client || !secretOk) {
       return sendTokenError('invalid_client', 401);
     }
 

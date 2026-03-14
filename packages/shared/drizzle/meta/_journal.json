@@ -8,6 +8,20 @@
       "when": 1773523670967,
       "tag": "0000_large_thundra",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1773910400000,
+      "tag": "0001_encrypt_oauth_secrets",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1773526374062,
+      "tag": "0002_bent_randall",
+      "breakpoints": true
     }
   ]
 }

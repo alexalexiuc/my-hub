@@ -1,4 +1,24 @@
-import { webcrypto } from 'crypto';
+import { webcrypto, scrypt, randomBytes, timingSafeEqual } from 'crypto';
+import { promisify } from 'util';
+
+const scryptAsync = promisify(scrypt);
+const SCRYPT_KEYLEN = 64;
+
+/** Hash a plain secret (e.g. clientSecret) for safe storage. */
+export async function hashSecret(plain: string): Promise<string> {
+  const salt = randomBytes(16).toString('hex');
+  const hash = (await scryptAsync(plain, salt, SCRYPT_KEYLEN)) as Buffer;
+  return `${salt}:${hash.toString('hex')}`;
+}
+
+/** Verify a plain secret against a stored scrypt hash. */
+export async function verifySecret(plain: string, stored: string): Promise<boolean> {
+  const [salt, hex] = stored.split(':');
+  if (!salt || !hex) return false;
+  const storedHash = Buffer.from(hex, 'hex');
+  const derivedHash = (await scryptAsync(plain, salt, SCRYPT_KEYLEN)) as Buffer;
+  return timingSafeEqual(storedHash, derivedHash);
+}
 
 export interface EncryptedString {
   value: string;

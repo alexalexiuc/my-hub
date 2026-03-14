@@ -6,8 +6,8 @@ import type { EncryptedString } from '../../crypto/index';
 export const oauthClients = pgTable('oauth_clients', {
   id: serial('id').primaryKey(),
   clientId: text('client_id').notNull().unique(),
-  // Client sends this to /token for authentication
-  clientSecret: jsonb('client_secret').notNull().$type<EncryptedString>(),
+  // Client sends this to /token for authentication; stored as a scrypt hash, never retrievable
+  clientSecret: text('client_secret').notNull(),
   // Server-only secret used to HMAC-sign auth codes and access tokens (never sent to client)
   tokenSigningSecret: jsonb('token_signing_secret').notNull().$type<EncryptedString>(),
   // null until the user completes /authorize

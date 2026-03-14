@@ -1,3 +1,6 @@
+-- Enable pg_trgm extension for trigram-based indexes (if not already enabled).
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 DO $$ BEGIN
  CREATE TYPE "public"."mcp_server" AS ENUM('calories', 'hive', 'products');
 EXCEPTION
@@ -204,3 +207,5 @@ CREATE INDEX IF NOT EXISTS "idx_logs_path" ON "api_request_logs" ("path");--> st
 CREATE INDEX IF NOT EXISTS "idx_logs_user" ON "api_request_logs" ("user_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_logs_status" ON "api_request_logs" ("status_code");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_logs_service" ON "api_request_logs" ("service");
+-- Trigram GIN index on api_request_logs.error to support fuzzy search on error messages.
+CREATE INDEX IF NOT EXISTS "api_request_logs_error_trgm_idx" ON "api_request_logs" USING GIN ("error" gin_trgm_ops);

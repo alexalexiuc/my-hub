@@ -1,0 +1,1 @@
+ALTER TABLE "oauth_clients" ALTER COLUMN "client_secret" SET DATA TYPE text;
