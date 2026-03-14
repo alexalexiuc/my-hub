@@ -4,8 +4,8 @@ import {
   findOAuthClient,
   createOAuthClient,
   bindOAuthClientToUser,
-  upsertUserByEmail,
   ensureAllMcpServers,
+  findUserByEmail,
 } from '@my-hub/shared/services';
 import { signToken, verifyToken, verifyPkceS256, type AuthCodePayload } from '@my-hub/shared/auth';
 
@@ -238,7 +238,8 @@ export async function oauthRoutes(app: FastifyInstance) {
     }
 
     // Upsert user + bind client + provision MCP server rows
-    const user = await upsertUserByEmail(email);
+    const user = await findUserByEmail(email);
+    if (!user) return sendError('login_required');
     await bindOAuthClientToUser(clientId, user.id);
     await ensureAllMcpServers(user.id);
     const userId = user.id;
