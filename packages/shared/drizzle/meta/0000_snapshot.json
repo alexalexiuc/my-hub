@@ -1,5 +1,5 @@
 {
-  "id": "f11a0a43-ffec-470e-becd-ea7c3e969701",
+  "id": "395ed5d1-8a0e-4332-9f64-07b0d8b61ae8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "6",
   "dialect": "postgresql",
@@ -92,13 +92,13 @@
         },
         "client_secret": {
           "name": "client_secret",
-          "type": "text",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },
         "token_signing_secret": {
           "name": "token_signing_secret",
-          "type": "text",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },

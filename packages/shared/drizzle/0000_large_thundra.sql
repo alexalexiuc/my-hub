@@ -19,8 +19,8 @@ CREATE TABLE IF NOT EXISTS "users" (
 CREATE TABLE IF NOT EXISTS "oauth_clients" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"client_id" text NOT NULL,
-	"client_secret" text NOT NULL,
-	"token_signing_secret" text NOT NULL,
+	"client_secret" jsonb NOT NULL,
+	"token_signing_secret" jsonb NOT NULL,
 	"user_id" uuid,
 	"client_name" text,
 	"redirect_uris" text[] DEFAULT '{}'::text[] NOT NULL,
