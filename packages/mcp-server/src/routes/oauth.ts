@@ -247,6 +247,7 @@ export async function oauthRoutes(app: FastifyInstance) {
     const codeChallenge = body['code_challenge'] ?? '';
     const codeChallengeMethod = body['code_challenge_method'] ?? 'S256';
 
+    // TODO: Make auth token single-use(either inMemory map or db table) to prevent replay attacks. Currently the 5 minute expiry is the only protection.
     const authCode = await signToken(
       {
         client_id: clientId,
