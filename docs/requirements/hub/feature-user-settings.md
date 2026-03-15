@@ -1,59 +1,74 @@
-# Feature: User & Settings
+# Feature: User Profile & Settings
 
 | Field    | Value                          |
 | -------- | ------------------------------ |
-| Status   | draft                          |
-| Priority | low                            |
+| Status   | implemented                    |
+| Priority | medium                         |
 | File     | `hub/feature-user-settings.md` |
 
 ---
 
 ## Summary
 
-The User & Settings section of the Hub admin panel lets the owner manage their account
-credentials, application-level preferences, and any API keys used by the platform.
-Given the current single-user (or small invite group) scope, this is a simple personal
-settings page rather than a full multi-user account management system.
+The Profile page (`/profile`) lets the authenticated user view their account details,
+update their display name, sign out, and permanently delete their data on a per-feature
+basis. Auth is handled by NextAuth.js with Google OAuth; there is no password management.
 
 ---
 
 ## Functional Requirements
 
-| ID    | Requirement                                                                                                                                                   |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FR-01 | The admin must be able to change their login password from the settings page.                                                                                 |
-| FR-02 | The admin must be able to view and regenerate any platform-level API keys (e.g. keys used by integrations). Regeneration invalidates the old key immediately. |
-| FR-03 | The admin must be able to update application preferences (e.g. timezone, default daily calorie goal, display language if applicable).                         |
-| FR-04 | The settings page must display the currently logged-in user's identity (username / email) and session information.                                            |
-| FR-05 | The admin must be able to log out, which invalidates the current session server-side.                                                                         |
+| ID    | Requirement                                                                                                                                |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| FR-01 | The profile page must display the user's email address and the date their account was created.                                             |
+| FR-02 | The user must be able to update their display name; the change is persisted to the `users` table and reflected immediately on save.        |
+| FR-03 | The user must be able to select one or more data features and permanently delete all their data for those features.                        |
+| FR-04 | Data deletion must require a two-step confirmation: the user selects features, then explicitly confirms before deletion executes.          |
+| FR-05 | After deletion, the page must display a summary of what was removed (record counts per feature).                                          |
+| FR-06 | The user must be able to sign out from the profile page; signing out ends the NextAuth session.                                           |
+| FR-07 | Accessing the profile page while unauthenticated must redirect to the sign-in page.                                                       |
+
+---
+
+## Data features eligible for deletion
+
+| Feature key         | Data deleted                                             |
+| ------------------- | -------------------------------------------------------- |
+| `meals`             | All rows in `meal_logs` for the user                     |
+| `measurements`      | All rows in `body_measurements` for the user             |
+| `calories_profile`  | The row in `calorie_profiles` for the user               |
 
 ---
 
 ## Technical Requirements
 
-| ID    | Requirement                                                                                                                                               |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TR-01 | Authentication for the admin panel uses NextAuth.js (credentials provider) or a custom JWT session; the approach must be consistent across all Hub pages. |
-| TR-02 | Passwords are stored as bcrypt hashes; plaintext passwords are never logged or persisted.                                                                 |
-| TR-03 | Session invalidation on logout must be server-side (token blacklist or database session table) so that stolen tokens cannot be replayed after logout.     |
-| TR-04 | API keys are stored as bcrypt hashes; the plaintext is shown only once at generation time.                                                                |
-| TR-05 | The settings page lives in `packages/admin` and all write operations go through Next.js Server Actions or API routes.                                     |
-| TR-06 | If GitHub/Google OAuth login is used instead of username/password, the password-change requirement (FR-01) is replaced by a "connected accounts" view.    |
+| ID    | Requirement                                                                                                                                        |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TR-01 | The profile page lives at `packages/hub/src/app/profile/page.tsx` and is a client component (`"use client"`).                                     |
+| TR-02 | Account info and name updates are served by `GET /api/user/profile` and `PUT /api/user/profile` respectively.                                     |
+| TR-03 | Data deletion is handled by `POST /api/user/delete-data` with body `{ features: string[] }`. Only keys from the allowed list are accepted.        |
+| TR-04 | All API routes call `getAuthUser()` (resolves the DB user from the NextAuth session email) and return 401 if unauthenticated.                      |
+| TR-05 | Name updates call `updateUserName(userId, name)` from `@my-hub/shared/services`; deletions call `deleteAllUserMeals`, `deleteAllUserMeasurements`, `deleteCalorieProfile`. |
+| TR-06 | Authentication uses NextAuth.js with the Google provider; there is no username/password login. Password management (original FR-01) is not applicable. |
+| TR-07 | The page uses shared components from `packages/hub/src/components/`: `PageHeader`, `SectionCard`, `Field`, `Button`.                              |
 
 ---
 
 ## Open Questions
 
-- [ ] Should the platform support multiple user accounts (small invite group), or remain strictly single-user? This affects the complexity of the settings page significantly.
-- [ ] Username/password login vs GitHub/Google OAuth — which is preferred for the initial version?
-- [ ] Should there be a notifications/alerts preferences section (e.g. email reminders for hive inspections, low stock)?
+- [ ] Should there be a "delete account" option that also removes the `users` row and revokes all OAuth clients?
+- [ ] Should the platform support multiple user accounts? Currently single-user (small invite group) — no per-user isolation beyond `user_id` FK.
+- [ ] Should preference settings (timezone, default calorie goal) be added here in a future iteration?
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] The admin can change their password and log in successfully with the new password; the old password is rejected.
-- [ ] Logging out invalidates the session; navigating back to any protected page redirects to login.
-- [ ] Regenerating an API key causes the old key to be rejected by any service that checks it.
-- [ ] Preference changes (e.g. timezone) are persisted and reflected on the next page load.
-- [ ] Accessing the settings page while unauthenticated redirects to the login page.
+- [x] The profile page displays the signed-in user's email and member-since date.
+- [x] The user can update their display name and the change persists across page reloads.
+- [x] Selecting `meals` and confirming deletion removes all meal log rows for the user.
+- [x] Selecting `measurements` and confirming deletion removes all body measurement rows for the user.
+- [x] Selecting `calories_profile` and confirming deletion removes the calorie profile row for the user.
+- [x] Deletion requires two steps (select + confirm); no data is deleted before the confirm button is clicked.
+- [x] Clicking "Sign out" ends the session and redirects to the sign-in page.
+- [x] Visiting `/profile` without a session redirects to `/auth/signin`.
