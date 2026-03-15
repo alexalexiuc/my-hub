@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, serial, text, uuid, timestamp, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, uuid, timestamp, jsonb, boolean } from 'drizzle-orm/pg-core';
 import { users } from './users';
 import type { EncryptedString } from '../../crypto/index';
 
@@ -17,5 +17,6 @@ export const oauthClients = pgTable('oauth_clients', {
     .array()
     .notNull()
     .default(sql`'{}'::text[]`),
+  enabled: boolean('enabled').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
