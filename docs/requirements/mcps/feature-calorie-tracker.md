@@ -19,35 +19,35 @@ PostgreSQL on the self-hosted platform.
 
 ## Functional Requirements
 
-| ID    | Requirement                                                                                                                                      |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| FR-01 | The server must expose a tool to log a meal (description, calories, macros, date, meal type).                                                    |
-| FR-02 | The server must expose a tool to retrieve a daily nutritional summary (total calories, macros, meal list) for a given date.                      |
-| FR-03 | The server must expose a tool to retrieve a weekly nutritional summary.                                                                          |
+| ID    | Requirement                                                                                                                                                                    |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FR-01 | The server must expose a tool to log a meal (description, calories, macros, date, meal type).                                                                                  |
+| FR-02 | The server must expose a tool to retrieve a daily nutritional summary (total calories, macros, meal list) for a given date.                                                    |
+| FR-03 | The server must expose a tool to retrieve a weekly nutritional summary.                                                                                                        |
 | FR-04 | The server must expose a tool to read and update the user's dietary profile (daily calorie goal, activity level, sex, age). Body measurements are logged separately via FR-09. |
-| FR-05 | The server must expose a tool to delete a previously logged meal by `meal_id`.                                                                   |
-| FR-06 | The server must expose a tool to get remaining calories for the day (goal minus logged).                                                         |
-| FR-07 | All tools must be scoped to the authenticated user.                                                                                              |
-| FR-08 | The server must be reachable at `POST /mcp/calories` of the shared MCP Fastify app; `userId` is resolved from the Bearer token.                  |
-| FR-09 | The server must expose a tool to log a time-stamped body measurement (weight, height, neck, waist, hips, etc.) by measurement type key and value. |
-| FR-10 | The server must expose a tool to retrieve body measurements with optional filtering by type, date range, and limit.                              |
-| FR-11 | The server must expose a tool to list all supported measurement types (key, label, unit).                                                        |
-| FR-12 | The server must expose a tool to delete a body measurement by ID.                                                                                |
-| FR-13 | TDEE and BMR calculations must source height and weight from the latest body measurements, not from the profile table.                           |
+| FR-05 | The server must expose a tool to delete a previously logged meal by `meal_id`.                                                                                                 |
+| FR-06 | The server must expose a tool to get remaining calories for the day (goal minus logged).                                                                                       |
+| FR-07 | All tools must be scoped to the authenticated user.                                                                                                                            |
+| FR-08 | The server must be reachable at `POST /mcp/calories` of the shared MCP Fastify app; `userId` is resolved from the Bearer token.                                                |
+| FR-09 | The server must expose a tool to log a time-stamped body measurement (weight, height, neck, waist, hips, etc.) by measurement type key and value.                              |
+| FR-10 | The server must expose a tool to retrieve body measurements with optional filtering by type, date range, and limit.                                                            |
+| FR-11 | The server must expose a tool to list all supported measurement types (key, label, unit).                                                                                      |
+| FR-12 | The server must expose a tool to delete a body measurement by ID.                                                                                                              |
+| FR-13 | TDEE and BMR calculations must source height and weight from the latest body measurements, not from the profile table.                                                         |
 
 ---
 
 ## Technical Requirements
 
-| ID    | Requirement                                                                                                                                                                                     |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ID    | Requirement                                                                                                                                                                                    |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | TR-01 | Implementation lives in `packages/mcp-server/src/calories/` — `server.ts` wires tools; `tools/` contains `profile.ts`, `meals.ts`, `summary.ts`, and `measurements.ts`.                        |
-| TR-02 | DB schema uses four tables: `calorie_profiles` (age, sex, activity, goal), `meal_logs`, `measurement_types` (lookup with key/label/unit), and `body_measurements` (time-series per user+type).  |
+| TR-02 | DB schema uses four tables: `calorie_profiles` (age, sex, activity, goal), `meal_logs`, `measurement_types` (lookup with key/label/unit), and `body_measurements` (time-series per user+type). |
 | TR-03 | Access is protected by OAuth 2.1 PKCE; `mcpAuthHandler` validates the Bearer token and attaches `userId` to the request.                                                                       |
 | TR-04 | All DB queries go through `packages/shared/src/services/calories/` and `packages/shared/src/services/measurements/` — no raw Drizzle in `mcp-server`.                                          |
-| TR-05 | MCP transport uses `WebStandardStreamableHTTPServerTransport` in stateless mode (new server instance per POST).                                                                                 |
+| TR-05 | MCP transport uses `WebStandardStreamableHTTPServerTransport` in stateless mode (new server instance per POST).                                                                                |
 | TR-06 | `measurement_types` is a lookup table pre-seeded with: `weight` (kg), `height` (cm), `neck` (cm), `waist` (cm), `hips` (cm), `chest` (cm), `bicep` (cm), `body_fat` (%). Seeded via migration. |
-| TR-07 | `calories_get_profile` and TDEE-dependent summary tools must call `getLatestMeasurementsPerType(userId)` and pass the latest `height`/`weight` values to `calculateTDEE`.                       |
+| TR-07 | `calories_get_profile` and TDEE-dependent summary tools must call `getLatestMeasurementsPerType(userId)` and pass the latest `height`/`weight` values to `calculateTDEE`.                      |
 
 ---
 

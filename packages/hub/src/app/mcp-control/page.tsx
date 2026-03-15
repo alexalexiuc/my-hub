@@ -50,7 +50,15 @@ const SERVER_META: Record<string, { label: string; path: string; description: st
 
 // ─── Toggle Switch ────────────────────────────────────────────────────────────
 
-function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+function Toggle({
+  checked,
+  onChange,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
   return (
     <button
       type="button"
@@ -127,9 +135,7 @@ function SecretRevealCard({ client, onDone }: { client: CreatedClient; onDone: (
         </div>
         <div className="flex items-center gap-2">
           <span className="w-32 text-gray-500 shrink-0">MCP URL</span>
-          <code className="rounded bg-white px-2 py-0.5 font-mono text-xs border border-gray-200">
-            {MCP_BASE_URL}
-          </code>
+          <code className="rounded bg-white px-2 py-0.5 font-mono text-xs border border-gray-200">{MCP_BASE_URL}</code>
           <CopyButton value={MCP_BASE_URL} />
         </div>
       </div>
@@ -161,8 +167,11 @@ function NewClientForm({ onCreated }: { onCreated: (c: CreatedClient) => void })
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim() || null }),
       });
-      const data = await res.json() as CreatedClient & { error?: string };
-      if (!res.ok) { setError(data.error ?? 'Failed to create client'); return; }
+      const data = (await res.json()) as CreatedClient & { error?: string };
+      if (!res.ok) {
+        setError(data.error ?? 'Failed to create client');
+        return;
+      }
       onCreated(data);
     } finally {
       setLoading(false);
@@ -170,7 +179,10 @@ function NewClientForm({ onCreated }: { onCreated: (c: CreatedClient) => void })
   }
 
   return (
-    <form onSubmit={submit} className="flex items-end gap-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4">
+    <form
+      onSubmit={submit}
+      className="flex items-end gap-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4"
+    >
       <div className="flex-1">
         <label className="text-xs text-gray-500 block mb-1">Connection name</label>
         <input
@@ -224,7 +236,10 @@ function ClientCard({
   }
 
   async function handleDelete() {
-    if (!confirmDelete) { setConfirmDelete(true); return; }
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
     setDeleting(true);
     try {
       await fetch(`/api/mcp/clients/${client.id}`, { method: 'DELETE' });
@@ -236,11 +251,15 @@ function ClientCard({
   }
 
   const created = new Date(client.createdAt).toLocaleDateString('en-GB', {
-    day: '2-digit', month: 'short', year: 'numeric',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
   });
 
   return (
-    <div className={`rounded-xl border bg-white p-4 space-y-3 transition ${client.enabled ? 'border-gray-200' : 'border-gray-200 opacity-60'}`}>
+    <div
+      className={`rounded-xl border bg-white p-4 space-y-3 transition ${client.enabled ? 'border-gray-200' : 'border-gray-200 opacity-60'}`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-medium text-gray-900 truncate">{client.clientName ?? 'Unnamed client'}</p>
@@ -316,7 +335,9 @@ function ServerCard({
   }
 
   return (
-    <div className={`rounded-xl border bg-white p-4 space-y-2 transition ${server.enabled ? 'border-gray-200' : 'border-gray-200 opacity-60'}`}>
+    <div
+      className={`rounded-xl border bg-white p-4 space-y-2 transition ${server.enabled ? 'border-gray-200' : 'border-gray-200 opacity-60'}`}
+    >
       <div className="flex items-center justify-between gap-3">
         <p className="font-medium text-gray-900">{meta?.label ?? server.serverName}</p>
         <Toggle checked={server.enabled} onChange={handleToggle} disabled={toggling} />
@@ -344,11 +365,8 @@ export default function McpControlPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [sRes, cRes] = await Promise.all([
-        fetch('/api/mcp/servers'),
-        fetch('/api/mcp/clients'),
-      ]);
-      const [sData, cData] = await Promise.all([sRes.json(), cRes.json()]) as [McpServerRow[], OAuthClientRow[]];
+      const [sRes, cRes] = await Promise.all([fetch('/api/mcp/servers'), fetch('/api/mcp/clients')]);
+      const [sData, cData] = (await Promise.all([sRes.json(), cRes.json()])) as [McpServerRow[], OAuthClientRow[]];
       setServers(sData);
       setClients(cData);
     } finally {
@@ -356,14 +374,16 @@ export default function McpControlPage() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   function handleServerToggle(name: string, enabled: boolean) {
-    setServers((prev) => prev.map((s) => s.serverName === name ? { ...s, enabled } : s));
+    setServers((prev) => prev.map((s) => (s.serverName === name ? { ...s, enabled } : s)));
   }
 
   function handleClientToggle(id: number, enabled: boolean) {
-    setClients((prev) => prev.map((c) => c.id === id ? { ...c, enabled } : c));
+    setClients((prev) => prev.map((c) => (c.id === id ? { ...c, enabled } : c)));
   }
 
   function handleClientDelete(id: number) {
@@ -389,9 +409,7 @@ export default function McpControlPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Connections</h2>
-            <p className="text-sm text-gray-500 mt-0.5">
-              OAuth credentials for MCP clients (e.g. Claude Desktop).
-            </p>
+            <p className="text-sm text-gray-500 mt-0.5">OAuth credentials for MCP clients (e.g. Claude Desktop).</p>
           </div>
           {!showForm && !newClient && (
             <button
@@ -407,12 +425,8 @@ export default function McpControlPage() {
           <p className="text-sm text-gray-400">Loading…</p>
         ) : (
           <div className="space-y-3">
-            {newClient && (
-              <SecretRevealCard client={newClient} onDone={dismissSecret} />
-            )}
-            {showForm && !newClient && (
-              <NewClientForm onCreated={handleCreated} />
-            )}
+            {newClient && <SecretRevealCard client={newClient} onDone={dismissSecret} />}
+            {showForm && !newClient && <NewClientForm onCreated={handleCreated} />}
             {clients.length === 0 && !showForm && !newClient && (
               <p className="text-sm text-gray-400 rounded-xl border border-dashed border-gray-200 p-6 text-center">
                 No connections yet. Add one to start using MCP clients.
@@ -421,12 +435,7 @@ export default function McpControlPage() {
             {clients
               .filter((c) => !newClient || c.id !== newClient.id)
               .map((c) => (
-                <ClientCard
-                  key={c.id}
-                  client={c}
-                  onToggle={handleClientToggle}
-                  onDelete={handleClientDelete}
-                />
+                <ClientCard key={c.id} client={c} onToggle={handleClientToggle} onDelete={handleClientDelete} />
               ))}
           </div>
         )}
@@ -436,9 +445,7 @@ export default function McpControlPage() {
       <section className="space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">MCP Servers</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Enable or disable individual MCP sub-servers.
-          </p>
+          <p className="text-sm text-gray-500 mt-0.5">Enable or disable individual MCP sub-servers.</p>
         </div>
 
         {loading ? (

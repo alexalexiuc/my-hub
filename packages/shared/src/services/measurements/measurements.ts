@@ -17,9 +17,7 @@ export interface MeasurementWithType extends BodyMeasurement {
   typeUnit: string;
 }
 
-export async function logMeasurement(
-  data: Omit<NewBodyMeasurement, 'id' | 'createdAt'>,
-): Promise<BodyMeasurement> {
+export async function logMeasurement(data: Omit<NewBodyMeasurement, 'id' | 'createdAt'>): Promise<BodyMeasurement> {
   const [row] = await db.insert(bodyMeasurements).values(data).returning();
   if (!row) throw new Error('Insert did not return a row');
   return row;
@@ -62,9 +60,7 @@ export async function getMeasurements(
 }
 
 /** Returns the latest measurement value for each type the user has recorded */
-export async function getLatestMeasurementsPerType(
-  userId: string,
-): Promise<MeasurementWithType[]> {
+export async function getLatestMeasurementsPerType(userId: string): Promise<MeasurementWithType[]> {
   // Get distinct type IDs for this user then fetch latest per type
   const allRows = await db
     .select({
@@ -104,10 +100,7 @@ export async function deleteAllUserMeasurements(userId: string): Promise<number>
   return rows.length;
 }
 
-export async function deleteMeasurement(
-  id: number,
-  userId: string,
-): Promise<BodyMeasurement | null> {
+export async function deleteMeasurement(id: number, userId: string): Promise<BodyMeasurement | null> {
   const [row] = await db
     .delete(bodyMeasurements)
     .where(and(eq(bodyMeasurements.id, id), eq(bodyMeasurements.userId, userId)))

@@ -24,7 +24,10 @@ test.describe('Main Dashboard', () => {
   });
 
   test('navigates to calories dashboard', async ({ page }) => {
-    await page.getByRole('link', { name: /calories/i }).first().click();
+    await page
+      .getByRole('link', { name: /calories/i })
+      .first()
+      .click();
     await expect(page).toHaveURL('/calories');
   });
 });

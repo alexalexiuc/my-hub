@@ -146,9 +146,7 @@ export default function ProfilePage() {
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Member since</span>
-            <span className="font-medium">
-              {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}
-            </span>
+            <span className="font-medium">{user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}</span>
           </div>
         </div>
       </SectionCard>
@@ -212,20 +210,14 @@ export default function ProfilePage() {
           </div>
 
           {selectedFeatures.size > 0 && !deleteConfirm && (
-            <Button
-              variant="danger"
-              onClick={() => setDeleteConfirm(true)}
-              disabled={selectedFeatures.size === 0}
-            >
+            <Button variant="danger" onClick={() => setDeleteConfirm(true)} disabled={selectedFeatures.size === 0}>
               Delete selected data…
             </Button>
           )}
 
           {deleteConfirm && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
-              <p className="text-sm font-medium text-red-800">
-                Are you sure? This will permanently delete:
-              </p>
+              <p className="text-sm font-medium text-red-800">Are you sure? This will permanently delete:</p>
               <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
                 {Array.from(selectedFeatures).map((f) => (
                   <li key={f}>{DATA_FEATURES.find((d) => d.key === f)?.label}</li>
@@ -265,8 +257,8 @@ export default function ProfilePage() {
       <SectionCard title="Danger zone">
         <div className="space-y-3">
           <p className="text-sm text-gray-500">
-            Permanently delete all your data (meals, measurements, calorie profile, MCP connections).
-            Your account is kept.
+            Permanently delete all your data (meals, measurements, calorie profile, MCP connections). Your account is
+            kept.
           </p>
           {!deleteAllConfirm ? (
             <Button variant="danger" onClick={() => setDeleteAllConfirm(true)}>

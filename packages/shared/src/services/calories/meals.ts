@@ -59,10 +59,7 @@ export async function getMealsForDateRange(userId: string, start: string, end: s
 }
 
 export async function deleteAllUserMeals(userId: string): Promise<number> {
-  const rows = await db
-    .delete(mealLogs)
-    .where(eq(mealLogs.userId, userId))
-    .returning({ id: mealLogs.id });
+  const rows = await db.delete(mealLogs).where(eq(mealLogs.userId, userId)).returning({ id: mealLogs.id });
   return rows.length;
 }
 

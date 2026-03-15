@@ -53,15 +53,15 @@ import { getCalorieProfile, getMeasurementTypes, findOrCreateUser } from '@my-hu
 
 ## Functional Requirements
 
-| ID    | Requirement                                                                                                                                                                         |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FR-01 | All DB queries must be accessible from both `mcp-server` and `hub` without duplication.                                                                                            |
-| FR-02 | Each domain exposes typed service functions; callers never import `db` or `drizzle-orm` directly.                                                                                  |
-| FR-03 | The `calories` domain exposes profile and meal operations: get, upsert, delete profile; log, get, delete (single + all) meals.                                                     |
-| FR-04 | The `users` domain exposes find by email, find-or-create (used by Hub on first login), and update-name operations.                                                                  |
-| FR-05 | The `oauth-clients` domain exposes find, create, user-binding, and secret-verification operations.                                                                                  |
-| FR-06 | The `mcp-servers` domain exposes `ensureAllMcpServers(userId)` which idempotently provisions server rows.                                                                          |
-| FR-07 | The `measurements` domain exposes: type lookups, log measurement, get measurements (with filters), get latest per type, delete single, delete all for a user.                      |
+| ID    | Requirement                                                                                                                                                   |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-01 | All DB queries must be accessible from both `mcp-server` and `hub` without duplication.                                                                       |
+| FR-02 | Each domain exposes typed service functions; callers never import `db` or `drizzle-orm` directly.                                                             |
+| FR-03 | The `calories` domain exposes profile and meal operations: get, upsert, delete profile; log, get, delete (single + all) meals.                                |
+| FR-04 | The `users` domain exposes find by email, find-or-create (used by Hub on first login), and update-name operations.                                            |
+| FR-05 | The `oauth-clients` domain exposes find, create, user-binding, and secret-verification operations.                                                            |
+| FR-06 | The `mcp-servers` domain exposes `ensureAllMcpServers(userId)` which idempotently provisions server rows.                                                     |
+| FR-07 | The `measurements` domain exposes: type lookups, log measurement, get measurements (with filters), get latest per type, delete single, delete all for a user. |
 
 ---
 
@@ -72,7 +72,7 @@ import { getCalorieProfile, getMeasurementTypes, findOrCreateUser } from '@my-hu
 | TR-01 | Service files import `db` from `"../../db/client"` only. No other package may import `db` directly.                                                                                                                                 |
 | TR-02 | All decimal/float columns in the schema use Drizzle `real()` (PostgreSQL `REAL`). This avoids string↔number round-trips — values are native JS `number`.                                                                            |
 | TR-03 | `packages/shared/src/utils/index.ts` exports `omitNullish<T>(obj)` — strips `null`/`undefined` properties at runtime. Return type is `Partial<{ [K in keyof T]: NonNullable<T[K]> }>` which satisfies `exactOptionalPropertyTypes`. |
-| TR-04 | `packages/shared/package.json` exports both `"./services"` and `"./utils"` entry points (plus `"./types"`, `"./schema"`, `"./db"`, `"./auth"`).                                                                                    |
+| TR-04 | `packages/shared/package.json` exports both `"./services"` and `"./utils"` entry points (plus `"./types"`, `"./schema"`, `"./db"`, `"./auth"`).                                                                                     |
 | TR-05 | Running `grep -r "db\.(insert\|update\|query\|select\|delete)" packages/mcp-server/src` must return zero matches.                                                                                                                   |
 | TR-06 | `MeasurementWithType` (returned by `getMeasurements` and `getLatestMeasurementsPerType`) is an exported type that extends `BodyMeasurement` with `typeKey`, `typeLabel`, and `typeUnit` fields populated via a JOIN.                |
 

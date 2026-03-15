@@ -43,31 +43,26 @@ function CalorieProgress({
   const isOver = total > cap;
   const isUnder = minCalories !== null && total < minCalories;
 
-  const barColor = isOver
-    ? 'bg-red-500'
-    : isUnder
-    ? 'bg-yellow-400'
-    : 'bg-green-500';
+  const barColor = isOver ? 'bg-red-500' : isUnder ? 'bg-yellow-400' : 'bg-green-500';
 
   const statusText = isOver
     ? `${total - cap} kcal over`
     : isUnder
-    ? `${minCalories! - total} kcal below minimum`
-    : `${cap - total} kcal remaining`;
+      ? `${minCalories! - total} kcal below minimum`
+      : `${cap - total} kcal remaining`;
 
   const statusColor = isOver ? 'text-red-600' : isUnder ? 'text-yellow-600' : 'text-green-600';
 
   return (
     <div className="mb-4 rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 space-y-1.5">
       <div className="flex items-center justify-between text-sm">
-        <span className="font-medium">{total} / {cap} kcal</span>
+        <span className="font-medium">
+          {total} / {cap} kcal
+        </span>
         <span className={`text-xs font-medium ${statusColor}`}>{statusText}</span>
       </div>
       <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all ${barColor}`}
-          style={{ width: `${pct}%` }}
-        />
+        <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
       </div>
       {(minCalories || maxCalories) && (
         <div className="flex gap-3 text-xs text-gray-400">
@@ -124,7 +119,16 @@ export default function MealsSection({ meals, today, onChanged, goalCalories, mi
         }),
       });
       setShowAdd(false);
-      setForm({ description: '', kcal: '', mealType: 'lunch', date: today, protein: '', carbs: '', fat: '', notes: '' });
+      setForm({
+        description: '',
+        kcal: '',
+        mealType: 'lunch',
+        date: today,
+        protein: '',
+        carbs: '',
+        fat: '',
+        notes: '',
+      });
       onChanged();
     } finally {
       setSaving(false);
@@ -152,7 +156,12 @@ export default function MealsSection({ meals, today, onChanged, goalCalories, mi
     >
       {/* Daily progress bar */}
       {(goalCalories || maxCalories) && (
-        <CalorieProgress total={total} goalCalories={goalCalories ?? null} minCalories={minCalories ?? null} maxCalories={maxCalories ?? null} />
+        <CalorieProgress
+          total={total}
+          goalCalories={goalCalories ?? null}
+          minCalories={minCalories ?? null}
+          maxCalories={maxCalories ?? null}
+        />
       )}
 
       {meals.length === 0 ? (
@@ -161,9 +170,7 @@ export default function MealsSection({ meals, today, onChanged, goalCalories, mi
         <div className="space-y-4">
           {MEAL_TYPES.filter((t) => grouped[t]?.length).map((type) => (
             <div key={type}>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
-                {MEAL_LABEL[type]}
-              </h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">{MEAL_LABEL[type]}</h3>
               <div className="space-y-1">
                 {grouped[type]!.map((meal) => (
                   <div
@@ -214,34 +221,73 @@ export default function MealsSection({ meals, today, onChanged, goalCalories, mi
               />
             </Field>
             <Field label="Meal type *">
-              <select className="input" value={form.mealType} onChange={(e) => setForm({ ...form, mealType: e.target.value as MealType })}>
-                {MEAL_TYPES.map((t) => <option key={t} value={t}>{MEAL_LABEL[t]}</option>)}
+              <select
+                className="input"
+                value={form.mealType}
+                onChange={(e) => setForm({ ...form, mealType: e.target.value as MealType })}
+              >
+                {MEAL_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {MEAL_LABEL[t]}
+                  </option>
+                ))}
               </select>
             </Field>
             <Field label="Date">
-              <input className="input" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+              <input
+                className="input"
+                type="date"
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+              />
             </Field>
             <Field label="Calories (kcal)">
-              <input className="input" type="number" value={form.kcal} onChange={(e) => setForm({ ...form, kcal: e.target.value })} />
+              <input
+                className="input"
+                type="number"
+                value={form.kcal}
+                onChange={(e) => setForm({ ...form, kcal: e.target.value })}
+              />
             </Field>
             <Field label="Protein (g)">
-              <input className="input" type="number" value={form.protein} onChange={(e) => setForm({ ...form, protein: e.target.value })} />
+              <input
+                className="input"
+                type="number"
+                value={form.protein}
+                onChange={(e) => setForm({ ...form, protein: e.target.value })}
+              />
             </Field>
             <Field label="Carbs (g)">
-              <input className="input" type="number" value={form.carbs} onChange={(e) => setForm({ ...form, carbs: e.target.value })} />
+              <input
+                className="input"
+                type="number"
+                value={form.carbs}
+                onChange={(e) => setForm({ ...form, carbs: e.target.value })}
+              />
             </Field>
             <Field label="Fat (g)">
-              <input className="input" type="number" value={form.fat} onChange={(e) => setForm({ ...form, fat: e.target.value })} />
+              <input
+                className="input"
+                type="number"
+                value={form.fat}
+                onChange={(e) => setForm({ ...form, fat: e.target.value })}
+              />
             </Field>
             <Field label="Notes" className="col-span-2">
-              <input className="input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              <input
+                className="input"
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              />
             </Field>
           </div>
           <div className="flex gap-2">
             <Button onClick={addMeal} loading={saving} disabled={!form.description}>
               {saving ? 'Adding…' : 'Add'}
             </Button>
-            <Button variant="secondary" onClick={() => setShowAdd(false)}>Cancel</Button>
+            <Button variant="secondary" onClick={() => setShowAdd(false)}>
+              Cancel
+            </Button>
           </div>
         </div>
       )}

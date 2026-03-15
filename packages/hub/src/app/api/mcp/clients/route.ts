@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   const user = await getAuthUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json() as { name?: string };
+  const body = (await req.json()) as { name?: string };
   const name = typeof body.name === 'string' && body.name.trim() ? body.name.trim() : null;
 
   const created = await createUserOAuthClient(user.id, name);

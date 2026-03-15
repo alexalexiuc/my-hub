@@ -25,7 +25,17 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const allowed = ['name', 'age', 'sex', 'activityLevel', 'goalType', 'goalWeeklyRateKg', 'goalMinCalories', 'goalMaxCalories', 'notes'] as const;
+  const allowed = [
+    'name',
+    'age',
+    'sex',
+    'activityLevel',
+    'goalType',
+    'goalWeeklyRateKg',
+    'goalMinCalories',
+    'goalMaxCalories',
+    'notes',
+  ] as const;
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (key in body) updates[key] = body[key];

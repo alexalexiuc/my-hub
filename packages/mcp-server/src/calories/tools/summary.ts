@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getCalorieProfile, getMealsForDate, getMealsForDateRange, getLatestMeasurementsPerType } from '@my-hub/shared/services';
+import {
+  getCalorieProfile,
+  getMealsForDate,
+  getMealsForDateRange,
+  getLatestMeasurementsPerType,
+} from '@my-hub/shared/services';
 import { MealType, MEAL_TYPE_FRACTIONS } from '../constants';
 import { profileToTargets, rowToProfile } from './profile';
 import { rowToMealEntry } from './meals';
@@ -79,9 +84,7 @@ export function registerSummaryTools(server: McpServer) {
       const goalType = 'goal_type' in profile ? profile.goal_type : null;
       let goalMet: boolean | null = null;
       if (maxCal !== null) {
-        goalMet = goalType === 'weight_gain'
-          ? totals.calories >= (goalCal ?? maxCal)
-          : totals.calories <= maxCal;
+        goalMet = goalType === 'weight_gain' ? totals.calories >= (goalCal ?? maxCal) : totals.calories <= maxCal;
       }
 
       return toolResponse({

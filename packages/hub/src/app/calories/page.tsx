@@ -91,11 +91,7 @@ export default function CaloriesDashboardPage() {
     <main className="mx-auto max-w-5xl p-8 space-y-6">
       <PageHeader title="Calories" backHref="/" backLabel="← Home" />
 
-      <ProfileCard
-        profile={profile}
-        latestMeasurements={latestMeasurements}
-        onUpdated={loadData}
-      />
+      <ProfileCard profile={profile} latestMeasurements={latestMeasurements} onUpdated={loadData} />
 
       <MealsSection
         meals={meals}

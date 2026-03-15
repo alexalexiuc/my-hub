@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-user';
-import {
-  deleteAllUserMeals,
-  deleteAllUserMeasurements,
-  deleteCalorieProfile,
-} from '@my-hub/shared/services';
+import { deleteAllUserMeals, deleteAllUserMeasurements, deleteCalorieProfile } from '@my-hub/shared/services';
 
 type Feature = 'meals' | 'measurements' | 'calories_profile';
 

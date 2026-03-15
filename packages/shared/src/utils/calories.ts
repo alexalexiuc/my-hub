@@ -36,7 +36,7 @@ export interface CalorieTargetParams {
   heightCm: number | null;
   weightKg: number | null;
   activityLevel: string | null;
-  goalType: string | null;         // 'weight_loss' | 'weight_gain' | 'maintain'
+  goalType: string | null; // 'weight_loss' | 'weight_gain' | 'maintain'
   goalWeeklyRateKg: number | null; // kg/week
   goalMinCalories: number | null;
   goalMaxCalories: number | null;
@@ -76,11 +76,8 @@ export function calculateBMR(
  *   goalMinCalories is passed through as minCalories.
  */
 export function calculateCalorieTargets(params: CalorieTargetParams): CalorieTargets {
-  const {
-    age, sex, heightCm, weightKg, activityLevel,
-    goalType, goalWeeklyRateKg,
-    goalMinCalories, goalMaxCalories,
-  } = params;
+  const { age, sex, heightCm, weightKg, activityLevel, goalType, goalWeeklyRateKg, goalMinCalories, goalMaxCalories } =
+    params;
 
   const bmr = calculateBMR(age, sex, heightCm, weightKg);
   if (bmr === null) {

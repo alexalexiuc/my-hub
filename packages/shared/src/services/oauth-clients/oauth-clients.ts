@@ -79,15 +79,10 @@ export async function listUserOAuthClients(userId: string): Promise<PublicOAuthC
  * Create a new OAuth client pre-bound to a user.
  * Returns the plain client secret ONE time — it is hashed and never stored in plain form.
  */
-export async function createUserOAuthClient(
-  userId: string,
-  name: string | null,
-): Promise<CreatedOAuthClient> {
+export async function createUserOAuthClient(userId: string, name: string | null): Promise<CreatedOAuthClient> {
   const clientId = `hub_${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`;
   const plainClientSecret = crypto.randomUUID();
-  const tokenSigningSecret = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()]
-    .join('')
-    .replace(/-/g, '');
+  const tokenSigningSecret = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()].join('').replace(/-/g, '');
 
   const [hashedSecret, encryptedTss] = await Promise.all([
     hashSecret(plainClientSecret),
@@ -113,9 +108,7 @@ export async function createUserOAuthClient(
 
 /** Delete (revoke) an OAuth client owned by the given user. */
 export async function deleteUserOAuthClient(id: number, userId: string): Promise<void> {
-  await db
-    .delete(oauthClients)
-    .where(and(eq(oauthClients.id, id), eq(oauthClients.userId, userId)));
+  await db.delete(oauthClients).where(and(eq(oauthClients.id, id), eq(oauthClients.userId, userId)));
 }
 
 /** Delete all OAuth clients for a user. Returns the count deleted. */
@@ -128,11 +121,7 @@ export async function deleteAllUserOAuthClients(userId: string): Promise<number>
 }
 
 /** Toggle enabled state for an OAuth client owned by the given user. */
-export async function setOAuthClientEnabled(
-  id: number,
-  userId: string,
-  enabled: boolean,
-): Promise<PublicOAuthClient> {
+export async function setOAuthClientEnabled(id: number, userId: string, enabled: boolean): Promise<PublicOAuthClient> {
   const [row] = await db
     .update(oauthClients)
     .set({ enabled })

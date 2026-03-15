@@ -79,7 +79,10 @@ export default function HomePage() {
           <h1 className="text-3xl font-bold">my-hub</h1>
           {userName && <p className="text-gray-500 mt-1">Welcome, {userName}</p>}
         </div>
-        <Link href="/profile" className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:bg-gray-50 transition">
+        <Link
+          href="/profile"
+          className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:bg-gray-50 transition"
+        >
           Profile
         </Link>
       </div>
@@ -91,13 +94,7 @@ export default function HomePage() {
             label="Today's calories"
             value={`${stats.todayKcal}`}
             sub={stats.todayTarget ? `/ ${stats.todayTarget} kcal` : undefined}
-            accent={
-              stats.todayTarget
-                ? stats.todayKcal >= stats.todayTarget
-                  ? 'green'
-                  : 'blue'
-                : 'neutral'
-            }
+            accent={stats.todayTarget ? (stats.todayKcal >= stats.todayTarget ? 'green' : 'blue') : 'neutral'}
           />
           <StatCard
             label="Weight"
@@ -119,11 +116,7 @@ export default function HomePage() {
         <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Apps</h2>
         <div className="grid grid-cols-2 gap-4">
           {appSections.map(({ href, label, description, color, labelColor }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`rounded-xl border p-6 transition ${color}`}
-            >
+            <Link key={href} href={href} className={`rounded-xl border p-6 transition ${color}`}>
               <span className={`text-lg font-semibold ${labelColor}`}>{label}</span>
               <p className="text-sm text-gray-500 mt-1">{description}</p>
             </Link>

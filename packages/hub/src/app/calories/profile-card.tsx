@@ -145,9 +145,7 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
                 <div className="rounded-lg bg-blue-50 px-4 py-3 text-center">
                   <span className="text-xs text-blue-600 uppercase tracking-wide">Daily target</span>
                   <p className="text-2xl font-bold text-blue-700">{targets.tdee} kcal</p>
-                  {profile?.goalType === 'maintain' && (
-                    <p className="text-xs text-blue-500 mt-0.5">Maintain weight</p>
-                  )}
+                  {profile?.goalType === 'maintain' && <p className="text-xs text-blue-500 mt-0.5">Maintain weight</p>}
                 </div>
               )}
               {targets.minCalories && (
@@ -165,9 +163,7 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
             </div>
           )}
 
-          {profile?.notes && (
-            <div className="col-span-2 text-gray-500 text-xs mt-1">{profile.notes}</div>
-          )}
+          {profile?.notes && <div className="col-span-2 text-gray-500 text-xs mt-1">{profile.notes}</div>}
         </div>
       ) : (
         <div className="space-y-3">
@@ -176,7 +172,12 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
               <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </Field>
             <Field label="Age">
-              <input className="input" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} />
+              <input
+                className="input"
+                type="number"
+                value={form.age}
+                onChange={(e) => setForm({ ...form, age: e.target.value })}
+              />
             </Field>
             <Field label="Sex">
               <select className="input" value={form.sex} onChange={(e) => setForm({ ...form, sex: e.target.value })}>
@@ -186,7 +187,11 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
               </select>
             </Field>
             <Field label="Activity level">
-              <select className="input" value={form.activityLevel} onChange={(e) => setForm({ ...form, activityLevel: e.target.value })}>
+              <select
+                className="input"
+                value={form.activityLevel}
+                onChange={(e) => setForm({ ...form, activityLevel: e.target.value })}
+              >
                 <option value="">—</option>
                 <option value="sedentary">Sedentary</option>
                 <option value="lightly_active">Lightly active</option>
@@ -247,12 +252,21 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
           </div>
 
           <Field label="Notes" className="col-span-2">
-            <textarea className="input" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            <textarea
+              className="input"
+              rows={2}
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            />
           </Field>
 
           <div className="flex gap-2">
-            <Button onClick={save} loading={saving}>{saving ? 'Saving…' : 'Save'}</Button>
-            <Button variant="secondary" onClick={() => setEditing(false)}>Cancel</Button>
+            <Button onClick={save} loading={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+            <Button variant="secondary" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
           </div>
         </div>
       )}

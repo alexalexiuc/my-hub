@@ -7,7 +7,7 @@ test.describe('MCP Services Page', () => {
     await page.waitForLoadState('networkidle');
     const res = await page.request.get('/api/mcp/clients');
     if (res.ok()) {
-      const clients = await res.json() as Array<{ id: number }>;
+      const clients = (await res.json()) as Array<{ id: number }>;
       for (const c of clients) {
         await page.request.delete(`/api/mcp/clients/${c.id}`);
       }

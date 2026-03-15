@@ -55,7 +55,9 @@ const UpdateProfileSchema = z.object({
   goal_type: z
     .nativeEnum(GoalType)
     .optional()
-    .describe('Calorie goal: "weight_loss" | "weight_gain" | "maintain". Ask the user which goal they want before saving.'),
+    .describe(
+      'Calorie goal: "weight_loss" | "weight_gain" | "maintain". Ask the user which goal they want before saving.',
+    ),
   goal_weekly_rate_kg: z
     .number()
     .positive()

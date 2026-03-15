@@ -41,7 +41,7 @@ export function registerCaloriesResources(server: McpServer): void {
     'calories://profile',
     {
       description:
-        'Current calorie profile including TDEE, goal targets (goal_calories, min_calories, max_calories), and latest body measurements. Read this first to understand the user\'s setup.',
+        "Current calorie profile including TDEE, goal targets (goal_calories, min_calories, max_calories), and latest body measurements. Read this first to understand the user's setup.",
       mimeType: 'application/json',
     },
     async (_uri, extra) => {

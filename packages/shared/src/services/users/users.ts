@@ -11,11 +11,7 @@ export async function findUserByEmail(email: string): Promise<User | undefined> 
 }
 
 export async function updateUserName(userId: string, name: string): Promise<User> {
-  const [row] = await db
-    .update(users)
-    .set({ name, updatedAt: new Date() })
-    .where(eq(users.id, userId))
-    .returning();
+  const [row] = await db.update(users).set({ name, updatedAt: new Date() }).where(eq(users.id, userId)).returning();
   if (!row) throw new Error('Update did not return a row');
   return row;
 }

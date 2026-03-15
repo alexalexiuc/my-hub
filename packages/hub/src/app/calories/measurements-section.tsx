@@ -96,10 +96,16 @@ export default function MeasurementsSection({ latestMeasurements, measurementTyp
           <h3 className="text-sm font-semibold">Log measurement</h3>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Type *">
-              <select className="input" value={form.typeKey} onChange={(e) => setForm({ ...form, typeKey: e.target.value })}>
+              <select
+                className="input"
+                value={form.typeKey}
+                onChange={(e) => setForm({ ...form, typeKey: e.target.value })}
+              >
                 <option value="">— select —</option>
                 {measurementTypes.map((t) => (
-                  <option key={t.key} value={t.key}>{t.label} ({t.unit})</option>
+                  <option key={t.key} value={t.key}>
+                    {t.label} ({t.unit})
+                  </option>
                 ))}
               </select>
             </Field>
@@ -113,17 +119,28 @@ export default function MeasurementsSection({ latestMeasurements, measurementTyp
               />
             </Field>
             <Field label="Date">
-              <input className="input" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+              <input
+                className="input"
+                type="date"
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+              />
             </Field>
             <Field label="Notes">
-              <input className="input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              <input
+                className="input"
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              />
             </Field>
           </div>
           <div className="flex gap-2">
             <Button onClick={addMeasurement} loading={saving} disabled={!form.typeKey || !form.value}>
               {saving ? 'Saving…' : 'Save'}
             </Button>
-            <Button variant="secondary" onClick={() => setShowAdd(false)}>Cancel</Button>
+            <Button variant="secondary" onClick={() => setShowAdd(false)}>
+              Cancel
+            </Button>
           </div>
         </div>
       )}

@@ -13,7 +13,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ name: 
     return NextResponse.json({ error: 'Unknown server name' }, { status: 400 });
   }
 
-  const body = await req.json() as { enabled?: boolean };
+  const body = (await req.json()) as { enabled?: boolean };
   if (typeof body.enabled !== 'boolean') {
     return NextResponse.json({ error: 'enabled (boolean) is required' }, { status: 400 });
   }

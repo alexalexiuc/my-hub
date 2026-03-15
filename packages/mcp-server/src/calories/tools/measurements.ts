@@ -13,8 +13,12 @@ import type { MeasurementWithType } from '@my-hub/shared/services';
 const yyyyMmDdSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD');
 
 const LogMeasurementSchema = z.object({
-  type: z.string().describe('Measurement type key, e.g. "weight", "height", "waist". Use calories_get_measurement_types to list available types.'),
-  value: z.number().positive().describe('Measurement value in the type\'s unit (e.g. kg for weight, cm for height)'),
+  type: z
+    .string()
+    .describe(
+      'Measurement type key, e.g. "weight", "height", "waist". Use calories_get_measurement_types to list available types.',
+    ),
+  value: z.number().positive().describe("Measurement value in the type's unit (e.g. kg for weight, cm for height)"),
   date: yyyyMmDdSchema.optional().describe('Date of measurement (YYYY-MM-DD). Defaults to today.'),
   notes: z.string().optional().describe('Optional notes about this measurement'),
 });
@@ -128,9 +132,7 @@ export function registerMeasurementTools(server: McpServer) {
     },
     async () => {
       const types = await getMeasurementTypes();
-      return toolResponse(
-        types.map((t) => ({ key: t.key, label: t.label, unit: t.unit })),
-      );
+      return toolResponse(types.map((t) => ({ key: t.key, label: t.label, unit: t.unit })));
     },
   );
 
