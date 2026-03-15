@@ -10,6 +10,9 @@ interface Props {
   meals: MealLog[];
   today: string;
   onChanged: () => void;
+  goalCalories?: number | null;
+  minCalories?: number | null;
+  maxCalories?: number | null;
 }
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
@@ -22,6 +25,60 @@ const MEAL_LABEL: Record<MealType, string> = {
   snack: 'Snack',
 };
 
+function CalorieProgress({
+  total,
+  goalCalories,
+  minCalories,
+  maxCalories,
+}: {
+  total: number;
+  goalCalories: number | null;
+  minCalories: number | null;
+  maxCalories: number | null;
+}) {
+  const cap = maxCalories ?? goalCalories;
+  if (!cap) return null;
+
+  const pct = Math.min(Math.round((total / cap) * 100), 100);
+  const isOver = total > cap;
+  const isUnder = minCalories !== null && total < minCalories;
+
+  const barColor = isOver
+    ? 'bg-red-500'
+    : isUnder
+    ? 'bg-yellow-400'
+    : 'bg-green-500';
+
+  const statusText = isOver
+    ? `${total - cap} kcal over`
+    : isUnder
+    ? `${minCalories! - total} kcal below minimum`
+    : `${cap - total} kcal remaining`;
+
+  const statusColor = isOver ? 'text-red-600' : isUnder ? 'text-yellow-600' : 'text-green-600';
+
+  return (
+    <div className="mb-4 rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 space-y-1.5">
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-medium">{total} / {cap} kcal</span>
+        <span className={`text-xs font-medium ${statusColor}`}>{statusText}</span>
+      </div>
+      <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${barColor}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {(minCalories || maxCalories) && (
+        <div className="flex gap-3 text-xs text-gray-400">
+          {minCalories && <span>Min: {minCalories} kcal</span>}
+          {maxCalories && <span>Max: {maxCalories} kcal</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function groupByMealType(meals: MealLog[]): Record<string, MealLog[]> {
   const groups: Record<string, MealLog[]> = {};
   for (const meal of meals) {
@@ -30,7 +87,7 @@ function groupByMealType(meals: MealLog[]): Record<string, MealLog[]> {
   return groups;
 }
 
-export default function MealsSection({ meals, today, onChanged }: Props) {
+export default function MealsSection({ meals, today, onChanged, goalCalories, minCalories, maxCalories }: Props) {
   const [showAdd, setShowAdd] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -93,6 +150,11 @@ export default function MealsSection({ meals, today, onChanged }: Props) {
         </Button>
       }
     >
+      {/* Daily progress bar */}
+      {(goalCalories || maxCalories) && (
+        <CalorieProgress total={total} goalCalories={goalCalories ?? null} minCalories={minCalories ?? null} maxCalories={maxCalories ?? null} />
+      )}
+
       {meals.length === 0 ? (
         <p className="text-gray-400 text-sm">No meals logged today.</p>
       ) : (

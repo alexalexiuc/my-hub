@@ -5,7 +5,10 @@ export interface BodyProfile {
   age?: number;
   sex?: string;
   activity_level?: string;
-  goal_calories_override?: number;
+  goal_type?: string;           // 'weight_loss' | 'weight_gain' | 'maintain'
+  goal_weekly_rate_kg?: number; // kg/week for loss or gain
+  goal_min_calories?: number;   // explicit daily minimum floor
+  goal_max_calories?: number;   // explicit daily maximum ceiling
   notes?: string;
   updated_at?: string;
 }

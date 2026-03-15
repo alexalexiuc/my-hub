@@ -17,7 +17,10 @@ export const calorieProfiles = pgTable('calorie_profiles', {
   age: integer('age'),
   sex: text('sex'), // 'male' | 'female'
   activityLevel: text('activity_level'), // 'sedentary' | 'lightly_active' | ...
-  goalCaloriesOverride: integer('goal_calories_override'),
+  goalType: text('goal_type'), // 'weight_loss' | 'weight_gain' | 'maintain'
+  goalWeeklyRateKg: real('goal_weekly_rate_kg'), // kg/week for loss or gain
+  goalMinCalories: integer('goal_min_calories'), // explicit daily minimum floor
+  goalMaxCalories: integer('goal_max_calories'), // explicit daily maximum ceiling
   notes: text('notes'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

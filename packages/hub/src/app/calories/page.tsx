@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import type { CalorieProfile, MealLog, MeasurementType } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
+import { calculateCalorieTargets } from '@my-hub/shared/utils';
 import PageHeader from '@/components/page-header';
 import ProfileCard from './profile-card';
 import MealsSection from './meals-section';
@@ -74,6 +75,18 @@ export default function CaloriesDashboardPage() {
     );
   }
 
+  const calorieTargets = calculateCalorieTargets({
+    age: profile?.age ?? null,
+    sex: profile?.sex ?? null,
+    heightCm: latestMeasurements.find((m) => m.typeKey === 'height')?.value ?? null,
+    weightKg: latestMeasurements.find((m) => m.typeKey === 'weight')?.value ?? null,
+    activityLevel: profile?.activityLevel ?? null,
+    goalType: profile?.goalType ?? null,
+    goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? null,
+    goalMinCalories: profile?.goalMinCalories ?? null,
+    goalMaxCalories: profile?.goalMaxCalories ?? null,
+  });
+
   return (
     <main className="mx-auto max-w-5xl p-8 space-y-6">
       <PageHeader title="Calories" backHref="/" backLabel="← Home" />
@@ -84,7 +97,14 @@ export default function CaloriesDashboardPage() {
         onUpdated={loadData}
       />
 
-      <MealsSection meals={meals} today={today} onChanged={loadData} />
+      <MealsSection
+        meals={meals}
+        today={today}
+        onChanged={loadData}
+        goalCalories={calorieTargets.goalCalories}
+        minCalories={calorieTargets.minCalories}
+        maxCalories={calorieTargets.maxCalories}
+      />
 
       <MeasurementsSection
         latestMeasurements={latestMeasurements}

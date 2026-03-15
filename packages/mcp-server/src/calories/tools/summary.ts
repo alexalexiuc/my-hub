@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getCalorieProfile, getMealsForDate, getMealsForDateRange, getLatestMeasurementsPerType } from '@my-hub/shared/services';
 import { MealType, MEAL_TYPE_FRACTIONS } from '../constants';
-import { calculateTDEE, rowToProfile } from './profile';
+import { profileToTargets, rowToProfile } from './profile';
 import { rowToMealEntry } from './meals';
 
 const yyyyMmDdSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD');
@@ -68,10 +68,21 @@ export function registerSummaryTools(server: McpServer) {
       const profile = profileRow ? rowToProfile(profileRow) : {};
       const heightM = latestMeasurements.find((m) => m.typeKey === 'height');
       const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
-      const { daily_calories } = calculateTDEE(profile, heightM?.value, weightM?.value);
+      const targets = profileToTargets(profile, heightM?.value, weightM?.value);
       const meals = dayRows.map(rowToMealEntry);
       const totals = sumMeals(meals);
-      const remaining = daily_calories !== null ? daily_calories - totals.calories : null;
+      const goalCal = targets.goalCalories;
+      const maxCal = targets.maxCalories;
+      const remaining = maxCal !== null ? maxCal - totals.calories : null;
+
+      // goal_met: for weight_loss stay under max; for weight_gain hit the goal; otherwise hit goal
+      const goalType = 'goal_type' in profile ? profile.goal_type : null;
+      let goalMet: boolean | null = null;
+      if (maxCal !== null) {
+        goalMet = goalType === 'weight_gain'
+          ? totals.calories >= (goalCal ?? maxCal)
+          : totals.calories <= maxCal;
+      }
 
       return toolResponse({
         date,
@@ -83,9 +94,11 @@ export function registerSummaryTools(server: McpServer) {
           fat_g: totals.fat_g || null,
           meal_count: meals.length,
         },
-        daily_target: daily_calories,
+        goal_calories: goalCal,
+        min_calories: targets.minCalories,
+        max_calories: maxCal,
         remaining_calories: remaining,
-        goal_met: daily_calories !== null ? totals.calories >= daily_calories : null,
+        goal_met: goalMet,
       });
     },
   );
@@ -113,7 +126,8 @@ export function registerSummaryTools(server: McpServer) {
       const profile = profileRow ? rowToProfile(profileRow) : {};
       const heightM = latestMeasurements.find((m) => m.typeKey === 'height');
       const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
-      const { daily_calories } = calculateTDEE(profile, heightM?.value, weightM?.value);
+      const targets = profileToTargets(profile, heightM?.value, weightM?.value);
+      const goalCal = targets.goalCalories;
 
       // Build day-by-day summary for Mon–Sun
       const days = [];
@@ -131,14 +145,16 @@ export function registerSummaryTools(server: McpServer) {
       const totalCalories = days.reduce((s, d) => s + d.calories, 0);
       const daysWithData = days.filter((d) => d.meal_count > 0).length;
       const weeklyAverage = daysWithData > 0 ? Math.round(totalCalories / daysWithData) : 0;
-      const weeklyTarget = daily_calories !== null ? daily_calories * 7 : null;
+      const weeklyTarget = goalCal !== null ? goalCal * 7 : null;
 
       return toolResponse({
         week: { start, end },
         days,
         weekly_total_calories: totalCalories,
         weekly_average_calories: weeklyAverage,
-        daily_target: daily_calories,
+        goal_calories: goalCal,
+        min_calories: targets.minCalories,
+        max_calories: targets.maxCalories,
         weekly_target: weeklyTarget,
         weekly_remaining: weeklyTarget !== null ? weeklyTarget - totalCalories : null,
       });
@@ -168,19 +184,22 @@ export function registerSummaryTools(server: McpServer) {
       const profile = profileRow ? rowToProfile(profileRow) : {};
       const heightM = latestMeasurements.find((m) => m.typeKey === 'height');
       const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
-      const { daily_calories } = calculateTDEE(profile, heightM?.value, weightM?.value);
+      const targets = profileToTargets(profile, heightM?.value, weightM?.value);
+      const maxCal = targets.maxCalories;
       const totals = sumMeals(dayRows.map(rowToMealEntry));
-      const remaining = daily_calories !== null ? daily_calories - totals.calories : null;
+      const remaining = maxCal !== null ? maxCal - totals.calories : null;
 
       const meal_budget =
-        input.meal_type && daily_calories !== null
-          ? Math.round(daily_calories * MEAL_TYPE_FRACTIONS[input.meal_type as MealType])
+        input.meal_type && maxCal !== null
+          ? Math.round(maxCal * MEAL_TYPE_FRACTIONS[input.meal_type as MealType])
           : null;
 
       return toolResponse({
         date,
         calories_consumed: totals.calories,
-        daily_target: daily_calories,
+        goal_calories: targets.goalCalories,
+        min_calories: targets.minCalories,
+        max_calories: maxCal,
         remaining_calories: remaining,
         over_budget: remaining !== null ? remaining < 0 : null,
         meal_type: input.meal_type ?? null,
