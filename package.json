@@ -5,13 +5,13 @@
   "author": "Alexiuc Alex",
   "scripts": {
     "dev": "pnpm --parallel -r dev",
-    "build": "pnpm -r build",
+    "build": "pnpm --filter @my-hub/shared build && pnpm --filter @my-hub/mcp-server build && pnpm --filter @my-hub/admin build",
     "build:clear": "pnpm -r build:clear",
     "lint": "pnpm exec eslint .",
     "lint:fix": "pnpm exec eslint . --fix",
     "format": "pnpm exec prettier --write .",
     "format:check": "pnpm exec prettier --check .",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm run build && pnpm --filter @my-hub/shared typecheck && pnpm --filter @my-hub/mcp-server typecheck && pnpm --filter @my-hub/admin typecheck",
     "test": "pnpm -r test",
     "db:generate": "pnpm --filter shared db:generate",
     "db:migrate": "pnpm --filter shared db:migrate"
