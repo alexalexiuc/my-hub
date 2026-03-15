@@ -47,8 +47,8 @@ export default function HomePage() {
 
       // Rough TDEE from profile + measurements
       let todayTarget: number | null = null;
-      if (profile?.goalCaloriesOverride) {
-        todayTarget = profile.goalCaloriesOverride;
+      if (profile?.goalMaxCalories) {
+        todayTarget = profile.goalMaxCalories;
       } else if (profile?.age && profile?.sex && latestWeight) {
         const heightM = measurements.find((m) => m.typeKey === 'height');
         if (heightM) {
