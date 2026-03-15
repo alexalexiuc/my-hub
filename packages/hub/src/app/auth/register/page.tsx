@@ -62,8 +62,9 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Email</label>
+            <label htmlFor="email" className="text-xs text-gray-500 block mb-1">Email</label>
             <input
+              id="email"
               type="email"
               className="input"
               value={email}
@@ -74,8 +75,9 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Name <span className="text-gray-400">(optional)</span></label>
+            <label htmlFor="name" className="text-xs text-gray-500 block mb-1">Name <span className="text-gray-400">(optional)</span></label>
             <input
+              id="name"
               type="text"
               className="input"
               value={name}
@@ -84,8 +86,9 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Password</label>
+            <label htmlFor="password" className="text-xs text-gray-500 block mb-1">Password</label>
             <input
+              id="password"
               type="password"
               className="input"
               value={password}
@@ -96,8 +99,9 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Confirm password</label>
+            <label htmlFor="confirm" className="text-xs text-gray-500 block mb-1">Confirm password</label>
             <input
+              id="confirm"
               type="password"
               className="input"
               value={confirm}

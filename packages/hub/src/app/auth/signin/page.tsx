@@ -42,8 +42,9 @@ export default function SignInPage() {
         {/* Email + password form */}
         <form onSubmit={handleCredentials} className="space-y-3">
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Email</label>
+            <label htmlFor="email" className="text-xs text-gray-500 block mb-1">Email</label>
             <input
+              id="email"
               type="email"
               className="input"
               value={email}
@@ -54,8 +55,9 @@ export default function SignInPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Password</label>
+            <label htmlFor="password" className="text-xs text-gray-500 block mb-1">Password</label>
             <input
+              id="password"
               type="password"
               className="input"
               value={password}

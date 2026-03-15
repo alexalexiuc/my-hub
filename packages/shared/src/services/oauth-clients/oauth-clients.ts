@@ -118,6 +118,15 @@ export async function deleteUserOAuthClient(id: number, userId: string): Promise
     .where(and(eq(oauthClients.id, id), eq(oauthClients.userId, userId)));
 }
 
+/** Delete all OAuth clients for a user. Returns the count deleted. */
+export async function deleteAllUserOAuthClients(userId: string): Promise<number> {
+  const result = await db
+    .delete(oauthClients)
+    .where(eq(oauthClients.userId, userId))
+    .returning({ id: oauthClients.id });
+  return result.length;
+}
+
 /** Toggle enabled state for an OAuth client owned by the given user. */
 export async function setOAuthClientEnabled(
   id: number,

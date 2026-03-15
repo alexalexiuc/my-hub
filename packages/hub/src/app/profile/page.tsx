@@ -45,6 +45,8 @@ export default function ProfilePage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteResults, setDeleteResults] = useState<Record<string, { deleted: number | boolean }> | null>(null);
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   useEffect(() => {
     fetch('/api/user/profile')
@@ -108,6 +110,18 @@ export default function ProfilePage() {
       }
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function deleteAll() {
+    setDeletingAll(true);
+    try {
+      await fetch('/api/user/delete-all', { method: 'POST' });
+      setDeleteAllConfirm(false);
+      setDeleteResults(null);
+      setSelectedFeatures(new Set());
+    } finally {
+      setDeletingAll(false);
     }
   }
 
@@ -242,6 +256,35 @@ export default function ProfilePage() {
                   );
                 })}
               </ul>
+            </div>
+          )}
+        </div>
+      </SectionCard>
+
+      {/* Danger zone */}
+      <SectionCard title="Danger zone">
+        <div className="space-y-3">
+          <p className="text-sm text-gray-500">
+            Permanently delete all your data (meals, measurements, calorie profile, MCP connections).
+            Your account is kept.
+          </p>
+          {!deleteAllConfirm ? (
+            <Button variant="danger" onClick={() => setDeleteAllConfirm(true)}>
+              Delete all my data…
+            </Button>
+          ) : (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
+              <p className="text-sm font-medium text-red-800">
+                This will permanently wipe all your data. Your account will remain. Are you sure?
+              </p>
+              <div className="flex gap-2">
+                <Button variant="danger" loading={deletingAll} onClick={deleteAll}>
+                  {deletingAll ? 'Deleting…' : 'Yes, delete everything'}
+                </Button>
+                <Button variant="secondary" onClick={() => setDeleteAllConfirm(false)}>
+                  Cancel
+                </Button>
+              </div>
             </div>
           )}
         </div>
