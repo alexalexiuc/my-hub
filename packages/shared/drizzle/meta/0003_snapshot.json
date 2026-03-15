@@ -1,6 +1,6 @@
 {
-  "id": "5107454b-b0d0-4ed6-9bbb-b09fc2b0dd43",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "4537e27c-6a89-4545-9309-d99bce185089",
+  "prevId": "5107454b-b0d0-4ed6-9bbb-b09fc2b0dd43",
   "version": "6",
   "dialect": "postgresql",
   "tables": {
@@ -67,10 +67,10 @@
       "uniqueConstraints": {
         "users_email_unique": {
           "name": "users_email_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       }
     },
@@ -141,25 +141,25 @@
         "oauth_clients_user_id_users_id_fk": {
           "name": "oauth_clients_user_id_users_id_fk",
           "tableFrom": "oauth_clients",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "oauth_clients_client_id_unique": {
           "name": "oauth_clients_client_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "client_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       }
     },
@@ -206,26 +206,26 @@
         "mcp_servers_user_id_users_id_fk": {
           "name": "mcp_servers_user_id_users_id_fk",
           "tableFrom": "mcp_servers",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "uq_mcp_user_server": {
           "name": "uq_mcp_user_server",
-          "nullsNotDistinct": false,
           "columns": [
             "user_id",
             "server_name"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       }
     },
@@ -283,15 +283,15 @@
         "hive_logs_hive_id_hives_id_fk": {
           "name": "hive_logs_hive_id_hives_id_fk",
           "tableFrom": "hive_logs",
-          "tableTo": "hives",
           "columnsFrom": [
             "hive_id"
           ],
+          "tableTo": "hives",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -345,15 +345,15 @@
         "hive_todos_hive_id_hives_id_fk": {
           "name": "hive_todos_hive_id_hives_id_fk",
           "tableFrom": "hive_todos",
-          "tableTo": "hives",
           "columnsFrom": [
             "hive_id"
           ],
+          "tableTo": "hives",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -504,25 +504,25 @@
         "calorie_profiles_user_id_users_id_fk": {
           "name": "calorie_profiles_user_id_users_id_fk",
           "tableFrom": "calorie_profiles",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "calorie_profiles_user_id_unique": {
           "name": "calorie_profiles_user_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "user_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       }
     },
@@ -645,25 +645,25 @@
         "meal_logs_user_id_users_id_fk": {
           "name": "meal_logs_user_id_users_id_fk",
           "tableFrom": "meal_logs",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "meal_logs_meal_id_unique": {
           "name": "meal_logs_meal_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "meal_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       }
     },
@@ -751,28 +751,28 @@
         "body_measurements_user_id_users_id_fk": {
           "name": "body_measurements_user_id_users_id_fk",
           "tableFrom": "body_measurements",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "body_measurements_type_id_measurement_types_id_fk": {
           "name": "body_measurements_type_id_measurement_types_id_fk",
           "tableFrom": "body_measurements",
-          "tableTo": "measurement_types",
           "columnsFrom": [
             "type_id"
           ],
+          "tableTo": "measurement_types",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -820,10 +820,10 @@
       "uniqueConstraints": {
         "measurement_types_key_unique": {
           "name": "measurement_types_key_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "key"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       }
     },

@@ -25,6 +25,8 @@ When a feature spans multiple layers, change in this order:
 - TypeScript everywhere. Follow existing ESM style.
 - Reuse shared types; do not duplicate domain models across packages.
 - Keep DB schema in `packages/shared/src/db/schema`.
+- For schema changes, run `pnpm db:generate` to create migrations instead of hand-writing migration files.
+- For data-only changes (seeds, backfills, one-off SQL, extensions), generate an empty custom migration via `pnpm --filter shared drizzle-kit generate --custom --name=<description>` and fill in the SQL manually. Never hand-write schema migrations.
 - All DB queries belong in `packages/shared/src/services/` under a domain subfolder. Never write raw Drizzle calls in `mcp-server` or `hub`.
 - Use `real()` columns (not `numeric`) for all decimal/float values — avoids string↔number conversions at the JS boundary.
 - Use `omitNullish()` from `@my-hub/shared/utils` instead of writing `if (val != null)` guards per property.

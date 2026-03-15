@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS "oauth_clients" (
 	"user_id" uuid,
 	"client_name" text,
 	"redirect_uris" text[] DEFAULT '{}'::text[] NOT NULL,
+	"enabled" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "oauth_clients_client_id_unique" UNIQUE("client_id")
 );
@@ -71,14 +72,12 @@ CREATE TABLE IF NOT EXISTS "calorie_profiles" (
 	"user_id" uuid NOT NULL,
 	"name" text,
 	"age" integer,
-	"height_cm" real,
-	"weight_kg" real,
 	"sex" text,
 	"activity_level" text,
-	"goal_calories_override" integer,
-	"neck_cm" real,
-	"waist_cm" real,
-	"hips_cm" real,
+	"goal_type" text,
+	"goal_weekly_rate_kg" real,
+	"goal_min_calories" integer,
+	"goal_max_calories" integer,
 	"notes" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
@@ -101,6 +100,25 @@ CREATE TABLE IF NOT EXISTS "meal_logs" (
 	"data" jsonb,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "meal_logs_meal_id_unique" UNIQUE("meal_id")
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "body_measurements" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"user_id" uuid NOT NULL,
+	"type_id" integer NOT NULL,
+	"date" text NOT NULL,
+	"value" real NOT NULL,
+	"notes" text,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "measurement_types" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"key" text NOT NULL,
+	"label" text NOT NULL,
+	"unit" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "measurement_types_key_unique" UNIQUE("key")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "api_request_logs" (
@@ -154,9 +172,25 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "body_measurements" ADD CONSTRAINT "body_measurements_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "body_measurements" ADD CONSTRAINT "body_measurements_type_id_measurement_types_id_fk" FOREIGN KEY ("type_id") REFERENCES "public"."measurement_types"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_meal_logs_user" ON "meal_logs" ("user_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_meal_logs_date" ON "meal_logs" ("date");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_meal_logs_user_date" ON "meal_logs" ("user_id","date");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_body_measurements_user" ON "body_measurements" ("user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_body_measurements_date" ON "body_measurements" ("date");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_body_measurements_user_date" ON "body_measurements" ("user_id","date");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_body_measurements_user_type" ON "body_measurements" ("user_id","type_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_logs_created_at" ON "api_request_logs" ("created_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_logs_path" ON "api_request_logs" ("path");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_logs_user" ON "api_request_logs" ("user_id");--> statement-breakpoint
