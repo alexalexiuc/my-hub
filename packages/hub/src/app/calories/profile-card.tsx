@@ -274,7 +274,7 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
   );
 }
 
-function Row({ label, value }: { label: string; value?: string }) {
+function Row({ label, value }: { label: string; value?: string | null }) {
   return (
     <>
       <span className="text-gray-500">{label}</span>

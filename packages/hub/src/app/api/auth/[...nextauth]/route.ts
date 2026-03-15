@@ -24,7 +24,7 @@ export const authOptions: AuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
         const user = await verifyUserPassword(credentials.email, credentials.password);
         if (!user) return null;
-        return { id: user.id, email: user.email, name: user.name ?? undefined };
+        return { id: user.id, email: user.email, name: user.name ?? null };
       },
     }),
   ],
