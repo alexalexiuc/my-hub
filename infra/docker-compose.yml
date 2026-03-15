@@ -1,9 +1,9 @@
 services:
   # ---------------------------------------------------------------------------
-  # PostgreSQL 16
+  # PostgreSQL 18
   # ---------------------------------------------------------------------------
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-myhub}
@@ -14,11 +14,7 @@ services:
     networks:
       - internal
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-myhub} -d ${POSTGRES_DB:-myhub}",
-        ]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-myhub} -d ${POSTGRES_DB:-myhub}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,6 +32,9 @@ services:
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
+      ALLOWED_EMAILS: ${ALLOWED_EMAILS:?ALLOWED_EMAILS is required}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
     depends_on:
       db:
         condition: service_healthy
@@ -43,28 +42,28 @@ services:
       - internal
       - proxy
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mcp.rule=Host(`mcp.alexiuc.dev`)"
-      - "traefik.http.routers.mcp.entrypoints=websecure"
-      - "traefik.http.routers.mcp.tls.certresolver=letsencrypt"
-      - "traefik.http.services.mcp.loadbalancer.server.port=3001"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.mcp.rule=Host(`mcp.alexiuc.dev`)'
+      - 'traefik.http.routers.mcp.entrypoints=websecure'
+      - 'traefik.http.routers.mcp.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.mcp.loadbalancer.server.port=3001'
 
   # ---------------------------------------------------------------------------
-  # Admin Panel (Next.js)
+  # hub Panel (Next.js)
   # ---------------------------------------------------------------------------
-  admin:
+  hub:
     build:
       context: ..
-      dockerfile: packages/admin/Dockerfile
+      dockerfile: packages/hub/Dockerfile
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 3000
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://admin.alexiuc.dev}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://hub.alexiuc.dev}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
-      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:?GITHUB_CLIENT_ID is required}
-      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:?GITHUB_CLIENT_SECRET is required}
-      ALLOWED_GITHUB_USERS: ${ALLOWED_GITHUB_USERS:-alexiuc}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is required}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET is required}
+      ALLOWED_EMAILS: ${ALLOWED_EMAILS:?ALLOWED_EMAILS is required}
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub}
     depends_on:
       db:
@@ -73,11 +72,11 @@ services:
       - internal
       - proxy
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.admin.rule=Host(`admin.alexiuc.dev`)"
-      - "traefik.http.routers.admin.entrypoints=websecure"
-      - "traefik.http.routers.admin.tls.certresolver=letsencrypt"
-      - "traefik.http.services.admin.loadbalancer.server.port=3000"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.hub.rule=Host(`hub.alexiuc.dev`)'
+      - 'traefik.http.routers.hub.entrypoints=websecure'
+      - 'traefik.http.routers.hub.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.hub.loadbalancer.server.port=3000'
 
   # ---------------------------------------------------------------------------
   # Traefik v3 reverse proxy
@@ -86,10 +85,10 @@ services:
     image: traefik:v3.0
     restart: unless-stopped
     command:
-      - "--configFile=/etc/traefik/traefik.yml"
+      - '--configFile=/etc/traefik/traefik.yml'
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro

@@ -4,12 +4,34 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./schema": "./src/db/schema/index.ts",
-    "./types": "./src/types/index.ts",
-    "./auth": "./src/auth/index.ts",
-    "./db": "./src/db/client.ts"
+    "./schema": {
+      "import": "./dist/db/schema/index.js",
+      "types": "./dist/db/schema/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./auth": {
+      "import": "./dist/auth/index.js",
+      "types": "./dist/auth/index.d.ts"
+    },
+    "./db": {
+      "import": "./dist/db/client.js",
+      "types": "./dist/db/client.d.ts"
+    },
+    "./services": {
+      "import": "./dist/services/index.js",
+      "types": "./dist/services/index.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils/index.js",
+      "types": "./dist/utils/index.d.ts"
+    }
   },
   "scripts": {
+    "build": "tsup",
+    "build:clear": "rimraf dist",
     "lint": "pnpm exec eslint src",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
@@ -21,8 +43,10 @@
     "postgres": "^3.4.4"
   },
   "devDependencies": {
-    "@types/node": "^20.14.2",
+    "@types/node": "^22.13.14",
+    "dotenv-mono": "^1.5.1",
     "drizzle-kit": "^0.21.4",
+    "tsup": "^8.0.0",
     "typescript": "^5.4.5"
   }
 }

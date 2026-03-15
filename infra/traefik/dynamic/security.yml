@@ -11,7 +11,7 @@ http:
         forceSTSHeader: true
         contentTypeNosniff: true
         browserXssFilter: true
-        referrerPolicy: "strict-origin-when-cross-origin"
+        referrerPolicy: 'strict-origin-when-cross-origin'
         frameDeny: true # X-Frame-Options: DENY
         contentSecurityPolicy: "default-src 'self'; script-src 'self'; object-src 'none'"
 

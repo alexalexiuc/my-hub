@@ -1,10 +1,10 @@
 # Feature: MCP Server Control
 
-| Field    | Value                                  |
-| -------- | -------------------------------------- |
-| Status   | draft                                  |
-| Priority | medium                                 |
-| File     | `hub/feature-mcp-control.md`           |
+| Field    | Value                        |
+| -------- | ---------------------------- |
+| Status   | draft                        |
+| Priority | medium                       |
+| File     | `hub/feature-mcp-control.md` |
 
 ---
 
@@ -20,25 +20,25 @@ broken sub-server while a fix is deployed.
 
 ## Functional Requirements
 
-| ID    | Requirement |
-| ----- | ----------- |
+| ID    | Requirement                                                                                                                                                             |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | FR-01 | The admin must be able to see a list of all registered MCP sub-servers (e.g. Hive Manager, Calorie Tracker, Products Manager) and their current enabled/disabled state. |
-| FR-02 | The admin must be able to toggle a sub-server on or off with a single UI interaction (e.g. a toggle switch). |
-| FR-03 | When a sub-server is disabled, requests to its MCP route must return an appropriate error (e.g. HTTP 503 or an MCP-level error) and not execute any tool handlers. |
-| FR-04 | When a sub-server is re-enabled, it must begin accepting requests immediately without requiring a process restart. |
-| FR-05 | The enabled/disabled state must persist across server restarts (stored in the database, not in memory). |
+| FR-02 | The admin must be able to toggle a sub-server on or off with a single UI interaction (e.g. a toggle switch).                                                            |
+| FR-03 | When a sub-server is disabled, requests to its MCP route must return an appropriate error (e.g. HTTP 503 or an MCP-level error) and not execute any tool handlers.      |
+| FR-04 | When a sub-server is re-enabled, it must begin accepting requests immediately without requiring a process restart.                                                      |
+| FR-05 | The enabled/disabled state must persist across server restarts (stored in the database, not in memory).                                                                 |
 
 ---
 
 ## Technical Requirements
 
-| ID    | Requirement |
-| ----- | ----------- |
+| ID    | Requirement                                                                                                                                                              |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | TR-01 | The enabled/disabled state per sub-server (and optionally per user) is stored in the PostgreSQL database via a Drizzle-managed table in `packages/shared/src/db/schema`. |
-| TR-02 | The Fastify MCP app reads the enabled state from the database (or a short-lived cache) on each request to decide whether to route to the sub-server. |
-| TR-03 | The admin panel page lives in `packages/admin`; state changes are applied via a Next.js Server Action or API route that writes to the database. |
-| TR-04 | Only authenticated admin users can access the MCP Control page. |
-| TR-05 | Cache invalidation (if any caching is applied to the enabled state) must happen within 5 seconds of a toggle in the admin panel. |
+| TR-02 | The Fastify MCP app reads the enabled state from the database (or a short-lived cache) on each request to decide whether to route to the sub-server.                     |
+| TR-03 | The admin panel page lives in `packages/admin`; state changes are applied via a Next.js Server Action or API route that writes to the database.                          |
+| TR-04 | Only authenticated admin users can access the MCP Control page.                                                                                                          |
+| TR-05 | Cache invalidation (if any caching is applied to the enabled state) must happen within 5 seconds of a toggle in the admin panel.                                         |
 
 ---
 

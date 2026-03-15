@@ -1,7 +1,7 @@
 # Requirements Documentation
 
 This folder contains feature-level requirements for the my-hub platform. It is organised
-into two subfolders that mirror the two main deployable layers of the system.
+into subfolders that mirror deployable layers and cross-cutting platform features.
 
 ## Subfolders
 
@@ -15,9 +15,15 @@ Examples: Hive Manager, Calorie Tracker, Products Manager.
 
 ### `hub/`
 
-Requirements for the Hub admin webapp — the Next.js UI served at `admin.alexiuc.dev`.
-Each file describes one functional area of the admin panel: OAuth client management,
+Requirements for the Hub Dashboard webapp — the Next.js UI served at `hub.alexiuc.dev`.
+Each file describes one functional area of the Hub Dashboard panel: OAuth client management,
 data explorer, user settings, etc.
+
+### `platform/`
+
+Requirements for cross-cutting platform capabilities that span multiple packages or
+services (for example, shared logging, observability, auth foundations, and infra
+contracts used by both Hub and MCP services).
 
 ---
 
@@ -30,10 +36,12 @@ feature-<name>.md
 ```
 
 Examples:
+
 - `mcps/feature-hive-manager.md`
 - `mcps/feature-calorie-tracker.md`
 - `hub/feature-oauth-clients.md`
 - `hub/feature-data-explorer.md`
+- `platform/feature-api-request-logging.md`
 
 Use `_template.md` (in this folder) as the starting point for every new file.
 
@@ -43,21 +51,21 @@ Use `_template.md` (in this folder) as the starting point for every new file.
 
 Each feature document carries a `status` field in its header:
 
-| Status | Meaning |
-| ------------- | ------------------------------------------------------- |
-| `draft` | Idea captured; requirements not yet validated |
-| `in-progress` | Actively being designed or developed |
+| Status        | Meaning                                          |
+| ------------- | ------------------------------------------------ |
+| `draft`       | Idea captured; requirements not yet validated    |
+| `in-progress` | Actively being designed or developed             |
 | `implemented` | Feature is live in production (may still evolve) |
 
 ---
 
 ## Priority Values
 
-| Priority | Meaning |
+| Priority | Meaning                                                 |
 | -------- | ------------------------------------------------------- |
-| `high` | Blocking or on the critical path for the next milestone |
-| `medium` | Important but not immediately blocking |
-| `low` | Nice-to-have; deferred to a later iteration |
+| `high`   | Blocking or on the critical path for the next milestone |
+| `medium` | Important but not immediately blocking                  |
+| `low`    | Nice-to-have; deferred to a later iteration             |
 
 ---
 
@@ -65,9 +73,9 @@ Each feature document carries a `status` field in its header:
 
 Every requirement inside a document is assigned a stable identifier:
 
-- **FR-xx** — Functional Requirement. Describes *what* the system must do from a
+- **FR-xx** — Functional Requirement. Describes _what_ the system must do from a
   user or AI-client perspective (behaviour, capability, data contract).
-- **TR-xx** — Technical Requirement. Describes *how* the system must behave at the
+- **TR-xx** — Technical Requirement. Describes _how_ the system must behave at the
   implementation level (performance, security, infrastructure, coding constraints).
 
 Numbers are scoped to the file and start at `01`. Once assigned, an ID must never

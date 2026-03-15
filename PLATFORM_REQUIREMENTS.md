@@ -26,7 +26,7 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 - Comfortable headroom for PostgreSQL + Fastify + Next.js + Nginx
 - Can downgrade to CX22 (2 vCPU, 4 GB RAM, ~€4.5/month) if budget is tight
 
-**Staging:** same VM, separate Docker Compose stack (`docker-compose.staging.yml`), accessible via `staging.mcp.alexiuc.dev` / `staging.admin.alexiuc.dev`.
+**Staging:** same VM, separate Docker Compose stack (`docker-compose.staging.yml`), accessible via `staging.mcp.alexiuc.dev` / `staging.hub.alexiuc.dev`.
 
 ---
 
@@ -34,16 +34,16 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 
 | Service | Technology         | Role                                           |
 | ------- | ------------------ | ---------------------------------------------- |
-| `db`    | PostgreSQL 16      | Primary datastore replacing Google Sheets      |
+| `db`    | PostgreSQL 18      | Primary datastore replacing Google Sheets      |
 | `mcp`   | Node.js / Fastify  | MCP server(s) — hive-manager, calories, future |
-| `admin` | Next.js            | Admin panel / personal cabinet                 |
+| `hub`   | Next.js            | Admin panel / personal cabinet                 |
 | `proxy` | Nginx (or Traefik) | TLS termination, routing, static assets        |
 
 ---
 
 ### Database
 
-**Choice: PostgreSQL 16**
+**Choice: PostgreSQL 18**
 
 - Familiar, battle-tested, excellent TypeScript support
 - Relational model is a natural fit for structured hive/calorie data
@@ -92,11 +92,11 @@ If Nginx is preferred (more familiar), it works fine — just requires manual TL
 
 **Routing (`alexiuc.dev`):**
 
-| Host                | Target                 |
-| ------------------- | ---------------------- |
-| `alexiuc.dev`       | Next.js (CV / landing) |
-| `admin.alexiuc.dev` | Next.js admin panel    |
-| `mcp.alexiuc.dev`   | Fastify MCP server(s)  |
+| Host              | Target                 |
+| ----------------- | ---------------------- |
+| `alexiuc.dev`     | Next.js (CV / landing) |
+| `hub.alexiuc.dev` | Next.js HUB Dashboard  |
+| `mcp.alexiuc.dev` | Fastify MCP server(s)  |
 
 ---
 
@@ -191,11 +191,11 @@ Manual deploy script (`deploy.sh`) as fallback / emergency option.
 
 **`alexiuc.dev`** ✅ — registered on Cloudflare Registrar (~€12/year).
 
-| Subdomain           | Purpose                 |
-| ------------------- | ----------------------- |
-| `alexiuc.dev`       | Personal CV / portfolio |
-| `admin.alexiuc.dev` | Next.js admin panel     |
-| `mcp.alexiuc.dev`   | Fastify MCP server(s)   |
+| Subdomain          | Purpose                 |
+| ------------------ | ----------------------- |
+| `alex.alexiuc.dev` | Personal CV / portfolio |
+| `hub.alexiuc.dev`  | Next.js HUB panel       |
+| `mcp.alexiuc.dev`  | Fastify MCP server(s)   |
 
 DNS managed via Cloudflare — subdomains are free, TLS via Traefik + Let's Encrypt.
 

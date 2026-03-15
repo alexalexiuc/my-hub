@@ -1,10 +1,10 @@
 # Feature: OAuth Client Management
 
-| Field    | Value                                  |
-| -------- | -------------------------------------- |
-| Status   | draft                                  |
-| Priority | high                                   |
-| File     | `hub/feature-oauth-clients.md`         |
+| Field    | Value                          |
+| -------- | ------------------------------ |
+| Status   | implemented                    |
+| Priority | high                           |
+| File     | `hub/feature-oauth-clients.md` |
 
 ---
 
@@ -19,26 +19,28 @@ for using any MCP tool on the platform.
 
 ## Functional Requirements
 
-| ID    | Requirement |
-| ----- | ----------- |
-| FR-01 | An admin user must be able to create a new OAuth client by specifying a display name and optionally a description. |
+| ID    | Requirement                                                                                                                                                                |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-01 | An admin user must be able to create a new OAuth client by specifying a display name and optionally a description.                                                         |
 | FR-02 | On creation, the system must generate and display a `client_id` and `client_secret`. The secret must be shown only once and never retrievable again after initial display. |
-| FR-03 | The admin must be able to list all existing OAuth clients with their display name, `client_id`, creation date, and last-used date. |
-| FR-04 | The admin must be able to revoke (delete) an OAuth client. Revocation must immediately invalidate all active sessions issued to that client. |
-| FR-05 | Revoked clients must not appear in the active clients list, but their history may be retained for audit purposes. |
+| FR-03 | The admin must be able to list all existing OAuth clients with their display name, `client_id`, creation date, and last-used date.                                         |
+| FR-04 | The admin must be able to revoke (delete) an OAuth client. Revocation must immediately invalidate all active sessions issued to that client.                               |
+| FR-05 | Revoked clients must not appear in the active clients list, but their history may be retained for audit purposes.                                                          |
 
 ---
 
 ## Technical Requirements
 
-| ID    | Requirement |
-| ----- | ----------- |
-| TR-01 | The OAuth 2.0 implementation is adapted from the existing Cloudflare Worker `src/http/` auth code. |
-| TR-02 | Client secrets must be stored as a bcrypt hash; the plaintext is never persisted. |
-| TR-03 | The OAuth clients table is defined in `packages/shared/src/db/schema` (Drizzle ORM, PostgreSQL). |
-| TR-04 | The admin panel page lives in `packages/admin` and communicates with the backend via a Next.js Server Action or API route. |
-| TR-05 | Only authenticated admin users (via NextAuth.js or custom JWT session) can access this page. |
-| TR-06 | All writes (create, revoke) must be logged for audit traceability. |
+| ID    | Requirement                                                                                                                                       |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TR-01 | OAuth 2.1 with PKCE (S256) is implemented in `packages/mcp-server/src/routes/oauth.ts`.                                                           |
+| TR-02 | `clientSecret` is a single UUID (128-bit). It is hashed with scrypt before storage; the plaintext is shown once and never persisted.              |
+| TR-03 | `clientId` uses the prefix `hub_` followed by 8 hex chars for readability (e.g. `hub_3f9a1b2c`).                                                  |
+| TR-04 | `tokenSigningSecret` is 3 concatenated UUIDs with dashes stripped (288-bit entropy), distinct from `clientSecret` in length and purpose.          |
+| TR-05 | The `oauth_clients` table is defined in `packages/shared/src/db/schema` and all queries go through `packages/shared/src/services/oauth-clients/`. |
+| TR-06 | The Hub panel lives in `packages/hub` (Next.js App Router). It communicates with the backend via Server Actions or API routes.                    |
+| TR-07 | Only authenticated users can access OAuth client management pages.                                                                                |
+| TR-08 | On first OAuth completion, `ensureAllMcpServers(userId)` provisions a row per MCP server for the user (idempotent via `onConflictDoNothing`).     |
 
 ---
 
@@ -52,8 +54,9 @@ for using any MCP tool on the platform.
 
 ## Acceptance Criteria
 
-- [ ] An admin can create an OAuth client, copy the secret, and successfully authenticate a Claude MCP client with it.
+- [x] A user can complete the OAuth 2.1 PKCE flow and receive a signed Bearer token.
+- [x] The Bearer token is validated by `mcpAuthHandler` using the client's `tokenSigningSecret`.
+- [x] After the flow, MCP server rows exist for the user (calories, hive, products).
+- [x] The client secret is not visible in the database or API responses after initial creation.
+- [ ] The Hub UI lists active OAuth clients and allows revocation.
 - [ ] After revocation, the previously issued token is rejected by the MCP server with a 401.
-- [ ] The client secret is not visible in the database or API responses after initial creation.
-- [ ] The clients list correctly reflects active and revoked state.
-- [ ] Accessing the OAuth clients page while unauthenticated redirects to the login page.

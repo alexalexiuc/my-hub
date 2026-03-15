@@ -14,23 +14,23 @@ services:
       NODE_ENV: staging
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mcp.rule=Host(`staging.mcp.alexiuc.dev`)"
-      - "traefik.http.routers.mcp.entrypoints=websecure"
-      - "traefik.http.routers.mcp.tls.certresolver=letsencrypt"
-      - "traefik.http.services.mcp.loadbalancer.server.port=3001"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.mcp.rule=Host(`staging.mcp.alexiuc.dev`)'
+      - 'traefik.http.routers.mcp.entrypoints=websecure'
+      - 'traefik.http.routers.mcp.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.mcp.loadbalancer.server.port=3001'
 
-  admin:
+  hub:
     environment:
       NODE_ENV: staging
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://staging.admin.alexiuc.dev}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://staging.hub.alexiuc.dev}
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.admin.rule=Host(`staging.admin.alexiuc.dev`)"
-      - "traefik.http.routers.admin.entrypoints=websecure"
-      - "traefik.http.routers.admin.tls.certresolver=letsencrypt"
-      - "traefik.http.services.admin.loadbalancer.server.port=3000"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.hub.rule=Host(`staging.hub.alexiuc.dev`)'
+      - 'traefik.http.routers.hub.entrypoints=websecure'
+      - 'traefik.http.routers.hub.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.hub.loadbalancer.server.port=3000'
 
 volumes:
   db_staging_data:
