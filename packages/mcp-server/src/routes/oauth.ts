@@ -238,7 +238,7 @@ export async function oauthRoutes(app: FastifyInstance) {
       return sendError('access_denied');
     }
 
-    // Upsert user + bind client + provision MCP server rows
+    // Bind client + provision MCP server rows
     const user = await findUserByEmail(email);
     if (!user) return sendError('login_required');
     await bindOAuthClientToUser(clientId, user.id);

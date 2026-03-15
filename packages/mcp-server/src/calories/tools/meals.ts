@@ -119,6 +119,7 @@ export function registerMealTools(server: McpServer, userId: string) {
 
       const allRows = await getMeals(userId, omitNullish({ date: input.date, mealType: input.meal_type }));
 
+      // TODO: Implement count & pagination at query level to avoid fetching all rows into memory
       const total_count = allRows.length;
       const page = allRows.slice(offset, offset + limit);
       const entries: MealEntry[] = page.map(rowToMealEntry);
