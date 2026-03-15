@@ -32,9 +32,10 @@ export const hubTokenVerifier = {
       const dot = token.indexOf('.');
       if (dot === -1) throw new Error('Malformed token: missing dot separator');
       const payloadB64 = token.slice(0, dot);
-      const decoded = JSON.parse(
-        Buffer.from(payloadB64.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8'),
-      ) as Partial<AccessTokenPayload>;
+      // Restore base64 standard chars and add padding — matches shared base64urlDecode helper
+      const base64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+      const decoded = JSON.parse(Buffer.from(padded, 'base64').toString('utf-8')) as Partial<AccessTokenPayload>;
       if (!decoded.client_id) throw new Error('Missing client_id in token payload');
       clientId = decoded.client_id;
     } catch (err) {

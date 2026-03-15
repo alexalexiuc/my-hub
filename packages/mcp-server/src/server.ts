@@ -6,10 +6,14 @@ import { oauthRoutes } from './routes/oauth.js';
 import { monitorRoute } from './routes/monitor.js';
 import { sessionCleanupPlugin } from './plugins/session-cleanup.js';
 import { registerMcpSubServer } from './mcp/sub-server.js';
+import { mcpSubServers } from './mcp/registry.js';
 import { createCaloriesServer } from './calories/server.js';
 import { envConfig } from './config/env.js';
 
 export async function buildServer() {
+  // Clear the shared registry so that repeated buildServer() calls (e.g. in tests)
+  // don't accumulate duplicate sub-server entries.
+  mcpSubServers.length = 0;
   const app = Fastify({
     logger: {
       level: envConfig.LOG_LEVEL,

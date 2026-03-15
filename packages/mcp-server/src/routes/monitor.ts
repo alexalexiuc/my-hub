@@ -2,7 +2,8 @@ import fp from 'fastify-plugin';
 import { mcpSubServers } from '../mcp/registry.js';
 import { readFileSync } from 'node:fs';
 
-const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf-8')) as { version: string };
+// Resolves to packages/mcp-server/package.json from any file in dist/
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8')) as { version: string };
 
 export const monitorRoute = fp(async (app) => {
   const counters = new Map<string, { totalCreated: number; totalDestroyed: number }>();
