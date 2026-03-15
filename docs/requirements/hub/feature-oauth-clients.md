@@ -34,7 +34,7 @@ for using any MCP tool on the platform.
 | ID    | Requirement                                                                                                                                       |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | TR-01 | OAuth 2.1 with PKCE (S256) is implemented in `packages/mcp-server/src/routes/oauth.ts`.                                                           |
-| TR-02 | `clientSecret` is a single UUID (128-bit). It is hashed with bcrypt before storage; the plaintext is shown once and never persisted.              |
+| TR-02 | `clientSecret` is a single UUID (128-bit). It is hashed with scrypt before storage; the plaintext is shown once and never persisted.              |
 | TR-03 | `clientId` uses the prefix `hub_` followed by 8 hex chars for readability (e.g. `hub_3f9a1b2c`).                                                  |
 | TR-04 | `tokenSigningSecret` is 3 concatenated UUIDs with dashes stripped (288-bit entropy), distinct from `clientSecret` in length and purpose.          |
 | TR-05 | The `oauth_clients` table is defined in `packages/shared/src/db/schema` and all queries go through `packages/shared/src/services/oauth-clients/`. |
