@@ -6,7 +6,7 @@
   "main": "./dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsup",
     "build:clear": "rimraf dist",
     "start": "node dist/index.js",
     "lint": "pnpm exec eslint src",
@@ -25,6 +25,7 @@
   "devDependencies": {
     "@types/node": "^22.13.14",
     "tsx": "^4.15.1",
+    "tsup": "^8.0.0",
     "typescript": "^5.4.5",
     "vitest": "^1.6.0"
   }
