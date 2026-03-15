@@ -44,7 +44,7 @@ type GetDailySummaryInput = z.infer<typeof GetDailySummarySchema>;
 type GetWeeklySummaryInput = z.infer<typeof GetWeeklySummarySchema>;
 type GetRemainingInput = z.infer<typeof GetRemainingSchema>;
 
-export function registerSummaryTools(server: McpServer, userId: string) {
+export function registerSummaryTools(server: McpServer) {
   server.registerTool(
     'calories_get_daily_summary',
     {
@@ -53,7 +53,9 @@ export function registerSummaryTools(server: McpServer, userId: string) {
       inputSchema: GetDailySummarySchema.shape,
       annotations: { readOnlyHint: true },
     },
-    async (input: GetDailySummaryInput) => {
+    async (input: GetDailySummaryInput, extra) => {
+      const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+      if (!userId) throw new Error('Authentication required');
       const today = new Date().toISOString().split('T')[0]!;
       const date = input.date ?? today;
 
@@ -90,7 +92,9 @@ export function registerSummaryTools(server: McpServer, userId: string) {
       inputSchema: GetWeeklySummarySchema.shape,
       annotations: { readOnlyHint: true },
     },
-    async (input: GetWeeklySummaryInput) => {
+    async (input: GetWeeklySummaryInput, extra) => {
+      const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+      if (!userId) throw new Error('Authentication required');
       const today = new Date().toISOString().split('T')[0]!;
       const { start, end } = getWeekBounds(input.date ?? today);
 
@@ -140,7 +144,9 @@ export function registerSummaryTools(server: McpServer, userId: string) {
       inputSchema: GetRemainingSchema.shape,
       annotations: { readOnlyHint: true },
     },
-    async (input: GetRemainingInput) => {
+    async (input: GetRemainingInput, extra) => {
+      const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+      if (!userId) throw new Error('Authentication required');
       const today = new Date().toISOString().split('T')[0]!;
       const date = input.date ?? today;
 

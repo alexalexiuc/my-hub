@@ -3,12 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/main.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/main.ts",
     "build": "tsup",
     "build:clear": "rimraf dist",
-    "start": "node dist/index.js",
+    "start": "node dist/main.js",
     "lint": "pnpm exec eslint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -17,9 +17,13 @@
     "@fastify/cors": "^9.0.1",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@my-hub/shared": "workspace:*",
+    "close-with-grace": "^2.0.0",
     "dotenv-mono": "^1.5.1",
-    "fastify": "^4.27.0",
+    "fastify": "^5.0.0",
+    "fastify-mcp-server": "^0.7.0",
+    "fastify-plugin": "^5.0.0",
     "next-auth": "^4.24.7",
+    "pino-pretty": "^13.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

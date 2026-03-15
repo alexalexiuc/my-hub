@@ -3,15 +3,15 @@ import { registerProfileTools } from './tools/profile';
 import { registerMealTools } from './tools/meals';
 import { registerSummaryTools } from './tools/summary';
 
-export function createCaloriesServer(userId: string): McpServer {
+export function createCaloriesServer(): McpServer {
   const server = new McpServer({
     name: 'calories-tracker-mcp-server',
     version: '1.0.0',
   });
 
-  registerProfileTools(server, userId);
-  registerMealTools(server, userId);
-  registerSummaryTools(server, userId);
+  registerProfileTools(server);
+  registerMealTools(server);
+  registerSummaryTools(server);
 
   return server;
 }
