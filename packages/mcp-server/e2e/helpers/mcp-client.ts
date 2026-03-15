@@ -1,0 +1,32 @@
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+
+export type McpClient = Client;
+
+/**
+ * Creates and connects an MCP client to the given endpoint.
+ * The Bearer token is attached to every request via requestInit headers.
+ */
+export async function createMcpClient(baseUrl: string, path: string, token: string): Promise<McpClient> {
+  const url = new URL(path, baseUrl);
+  const transport = new StreamableHTTPClientTransport(url, {
+    requestInit: {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  });
+  const client = new Client({ name: 'e2e-test-client', version: '1.0.0' });
+  await client.connect(transport);
+  return client;
+}
+
+/**
+ * Parses the JSON text from the first content item of an MCP tool result.
+ * All tools in this project return `{ content: [{ type: 'text', text: JSON }] }`.
+ */
+export function parseToolResult<T = unknown>(result: Awaited<ReturnType<Client['callTool']>>): T {
+  const item = result.content[0];
+  if (!item || item.type !== 'text') {
+    throw new Error(`Unexpected MCP content type: ${item?.type ?? 'none'}`);
+  }
+  return JSON.parse(item.text) as T;
+}
