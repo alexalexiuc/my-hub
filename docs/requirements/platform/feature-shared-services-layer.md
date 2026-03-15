@@ -27,7 +27,7 @@ packages/shared/src/services/
     meals.ts            ← logMeal, getMeals, getMealsForDate, getMealsForDateRange, deleteMeal
     index.ts
   users/
-    users.ts            ← findUserByEmail, upsertUserByEmail
+    users.ts            ← findUserByEmail
     index.ts
   oauth-clients/
     oauth-clients.ts    ← findOAuthClient, createOAuthClient, bindOAuthClientToUser
