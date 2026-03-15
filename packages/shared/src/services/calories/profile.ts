@@ -3,6 +3,7 @@ import { db } from '../../db/client';
 import { calorieProfiles } from '../../db/schema/calories';
 import type { CalorieProfile } from '../../types/index';
 
+// Excludes body measurement fields — those live in body_measurements table
 export type ProfileUpdates = Partial<Omit<typeof calorieProfiles.$inferInsert, 'id' | 'userId' | 'createdAt'>>;
 
 export async function getCalorieProfile(userId: string): Promise<CalorieProfile | undefined> {

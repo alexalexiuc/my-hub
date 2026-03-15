@@ -8,3 +8,16 @@ export async function findUserByEmail(email: string): Promise<User | undefined> 
     where: eq(users.email, email.toLowerCase()),
   });
 }
+
+/** Find user by email, creating them if they don't exist. */
+export async function findOrCreateUser(email: string, name?: string | null): Promise<User> {
+  const existing = await findUserByEmail(email);
+  if (existing) return existing;
+
+  const [row] = await db
+    .insert(users)
+    .values({ email: email.toLowerCase(), name: name ?? null })
+    .returning();
+  if (!row) throw new Error('Insert did not return a row');
+  return row;
+}

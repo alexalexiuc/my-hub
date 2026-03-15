@@ -1,19 +1,23 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getCalorieProfile, upsertCalorieProfile } from '@my-hub/shared/services';
+import { getCalorieProfile, upsertCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shared/services';
 import { omitNullish } from '@my-hub/shared/utils';
 import { ActivityLevel, Sex, ACTIVITY_MULTIPLIERS } from '../constants';
 import type { BodyProfile } from '../types';
 import type { CalorieProfile } from '@my-hub/shared/types';
 
-export function calculateTDEE(profile: BodyProfile): {
+export function calculateTDEE(
+  profile: BodyProfile,
+  heightCm?: number | null,
+  weightKg?: number | null,
+): {
   bmr: number | null;
   tdee: number | null;
   daily_calories: number | null;
 } {
   const age = profile.age;
-  const height = profile.height_cm;
-  const weight = profile.weight_kg;
+  const height = heightCm ?? null;
+  const weight = weightKg ?? null;
   const sex = profile.sex as Sex;
   const activity = profile.activity_level as ActivityLevel;
 
@@ -45,14 +49,9 @@ export function rowToProfile(row: CalorieProfile): BodyProfile {
     ...omitNullish({
       name: row.name,
       age: row.age,
-      height_cm: row.heightCm,
-      weight_kg: row.weightKg,
       sex: row.sex,
       activity_level: row.activityLevel,
       goal_calories_override: row.goalCaloriesOverride,
-      neck_cm: row.neckCm,
-      waist_cm: row.waistCm,
-      hips_cm: row.hipsCm,
       notes: row.notes,
     }),
   };
@@ -61,8 +60,6 @@ export function rowToProfile(row: CalorieProfile): BodyProfile {
 const UpdateProfileSchema = z.object({
   name: z.string().optional().describe('Your name'),
   age: z.number().int().positive().optional().describe('Age in years'),
-  height_cm: z.number().positive().optional().describe('Height in centimeters'),
-  weight_kg: z.number().positive().optional().describe('Weight in kilograms'),
   sex: z.nativeEnum(Sex).optional().describe('Biological sex for BMR calculation: "male" | "female"'),
   activity_level: z
     .nativeEnum(ActivityLevel)
@@ -76,13 +73,6 @@ const UpdateProfileSchema = z.object({
     .positive()
     .optional()
     .describe('Manual daily calorie target override. If not set, calculated TDEE is used.'),
-  neck_cm: z.number().positive().optional().describe('Neck circumference in cm'),
-  waist_cm: z.number().positive().optional().describe('Waist circumference in cm'),
-  hips_cm: z
-    .number()
-    .positive()
-    .optional()
-    .describe('Hips circumference in cm (relevant for female body fat estimation)'),
   notes: z.string().optional().describe('Additional notes about your health goals'),
 });
 
@@ -93,7 +83,7 @@ export function registerProfileTools(server: McpServer) {
     'calories_update_profile',
     {
       description:
-        'Save or update body measurements and health profile. Used to compute your BMR (Basal Metabolic Rate) and TDEE (Total Daily Energy Expenditure) via the Mifflin-St Jeor equation. Only provided fields are updated — omitted fields retain their current values.',
+        'Save or update health profile (age, sex, activity level). Used to compute your BMR and TDEE via the Mifflin-St Jeor equation. Body measurements (height, weight, etc.) are logged separately via calories_log_measurement.',
       inputSchema: UpdateProfileSchema.shape,
       annotations: { idempotentHint: false, destructiveHint: false },
     },
@@ -105,20 +95,22 @@ export function registerProfileTools(server: McpServer) {
         omitNullish({
           name: input.name,
           age: input.age,
-          heightCm: input.height_cm,
-          weightKg: input.weight_kg,
           sex: input.sex,
           activityLevel: input.activity_level,
           goalCaloriesOverride: input.goal_calories_override,
-          neckCm: input.neck_cm,
-          waistCm: input.waist_cm,
-          hipsCm: input.hips_cm,
           notes: input.notes,
         }),
       );
 
       const profile = rowToProfile(row);
-      const { bmr, tdee, daily_calories } = calculateTDEE(profile);
+      const latestMeasurements = await getLatestMeasurementsPerType(userId);
+      const heightMeasurement = latestMeasurements.find((m) => m.typeKey === 'height');
+      const weightMeasurement = latestMeasurements.find((m) => m.typeKey === 'weight');
+      const { bmr, tdee, daily_calories } = calculateTDEE(
+        profile,
+        heightMeasurement?.value,
+        weightMeasurement?.value,
+      );
 
       return toolResponse({
         profile,
@@ -130,7 +122,8 @@ export function registerProfileTools(server: McpServer) {
   server.registerTool(
     'calories_get_profile',
     {
-      description: 'Get the stored body profile including calculated BMR, TDEE, and daily calorie target.',
+      description:
+        'Get the stored health profile including calculated BMR, TDEE, and daily calorie target. Height and weight are sourced from the latest body measurements.',
       annotations: { readOnlyHint: true },
     },
     async (extra) => {
@@ -138,7 +131,14 @@ export function registerProfileTools(server: McpServer) {
       if (!userId) throw new Error('Authentication required');
       const row = await getCalorieProfile(userId);
       const profile = row ? rowToProfile(row) : {};
-      const { bmr, tdee, daily_calories } = calculateTDEE(profile);
+      const latestMeasurements = await getLatestMeasurementsPerType(userId);
+      const heightMeasurement = latestMeasurements.find((m) => m.typeKey === 'height');
+      const weightMeasurement = latestMeasurements.find((m) => m.typeKey === 'weight');
+      const { bmr, tdee, daily_calories } = calculateTDEE(
+        profile,
+        heightMeasurement?.value,
+        weightMeasurement?.value,
+      );
 
       const activityDescriptions: Record<string, string> = {
         sedentary: 'Desk job, little or no exercise',
@@ -154,8 +154,18 @@ export function registerProfileTools(server: McpServer) {
           bmr,
           tdee,
           daily_calories,
-          activity_description: profile.activity_level ? (activityDescriptions[profile.activity_level] ?? null) : null,
+          activity_description:
+            'activity_level' in profile && profile.activity_level
+              ? (activityDescriptions[profile.activity_level as string] ?? null)
+              : null,
         },
+        latest_measurements: latestMeasurements.map((m) => ({
+          type: m.typeKey,
+          label: m.typeLabel,
+          value: m.value,
+          unit: m.typeUnit,
+          date: m.date,
+        })),
       });
     },
   );

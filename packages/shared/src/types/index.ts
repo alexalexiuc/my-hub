@@ -8,6 +8,8 @@ import type {
   hiveTodos,
   calorieProfiles,
   mealLogs,
+  measurementTypes,
+  bodyMeasurements,
   apiRequestLogs,
 } from '../db/schema/index';
 
@@ -32,6 +34,12 @@ export type CalorieProfile = InferSelectModel<typeof calorieProfiles>;
 export type NewCalorieProfile = InferInsertModel<typeof calorieProfiles>;
 export type MealLog = InferSelectModel<typeof mealLogs>;
 export type NewMealLog = InferInsertModel<typeof mealLogs>;
+
+// Body Measurements
+export type MeasurementType = InferSelectModel<typeof measurementTypes>;
+export type NewMeasurementType = InferInsertModel<typeof measurementTypes>;
+export type BodyMeasurement = InferSelectModel<typeof bodyMeasurements>;
+export type NewBodyMeasurement = InferInsertModel<typeof bodyMeasurements>;
 
 // API Request Logs
 export type ApiRequestLog = InferSelectModel<typeof apiRequestLogs>;

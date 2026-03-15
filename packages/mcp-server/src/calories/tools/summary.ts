@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getCalorieProfile, getMealsForDate, getMealsForDateRange } from '@my-hub/shared/services';
+import { getCalorieProfile, getMealsForDate, getMealsForDateRange, getLatestMeasurementsPerType } from '@my-hub/shared/services';
 import { MealType, MEAL_TYPE_FRACTIONS } from '../constants';
 import { calculateTDEE, rowToProfile } from './profile';
 import { rowToMealEntry } from './meals';
@@ -59,10 +59,16 @@ export function registerSummaryTools(server: McpServer) {
       const today = new Date().toISOString().split('T')[0]!;
       const date = input.date ?? today;
 
-      const [profileRow, dayRows] = await Promise.all([getCalorieProfile(userId), getMealsForDate(userId, date)]);
+      const [profileRow, dayRows, latestMeasurements] = await Promise.all([
+        getCalorieProfile(userId),
+        getMealsForDate(userId, date),
+        getLatestMeasurementsPerType(userId),
+      ]);
 
       const profile = profileRow ? rowToProfile(profileRow) : {};
-      const { daily_calories } = calculateTDEE(profile);
+      const heightM = latestMeasurements.find((m) => m.typeKey === 'height');
+      const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
+      const { daily_calories } = calculateTDEE(profile, heightM?.value, weightM?.value);
       const meals = dayRows.map(rowToMealEntry);
       const totals = sumMeals(meals);
       const remaining = daily_calories !== null ? daily_calories - totals.calories : null;
@@ -98,13 +104,16 @@ export function registerSummaryTools(server: McpServer) {
       const today = new Date().toISOString().split('T')[0]!;
       const { start, end } = getWeekBounds(input.date ?? today);
 
-      const [profileRow, weekRows] = await Promise.all([
+      const [profileRow, weekRows, latestMeasurements] = await Promise.all([
         getCalorieProfile(userId),
         getMealsForDateRange(userId, start, end),
+        getLatestMeasurementsPerType(userId),
       ]);
 
       const profile = profileRow ? rowToProfile(profileRow) : {};
-      const { daily_calories } = calculateTDEE(profile);
+      const heightM = latestMeasurements.find((m) => m.typeKey === 'height');
+      const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
+      const { daily_calories } = calculateTDEE(profile, heightM?.value, weightM?.value);
 
       // Build day-by-day summary for Mon–Sun
       const days = [];
@@ -150,10 +159,16 @@ export function registerSummaryTools(server: McpServer) {
       const today = new Date().toISOString().split('T')[0]!;
       const date = input.date ?? today;
 
-      const [profileRow, dayRows] = await Promise.all([getCalorieProfile(userId), getMealsForDate(userId, date)]);
+      const [profileRow, dayRows, latestMeasurements] = await Promise.all([
+        getCalorieProfile(userId),
+        getMealsForDate(userId, date),
+        getLatestMeasurementsPerType(userId),
+      ]);
 
       const profile = profileRow ? rowToProfile(profileRow) : {};
-      const { daily_calories } = calculateTDEE(profile);
+      const heightM = latestMeasurements.find((m) => m.typeKey === 'height');
+      const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
+      const { daily_calories } = calculateTDEE(profile, heightM?.value, weightM?.value);
       const totals = sumMeals(dayRows.map(rowToMealEntry));
       const remaining = daily_calories !== null ? daily_calories - totals.calories : null;
 
