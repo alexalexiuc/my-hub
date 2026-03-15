@@ -96,6 +96,14 @@ export async function getLatestMeasurementsPerType(
   return latest;
 }
 
+export async function deleteAllUserMeasurements(userId: string): Promise<number> {
+  const rows = await db
+    .delete(bodyMeasurements)
+    .where(eq(bodyMeasurements.userId, userId))
+    .returning({ id: bodyMeasurements.id });
+  return rows.length;
+}
+
 export async function deleteMeasurement(
   id: number,
   userId: string,

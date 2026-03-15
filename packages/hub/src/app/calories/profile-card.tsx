@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import type { CalorieProfile } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
+import SectionCard from '@/components/section-card';
+import Field from '@/components/field';
+import Button from '@/components/button';
 
 interface Props {
   profile: CalorieProfile | null;
@@ -92,37 +95,39 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
   }
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Profile</h2>
-        <button
-          onClick={() => {
-            setForm({
-              name: profile?.name ?? '',
-              age: profile?.age?.toString() ?? '',
-              sex: profile?.sex ?? '',
-              activityLevel: profile?.activityLevel ?? '',
-              goalCaloriesOverride: profile?.goalCaloriesOverride?.toString() ?? '',
-              notes: profile?.notes ?? '',
-            });
-            setEditing(true);
-          }}
-          className="text-sm text-blue-600 hover:underline"
-        >
-          Edit
-        </button>
-      </div>
-
+    <SectionCard
+      title="Profile"
+      action={
+        !editing && (
+          <button
+            onClick={() => {
+              setForm({
+                name: profile?.name ?? '',
+                age: profile?.age?.toString() ?? '',
+                sex: profile?.sex ?? '',
+                activityLevel: profile?.activityLevel ?? '',
+                goalCaloriesOverride: profile?.goalCaloriesOverride?.toString() ?? '',
+                notes: profile?.notes ?? '',
+              });
+              setEditing(true);
+            }}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Edit
+          </button>
+        )
+      }
+    >
       {!editing ? (
         <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-          <ProfileRow label="Name" value={profile?.name} />
-          <ProfileRow label="Age" value={profile?.age?.toString()} />
-          <ProfileRow label="Sex" value={profile?.sex} />
-          <ProfileRow label="Activity" value={profile?.activityLevel ? ACTIVITY_LABELS[profile.activityLevel] : undefined} />
-          <ProfileRow label="Height" value={heightMeasure ? `${heightMeasure.value} cm` : undefined} />
-          <ProfileRow label="Weight" value={weightMeasure ? `${weightMeasure.value} kg` : undefined} />
+          <Row label="Name" value={profile?.name} />
+          <Row label="Age" value={profile?.age?.toString()} />
+          <Row label="Sex" value={profile?.sex} />
+          <Row label="Activity" value={profile?.activityLevel ? ACTIVITY_LABELS[profile.activityLevel] : undefined} />
+          <Row label="Height" value={heightMeasure ? `${heightMeasure.value} cm` : undefined} />
+          <Row label="Weight" value={weightMeasure ? `${weightMeasure.value} kg` : undefined} />
           {tdee && (
-            <div className="col-span-2 mt-2 rounded-lg bg-blue-50 px-4 py-2 text-center">
+            <div className="col-span-2 mt-2 rounded-lg bg-blue-50 px-4 py-3 text-center">
               <span className="text-xs text-blue-600 uppercase tracking-wide">Daily target</span>
               <p className="text-2xl font-bold text-blue-700">{tdee} kcal</p>
               {profile?.goalCaloriesOverride && (
@@ -138,19 +143,10 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Name">
-              <input
-                className="input"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
+              <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </Field>
             <Field label="Age">
-              <input
-                className="input"
-                type="number"
-                value={form.age}
-                onChange={(e) => setForm({ ...form, age: e.target.value })}
-              />
+              <input className="input" type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} />
             </Field>
             <Field label="Sex">
               <select className="input" value={form.sex} onChange={(e) => setForm({ ...form, sex: e.target.value })}>
@@ -169,7 +165,7 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
                 <option value="extra_active">Extra active</option>
               </select>
             </Field>
-            <Field label="Calorie goal override">
+            <Field label="Calorie goal override" className="col-span-2">
               <input
                 className="input"
                 type="number"
@@ -178,47 +174,25 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
                 onChange={(e) => setForm({ ...form, goalCaloriesOverride: e.target.value })}
               />
             </Field>
+            <Field label="Notes" className="col-span-2">
+              <textarea className="input" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </Field>
           </div>
-          <Field label="Notes">
-            <textarea
-              className="input"
-              rows={2}
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            />
-          </Field>
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={save}
-              disabled={saving}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {saving ? 'Saving…' : 'Save'}
-            </button>
-            <button onClick={() => setEditing(false)} className="rounded-lg border px-4 py-2 text-sm hover:bg-gray-50">
-              Cancel
-            </button>
+          <div className="flex gap-2">
+            <Button onClick={save} loading={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+            <Button variant="secondary" onClick={() => setEditing(false)}>Cancel</Button>
           </div>
         </div>
       )}
-    </section>
+    </SectionCard>
   );
 }
 
-function ProfileRow({ label, value }: { label: string; value?: string }) {
+function Row({ label, value }: { label: string; value?: string }) {
   return (
     <>
       <span className="text-gray-500">{label}</span>
       <span className="font-medium">{value ?? <span className="text-gray-300">—</span>}</span>
     </>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="text-xs text-gray-500 mb-1 block">{label}</span>
-      {children}
-    </label>
   );
 }

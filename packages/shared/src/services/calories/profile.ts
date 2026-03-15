@@ -12,6 +12,14 @@ export async function getCalorieProfile(userId: string): Promise<CalorieProfile 
   });
 }
 
+export async function deleteCalorieProfile(userId: string): Promise<boolean> {
+  const rows = await db
+    .delete(calorieProfiles)
+    .where(eq(calorieProfiles.userId, userId))
+    .returning({ id: calorieProfiles.id });
+  return rows.length > 0;
+}
+
 export async function upsertCalorieProfile(userId: string, updates: ProfileUpdates): Promise<CalorieProfile> {
   const patch = { ...updates, updatedAt: new Date() };
 

@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import type { MeasurementType } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
+import SectionCard from '@/components/section-card';
+import Field from '@/components/field';
+import Button from '@/components/button';
 
 interface Props {
   latestMeasurements: MeasurementWithType[];
@@ -13,13 +16,13 @@ interface Props {
 export default function MeasurementsSection({ latestMeasurements, measurementTypes, onChanged }: Props) {
   const [showAdd, setShowAdd] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     typeKey: '',
     value: '',
     date: new Date().toISOString().split('T')[0]!,
     notes: '',
   });
-  const [saving, setSaving] = useState(false);
 
   async function addMeasurement() {
     if (!form.typeKey || !form.value) return;
@@ -56,26 +59,20 @@ export default function MeasurementsSection({ latestMeasurements, measurementTyp
   const selectedType = measurementTypes.find((t) => t.key === form.typeKey);
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Body Measurements</h2>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700"
-        >
+    <SectionCard
+      title="Body Measurements"
+      action={
+        <Button size="sm" onClick={() => setShowAdd(true)}>
           + Log measurement
-        </button>
-      </div>
-
+        </Button>
+      }
+    >
       {latestMeasurements.length === 0 ? (
         <p className="text-gray-400 text-sm">No measurements recorded yet.</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {latestMeasurements.map((m) => (
-            <div
-              key={m.id}
-              className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 relative group"
-            >
+            <div key={m.id} className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 relative group">
               <p className="text-xs text-gray-500">{m.typeLabel}</p>
               <p className="text-xl font-bold mt-0.5">
                 {m.value}
@@ -98,65 +95,38 @@ export default function MeasurementsSection({ latestMeasurements, measurementTyp
         <div className="mt-4 border-t pt-4 space-y-3">
           <h3 className="text-sm font-semibold">Log measurement</h3>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-xs text-gray-500">Type *</span>
-              <select
-                className="input mt-1"
-                value={form.typeKey}
-                onChange={(e) => setForm({ ...form, typeKey: e.target.value })}
-              >
+            <Field label="Type *">
+              <select className="input" value={form.typeKey} onChange={(e) => setForm({ ...form, typeKey: e.target.value })}>
                 <option value="">— select —</option>
                 {measurementTypes.map((t) => (
-                  <option key={t.key} value={t.key}>
-                    {t.label} ({t.unit})
-                  </option>
+                  <option key={t.key} value={t.key}>{t.label} ({t.unit})</option>
                 ))}
               </select>
-            </label>
-            <label className="block">
-              <span className="text-xs text-gray-500">
-                Value {selectedType ? `(${selectedType.unit})` : ''} *
-              </span>
+            </Field>
+            <Field label={`Value${selectedType ? ` (${selectedType.unit})` : ''} *`}>
               <input
-                className="input mt-1"
+                className="input"
                 type="number"
                 step="0.1"
                 value={form.value}
                 onChange={(e) => setForm({ ...form, value: e.target.value })}
               />
-            </label>
-            <label className="block">
-              <span className="text-xs text-gray-500">Date</span>
-              <input
-                className="input mt-1"
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs text-gray-500">Notes</span>
-              <input
-                className="input mt-1"
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              />
-            </label>
+            </Field>
+            <Field label="Date">
+              <input className="input" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+            </Field>
+            <Field label="Notes">
+              <input className="input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </Field>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={addMeasurement}
-              disabled={saving || !form.typeKey || !form.value}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
-            >
+            <Button onClick={addMeasurement} loading={saving} disabled={!form.typeKey || !form.value}>
               {saving ? 'Saving…' : 'Save'}
-            </button>
-            <button onClick={() => setShowAdd(false)} className="rounded-lg border px-4 py-2 text-sm hover:bg-gray-50">
-              Cancel
-            </button>
+            </Button>
+            <Button variant="secondary" onClick={() => setShowAdd(false)}>Cancel</Button>
           </div>
         </div>
       )}
-    </section>
+    </SectionCard>
   );
 }
