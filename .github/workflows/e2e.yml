@@ -1,0 +1,51 @@
+name: E2E Tests
+
+on:
+  # Run automatically after deploy to staging
+  workflow_run:
+    workflows: [Deploy]
+    types: [completed]
+    branches: [staging]
+
+  # Allow manual runs targeting any environment
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'MCP server base URL (leave blank to use STG_MCP_SERVER_URL secret)'
+        required: false
+        type: string
+
+jobs:
+  e2e:
+    name: E2E — MCP Server
+    runs-on: ubuntu-latest
+    # For workflow_run trigger: only run when the deploy succeeded
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+        env:
+          # Base URL: prefer the manual input, fall back to the staging secret
+          E2E_BASE_URL: ${{ inputs.base_url || secrets.STG_MCP_SERVER_URL }}
+          # Pre-registered test OAuth client credentials (stored as GitHub secrets)
+          E2E_CLIENT_ID: ${{ secrets.E2E_CLIENT_ID }}
+          E2E_TOKEN_SIGNING_SECRET: ${{ secrets.E2E_TOKEN_SIGNING_SECRET }}
+          E2E_USER_ID: ${{ secrets.E2E_USER_ID }}
