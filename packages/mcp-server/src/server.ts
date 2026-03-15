@@ -1,13 +1,12 @@
 import 'dotenv-mono/load';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import FastifyMcpServer from 'fastify-mcp-server';
 import { healthRoutes } from './routes/health.js';
 import { oauthRoutes } from './routes/oauth.js';
 import { monitorRoute } from './routes/monitor.js';
 import { sessionCleanupPlugin } from './plugins/session-cleanup.js';
-import { hubTokenVerifier } from './plugins/oauth-verifier.js';
-import { createMcpServer } from './mcp/create-mcp-server.js';
+import { registerMcpSubServer } from './mcp/sub-server.js';
+import { createCaloriesServer } from './calories/server.js';
 import { envConfig } from './config/env.js';
 
 export async function buildServer() {
@@ -27,24 +26,18 @@ export async function buildServer() {
   // OAuth endpoints at root: /.well-known, /register, /authorize, /token
   await app.register(oauthRoutes);
 
-  // Health check (legacy)
+  // Health check
   await app.register(healthRoutes);
 
-  // Register the MCP plugin with in-memory session store (default) + hub OAuth verifier
-  await app.register(FastifyMcpServer, {
-    createMcpServer,
-    endpoint: '/mcp',
-    authorization: {
-      bearerMiddlewareOptions: {
-        verifier: hubTokenVerifier,
-      },
-    },
-  });
+  // MCP sub-servers — each domain gets its own endpoint and session manager.
+  // Add more sub-servers here as new domains are implemented.
+  registerMcpSubServer(app, '/mcp/calories', createCaloriesServer);
+  // registerMcpSubServer(app, '/mcp/hive-manager', createHiveManagerServer);
 
-  // Session cleanup plugin (must run after FastifyMcpServer is registered)
+  // Session cleanup plugin (reads mcpSubServers registry via onReady hook)
   await app.register(sessionCleanupPlugin);
 
-  // Monitor route (must run after FastifyMcpServer is registered)
+  // Monitor route (reads mcpSubServers registry via onReady hook)
   await app.register(monitorRoute);
 
   return app;

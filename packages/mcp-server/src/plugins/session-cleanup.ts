@@ -1,21 +1,28 @@
 import fp from 'fastify-plugin';
-import { getMcpDecorator } from 'fastify-mcp-server';
+import { mcpSubServers } from '../mcp/registry.js';
 import { envConfig } from '../config/env.js';
 
 export const sessionCleanupPlugin = fp(async (app) => {
-  const mcpDecorator = getMcpDecorator(app);
-  const sessionManager = mcpDecorator.getSessionManager();
   const sessionActivity = new Map<string, number>();
 
-  // Track session creation timestamps for idle-time cleanup
-  sessionManager.on('sessionCreated', (sessionId: string) => {
-    sessionActivity.set(sessionId, Date.now());
-    app.log.info({ sessionId }, 'MCP session created');
-  });
+  // Track session activity across all registered sub-servers
+  const attachListeners = () => {
+    for (const { endpoint, sessionManager } of mcpSubServers) {
+      sessionManager.on('sessionCreated', (sessionId: string) => {
+        sessionActivity.set(sessionId, Date.now());
+        app.log.info({ sessionId, endpoint }, 'MCP session created');
+      });
 
-  sessionManager.on('sessionDestroyed', (sessionId: string) => {
-    sessionActivity.delete(sessionId);
-    app.log.info({ sessionId }, 'MCP session destroyed');
+      sessionManager.on('sessionDestroyed', (sessionId: string) => {
+        sessionActivity.delete(sessionId);
+        app.log.info({ sessionId, endpoint }, 'MCP session destroyed');
+      });
+    }
+  };
+
+  // Listeners are attached after all sub-servers are registered (onReady fires after all plugins)
+  app.addHook('onReady', async () => {
+    attachListeners();
   });
 
   const cleanupIntervalMs = envConfig.SESSION_CLEANUP_INTERVAL_MS;
@@ -29,9 +36,15 @@ export const sessionCleanupPlugin = fp(async (app) => {
       const idleMs = now - lastActive;
       if (idleMs > maxIdleMs) {
         app.log.info({ sessionId, idleMs }, 'Removing stale MCP session');
-        sessionManager.destroySession(sessionId).catch((err: unknown) => {
-          app.log.warn({ sessionId, err }, 'Failed to destroy stale MCP session');
-        });
+        // Find the session manager that owns this session and destroy it
+        for (const { sessionManager } of mcpSubServers) {
+          if (sessionManager.getTransport(sessionId)) {
+            sessionManager.destroySession(sessionId).catch((err: unknown) => {
+              app.log.warn({ sessionId, err }, 'Failed to destroy stale MCP session');
+            });
+            break;
+          }
+        }
         sessionActivity.delete(sessionId);
         removed++;
       }

@@ -56,7 +56,7 @@ type LogMealInput = z.infer<typeof LogMealSchema>;
 type GetMealsInput = z.infer<typeof GetMealsSchema>;
 type DeleteMealInput = z.infer<typeof DeleteMealSchema>;
 
-export function registerMealTools(server: McpServer, userId: string) {
+export function registerMealTools(server: McpServer) {
   server.registerTool(
     'calories_log_meal',
     {
@@ -65,7 +65,9 @@ export function registerMealTools(server: McpServer, userId: string) {
       inputSchema: LogMealSchema.shape,
       annotations: { idempotentHint: false, destructiveHint: false },
     },
-    async (input: LogMealInput) => {
+    async (input: LogMealInput, extra) => {
+      const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+      if (!userId) throw new Error('Authentication required');
       const today = new Date().toISOString().split('T')[0]!;
       const date = input.date ?? today;
       const mealId = crypto.randomUUID();
@@ -113,7 +115,9 @@ export function registerMealTools(server: McpServer, userId: string) {
       inputSchema: GetMealsSchema.shape,
       annotations: { readOnlyHint: true },
     },
-    async (input: GetMealsInput) => {
+    async (input: GetMealsInput, extra) => {
+      const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+      if (!userId) throw new Error('Authentication required');
       const limit = input.limit ?? DEFAULT_MEAL_LIMIT;
       const offset = input.offset ?? 0;
 
@@ -141,7 +145,9 @@ export function registerMealTools(server: McpServer, userId: string) {
       inputSchema: DeleteMealSchema.shape,
       annotations: { idempotentHint: false, destructiveHint: true },
     },
-    async (input: DeleteMealInput) => {
+    async (input: DeleteMealInput, extra) => {
+      const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+      if (!userId) throw new Error('Authentication required');
       const deleted = await deleteMeal(userId, input.meal_id);
       if (!deleted) {
         throw new Error(`Meal with id "${input.meal_id}" not found.`);

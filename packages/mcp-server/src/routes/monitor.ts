@@ -1,26 +1,40 @@
 import fp from 'fastify-plugin';
-import { getMcpDecorator } from 'fastify-mcp-server';
+import { mcpSubServers } from '../mcp/registry.js';
 import { readFileSync } from 'node:fs';
 
 const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf-8')) as { version: string };
 
 export const monitorRoute = fp(async (app) => {
-  const mcpDecorator = getMcpDecorator(app);
-  const sessionManager = mcpDecorator.getSessionManager();
+  const counters = new Map<string, { totalCreated: number; totalDestroyed: number }>();
 
-  let totalCreated = 0;
-  let totalDestroyed = 0;
-
-  sessionManager.on('sessionCreated', () => {
-    totalCreated++;
-  });
-  sessionManager.on('sessionDestroyed', () => {
-    totalDestroyed++;
+  // Wire session event counters per sub-server after all sub-servers are registered
+  app.addHook('onReady', async () => {
+    for (const { endpoint, sessionManager } of mcpSubServers) {
+      const c = { totalCreated: 0, totalDestroyed: 0 };
+      counters.set(endpoint, c);
+      sessionManager.on('sessionCreated', () => {
+        c.totalCreated++;
+      });
+      sessionManager.on('sessionDestroyed', () => {
+        c.totalDestroyed++;
+      });
+    }
   });
 
   app.get('/monitor', async (_request, _reply) => {
-    const stats = await mcpDecorator.getStats();
     const mem = process.memoryUsage();
+
+    const subServerStats = await Promise.all(
+      mcpSubServers.map(async ({ endpoint, sessionManager }) => {
+        const active = await sessionManager.getSessionsCount();
+        const c = counters.get(endpoint) ?? { totalCreated: 0, totalDestroyed: 0 };
+        return { endpoint, active, totalCreated: c.totalCreated, totalDestroyed: c.totalDestroyed };
+      }),
+    );
+
+    const totalActive = subServerStats.reduce((sum, s) => sum + s.active, 0);
+    const totalCreated = subServerStats.reduce((sum, s) => sum + s.totalCreated, 0);
+    const totalDestroyed = subServerStats.reduce((sum, s) => sum + s.totalDestroyed, 0);
 
     return {
       status: 'ok',
@@ -35,14 +49,14 @@ export const monitorRoute = fp(async (app) => {
         external: mem.external,
       },
       sessions: {
-        active: stats.activeSessions,
+        active: totalActive,
         totalCreated,
         totalDestroyed,
       },
       mcp: {
-        endpoint: '/mcp',
         transport: 'streamable-http',
         sessionStore: 'in-memory',
+        subServers: subServerStats,
       },
     };
   });

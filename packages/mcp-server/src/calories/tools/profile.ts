@@ -88,7 +88,7 @@ const UpdateProfileSchema = z.object({
 
 type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 
-export function registerProfileTools(server: McpServer, userId: string) {
+export function registerProfileTools(server: McpServer) {
   server.registerTool(
     'calories_update_profile',
     {
@@ -97,7 +97,9 @@ export function registerProfileTools(server: McpServer, userId: string) {
       inputSchema: UpdateProfileSchema.shape,
       annotations: { idempotentHint: false, destructiveHint: false },
     },
-    async (input: UpdateProfileInput) => {
+    async (input: UpdateProfileInput, extra) => {
+      const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+      if (!userId) throw new Error('Authentication required');
       const row = await upsertCalorieProfile(
         userId,
         omitNullish({
@@ -131,7 +133,9 @@ export function registerProfileTools(server: McpServer, userId: string) {
       description: 'Get the stored body profile including calculated BMR, TDEE, and daily calorie target.',
       annotations: { readOnlyHint: true },
     },
-    async () => {
+    async (extra) => {
+      const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+      if (!userId) throw new Error('Authentication required');
       const row = await getCalorieProfile(userId);
       const profile = row ? rowToProfile(row) : {};
       const { bmr, tdee, daily_calories } = calculateTDEE(profile);
