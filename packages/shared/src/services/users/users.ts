@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
+import { hashSecret, verifySecret } from '../../crypto/index';
 import type { User } from '../../types/index';
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
@@ -17,6 +18,34 @@ export async function updateUserName(userId: string, name: string): Promise<User
     .returning();
   if (!row) throw new Error('Update did not return a row');
   return row;
+}
+
+/**
+ * Register a new user with an email + password.
+ * Throws if the email is already taken.
+ */
+export async function createUserWithPassword(email: string, password: string, name?: string | null): Promise<User> {
+  const existing = await findUserByEmail(email);
+  if (existing) throw new Error('Email already registered');
+
+  const passwordHash = await hashSecret(password);
+  const [row] = await db
+    .insert(users)
+    .values({ email: email.toLowerCase(), name: name ?? null, passwordHash })
+    .returning();
+  if (!row) throw new Error('Insert did not return a row');
+  return row;
+}
+
+/**
+ * Verify email + password credentials.
+ * Returns the user on success, null on invalid credentials.
+ */
+export async function verifyUserPassword(email: string, password: string): Promise<User | null> {
+  const user = await findUserByEmail(email);
+  if (!user?.passwordHash) return null;
+  const ok = await verifySecret(password, user.passwordHash);
+  return ok ? user : null;
 }
 
 /** Find user by email, creating them if they don't exist. */
