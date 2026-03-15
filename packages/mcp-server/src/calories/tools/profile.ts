@@ -14,6 +14,7 @@ export function rowToProfile(row: CalorieProfile): BodyProfile {
       name: row.name,
       age: row.age,
       sex: row.sex,
+      height_cm: row.heightCm,
       activity_level: row.activityLevel,
       goal_type: row.goalType,
       goal_weekly_rate_kg: row.goalWeeklyRateKg,
@@ -24,15 +25,11 @@ export function rowToProfile(row: CalorieProfile): BodyProfile {
   };
 }
 
-export function profileToTargets(
-  profile: BodyProfile,
-  heightCm?: number | null,
-  weightKg?: number | null,
-): CalorieTargets {
+export function profileToTargets(profile: BodyProfile, weightKg?: number | null): CalorieTargets {
   return calculateCalorieTargets({
     age: profile.age ?? null,
     sex: profile.sex ?? null,
-    heightCm: heightCm ?? null,
+    heightCm: profile.height_cm ?? null,
     weightKg: weightKg ?? null,
     activityLevel: profile.activity_level ?? null,
     goalType: profile.goal_type ?? null,
@@ -46,6 +43,7 @@ const UpdateProfileSchema = z.object({
   name: z.string().optional().describe('Your name'),
   age: z.number().int().positive().optional().describe('Age in years'),
   sex: z.nativeEnum(Sex).optional().describe('Biological sex for BMR calculation: "male" | "female"'),
+  height_cm: z.number().positive().optional().describe('Height in centimetres (e.g. 175). Stored on profile — only needs to be set once.'),
   activity_level: z
     .nativeEnum(ActivityLevel)
     .optional()
@@ -88,11 +86,12 @@ export function registerProfileTools(server: McpServer) {
     'calories_update_profile',
     {
       description:
-        'Save or update health profile (age, sex, activity level, and goal). ' +
+        'Save or update health profile (age, sex, height, activity level, and goal). ' +
         'Computes BMR and TDEE via the Mifflin-St Jeor equation. ' +
         'IMPORTANT: Always ask the user what their goal is (weight_loss, weight_gain, or maintain) before calling this tool. ' +
         'For weight_loss or weight_gain, also ask for the weekly rate in kg. ' +
-        'Body measurements (height, weight, etc.) are logged separately via calories_log_measurement.',
+        'Height (height_cm) is stored on the profile and only needs to be set once. ' +
+        'Weight and other changing body measurements are logged separately via calories_log_measurement.',
       inputSchema: UpdateProfileSchema.shape,
       annotations: { idempotentHint: false, destructiveHint: false },
     },
@@ -106,6 +105,7 @@ export function registerProfileTools(server: McpServer) {
           name: input.name,
           age: input.age,
           sex: input.sex,
+          heightCm: input.height_cm,
           activityLevel: input.activity_level,
           goalType: input.goal_type,
           goalWeeklyRateKg: input.goal_weekly_rate_kg,
@@ -117,9 +117,8 @@ export function registerProfileTools(server: McpServer) {
 
       const profile = rowToProfile(row);
       const latestMeasurements = await getLatestMeasurementsPerType(userId);
-      const heightMeasurement = latestMeasurements.find((m) => m.typeKey === 'height');
       const weightMeasurement = latestMeasurements.find((m) => m.typeKey === 'weight');
-      const targets = profileToTargets(profile, heightMeasurement?.value, weightMeasurement?.value);
+      const targets = profileToTargets(profile, weightMeasurement?.value);
 
       return toolResponse({
         profile,
@@ -147,9 +146,8 @@ export function registerProfileTools(server: McpServer) {
       const row = await getCalorieProfile(userId);
       const profile = row ? rowToProfile(row) : {};
       const latestMeasurements = await getLatestMeasurementsPerType(userId);
-      const heightMeasurement = latestMeasurements.find((m) => m.typeKey === 'height');
       const weightMeasurement = latestMeasurements.find((m) => m.typeKey === 'weight');
-      const targets = profileToTargets(profile, heightMeasurement?.value, weightMeasurement?.value);
+      const targets = profileToTargets(profile, weightMeasurement?.value);
 
       const activityDescriptions: Record<string, string> = {
         sedentary: 'Desk job, little or no exercise',

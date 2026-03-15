@@ -35,6 +35,7 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
     name: profile?.name ?? '',
     age: profile?.age?.toString() ?? '',
     sex: profile?.sex ?? '',
+    heightCm: profile?.heightCm?.toString() ?? '',
     activityLevel: profile?.activityLevel ?? '',
     goalType: profile?.goalType ?? '',
     goalWeeklyRateKg: profile?.goalWeeklyRateKg?.toString() ?? '',
@@ -43,13 +44,12 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
     notes: profile?.notes ?? '',
   });
 
-  const heightMeasure = latestMeasurements.find((m) => m.typeKey === 'height');
   const weightMeasure = latestMeasurements.find((m) => m.typeKey === 'weight');
 
   const targets = calculateCalorieTargets({
     age: profile?.age ?? null,
     sex: profile?.sex ?? null,
-    heightCm: heightMeasure?.value ?? null,
+    heightCm: profile?.heightCm ?? null,
     weightKg: weightMeasure?.value ?? null,
     activityLevel: profile?.activityLevel ?? null,
     goalType: profile?.goalType ?? null,
@@ -68,6 +68,7 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
           name: form.name || undefined,
           age: form.age ? Number(form.age) : undefined,
           sex: form.sex || undefined,
+          heightCm: form.heightCm ? Number(form.heightCm) : undefined,
           activityLevel: form.activityLevel || undefined,
           goalType: form.goalType || undefined,
           goalWeeklyRateKg: form.goalWeeklyRateKg ? Number(form.goalWeeklyRateKg) : undefined,
@@ -88,6 +89,7 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
       name: profile?.name ?? '',
       age: profile?.age?.toString() ?? '',
       sex: profile?.sex ?? '',
+      heightCm: profile?.heightCm?.toString() ?? '',
       activityLevel: profile?.activityLevel ?? '',
       goalType: profile?.goalType ?? '',
       goalWeeklyRateKg: profile?.goalWeeklyRateKg?.toString() ?? '',
@@ -117,7 +119,7 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
           <Row label="Age" value={profile?.age?.toString()} />
           <Row label="Sex" value={profile?.sex} />
           <Row label="Activity" value={profile?.activityLevel ? ACTIVITY_LABELS[profile.activityLevel] : undefined} />
-          <Row label="Height" value={heightMeasure ? `${heightMeasure.value} cm` : undefined} />
+          <Row label="Height" value={profile?.heightCm ? `${profile.heightCm} cm` : undefined} />
           <Row label="Weight" value={weightMeasure ? `${weightMeasure.value} kg` : undefined} />
 
           {/* Calorie targets */}
@@ -185,6 +187,15 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
                 <option value="male">Male</option>
                 <option value="female">Female</option>
               </select>
+            </Field>
+            <Field label="Height (cm)">
+              <input
+                className="input"
+                type="number"
+                placeholder="e.g. 175"
+                value={form.heightCm}
+                onChange={(e) => setForm({ ...form, heightCm: e.target.value })}
+              />
             </Field>
             <Field label="Activity level">
               <select

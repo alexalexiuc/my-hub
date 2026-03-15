@@ -1,9 +1,10 @@
 // Profile stores demographic/goal info for BMR/TDEE.
-// Body measurements (height, weight, etc.) live in body_measurements table.
+// Height is stored directly on the profile (stable); weight lives in body_measurements.
 export interface BodyProfile {
   name?: string;
   age?: number;
   sex?: string;
+  height_cm?: number; // cm — stored directly on profile
   activity_level?: string;
   goal_type?: string; // 'weight_loss' | 'weight_gain' | 'maintain'
   goal_weekly_rate_kg?: number; // kg/week for loss or gain

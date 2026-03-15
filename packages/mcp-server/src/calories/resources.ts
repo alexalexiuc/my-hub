@@ -54,9 +54,8 @@ export function registerCaloriesResources(server: McpServer): void {
       ]);
 
       const profile = profileRow ? rowToProfile(profileRow) : {};
-      const heightM = latestMeasurements.find((m) => m.typeKey === 'height');
       const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
-      const targets = profileToTargets(profile, heightM?.value, weightM?.value);
+      const targets = profileToTargets(profile, weightM?.value);
 
       return resourceResponse({
         profile,
@@ -101,9 +100,8 @@ export function registerCaloriesResources(server: McpServer): void {
       ]);
 
       const profile = profileRow ? rowToProfile(profileRow) : {};
-      const heightM = latestMeasurements.find((m) => m.typeKey === 'height');
       const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
-      const targets = profileToTargets(profile, heightM?.value, weightM?.value);
+      const targets = profileToTargets(profile, weightM?.value);
 
       const meals = dayRows.map(rowToMealEntry);
       const totalKcal = meals.reduce((s, m) => s + m.calories, 0);
@@ -161,9 +159,8 @@ export function registerCaloriesResources(server: McpServer): void {
       const weightLogs = allMeasurements.filter((m) => m.typeKey === 'weight');
 
       const profile = profileRow ? rowToProfile(profileRow) : {};
-      const heightM = latestMeasurements.find((m) => m.typeKey === 'height');
       const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
-      const targets = profileToTargets(profile, heightM?.value, weightM?.value);
+      const targets = profileToTargets(profile, weightM?.value);
 
       // Build day-by-day calorie totals
       const days: { date: string; total_kcal: number; meal_count: number }[] = [];

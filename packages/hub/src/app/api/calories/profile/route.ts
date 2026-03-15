@@ -29,6 +29,7 @@ export async function PUT(req: Request) {
     'name',
     'age',
     'sex',
+    'heightCm',
     'activityLevel',
     'goalType',
     'goalWeeklyRateKg',

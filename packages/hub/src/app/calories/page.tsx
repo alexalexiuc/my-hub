@@ -78,7 +78,7 @@ export default function CaloriesDashboardPage() {
   const calorieTargets = calculateCalorieTargets({
     age: profile?.age ?? null,
     sex: profile?.sex ?? null,
-    heightCm: latestMeasurements.find((m) => m.typeKey === 'height')?.value ?? null,
+    heightCm: profile?.heightCm ?? null,
     weightKg: latestMeasurements.find((m) => m.typeKey === 'weight')?.value ?? null,
     activityLevel: profile?.activityLevel ?? null,
     goalType: profile?.goalType ?? null,

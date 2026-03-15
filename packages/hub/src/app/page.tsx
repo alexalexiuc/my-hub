@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
+import { calculateCalorieTargets } from '@my-hub/shared/utils';
 
 interface QuickStats {
   todayKcal: number;
@@ -45,27 +46,18 @@ export default function HomePage() {
       const todayKcal = meals.reduce((sum: number, m: MealLog) => sum + (m.kcal ?? 0), 0);
       const latestWeight = measurements.find((m) => m.typeKey === 'weight') ?? null;
 
-      // Rough TDEE from profile + measurements
-      let todayTarget: number | null = null;
-      if (profile?.goalMaxCalories) {
-        todayTarget = profile.goalMaxCalories;
-      } else if (profile?.age && profile?.sex && latestWeight) {
-        const heightM = measurements.find((m) => m.typeKey === 'height');
-        if (heightM) {
-          const bmr =
-            profile.sex === 'male'
-              ? 10 * latestWeight.value + 6.25 * heightM.value - 5 * profile.age + 5
-              : 10 * latestWeight.value + 6.25 * heightM.value - 5 * profile.age - 161;
-          const multipliers: Record<string, number> = {
-            sedentary: 1.2,
-            lightly_active: 1.375,
-            moderately_active: 1.55,
-            very_active: 1.725,
-            extra_active: 1.9,
-          };
-          todayTarget = Math.round(bmr * (profile.activityLevel ? (multipliers[profile.activityLevel] ?? 1.2) : 1.2));
-        }
-      }
+      const targets = calculateCalorieTargets({
+        age: profile?.age ?? null,
+        sex: profile?.sex ?? null,
+        heightCm: profile?.heightCm ?? null,
+        weightKg: latestWeight?.value ?? null,
+        activityLevel: profile?.activityLevel ?? null,
+        goalType: profile?.goalType ?? null,
+        goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? null,
+        goalMinCalories: profile?.goalMinCalories ?? null,
+        goalMaxCalories: profile?.goalMaxCalories ?? null,
+      });
+      const todayTarget = targets.maxCalories ?? targets.goalCalories ?? targets.tdee;
 
       setUserName(profile?.name ?? null);
       setStats({ todayKcal, todayTarget, latestWeight });

@@ -71,9 +71,8 @@ export function registerSummaryTools(server: McpServer) {
       ]);
 
       const profile = profileRow ? rowToProfile(profileRow) : {};
-      const heightM = latestMeasurements.find((m) => m.typeKey === 'height');
       const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
-      const targets = profileToTargets(profile, heightM?.value, weightM?.value);
+      const targets = profileToTargets(profile, weightM?.value);
       const meals = dayRows.map(rowToMealEntry);
       const totals = sumMeals(meals);
       const goalCal = targets.goalCalories;
@@ -127,9 +126,8 @@ export function registerSummaryTools(server: McpServer) {
       ]);
 
       const profile = profileRow ? rowToProfile(profileRow) : {};
-      const heightM = latestMeasurements.find((m) => m.typeKey === 'height');
       const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
-      const targets = profileToTargets(profile, heightM?.value, weightM?.value);
+      const targets = profileToTargets(profile, weightM?.value);
       const goalCal = targets.goalCalories;
 
       // Build day-by-day summary for Mon–Sun
@@ -185,9 +183,8 @@ export function registerSummaryTools(server: McpServer) {
       ]);
 
       const profile = profileRow ? rowToProfile(profileRow) : {};
-      const heightM = latestMeasurements.find((m) => m.typeKey === 'height');
       const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
-      const targets = profileToTargets(profile, heightM?.value, weightM?.value);
+      const targets = profileToTargets(profile, weightM?.value);
       const maxCal = targets.maxCalories;
       const totals = sumMeals(dayRows.map(rowToMealEntry));
       const remaining = maxCal !== null ? maxCal - totals.calories : null;
