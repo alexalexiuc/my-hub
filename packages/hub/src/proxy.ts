@@ -1,9 +1,6 @@
 import NextAuthMiddleware from 'next-auth/middleware';
-import type { NextRequest } from 'next/server';
 
-export default function proxy(req: NextRequest) {
-  return NextAuthMiddleware(req);
-}
+export default NextAuthMiddleware;
 
 export const config = {
   // Protect all routes except auth pages and Next.js internals

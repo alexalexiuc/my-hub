@@ -1,11 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function SignInPage() {
+  return (
+    <Suspense
+      fallback={<div className="flex min-h-screen items-center justify-center text-gray-500">Loading sign-in...</div>}
+    >
+      <SignInContent />
+    </Suspense>
+  );
+}
+
+function SignInContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') ?? '/';
   const [email, setEmail] = useState('');
