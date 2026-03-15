@@ -34,6 +34,7 @@ export async function getMeals(userId: string, filter: GetMealsFilter = {}): Pro
     .orderBy(mealLogs.loggedAt)
     .offset(offset);
 
+  //TODO: Verify generated query
   if (limit !== undefined) query.limit(limit);
 
   const rows = await query;

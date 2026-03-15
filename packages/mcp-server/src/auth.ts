@@ -38,9 +38,7 @@ export async function mcpAuthHandler(req: FastifyRequest, reply: FastifyReply): 
   }
   let rawPayload: McpTokenPayload;
   try {
-    const decoded = Buffer.from(token.slice(0, dot).replace(/-/g, '+').replace(/_/g, '/'), 'base64url').toString(
-      'utf8',
-    );
+    const decoded = Buffer.from(token.slice(0, dot).replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
     rawPayload = JSON.parse(decoded) as McpTokenPayload;
   } catch {
     return reply.status(401).send({ error: 'invalid_token' });
