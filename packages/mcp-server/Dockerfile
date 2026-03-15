@@ -30,4 +30,6 @@ COPY --from=builder /app/packages/mcp-server/dist ./packages/mcp-server/dist
 COPY --from=builder /app/packages/mcp-server/package.json ./packages/mcp-server/package.json
 
 EXPOSE 3001
-CMD ["node", "packages/mcp-server/dist/index.js"]
+USER node
+CMD ["node", "packages/mcp-server/dist/main.js"]
+
