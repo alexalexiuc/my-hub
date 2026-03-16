@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-user';
-import { deleteAllUserMeals, deleteAllUserMeasurements, deleteCalorieProfile } from '@my-hub/shared/services';
+import {
+  deleteAllUserMeals,
+  deleteAllUserMeasurements,
+  deleteCalorieProfile,
+  deleteAllUserTodos,
+} from '@my-hub/shared/services';
 
-type Feature = 'meals' | 'measurements' | 'calories_profile';
+type Feature = 'meals' | 'measurements' | 'calories_profile' | 'todos';
 
-const SUPPORTED_FEATURES: Feature[] = ['meals', 'measurements', 'calories_profile'];
+const SUPPORTED_FEATURES: Feature[] = ['meals', 'measurements', 'calories_profile', 'todos'];
 
 export async function POST(req: Request) {
   const user = await getAuthUser();
@@ -47,6 +52,11 @@ export async function POST(req: Request) {
       case 'calories_profile': {
         const deleted = await deleteCalorieProfile(user.id);
         results.calories_profile = { deleted };
+        break;
+      }
+      case 'todos': {
+        const count = await deleteAllUserTodos(user.id);
+        results.todos = { deleted: count };
         break;
       }
     }

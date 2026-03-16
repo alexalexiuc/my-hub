@@ -12,6 +12,7 @@ import type {
   measurementTypes,
   bodyMeasurements,
   apiRequestLogs,
+  todos,
 } from '../db/schema/index';
 
 // Identity & Auth
@@ -46,3 +47,7 @@ export type { MeasurementTypeKey };
 // API Request Logs
 export type ApiRequestLog = InferSelectModel<typeof apiRequestLogs>;
 export type NewApiRequestLog = InferInsertModel<typeof apiRequestLogs>;
+
+// Todos
+export type Todo = InferSelectModel<typeof todos>;
+export type NewTodo = InferInsertModel<typeof todos>;
