@@ -8,6 +8,7 @@ import { sessionCleanupPlugin } from './plugins/session-cleanup.js';
 import { registerMcpSubServer } from './mcp/sub-server.js';
 import { mcpSubServers } from './mcp/registry.js';
 import { createCaloriesServer } from './calories/server.js';
+import { createTodoServer } from './todo/server.js';
 import { envConfig } from './config/env.js';
 
 export async function buildServer() {
@@ -34,6 +35,7 @@ export async function buildServer() {
   // MCP sub-servers — each domain gets its own endpoint and session manager.
   // Add more sub-servers here as new domains are implemented.
   registerMcpSubServer(app, '/mcp/calories', createCaloriesServer);
+  registerMcpSubServer(app, '/mcp/todo', createTodoServer);
   // registerMcpSubServer(app, '/mcp/hive-manager', createHiveManagerServer);
 
   // Session cleanup plugin (reads mcpSubServers registry via onReady hook)

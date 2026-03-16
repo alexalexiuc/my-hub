@@ -20,6 +20,13 @@ const appSections = [
     color: 'bg-orange-50 border-orange-200 hover:border-orange-400',
     labelColor: 'text-orange-700',
   },
+  {
+    href: '/todo',
+    label: 'Todo',
+    description: 'Simple todo list for testing MCP integration',
+    color: 'bg-blue-50 border-blue-200 hover:border-blue-400',
+    labelColor: 'text-blue-700',
+  },
 ];
 
 const adminSections = [
