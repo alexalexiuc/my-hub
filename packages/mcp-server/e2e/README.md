@@ -15,12 +15,12 @@ inspecting the database directly. The test suite covers:
 A pre-registered OAuth client must exist in the target server's database.
 Set these env vars before running:
 
-| Variable                  | Description                                                          |
-| ------------------------- | -------------------------------------------------------------------- |
-| `E2E_CLIENT_ID`           | The `client_id` of the pre-registered test OAuth client              |
-| `E2E_TOKEN_SIGNING_SECRET`| The **raw** (unencrypted) token signing secret for that client       |
-| `E2E_USER_ID`             | UUID of the user the client is authorized for                        |
-| `E2E_BASE_URL`            | Server base URL (default: `http://localhost:3001`)                   |
+| Variable                   | Description                                                    |
+| -------------------------- | -------------------------------------------------------------- |
+| `E2E_CLIENT_ID`            | The `client_id` of the pre-registered test OAuth client        |
+| `E2E_TOKEN_SIGNING_SECRET` | The **raw** (unencrypted) token signing secret for that client |
+| `E2E_USER_ID`              | UUID of the user the client is authorized for                  |
+| `E2E_BASE_URL`             | Server base URL (default: `http://localhost:3001`)             |
 
 The test helper generates a fresh signed access token for each run using these credentials,
 so tokens never expire between CI runs.

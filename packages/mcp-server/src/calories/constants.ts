@@ -29,6 +29,12 @@ export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
 export const DEFAULT_MEAL_LIMIT = 50;
 export const MAX_MEAL_LIMIT = 500;
 
+export enum GoalType {
+  WEIGHT_LOSS = 'weight_loss',
+  WEIGHT_GAIN = 'weight_gain',
+  MAINTAIN = 'maintain',
+}
+
 export const MEAL_TYPE_FRACTIONS: Record<MealType, number> = {
   [MealType.BREAKFAST]: 0.25,
   [MealType.LUNCH]: 0.35,

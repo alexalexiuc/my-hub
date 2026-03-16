@@ -1,5 +1,5 @@
 {
-  "id": "16607a62-4387-419d-a93c-55c8abd75700",
+  "id": "613f3b97-9ea3-4c66-8de9-4bd3e620e8ca",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "6",
   "dialect": "postgresql",
@@ -120,6 +120,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'::text[]"
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "created_at": {
           "name": "created_at",
@@ -435,21 +442,15 @@
           "primaryKey": false,
           "notNull": false
         },
-        "height_cm": {
-          "name": "height_cm",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "weight_kg": {
-          "name": "weight_kg",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false
-        },
         "sex": {
           "name": "sex",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "height_cm": {
+          "name": "height_cm",
+          "type": "real",
           "primaryKey": false,
           "notNull": false
         },
@@ -459,27 +460,27 @@
           "primaryKey": false,
           "notNull": false
         },
-        "goal_calories_override": {
-          "name": "goal_calories_override",
+        "goal_type": {
+          "name": "goal_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "goal_weekly_rate_kg": {
+          "name": "goal_weekly_rate_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "goal_min_calories": {
+          "name": "goal_min_calories",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
-        "neck_cm": {
-          "name": "neck_cm",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "waist_cm": {
-          "name": "waist_cm",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "hips_cm": {
-          "name": "hips_cm",
-          "type": "real",
+        "goal_max_calories": {
+          "name": "goal_max_calories",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
@@ -671,6 +672,152 @@
           ]
         }
       }
+    },
+    "public.body_measurements": {
+      "name": "body_measurements",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type_key": {
+          "name": "type_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_body_measurements_user": {
+          "name": "idx_body_measurements_user",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "idx_body_measurements_date": {
+          "name": "idx_body_measurements_date",
+          "columns": [
+            "date"
+          ],
+          "isUnique": false
+        },
+        "idx_body_measurements_user_date": {
+          "name": "idx_body_measurements_user_date",
+          "columns": [
+            "user_id",
+            "date"
+          ],
+          "isUnique": false
+        },
+        "idx_body_measurements_user_type": {
+          "name": "idx_body_measurements_user_type",
+          "columns": [
+            "user_id",
+            "type_key"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "body_measurements_user_id_users_id_fk": {
+          "name": "body_measurements_user_id_users_id_fk",
+          "tableFrom": "body_measurements",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "body_measurements_type_key_measurement_types_key_fk": {
+          "name": "body_measurements_type_key_measurement_types_key_fk",
+          "tableFrom": "body_measurements",
+          "tableTo": "measurement_types",
+          "columnsFrom": [
+            "type_key"
+          ],
+          "columnsTo": [
+            "key"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.measurement_types": {
+      "name": "measurement_types",
+      "schema": "",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit": {
+          "name": "unit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
     },
     "public.api_request_logs": {
       "name": "api_request_logs",

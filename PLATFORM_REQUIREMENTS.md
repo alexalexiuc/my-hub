@@ -51,6 +51,22 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 - **ORM: Drizzle** — lightweight, type-safe, schema-as-code, great DX for TypeScript
 - Migration tooling: Drizzle Kit (generate + apply migrations)
 
+**Key tables (current):**
+
+| Table               | Purpose                                                              |
+| ------------------- | -------------------------------------------------------------------- |
+| `users`             | Platform accounts (Google OAuth, provisioned on first Hub login)     |
+| `oauth_clients`     | OAuth 2.1 credentials for MCP clients                                |
+| `mcp_servers`       | Per-user enable/disable flags for each MCP sub-server                |
+| `calorie_profiles`  | Dietary profile: age, sex, activity level, calorie goal override     |
+| `meal_logs`         | Time-stamped meal entries with kcal and macros                       |
+| `measurement_types` | Lookup: key, label, unit (e.g. `weight`/`Weight`/`kg`)               |
+| `body_measurements` | Time-series body measurements (weight, height, waist, etc.) per user |
+| `hive_logs`         | Beekeeping inspection/treatment/feeding events                       |
+| `hives`             | Hive registry                                                        |
+| `hive_todos`        | Task list scoped to a hive                                           |
+| `api_request_logs`  | HTTP request/response audit log with trigram-indexed error field     |
+
 ---
 
 ### MCP Server Layer (Fastify)
@@ -66,16 +82,18 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 
 ### Admin Panel (Next.js)
 
-Minimal personal cabinet with the following sections:
+Personal cabinet with the following sections:
 
+- **Main Dashboard** (`/`) — overview: today's calorie stats, quick links to feature dashboards and admin tools
+- **Calories Dashboard** (`/calories`) — calorie profile, today's meals (add/delete), body measurements (log/delete)
+- **Profile** (`/profile`) — display name, account info, per-feature data deletion, sign out
 - **OAuth Clients** — create/revoke OAuth credentials for MCP clients
 - **MCP Control** — enable/disable individual MCP servers per user
 - **Data Explorer** — query and edit records (hive logs, meals, profiles, todos)
   - Initially: raw table views with basic CRUD
   - Later: domain-specific views (apiary timeline, calorie charts, etc.)
-- **User / Settings** — manage account, API keys, preferences
 
-Auth for the panel itself: simple username + password (bcrypt + JWT session), given single-user/few-friends scope. Or GitHub/Google OAuth login — easy with NextAuth.js.
+Auth: Google OAuth via NextAuth.js (single-user / small invite group). Users are automatically provisioned in the `users` table on first sign-in.
 
 ---
 

@@ -5,15 +5,22 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1773527294463,
-      "tag": "0000_cool_dracula",
+      "when": 1773647845067,
+      "tag": "0000_exotic_maestro",
       "breakpoints": true
     },
     {
-      "idx": 1,
+      "idx": 2,
       "version": "6",
-      "when": 1742042400000,
+      "when": 1773611830058,
       "tag": "0001_api_logs_trgm_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1773612176837,
+      "tag": "0003_seed-calories-measurement-types",
       "breakpoints": true
     }
   ]

@@ -13,7 +13,7 @@
     "format:check": "pnpm exec prettier --check .",
     "typecheck": "pnpm run build && pnpm --filter @my-hub/shared typecheck && pnpm --filter @my-hub/mcp-server typecheck && pnpm --filter @my-hub/admin typecheck",
     "test": "pnpm -r test",
-    "test:e2e": "pnpm --filter @my-hub/mcp-server test:e2e",
+    "test:e2e": "pnpm -r test:e2e",
     "db:generate": "pnpm --filter shared db:generate",
     "db:migrate": "pnpm --filter shared db:migrate"
   },

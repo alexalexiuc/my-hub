@@ -11,17 +11,17 @@ export const calorieProfiles = pgTable('calorie_profiles', {
     .notNull()
     .unique()
     .references(() => users.id),
-  // Body measurements for BMR/TDEE calculation (Mifflin-St Jeor)
+  // Demographic & goal info for BMR/TDEE calculation (Mifflin-St Jeor)
+  // Height is stored here (stable); weight and other changing measurements are in body_measurements table
   name: text('name'),
   age: integer('age'),
-  heightCm: real('height_cm'),
-  weightKg: real('weight_kg'),
   sex: text('sex'), // 'male' | 'female'
+  heightCm: real('height_cm'), // cm — stable, stored directly on profile
   activityLevel: text('activity_level'), // 'sedentary' | 'lightly_active' | ...
-  goalCaloriesOverride: integer('goal_calories_override'),
-  neckCm: real('neck_cm'),
-  waistCm: real('waist_cm'),
-  hipsCm: real('hips_cm'),
+  goalType: text('goal_type'), // 'weight_loss' | 'weight_gain' | 'maintain'
+  goalWeeklyRateKg: real('goal_weekly_rate_kg'), // kg/week for loss or gain
+  goalMinCalories: integer('goal_min_calories'), // explicit daily minimum floor
+  goalMaxCalories: integer('goal_max_calories'), // explicit daily maximum ceiling
   notes: text('notes'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

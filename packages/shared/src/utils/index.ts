@@ -28,6 +28,9 @@
  * const filter = omitNullish({ date: input.date, mealType: input.meal_type });
  * await getMeals(userId, filter);
  */
+export { calculateBMR, calculateCalorieTargets } from './calories';
+export type { CalorieTargets, CalorieTargetParams } from './calories';
+
 export function omitNullish<T extends Record<string, unknown>>(obj: T): Partial<{ [K in keyof T]: NonNullable<T[K]> }> {
   const result: Record<string, unknown> = {};
   for (const key of Object.keys(obj)) {

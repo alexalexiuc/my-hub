@@ -4,7 +4,7 @@ import 'dotenv-mono/load';
 const nextConfig = {
   output: 'standalone',
   experimental: {
-    serverComponentsExternalPackages: ['@my-hub/shared'],
+    serverExternalPackages: ['@my-hub/shared'],
   },
 };
 

@@ -1,0 +1,112 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import type { CalorieProfile, MealLog, MeasurementType } from '@my-hub/shared/types';
+import type { MeasurementWithType } from '@my-hub/shared/services';
+import { calculateCalorieTargets } from '@my-hub/shared/utils';
+import PageHeader from '@/components/page-header';
+import ProfileCard from './profile-card';
+import MealsSection from './meals-section';
+import MeasurementsSection from './measurements-section';
+
+export default function CaloriesDashboardPage() {
+  const [profile, setProfile] = useState<CalorieProfile | null>(null);
+  const [latestMeasurements, setLatestMeasurements] = useState<MeasurementWithType[]>([]);
+  const [meals, setMeals] = useState<MealLog[]>([]);
+  const [measurementTypes, setMeasurementTypes] = useState<MeasurementType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const today = new Date().toISOString().split('T')[0]!;
+
+  const loadData = useCallback(async () => {
+    try {
+      const [profileRes, mealsRes, typesRes] = await Promise.all([
+        fetch('/api/calories/profile'),
+        fetch(`/api/calories/meals?date=${today}&limit=100`),
+        fetch('/api/calories/measurement-types'),
+      ]);
+
+      if (profileRes.status === 401 || mealsRes.status === 401) {
+        setError('Not signed in');
+        return;
+      }
+
+      const [profileData, mealsData, typesData] = await Promise.all([
+        profileRes.json() as Promise<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>,
+        mealsRes.json() as Promise<{ meals: MealLog[] }>,
+        typesRes.json() as Promise<{ types: MeasurementType[] }>,
+      ]);
+
+      setProfile(profileData.profile);
+      setLatestMeasurements(profileData.measurements);
+      setMeals(mealsData.meals);
+      setMeasurementTypes(typesData.types);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [today]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-5xl p-8">
+        <div className="text-gray-400">Loading…</div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="mx-auto max-w-5xl p-8">
+        <p className="text-red-500">{error}</p>
+        {error === 'Not signed in' && (
+          <Link href="/auth/signin" className="mt-2 inline-block text-blue-600 underline">
+            Sign in
+          </Link>
+        )}
+      </main>
+    );
+  }
+
+  const calorieTargets = calculateCalorieTargets({
+    age: profile?.age ?? null,
+    sex: profile?.sex ?? null,
+    heightCm: profile?.heightCm ?? null,
+    weightKg: latestMeasurements.find((m) => m.typeKey === 'weight')?.value ?? null,
+    activityLevel: profile?.activityLevel ?? null,
+    goalType: profile?.goalType ?? null,
+    goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? null,
+    goalMinCalories: profile?.goalMinCalories ?? null,
+    goalMaxCalories: profile?.goalMaxCalories ?? null,
+  });
+
+  return (
+    <main className="mx-auto max-w-5xl p-8 space-y-6">
+      <PageHeader title="Calories" backHref="/" backLabel="← Home" />
+
+      <ProfileCard profile={profile} latestMeasurements={latestMeasurements} onUpdated={loadData} />
+
+      <MealsSection
+        meals={meals}
+        today={today}
+        onChanged={loadData}
+        goalCalories={calorieTargets.goalCalories}
+        minCalories={calorieTargets.minCalories}
+        maxCalories={calorieTargets.maxCalories}
+      />
+
+      <MeasurementsSection
+        latestMeasurements={latestMeasurements}
+        measurementTypes={measurementTypes}
+        onChanged={loadData}
+      />
+    </main>
+  );
+}
