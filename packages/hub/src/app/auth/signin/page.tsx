@@ -17,7 +17,7 @@ export default function SignInPage() {
 
 function SignInContent() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') ?? '/';
+  const callbackUrl = normalizeCallbackUrl(searchParams.get('callbackUrl'));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -116,6 +116,22 @@ function SignInContent() {
       </div>
     </main>
   );
+}
+
+function normalizeCallbackUrl(rawCallbackUrl: string | null) {
+  if (!rawCallbackUrl) return '/';
+
+  try {
+    const origin = window.location.origin;
+    const parsed = new URL(rawCallbackUrl, origin);
+    if (parsed.origin !== origin) return '/';
+    if (parsed.pathname.startsWith('/.well-known')) return '/';
+
+    const normalizedPath = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    return normalizedPath || '/';
+  } catch {
+    return '/';
+  }
 }
 
 function GoogleIcon() {

@@ -39,6 +39,21 @@ export const authOptions: AuthOptions = {
       if (!email) return false;
       return ALLOWED_EMAILS.includes(email);
     },
+    async redirect({ url, baseUrl }) {
+      const fallbackUrl = new URL('/', baseUrl).toString();
+      const baseOrigin = new URL(baseUrl).origin;
+
+      try {
+        const targetUrl = new URL(url, baseUrl);
+
+        if (targetUrl.origin !== baseOrigin) return fallbackUrl;
+        if (targetUrl.pathname.startsWith('/.well-known')) return fallbackUrl;
+
+        return targetUrl.toString();
+      } catch {
+        return fallbackUrl;
+      }
+    },
   },
   pages: {
     signIn: '/auth/signin',
