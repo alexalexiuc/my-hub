@@ -1,5 +1,5 @@
 {
-  "id": "5107454b-b0d0-4ed6-9bbb-b09fc2b0dd43",
+  "id": "d206cf20-98bf-4dd5-8d8b-56c4d3ab68d1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "6",
   "dialect": "postgresql",
@@ -445,6 +445,12 @@
         "sex": {
           "name": "sex",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "height_cm": {
+          "name": "height_cm",
+          "type": "real",
           "primaryKey": false,
           "notNull": false
         },

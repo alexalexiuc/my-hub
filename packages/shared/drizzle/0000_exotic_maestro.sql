@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS "calorie_profiles" (
 	"name" text,
 	"age" integer,
 	"sex" text,
+	"height_cm" real,
 	"activity_level" text,
 	"goal_type" text,
 	"goal_weekly_rate_kg" real,
