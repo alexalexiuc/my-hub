@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS "meal_logs" (
 CREATE TABLE IF NOT EXISTS "body_measurements" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" uuid NOT NULL,
-	"type_id" integer NOT NULL,
+	"type_key" text NOT NULL,
 	"date" text NOT NULL,
 	"value" real NOT NULL,
 	"notes" text,
@@ -114,12 +114,10 @@ CREATE TABLE IF NOT EXISTS "body_measurements" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "measurement_types" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"key" text NOT NULL,
+	"key" text PRIMARY KEY NOT NULL,
 	"label" text NOT NULL,
 	"unit" text NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "measurement_types_key_unique" UNIQUE("key")
+	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "api_request_logs" (
@@ -180,7 +178,7 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "body_measurements" ADD CONSTRAINT "body_measurements_type_id_measurement_types_id_fk" FOREIGN KEY ("type_id") REFERENCES "public"."measurement_types"("id") ON DELETE no action ON UPDATE no action;
+ ALTER TABLE "body_measurements" ADD CONSTRAINT "body_measurements_type_key_measurement_types_key_fk" FOREIGN KEY ("type_key") REFERENCES "public"."measurement_types"("key") ON DELETE no action ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
@@ -191,7 +189,7 @@ CREATE INDEX IF NOT EXISTS "idx_meal_logs_user_date" ON "meal_logs" ("user_id","
 CREATE INDEX IF NOT EXISTS "idx_body_measurements_user" ON "body_measurements" ("user_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_body_measurements_date" ON "body_measurements" ("date");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_body_measurements_user_date" ON "body_measurements" ("user_id","date");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_body_measurements_user_type" ON "body_measurements" ("user_id","type_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_body_measurements_user_type" ON "body_measurements" ("user_id","type_key");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_logs_created_at" ON "api_request_logs" ("created_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_logs_path" ON "api_request_logs" ("path");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_logs_user" ON "api_request_logs" ("user_id");--> statement-breakpoint

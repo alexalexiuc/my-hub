@@ -43,7 +43,11 @@ const UpdateProfileSchema = z.object({
   name: z.string().optional().describe('Your name'),
   age: z.number().int().positive().optional().describe('Age in years'),
   sex: z.nativeEnum(Sex).optional().describe('Biological sex for BMR calculation: "male" | "female"'),
-  height_cm: z.number().positive().optional().describe('Height in centimetres (e.g. 175). Stored on profile — only needs to be set once.'),
+  height_cm: z
+    .number()
+    .positive()
+    .optional()
+    .describe('Height in centimetres (e.g. 175). Stored on profile — only needs to be set once.'),
   activity_level: z
     .nativeEnum(ActivityLevel)
     .optional()

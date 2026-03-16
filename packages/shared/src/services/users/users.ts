@@ -46,13 +46,16 @@ export async function verifyUserPassword(email: string, password: string): Promi
 
 /** Find user by email, creating them if they don't exist. */
 export async function findOrCreateUser(email: string, name?: string | null): Promise<User> {
-  const existing = await findUserByEmail(email);
-  if (existing) return existing;
+  const normalizedEmail = email.toLowerCase();
 
-  const [row] = await db
+  const [inserted] = await db
     .insert(users)
-    .values({ email: email.toLowerCase(), name: name ?? null })
+    .values({ email: normalizedEmail, name: name ?? null })
+    .onConflictDoNothing({ target: users.email })
     .returning();
-  if (!row) throw new Error('Insert did not return a row');
-  return row;
+  if (inserted) return inserted;
+
+  const existing = await findUserByEmail(normalizedEmail);
+  if (!existing) throw new Error('User was not found after conflict handling');
+  return existing;
 }

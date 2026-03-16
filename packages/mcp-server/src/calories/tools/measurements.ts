@@ -7,6 +7,7 @@ import {
   getMeasurements,
   deleteMeasurement,
 } from '@my-hub/shared/services';
+import type { MeasurementTypeKey } from '@my-hub/shared/types';
 import type { MeasurementEntry } from '../types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 
@@ -63,7 +64,7 @@ export function registerMeasurementTools(server: McpServer) {
       const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
       if (!userId) throw new Error('Authentication required');
 
-      const measurementType = await getMeasurementTypeByKey(input.type);
+      const measurementType = await getMeasurementTypeByKey(input.type as MeasurementTypeKey);
       if (!measurementType) {
         const types = await getMeasurementTypes();
         throw new Error(
@@ -74,7 +75,7 @@ export function registerMeasurementTools(server: McpServer) {
       const today = new Date().toISOString().split('T')[0]!;
       const row = await logMeasurement({
         userId,
-        typeId: measurementType.id,
+        typeKey: measurementType.key,
         date: input.date ?? today,
         value: input.value,
         notes: input.notes ?? null,
@@ -103,15 +104,15 @@ export function registerMeasurementTools(server: McpServer) {
       const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
       if (!userId) throw new Error('Authentication required');
 
-      let typeId: number | undefined;
+      let typeKey: MeasurementTypeKey | undefined;
       if (input.type) {
-        const mt = await getMeasurementTypeByKey(input.type);
+        const mt = await getMeasurementTypeByKey(input.type as MeasurementTypeKey);
         if (!mt) throw new Error(`Unknown measurement type "${input.type}"`);
-        typeId = mt.id;
+        typeKey = mt.key;
       }
 
       const rows = await getMeasurements(userId, {
-        typeId,
+        typeKey,
         dateFrom: input.date_from,
         dateTo: input.date_to,
         limit: input.limit ?? 100,

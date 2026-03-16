@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-user';
 import { getMeasurements, logMeasurement, getMeasurementTypeByKey } from '@my-hub/shared/services';
+import type { MeasurementTypeKey } from '@my-hub/shared/types';
 
 export async function GET(req: Request) {
   const user = await getAuthUser();
@@ -12,14 +13,17 @@ export async function GET(req: Request) {
   const dateTo = searchParams.get('dateTo') ?? undefined;
   const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 100;
 
-  let typeId: number | undefined;
   if (typeKey) {
-    const mt = await getMeasurementTypeByKey(typeKey);
+    const mt = await getMeasurementTypeByKey(typeKey as MeasurementTypeKey);
     if (!mt) return NextResponse.json({ error: `Unknown type: ${typeKey}` }, { status: 400 });
-    typeId = mt.id;
   }
 
-  const measurements = await getMeasurements(user.id, { typeId, dateFrom, dateTo, limit });
+  const measurements = await getMeasurements(user.id, {
+    typeKey: typeKey as MeasurementTypeKey | undefined,
+    dateFrom,
+    dateTo,
+    limit,
+  });
   return NextResponse.json({ measurements });
 }
 
@@ -45,7 +49,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'typeKey and value are required' }, { status: 400 });
   }
 
-  const measurementType = await getMeasurementTypeByKey(typeKey);
+  const measurementType = await getMeasurementTypeByKey(typeKey as MeasurementTypeKey);
   if (!measurementType) {
     return NextResponse.json({ error: `Unknown measurement type: ${typeKey}` }, { status: 400 });
   }
@@ -53,7 +57,7 @@ export async function POST(req: Request) {
   const today = new Date().toISOString().split('T')[0]!;
   const measurement = await logMeasurement({
     userId: user.id,
-    typeId: measurementType.id,
+    typeKey: measurementType.key,
     date: date ?? today,
     value,
     notes: notes ?? null,

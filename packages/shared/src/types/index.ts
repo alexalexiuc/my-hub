@@ -1,4 +1,5 @@
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
+import type { MeasurementTypeKey } from '../db/schema/measurements';
 import type {
   users,
   oauthClients,
@@ -40,6 +41,7 @@ export type MeasurementType = InferSelectModel<typeof measurementTypes>;
 export type NewMeasurementType = InferInsertModel<typeof measurementTypes>;
 export type BodyMeasurement = InferSelectModel<typeof bodyMeasurements>;
 export type NewBodyMeasurement = InferInsertModel<typeof bodyMeasurements>;
+export type { MeasurementTypeKey };
 
 // API Request Logs
 export type ApiRequestLog = InferSelectModel<typeof apiRequestLogs>;

@@ -1,18 +1,17 @@
 import { and, desc, eq, between } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { bodyMeasurements, measurementTypes } from '../../db/schema/measurements';
+import type { MeasurementTypeKey } from '../../db/schema/measurements';
 import type { BodyMeasurement, NewBodyMeasurement } from '../../types/index';
 
 export interface GetMeasurementsFilter {
-  typeId?: number;
-  typeKey?: string;
+  typeKey?: MeasurementTypeKey;
   dateFrom?: string;
   dateTo?: string;
   limit?: number;
 }
 
 export interface MeasurementWithType extends BodyMeasurement {
-  typeKey: string;
   typeLabel: string;
   typeUnit: string;
 }
@@ -27,10 +26,10 @@ export async function getMeasurements(
   userId: string,
   filter: GetMeasurementsFilter = {},
 ): Promise<MeasurementWithType[]> {
-  const { typeId, dateFrom, dateTo, limit = 100 } = filter;
+  const { typeKey, dateFrom, dateTo, limit = 100 } = filter;
 
   const conditions = [eq(bodyMeasurements.userId, userId)];
-  if (typeId !== undefined) conditions.push(eq(bodyMeasurements.typeId, typeId));
+  if (typeKey !== undefined) conditions.push(eq(bodyMeasurements.typeKey, typeKey));
   if (dateFrom !== undefined && dateTo !== undefined) {
     conditions.push(between(bodyMeasurements.date, dateFrom, dateTo));
   } else if (dateFrom !== undefined) {
@@ -41,17 +40,16 @@ export async function getMeasurements(
     .select({
       id: bodyMeasurements.id,
       userId: bodyMeasurements.userId,
-      typeId: bodyMeasurements.typeId,
+      typeKey: bodyMeasurements.typeKey,
       date: bodyMeasurements.date,
       value: bodyMeasurements.value,
       notes: bodyMeasurements.notes,
       createdAt: bodyMeasurements.createdAt,
-      typeKey: measurementTypes.key,
       typeLabel: measurementTypes.label,
       typeUnit: measurementTypes.unit,
     })
     .from(bodyMeasurements)
-    .innerJoin(measurementTypes, eq(bodyMeasurements.typeId, measurementTypes.id))
+    .innerJoin(measurementTypes, eq(bodyMeasurements.typeKey, measurementTypes.key))
     .where(and(...conditions))
     .orderBy(desc(bodyMeasurements.date), desc(bodyMeasurements.createdAt))
     .limit(limit);
@@ -61,31 +59,29 @@ export async function getMeasurements(
 
 /** Returns the latest measurement value for each type the user has recorded */
 export async function getLatestMeasurementsPerType(userId: string): Promise<MeasurementWithType[]> {
-  // Get distinct type IDs for this user then fetch latest per type
   const allRows = await db
     .select({
       id: bodyMeasurements.id,
       userId: bodyMeasurements.userId,
-      typeId: bodyMeasurements.typeId,
+      typeKey: bodyMeasurements.typeKey,
       date: bodyMeasurements.date,
       value: bodyMeasurements.value,
       notes: bodyMeasurements.notes,
       createdAt: bodyMeasurements.createdAt,
-      typeKey: measurementTypes.key,
       typeLabel: measurementTypes.label,
       typeUnit: measurementTypes.unit,
     })
     .from(bodyMeasurements)
-    .innerJoin(measurementTypes, eq(bodyMeasurements.typeId, measurementTypes.id))
+    .innerJoin(measurementTypes, eq(bodyMeasurements.typeKey, measurementTypes.key))
     .where(eq(bodyMeasurements.userId, userId))
     .orderBy(desc(bodyMeasurements.date), desc(bodyMeasurements.createdAt));
 
-  // Keep only the latest entry per typeId
-  const seen = new Set<number>();
+  // Keep only the latest entry per typeKey
+  const seen = new Set<MeasurementTypeKey>();
   const latest: MeasurementWithType[] = [];
   for (const row of allRows) {
-    if (!seen.has(row.typeId)) {
-      seen.add(row.typeId);
+    if (!seen.has(row.typeKey)) {
+      seen.add(row.typeKey);
       latest.push(row);
     }
   }

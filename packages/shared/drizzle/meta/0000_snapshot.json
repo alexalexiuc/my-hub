@@ -1,5 +1,5 @@
 {
-  "id": "d206cf20-98bf-4dd5-8d8b-56c4d3ab68d1",
+  "id": "613f3b97-9ea3-4c66-8de9-4bd3e620e8ca",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "6",
   "dialect": "postgresql",
@@ -689,9 +689,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "type_id": {
-          "name": "type_id",
-          "type": "integer",
+        "type_key": {
+          "name": "type_key",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -748,7 +748,7 @@
           "name": "idx_body_measurements_user_type",
           "columns": [
             "user_id",
-            "type_id"
+            "type_key"
           ],
           "isUnique": false
         }
@@ -767,15 +767,15 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "body_measurements_type_id_measurement_types_id_fk": {
-          "name": "body_measurements_type_id_measurement_types_id_fk",
+        "body_measurements_type_key_measurement_types_key_fk": {
+          "name": "body_measurements_type_key_measurement_types_key_fk",
           "tableFrom": "body_measurements",
           "tableTo": "measurement_types",
           "columnsFrom": [
-            "type_id"
+            "type_key"
           ],
           "columnsTo": [
-            "id"
+            "key"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -788,16 +788,10 @@
       "name": "measurement_types",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
         "key": {
           "name": "key",
           "type": "text",
-          "primaryKey": false,
+          "primaryKey": true,
           "notNull": true
         },
         "label": {
@@ -823,15 +817,7 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "measurement_types_key_unique": {
-          "name": "measurement_types_key_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
-        }
-      }
+      "uniqueConstraints": {}
     },
     "public.api_request_logs": {
       "name": "api_request_logs",
