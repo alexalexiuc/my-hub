@@ -30,7 +30,7 @@ describe.sequential('todo — lifecycle', () => {
   beforeAll(async () => {
     const { baseUrl } = getE2eEnv();
     const token = await generateToken();
-    client = await createMcpClient(baseUrl, '/mcp/todo', token);
+    client = await createMcpClient(baseUrl, '/todo/mcp', token);
   });
 
   afterAll(async () => {

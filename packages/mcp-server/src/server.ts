@@ -34,9 +34,9 @@ export async function buildServer() {
 
   // MCP sub-servers — each domain gets its own endpoint and session manager.
   // Add more sub-servers here as new domains are implemented.
-  registerMcpSubServer(app, '/mcp/calories', createCaloriesServer);
-  registerMcpSubServer(app, '/mcp/todo', createTodoServer);
-  // registerMcpSubServer(app, '/mcp/hive-manager', createHiveManagerServer);
+  registerMcpSubServer(app, '/calories/mcp', createCaloriesServer);
+  registerMcpSubServer(app, '/todo/mcp', createTodoServer);
+  // registerMcpSubServer(app, '/hive-manager/mcp', createHiveManagerServer);
 
   // Session cleanup plugin (reads mcpSubServers registry via onReady hook)
   await app.register(sessionCleanupPlugin);

@@ -11,8 +11,8 @@ import { mcpSubServers } from './registry.js';
  * independent session manager, and bearer-auth verifier.
  *
  * Usage in server.ts:
- *   registerMcpSubServer(app, '/mcp/calories', createCaloriesMcpServer);
- *   registerMcpSubServer(app, '/mcp/hive-manager', createHiveManagerMcpServer);
+ *   registerMcpSubServer(app, '/calories/mcp', createCaloriesMcpServer);
+ *   registerMcpSubServer(app, '/hive-manager/mcp', createHiveManagerMcpServer);
  *
  * Multiple registrations are safe because each one runs in an isolated
  * Fastify child scope.

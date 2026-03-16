@@ -33,17 +33,17 @@ const MCP_BASE_URL = process.env['NEXT_PUBLIC_MCP_URL'] ?? 'https://mcp.alexiuc.
 const SERVER_META: Record<string, { label: string; path: string; description: string }> = {
   calories: {
     label: 'Calories',
-    path: '/mcp/calories',
+    path: '/calories/mcp',
     description: 'Meal logging, body measurements, nutritional summaries',
   },
   hive: {
     label: 'Hive Manager',
-    path: '/mcp/hive',
+    path: '/hive/mcp',
     description: 'Beekeeping logs, hive profiles, inspection history',
   },
   products: {
     label: 'Products',
-    path: '/mcp/products',
+    path: '/products/mcp',
     description: 'Home inventory, shopping lists, product catalog',
   },
 };

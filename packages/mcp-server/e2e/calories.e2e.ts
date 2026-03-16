@@ -61,7 +61,7 @@ describe.sequential('calories — meal lifecycle', () => {
   beforeAll(async () => {
     const { baseUrl } = getE2eEnv();
     const token = await generateToken();
-    client = await createMcpClient(baseUrl, '/mcp/calories', token);
+    client = await createMcpClient(baseUrl, '/calories/mcp', token);
   });
 
   afterAll(async () => {

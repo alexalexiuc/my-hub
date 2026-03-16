@@ -19,7 +19,7 @@ describe('health endpoint', () => {
 
   it('rejects mcp endpoint without auth with 401', async () => {
     const baseUrl = getBaseUrl();
-    const res = await fetch(`${baseUrl}/mcp/calories`, {
+    const res = await fetch(`${baseUrl}/calories/mcp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize' }),
