@@ -17,9 +17,7 @@ export async function buildServer() {
   const app = Fastify({
     logger: {
       level: envConfig.LOG_LEVEL,
-      ...(envConfig.NODE_ENV === 'development' && {
-        transport: { target: 'pino-pretty' },
-      }),
+      transport: { target: 'pino-pretty' },
     },
   });
 
