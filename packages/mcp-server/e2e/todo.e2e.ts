@@ -34,6 +34,18 @@ describe.sequential('todo — lifecycle', () => {
   });
 
   afterAll(async () => {
+    // Best-effort cleanup of the todo created by this test run.
+    if (todoId != null) {
+      try {
+        await client.callTool({
+          name: 'todo_delete',
+          arguments: { id: todoId },
+        });
+      } catch {
+        // Ignore cleanup failures: do not fail the test suite if deletion fails.
+      }
+    }
+
     await client.close();
   });
 
