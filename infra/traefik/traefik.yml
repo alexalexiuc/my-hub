@@ -31,7 +31,8 @@ certificatesResolvers:
     acme:
       email: admin@alexiuc.dev
       storage: /etc/traefik/acme/acme.json
-      tlsChallenge: {}
+      httpChallenge:
+        entryPoint: web
 
 providers:
   docker:
