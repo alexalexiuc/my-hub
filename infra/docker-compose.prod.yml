@@ -13,6 +13,8 @@ services:
       - db_data:/var/lib/postgresql/data
     networks:
       - internal
+    ports:
+      - "127.0.0.1:5432:5432"   # ← add this
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-myhub} -d ${POSTGRES_DB:-myhub}']
       interval: 10s
