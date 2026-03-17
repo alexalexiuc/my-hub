@@ -34,6 +34,27 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # ---- migrate ----
+      - name: Docker meta — migrate
+        id: meta-migrate
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub-migrate
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest
+
+      - name: Build & push — migrate
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: packages/shared/Dockerfile.migrate
+          push: true
+          tags: ${{ steps.meta-migrate.outputs.tags }}
+          labels: ${{ steps.meta-migrate.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       # ---- mcp-server ----
       - name: Docker meta — mcp-server
         id: meta-mcp
