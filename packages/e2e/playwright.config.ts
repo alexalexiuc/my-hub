@@ -38,12 +38,12 @@ export default defineConfig({
   ],
 
   // NOTE: The hub dev server must be running before tests start.
-  // Start it with: ALLOWED_EMAILS=e2e@test.local pnpm --filter @my-hub/admin dev
+  // Start it with: ALLOWED_EMAILS=e2e@test.local pnpm --filter @my-hub/hub dev
   //
   // For CI, uncomment the webServer block below:
   //
   // webServer: {
-  //   command: 'ALLOWED_EMAILS=e2e@test.local pnpm --filter @my-hub/admin dev',
+  //   command: 'ALLOWED_EMAILS=e2e@test.local pnpm --filter @my-hub/hub dev',
   //   url: `${BASE_URL}/auth/signin`,
   //   reuseExistingServer: false,
   //   timeout: 120_000,

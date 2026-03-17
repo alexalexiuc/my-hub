@@ -1,0 +1,107 @@
+#cloud-config
+# Executed once on first boot by cloud-init (~2-3 minutes).
+# Terraform injects deploy_ssh_public_key via templatefile() at apply time.
+#
+# After this runs the server will have:
+#   - Docker CE + docker compose plugin
+#   - 'deploy' user (docker group) for GitHub Actions SSH deploys
+#   - SSH hardened: no password auth, root key-only login, TCP forwarding enabled (for DBeaver tunnel)
+#   - UFW firewall: allow 22, 80, 443
+#   - fail2ban: SSH brute-force protection
+#   - /opt/my-hub directory owned by deploy
+
+timezone: Europe/Bucharest
+
+# ── Users ─────────────────────────────────────────────────────────────────────
+# Hetzner injects your admin SSH key (from hcloud_ssh_key.admin) into root's
+# authorized_keys automatically — connect as: ssh root@<SERVER_IP>
+
+users:
+  - name: deploy
+    groups: [docker]
+    shell: /bin/bash
+    lock_passwd: true
+    ssh_authorized_keys:
+      - '${deploy_ssh_public_key}'
+
+# ── Configuration files ────────────────────────────────────────────────────────
+
+write_files:
+  # SSH hardening — appended config (does not replace sshd_config)
+  - path: /etc/ssh/sshd_config.d/99-hardening.conf
+    permissions: '0600'
+    content: |
+      PasswordAuthentication no
+      # prohibit-password: root login allowed with SSH key, but not with password
+      PermitRootLogin prohibit-password
+      PubkeyAuthentication yes
+      X11Forwarding no
+      MaxAuthTries 3
+      LoginGraceTime 30
+      # AllowTcpForwarding must stay yes — required for DBeaver SSH tunnel to PostgreSQL
+      AllowTcpForwarding yes
+
+  # fail2ban SSH jail
+  - path: /etc/fail2ban/jail.d/sshd-custom.conf
+    permissions: '0644'
+    content: |
+      [sshd]
+      enabled  = true
+      port     = ssh
+      maxretry = 5
+      bantime  = 3600
+      findtime = 600
+
+# ── Packages ───────────────────────────────────────────────────────────────────
+
+package_update: true
+package_upgrade: true
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - ufw
+  - fail2ban
+  - git
+  - htop
+
+# ── Commands ───────────────────────────────────────────────────────────────────
+
+runcmd:
+  # ── Docker CE (official repo) ─────────────────────────────────────────────
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - >
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc]
+    https://download.docker.com/linux/ubuntu
+    $(. /etc/os-release && echo "$VERSION_CODENAME") stable"
+    | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update -qq
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  # ── Docker service ─────────────────────────────────────────────────────────
+  - systemctl enable docker
+  - systemctl start docker
+
+  # ── App directory ──────────────────────────────────────────────────────────
+  - mkdir -p /opt/my-hub
+  - chown -R deploy:deploy /opt/my-hub
+  - chmod 750 /opt/my-hub
+
+  # ── UFW firewall ───────────────────────────────────────────────────────────
+  - ufw --force reset
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp comment 'SSH'
+  - ufw allow 80/tcp comment 'HTTP (Traefik + ACME challenge)'
+  - ufw allow 443/tcp comment 'HTTPS (Traefik)'
+  - ufw --force enable
+
+  # ── fail2ban ───────────────────────────────────────────────────────────────
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+
+  # ── SSH hardening reload ───────────────────────────────────────────────────
+  - systemctl reload ssh

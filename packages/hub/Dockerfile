@@ -3,21 +3,22 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
-FROM base AS builder
+FROM base AS fetcher
 WORKDIR /app
-COPY pnpm-workspace.yaml ./
-COPY package.json ./
-COPY tsconfig.base.json ./
-COPY packages/shared/package.json ./packages/shared/
-COPY packages/hub/package.json ./packages/hub/
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+  pnpm fetch
 
-RUN pnpm install --frozen-lockfile
-
-COPY packages/shared ./packages/shared
-COPY packages/hub ./packages/hub
+FROM fetcher AS builder
+WORKDIR /app
+ENV CI=true
+COPY . .
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+  pnpm install -r --offline
 
 RUN pnpm --filter @my-hub/shared build
-RUN pnpm --filter @my-hub/admin build
+RUN pnpm --filter @my-hub/hub build
+RUN mkdir -p /app/packages/hub/public
 
 FROM base AS runner
 WORKDIR /app
@@ -34,5 +35,6 @@ COPY --from=builder /app/packages/hub/public ./packages/hub/public
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
 CMD ["node", "packages/hub/server.js"]

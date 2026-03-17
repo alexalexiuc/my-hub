@@ -36,7 +36,7 @@ broken sub-server while a fix is deployed.
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | TR-01 | The enabled/disabled state per sub-server (and optionally per user) is stored in the PostgreSQL database via a Drizzle-managed table in `packages/shared/src/db/schema`. |
 | TR-02 | The Fastify MCP app reads the enabled state from the database (or a short-lived cache) on each request to decide whether to route to the sub-server.                     |
-| TR-03 | The admin panel page lives in `packages/admin`; state changes are applied via a Next.js Server Action or API route that writes to the database.                          |
+| TR-03 | The admin panel page lives in `packages/hub`; state changes are applied via a Next.js Server Action or API route that writes to the database.                            |
 | TR-04 | Only authenticated admin users can access the MCP Control page.                                                                                                          |
 | TR-05 | Cache invalidation (if any caching is applied to the enabled state) must happen within 5 seconds of a toggle in the admin panel.                                         |
 

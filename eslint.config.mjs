@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import gitignore from 'eslint-config-flat-gitignore';
 import nextPlugin from '@next/eslint-plugin-next';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import prettierPlugin from 'eslint-plugin-prettier';
@@ -13,6 +14,7 @@ const sharedFiles = ['packages/shared/**/*.{js,mjs,cjs,ts,tsx}'];
 const testFiles = ['**/*.{test,spec}.{js,mjs,cjs,ts,tsx}'];
 
 export default [
+  gitignore(),
   {
     ignores: ['**/.next/**', '**/coverage/**', '**/dist/**', '**/node_modules/**'],
   },

@@ -1,0 +1,38 @@
+# ── COPY THIS FILE TO terraform.tfvars AND FILL IN YOUR VALUES ───────────────
+# terraform.tfvars is gitignored and must never be committed (contains secrets).
+#
+# cp terraform.tfvars.example terraform.tfvars
+
+# ── Hetzner Cloud ─────────────────────────────────────────────────────────────
+# Generate at: https://console.hetzner.cloud → Project → Security → API Tokens
+# Required permissions: Read + Write
+hcloud_token = "REPLACE_WITH_HETZNER_API_TOKEN"
+
+# Server configuration — defaults are sensible, change only if needed
+server_name     = "my-hub"
+server_type     = "cpx22"     # 3 vCPU AMD, 4 GB RAM, 80 GB SSD
+server_location = "nbg1"      # nbg1=Nuremberg, fsn1=Falkenstein, hel1=Helsinki
+server_image    = "ubuntu-24.04"
+
+# Name of the SSH key as it appears in Hetzner (Security → SSH Keys).
+# For an existing imported key: use the exact name shown in the console.
+# For a new key: leave as default "my-hub-admin" or set any name you like.
+ssh_key_name = "my-hub-admin"
+
+# Your personal SSH public key — for root login (admin access from your laptop)
+# Or generate: ssh-keygen -t ed25519 -C "your@mail.com" -f ~/.ssh/id_ed25519_myhub
+ssh_public_key = "ssh-ed25519 AAAAC3... your@mail.com"
+
+# Dedicated SSH public key for GitHub Actions deploy user
+# Generate: ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/id_ed25519_deploy
+# Then add the PRIVATE key (~/.ssh/id_ed25519_deploy) as GitHub Secret: VPS_SSH_KEY
+# Paste the PUBLIC key (.pub) here:
+deploy_ssh_public_key = "ssh-ed25519 AAAAC3... github-actions-deploy"
+
+# ── Cloudflare ────────────────────────────────────────────────────────────────
+# Generate at: https://dash.cloudflare.com → My Profile → API Tokens
+# Use "Create Custom Token" with: Zone → DNS → Edit (scoped to alexiuc.dev only)
+cloudflare_api_token = "REPLACE_WITH_CLOUDFLARE_API_TOKEN"
+
+# Zone ID: https://dash.cloudflare.com → alexiuc.dev → Overview → right sidebar
+cloudflare_zone_id = "REPLACE_WITH_ZONE_ID"

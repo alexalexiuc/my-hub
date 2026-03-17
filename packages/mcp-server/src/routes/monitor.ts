@@ -1,9 +1,5 @@
 import fp from 'fastify-plugin';
 import { mcpSubServers } from '../mcp/registry.js';
-import { readFileSync } from 'node:fs';
-
-// Resolves to packages/mcp-server/package.json from src/routes/ or dist/routes/
-const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf-8')) as { version: string };
 
 export const monitorRoute = fp(async (app) => {
   const counters = new Map<string, { totalCreated: number; totalDestroyed: number }>();
@@ -41,7 +37,7 @@ export const monitorRoute = fp(async (app) => {
       status: 'ok',
       uptime: Math.floor(process.uptime()),
       timestamp: new Date().toISOString(),
-      version: pkg.version,
+      version: '0', // TODO: Add version when versioning will be implemented
       node: process.version,
       memory: {
         rss: mem.rss,

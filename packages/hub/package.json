@@ -1,5 +1,5 @@
 {
-  "name": "@my-hub/admin",
+  "name": "@my-hub/hub",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "pnpm exec eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "pnpm run test:unit",
+    "test:unit": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@my-hub/shared": "workspace:*",

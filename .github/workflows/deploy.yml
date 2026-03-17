@@ -96,5 +96,5 @@ jobs:
             cd /opt/my-hub
             git pull origin main
             docker compose -f infra/docker-compose.yml pull
-            docker compose -f infra/docker-compose.yml up -d --remove-orphans
+            docker compose --env-file .env -f infra/docker-compose.yml up -d --remove-orphans
             docker image prune -f

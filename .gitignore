@@ -57,3 +57,7 @@ next-env.d.ts
 
 #claude config
 .claude/settings.local.json
+
+playwright-report
+test-results/
+packages/e2e/.auth/
