@@ -26,7 +26,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 
-COPY --from=builder /prod/mcp-server ./
+COPY --from=builder /prod/mcp-server/dist ./dist
+COPY --from=builder /prod/mcp-server/node_modules ./node_modules
+COPY --from=builder /prod/mcp-server/package.json ./package.json
+
+
 
 EXPOSE 3001
 USER node
