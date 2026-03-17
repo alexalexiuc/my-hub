@@ -15,6 +15,7 @@
     "test": "pnpm -r test",
     "test:e2e": "pnpm -r test:e2e",
     "start:prod": "docker compose --env-file .env -f infra/docker-compose.yml up -d --build --remove-orphans",
+    "start:local": "docker compose --env-file .env -f infra/docker-compose.local.yml up -d --build --remove-orphans",
     "db:generate": "pnpm --filter shared db:generate",
     "db:migrate": "pnpm --filter shared db:migrate"
   },
