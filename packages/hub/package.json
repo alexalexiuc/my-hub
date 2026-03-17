@@ -1,5 +1,5 @@
 {
-  "name": "@my-hub/admin",
+  "name": "@my-hub/hub",
   "version": "0.0.0",
   "private": true,
   "scripts": {

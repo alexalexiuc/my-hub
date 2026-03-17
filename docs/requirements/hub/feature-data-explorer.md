@@ -41,14 +41,14 @@ apiary inspection timeline and calorie charts.
 
 ## Technical Requirements
 
-| ID    | Requirement                                                                                                                                           |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TR-01 | The Data Explorer lives entirely in `packages/admin`. Data is fetched via Next.js Server Actions or API routes that query PostgreSQL through Drizzle. |
-| TR-02 | No raw SQL strings are accepted from the browser — all queries are parameterised Drizzle calls to prevent injection.                                  |
-| TR-03 | Only authenticated admin users can access the Data Explorer.                                                                                          |
-| TR-04 | Pagination must be server-side; the browser never receives the full table contents in a single response.                                              |
-| TR-05 | Delete operations must use a soft-delete pattern or a confirmation gate to reduce risk of accidental data loss.                                       |
-| TR-06 | Phase 2 chart views should use a lightweight charting library (e.g. Recharts) already compatible with the Next.js App Router.                         |
+| ID    | Requirement                                                                                                                                         |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TR-01 | The Data Explorer lives entirely in `packages/hub`. Data is fetched via Next.js Server Actions or API routes that query PostgreSQL through Drizzle. |
+| TR-02 | No raw SQL strings are accepted from the browser — all queries are parameterised Drizzle calls to prevent injection.                                |
+| TR-03 | Only authenticated admin users can access the Data Explorer.                                                                                        |
+| TR-04 | Pagination must be server-side; the browser never receives the full table contents in a single response.                                            |
+| TR-05 | Delete operations must use a soft-delete pattern or a confirmation gate to reduce risk of accidental data loss.                                     |
+| TR-06 | Phase 2 chart views should use a lightweight charting library (e.g. Recharts) already compatible with the Next.js App Router.                       |
 
 ---
 

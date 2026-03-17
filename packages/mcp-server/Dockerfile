@@ -3,33 +3,30 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
-FROM base AS builder
+FROM base AS fetcher
 WORKDIR /app
-COPY pnpm-workspace.yaml ./
-COPY package.json ./
-COPY tsconfig.base.json ./
-COPY packages/shared/package.json ./packages/shared/
-COPY packages/mcp-server/package.json ./packages/mcp-server/
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+  pnpm fetch
 
-RUN pnpm install --frozen-lockfile
-
-COPY packages/shared ./packages/shared
-COPY packages/mcp-server ./packages/mcp-server
+FROM fetcher AS builder
+WORKDIR /app
+ENV CI=true
+COPY . .
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+  pnpm install -r --offline
 
 RUN pnpm --filter @my-hub/shared build
 RUN pnpm --filter @my-hub/mcp-server build
+
+RUN pnpm --filter @my-hub/mcp-server deploy --prod --legacy /prod/mcp-server
 
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
-COPY --from=builder /app/packages/mcp-server/dist ./packages/mcp-server/dist
-COPY --from=builder /app/packages/mcp-server/package.json ./packages/mcp-server/package.json
+COPY --from=builder /prod/mcp-server ./
 
 EXPOSE 3001
 USER node
-CMD ["node", "packages/mcp-server/dist/main.js"]
-
+CMD ["node", "dist/main.js"]
