@@ -107,7 +107,7 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
       title="Profile"
       action={
         !editing && (
-          <button onClick={openEdit} className="text-sm text-blue-600 hover:underline">
+          <button onClick={openEdit} className="text-sm text-indigo-400 hover:underline">
             Edit
           </button>
         )
@@ -126,17 +126,17 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
           {(targets.tdee || targets.goalCalories || targets.minCalories || targets.maxCalories) && (
             <div className="col-span-2 mt-2 space-y-2">
               {targets.tdee && (
-                <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2 text-sm">
-                  <span className="text-gray-500">TDEE</span>
-                  <span className="font-medium text-gray-700">{targets.tdee} kcal</span>
+                <div className="flex items-center justify-between rounded-lg bg-zinc-800 px-4 py-2 text-sm">
+                  <span className="text-zinc-400">TDEE</span>
+                  <span className="font-medium text-zinc-300">{targets.tdee} kcal</span>
                 </div>
               )}
               {targets.goalCalories && targets.goalCalories !== targets.tdee && (
-                <div className="rounded-lg bg-blue-50 px-4 py-3 text-center">
-                  <span className="text-xs text-blue-600 uppercase tracking-wide">Goal target</span>
-                  <p className="text-2xl font-bold text-blue-700">{targets.goalCalories} kcal/day</p>
+                <div className="rounded-lg bg-blue-950/30 border border-blue-800/50 px-4 py-3 text-center">
+                  <span className="text-xs text-blue-400 uppercase tracking-wide">Goal target</span>
+                  <p className="text-2xl font-bold text-blue-300">{targets.goalCalories} kcal/day</p>
                   {profile?.goalType && (
-                    <p className="text-xs text-blue-500 mt-0.5">
+                    <p className="text-xs text-blue-400 mt-0.5">
                       {GOAL_LABELS[profile.goalType]}
                       {profile.goalWeeklyRateKg ? ` · ${profile.goalWeeklyRateKg} kg/week` : ''}
                     </p>
@@ -144,28 +144,28 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
                 </div>
               )}
               {targets.goalCalories && targets.goalCalories === targets.tdee && (
-                <div className="rounded-lg bg-blue-50 px-4 py-3 text-center">
-                  <span className="text-xs text-blue-600 uppercase tracking-wide">Daily target</span>
-                  <p className="text-2xl font-bold text-blue-700">{targets.tdee} kcal</p>
-                  {profile?.goalType === 'maintain' && <p className="text-xs text-blue-500 mt-0.5">Maintain weight</p>}
+                <div className="rounded-lg bg-blue-950/30 border border-blue-800/50 px-4 py-3 text-center">
+                  <span className="text-xs text-blue-400 uppercase tracking-wide">Daily target</span>
+                  <p className="text-2xl font-bold text-blue-300">{targets.tdee} kcal</p>
+                  {profile?.goalType === 'maintain' && <p className="text-xs text-blue-400 mt-0.5">Maintain weight</p>}
                 </div>
               )}
               {targets.minCalories && (
-                <div className="flex items-center justify-between rounded-lg bg-green-50 px-4 py-2 text-sm">
-                  <span className="text-green-600">Floor (min)</span>
-                  <span className="font-medium text-green-700">{targets.minCalories} kcal</span>
+                <div className="flex items-center justify-between rounded-lg bg-green-950/30 border border-green-800/50 px-4 py-2 text-sm">
+                  <span className="text-green-400">Floor (min)</span>
+                  <span className="font-medium text-green-300">{targets.minCalories} kcal</span>
                 </div>
               )}
               {targets.maxCalories && targets.maxCalories !== targets.goalCalories && (
-                <div className="flex items-center justify-between rounded-lg bg-orange-50 px-4 py-2 text-sm">
-                  <span className="text-orange-600">Ceiling (max)</span>
-                  <span className="font-medium text-orange-700">{targets.maxCalories} kcal</span>
+                <div className="flex items-center justify-between rounded-lg bg-orange-950/30 border border-orange-800/50 px-4 py-2 text-sm">
+                  <span className="text-orange-400">Ceiling (max)</span>
+                  <span className="font-medium text-orange-300">{targets.maxCalories} kcal</span>
                 </div>
               )}
             </div>
           )}
 
-          {profile?.notes && <div className="col-span-2 text-gray-500 text-xs mt-1">{profile.notes}</div>}
+          {profile?.notes && <div className="col-span-2 text-zinc-400 text-xs mt-1">{profile.notes}</div>}
         </div>
       ) : (
         <div className="space-y-3">
@@ -214,7 +214,7 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
           </div>
 
           {/* Goals section */}
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide pt-1">Goal</p>
+          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide pt-1">Goal</p>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Goal type" className={showRate ? '' : 'col-span-2'}>
               <select
@@ -288,8 +288,8 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
 function Row({ label, value }: { label: string; value?: string | null }) {
   return (
     <>
-      <span className="text-gray-500">{label}</span>
-      <span className="font-medium">{value ?? <span className="text-gray-300">—</span>}</span>
+      <span className="text-zinc-400">{label}</span>
+      <span className="font-medium">{value ?? <span className="text-zinc-600">—</span>}</span>
     </>
   );
 }

@@ -128,7 +128,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <main className="mx-auto max-w-2xl p-8">
-        <div className="text-gray-400">Loading…</div>
+        <div className="text-zinc-400">Loading…</div>
       </main>
     );
   }
@@ -141,11 +141,11 @@ export default function ProfilePage() {
       <SectionCard title="Account">
         <div className="space-y-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-500">Email</span>
+            <span className="text-zinc-400">Email</span>
             <span className="font-medium">{user?.email ?? '—'}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Member since</span>
+            <span className="text-zinc-400">Member since</span>
             <span className="font-medium">{user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}</span>
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function ProfilePage() {
       {/* Edit name */}
       <SectionCard title="Display name">
         <div className="space-y-3">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-zinc-400">
             Your display name is shown across the app and in your calorie profile.
           </p>
           <div className="flex gap-2 items-end">
@@ -174,14 +174,14 @@ export default function ProfilePage() {
               {nameSaving ? 'Saving…' : 'Save'}
             </Button>
           </div>
-          {nameSuccess && <p className="text-sm text-green-600">Name updated.</p>}
+          {nameSuccess && <p className="text-sm text-emerald-400">Name updated.</p>}
         </div>
       </SectionCard>
 
       {/* Data deletion */}
       <SectionCard title="Data deletion">
         <div className="space-y-4">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-zinc-400">
             Permanently delete your data by feature. This action cannot be undone.
           </p>
 
@@ -191,8 +191,8 @@ export default function ProfilePage() {
                 key={key}
                 className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition ${
                   selectedFeatures.has(key)
-                    ? 'border-red-300 bg-red-50'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
+                    ? 'border-red-700 bg-red-950/30'
+                    : 'border-zinc-700 bg-zinc-800 hover:border-zinc-600'
                 }`}
               >
                 <input
@@ -203,7 +203,7 @@ export default function ProfilePage() {
                 />
                 <div>
                   <p className="text-sm font-medium">{label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">{description}</p>
                 </div>
               </label>
             ))}
@@ -216,9 +216,9 @@ export default function ProfilePage() {
           )}
 
           {deleteConfirm && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
-              <p className="text-sm font-medium text-red-800">Are you sure? This will permanently delete:</p>
-              <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+            <div className="rounded-lg border border-red-800/50 bg-red-950/30 p-4 space-y-3">
+              <p className="text-sm font-medium text-red-400">Are you sure? This will permanently delete:</p>
+              <ul className="list-disc list-inside text-sm text-red-400 space-y-1">
                 {Array.from(selectedFeatures).map((f) => (
                   <li key={f}>{DATA_FEATURES.find((d) => d.key === f)?.label}</li>
                 ))}
@@ -235,9 +235,9 @@ export default function ProfilePage() {
           )}
 
           {deleteResults && (
-            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-              <p className="text-sm font-medium text-green-800 mb-2">Data deleted successfully:</p>
-              <ul className="text-sm text-green-700 space-y-1">
+            <div className="rounded-lg border border-green-800/50 bg-green-950/30 p-4">
+              <p className="text-sm font-medium text-green-400 mb-2">Data deleted successfully:</p>
+              <ul className="text-sm text-green-400 space-y-1">
                 {Object.entries(deleteResults).map(([feature, result]) => {
                   const label = DATA_FEATURES.find((d) => d.key === feature)?.label ?? feature;
                   const count = typeof result.deleted === 'number' ? result.deleted : result.deleted ? 1 : 0;
@@ -256,7 +256,7 @@ export default function ProfilePage() {
       {/* Danger zone */}
       <SectionCard title="Danger zone">
         <div className="space-y-3">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-zinc-400">
             Permanently delete all your data (meals, measurements, calorie profile, MCP connections). Your account is
             kept.
           </p>
@@ -265,8 +265,8 @@ export default function ProfilePage() {
               Delete all my data…
             </Button>
           ) : (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
-              <p className="text-sm font-medium text-red-800">
+            <div className="rounded-lg border border-red-800/50 bg-red-950/30 p-4 space-y-3">
+              <p className="text-sm font-medium text-red-400">
                 This will permanently wipe all your data. Your account will remain. Are you sure?
               </p>
               <div className="flex gap-2">
@@ -285,10 +285,10 @@ export default function ProfilePage() {
       {/* Sign out */}
       <SectionCard title="Session">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">Signed in as {user?.email}</p>
+          <p className="text-sm text-zinc-400">Signed in as {user?.email}</p>
           <Link
             href="/api/auth/signout"
-            className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 transition"
+            className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition"
           >
             Sign out
           </Link>

@@ -57,7 +57,7 @@ export default function CaloriesDashboardPage() {
   if (loading) {
     return (
       <main className="mx-auto max-w-5xl p-8">
-        <div className="text-gray-400">Loading…</div>
+        <div className="text-zinc-400">Loading…</div>
       </main>
     );
   }
@@ -67,7 +67,7 @@ export default function CaloriesDashboardPage() {
       <main className="mx-auto max-w-5xl p-8">
         <p className="text-red-500">{error}</p>
         {error === 'Not signed in' && (
-          <Link href="/auth/signin" className="mt-2 inline-block text-blue-600 underline">
+          <Link href="/auth/signin" className="mt-2 inline-block text-indigo-400 underline">
             Sign in
           </Link>
         )}

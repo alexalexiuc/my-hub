@@ -17,15 +17,15 @@ const appSections = [
     href: '/calories',
     label: 'Calories',
     description: 'Track meals, body measurements & nutrition goals',
-    color: 'bg-orange-50 border-orange-200 hover:border-orange-400',
-    labelColor: 'text-orange-700',
+    color: 'bg-orange-950/30 border-orange-800/50 hover:border-orange-600/70',
+    labelColor: 'text-orange-400',
   },
   {
     href: '/todo',
     label: 'Todo',
     description: 'Simple todo list for testing MCP integration',
-    color: 'bg-blue-50 border-blue-200 hover:border-blue-400',
-    labelColor: 'text-blue-700',
+    color: 'bg-blue-950/30 border-blue-800/50 hover:border-blue-600/70',
+    labelColor: 'text-blue-400',
   },
 ];
 
@@ -76,11 +76,11 @@ export default function HomePage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">my-hub</h1>
-          {userName && <p className="text-gray-500 mt-1">Welcome, {userName}</p>}
+          {userName && <p className="text-zinc-400 mt-1">Welcome, {userName}</p>}
         </div>
         <Link
           href="/profile"
-          className="text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:bg-gray-50 transition"
+          className="text-sm text-zinc-300 hover:text-zinc-100 border border-zinc-800 rounded-lg px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 transition"
         >
           Profile
         </Link>
@@ -112,12 +112,12 @@ export default function HomePage() {
 
       {/* App sections */}
       <div className="mb-8">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Apps</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Apps</h2>
         <div className="grid grid-cols-2 gap-4">
           {appSections.map(({ href, label, description, color, labelColor }) => (
             <Link key={href} href={href} className={`rounded-xl border p-6 transition ${color}`}>
               <span className={`text-lg font-semibold ${labelColor}`}>{label}</span>
-              <p className="text-sm text-gray-500 mt-1">{description}</p>
+              <p className="text-sm text-zinc-400 mt-1">{description}</p>
             </Link>
           ))}
         </div>
@@ -125,16 +125,16 @@ export default function HomePage() {
 
       {/* Admin section */}
       <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Admin</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Admin</h2>
         <div className="grid grid-cols-3 gap-3">
           {adminSections.map(({ href, label, description }) => (
             <Link
               key={href}
               href={href}
-              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition"
+              className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm hover:bg-zinc-800 hover:border-zinc-700 transition"
             >
               <span className="text-sm font-semibold">{label}</span>
-              <p className="text-xs text-gray-400 mt-0.5">{description}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{description}</p>
             </Link>
           ))}
         </div>
@@ -155,16 +155,16 @@ function StatCard({
   accent: 'blue' | 'green' | 'neutral';
 }) {
   const accentCls = {
-    blue: 'text-blue-700',
-    green: 'text-green-700',
-    neutral: 'text-gray-900',
+    blue: 'text-indigo-400',
+    green: 'text-emerald-400',
+    neutral: 'text-zinc-100',
   }[accent];
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm">
+      <p className="text-xs text-zinc-400 mb-1">{label}</p>
       <p className={`text-2xl font-bold ${accentCls}`}>{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+      {sub && <p className="text-xs text-zinc-500 mt-0.5">{sub}</p>}
     </div>
   );
 }

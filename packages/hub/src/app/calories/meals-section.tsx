@@ -54,18 +54,18 @@ function CalorieProgress({
   const statusColor = isOver ? 'text-red-600' : isUnder ? 'text-yellow-600' : 'text-green-600';
 
   return (
-    <div className="mb-4 rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 space-y-1.5">
+    <div className="mb-4 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 space-y-1.5">
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium">
           {total} / {cap} kcal
         </span>
         <span className={`text-xs font-medium ${statusColor}`}>{statusText}</span>
       </div>
-      <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
+      <div className="h-2 w-full rounded-full bg-zinc-700 overflow-hidden">
         <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
       </div>
       {(minCalories || maxCalories) && (
-        <div className="flex gap-3 text-xs text-gray-400">
+        <div className="flex gap-3 text-xs text-zinc-500">
           {minCalories && <span>Min: {minCalories} kcal</span>}
           {maxCalories && <span>Max: {maxCalories} kcal</span>}
         </div>
@@ -165,23 +165,23 @@ export default function MealsSection({ meals, today, onChanged, goalCalories, mi
       )}
 
       {meals.length === 0 ? (
-        <p className="text-gray-400 text-sm">No meals logged today.</p>
+        <p className="text-zinc-500 text-sm">No meals logged today.</p>
       ) : (
         <div className="space-y-4">
           {MEAL_TYPES.filter((t) => grouped[t]?.length).map((type) => (
             <div key={type}>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">{MEAL_LABEL[type]}</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">{MEAL_LABEL[type]}</h3>
               <div className="space-y-1">
                 {grouped[type]!.map((meal) => (
                   <div
                     key={meal.id}
-                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm"
+                    className="flex items-center justify-between rounded-lg bg-zinc-800 px-3 py-2 text-sm"
                   >
                     <div className="flex-1 min-w-0">
                       <span className="font-medium">{meal.description}</span>
-                      {meal.kcal ? <span className="ml-2 text-gray-500">{meal.kcal} kcal</span> : null}
+                      {meal.kcal ? <span className="ml-2 text-zinc-500">{meal.kcal} kcal</span> : null}
                       {(meal.protein || meal.carbs || meal.fat) && (
-                        <span className="ml-2 text-xs text-gray-400">
+                        <span className="ml-2 text-xs text-zinc-500">
                           {[
                             meal.protein ? `P ${meal.protein}g` : null,
                             meal.carbs ? `C ${meal.carbs}g` : null,
@@ -195,7 +195,7 @@ export default function MealsSection({ meals, today, onChanged, goalCalories, mi
                     <button
                       onClick={() => meal.mealId && deleteMealEntry(meal.mealId)}
                       disabled={deleting === meal.mealId}
-                      className="ml-3 text-gray-300 hover:text-red-500 disabled:opacity-50 text-xs"
+                      className="ml-3 text-zinc-500 hover:text-red-400 disabled:opacity-50 text-xs"
                     >
                       {deleting === meal.mealId ? '…' : '✕'}
                     </button>
@@ -208,7 +208,7 @@ export default function MealsSection({ meals, today, onChanged, goalCalories, mi
       )}
 
       {showAdd && (
-        <div className="mt-4 border-t pt-4 space-y-3">
+        <div className="mt-4 border-t border-zinc-700 pt-4 space-y-3">
           <h3 className="text-sm font-semibold">Add meal</h3>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Description *" className="col-span-2">

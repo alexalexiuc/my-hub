@@ -56,13 +56,18 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-md">
+    <main className="relative flex min-h-screen items-center justify-center bg-zinc-950 overflow-hidden">
+      {/* Decorative glow */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className="h-[500px] w-[500px] rounded-full bg-indigo-600/20 blur-[120px]" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl shadow-black/50">
         <h1 className="mb-6 text-2xl font-bold text-center">Create account</h1>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label htmlFor="email" className="text-xs text-gray-500 block mb-1">
+            <label htmlFor="email" className="text-xs text-zinc-400 block mb-1">
               Email
             </label>
             <input
@@ -77,8 +82,8 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label htmlFor="name" className="text-xs text-gray-500 block mb-1">
-              Name <span className="text-gray-400">(optional)</span>
+            <label htmlFor="name" className="text-xs text-zinc-400 block mb-1">
+              Name <span className="text-zinc-500">(optional)</span>
             </label>
             <input
               id="name"
@@ -90,7 +95,7 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label htmlFor="password" className="text-xs text-gray-500 block mb-1">
+            <label htmlFor="password" className="text-xs text-zinc-400 block mb-1">
               Password
             </label>
             <input
@@ -105,7 +110,7 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label htmlFor="confirm" className="text-xs text-gray-500 block mb-1">
+            <label htmlFor="confirm" className="text-xs text-zinc-400 block mb-1">
               Confirm password
             </label>
             <input
@@ -118,19 +123,19 @@ export default function RegisterPage() {
               required
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition"
+            className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition"
           >
             {loading ? 'Creating account…' : 'Create account'}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-zinc-400">
           Already have an account?{' '}
-          <Link href="/auth/signin" className="text-blue-600 hover:underline">
+          <Link href="/auth/signin" className="text-indigo-400 hover:underline">
             Sign in
           </Link>
         </p>

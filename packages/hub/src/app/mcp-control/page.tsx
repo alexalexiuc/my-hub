@@ -66,8 +66,8 @@ function Toggle({
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-        checked ? 'bg-blue-600' : 'bg-gray-200'
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 ${
+        checked ? 'bg-indigo-600' : 'bg-zinc-700'
       }`}
     >
       <span
@@ -91,7 +91,7 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
   return (
     <button
       onClick={copy}
-      className="ml-1 rounded px-1.5 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50 transition"
+      className="ml-1 rounded px-1.5 py-0.5 text-xs font-medium text-indigo-400 hover:bg-indigo-950/30 transition"
     >
       {copied ? 'Copied!' : (label ?? 'Copy')}
     </button>
@@ -102,12 +102,12 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
 
 function SecretRevealCard({ client, onDone }: { client: CreatedClient; onDone: () => void }) {
   return (
-    <div className="rounded-xl border-2 border-amber-400 bg-amber-50 p-5 space-y-4">
+    <div className="rounded-xl border-2 border-amber-700/50 bg-amber-950/30 p-5 space-y-4">
       <div className="flex items-start gap-3">
-        <span className="text-amber-500 text-xl leading-none">⚠</span>
+        <span className="text-amber-400 text-xl leading-none">⚠</span>
         <div>
-          <p className="font-semibold text-amber-900">Save these credentials now</p>
-          <p className="text-sm text-amber-700 mt-0.5">
+          <p className="font-semibold text-amber-300">Save these credentials now</p>
+          <p className="text-sm text-amber-400 mt-0.5">
             The client secret is shown only once and cannot be retrieved after you close this.
           </p>
         </div>
@@ -115,33 +115,33 @@ function SecretRevealCard({ client, onDone }: { client: CreatedClient; onDone: (
 
       <div className="space-y-2 text-sm">
         <div className="flex items-center gap-2">
-          <span className="w-32 text-gray-500 shrink-0">Client name</span>
+          <span className="w-32 text-zinc-400 shrink-0">Client name</span>
           <span className="font-medium">{client.clientName ?? '—'}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-32 text-gray-500 shrink-0">Client ID</span>
-          <code className="rounded bg-white px-2 py-0.5 font-mono text-xs border border-gray-200">
+          <span className="w-32 text-zinc-400 shrink-0">Client ID</span>
+          <code className="rounded bg-zinc-800 px-2 py-0.5 font-mono text-xs border border-zinc-700 text-zinc-300">
             {client.clientId}
           </code>
           <CopyButton value={client.clientId} />
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-32 text-gray-500 shrink-0">Client secret</span>
-          <code className="rounded bg-white px-2 py-0.5 font-mono text-xs border border-amber-300 text-amber-800">
+          <span className="w-32 text-zinc-400 shrink-0">Client secret</span>
+          <code className="rounded bg-amber-950/20 px-2 py-0.5 font-mono text-xs border border-amber-700/50 text-amber-300">
             {client.plainClientSecret}
           </code>
           <CopyButton value={client.plainClientSecret} />
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-32 text-gray-500 shrink-0">MCP URL</span>
-          <code className="rounded bg-white px-2 py-0.5 font-mono text-xs border border-gray-200">{MCP_BASE_URL}</code>
+          <span className="w-32 text-zinc-400 shrink-0">MCP URL</span>
+          <code className="rounded bg-zinc-800 px-2 py-0.5 font-mono text-xs border border-zinc-700 text-zinc-300">{MCP_BASE_URL}</code>
           <CopyButton value={MCP_BASE_URL} />
         </div>
       </div>
 
       <button
         onClick={onDone}
-        className="w-full rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 transition"
+        className="w-full rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 transition"
       >
         I've saved the credentials — done
       </button>
@@ -180,10 +180,10 @@ function NewClientForm({ onCreated }: { onCreated: (c: CreatedClient) => void })
   return (
     <form
       onSubmit={submit}
-      className="flex items-end gap-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4"
+      className="flex items-end gap-3 rounded-xl border border-dashed border-zinc-700 bg-zinc-900 p-4"
     >
       <div className="flex-1">
-        <label className="text-xs text-gray-500 block mb-1">Connection name</label>
+        <label className="text-xs text-zinc-400 block mb-1">Connection name</label>
         <input
           type="text"
           className="input"
@@ -193,11 +193,11 @@ function NewClientForm({ onCreated }: { onCreated: (c: CreatedClient) => void })
           autoFocus
         />
       </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-red-400">{error}</p>}
       <button
         type="submit"
         disabled={loading}
-        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition whitespace-nowrap"
+        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition whitespace-nowrap"
       >
         {loading ? 'Creating…' : 'Create'}
       </button>
@@ -257,34 +257,34 @@ function ClientCard({
 
   return (
     <div
-      className={`rounded-xl border bg-white p-4 space-y-3 transition ${client.enabled ? 'border-gray-200' : 'border-gray-200 opacity-60'}`}
+      className={`rounded-xl border bg-zinc-900 p-4 space-y-3 transition ${client.enabled ? 'border-zinc-800' : 'border-zinc-800 opacity-60'}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-medium text-gray-900 truncate">{client.clientName ?? 'Unnamed client'}</p>
-          <p className="text-xs text-gray-400 mt-0.5">Created {created}</p>
+          <p className="font-medium truncate">{client.clientName ?? 'Unnamed client'}</p>
+          <p className="text-xs text-zinc-500 mt-0.5">Created {created}</p>
         </div>
         <Toggle checked={client.enabled} onChange={handleToggle} disabled={toggling} />
       </div>
 
       <div className="space-y-1.5 text-xs">
         <div className="flex items-center gap-2">
-          <span className="w-24 text-gray-400 shrink-0">Client ID</span>
-          <code className="rounded bg-gray-50 px-1.5 py-0.5 font-mono border border-gray-100 text-gray-700 truncate max-w-[200px]">
+          <span className="w-24 text-zinc-500 shrink-0">Client ID</span>
+          <code className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono border border-zinc-700 text-zinc-300 truncate max-w-[200px]">
             {client.clientId}
           </code>
           <CopyButton value={client.clientId} />
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-24 text-gray-400 shrink-0">MCP URL</span>
-          <code className="rounded bg-gray-50 px-1.5 py-0.5 font-mono border border-gray-100 text-gray-700">
+          <span className="w-24 text-zinc-500 shrink-0">MCP URL</span>
+          <code className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono border border-zinc-700 text-zinc-300">
             {MCP_BASE_URL}
           </code>
           <CopyButton value={MCP_BASE_URL} />
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-24 text-gray-400 shrink-0">Secret</span>
-          <span className="text-gray-400 italic">hidden — shown only at creation</span>
+          <span className="w-24 text-zinc-500 shrink-0">Secret</span>
+          <span className="text-zinc-500 italic">hidden — shown only at creation</span>
         </div>
       </div>
 
@@ -294,8 +294,8 @@ function ClientCard({
           disabled={deleting}
           className={`text-xs font-medium transition px-2 py-1 rounded ${
             confirmDelete
-              ? 'bg-red-100 text-red-700 hover:bg-red-200'
-              : 'text-gray-400 hover:text-red-600 hover:bg-gray-100'
+              ? 'bg-red-950/30 text-red-400 hover:bg-red-900/40'
+              : 'text-zinc-500 hover:text-red-400 hover:bg-zinc-800'
           } disabled:opacity-50`}
           onBlur={() => setConfirmDelete(false)}
         >
@@ -335,15 +335,15 @@ function ServerCard({
 
   return (
     <div
-      className={`rounded-xl border bg-white p-4 space-y-2 transition ${server.enabled ? 'border-gray-200' : 'border-gray-200 opacity-60'}`}
+      className={`rounded-xl border bg-zinc-900 p-4 space-y-2 transition ${server.enabled ? 'border-zinc-800' : 'border-zinc-800 opacity-60'}`}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="font-medium text-gray-900">{meta?.label ?? server.serverName}</p>
+        <p className="font-medium">{meta?.label ?? server.serverName}</p>
         <Toggle checked={server.enabled} onChange={handleToggle} disabled={toggling} />
       </div>
-      <p className="text-xs text-gray-500">{meta?.description}</p>
+      <p className="text-xs text-zinc-400">{meta?.description}</p>
       <div className="flex items-center gap-1 pt-0.5">
-        <code className="rounded bg-gray-50 px-1.5 py-0.5 text-xs font-mono border border-gray-100 text-gray-600 truncate">
+        <code className="rounded bg-zinc-800 px-1.5 py-0.5 text-xs font-mono border border-zinc-700 text-zinc-300 truncate">
           {url}
         </code>
         <CopyButton value={url} />
@@ -407,13 +407,13 @@ export default function McpControlPage() {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Connections</h2>
-            <p className="text-sm text-gray-500 mt-0.5">OAuth credentials for MCP clients (e.g. Claude Desktop).</p>
+            <h2 className="text-lg font-semibold">Connections</h2>
+            <p className="text-sm text-zinc-400 mt-0.5">OAuth credentials for MCP clients (e.g. Claude Desktop).</p>
           </div>
           {!showForm && !newClient && (
             <button
               onClick={() => setShowForm(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm"
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition shadow-sm"
             >
               <span className="text-lg leading-none">+</span> New connection
             </button>
@@ -421,13 +421,13 @@ export default function McpControlPage() {
         </div>
 
         {loading ? (
-          <p className="text-sm text-gray-400">Loading…</p>
+          <p className="text-sm text-zinc-500">Loading…</p>
         ) : (
           <div className="space-y-3">
             {newClient && <SecretRevealCard client={newClient} onDone={dismissSecret} />}
             {showForm && !newClient && <NewClientForm onCreated={handleCreated} />}
             {clients.length === 0 && !showForm && !newClient && (
-              <p className="text-sm text-gray-400 rounded-xl border border-dashed border-gray-200 p-6 text-center">
+              <p className="text-sm text-zinc-500 rounded-xl border border-dashed border-zinc-700 p-6 text-center">
                 No connections yet. Add one to start using MCP clients.
               </p>
             )}
@@ -443,12 +443,12 @@ export default function McpControlPage() {
       {/* MCP Servers */}
       <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">MCP Servers</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Enable or disable individual MCP sub-servers.</p>
+          <h2 className="text-lg font-semibold">MCP Servers</h2>
+          <p className="text-sm text-zinc-400 mt-0.5">Enable or disable individual MCP sub-servers.</p>
         </div>
 
         {loading ? (
-          <p className="text-sm text-gray-400">Loading…</p>
+          <p className="text-sm text-zinc-500">Loading…</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {servers.map((s) => (

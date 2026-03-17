@@ -68,21 +68,21 @@ export default function MeasurementsSection({ latestMeasurements, measurementTyp
       }
     >
       {latestMeasurements.length === 0 ? (
-        <p className="text-gray-400 text-sm">No measurements recorded yet.</p>
+        <p className="text-zinc-500 text-sm">No measurements recorded yet.</p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {latestMeasurements.map((m) => (
-            <div key={m.id} className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 relative group">
-              <p className="text-xs text-gray-500">{m.typeLabel}</p>
+            <div key={m.id} className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 relative group">
+              <p className="text-xs text-zinc-400">{m.typeLabel}</p>
               <p className="text-xl font-bold mt-0.5">
                 {m.value}
-                <span className="text-sm font-normal text-gray-500 ml-1">{m.typeUnit}</span>
+                <span className="text-sm font-normal text-zinc-400 ml-1">{m.typeUnit}</span>
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">{m.date}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{m.date}</p>
               <button
                 onClick={() => deleteMeasurementEntry(m.id)}
                 disabled={deleting === m.id}
-                className="absolute top-2 right-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 text-xs"
+                className="absolute top-2 right-2 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 text-xs"
               >
                 {deleting === m.id ? '…' : '✕'}
               </button>
@@ -92,7 +92,7 @@ export default function MeasurementsSection({ latestMeasurements, measurementTyp
       )}
 
       {showAdd && (
-        <div className="mt-4 border-t pt-4 space-y-3">
+        <div className="mt-4 border-t border-zinc-700 pt-4 space-y-3">
           <h3 className="text-sm font-semibold">Log measurement</h3>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Type *">

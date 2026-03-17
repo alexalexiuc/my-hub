@@ -65,7 +65,7 @@ export default function TodoPage() {
   if (loading) {
     return (
       <main className="mx-auto max-w-3xl p-8">
-        <div className="text-gray-400">Loading…</div>
+        <div className="text-zinc-400">Loading…</div>
       </main>
     );
   }
@@ -75,7 +75,7 @@ export default function TodoPage() {
       <main className="mx-auto max-w-3xl p-8">
         <p className="text-red-500">{error}</p>
         {error === 'Not signed in' && (
-          <Link href="/auth/signin" className="mt-2 inline-block text-blue-600 underline">
+          <Link href="/auth/signin" className="mt-2 inline-block text-indigo-400 underline">
             Sign in
           </Link>
         )}
@@ -112,30 +112,30 @@ export default function TodoPage() {
       {/* Open todos */}
       <SectionCard title={`Open (${open.length})`}>
         {open.length === 0 ? (
-          <p className="text-gray-400 text-sm">All done!</p>
+          <p className="text-zinc-500 text-sm">All done!</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs font-semibold uppercase tracking-wide text-gray-400 border-b border-gray-100">
+              <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 border-b border-zinc-800">
                 <th className="pb-2 pr-4">ID</th>
                 <th className="pb-2 flex-1">Title</th>
                 <th className="pb-2 pl-4 text-right">Created</th>
                 <th className="pb-2 pl-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-zinc-800">
               {open.map((todo) => (
-                <tr key={todo.id} className="hover:bg-gray-50">
-                  <td className="py-2 pr-4 text-gray-400 font-mono text-xs">{todo.id}</td>
+                <tr key={todo.id} className="hover:bg-zinc-800">
+                  <td className="py-2 pr-4 text-zinc-500 font-mono text-xs">{todo.id}</td>
                   <td className="py-2 font-medium">{todo.title}</td>
-                  <td className="py-2 pl-4 text-right text-gray-400 text-xs whitespace-nowrap">
+                  <td className="py-2 pl-4 text-right text-zinc-500 text-xs whitespace-nowrap">
                     {new Date(todo.createdAt).toLocaleDateString()}
                   </td>
                   <td className="py-2 pl-4 text-right">
                     <button
                       onClick={() => markDone(todo.id)}
                       disabled={marking === todo.id}
-                      className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                      className="text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
                     >
                       {marking === todo.id ? '…' : 'Mark done'}
                     </button>
@@ -152,18 +152,18 @@ export default function TodoPage() {
         <SectionCard title={`Done (${done.length})`}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs font-semibold uppercase tracking-wide text-gray-400 border-b border-gray-100">
+              <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 border-b border-zinc-800">
                 <th className="pb-2 pr-4">ID</th>
                 <th className="pb-2 flex-1">Title</th>
                 <th className="pb-2 pl-4 text-right">Created</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-zinc-800">
               {done.map((todo) => (
                 <tr key={todo.id} className="opacity-50">
-                  <td className="py-2 pr-4 text-gray-400 font-mono text-xs">{todo.id}</td>
-                  <td className="py-2 line-through text-gray-500">{todo.title}</td>
-                  <td className="py-2 pl-4 text-right text-gray-400 text-xs whitespace-nowrap">
+                  <td className="py-2 pr-4 text-zinc-500 font-mono text-xs">{todo.id}</td>
+                  <td className="py-2 line-through text-zinc-500">{todo.title}</td>
+                  <td className="py-2 pl-4 text-right text-zinc-500 text-xs whitespace-nowrap">
                     {new Date(todo.createdAt).toLocaleDateString()}
                   </td>
                 </tr>

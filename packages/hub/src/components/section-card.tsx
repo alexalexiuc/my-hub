@@ -7,7 +7,7 @@ interface Props {
 
 export default function SectionCard({ title, action, children, className = '' }: Props) {
   return (
-    <section className={`rounded-xl border border-gray-200 bg-white p-6 shadow-sm ${className}`}>
+    <section className={`rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-sm ${className}`}>
       {(title || action) && (
         <div className="flex items-center justify-between mb-4">
           {title && <h2 className="text-lg font-semibold">{title}</h2>}
