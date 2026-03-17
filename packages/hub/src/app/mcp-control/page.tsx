@@ -101,7 +101,6 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
 // ─── Secret Reveal Card ───────────────────────────────────────────────────────
 
 function SecretRevealCard({ client, onDone }: { client: CreatedClient; onDone: () => void }) {
-  const mcpUrl = `${MCP_BASE_URL}${SERVER_META['calories']?.path ?? ''}`;
   return (
     <div className="rounded-xl border-2 border-amber-400 bg-amber-50 p-5 space-y-4">
       <div className="flex items-start gap-3">
