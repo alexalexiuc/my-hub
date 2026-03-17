@@ -105,4 +105,5 @@ networks:
   internal:
     driver: bridge
   proxy:
+    name: proxy
     driver: bridge
