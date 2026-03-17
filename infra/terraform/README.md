@@ -91,8 +91,8 @@ ls -la /opt/my-hub       # directory owned by deploy?
 ssh root@<SERVER_IPV4>
 
 sudo -u deploy git clone https://github.com/alexalexiuc/my-hub /opt/my-hub
-sudo -u deploy cp /opt/my-hub/.env.example /opt/my-hub/infra/.env
-sudo nano /opt/my-hub/infra/.env    # fill in all secrets
+sudo -u deploy cp /opt/my-hub/.env.example /opt/my-hub/.env
+sudo nano /opt/my-hub/.env    # fill in all secrets
 ```
 
 ### Step 6 — Set GitHub Secrets

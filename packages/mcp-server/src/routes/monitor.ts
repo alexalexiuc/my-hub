@@ -37,7 +37,7 @@ export const monitorRoute = fp(async (app) => {
       status: 'ok',
       uptime: Math.floor(process.uptime()),
       timestamp: new Date().toISOString(),
-      // version: pkg.version, // TODO: Add version
+      version: '0', // TODO: Add version when versioning will be implemented
       node: process.version,
       memory: {
         rss: mem.rss,

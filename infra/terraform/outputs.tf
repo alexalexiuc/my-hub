@@ -14,7 +14,7 @@ output "server_ipv6" {
 }
 
 output "ssh_command" {
-  description = "SSH command to connect to the server as the ubuntu admin user."
+  description = "SSH command to connect to the server as the root user."
   value       = "ssh root@${hcloud_server.main.ipv4_address}"
 }
 

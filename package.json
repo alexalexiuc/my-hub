@@ -14,6 +14,7 @@
     "typecheck": "pnpm run build && pnpm --filter @my-hub/shared typecheck && pnpm --filter @my-hub/mcp-server typecheck && pnpm --filter @my-hub/hub typecheck",
     "test": "pnpm -r test",
     "test:e2e": "pnpm -r test:e2e",
+    "start:prod": "docker compose --env-file .env -f infra/docker-compose.yml up -d --build --remove-orphans",
     "db:generate": "pnpm --filter shared db:generate",
     "db:migrate": "pnpm --filter shared db:migrate"
   },

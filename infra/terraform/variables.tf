@@ -37,7 +37,7 @@ variable "ssh_key_name" {
 }
 
 variable "ssh_public_key" {
-  description = "Your personal SSH public key (for ubuntu user on the server)."
+  description = "Your personal SSH public key (for root user on the server)."
   type        = string
 }
 

@@ -12,8 +12,6 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 FROM fetcher AS builder
 WORKDIR /app
 ENV CI=true
-ARG DATABASE_URL
-ENV DATABASE_URL=$DATABASE_URL
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
   pnpm install -r --offline
