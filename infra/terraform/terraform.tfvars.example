@@ -19,7 +19,7 @@ server_image    = "ubuntu-24.04"
 # For a new key: leave as default "my-hub-admin" or set any name you like.
 ssh_key_name = "my-hub-admin"
 
-# Your personal SSH public key — for ubuntu user (admin access from your laptop)
+# Your personal SSH public key — for root login (admin access from your laptop)
 # Or generate: ssh-keygen -t ed25519 -C "your@mail.com" -f ~/.ssh/id_ed25519_myhub
 ssh_public_key = "ssh-ed25519 AAAAC3... your@mail.com"
 
