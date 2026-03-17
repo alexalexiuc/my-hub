@@ -46,7 +46,7 @@ resource "hcloud_server" "main" {
   #               diff. Safe to ignore — image can't be changed in-place anyway.
   #   ssh_keys  — managed at creation time; changes would require recreation.
   lifecycle {
-    prevent_destroy = true  # uncomment to protect against accidental destruction
+    prevent_destroy = true  # protects against accidental destruction
     ignore_changes = [user_data, image, ssh_keys]
   }
 }
