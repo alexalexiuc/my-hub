@@ -16,7 +16,6 @@ logs
 
 .next
 
-infra
 docs
 .pnpm-store
 .tmp
