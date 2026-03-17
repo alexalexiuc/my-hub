@@ -21,7 +21,7 @@ Provisions the Hetzner VPS and Cloudflare DNS records for **my-hub**.
 ## SSH keys setup
 
 ```powershell
-# Personal key — for your laptop → server (ubuntu user)
+# Personal key — for your laptop → server (root user)
 ssh-keygen -t ed25519 -C "alex-laptop" -f "$env:USERPROFILE\.ssh\id_ed25519_myhub"
 
 # Deploy key — for GitHub Actions (deploy user)
