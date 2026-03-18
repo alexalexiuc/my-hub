@@ -13,6 +13,7 @@ import type {
   bodyMeasurements,
   apiRequestLogs,
   todos,
+  inviteTokens,
 } from '../db/schema/index';
 
 // Identity & Auth
@@ -51,3 +52,6 @@ export type NewApiRequestLog = InferInsertModel<typeof apiRequestLogs>;
 // Todos
 export type Todo = InferSelectModel<typeof todos>;
 export type NewTodo = InferInsertModel<typeof todos>;
+
+// Invites
+export type InviteToken = InferSelectModel<typeof inviteTokens>;

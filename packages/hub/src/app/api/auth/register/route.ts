@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createUserWithPassword } from '@my-hub/shared/services';
+import { createUserWithPassword, validateInviteToken, consumeInviteToken } from '@my-hub/shared/services';
 
 const ALLOWED_EMAILS = (process.env['ALLOWED_EMAILS'] ?? '')
   .split(',')
@@ -14,7 +14,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { email, password, name } = body as { email?: string; password?: string; name?: string };
+  const { email, password, name, inviteToken } = body as {
+    email?: string;
+    password?: string;
+    name?: string;
+    inviteToken?: string;
+  };
 
   if (!email || typeof email !== 'string') {
     return NextResponse.json({ error: 'email is required' }, { status: 400 });
@@ -28,13 +33,18 @@ export async function POST(req: Request) {
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  // Apply the same email whitelist used for Google OAuth.
-  if (ALLOWED_EMAILS.length > 0 && !ALLOWED_EMAILS.includes(normalizedEmail)) {
-    return NextResponse.json({ error: 'This email is not authorized to register' }, { status: 403 });
+  const emailAllowed = ALLOWED_EMAILS.length > 0 && ALLOWED_EMAILS.includes(normalizedEmail);
+  const tokenValid = inviteToken ? await validateInviteToken(inviteToken) : false;
+
+  if (!emailAllowed && !tokenValid) {
+    return NextResponse.json({ error: 'An invite link is required to register' }, { status: 403 });
   }
 
   try {
-    await createUserWithPassword(normalizedEmail, password, name?.trim() || null);
+    const user = await createUserWithPassword(normalizedEmail, password, name?.trim() || null);
+    if (tokenValid && inviteToken) {
+      await consumeInviteToken(inviteToken, user.id);
+    }
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Registration failed';
