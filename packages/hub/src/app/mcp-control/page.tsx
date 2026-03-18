@@ -31,26 +31,30 @@ interface CreatedClient extends OAuthClientRow {
 
 const MCP_BASE_URL = process.env['NEXT_PUBLIC_MCP_URL'] ?? 'https://mcp.alexiuc.dev';
 
-const SERVER_META: Record<string, { label: string; path: string; description: string }> = {
+const SERVER_META: Record<string, { label: string; path: string; description: string; active: boolean }> = {
   calories: {
     label: 'Calories',
-    path: '/calories/mcp',
+    path: '/api/calories/mcp',
     description: 'Meal logging, body measurements, nutritional summaries',
+    active: true,
   },
   hive: {
     label: 'Hive Manager',
-    path: '/hive/mcp',
+    path: '/api/hive/mcp',
     description: 'Beekeeping logs, hive profiles, inspection history',
+    active: false,
   },
   products: {
     label: 'Products',
-    path: '/products/mcp',
+    path: '/api/products/mcp',
     description: 'Home inventory, shopping lists, product catalog',
+    active: false,
   },
   todo: {
     label: 'Todo',
-    path: '/todo/mcp',
+    path: '/api/todo/mcp',
     description: 'Task management, reminders, to-do lists',
+    active: true,
   },
 };
 
@@ -326,8 +330,10 @@ function ServerCard({
   const [toggling, setToggling] = useState(false);
   const meta = SERVER_META[server.serverName];
   const url = `${MCP_BASE_URL}${meta?.path ?? ''}`;
+  const isActive = meta?.active !== false;
 
   async function handleToggle(v: boolean) {
+    if (!isActive) return;
     setToggling(true);
     try {
       await fetch(`/api/mcp/servers/${server.serverName}`, {
@@ -343,20 +349,233 @@ function ServerCard({
 
   return (
     <div
-      className={`rounded-xl border bg-zinc-900 p-4 space-y-2 transition ${server.enabled ? 'border-zinc-800' : 'border-zinc-800 opacity-60'}`}
+      className={`rounded-xl border bg-zinc-900 p-5 space-y-3 transition ${
+        !isActive ? 'border-zinc-800 opacity-40' : server.enabled ? 'border-zinc-800' : 'border-zinc-800 opacity-60'
+      }`}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="font-medium">{meta?.label ?? server.serverName}</p>
-        <Toggle checked={server.enabled} onChange={handleToggle} disabled={toggling} />
+        <div className="min-w-0">
+          <p className="font-semibold text-base">{meta?.label ?? server.serverName}</p>
+          {!isActive && (
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-zinc-500">Coming soon</span>
+          )}
+        </div>
+        <Toggle checked={isActive && server.enabled} onChange={handleToggle} disabled={toggling || !isActive} />
       </div>
-      <p className="text-xs text-zinc-400">{meta?.description}</p>
-      <div className="flex items-center gap-1 pt-0.5">
-        <code className="rounded bg-zinc-800 px-1.5 py-0.5 text-xs font-mono border border-zinc-700 text-zinc-300 truncate">
+      <p className="text-sm text-zinc-400 leading-relaxed">{meta?.description}</p>
+      <div className="flex items-center gap-2 pt-1">
+        <code className="rounded-md bg-zinc-800 px-2.5 py-1 text-xs font-mono border border-zinc-700 text-zinc-300 break-all">
           {url}
         </code>
-        <CopyButton value={url} />
+        {isActive && <CopyButton value={url} />}
       </div>
     </div>
+  );
+}
+
+// ─── Audit Log ───────────────────────────────────────────────────────────────
+
+interface LogEntry {
+  id: number;
+  service: string;
+  method: string;
+  path: string;
+  statusCode: number | null;
+  durationMs: number | null;
+  createdAt: string;
+  requestBody: Record<string, unknown> | null;
+  responseBody: Record<string, unknown> | null;
+  error: string | null;
+}
+
+const SERVICE_OPTIONS = [
+  { value: '', label: 'All services' },
+  { value: 'calories', label: 'Calories' },
+  { value: 'todo', label: 'Todo' },
+  { value: 'hive', label: 'Hive Manager' },
+  { value: 'products', label: 'Products' },
+];
+
+function StatusBadge({ code }: { code: number | null }) {
+  if (code === null) return <span className="text-zinc-500">—</span>;
+  const color =
+    code < 300
+      ? 'text-green-400 bg-green-950/40'
+      : code < 400
+        ? 'text-yellow-400 bg-yellow-950/40'
+        : 'text-red-400 bg-red-950/40';
+  return <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-mono font-medium ${color}`}>{code}</span>;
+}
+
+function MethodBadge({ method }: { method: string }) {
+  const color: Record<string, string> = {
+    GET: 'text-blue-400',
+    POST: 'text-green-400',
+    PUT: 'text-amber-400',
+    PATCH: 'text-amber-400',
+    DELETE: 'text-red-400',
+  };
+  return <span className={`text-xs font-mono font-semibold ${color[method] ?? 'text-zinc-400'}`}>{method}</span>;
+}
+
+function AuditLogSection() {
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [service, setService] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [limit, setLimit] = useState(50);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  async function loadLogs() {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (service) params.set('service', service);
+      if (dateFrom) params.set('from', dateFrom);
+      if (dateTo) params.set('to', dateTo);
+      params.set('limit', String(limit));
+
+      const res = await fetch(`/api/mcp/logs?${params}`);
+      if (res.ok) {
+        const data = (await res.json()) as { logs: LogEntry[] };
+        setLogs(data.logs);
+      }
+      setLoaded(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function formatTime(iso: string) {
+    const d = new Date(iso);
+    return d.toLocaleString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+  }
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold">Audit Log</h2>
+        <p className="text-sm text-zinc-400 mt-0.5">Review API requests made through MCP servers.</p>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-end gap-3">
+        <div>
+          <label className="text-xs text-zinc-500 block mb-1">Service</label>
+          <select className="input text-sm" value={service} onChange={(e) => setService(e.target.value)}>
+            {SERVICE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-zinc-500 block mb-1">From</label>
+          <input type="date" className="input text-sm" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+        </div>
+        <div>
+          <label className="text-xs text-zinc-500 block mb-1">To</label>
+          <input type="date" className="input text-sm" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+        </div>
+        <div>
+          <label className="text-xs text-zinc-500 block mb-1">Limit</label>
+          <select className="input text-sm" value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+            <option value={200}>200</option>
+          </select>
+        </div>
+        <button
+          onClick={loadLogs}
+          disabled={loading}
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition"
+        >
+          {loading ? 'Loading…' : loaded ? 'Refresh' : 'Load logs'}
+        </button>
+      </div>
+
+      {/* Results */}
+      {loaded && (
+        <div className="rounded-xl border border-zinc-800 overflow-hidden">
+          {logs.length === 0 ? (
+            <p className="text-sm text-zinc-500 p-6 text-center">No logs found for the selected filters.</p>
+          ) : (
+            <div className="divide-y divide-zinc-800">
+              {/* Header */}
+              <div className="grid grid-cols-[5rem_3.5rem_1fr_4rem_4.5rem_8rem] gap-2 px-4 py-2 text-xs font-semibold text-zinc-500 bg-zinc-900/50">
+                <span>Service</span>
+                <span>Method</span>
+                <span>Path</span>
+                <span>Status</span>
+                <span className="text-right">Duration</span>
+                <span className="text-right">Time</span>
+              </div>
+              {logs.map((log) => (
+                <div key={log.id}>
+                  <div
+                    className="grid grid-cols-[5rem_3.5rem_1fr_4rem_4.5rem_8rem] gap-2 px-4 py-2.5 text-sm hover:bg-zinc-800/50 cursor-pointer transition"
+                    onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
+                  >
+                    <span className="text-xs text-zinc-400 truncate">{log.service}</span>
+                    <MethodBadge method={log.method} />
+                    <span className="text-zinc-300 font-mono text-xs truncate" title={log.path}>
+                      {log.path}
+                    </span>
+                    <StatusBadge code={log.statusCode} />
+                    <span className="text-xs text-zinc-500 text-right tabular-nums">
+                      {log.durationMs !== null ? `${log.durationMs}ms` : '—'}
+                    </span>
+                    <span className="text-xs text-zinc-500 text-right">{formatTime(log.createdAt)}</span>
+                  </div>
+                  {expandedId === log.id && (
+                    <div className="px-4 pb-3 space-y-2 bg-zinc-900/30">
+                      {log.error && (
+                        <div>
+                          <span className="text-xs font-semibold text-red-400">Error</span>
+                          <pre className="mt-1 text-xs text-red-300 bg-red-950/20 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
+                            {log.error}
+                          </pre>
+                        </div>
+                      )}
+                      {log.requestBody && (
+                        <div>
+                          <span className="text-xs font-semibold text-zinc-400">Request body</span>
+                          <pre className="mt-1 text-xs text-zinc-300 bg-zinc-800 rounded-lg p-3 overflow-x-auto max-h-48 whitespace-pre-wrap break-all">
+                            {JSON.stringify(log.requestBody, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                      {log.responseBody && (
+                        <div>
+                          <span className="text-xs font-semibold text-zinc-400">Response body</span>
+                          <pre className="mt-1 text-xs text-zinc-300 bg-zinc-800 rounded-lg p-3 overflow-x-auto max-h-48 whitespace-pre-wrap break-all">
+                            {JSON.stringify(log.responseBody, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                      {!log.error && !log.requestBody && !log.responseBody && (
+                        <p className="text-xs text-zinc-500">No additional details available.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -408,8 +627,8 @@ export default function McpControlPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 space-y-10">
-      <PageHeader title="MCP Services" backHref="/" backLabel="Dashboard" />
+    <main className="mx-auto max-w-4xl px-4 py-8 space-y-10">
+      <PageHeader title="MCP Services" backHref="/" backLabel="← Home" />
 
       {/* OAuth Clients */}
       <section className="space-y-4">
@@ -458,13 +677,16 @@ export default function McpControlPage() {
         {loading ? (
           <p className="text-sm text-zinc-500">Loading…</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {servers.map((s) => (
               <ServerCard key={s.id} server={s} onToggle={handleServerToggle} />
             ))}
           </div>
         )}
       </section>
+
+      {/* Audit Log */}
+      <AuditLogSection />
     </main>
   );
 }

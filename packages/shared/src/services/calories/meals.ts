@@ -63,6 +63,19 @@ export async function deleteAllUserMeals(userId: string): Promise<number> {
   return rows.length;
 }
 
+export async function updateMeal(
+  userId: string,
+  mealId: string,
+  data: Partial<Pick<MealLog, 'description' | 'kcal' | 'protein' | 'carbs' | 'fat' | 'mealType' | 'notes'>>,
+): Promise<MealLog | null> {
+  const [row] = await db
+    .update(mealLogs)
+    .set(data)
+    .where(and(eq(mealLogs.userId, userId), eq(mealLogs.mealId, mealId)))
+    .returning();
+  return row ?? null;
+}
+
 export async function deleteMeal(userId: string, mealId: string): Promise<MealLog | null> {
   const [row] = await db
     .delete(mealLogs)

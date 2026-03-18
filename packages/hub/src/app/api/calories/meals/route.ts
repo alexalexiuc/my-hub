@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-user';
-import { getMeals, logMeal } from '@my-hub/shared/services';
+import { getMeals, getMealsForDateRange, logMeal } from '@my-hub/shared/services';
 
 export async function GET(req: Request) {
   const user = await getAuthUser();
@@ -8,8 +8,15 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const date = searchParams.get('date') ?? undefined;
+  const dateFrom = searchParams.get('dateFrom') ?? undefined;
+  const dateTo = searchParams.get('dateTo') ?? undefined;
   const mealType = searchParams.get('mealType') ?? undefined;
   const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 100;
+
+  if (dateFrom && dateTo) {
+    const meals = await getMealsForDateRange(user.id, dateFrom, dateTo);
+    return NextResponse.json({ meals });
+  }
 
   const meals = await getMeals(user.id, { date, mealType, limit });
   return NextResponse.json({ meals });
