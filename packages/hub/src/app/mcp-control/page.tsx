@@ -134,7 +134,9 @@ function SecretRevealCard({ client, onDone }: { client: CreatedClient; onDone: (
         </div>
         <div className="flex items-center gap-2">
           <span className="w-32 text-zinc-400 shrink-0">MCP URL</span>
-          <code className="rounded bg-zinc-800 px-2 py-0.5 font-mono text-xs border border-zinc-700 text-zinc-300">{MCP_BASE_URL}</code>
+          <code className="rounded bg-zinc-800 px-2 py-0.5 font-mono text-xs border border-zinc-700 text-zinc-300">
+            {MCP_BASE_URL}
+          </code>
           <CopyButton value={MCP_BASE_URL} />
         </div>
       </div>

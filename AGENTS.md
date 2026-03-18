@@ -20,6 +20,14 @@ When a feature spans multiple layers, change in this order:
 4. `infra`
 5. `.github/workflows` if the build/runtime contract changed
 
+## Documentation
+
+- `docs/` contains architectural and operational guides. Read relevant files there before working on auth, deployment, or MCP flows.
+  - `docs/server-setup.md` — VM provisioning, firewall, deploy user, Docker setup
+  - `docs/mcp-oauth-flow.md` — end-to-end OAuth 2.1 + PKCE flow between Claude.ai and the MCP server
+  - `docs/requirements/` — feature specs (FR/TR style); one file per feature area, organised by `hub/`, `mcps/`, `platform/`
+- When documenting a new feature or flow, add it to `docs/` following the existing style. Requirements go in `docs/requirements/<area>/feature-<name>.md`; architectural/flow guides go directly in `docs/`.
+
 ## Project rules
 
 - TypeScript everywhere. Follow existing ESM style.
