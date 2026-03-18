@@ -290,9 +290,9 @@ su - deploy
 cd /opt/my-hub
 
 # Production (uses pre-built GHCR images)
-IMAGE_OWNER=alexalexiuc docker compose --project-name my-hub-prod --env-file .env -f infra/docker-compose.prod.yml pull
-IMAGE_OWNER=alexalexiuc docker compose --project-name my-hub-prod --env-file .env -f infra/docker-compose.prod.yml up -d
-docker compose --project-name my-hub-prod --env-file .env -f infra/docker-compose.prod.yml ps
+IMAGE_OWNER=alexalexiuc docker compose --project-name my-hub --env-file .env -f infra/docker-compose.prod.yml pull
+IMAGE_OWNER=alexalexiuc docker compose --project-name my-hub --env-file .env -f infra/docker-compose.prod.yml up -d
+docker compose --project-name my-hub --env-file .env -f infra/docker-compose.prod.yml ps
 
 # Staging (builds from source — only needed before running e2e tests)
 docker compose --project-name my-hub-staging --env-file .env.staging \
@@ -303,7 +303,7 @@ Check logs if any container fails to start:
 
 ```bash
 # Prod
-docker compose --project-name my-hub-prod -f infra/docker-compose.prod.yml logs --tail=50 <service>
+docker compose --project-name my-hub -f infra/docker-compose.prod.yml logs --tail=50 <service>
 
 # Staging
 docker compose --project-name my-hub-staging --env-file .env.staging -f infra/docker-compose.staging.yml logs --tail=50 <service>
