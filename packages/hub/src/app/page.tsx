@@ -46,10 +46,13 @@ interface DashboardData {
 export default function HomePage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const today = new Date().toISOString().split('T')[0]!;
 
   const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
       const [profileRes, mealsRes, todosRes] = await Promise.all([
         fetch('/api/calories/profile'),
@@ -97,6 +100,10 @@ export default function HomePage() {
         macros,
         todos,
       });
+    } catch (err) {
+      console.error('Failed to load dashboard data', err);
+      setData(null);
+      setError('Failed to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
