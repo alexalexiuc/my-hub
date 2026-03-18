@@ -66,6 +66,7 @@ export default function MeasurementsSection({ latestMeasurements, measurementTyp
           onClick={() => setShowAdd(true)}
           className="w-8 h-8 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition"
           title="Log measurement"
+          aria-label="Log measurement"
         >
           <svg
             width="18"
