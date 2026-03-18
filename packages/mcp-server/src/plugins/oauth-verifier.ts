@@ -1,6 +1,7 @@
 import { PromiseCacheX } from 'promise-cachex';
 import { verifyToken } from '@my-hub/shared/auth';
-import { findOAuthClient, findUserById, isMcpServerEnabled, McpServerName } from '@my-hub/shared/services';
+import { findOAuthClient, findUserById, isMcpServerEnabled } from '@my-hub/shared/services';
+import { McpServerName } from '@my-hub/shared/schema';
 
 interface AccessTokenPayload {
   client_id: string;

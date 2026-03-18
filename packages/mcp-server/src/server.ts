@@ -7,7 +7,7 @@ import { oauthRoutes } from './routes/oauth.js';
 import { monitorRoute } from './routes/monitor.js';
 import { sessionCleanupPlugin } from './plugins/session-cleanup.js';
 import requestLoggerPlugin from './plugins/request-logger.js';
-import { McpServerName } from '@my-hub/shared/services';
+import { McpServerName } from '@my-hub/shared/schema';
 import { registerMcpSubServer } from './mcp/sub-server.js';
 import { mcpSubServers } from './mcp/registry.js';
 import { createCaloriesServer } from './calories/server.js';

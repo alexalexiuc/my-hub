@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import PageHeader from '@/components/page-header';
-import type { McpServerName } from '@my-hub/shared/services';
+import { McpServerName } from '@my-hub/shared/schema';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

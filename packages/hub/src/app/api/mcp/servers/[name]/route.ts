@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-user';
-import { setMcpServerEnabled, McpServerName } from '@my-hub/shared/services';
+import { setMcpServerEnabled } from '@my-hub/shared/services';
+import { McpServerName } from '@my-hub/shared/schema';
 
 const VALID_NAMES = new Set<string>(Object.values(McpServerName));
 

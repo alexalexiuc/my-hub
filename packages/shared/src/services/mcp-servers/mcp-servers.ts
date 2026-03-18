@@ -1,31 +1,14 @@
 import { eq, and } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { mcpServers } from '../../db/schema/mcp-servers';
+import { McpServerName, mcpServers } from '../../db/schema/mcp-servers';
 import type { McpServer } from '../../types/index';
-
-/**
- * Enum-like const object for MCP server names.
- * Use `McpServerName.Calories` instead of the string literal `'calories'`.
- * The companion type `McpServerName` stays a plain string union so it remains
- * compatible with Drizzle column types and existing runtime code.
- */
-export const McpServerName = {
-  Calories: 'calories',
-  Hive: 'hive',
-  Products: 'products',
-  Todo: 'todo',
-} as const;
-
-export type McpServerName = (typeof McpServerName)[keyof typeof McpServerName];
-
-const ALL_SERVER_NAMES = Object.values(McpServerName) as McpServerName[];
 
 /**
  * Ensure a row exists for every known server type for the given user.
  * Uses ON CONFLICT DO NOTHING so it is safe to call on every authorization.
  */
 export async function ensureAllMcpServers(userId: string): Promise<void> {
-  for (const serverName of ALL_SERVER_NAMES) {
+  for (const serverName of Object.values(McpServerName)) {
     await db.insert(mcpServers).values({ userId, serverName, enabled: true }).onConflictDoNothing();
   }
 }
