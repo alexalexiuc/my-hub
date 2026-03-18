@@ -33,6 +33,10 @@ export async function buildServer() {
     // Disable Fastify's built-in request/response logging — we use our own
     // requestLoggerPlugin which formats lines as `<-- GET /path` / `--> GET /path`.
     disableRequestLogging: true,
+    // Trust the X-Forwarded-Proto / X-Forwarded-Host headers set by a reverse proxy so
+    // that req.protocol and req.hostname reflect the external scheme and host rather than
+    // the plain-HTTP / unqualified values seen on the internal socket.
+    trustProxy: true,
   });
 
   await app.register(cors, {
@@ -48,6 +52,9 @@ export async function buildServer() {
   // OAuth discovery — must stay at root per RFC 8414.
   // Points clients to the /api-prefixed endpoints below.
   app.get('/.well-known/oauth-authorization-server', { logLevel: 'silent' }, async (req, reply) => {
+    // trustProxy: true (set on the Fastify instance) makes req.protocol read
+    // X-Forwarded-Proto and req.hostname read X-Forwarded-Host, both of which
+    // Traefik sets automatically — so this always reflects the external URL.
     const base = `${req.protocol}://${req.hostname}`;
     return reply.send({
       issuer: base,

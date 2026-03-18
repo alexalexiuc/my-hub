@@ -34,23 +34,13 @@ export async function claimInviteToken(token: string): Promise<boolean> {
   return rows.length > 0;
 }
 
-export async function consumeInviteToken(token: string, usedBy: string): Promise<void> {
-  const now = new Date();
-  const [row] = await db
-    .update(inviteTokens)
-    .set({ usedBy, usedAt: now })
-    .where(
-      and(
-        eq(inviteTokens.token, token),
-        isNull(inviteTokens.usedAt),
-        or(isNull(inviteTokens.expiresAt), gt(inviteTokens.expiresAt, now)),
-      ),
-    )
-    .returning();
-
-  if (!row) {
-    throw new Error('Invite token is invalid, expired, or already used');
-  }
+/**
+ * After a user is successfully created, record which user consumed the token.
+ * This is best-effort — the token was already atomically claimed by claimInviteToken,
+ * so even if this update fails the invite cannot be reused.
+ */
+export async function bindInviteTokenToUser(token: string, userId: string): Promise<void> {
+  await db.update(inviteTokens).set({ usedBy: userId }).where(eq(inviteTokens.token, token));
 }
 
 export async function listInviteTokens(createdBy: string): Promise<InviteToken[]> {
