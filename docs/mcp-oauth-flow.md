@@ -118,7 +118,7 @@ When the user clicks **Allow**:
 1. Hub calls `bindOAuthClientToUser(clientId, userId)` to associate this OAuth client
    with the logged-in user.
 2. Hub calls `ensureAllMcpServers(userId)` to provision one MCP server row per server
-   type (`calories`, `hive`, `products`) for the user — idempotent via
+   type (`calories`, `hive`, `products`, `todo`) for the user — idempotent via
    `ON CONFLICT DO NOTHING`.
 3. Hub generates a **short-lived auth code** (5-minute expiry), signed with HMAC-SHA256
    using the client's `tokenSigningSecret`.
