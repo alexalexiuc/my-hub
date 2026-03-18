@@ -321,7 +321,6 @@ Open **Settings → Secrets and variables → Actions** in the
 | `VPS_HOST`          | Public IPv4 address of the server                                                                                                                                   |
 | `VPS_USER`          | `deploy` (or whichever user you created in §5)                                                                                                                      |
 | `VPS_SSH_KEY`       | Contents of the **private** key `~/.ssh/my-hub-deploy` (generated in §5). Paste the full key including `-----BEGIN...` / `-----END...` lines and preserve newlines. |
-| `STG_MCP_SERVER_URL` | `https://staging.mcp.alexiuc.dev` — staging MCP server URL used by the CI e2e test run |
 
 The deploy workflow also uses the built-in `GITHUB_TOKEN` secret
 (auto-provided by GitHub) to log in to GHCR and push/pull images — no
