@@ -198,6 +198,7 @@ export default function MealsSection({
           onClick={() => setShowAdd(true)}
           className="w-8 h-8 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition"
           title="Add meal"
+          aria-label="Add meal"
         >
           <svg
             width="18"
