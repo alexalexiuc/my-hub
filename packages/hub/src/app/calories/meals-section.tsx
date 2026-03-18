@@ -220,6 +220,7 @@ export default function MealsSection({
         <div className="flex items-center justify-between">
           <button
             onClick={() => onDateChange(shiftDate(selectedDate, -1))}
+            aria-label="Previous day"
             className="w-8 h-8 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition"
             aria-label="Previous day"
           >
@@ -240,6 +241,7 @@ export default function MealsSection({
           <button
             onClick={() => onDateChange(shiftDate(selectedDate, 1))}
             disabled={selectedDate >= today}
+            aria-label="Next day"
             className="w-8 h-8 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition disabled:opacity-30 disabled:cursor-not-allowed"
             aria-label="Next day"
           >
