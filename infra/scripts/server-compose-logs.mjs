@@ -79,7 +79,7 @@ if (!/^\d+$/.test(tail)) {
 
 let composeArgs;
 if (envName === 'prod') {
-  composeArgs = ['--env-file', '.env', '-f', 'infra/docker-compose.prod.yml'];
+  composeArgs = ['--project-name', 'my-hub', '--env-file', '.env', '-f', 'infra/docker-compose.prod.yml'];
 } else if (envName === 'staging') {
   composeArgs = [
     '--project-name',
