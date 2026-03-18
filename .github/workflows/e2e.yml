@@ -68,7 +68,7 @@ jobs:
             set -e
             cd /opt/my-hub
             git pull origin staging
-            docker compose -f infra/docker-compose.traefik.yml up -d
+            docker compose --project-name my-hub-traefik -f infra/docker-compose.traefik.yml up -d
             docker compose --project-name my-hub-staging --env-file .env.staging \
               -f infra/docker-compose.staging.yml up -d --build --wait
 
