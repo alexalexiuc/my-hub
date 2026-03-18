@@ -3,8 +3,22 @@ import { db } from '../../db/client';
 import { mcpServers } from '../../db/schema/mcp-servers';
 import type { McpServer } from '../../types/index';
 
-const ALL_SERVER_NAMES = ['calories', 'hive', 'products'] as const;
-export type McpServerName = (typeof ALL_SERVER_NAMES)[number];
+/**
+ * Enum-like const object for MCP server names.
+ * Use `McpServerName.Calories` instead of the string literal `'calories'`.
+ * The companion type `McpServerName` stays a plain string union so it remains
+ * compatible with Drizzle column types and existing runtime code.
+ */
+export const McpServerName = {
+  Calories: 'calories',
+  Hive: 'hive',
+  Products: 'products',
+  Todo: 'todo',
+} as const;
+
+export type McpServerName = (typeof McpServerName)[keyof typeof McpServerName];
+
+const ALL_SERVER_NAMES = Object.values(McpServerName) as McpServerName[];
 
 /**
  * Ensure a row exists for every known server type for the given user.
@@ -23,6 +37,14 @@ export async function getMcpServers(userId: string): Promise<McpServer[]> {
     where: eq(mcpServers.userId, userId),
     orderBy: mcpServers.serverName,
   });
+}
+
+/** Returns true if the named MCP server is enabled for the user (returns false if row does not exist). */
+export async function isMcpServerEnabled(userId: string, serverName: McpServerName): Promise<boolean> {
+  const row = await db.query.mcpServers.findFirst({
+    where: and(eq(mcpServers.userId, userId), eq(mcpServers.serverName, serverName)),
+  });
+  return row?.enabled ?? false;
 }
 
 /** Toggle enabled state for a specific MCP server. */

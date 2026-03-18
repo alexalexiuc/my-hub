@@ -8,6 +8,7 @@
 export interface McpTokenPayload {
   client_id: string;
   user_id: string;
+  email?: string;
   exp: number; // Unix ms
 }
 

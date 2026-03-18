@@ -57,6 +57,11 @@ services:
     networks:
       - internal
       - proxy
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
     labels:
       - 'traefik.enable=true'
       - 'traefik.http.routers.mcp.rule=Host(`mcp.alexiuc.dev`)'

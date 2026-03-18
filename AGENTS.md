@@ -8,6 +8,10 @@ This repository is a pnpm TypeScript monorepo. Keep changes small, explicit, and
 - `packages/mcp-server`: Fastify app, MCP transport/router wiring, health checks, server-side integrations. Must not contain raw Drizzle queries — import from `@my-hub/shared/services` instead.
 - `packages/hub`: Next.js App Router UI, NextAuth integration, Hub Dashboard pages and client/server UI code.
 - `infra`: Docker Compose, Traefik, deployment/runtime wiring only.
+  - `docker-compose.yml` — local reference stack; **builds images from source** (no pre-built images). Use this to verify the full prod-like setup locally, including Traefik routing. Differs from prod only in that images are built rather than pulled.
+  - `docker-compose.local.yml` — lightweight local dev overlay; **no Traefik**, services are exposed directly on host ports (`3000`, `3001`), DB runs on the host machine (connected via `host.docker.internal`). Use this for quick iteration without needing a full proxy setup.
+  - `docker-compose.prod.yml` — production deployment; **pulls pre-built images from GHCR** (`ghcr.io/<owner>/...`), runs the `migrate` service on startup, uses production domains (`*.alexiuc.dev`). This is what runs on the server.
+  - `docker-compose.staging.yml` — override file layered on top of `docker-compose.yml` (`docker compose -f docker-compose.yml -f docker-compose.staging.yml up`); mirrors prod but uses staging domains and a separate DB volume. Not yet in use but mirrors prod structure.
 - `.github/workflows`: CI/CD only.
 
 ## Change order

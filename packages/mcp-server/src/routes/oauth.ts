@@ -8,6 +8,7 @@ import {
   verifyClientSecret,
   ensureAllMcpServers,
   findUserByEmail,
+  findUserById,
 } from '@my-hub/shared/services';
 import { signToken, verifyToken, verifyPkceS256, type AuthCodePayload } from '@my-hub/shared/auth';
 
@@ -311,10 +312,12 @@ export async function oauthRoutes(app: FastifyInstance) {
     const pkceOk = await verifyPkceS256(codeVerifier, authCodePayload.code_challenge);
     if (!pkceOk) return sendTokenError('invalid_grant');
 
+    const tokenUser = await findUserById(authCodePayload.user_id);
     const accessToken = await signToken(
       {
         client_id: clientId,
         user_id: authCodePayload.user_id,
+        email: tokenUser?.email,
         exp: Date.now() + 86_400_000, // 1 day
       },
       client.tokenSigningSecret,

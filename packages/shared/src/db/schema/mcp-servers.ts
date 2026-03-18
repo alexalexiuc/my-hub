@@ -1,7 +1,13 @@
 import { pgTable, pgEnum, serial, uuid, boolean, timestamp, unique } from 'drizzle-orm/pg-core';
 import { users } from './users';
+import { McpServerName } from '../../services';
 
-export const mcpServerEnum = pgEnum('mcp_server', ['calories', 'hive', 'products']);
+export const mcpServerEnum = pgEnum('mcp_server', [
+  McpServerName.Calories,
+  McpServerName.Hive,
+  McpServerName.Products,
+  McpServerName.Todo,
+]);
 
 export const mcpServers = pgTable(
   'mcp_servers',

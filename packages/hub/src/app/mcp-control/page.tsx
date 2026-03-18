@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import PageHeader from '@/components/page-header';
+import type { McpServerName } from '@my-hub/shared/services';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface McpServerRow {
   id: number;
-  serverName: 'calories' | 'hive' | 'products';
+  serverName: McpServerName;
   enabled: boolean;
   createdAt: string;
 }
@@ -45,6 +46,11 @@ const SERVER_META: Record<string, { label: string; path: string; description: st
     label: 'Products',
     path: '/products/mcp',
     description: 'Home inventory, shopping lists, product catalog',
+  },
+  todo: {
+    label: 'Todo',
+    path: '/todo/mcp',
+    description: 'Task management, reminders, to-do lists',
   },
 };
 
