@@ -79,16 +79,9 @@ if (!/^\d+$/.test(tail)) {
 
 let composeArgs;
 if (envName === 'prod') {
-  composeArgs = ['--project-name', 'my-hub', '--env-file', '.env', '-f', 'infra/docker-compose.prod.yml'];
+  composeArgs = ['--env-file', '.env', '-f', 'infra/docker-compose.prod.yml'];
 } else if (envName === 'staging') {
-  composeArgs = [
-    '--project-name',
-    'my-hub-staging',
-    '--env-file',
-    '.env.staging',
-    '-f',
-    'infra/docker-compose.staging.yml',
-  ];
+  composeArgs = ['--env-file', '.env.staging', '-f', 'infra/docker-compose.staging.yml'];
 } else {
   console.error('Invalid --env value. Use "prod" or "staging".');
   process.exit(1);
