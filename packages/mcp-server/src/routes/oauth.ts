@@ -30,6 +30,13 @@ function validateRedirectUri(redirectUri: string): URL | null {
   } catch {
     return null;
   }
+
+  const allowlist = envConfig.ALLOWED_REDIRECT_URIS;
+  if (allowlist.length > 0) {
+    const allowed = allowlist.some((entry) => redirectUri === entry || redirectUri.startsWith(entry));
+    return allowed ? parsed : null;
+  }
+
   if (parsed.protocol === 'https:') return parsed;
   if (
     parsed.protocol === 'http:' &&
@@ -115,21 +122,6 @@ async function getSessionEmail(req: FastifyRequest): Promise<string | null> {
 // ---------------------------------------------------------------------------
 
 export async function oauthRoutes(app: FastifyInstance) {
-  // RFC 8414 — Server Metadata
-  app.get('/.well-known/oauth-authorization-server', async (req, reply) => {
-    const base = `${req.protocol}://${req.hostname}`;
-    return reply.send({
-      issuer: base,
-      authorization_endpoint: `${base}/authorize`,
-      token_endpoint: `${base}/token`,
-      registration_endpoint: `${base}/register`,
-      response_types_supported: ['code'],
-      grant_types_supported: ['authorization_code', 'client_credentials'],
-      code_challenge_methods_supported: ['S256'],
-      token_endpoint_auth_methods_supported: ['client_secret_post'],
-    });
-  });
-
   // RFC 7591 — Dynamic Client Registration
   app.post('/register', async (req, reply) => {
     const body = req.body as Record<string, unknown>;

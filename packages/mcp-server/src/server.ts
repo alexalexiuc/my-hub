@@ -33,6 +33,10 @@ export async function buildServer() {
     // Disable Fastify's built-in request/response logging — we use our own
     // requestLoggerPlugin which formats lines as `<-- GET /path` / `--> GET /path`.
     disableRequestLogging: true,
+    // Trust the X-Forwarded-Proto / X-Forwarded-Host headers set by a reverse proxy so
+    // that req.protocol and req.hostname reflect the external scheme and host rather than
+    // the plain-HTTP / unqualified values seen on the internal socket.
+    trustProxy: true,
   });
 
   await app.register(cors, {
@@ -45,23 +49,51 @@ export async function buildServer() {
   // Custom two-line request logger (console + DB)
   await app.register(requestLoggerPlugin);
 
-  // OAuth endpoints at root: /.well-known, /register, /authorize, /token
-  await app.register(oauthRoutes);
+  // OAuth discovery — must stay at root per RFC 8414.
+  // Points clients to the /api-prefixed endpoints below.
+  app.get('/.well-known/oauth-authorization-server', { logLevel: 'silent' }, async (req, reply) => {
+    // trustProxy: true (set on the Fastify instance) makes req.protocol read
+    // X-Forwarded-Proto and req.hostname read X-Forwarded-Host, both of which
+    // Traefik sets automatically — so this always reflects the external URL.
+    const base = `${req.protocol}://${req.hostname}`;
+    return reply.send({
+      issuer: base,
+      authorization_endpoint: `${base}/api/authorize`,
+      token_endpoint: `${base}/api/token`,
+      registration_endpoint: `${base}/api/register`,
+      response_types_supported: ['code'],
+      grant_types_supported: ['authorization_code', 'client_credentials'],
+      code_challenge_methods_supported: ['S256'],
+      token_endpoint_auth_methods_supported: ['client_secret_post'],
+    });
+  });
 
-  // Health check
-  await app.register(healthRoutes);
+  // OAuth endpoints: /api/register  /api/authorize  /api/token
+  // (oauthRoutes no longer includes /.well-known)
+  await app.register(oauthRoutes, { prefix: '/api' });
 
-  // MCP sub-servers — each domain gets its own endpoint and session manager.
-  // Add more sub-servers here as new domains are implemented.
-  registerMcpSubServer(app, '/calories/mcp', McpServerName.Calories, createCaloriesServer);
-  registerMcpSubServer(app, '/todo/mcp', McpServerName.Todo, createTodoServer);
-  // registerMcpSubServer(app, '/hive-manager/mcp', McpServerName.Hive, createHiveManagerServer);
+  // Health check: /api/health
+  await app.register(healthRoutes, { prefix: '/api' });
+
+  // MCP sub-servers: /api/calories/mcp  /api/todo/mcp
+  // Registered directly on app (not via prefix plugin) because FastifyMcpServer
+  // manages its own child scopes and fp()-based plugins bypass prefix inheritance.
+  registerMcpSubServer(app, '/api/calories/mcp', McpServerName.Calories, createCaloriesServer);
+  registerMcpSubServer(app, '/api/todo/mcp', McpServerName.Todo, createTodoServer);
+  // registerMcpSubServer(app, '/api/hive-manager/mcp', McpServerName.Hive, createHiveManagerServer);
 
   // Session cleanup plugin (reads mcpSubServers registry via onReady hook)
   await app.register(sessionCleanupPlugin);
 
-  // Monitor route (reads mcpSubServers registry via onReady hook)
+  // Monitor route: /api/monitor
+  // Uses fp() so registered at root — path is set to /api/monitor directly in monitor.ts.
   await app.register(monitorRoute);
+
+  // Silently absorb requests to unknown paths (scanner/bot probes).
+  // The logLevel:'silent' flag causes requestLoggerPlugin to skip both console + DB logging.
+  app.setNotFoundHandler(async (_req, reply) => {
+    return reply.status(404).send();
+  });
 
   return app;
 }

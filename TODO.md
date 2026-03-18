@@ -10,3 +10,4 @@
 - [ ] mcp-control: show request logs per user/service — clicking an MCP server card should display its recent api_request_logs entries (user email, time, path, status, duration)
 - [ ] Create a dedicated cron job (separate process/container) for api_request_logs retention cleanup and DB backup — the in-app log deletion scheduler was removed in favour of this
 - [ ] Add turborepo for better monorepo management during builds/checks.
+- [ ] Review [CrowdSec](https://www.crowdsec.net/) to be added as a security layer in front of the MCP server, to block malicious IPs and prevent abuse. It can be run as a sidecar container in the same network as the MCP server, and configured to forward allowed requests to it while blocking suspicious ones. This would add an extra layer of protection against attacks like brute-force login attempts, DDoS, and other common web threats.

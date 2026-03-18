@@ -228,17 +228,17 @@ nano /opt/my-hub/.env.staging
 
 Fill in the staging-specific values:
 
-| Variable               | Notes                                                              |
-| ---------------------- | ------------------------------------------------------------------ |
-| `POSTGRES_DB`          | `myhub_staging`                                                    |
-| `POSTGRES_USER`        | `myhub_staging`                                                    |
-| `POSTGRES_PASSWORD`    | Strong random password, **different from prod**                    |
-| `NEXTAUTH_URL`         | `https://staging.hub.alexiuc.dev`                                  |
-| `NEXTAUTH_SECRET`      | 32-byte random string, **different from prod**                     |
-| `GOOGLE_CLIENT_ID`     | Same Google OAuth client as prod (or a dedicated staging one)      |
-| `GOOGLE_CLIENT_SECRET` | Matching secret                                                    |
-| `ALLOWED_EMAILS`       | Must include `e2e-hub@test.local` — the CI hub e2e test user       |
-| `ENCRYPTION_KEY`       | Random base64 key, **different from prod**                         |
+| Variable               | Notes                                                         |
+| ---------------------- | ------------------------------------------------------------- |
+| `POSTGRES_DB`          | `myhub_staging`                                               |
+| `POSTGRES_USER`        | `myhub_staging`                                               |
+| `POSTGRES_PASSWORD`    | Strong random password, **different from prod**               |
+| `NEXTAUTH_URL`         | `https://staging.hub.alexiuc.dev`                             |
+| `NEXTAUTH_SECRET`      | 32-byte random string, **different from prod**                |
+| `GOOGLE_CLIENT_ID`     | Same Google OAuth client as prod (or a dedicated staging one) |
+| `GOOGLE_CLIENT_SECRET` | Matching secret                                               |
+| `ALLOWED_EMAILS`       | Must include `e2e-hub@test.local` — the CI hub e2e test user  |
+| `ENCRYPTION_KEY`       | Random base64 key, **different from prod**                    |
 
 ---
 
@@ -328,11 +328,11 @@ docker compose --project-name my-hub-staging --env-file .env.staging -f infra/do
 Open **Settings → Secrets and variables → Actions** in the
 `alexalexiuc/my-hub` repository and add the following **repository secrets**:
 
-| Secret name         | Value                                                                                                                                                               |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VPS_HOST`          | Public IPv4 address of the server                                                                                                                                   |
-| `VPS_USER`          | `deploy` (or whichever user you created in §5)                                                                                                                      |
-| `VPS_SSH_KEY`       | Contents of the **private** key `~/.ssh/my-hub-deploy` (generated in §5). Paste the full key including `-----BEGIN...` / `-----END...` lines and preserve newlines. |
+| Secret name   | Value                                                                                                                                                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VPS_HOST`    | Public IPv4 address of the server                                                                                                                                   |
+| `VPS_USER`    | `deploy` (or whichever user you created in §5)                                                                                                                      |
+| `VPS_SSH_KEY` | Contents of the **private** key `~/.ssh/my-hub-deploy` (generated in §5). Paste the full key including `-----BEGIN...` / `-----END...` lines and preserve newlines. |
 
 The deploy workflow also uses the built-in `GITHUB_TOKEN` secret
 (auto-provided by GitHub) to log in to GHCR and push/pull images — no

@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 
-export default function RegisterPage() {
+function RegisterForm() {
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get('invite') ?? '';
+
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -26,7 +30,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name: name || undefined }),
+        body: JSON.stringify({ email, password, name: name || undefined, inviteToken: inviteToken || undefined }),
       });
 
       const data = (await res.json()) as { ok?: boolean; error?: string };
@@ -64,6 +68,12 @@ export default function RegisterPage() {
 
       <div className="relative z-10 w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl shadow-black/50">
         <h1 className="mb-6 text-2xl font-bold text-center">Create account</h1>
+
+        {!inviteToken && (
+          <p className="mb-4 rounded-lg border border-yellow-800/50 bg-yellow-950/30 px-3 py-2 text-sm text-yellow-400">
+            Registration requires an invite link. Ask the owner for one.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
@@ -141,5 +151,13 @@ export default function RegisterPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
   );
 }
