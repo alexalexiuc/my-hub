@@ -1,0 +1,1 @@
+ALTER TYPE "mcp_server" ADD VALUE 'todo';

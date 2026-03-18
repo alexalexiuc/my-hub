@@ -1,19 +1,21 @@
-import { signToken } from '@my-hub/shared/auth';
 import { getE2eEnv } from './env.js';
 
 /**
- * Generates a fresh access token signed with the test client's tokenSigningSecret.
- * The token is valid for 1 hour from the time of generation.
- *
- * This mirrors the token produced by POST /token in the OAuth flow, and is
- * accepted by hubTokenVerifier as long as the OAuth client exists in the DB.
+ * Obtains a fresh access token by calling POST /token with the client_credentials grant.
+ * Requires the server to be running at E2E_MCP_BASE_URL.
  */
 export async function generateToken(): Promise<string> {
-  const { clientId, tokenSigningSecret, userId } = getE2eEnv();
-  const payload = {
-    client_id: clientId,
-    user_id: userId,
-    exp: Date.now() + 60 * 60 * 1_000, // 1 hour
-  };
-  return signToken(payload, tokenSigningSecret);
+  const { clientId, clientSecret, baseUrl } = getE2eEnv();
+  const res = await fetch(`${baseUrl}/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  });
+  if (!res.ok) throw new Error(`POST /token failed: ${res.status} ${await res.text()}`);
+  const { access_token } = (await res.json()) as { access_token: string };
+  return access_token;
 }

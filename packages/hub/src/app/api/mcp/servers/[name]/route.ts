@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-user';
-import { setMcpServerEnabled, type McpServerName } from '@my-hub/shared/services';
+import { setMcpServerEnabled } from '@my-hub/shared/services';
+import { McpServerName } from '@my-hub/shared/schema';
 
-const VALID_NAMES = new Set<string>(['calories', 'hive', 'products']);
+const VALID_NAMES = new Set<string>(Object.values(McpServerName));
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ name: string }> }) {
   const user = await getAuthUser();

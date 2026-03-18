@@ -13,10 +13,12 @@
     "typecheck": "tsc --noEmit",
     "test": "pnpm run test:unit",
     "test:unit": "vitest run",
-    "test:e2e": "vitest run --config vitest.e2e.config.ts"
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "e2e:setup": "tsx e2e/scripts/setup-e2e-user.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "@fastify/formbody": "^8.0.2",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@my-hub/shared": "workspace:*",
     "close-with-grace": "^2.0.0",
@@ -26,12 +28,13 @@
     "fastify-plugin": "^5.1.0",
     "next-auth": "^4.24.7",
     "pino-pretty": "^13.0.0",
+    "promise-cachex": "^2.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",
-    "tsx": "^4.15.1",
     "tsup": "^8.0.0",
+    "tsx": "^4.15.1",
     "typescript": "^5.4.5",
     "vitest": "^1.6.0"
   }

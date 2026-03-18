@@ -1,48 +1,42 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { checkDatabaseConnection } from '@my-hub/shared/services';
+import { getHealthStatus } from './health';
 
 vi.mock('@my-hub/shared/services', () => ({
   checkDatabaseConnection: vi.fn(),
 }));
 
-import { buildApp } from '../index';
-
-describe('health route', () => {
+describe('getHealthStatus', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
   });
 
-  it('returns 200 with app and database status ok', async () => {
+  it('returns ok status when database connection is healthy', async () => {
     vi.mocked(checkDatabaseConnection).mockResolvedValue(true);
 
-    const app = await buildApp();
-    const res = await app.inject({ method: 'GET', url: '/health' });
+    const status = await getHealthStatus();
 
-    expect(res.statusCode).toBe(200);
-
-    const body = JSON.parse(res.body) as {
-      status: string;
-      database: { status: string };
-    };
-
-    expect(body.status).toBe('ok');
-    expect(body.database.status).toBe('ok');
+    expect(status.status).toBe('ok');
+    expect(status.database.status).toBe('ok');
+    expect(status.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
   });
 
-  it('returns 503 with degraded status when database is unavailable', async () => {
+  it('returns degraded status when database connection fails', async () => {
     vi.mocked(checkDatabaseConnection).mockResolvedValue(false);
 
-    const app = await buildApp();
-    const res = await app.inject({ method: 'GET', url: '/health' });
+    const status = await getHealthStatus();
 
-    expect(res.statusCode).toBe(503);
+    expect(status.status).toBe('degraded');
+    expect(status.database.status).toBe('error');
+    expect(status.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+  });
 
-    const body = JSON.parse(res.body) as {
-      status: string;
-      database: { status: string };
-    };
+  it('calls checkDatabaseConnection exactly once', async () => {
+    vi.mocked(checkDatabaseConnection).mockResolvedValue(true);
 
-    expect(body.status).toBe('degraded');
-    expect(body.database.status).toBe('error');
+    await getHealthStatus();
+
+    expect(checkDatabaseConnection).toHaveBeenCalledOnce();
+    expect(checkDatabaseConnection).toHaveBeenCalledWith();
   });
 });

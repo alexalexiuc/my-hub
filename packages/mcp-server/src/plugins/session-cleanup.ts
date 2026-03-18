@@ -59,6 +59,24 @@ export const sessionCleanupPlugin = fp(async (app) => {
 
   app.addHook('onClose', async () => {
     clearInterval(timer);
+
+    // Destroy all active sessions so their streaming connections close before Fastify stops.
+    const destroys: Promise<void>[] = [];
+    for (const [sessionId] of sessionActivity.entries()) {
+      for (const { sessionManager } of mcpSubServers) {
+        if (sessionManager.getTransport(sessionId)) {
+          destroys.push(
+            sessionManager.destroySession(sessionId).catch((err: unknown) => {
+              app.log.warn({ sessionId, err }, 'Failed to destroy MCP session on close');
+            }),
+          );
+          break;
+        }
+      }
+    }
+    await Promise.all(destroys);
+    sessionActivity.clear();
+
     app.log.info('Session cleanup timer cleared');
   });
 });

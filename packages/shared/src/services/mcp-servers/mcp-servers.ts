@@ -1,17 +1,14 @@
 import { eq, and } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { mcpServers } from '../../db/schema/mcp-servers';
+import { McpServerName, mcpServers } from '../../db/schema/mcp-servers';
 import type { McpServer } from '../../types/index';
-
-const ALL_SERVER_NAMES = ['calories', 'hive', 'products'] as const;
-export type McpServerName = (typeof ALL_SERVER_NAMES)[number];
 
 /**
  * Ensure a row exists for every known server type for the given user.
  * Uses ON CONFLICT DO NOTHING so it is safe to call on every authorization.
  */
 export async function ensureAllMcpServers(userId: string): Promise<void> {
-  for (const serverName of ALL_SERVER_NAMES) {
+  for (const serverName of Object.values(McpServerName)) {
     await db.insert(mcpServers).values({ userId, serverName, enabled: true }).onConflictDoNothing();
   }
 }
@@ -23,6 +20,14 @@ export async function getMcpServers(userId: string): Promise<McpServer[]> {
     where: eq(mcpServers.userId, userId),
     orderBy: mcpServers.serverName,
   });
+}
+
+/** Returns true if the named MCP server is enabled for the user (returns false if row does not exist). */
+export async function isMcpServerEnabled(userId: string, serverName: McpServerName): Promise<boolean> {
+  const row = await db.query.mcpServers.findFirst({
+    where: and(eq(mcpServers.userId, userId), eq(mcpServers.serverName, serverName)),
+  });
+  return row?.enabled ?? false;
 }
 
 /** Toggle enabled state for a specific MCP server. */

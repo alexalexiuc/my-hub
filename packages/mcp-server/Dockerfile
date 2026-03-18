@@ -24,7 +24,7 @@ RUN pnpm --filter @my-hub/mcp-server deploy --prod --legacy /prod/mcp-server
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-ENV HOST=0.0.0.0
+ENV MCP_HOST=0.0.0.0
 
 COPY --from=builder /prod/mcp-server/dist ./dist
 COPY --from=builder /prod/mcp-server/node_modules ./node_modules

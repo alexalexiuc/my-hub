@@ -217,56 +217,96 @@ Fill in every variable:
 
 ---
 
-## 10. Prepare the Traefik ACME directory
+## 9b. Create the `.env.staging` file
 
-Traefik stores Let's Encrypt certificates in a volume mapped to
-`/etc/traefik/acme/acme.json` inside the container. The Docker volume handles
-this automatically, but the file **permissions must be 600** or Traefik will
-refuse to write to it.
-
-The `traefik_acme` named volume is created automatically by Docker Compose on
-first run. If you ever need to pre-create it manually:
+The staging Docker Compose stack reads from `/opt/my-hub/.env.staging` — a **separate** file from `.env` so staging secrets never overlap with production.
 
 ```bash
-# Only needed if you mount a host directory instead of a named volume
-# The named volume approach in docker-compose.yml does not require this
-mkdir -p /opt/my-hub/infra/traefik/acme
-touch /opt/my-hub/infra/traefik/acme/acme.json
-chmod 600 /opt/my-hub/infra/traefik/acme/acme.json
+su - deploy
+nano /opt/my-hub/.env.staging
 ```
+
+Fill in the staging-specific values:
+
+| Variable               | Notes                                                              |
+| ---------------------- | ------------------------------------------------------------------ |
+| `POSTGRES_DB`          | `myhub_staging`                                                    |
+| `POSTGRES_USER`        | `myhub_staging`                                                    |
+| `POSTGRES_PASSWORD`    | Strong random password, **different from prod**                    |
+| `NEXTAUTH_URL`         | `https://staging.hub.alexiuc.dev`                                  |
+| `NEXTAUTH_SECRET`      | 32-byte random string, **different from prod**                     |
+| `GOOGLE_CLIENT_ID`     | Same Google OAuth client as prod (or a dedicated staging one)      |
+| `GOOGLE_CLIENT_SECRET` | Matching secret                                                    |
+| `ALLOWED_EMAILS`       | Must include `e2e-hub@test.local` — the CI hub e2e test user       |
+| `ENCRYPTION_KEY`       | Random base64 key, **different from prod**                         |
+
+---
+
+## 10. Start Traefik (once)
+
+Traefik is managed as its own standalone compose project. It creates the
+shared `proxy` Docker network that both prod and staging connect to. Start it
+**once** after initial server setup — it persists across prod/staging deploys
+and should never be stopped unless you are intentionally taking the server
+offline.
+
+```bash
+su - deploy
+cd /opt/my-hub
+docker compose -f infra/docker-compose.traefik.yml up -d
+docker compose -f infra/docker-compose.traefik.yml ps   # verify running
+```
+
+Traefik stores Let's Encrypt certificates in the `traefik_acme` named volume,
+which is created automatically on first run. No manual file permissions are
+needed for the named volume approach.
 
 ---
 
 ## 11. DNS records
 
-Point the following DNS A records at your server's public IP in Cloudflare
-(or wherever your domain is managed):
+DNS records are managed via Terraform (`infra/terraform/`). After running
+`terraform apply` the following records are created automatically:
 
-| Record            | Type | Value         |
-| ----------------- | ---- | ------------- |
-| `hub.alexiuc.dev` | A    | `<SERVER_IP>` |
-| `mcp.alexiuc.dev` | A    | `<SERVER_IP>` |
+| Record                    | Type | Value         | Purpose                    |
+| ------------------------- | ---- | ------------- | -------------------------- |
+| `hub.alexiuc.dev`         | A    | `<SERVER_IP>` | Hub panel (production)     |
+| `mcp.alexiuc.dev`         | A    | `<SERVER_IP>` | MCP server (production)    |
+| `staging.hub.alexiuc.dev` | A    | `<SERVER_IP>` | Hub panel (staging / e2e)  |
+| `staging.mcp.alexiuc.dev` | A    | `<SERVER_IP>` | MCP server (staging / e2e) |
 
-Set the Cloudflare proxy status to **DNS only** (grey cloud) while you first
-bring the stack up. Traefik handles TLS directly; Cloudflare proxying can be
-re-enabled later if desired.
+All records have Cloudflare proxy status set to **DNS only** (grey cloud).
+Traefik handles TLS via Let's Encrypt HTTP-01 challenge, which requires direct
+server access on port 80 — Cloudflare CDN proxy would block the challenge.
 
 ---
 
 ## 12. First deploy (manual)
 
+Traefik must already be running (§10) before starting prod or staging.
+
 ```bash
 su - deploy
 cd /opt/my-hub
-docker compose -f infra/docker-compose.yml pull
-docker compose -f infra/docker-compose.yml up -d
-docker compose -f infra/docker-compose.yml ps
+
+# Production (uses pre-built GHCR images)
+IMAGE_OWNER=alexalexiuc docker compose --env-file .env -f infra/docker-compose.prod.yml pull
+IMAGE_OWNER=alexalexiuc docker compose --env-file .env -f infra/docker-compose.prod.yml up -d
+docker compose --env-file .env -f infra/docker-compose.prod.yml ps
+
+# Staging (builds from source — only needed before running e2e tests)
+docker compose --project-name my-hub-staging --env-file .env.staging \
+  -f infra/docker-compose.staging.yml up -d --build
 ```
 
 Check logs if any container fails to start:
 
 ```bash
-docker compose -f infra/docker-compose.yml logs --tail=50 <service>
+# Prod
+docker compose -f infra/docker-compose.prod.yml logs --tail=50 <service>
+
+# Staging
+docker compose --project-name my-hub-staging --env-file .env.staging -f infra/docker-compose.staging.yml logs --tail=50 <service>
 ```
 
 ---
@@ -276,11 +316,11 @@ docker compose -f infra/docker-compose.yml logs --tail=50 <service>
 Open **Settings → Secrets and variables → Actions** in the
 `alexalexiuc/my-hub` repository and add the following **repository secrets**:
 
-| Secret name   | Value                                                                                                                                                               |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VPS_HOST`    | Public IPv4 address of the server                                                                                                                                   |
-| `VPS_USER`    | `deploy` (or whichever user you created in §5)                                                                                                                      |
-| `VPS_SSH_KEY` | Contents of the **private** key `~/.ssh/my-hub-deploy` (generated in §5). Paste the full key including `-----BEGIN...` / `-----END...` lines and preserve newlines. |
+| Secret name         | Value                                                                                                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VPS_HOST`          | Public IPv4 address of the server                                                                                                                                   |
+| `VPS_USER`          | `deploy` (or whichever user you created in §5)                                                                                                                      |
+| `VPS_SSH_KEY`       | Contents of the **private** key `~/.ssh/my-hub-deploy` (generated in §5). Paste the full key including `-----BEGIN...` / `-----END...` lines and preserve newlines. |
 
 The deploy workflow also uses the built-in `GITHUB_TOKEN` secret
 (auto-provided by GitHub) to log in to GHCR and push/pull images — no
@@ -318,6 +358,6 @@ Watch the Actions tab to confirm all steps pass.
 - [x] TLS 1.2+ enforced, modern cipher suites only (see `infra/traefik/dynamic/security.yml`)
 - [x] Security headers set: HSTS (2 years), X-Frame-Options DENY, nosniff, XSS filter, CSP
 - [x] Rate limiting middleware configured in Traefik
-- [x] Docker images pulled from GHCR, not built on the server
+- [x] Docker images pulled from GHCR for production; staging builds from source on the server
 - [x] `.env` file gitignored; secrets never committed to source control
 - [x] Deploy user has minimal privileges (no sudo, only `docker` group membership)

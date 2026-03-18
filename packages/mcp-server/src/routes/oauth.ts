@@ -8,6 +8,7 @@ import {
   verifyClientSecret,
   ensureAllMcpServers,
   findUserByEmail,
+  findUserById,
 } from '@my-hub/shared/services';
 import { signToken, verifyToken, verifyPkceS256, type AuthCodePayload } from '@my-hub/shared/auth';
 
@@ -123,7 +124,7 @@ export async function oauthRoutes(app: FastifyInstance) {
       token_endpoint: `${base}/token`,
       registration_endpoint: `${base}/register`,
       response_types_supported: ['code'],
-      grant_types_supported: ['authorization_code'],
+      grant_types_supported: ['authorization_code', 'client_credentials'],
       code_challenge_methods_supported: ['S256'],
       token_endpoint_auth_methods_supported: ['client_secret_post'],
     });
@@ -271,14 +272,37 @@ export async function oauthRoutes(app: FastifyInstance) {
   app.post('/token', async (req, reply) => {
     const body = req.body as Record<string, string>;
 
+    const sendTokenError = (error: string, status = 400) => {
+      return reply.status(status).header('Content-Type', 'application/json').send(JSON.stringify({ error }));
+    };
+
+    // client_credentials grant — for machine-to-machine use (e.g. e2e tests)
+    if (body['grant_type'] === 'client_credentials') {
+      const clientId = body['client_id'];
+      const clientSecret = body['client_secret'];
+      if (!clientId || !clientSecret) return sendTokenError('invalid_client', 401);
+
+      const [client, secretOk] = await Promise.all([
+        findOAuthClient(clientId),
+        verifyClientSecret(clientId, clientSecret),
+      ]);
+      if (!client || !secretOk) return sendTokenError('invalid_client', 401);
+      if (!client.userId) return sendTokenError('invalid_client', 401);
+
+      const tokenUser = await findUserById(client.userId);
+      const accessToken = await signToken(
+        { client_id: clientId, user_id: client.userId, email: tokenUser?.email, exp: Date.now() + 86_400_000 },
+        client.tokenSigningSecret,
+      );
+      return reply
+        .header('Content-Type', 'application/json')
+        .send(JSON.stringify({ access_token: accessToken, token_type: 'bearer', expires_in: 86400 }));
+    }
+
     if (body['grant_type'] !== 'authorization_code') {
       const { status, body: b } = tokenError('unsupported_grant_type');
       return reply.status(status).header('Content-Type', 'application/json').send(b);
     }
-
-    const sendTokenError = (error: string, status = 400) => {
-      return reply.status(status).header('Content-Type', 'application/json').send(JSON.stringify({ error }));
-    };
 
     const clientId = body['client_id'];
     const clientSecret = body['client_secret'];
@@ -311,10 +335,12 @@ export async function oauthRoutes(app: FastifyInstance) {
     const pkceOk = await verifyPkceS256(codeVerifier, authCodePayload.code_challenge);
     if (!pkceOk) return sendTokenError('invalid_grant');
 
+    const tokenUser = await findUserById(authCodePayload.user_id);
     const accessToken = await signToken(
       {
         client_id: clientId,
         user_id: authCodePayload.user_id,
+        email: tokenUser?.email,
         exp: Date.now() + 86_400_000, // 1 day
       },
       client.tokenSigningSecret,

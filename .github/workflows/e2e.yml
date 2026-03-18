@@ -11,13 +11,17 @@ on:
   workflow_dispatch:
     inputs:
       base_url:
-        description: 'MCP server base URL (leave blank to use STG_MCP_SERVER_URL secret)'
+        description: 'MCP server base URL (leave blank to use https://staging.mcp.alexiuc.dev)'
+        required: false
+        type: string
+      hub_base_url:
+        description: 'Hub base URL (leave blank to use https://staging.hub.alexiuc.dev)'
         required: false
         type: string
 
 jobs:
   e2e:
-    name: E2E — MCP Server
+    name: E2E
     runs-on: ubuntu-latest
     # For workflow_run trigger: only run when the deploy succeeded
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
@@ -40,12 +44,71 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Playwright browsers
+        run: pnpm --filter @my-hub/e2e exec playwright install --with-deps chromium
+
+      - name: Generate E2E credentials
+        id: creds
+        run: |
+          CLIENT_ID="hub_$(openssl rand -hex 4)"
+          CLIENT_SECRET=$(uuidgen)
+          echo "client_id=$CLIENT_ID" >> $GITHUB_OUTPUT
+          echo "client_secret=$CLIENT_SECRET" >> $GITHUB_OUTPUT
+          echo "E2E_MCP_CLIENT_ID=$CLIENT_ID" > packages/mcp-server/e2e/.env.e2e
+          echo "E2E_MCP_CLIENT_SECRET=$CLIENT_SECRET" >> packages/mcp-server/e2e/.env.e2e
+
+      - name: Deploy staging stack
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            cd /opt/my-hub
+            git pull origin staging
+            docker compose -f infra/docker-compose.traefik.yml up -d
+            docker compose --project-name my-hub-staging --env-file .env.staging \
+              -f infra/docker-compose.staging.yml up -d --build --wait
+
+      - name: Provision E2E user on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: E2E_MCP_CLIENT_ID,E2E_MCP_CLIENT_SECRET
+          script: |
+            cd /opt/my-hub
+            docker compose --project-name my-hub-staging \
+              -f infra/docker-compose.staging.yml exec -T \
+              -e E2E_MCP_CLIENT_ID=$E2E_MCP_CLIENT_ID \
+              -e E2E_MCP_CLIENT_SECRET=$E2E_MCP_CLIENT_SECRET \
+              mcp node /app/dist/e2e-setup.js
+        env:
+          E2E_MCP_CLIENT_ID: ${{ steps.creds.outputs.client_id }}
+          E2E_MCP_CLIENT_SECRET: ${{ steps.creds.outputs.client_secret }}
+
       - name: Run E2E tests
         run: pnpm test:e2e
         env:
-          # Base URL: prefer the manual input, fall back to the staging secret
-          E2E_BASE_URL: ${{ inputs.base_url || secrets.STG_MCP_SERVER_URL }}
-          # Pre-registered test OAuth client credentials (stored as GitHub secrets)
-          E2E_CLIENT_ID: ${{ secrets.E2E_CLIENT_ID }}
-          E2E_TOKEN_SIGNING_SECRET: ${{ secrets.E2E_TOKEN_SIGNING_SECRET }}
-          E2E_USER_ID: ${{ secrets.E2E_USER_ID }}
+          E2E_MCP_BASE_URL: ${{ inputs.base_url || 'https://staging.mcp.alexiuc.dev' }}
+          E2E_MCP_USER_EMAIL: ${{ vars.E2E_MCP_USER_EMAIL }}
+
+          E2E_HUB_BASE_URL: ${{ inputs.hub_base_url || 'https://staging.hub.alexiuc.dev' }}
+          E2E_HUB_USER_EMAIL: ${{ vars.E2E_HUB_USER_EMAIL }}
+          E2E_HUB_USER_PASSWORD: ${{ secrets.E2E_HUB_USER_PASSWORD }}
+
+      - name: Cleanup staging stack
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            cd /opt/my-hub
+            docker compose --project-name my-hub-staging --env-file .env.staging \
+              -f infra/docker-compose.staging.yml down -v

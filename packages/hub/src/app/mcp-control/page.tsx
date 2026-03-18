@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import PageHeader from '@/components/page-header';
+import { McpServerName } from '@my-hub/shared/schema';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface McpServerRow {
   id: number;
-  serverName: 'calories' | 'hive' | 'products';
+  serverName: McpServerName;
   enabled: boolean;
   createdAt: string;
 }
@@ -45,6 +46,11 @@ const SERVER_META: Record<string, { label: string; path: string; description: st
     label: 'Products',
     path: '/products/mcp',
     description: 'Home inventory, shopping lists, product catalog',
+  },
+  todo: {
+    label: 'Todo',
+    path: '/todo/mcp',
+    description: 'Task management, reminders, to-do lists',
   },
 };
 
@@ -134,7 +140,9 @@ function SecretRevealCard({ client, onDone }: { client: CreatedClient; onDone: (
         </div>
         <div className="flex items-center gap-2">
           <span className="w-32 text-zinc-400 shrink-0">MCP URL</span>
-          <code className="rounded bg-zinc-800 px-2 py-0.5 font-mono text-xs border border-zinc-700 text-zinc-300">{MCP_BASE_URL}</code>
+          <code className="rounded bg-zinc-800 px-2 py-0.5 font-mono text-xs border border-zinc-700 text-zinc-300">
+            {MCP_BASE_URL}
+          </code>
           <CopyButton value={MCP_BASE_URL} />
         </div>
       </div>

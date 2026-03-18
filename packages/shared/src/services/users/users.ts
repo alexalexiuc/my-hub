@@ -10,6 +10,12 @@ export async function findUserByEmail(email: string): Promise<User | undefined> 
   });
 }
 
+export async function findUserById(userId: string): Promise<User | undefined> {
+  return db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+}
+
 export async function updateUserName(userId: string, name: string): Promise<User> {
   const [row] = await db.update(users).set({ name, updatedAt: new Date() }).where(eq(users.id, userId)).returning();
   if (!row) throw new Error('Update did not return a row');

@@ -5,7 +5,7 @@ import { TEST_USER } from './config';
 const AUTH_FILE = path.join(__dirname, '.auth', 'user.json');
 
 setup('create test user and authenticate', async ({ request, page }) => {
-  const baseURL = process.env['E2E_BASE_URL'] ?? 'http://localhost:3000';
+  const baseURL = process.env['E2E_HUB_BASE_URL'] ?? 'http://localhost:3000';
 
   // Register (idempotent — 409 = already exists, that's fine)
   const registerRes = await request.post(`${baseURL}/api/auth/register`, {

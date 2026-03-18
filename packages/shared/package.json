@@ -42,7 +42,8 @@
   },
   "dependencies": {
     "drizzle-orm": "^0.30.10",
-    "postgres": "^3.4.4"
+    "postgres": "^3.4.4",
+    "promise-cachex": "^2.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",

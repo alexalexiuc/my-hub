@@ -14,7 +14,7 @@ services:
     networks:
       - internal
     ports:
-      - "127.0.0.1:5432:5432"   # ← add this
+      - '127.0.0.1:5432:5432' # ← add this
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-myhub} -d ${POSTGRES_DB:-myhub}']
       interval: 10s
@@ -26,7 +26,7 @@ services:
   # ---------------------------------------------------------------------------
   migrate:
     image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-migrate:latest
-    restart: "no"
+    restart: 'no'
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub}
     depends_on:
@@ -57,6 +57,11 @@ services:
     networks:
       - internal
       - proxy
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
     labels:
       - 'traefik.enable=true'
       - 'traefik.http.routers.mcp.rule=Host(`mcp.alexiuc.dev`)'
@@ -94,32 +99,12 @@ services:
       - 'traefik.http.routers.hub.tls.certresolver=letsencrypt'
       - 'traefik.http.services.hub.loadbalancer.server.port=3000'
 
-  # ---------------------------------------------------------------------------
-  # Traefik v3 reverse proxy
-  # ---------------------------------------------------------------------------
-  proxy:
-    image: traefik:v3
-    restart: unless-stopped
-    command:
-      - '--configFile=/etc/traefik/traefik.yml'
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./traefik/dynamic:/etc/traefik/dynamic:ro
-      - traefik_acme:/etc/traefik/acme
-    networks:
-      - proxy
-
 volumes:
   db_data:
-  traefik_acme:
 
 networks:
   internal:
     driver: bridge
   proxy:
+    external: true
     name: proxy
-    driver: bridge

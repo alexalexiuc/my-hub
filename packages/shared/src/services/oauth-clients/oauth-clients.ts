@@ -79,20 +79,25 @@ export async function listUserOAuthClients(userId: string): Promise<PublicOAuthC
  * Create a new OAuth client pre-bound to a user.
  * Returns the plain client secret ONE time — it is hashed and never stored in plain form.
  */
-export async function createUserOAuthClient(userId: string, name: string | null): Promise<CreatedOAuthClient> {
-  const clientId = `hub_${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`;
-  const plainClientSecret = crypto.randomUUID();
+export async function createUserOAuthClient(
+  userId: string,
+  name: string | null,
+  clientId?: string,
+  plainClientSecret?: string,
+): Promise<CreatedOAuthClient> {
+  const id = clientId ?? `hub_${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`;
+  const secret = plainClientSecret ?? crypto.randomUUID();
   const tokenSigningSecret = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()].join('').replace(/-/g, '');
 
   const [hashedSecret, encryptedTss] = await Promise.all([
-    hashSecret(plainClientSecret),
+    hashSecret(secret),
     encrypt({ value: tokenSigningSecret, encrypted: false }),
   ]);
 
   const [row] = await db
     .insert(oauthClients)
     .values({
-      clientId,
+      clientId: id,
       clientSecret: hashedSecret,
       tokenSigningSecret: encryptedTss,
       userId,
@@ -103,7 +108,7 @@ export async function createUserOAuthClient(userId: string, name: string | null)
     .returning();
   if (!row) throw new Error('Insert did not return a row');
 
-  return { ...toPublic(row), plainClientSecret };
+  return { ...toPublic(row), plainClientSecret: secret };
 }
 
 /** Delete (revoke) an OAuth client owned by the given user. */

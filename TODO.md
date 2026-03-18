@@ -2,4 +2,11 @@
 
 - [ ] Use separate DB users: a privileged migration user (full DDL) and a restricted app user (DML only — SELECT/INSERT/UPDATE/DELETE)
 - [ ] Add a column to DB tables with the timestamp of the last update, to make it easier to identify stale data and optimize queries
-- [ ] Add a column to DB tables with that store non-config data(calories, todo, profile etc) a colmn indicateing how data was added, mcp, hub, or other, to make it easier to identify the source of data and optimize queries
+- [ ] Add a column to DB tables that store non-config data (calories, todo, profile, etc.) indicating how the data was added (MCP, hub, or other), to make it easier to identify the data source and optimize queries
+- [ ] Redesign main page to show some widgets with data from services, then some cards to click and go to the service page(links APPS now), and ADMIN at the bottom
+- [ ] Add Terms of Service and Privacy Policy pages, and links to them in the footer
+- [ ] Add a "Contact Us" page with a form to submit inquiries, and an email address for support(a.alex.alexiuc@gmail.com)
+- [ ] Add Allowed callback URIs to the OAuth app configuration, and validate them in the MCP server and only allow redirects to those URIs, to prevent open redirect vulnerabilities
+- [ ] mcp-control: show request logs per user/service — clicking an MCP server card should display its recent api_request_logs entries (user email, time, path, status, duration)
+- [ ] Create a dedicated cron job (separate process/container) for api_request_logs retention cleanup and DB backup — the in-app log deletion scheduler was removed in favour of this
+- [ ] Add turborepo for better monorepo management during builds/checks.

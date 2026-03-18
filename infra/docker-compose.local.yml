@@ -10,7 +10,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      HOST: 0.0.0.0
+      MCP_HOST: 0.0.0.0
       DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@host.docker.internal:5432/${POSTGRES_DB:-myhub}}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
