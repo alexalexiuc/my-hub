@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { and, eq, isNull, gt, or } from 'drizzle-orm';
+import { and, eq, isNull, or, gt } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { inviteTokens } from '../../db/schema/invite-tokens';
 import type { InviteToken } from '../../types/index';
@@ -12,14 +12,26 @@ export async function createInviteToken(createdBy: string, expiresInDays?: numbe
   return row;
 }
 
-export async function validateInviteToken(token: string): Promise<boolean> {
-  const row = await db.query.inviteTokens.findFirst({
-    where: eq(inviteTokens.token, token),
-  });
-  if (!row) return false;
-  if (row.usedAt != null) return false;
-  if (row.expiresAt != null && row.expiresAt < new Date()) return false;
-  return true;
+/**
+ * Atomically claim an invite token: marks it as used in a single UPDATE with all
+ * validity conditions in the WHERE clause. Returns true if the token was valid and
+ * is now claimed, false if it was missing, already used, or expired.
+ * Because claim and validation are one statement there is no TOCTOU race.
+ */
+export async function claimInviteToken(token: string): Promise<boolean> {
+  const now = new Date();
+  const rows = await db
+    .update(inviteTokens)
+    .set({ usedAt: now })
+    .where(
+      and(
+        eq(inviteTokens.token, token),
+        isNull(inviteTokens.usedAt),
+        or(isNull(inviteTokens.expiresAt), gt(inviteTokens.expiresAt, now)),
+      ),
+    )
+    .returning({ id: inviteTokens.id });
+  return rows.length > 0;
 }
 
 export async function consumeInviteToken(token: string, usedBy: string): Promise<void> {

@@ -26,6 +26,7 @@ export default function InvitesPage() {
   const [creating, setCreating] = useState(false);
   const [expiry, setExpiry] = useState<ExpiryOption>('7');
   const [newLink, setNewLink] = useState<string | null>(null);
+  const [newLinkInviteId, setNewLinkInviteId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
 
@@ -41,6 +42,7 @@ export default function InvitesPage() {
   async function generateInvite() {
     setCreating(true);
     setNewLink(null);
+    setNewLinkInviteId(null);
     try {
       const body = expiry !== 'none' ? { expiresInDays: Number(expiry) } : {};
       const res = await fetch('/api/invites', {
@@ -53,6 +55,7 @@ export default function InvitesPage() {
       setInvites((prev) => [data.invite, ...prev]);
       const link = `${window.location.origin}/auth/register?invite=${data.invite.token}`;
       setNewLink(link);
+      setNewLinkInviteId(data.invite.id);
     } finally {
       setCreating(false);
     }
@@ -69,7 +72,10 @@ export default function InvitesPage() {
     try {
       await fetch(`/api/invites/${id}`, { method: 'DELETE' });
       setInvites((prev) => prev.filter((i) => i.id !== id));
-      if (newLink?.includes(id)) setNewLink(null);
+      if (newLinkInviteId === id) {
+        setNewLink(null);
+        setNewLinkInviteId(null);
+      }
     } finally {
       setRevoking(null);
     }

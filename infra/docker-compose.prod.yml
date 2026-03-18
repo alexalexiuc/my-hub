@@ -52,6 +52,7 @@ services:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:?ALLOWED_EMAILS is required}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
+      ALLOWED_REDIRECT_URIS: ${ALLOWED_REDIRECT_URIS:-}
     depends_on:
       db:
         condition: service_healthy

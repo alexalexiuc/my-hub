@@ -16,7 +16,8 @@ function capPayload(value: unknown): unknown {
 
 async function requestLoggerPlugin(app: FastifyInstance) {
   app.addHook('onRequest', async (req) => {
-    if (req.routeOptions.logLevel === 'silent') return;
+    // logLevel:'silent' set on known routes; empty url means no route matched (setNotFoundHandler)
+    if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
 
     console.log(`<-- ${req.method} ${req.url}`);
     if (envConfig.PRINT_PAYLOADS) {
@@ -27,7 +28,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
   });
 
   app.addHook('onResponse', async (req, reply) => {
-    if (req.routeOptions.logLevel === 'silent') return;
+    if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
 
     const durationMs = Math.round(reply.elapsedTime);
     const bodySize = Number(reply.getHeader('content-length') ?? 0);

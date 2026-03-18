@@ -18,7 +18,7 @@ export const monitorRoute = fp(async (app) => {
     }
   });
 
-  app.get('/monitor', { logLevel: 'silent' }, async (_request, _reply) => {
+  app.get('/api/monitor', { logLevel: 'silent' }, async (_request, _reply) => {
     const mem = process.memoryUsage();
 
     const subServerStats = await Promise.all(
