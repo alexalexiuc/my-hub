@@ -17,6 +17,9 @@
     "test:e2e": "pnpm -r --if-present test:e2e",
     "start:prod": "docker compose --env-file .env -f infra/docker-compose.prod.yml up -d --remove-orphans",
     "start:local": "docker compose --env-file .env -f infra/docker-compose.local.yml up -d --build --remove-orphans",
+    "logs:server": "node infra/scripts/server-compose-logs.mjs",
+    "logs:server:prod": "node infra/scripts/server-compose-logs.mjs --env prod",
+    "logs:server:staging": "node infra/scripts/server-compose-logs.mjs --env staging",
     "db:generate": "pnpm --filter shared db:generate",
     "db:migrate": "pnpm --filter shared db:migrate"
   },
