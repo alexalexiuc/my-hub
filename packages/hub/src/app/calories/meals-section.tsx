@@ -357,7 +357,7 @@ export default function MealsSection({
                   ) : (
                     <div
                       key={meal.id}
-                      className="flex items-center justify-between rounded-lg bg-zinc-800 px-3 py-2 text-sm group cursor-pointer hover:bg-zinc-750"
+                      className="flex items-center justify-between rounded-lg bg-zinc-800 px-3 py-2 text-sm group cursor-pointer hover:bg-zinc-700/50"
                       onClick={() => meal.mealId && startEdit(meal)}
                     >
                       <div className="flex-1 min-w-0">
