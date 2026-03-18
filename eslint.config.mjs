@@ -41,6 +41,12 @@ export default [
       sourceType: 'module',
     },
     rules: {
+      '@typescript-eslint/no-unused-expressions': [
+        'error',
+        {
+          allowShortCircuit: true,
+        },
+      ],
       '@typescript-eslint/no-unused-vars': [
         'error',
         {

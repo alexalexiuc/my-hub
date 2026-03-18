@@ -62,6 +62,7 @@ export default function CaloriesWidget({
 
   const cap = maxCalories ?? todayTarget;
   const isOver = cap !== null && todayKcal > cap;
+  const isUnder = minCalories !== null && todayKcal < minCalories;
   const remaining = cap !== null ? Math.max(cap - todayKcal, 0) : null;
 
   const eaten = todayKcal;
@@ -75,7 +76,7 @@ export default function CaloriesWidget({
           ]
       : [{ value: 1, key: 'empty' }];
 
-  const arcColor = cap !== null ? (isOver ? '#ef4444' : '#4ade80') : '#3f3f46';
+  const arcColor = cap !== null ? (isOver ? '#ef4444' : isUnder ? '#facc15' : '#4ade80') : '#3f3f46';
 
   async function addMeal() {
     if (!form.description) return;
@@ -153,7 +154,7 @@ export default function CaloriesWidget({
             </ResponsiveContainer>
             {/* Center text */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={`text-xl font-bold ${isOver ? 'text-red-400' : ''}`}>
+              <span className={`text-xl font-bold ${isOver ? 'text-red-400' : isUnder ? 'text-yellow-400' : ''}`}>
                 {cap !== null ? (isOver ? `+${todayKcal - cap}` : remaining) : eaten}
               </span>
               <span className="text-[10px] text-zinc-500">
@@ -172,6 +173,15 @@ export default function CaloriesWidget({
             )}{' '}
             kcal
           </p>
+          {(minCalories !== null || cap !== null) && (
+            <p className={`text-xs mt-1 ${isOver ? 'text-red-400' : isUnder ? 'text-yellow-400' : 'text-zinc-500'}`}>
+              {minCalories !== null && cap !== null
+                ? `Target range: ${minCalories}-${cap} kcal`
+                : minCalories !== null
+                  ? `Minimum target: ${minCalories} kcal`
+                  : `Target: ${cap} kcal`}
+            </p>
+          )}
 
           {/* Macro bars */}
           <div className="flex gap-4 w-full mt-4 pt-3 border-t border-zinc-800">
