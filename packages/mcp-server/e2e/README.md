@@ -20,7 +20,7 @@ Set these env vars before running:
 | `E2E_CLIENT_ID`            | The `client_id` of the pre-registered test OAuth client        |
 | `E2E_TOKEN_SIGNING_SECRET` | The **raw** (unencrypted) token signing secret for that client |
 | `E2E_USER_ID`              | UUID of the user the client is authorized for                  |
-| `E2E_BASE_URL`             | Server base URL (default: `http://localhost:3001`)             |
+| `E2E_MCP_BASE_URL`         | Server base URL (default: `http://localhost:3001`)             |
 
 The test helper generates a fresh signed access token for each run using these credentials,
 so tokens never expire between CI runs.
@@ -35,7 +35,7 @@ E2E_USER_ID=<uuid> \
 pnpm test:e2e
 
 # Or against staging
-E2E_BASE_URL=https://mcp.example.com \
+E2E_MCP_BASE_URL=https://mcp.example.com \
 E2E_CLIENT_ID=hub_xxxxxxxx \
 E2E_TOKEN_SIGNING_SECRET=<raw-secret> \
 E2E_USER_ID=<uuid> \

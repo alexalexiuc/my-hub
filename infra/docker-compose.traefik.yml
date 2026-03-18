@@ -1,0 +1,31 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Traefik v3 reverse proxy — shared across prod and staging stacks.
+  # Run once on the server; both prod and staging connect via the external
+  # "proxy" network this stack creates.
+  #
+  # Usage: docker compose -f infra/docker-compose.traefik.yml up -d
+  # ---------------------------------------------------------------------------
+  proxy:
+    image: traefik:v3
+    restart: unless-stopped
+    command:
+      - '--configFile=/etc/traefik/traefik.yml'
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - traefik_acme:/etc/traefik/acme
+    networks:
+      - proxy
+
+volumes:
+  traefik_acme:
+
+networks:
+  proxy:
+    name: proxy
+    driver: bridge

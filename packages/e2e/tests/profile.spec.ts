@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { deleteFeatures } from './helpers';
+import { TEST_USER } from '../config';
 
 test.describe('Profile Page', () => {
   test.beforeEach(async ({ page }) => {
@@ -9,7 +10,7 @@ test.describe('Profile Page', () => {
 
   test('shows account info (email and member since)', async ({ page }) => {
     // Use the span inside the Account section
-    await expect(page.locator('.font-medium', { hasText: 'e2e@test.local' })).toBeVisible();
+    await expect(page.locator('.font-medium', { hasText: TEST_USER.email })).toBeVisible();
     await expect(page.getByText(/member since/i)).toBeVisible();
   });
 

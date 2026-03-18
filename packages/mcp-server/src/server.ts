@@ -1,6 +1,7 @@
 import 'dotenv-mono/load';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import formbody from '@fastify/formbody';
 import { healthRoutes } from './routes/health.js';
 import { oauthRoutes } from './routes/oauth.js';
 import { monitorRoute } from './routes/monitor.js';
@@ -37,6 +38,9 @@ export async function buildServer() {
   await app.register(cors, {
     origin: envConfig.CORS_ORIGIN,
   });
+
+  // Parse application/x-www-form-urlencoded payloads used by OAuth /token.
+  await app.register(formbody);
 
   // Custom two-line request logger (console + DB)
   await app.register(requestLoggerPlugin);

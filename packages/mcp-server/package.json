@@ -13,10 +13,12 @@
     "typecheck": "tsc --noEmit",
     "test": "pnpm run test:unit",
     "test:unit": "vitest run",
-    "test:e2e": "vitest run --config vitest.e2e.config.ts"
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "e2e:setup": "tsx e2e/scripts/setup-e2e-user.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "@fastify/formbody": "^8.0.2",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@my-hub/shared": "workspace:*",
     "close-with-grace": "^2.0.0",

@@ -65,6 +65,11 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     req._logUserId = tokenInfo?.userId;
 
     console.log(`<-- ${req.method} ${req.url} [${req._logIdentifier}]`);
+    if (envConfig.PRINT_PAYLOADS) {
+      console.log(
+        `    Payload: ${JSON.stringify(capPayload({ body: req.body, query: req.query, headers: req.headers }), null, 2)}`,
+      );
+    }
   });
 
   app.addHook('onResponse', async (req, reply) => {
@@ -93,6 +98,12 @@ async function requestLoggerPlugin(app: FastifyInstance) {
         query: req.query,
         headers: req.headers,
       });
+    }
+
+    if (envConfig.PRINT_PAYLOADS) {
+      console.log(
+        `    Payload: ${JSON.stringify(capPayload({ body: req.body, query: req.query, headers: req.headers }), null, 2)}`,
+      );
     }
 
     putLog(logData).catch((err) => {

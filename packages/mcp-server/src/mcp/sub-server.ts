@@ -39,4 +39,5 @@ export function registerMcpSubServer(
     const mcp = getMcpDecorator(child);
     mcpSubServers.push({ endpoint, sessionManager: mcp.getSessionManager() });
   });
+  app.log.info(`Registered MCP sub-server "${serverName}" at endpoint "${endpoint}"`);
 }

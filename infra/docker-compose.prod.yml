@@ -99,32 +99,12 @@ services:
       - 'traefik.http.routers.hub.tls.certresolver=letsencrypt'
       - 'traefik.http.services.hub.loadbalancer.server.port=3000'
 
-  # ---------------------------------------------------------------------------
-  # Traefik v3 reverse proxy
-  # ---------------------------------------------------------------------------
-  proxy:
-    image: traefik:v3
-    restart: unless-stopped
-    command:
-      - '--configFile=/etc/traefik/traefik.yml'
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./traefik/dynamic:/etc/traefik/dynamic:ro
-      - traefik_acme:/etc/traefik/acme
-    networks:
-      - proxy
-
 volumes:
   db_data:
-  traefik_acme:
 
 networks:
   internal:
     driver: bridge
   proxy:
+    external: true
     name: proxy
-    driver: bridge

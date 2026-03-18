@@ -14,6 +14,7 @@ build/
 .env.*.local
 .env.production
 .env.staging
+.env.e2e
 
 # Drizzle generated migrations (keep the directory, ignore generated SQL if preferred)
 # packages/shared/drizzle/

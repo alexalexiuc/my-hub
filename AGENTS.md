@@ -7,11 +7,12 @@ This repository is a pnpm TypeScript monorepo. Keep changes small, explicit, and
 - `packages/shared`: Drizzle schema, shared types, auth helpers, service layer (`src/services/`), and utilities (`src/utils/`). Put cross-package domain types and DB queries here first.
 - `packages/mcp-server`: Fastify app, MCP transport/router wiring, health checks, server-side integrations. Must not contain raw Drizzle queries — import from `@my-hub/shared/services` instead.
 - `packages/hub`: Next.js App Router UI, NextAuth integration, Hub Dashboard pages and client/server UI code.
+- `packages/e2e`: Playwright end-to-end tests for the hub UI. Tests run against a live hub instance (`E2E_HUB_BASE_URL`). Global setup auto-registers the test user (`e2e-hub@test.local`) and persists auth state in `.auth/user.json`. Run with `pnpm --filter @my-hub/e2e test:e2e`.
 - `infra`: Docker Compose, Traefik, deployment/runtime wiring only.
-  - `docker-compose.yml` — local reference stack; **builds images from source** (no pre-built images). Use this to verify the full prod-like setup locally, including Traefik routing. Differs from prod only in that images are built rather than pulled.
-  - `docker-compose.local.yml` — lightweight local dev overlay; **no Traefik**, services are exposed directly on host ports (`3000`, `3001`), DB runs on the host machine (connected via `host.docker.internal`). Use this for quick iteration without needing a full proxy setup.
-  - `docker-compose.prod.yml` — production deployment; **pulls pre-built images from GHCR** (`ghcr.io/<owner>/...`), runs the `migrate` service on startup, uses production domains (`*.alexiuc.dev`). This is what runs on the server.
-  - `docker-compose.staging.yml` — override file layered on top of `docker-compose.yml` (`docker compose -f docker-compose.yml -f docker-compose.staging.yml up`); mirrors prod but uses staging domains and a separate DB volume. Not yet in use but mirrors prod structure.
+  - `docker-compose.traefik.yml` — **run once on the server**; starts the shared Traefik reverse proxy and creates the named `proxy` Docker network. Both prod and staging connect to this external network. Never stopped between deploys.
+  - `docker-compose.local.yml` — **standalone** local dev stack; no Traefik, services exposed directly on host ports (`3000`, `3001`), DB runs on the host machine (connected via `host.docker.internal`). Usage: `docker compose -f infra/docker-compose.local.yml up`.
+  - `docker-compose.prod.yml` — **standalone** production deployment; pulls pre-built images from GHCR (`ghcr.io/<owner>/...`), runs the `migrate` service on startup, uses production domains (`mcp.alexiuc.dev`, `hub.alexiuc.dev`). Connects to the external `proxy` network. Usage: `docker compose --env-file .env -f infra/docker-compose.prod.yml up -d`.
+  - `docker-compose.staging.yml` — **standalone** staging deployment; builds images from source, uses staging domains (`staging.mcp.alexiuc.dev`, `staging.hub.alexiuc.dev`) and a separate DB volume (`db_staging_data`). Connects to the same external `proxy` network. Run with project name `my-hub-staging` to keep containers isolated from prod. Usage: `docker compose --project-name my-hub-staging --env-file .env -f infra/docker-compose.staging.yml up -d --build`.
 - `.github/workflows`: CI/CD only.
 
 ## Change order

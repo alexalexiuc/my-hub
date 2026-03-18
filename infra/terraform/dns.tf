@@ -53,3 +53,47 @@ resource "cloudflare_record" "mcp_aaaa" {
   proxied = false
   comment = "my-hub Fastify MCP server (IPv6)"
 }
+
+# ── staging.hub.alexiuc.dev ───────────────────────────────────────────────────
+
+resource "cloudflare_record" "hub_staging_a" {
+  zone_id = var.cloudflare_zone_id
+  name    = "staging.hub"
+  type    = "A"
+  content = local.server_ipv4
+  ttl     = 300
+  proxied = false
+  comment = "my-hub Next.js admin panel — staging (IPv4)"
+}
+
+resource "cloudflare_record" "hub_staging_aaaa" {
+  zone_id = var.cloudflare_zone_id
+  name    = "staging.hub"
+  type    = "AAAA"
+  content = local.server_ipv6
+  ttl     = 300
+  proxied = false
+  comment = "my-hub Next.js admin panel — staging (IPv6)"
+}
+
+# ── staging.mcp.alexiuc.dev ───────────────────────────────────────────────────
+
+resource "cloudflare_record" "mcp_staging_a" {
+  zone_id = var.cloudflare_zone_id
+  name    = "staging.mcp"
+  type    = "A"
+  content = local.server_ipv4
+  ttl     = 300
+  proxied = false
+  comment = "my-hub Fastify MCP server — staging (IPv4)"
+}
+
+resource "cloudflare_record" "mcp_staging_aaaa" {
+  zone_id = var.cloudflare_zone_id
+  name    = "staging.mcp"
+  type    = "AAAA"
+  content = local.server_ipv6
+  ttl     = 300
+  proxied = false
+  comment = "my-hub Fastify MCP server — staging (IPv6)"
+}
