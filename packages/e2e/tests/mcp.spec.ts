@@ -23,29 +23,35 @@ test.describe('MCP Services Page', () => {
     await expect(page.getByRole('heading', { name: 'MCP Servers' })).toBeVisible();
   });
 
-  test('shows three MCP server toggle cards', async ({ page }) => {
+  test('shows four MCP server cards', async ({ page }) => {
     // Use exact:true so that 'Calories' doesn't partial-match the MCP URL code element
     await expect(page.getByText('Calories', { exact: true })).toBeVisible();
+    await expect(page.getByText('Todo', { exact: true })).toBeVisible();
     await expect(page.getByText('Hive Manager', { exact: true })).toBeVisible();
     await expect(page.getByText('Products', { exact: true })).toBeVisible();
   });
 
-  test('toggle a MCP server on/off and back', async ({ page }) => {
-    // All three toggles (role=switch) are for the MCP server section cards
-    // After beforeEach, page is on /mcp-control with no OAuth clients
-    const toggles = page.getByRole('switch');
-    const firstToggle = toggles.first();
+  test('inactive servers show Coming soon label', async ({ page }) => {
+    const hiveCard = page.locator('[class*="rounded-xl"]', { hasText: 'Hive Manager' });
+    await expect(hiveCard.getByText('Coming soon')).toBeVisible();
+    const productsCard = page.locator('[class*="rounded-xl"]', { hasText: 'Products' });
+    await expect(productsCard.getByText('Coming soon')).toBeVisible();
+  });
 
-    const initialState = await firstToggle.getAttribute('aria-checked');
+  test('toggle an active MCP server on/off and back', async ({ page }) => {
+    // Target the Calories server card (active) — inactive servers have disabled toggles
+    const caloriesCard = page.locator('[class*="rounded-xl"]', { hasText: 'Meal logging' });
+    const toggle = caloriesCard.getByRole('switch');
+
+    const initialState = await toggle.getAttribute('aria-checked');
     const expectedFlipped = initialState === 'true' ? 'false' : 'true';
 
-    await firstToggle.click();
-    // Wait for async PATCH to complete and state to update
-    await expect(firstToggle).toHaveAttribute('aria-checked', expectedFlipped, { timeout: 5_000 });
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-checked', expectedFlipped, { timeout: 5_000 });
 
     // Restore
-    await firstToggle.click();
-    await expect(firstToggle).toHaveAttribute('aria-checked', initialState!, { timeout: 5_000 });
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-checked', initialState!, { timeout: 5_000 });
   });
 
   test('create a new connection shows one-time secret', async ({ page }) => {
