@@ -109,6 +109,7 @@ export default function CaloriesWidget({
         <button
           onClick={() => setShowAdd(!showAdd)}
           className="w-7 h-7 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition"
+          aria-label="Log meal"
           title="Log meal"
         >
           <svg
