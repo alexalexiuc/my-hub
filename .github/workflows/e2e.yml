@@ -54,8 +54,8 @@ jobs:
           CLIENT_SECRET=$(uuidgen)
           echo "client_id=$CLIENT_ID" >> $GITHUB_OUTPUT
           echo "client_secret=$CLIENT_SECRET" >> $GITHUB_OUTPUT
-          echo "E2E_CLIENT_ID=$CLIENT_ID" > packages/mcp-server/e2e/.env.e2e
-          echo "E2E_CLIENT_SECRET=$CLIENT_SECRET" >> packages/mcp-server/e2e/.env.e2e
+          echo "E2E_MCP_CLIENT_ID=$CLIENT_ID" > packages/mcp-server/e2e/.env.e2e
+          echo "E2E_MCP_CLIENT_SECRET=$CLIENT_SECRET" >> packages/mcp-server/e2e/.env.e2e
 
       - name: Deploy staging stack
         uses: appleboy/ssh-action@v1.0.3
@@ -78,17 +78,17 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: E2E_CLIENT_ID,E2E_CLIENT_SECRET
+          envs: E2E_MCP_CLIENT_ID,E2E_MCP_CLIENT_SECRET
           script: |
             cd /opt/my-hub
             docker compose --project-name my-hub-staging \
               -f infra/docker-compose.staging.yml exec -T \
-              -e E2E_CLIENT_ID=$E2E_CLIENT_ID \
-              -e E2E_CLIENT_SECRET=$E2E_CLIENT_SECRET \
+              -e E2E_MCP_CLIENT_ID=$E2E_MCP_CLIENT_ID \
+              -e E2E_MCP_CLIENT_SECRET=$E2E_MCP_CLIENT_SECRET \
               mcp node /app/dist/e2e-setup.js
         env:
-          E2E_CLIENT_ID: ${{ steps.creds.outputs.client_id }}
-          E2E_CLIENT_SECRET: ${{ steps.creds.outputs.client_secret }}
+          E2E_MCP_CLIENT_ID: ${{ steps.creds.outputs.client_id }}
+          E2E_MCP_CLIENT_SECRET: ${{ steps.creds.outputs.client_secret }}
 
       - name: Run E2E tests
         run: pnpm test:e2e
