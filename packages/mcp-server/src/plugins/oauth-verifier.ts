@@ -2,6 +2,7 @@ import { PromiseCacheX } from 'promise-cachex';
 import { verifyToken } from '@my-hub/shared/auth';
 import { findOAuthClient, findUserById, isMcpServerEnabled } from '@my-hub/shared/services';
 import { McpServerName } from '@my-hub/shared/schema';
+import { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 
 interface AccessTokenPayload {
   client_id: string;
@@ -26,7 +27,7 @@ const serverEnabledCache = new PromiseCacheX<boolean>({ ttl: 60_000 });
  */
 export function createHubTokenVerifier(serverName: McpServerName) {
   return {
-    async verifyAccessToken(token: string) {
+    async verifyAccessToken(token: string): Promise<AuthInfo> {
       // Step 1: Decode payload (no signature check yet) to extract client_id
       let clientId: string;
       let rawPayload: Partial<AccessTokenPayload>;
