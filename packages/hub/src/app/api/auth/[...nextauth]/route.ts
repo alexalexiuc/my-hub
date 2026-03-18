@@ -1,7 +1,7 @@
 import NextAuth, { type AuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { verifyUserPassword } from '@my-hub/shared/services';
+import { verifyUserPassword, findOrCreateUser } from '@my-hub/shared/services';
 
 const ALLOWED_EMAILS = (process.env['ALLOWED_EMAILS'] ?? '')
   .split(',')
@@ -33,11 +33,15 @@ export const authOptions: AuthOptions = {
       // Credentials users: already verified in authorize(); let them through.
       if (account?.provider === 'credentials') return true;
 
-      // Google OAuth: apply the email whitelist.
+      // Google OAuth: apply the email whitelist and provision user in DB.
       if (ALLOWED_EMAILS.length === 0) return false;
       const email = user.email?.trim().toLowerCase();
       if (!email) return false;
-      return ALLOWED_EMAILS.includes(email);
+      if (!ALLOWED_EMAILS.includes(email)) return false;
+
+      // Create user in database if they don't exist yet (first-time Google OAuth login).
+      await findOrCreateUser(email, user.name ?? undefined);
+      return true;
     },
     async redirect({ url, baseUrl }) {
       const fallbackUrl = new URL('/', baseUrl).toString();
