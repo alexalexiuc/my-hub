@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { and, eq, isNull, gt } from 'drizzle-orm';
+import { and, eq, isNull, gt, or } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { inviteTokens } from '../../db/schema/invite-tokens';
 import type { InviteToken } from '../../types/index';
@@ -23,7 +23,22 @@ export async function validateInviteToken(token: string): Promise<boolean> {
 }
 
 export async function consumeInviteToken(token: string, usedBy: string): Promise<void> {
-  await db.update(inviteTokens).set({ usedBy, usedAt: new Date() }).where(eq(inviteTokens.token, token));
+  const now = new Date();
+  const [row] = await db
+    .update(inviteTokens)
+    .set({ usedBy, usedAt: now })
+    .where(
+      and(
+        eq(inviteTokens.token, token),
+        isNull(inviteTokens.usedAt),
+        or(isNull(inviteTokens.expiresAt), gt(inviteTokens.expiresAt, now)),
+      ),
+    )
+    .returning();
+
+  if (!row) {
+    throw new Error('Invite token is invalid, expired, or already used');
+  }
 }
 
 export async function listInviteTokens(createdBy: string): Promise<InviteToken[]> {
