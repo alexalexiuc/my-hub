@@ -2,16 +2,17 @@
 
 ## Context
 
-Current MVP is a TypeScript/Cloudflare Workers MCP server with two sub-servers:
+The platform is a self-hosted personal MCP hub running on a Hetzner VPS with Docker Compose.
+The original Cloudflare Workers + Google Sheets MVP has been fully migrated to this platform.
 
-- **Hive Manager** — beekeeping data (logs, profiles, todos, relocations)
-- **Calorie Tracker** — meal logging, nutritional summaries, user profiles
+MCP sub-servers currently available:
+
+- **Calorie Tracker** — meal logging, nutritional summaries, user profiles, body measurements
+- **Todo** — task management, reminders
+- **Hive Manager** — beekeeping data (logs, profiles, todos, relocations) _(implemented, pending deployment)_
 - **Products Manager** _(planned)_ — home inventory, shopping lists, product catalog
 
-Storage today is Google Sheets. OAuth 2.0 is already implemented.
-Goal: migrate to a proper self-hosted platform that is cheap, maintainable, and extensible.
-
-**New platform repo:** https://github.com/alexalexiuc/my-hub
+**Platform repo:** https://github.com/alexalexiuc/my-hub
 
 ---
 
@@ -37,7 +38,7 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 | `db`    | PostgreSQL 18      | Primary datastore replacing Google Sheets      |
 | `mcp`   | Node.js / Fastify  | MCP server(s) — hive-manager, calories, future |
 | `hub`   | Next.js            | Admin panel / personal cabinet                 |
-| `proxy` | Nginx (or Traefik) | TLS termination, routing, static assets        |
+| `proxy` | Traefik            | TLS termination, routing, static assets        |
 
 ---
 
@@ -97,24 +98,23 @@ Auth: Google OAuth via NextAuth.js (single-user / small invite group). Users are
 
 ---
 
-### Reverse Proxy (Nginx / Traefik)
+### Reverse Proxy (Traefik)
 
-**Recommended: Traefik** over Nginx for Docker deployments:
+Traefik handles all ingress:
 
 - Auto-discovers containers via Docker labels (zero manual config per service)
 - Built-in Let's Encrypt / ACME for automatic TLS
 - Dashboard for routing visibility
-- Simpler than writing Nginx configs by hand for each service
-
-If Nginx is preferred (more familiar), it works fine — just requires manual TLS renewal via Certbot.
 
 **Routing (`alexiuc.dev`):**
 
 | Host              | Target                 |
 | ----------------- | ---------------------- |
-| `alexiuc.dev`     | Next.js (CV / landing) |
-| `hub.alexiuc.dev` | Next.js HUB Dashboard  |
-| `mcp.alexiuc.dev` | Fastify MCP server(s)  |
+| `alexiuc.dev`                 | Next.js (CV / landing)          |
+| `hub.alexiuc.dev`             | Next.js HUB Dashboard           |
+| `mcp.alexiuc.dev`             | Fastify MCP server(s)           |
+| `staging.hub.alexiuc.dev`     | Staging Hub Dashboard           |
+| `staging.mcp.alexiuc.dev`     | Staging MCP server(s)           |
 
 ---
 
@@ -128,7 +128,7 @@ If Nginx is preferred (more familiar), it works fine — just requires manual TL
 /
 ├── packages/
 │   ├── mcp-server/          # Fastify app + all MCP sub-servers
-│   ├── admin/               # Next.js admin panel
+│   ├── hub/                 # Next.js admin panel
 │   └── shared/              # Types, auth utils, DB schema (Drizzle)
 ├── infra/
 │   ├── docker-compose.yml
@@ -235,10 +235,8 @@ DNS managed via Cloudflare — subdomains are free, TLS via Traefik + Let's Encr
 
 ## Data Migration
 
-- One-time migration script: Google Sheets → PostgreSQL
-- Drizzle schema defines tables; migration script reads sheets via API and inserts rows
-- Run manually before cutover
-- Keep Cloudflare Worker running until validated
+The one-time migration from Google Sheets → PostgreSQL is complete. The Cloudflare Worker
+implementation has been decommissioned. All data now lives in PostgreSQL on the Hetzner VPS.
 
 ---
 
@@ -246,7 +244,7 @@ DNS managed via Cloudflare — subdomains are free, TLS via Traefik + Let's Encr
 
 | #   | Topic                      | Decision                                          |
 | --- | -------------------------- | ------------------------------------------------- |
-| 1   | Monorepo vs separate repos | Monorepo ✅ — needs final confirmation            |
+| 1   | Monorepo vs separate repos | Monorepo ✅                                       |
 | 2   | Infra config location      | Public in this repo, secrets gitignored ✅        |
 | 3   | Deployment trigger         | GitHub Actions ✅                                 |
 | 4   | Staging environment        | Same VM as prod, separate Docker Compose stack ✅ |

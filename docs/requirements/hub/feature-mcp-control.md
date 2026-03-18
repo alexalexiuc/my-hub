@@ -2,7 +2,7 @@
 
 | Field    | Value                        |
 | -------- | ---------------------------- |
-| Status   | draft                        |
+| Status   | implemented                  |
 | Priority | medium                       |
 | File     | `hub/feature-mcp-control.md` |
 
@@ -10,11 +10,15 @@
 
 ## Summary
 
-The MCP Control section of the Hub admin panel lets the owner enable or disable
-individual MCP sub-servers on a per-user basis. This gives fine-grained control over
-which AI tools are active without requiring a server restart or code change — useful
-when adding a new MCP module that should not yet be exposed, or when disabling a
-broken sub-server while a fix is deployed.
+The MCP Control section of the Hub admin panel (`/mcp-control`) lets the owner enable
+or disable individual MCP sub-servers on a per-user basis, and manage OAuth client
+credentials (Connections). This gives fine-grained control over which AI tools are
+active without requiring a server restart or code change — useful when adding a new MCP
+module that should not yet be exposed, or when disabling a broken sub-server while a fix
+is deployed.
+
+Note: OAuth client management (create / toggle / revoke) is co-located on this page
+rather than on a separate `/oauth-clients` route.
 
 ---
 
@@ -52,8 +56,9 @@ broken sub-server while a fix is deployed.
 
 ## Acceptance Criteria
 
-- [ ] All registered MCP sub-servers are listed on the control page with their current state.
+- [x] All registered MCP sub-servers are listed on the control page with their current state.
+- [x] Toggle switch UI allows enabling/disabling each sub-server; state is persisted to the database via `/api/mcp/servers/:name`.
 - [ ] Disabling a sub-server causes subsequent MCP tool calls to that sub-server to fail with a clear error within 5 seconds.
 - [ ] Re-enabling a sub-server causes tool calls to succeed again without restarting the Fastify process.
-- [ ] The enabled state survives a server restart.
-- [ ] Accessing the MCP Control page while unauthenticated redirects to the login page.
+- [x] The enabled state survives a server restart (stored in `mcp_servers` DB table).
+- [x] Accessing the MCP Control page while unauthenticated redirects to the login page.

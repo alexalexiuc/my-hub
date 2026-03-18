@@ -2,7 +2,7 @@
 
 | Field    | Value                          |
 | -------- | ------------------------------ |
-| Status   | implemented                    |
+| Status   | in-progress                    |
 | Priority | high                           |
 | File     | `mcps/feature-hive-manager.md` |
 
@@ -12,9 +12,12 @@
 
 The Hive Manager MCP server exposes beekeeping data to AI clients. It lets a user (via
 Claude or another AI) log and query hive inspections, manage hive profiles, track todos,
-and record hive relocations. The current implementation runs on Cloudflare Workers backed
-by Google Sheets; the target is a Fastify app backed by PostgreSQL on the self-hosted
-platform.
+and record hive relocations.
+
+The Fastify implementation exists in `packages/mcp-server/src/` and the DB schema is
+defined in `packages/shared/src/db/schema`. The sub-server registration is currently
+commented out in `packages/mcp-server/src/server.ts` (line 83) pending full end-to-end
+validation.
 
 ---
 
@@ -37,9 +40,9 @@ platform.
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | TR-01 | Implementation lives in `packages/mcp-server` as a self-contained module (e.g. `src/servers/hive-manager/`).                                  |
 | TR-02 | The DB schema for hive data (inspections, profiles, todos, relocations) must be defined in `packages/shared/src/db/schema` using Drizzle ORM. |
-| TR-03 | Access is protected by OAuth 2.0; the existing OAuth implementation from the Cloudflare Worker must be adapted and reused.                    |
-| TR-04 | A one-time migration script must transfer existing data from Google Sheets to PostgreSQL before cutover.                                      |
-| TR-05 | The Cloudflare Worker implementation remains running until the new platform is validated in staging.                                          |
+| TR-03 | Access is protected by OAuth 2.1 + PKCE; uses the shared OAuth implementation in `packages/mcp-server/src/routes/oauth.ts`.                   |
+| TR-04 | ~~A one-time migration script must transfer existing data from Google Sheets to PostgreSQL before cutover.~~ Migration complete.              |
+| TR-05 | ~~The Cloudflare Worker implementation remains running until the new platform is validated in staging.~~ Cloudflare Worker decommissioned.    |
 | TR-06 | MCP transport must support both SSE and Streamable HTTP as offered by the MCP SDK.                                                            |
 
 ---
@@ -53,8 +56,9 @@ platform.
 
 ## Acceptance Criteria
 
-- [ ] All existing hive-manager MCP tools are available on the new Fastify-based server and return the same data shape.
-- [ ] Data previously in Google Sheets is accessible via the new server after running the migration script.
+- [x] The Fastify-based hive-manager module exists in `packages/mcp-server/src/`.
+- [x] DB schema for hive data is defined in `packages/shared/src/db/schema`.
+- [ ] The sub-server is registered and reachable at `/api/hive-manager/mcp`.
 - [ ] A Claude client authenticated with a valid OAuth token can call all hive tools and receive correct responses.
 - [ ] An unauthenticated request to any hive tool returns a 401 error.
 - [ ] Unit tests cover the core tool handlers.

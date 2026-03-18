@@ -58,5 +58,6 @@ for using any MCP tool on the platform.
 - [x] The Bearer token is validated by `mcpAuthHandler` using the client's `tokenSigningSecret`.
 - [x] After the flow, MCP server rows exist for the user (calories, hive, products).
 - [x] The client secret is not visible in the database or API responses after initial creation.
-- [ ] The Hub UI lists active OAuth clients and allows revocation.
-- [ ] After revocation, the previously issued token is rejected by the MCP server with a 401.
+- [x] The Hub UI lists active OAuth clients and allows revocation (implemented in `/mcp-control` page — "Connections" section).
+- [x] OAuth clients can be enabled/disabled (toggled) without full revocation.
+- [ ] After revocation (delete), the previously issued token is rejected by the MCP server with a 401.

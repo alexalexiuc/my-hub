@@ -33,6 +33,15 @@ When a feature spans multiple layers, change in this order:
   - `docs/requirements/` — feature specs (FR/TR style); one file per feature area, organised by `hub/`, `mcps/`, `platform/`
 - When documenting a new feature or flow, add it to `docs/` following the existing style. Requirements go in `docs/requirements/<area>/feature-<name>.md`; architectural/flow guides go directly in `docs/`.
 
+## Agent operating rules for docs
+
+- **Before working on a feature**, read the corresponding `docs/requirements/<area>/feature-<name>.md` file. It defines the functional and technical requirements, constraints, and acceptance criteria for that area.
+- **After implementing or modifying a feature**, update the requirement doc:
+  - Set the `Status` field to `in-progress` or `implemented` as appropriate.
+  - Check off (`[x]`) acceptance criteria that are now satisfied.
+  - Add a new requirement entry if the implementation introduces a behaviour not previously documented.
+- **When architectural facts change** (package names, services, routing, deployment strategy), update `PLATFORM_REQUIREMENTS.md` to reflect the current state. It must describe how the system works today, not how it was planned.
+
 ## Project rules
 
 - TypeScript everywhere. Follow existing ESM style.
