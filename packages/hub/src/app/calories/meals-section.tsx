@@ -104,7 +104,7 @@ export default function MealsSection({
   // Slim progress info
   const cap = (maxCalories ?? goalCalories) || null;
   const isOver = cap !== null && total > cap;
-  const isUnder = cap !== null && minCalories && total < minCalories;
+  const isUnder = cap !== null && minCalories != null && total < minCalories;
   const progressPct = cap !== null ? Math.min(Math.round((total / cap) * 100), 100) : null;
   const barColor = isOver ? 'bg-red-500' : isUnder ? 'bg-yellow-400' : 'bg-green-500';
 
