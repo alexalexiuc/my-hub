@@ -16,4 +16,5 @@ export const envConfig = {
   SESSION_CLEANUP_INTERVAL_MS: parseMs(process.env['SESSION_CLEANUP_INTERVAL_MS'], 300_000),
   SESSION_MAX_IDLE_MS: parseMs(process.env['SESSION_MAX_IDLE_MS'], 1_800_000),
   CORS_ORIGIN: process.env['CORS_ORIGIN'] ?? '*',
+  HUB_URL: process.env['NEXTAUTH_URL'] ?? process.env['HUB_URL'] ?? 'http://localhost:3000',
 } as const;

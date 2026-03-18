@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { getToken } from 'next-auth/jwt';
+import { envConfig } from '../config/env.js';
 import {
   findOAuthClient,
   createOAuthClient,
@@ -190,7 +191,7 @@ export async function oauthRoutes(app: FastifyInstance) {
 
     const email = await getSessionEmail(req);
     if (!email) {
-      const loginUrl = `/auth/signin?callbackUrl=${encodeURIComponent(req.url)}`;
+      const loginUrl = `${envConfig.HUB_URL}/auth/signin?callbackUrl=${encodeURIComponent(req.url)}`;
       return reply.redirect(loginUrl);
     }
 
