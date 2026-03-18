@@ -1,5 +1,5 @@
 # Staging environment — standalone, not an overlay.
-# Usage: docker compose --project-name my-hub-staging --env-file .env \
+# Usage: docker compose --project-name my-hub-staging --env-file .env.staging \
 #          -f infra/docker-compose.staging.yml up -d --build
 # Prerequisite: Traefik running via docker-compose.traefik.yml (creates the proxy network)
 
