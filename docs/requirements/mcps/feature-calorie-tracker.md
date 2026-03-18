@@ -28,7 +28,7 @@ PostgreSQL on the self-hosted platform.
 | FR-05 | The server must expose a tool to delete a previously logged meal by `meal_id`.                                                                                                 |
 | FR-06 | The server must expose a tool to get remaining calories for the day (goal minus logged).                                                                                       |
 | FR-07 | All tools must be scoped to the authenticated user.                                                                                                                            |
-| FR-08 | The server must be reachable at `POST /mcp/calories` of the shared MCP Fastify app; `userId` is resolved from the Bearer token.                                                |
+| FR-08 | The server must be reachable at `/api/calories/mcp` of the shared MCP Fastify app; `userId` is resolved from the Bearer token.                                                  |
 | FR-09 | The server must expose a tool to log a time-stamped body measurement (weight, height, neck, waist, hips, etc.) by measurement type key and value.                              |
 | FR-10 | The server must expose a tool to retrieve body measurements with optional filtering by type, date range, and limit.                                                            |
 | FR-11 | The server must expose a tool to list all supported measurement types (key, label, unit).                                                                                      |

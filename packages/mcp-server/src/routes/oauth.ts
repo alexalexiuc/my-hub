@@ -76,7 +76,7 @@ function renderConsentPage(params: URLSearchParams, email: string): string {
   <h1>Authorize Hub MCP Server</h1>
   <p>The application <strong>${clientName}</strong> is requesting access to your hub data.</p>
   <div class="user">Signed in as <strong>${escapeHtml(email)}</strong></div>
-  <form method="POST" action="/authorize">
+  <form method="POST" action="/api/authorize">
     ${hiddenFields}
     <div class="actions">
       <button type="submit" name="action" value="allow">Allow</button>
@@ -184,7 +184,10 @@ export async function oauthRoutes(app: FastifyInstance) {
 
     const email = await getSessionEmail(req);
     if (!email) {
-      const loginUrl = `${envConfig.HUB_URL}/auth/signin?callbackUrl=${encodeURIComponent(req.url)}`;
+      // Use the full external URL so NextAuth redirects back to the MCP server
+      // (not to the hub) after login.
+      const fullUrl = `${req.protocol}://${req.hostname}${req.url}`;
+      const loginUrl = `${envConfig.HUB_URL}/auth/signin?callbackUrl=${encodeURIComponent(fullUrl)}`;
       return reply.redirect(loginUrl);
     }
 

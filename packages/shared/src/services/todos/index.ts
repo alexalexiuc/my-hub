@@ -30,6 +30,14 @@ export async function markTodoDone(userId: string, id: number): Promise<Todo | n
   return row ?? null;
 }
 
+export async function deleteTodo(userId: string, id: number): Promise<Todo | null> {
+  const [row] = await db
+    .delete(todos)
+    .where(and(eq(todos.userId, userId), eq(todos.id, id)))
+    .returning();
+  return row ?? null;
+}
+
 export async function deleteAllUserTodos(userId: string): Promise<number> {
   const rows = await db.delete(todos).where(eq(todos.userId, userId)).returning({ id: todos.id });
   return rows.length;

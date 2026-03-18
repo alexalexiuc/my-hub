@@ -21,14 +21,14 @@ Claude.ai                    Hub (MCP server)               User (browser)
     |--- GET /.well-known/... ---->|                              |
     |<-- OAuth server metadata ----|                              |
     |                              |                              |
-    |--- POST /register ---------->|                              |
+    |--- POST /api/register ------>|                              |
     |<-- client_id + client_secret-|                              |
     |                              |                              |
-    |--- redirect user ----------->|--------consent page -------->|
+    |--- redirect to /api/authorize>|-------consent page -------->|
     |                              |<------- user approves -------|
     |<-- redirect with auth code --|                              |
     |                              |                              |
-    |--- POST /token ------------->|                              |
+    |--- POST /api/token --------->|                              |
     |<-- access_token -------------|                              |
     |                              |                              |
     |--- MCP calls (Bearer token)->|                              |
@@ -44,12 +44,12 @@ Claude.ai fetches the OAuth server metadata to learn which endpoints exist:
 GET /.well-known/oauth-authorization-server
 ```
 
-Response advertises `/register`, `/authorize`, and `/token`, and declares that
+Response advertises `/api/register`, `/api/authorize`, and `/api/token`, and declares that
 PKCE S256 is required.
 
 ---
 
-## Step 2 — Dynamic Client Registration (`POST /register`)
+## Step 2 — Dynamic Client Registration (`POST /api/register`)
 
 Claude.ai registers itself **before** any user interaction. This happens once per
 Claude installation/workspace.
@@ -88,12 +88,12 @@ Key points:
 
 ---
 
-## Step 3 — Authorization Request (`GET /authorize`)
+## Step 3 — Authorization Request (`GET /api/authorize`)
 
-Claude.ai redirects the user's browser to the Hub consent page:
+Claude.ai redirects the user's browser to the MCP server's consent page:
 
 ```
-GET /authorize
+GET /api/authorize
   ?client_id=hub_3f9a1b2c
   &response_type=code
   &redirect_uri=https://claude.ai/callback
@@ -102,10 +102,12 @@ GET /authorize
   &state=<random>
 ```
 
-The Hub:
+The MCP server:
 
-1. Checks the user has an active NextAuth session (Google login). If not, redirects to
-   sign-in first.
+1. Checks the user has an active NextAuth session. If not, redirects to the Hub's
+   sign-in page (`HUB_URL/auth/signin`) with a `callbackUrl` set to the **full
+   MCP server authorize URL** (e.g. `https://mcp.alexiuc.dev/api/authorize?...`).
+   After login, the user is redirected back to the MCP server — not the Hub.
 2. Optionally checks the user's email against `ALLOWED_EMAILS`.
 3. Renders a consent page asking the user to approve Claude's access.
 
@@ -143,7 +145,7 @@ The auth code is a signed payload (not a random opaque string), structured as:
 
 ---
 
-## Step 5 — Token Exchange (`POST /token`)
+## Step 5 — Token Exchange (`POST /api/token`)
 
 Claude.ai exchanges the auth code for a long-lived access token:
 
@@ -239,7 +241,7 @@ no token blocklist — deletion is the revocation mechanism.
 
 | Purpose                                               | Path                                                          |
 | ----------------------------------------------------- | ------------------------------------------------------------- |
-| OAuth endpoints (`/register`, `/authorize`, `/token`) | `packages/mcp-server/src/routes/oauth.ts`                     |
+| OAuth endpoints (`/api/register`, `/api/authorize`, `/api/token`) | `packages/mcp-server/src/routes/oauth.ts`                     |
 | Bearer token verifier                                 | `packages/mcp-server/src/plugins/oauth-verifier.ts`           |
 | Token signing / verification                          | `packages/shared/src/auth/index.ts`                           |
 | OAuth clients DB service                              | `packages/shared/src/services/oauth-clients/oauth-clients.ts` |

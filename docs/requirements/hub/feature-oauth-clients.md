@@ -56,7 +56,7 @@ for using any MCP tool on the platform.
 
 - [x] A user can complete the OAuth 2.1 PKCE flow and receive a signed Bearer token.
 - [x] The Bearer token is validated by `mcpAuthHandler` using the client's `tokenSigningSecret`.
-- [x] After the flow, MCP server rows exist for the user (calories, hive, products).
+- [x] After the flow, MCP server rows exist for the user (calories, todo, hive, products).
 - [x] The client secret is not visible in the database or API responses after initial creation.
 - [x] The Hub UI lists active OAuth clients and allows revocation (implemented in `/mcp-control` page — "Connections" section).
 - [x] OAuth clients can be enabled/disabled (toggled) without full revocation.

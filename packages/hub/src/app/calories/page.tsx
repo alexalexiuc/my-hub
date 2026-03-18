@@ -1,31 +1,69 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { CalorieProfile, MealLog, MeasurementType } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { calculateCalorieTargets } from '@my-hub/shared/utils';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import PageHeader from '@/components/page-header';
 import ProfileCard from './profile-card';
 import MealsSection from './meals-section';
 import MeasurementsSection from './measurements-section';
+import WeeklyChart from './weekly-chart';
+import WeightChart from './weight-chart';
+import MacroChart from './macro-chart';
+
+function getLast7Days(): { date: string; label: string }[] {
+  const days: { date: string; label: string }[] = [];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push({
+      date: d.toISOString().split('T')[0]!,
+      label: i === 0 ? 'Today' : dayNames[d.getDay()]!,
+    });
+  }
+  return days;
+}
 
 export default function CaloriesDashboardPage() {
   const [profile, setProfile] = useState<CalorieProfile | null>(null);
   const [latestMeasurements, setLatestMeasurements] = useState<MeasurementWithType[]>([]);
   const [meals, setMeals] = useState<MealLog[]>([]);
+  const [weeklyMeals, setWeeklyMeals] = useState<MealLog[]>([]);
+  const [weightHistory, setWeightHistory] = useState<MeasurementWithType[]>([]);
   const [measurementTypes, setMeasurementTypes] = useState<MeasurementType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const today = new Date().toISOString().split('T')[0]!;
+  const [selectedDate, setSelectedDate] = useState(today);
+  const selectedDateRef = useRef(selectedDate);
+  const last7 = getLast7Days();
+  const weekStart = last7[0]!.date;
+
+  const loadMeals = useCallback(async (date: string) => {
+    const res = await fetch(`/api/calories/meals?date=${date}&limit=100`);
+    if (res.ok) {
+      const data = (await res.json()) as { meals: MealLog[] };
+      // Only apply if this is still the selected date (avoid race)
+      if (selectedDateRef.current === date) {
+        setMeals(data.meals);
+      }
+    }
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
-      const [profileRes, mealsRes, typesRes] = await Promise.all([
+      const date = selectedDateRef.current;
+      const [profileRes, mealsRes, typesRes, weeklyRes, weightRes] = await Promise.all([
         fetch('/api/calories/profile'),
-        fetch(`/api/calories/meals?date=${today}&limit=100`),
+        fetch(`/api/calories/meals?date=${date}&limit=100`),
         fetch('/api/calories/measurement-types'),
+        fetch(`/api/calories/meals?dateFrom=${weekStart}&dateTo=${today}`),
+        fetch('/api/calories/measurements?type=weight&limit=30'),
       ]);
 
       if (profileRes.status === 401 || mealsRes.status === 401) {
@@ -33,31 +71,47 @@ export default function CaloriesDashboardPage() {
         return;
       }
 
-      const [profileData, mealsData, typesData] = await Promise.all([
+      const [profileData, mealsData, typesData, weeklyData, weightData] = await Promise.all([
         profileRes.json() as Promise<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>,
         mealsRes.json() as Promise<{ meals: MealLog[] }>,
         typesRes.json() as Promise<{ types: MeasurementType[] }>,
+        weeklyRes.json() as Promise<{ meals: MealLog[] }>,
+        weightRes.json() as Promise<{ measurements: MeasurementWithType[] }>,
       ]);
 
       setProfile(profileData.profile);
       setLatestMeasurements(profileData.measurements);
-      setMeals(mealsData.meals);
+      if (selectedDateRef.current === date) {
+        setMeals(mealsData.meals);
+      }
       setMeasurementTypes(typesData.types);
+      setWeeklyMeals(weeklyData.meals);
+      setWeightHistory(weightData.measurements);
     } catch (e) {
       setError(String(e));
     } finally {
       setLoading(false);
     }
-  }, [today]);
+  }, [today, weekStart]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
+  const handleDateChange = useCallback(
+    (date: string) => {
+      setSelectedDate(date);
+      selectedDateRef.current = date;
+      setMeals([]); // clear stale data immediately
+      loadMeals(date);
+    },
+    [loadMeals],
+  );
+
   if (loading) {
     return (
       <main className="mx-auto max-w-5xl p-8">
-        <div className="text-zinc-400">Loading…</div>
+        <div className="text-zinc-400">Loading...</div>
       </main>
     );
   }
@@ -87,26 +141,140 @@ export default function CaloriesDashboardPage() {
     goalMaxCalories: profile?.goalMaxCalories ?? null,
   });
 
+  const todayKcal = meals.reduce((sum, m) => sum + (m.kcal ?? 0), 0);
+  const todayProtein = Math.round(meals.reduce((sum, m) => sum + (m.protein ?? 0), 0));
+  const todayCarbs = Math.round(meals.reduce((sum, m) => sum + (m.carbs ?? 0), 0));
+  const todayFat = Math.round(meals.reduce((sum, m) => sum + (m.fat ?? 0), 0));
+  const cap = calorieTargets.maxCalories ?? calorieTargets.goalCalories;
+  const isOver = cap !== null && todayKcal > cap;
+  const remaining = cap !== null ? Math.max(cap - todayKcal, 0) : null;
+
+  // Donut data
+  const donutData =
+    cap !== null
+      ? isOver
+        ? [{ value: cap, key: 'eaten' }]
+        : [
+            { value: todayKcal, key: 'eaten' },
+            { value: remaining!, key: 'remaining' },
+          ]
+      : [{ value: 1, key: 'empty' }];
+  const arcColor = cap !== null ? (isOver ? '#ef4444' : '#4ade80') : '#3f3f46';
+
+  // Weekly chart data
+  const weeklyData = last7.map(({ date, label }) => {
+    const dayMeals = weeklyMeals.filter((m) => m.date === date);
+    return { date, label, kcal: dayMeals.reduce((sum, m) => sum + (m.kcal ?? 0), 0) };
+  });
+
+  // Weight chart data
+  const weightChartData = weightHistory
+    .filter((m) => m.typeKey === 'weight')
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-20)
+    .map((m) => ({
+      date: m.date,
+      label: m.date.slice(5), // MM-DD
+      value: m.value,
+    }));
+
   return (
     <main className="mx-auto max-w-5xl p-8 space-y-6">
       <PageHeader title="Calories" backHref="/" backLabel="← Home" />
 
+      {/* Today's summary */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row items-center gap-6">
+          {/* Donut */}
+          <div className="relative w-[150px] h-[150px] flex-shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={donutData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={48}
+                  outerRadius={66}
+                  startAngle={90}
+                  endAngle={-270}
+                  dataKey="value"
+                  strokeWidth={0}
+                  animationDuration={800}
+                >
+                  {donutData.map((entry, i) => (
+                    <Cell key={entry.key} fill={i === 0 ? arcColor : '#27272a'} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className={`text-2xl font-bold ${isOver ? 'text-red-400' : ''}`}>
+                {cap !== null ? (isOver ? `+${todayKcal - cap}` : remaining) : todayKcal}
+              </span>
+              <span className="text-[11px] text-zinc-500">
+                {cap !== null ? (isOver ? 'Over' : 'Remaining') : 'kcal'}
+              </span>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="flex-1 w-full">
+            <p className="text-sm text-zinc-400 mb-3">
+              <span className="font-semibold text-zinc-200 text-lg">{todayKcal}</span>
+              {cap !== null && <> / {cap}</>} kcal {selectedDate === today ? 'today' : selectedDate}
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              <MacroPill label="Carbs" value={todayCarbs} unit="g" color="bg-amber-400" />
+              <MacroPill label="Protein" value={todayProtein} unit="g" color="bg-sky-400" />
+              <MacroPill label="Fat" value={todayFat} unit="g" color="bg-rose-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <WeeklyChart data={weeklyData} target={calorieTargets.goalCalories ?? null} />
+        <MacroChart protein={todayProtein} carbs={todayCarbs} fat={todayFat} />
+      </div>
+
+      {/* Weight trend (shown when enough data) */}
+      <WeightChart data={weightChartData} />
+
+      {/* Meals + Measurements row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <MealsSection
+          meals={meals}
+          selectedDate={selectedDate}
+          onDateChange={handleDateChange}
+          onChanged={loadData}
+          goalCalories={calorieTargets.goalCalories}
+          minCalories={calorieTargets.minCalories}
+          maxCalories={calorieTargets.maxCalories}
+        />
+        <MeasurementsSection
+          latestMeasurements={latestMeasurements}
+          measurementTypes={measurementTypes}
+          onChanged={loadData}
+        />
+      </div>
+
+      {/* Settings (profile) — at the bottom */}
       <ProfileCard profile={profile} latestMeasurements={latestMeasurements} onUpdated={loadData} />
-
-      <MealsSection
-        meals={meals}
-        today={today}
-        onChanged={loadData}
-        goalCalories={calorieTargets.goalCalories}
-        minCalories={calorieTargets.minCalories}
-        maxCalories={calorieTargets.maxCalories}
-      />
-
-      <MeasurementsSection
-        latestMeasurements={latestMeasurements}
-        measurementTypes={measurementTypes}
-        onChanged={loadData}
-      />
     </main>
+  );
+}
+
+function MacroPill({ label, value, unit, color }: { label: string; value: number; unit: string; color: string }) {
+  return (
+    <div className="rounded-lg bg-zinc-800/80 border border-zinc-700/50 px-3 py-2 text-center">
+      <div className="flex items-center justify-center gap-1.5 mb-1">
+        <div className={`w-2 h-2 rounded-full ${color}`} />
+        <span className="text-xs text-zinc-500">{label}</span>
+      </div>
+      <p className="text-sm font-semibold">
+        {value} <span className="text-xs font-normal text-zinc-500">{unit}</span>
+      </p>
+    </div>
   );
 }

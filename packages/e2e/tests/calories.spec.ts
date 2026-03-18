@@ -31,7 +31,8 @@ test.describe('Calories Dashboard', () => {
   });
 
   test('add and delete a meal', async ({ page }) => {
-    await page.getByRole('button', { name: /\+ add meal/i }).click();
+    // Add meal icon button has title="Add meal"
+    await page.getByRole('button', { name: /add meal/i }).click();
 
     // Field "Description *" wraps input via label element
     await page.getByRole('textbox', { name: /description/i }).fill('Test breakfast');
@@ -41,8 +42,9 @@ test.describe('Calories Dashboard', () => {
 
     await expect(page.getByText('Test breakfast')).toBeVisible({ timeout: 5_000 });
 
-    // Delete: the ✕ button next to the meal
+    // Delete: hover to reveal the ✕ button, then click it
     const mealRow = page.locator('[class*="flex items-center justify-between"]', { hasText: 'Test breakfast' });
+    await mealRow.hover();
     await mealRow.getByRole('button').click();
 
     await expect(page.getByText('Test breakfast')).not.toBeVisible({ timeout: 5_000 });

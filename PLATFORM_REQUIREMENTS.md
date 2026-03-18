@@ -33,12 +33,12 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 
 ### Services (all Docker containers)
 
-| Service | Technology         | Role                                           |
-| ------- | ------------------ | ---------------------------------------------- |
-| `db`    | PostgreSQL 18      | Primary datastore replacing Google Sheets      |
-| `mcp`   | Node.js / Fastify  | MCP server(s) — hive-manager, calories, future |
-| `hub`   | Next.js            | Admin panel / personal cabinet                 |
-| `proxy` | Traefik            | TLS termination, routing, static assets        |
+| Service | Technology        | Role                                           |
+| ------- | ----------------- | ---------------------------------------------- |
+| `db`    | PostgreSQL 18     | Primary datastore replacing Google Sheets      |
+| `mcp`   | Node.js / Fastify | MCP server(s) — hive-manager, calories, future |
+| `hub`   | Next.js           | Admin panel / personal cabinet                 |
+| `proxy` | Traefik           | TLS termination, routing, static assets        |
 
 ---
 
@@ -108,13 +108,13 @@ Traefik handles all ingress:
 
 **Routing (`alexiuc.dev`):**
 
-| Host              | Target                 |
-| ----------------- | ---------------------- |
-| `alexiuc.dev`                 | Next.js (CV / landing)          |
-| `hub.alexiuc.dev`             | Next.js HUB Dashboard           |
-| `mcp.alexiuc.dev`             | Fastify MCP server(s)           |
-| `staging.hub.alexiuc.dev`     | Staging Hub Dashboard           |
-| `staging.mcp.alexiuc.dev`     | Staging MCP server(s)           |
+| Host                      | Target                 |
+| ------------------------- | ---------------------- |
+| `alexiuc.dev`             | Next.js (CV / landing) |
+| `hub.alexiuc.dev`         | Next.js HUB Dashboard  |
+| `mcp.alexiuc.dev`         | Fastify MCP server(s)  |
+| `staging.hub.alexiuc.dev` | Staging Hub Dashboard  |
+| `staging.mcp.alexiuc.dev` | Staging MCP server(s)  |
 
 ---
 
