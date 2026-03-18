@@ -242,7 +242,23 @@ Fill in the staging-specific values:
 
 ---
 
-## 10. Start Traefik (once)
+## 10. Create persistent volumes (once)
+
+Both the production database and Traefik's ACME certificate store use
+**external named volumes**. These must be created manually once before the
+stacks are started. Because they are `external`, Docker Compose will never
+create or delete them — `docker compose down -v` is completely safe for
+production.
+
+```bash
+su - deploy
+docker volume create my-hub_db_data
+docker volume create my-hub-traefik_traefik_acme
+```
+
+---
+
+## 10b. Start Traefik (once)
 
 Traefik is managed as its own standalone compose project. It creates the
 shared `proxy` Docker network that both prod and staging connect to. Start it
@@ -256,10 +272,6 @@ cd /opt/my-hub
 docker compose --project-name my-hub-traefik -f infra/docker-compose.traefik.yml up -d
 docker compose --project-name my-hub-traefik -f infra/docker-compose.traefik.yml ps   # verify running
 ```
-
-Traefik stores Let's Encrypt certificates in the `traefik_acme` named volume,
-which is created automatically on first run. No manual file permissions are
-needed for the named volume approach.
 
 ---
 

@@ -102,7 +102,13 @@ services:
       - 'traefik.http.services.hub.loadbalancer.server.port=3000'
 
 volumes:
+  # External volume: must be pre-created once with:
+  #   docker volume create my-hub_db_data
+  # Docker Compose will never create or delete it (down -v is safe).
+  # The explicit name makes it immune to --project-name changes.
   db_data:
+    external: true
+    name: my-hub_db_data
 
 networks:
   internal:

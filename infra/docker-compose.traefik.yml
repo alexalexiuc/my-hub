@@ -23,7 +23,12 @@ services:
       - proxy
 
 volumes:
+  # External volume: must be pre-created once with:
+  #   docker volume create my-hub-traefik_traefik_acme
+  # Protects Let's Encrypt certificates from being wiped on down -v.
   traefik_acme:
+    external: true
+    name: my-hub-traefik_traefik_acme
 
 networks:
   proxy:
