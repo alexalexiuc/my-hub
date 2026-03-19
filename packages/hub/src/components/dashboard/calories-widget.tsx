@@ -37,10 +37,7 @@ function MacroBar({ label, value, color }: { label: string; value: number; color
       <p className="text-xs text-zinc-500 mb-1">{label}</p>
       <p className="text-sm font-semibold">{value}g</p>
       <div className="mt-1 h-1 w-full rounded-full bg-zinc-800 overflow-hidden">
-        <div
-          className={`h-full rounded-full ${color}`}
-          style={{ width: `${Math.max(0, Math.min(value, 100))}%` }}
-        />
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max(0, Math.min(value, 100))}%` }} />
       </div>
     </div>
   );

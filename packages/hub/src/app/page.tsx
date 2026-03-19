@@ -46,7 +46,7 @@ interface DashboardData {
 export default function HomePage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
 
   const today = new Date().toISOString().split('T')[0]!;
 
