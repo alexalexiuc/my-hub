@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { createHash } from 'node:crypto';
 import { getToken, decode } from 'next-auth/jwt';
 import { envConfig } from '../config/env.js';
 import {
@@ -114,8 +115,7 @@ async function getSessionEmail(req: FastifyRequest): Promise<string | null> {
     );
 
     // Log a hash of the secret so we can compare with the hub without exposing it
-    const secretHash = crypto
-      .createHash('sha256')
+    const secretHash = createHash('sha256')
       .update(NEXTAUTH_SECRET)
       .digest('hex')
       .slice(0, 12);
