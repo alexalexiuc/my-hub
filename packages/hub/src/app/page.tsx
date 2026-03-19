@@ -200,6 +200,13 @@ export default function HomePage() {
               <span className="text-sm font-semibold">MCP Control</span>
               <p className="text-xs text-zinc-500 mt-0.5">Enable or disable MCP servers</p>
             </Link>
+            <Link
+              href="/invites"
+              className="rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm hover:bg-zinc-800 hover:border-zinc-700 transition"
+            >
+              <span className="text-sm font-semibold">Invite Links</span>
+              <p className="text-xs text-zinc-500 mt-0.5">Invite others to register</p>
+            </Link>
           </div>
         </section>
       </main>
