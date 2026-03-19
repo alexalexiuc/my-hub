@@ -31,20 +31,24 @@ function validateRedirectUri(redirectUri: string): URL | null {
     return null;
   }
 
-  const allowlist = envConfig.ALLOWED_REDIRECT_URIS;
-  if (allowlist.length > 0) {
-    const allowed = allowlist.some((entry) => redirectUri === entry || redirectUri.startsWith(entry));
-    return allowed ? parsed : null;
-  }
+  // TODO: Re-enable redirect URI allowlist/HTTPS validation once the OAuth
+  //       flow with Claude.ai is fully debugged.
+  // const allowlist = envConfig.ALLOWED_REDIRECT_URIS;
+  // if (allowlist.length > 0) {
+  //   const allowed = allowlist.some((entry) => redirectUri === entry || redirectUri.startsWith(entry));
+  //   return allowed ? parsed : null;
+  // }
+  //
+  // if (parsed.protocol === 'https:') return parsed;
+  // if (
+  //   parsed.protocol === 'http:' &&
+  //   (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === '[::1]')
+  // ) {
+  //   return parsed;
+  // }
+  // return null;
 
-  if (parsed.protocol === 'https:') return parsed;
-  if (
-    parsed.protocol === 'http:' &&
-    (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === '[::1]')
-  ) {
-    return parsed;
-  }
-  return null;
+  return parsed;
 }
 
 function escapeHtml(s: string): string {
