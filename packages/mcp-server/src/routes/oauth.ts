@@ -1,6 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { createHash } from 'node:crypto';
-import { getToken, decode } from 'next-auth/jwt';
+import { createHmac } from 'node:crypto';
 import { envConfig } from '../config/env.js';
 import {
   findOAuthClient,
@@ -99,69 +98,48 @@ function tokenError(error: string): { status: number; body: string } {
   };
 }
 
-async function getSessionEmail(req: FastifyRequest): Promise<string | null> {
-  if (!NEXTAUTH_SECRET) {
-    req.log.warn('[oauth] NEXTAUTH_SECRET is not set — cannot verify session');
+/**
+ * Cookie name for the cross-subdomain session bridge.
+ * Set by the hub's /api/auth/mcp-bridge endpoint — a simple HMAC-signed
+ * token (email|expiry|signature) that avoids the jose/JWE version-mismatch
+ * issues with reading the NextAuth session cookie directly.
+ */
+const BRIDGE_COOKIE_NAME = '__Hub-mcp-bridge';
+
+/** Verify the bridge cookie and return the email, or null if invalid/missing. */
+function getSessionEmail(req: FastifyRequest): string | null {
+  if (!NEXTAUTH_SECRET) return null;
+
+  const rawCookieHeader = req.headers.cookie ?? '';
+  const match = rawCookieHeader.match(
+    new RegExp(`(?:^|;\\s*)${BRIDGE_COOKIE_NAME}=([^;]*)`),
+  );
+  if (!match?.[1]) return null;
+
+  const token = decodeURIComponent(match[1]);
+  const parts = token.split('|');
+  if (parts.length !== 3) return null;
+
+  const [email, expiryStr, sig] = parts;
+  const expiry = Number(expiryStr);
+  if (!email || !Number.isFinite(expiry)) return null;
+
+  // Check expiry
+  if (Date.now() > expiry) {
+    req.log.info('[oauth] Bridge cookie expired');
     return null;
   }
-  try {
-    const rawCookieHeader = req.headers.cookie ?? '';
-    const secureCookieName = '__Secure-next-auth.session-token';
-    const plainCookieName = 'next-auth.session-token';
-    const hasSecureCookie = rawCookieHeader.includes(secureCookieName);
-    const hasPlainCookie = rawCookieHeader.includes(plainCookieName);
-    req.log.info(
-      `[oauth] Cookie header present: ${!!rawCookieHeader}, hasSecureCookie: ${hasSecureCookie}, hasPlainCookie: ${hasPlainCookie}, header length: ${rawCookieHeader.length}`,
-    );
 
-    // Log a hash of the secret so we can compare with the hub without exposing it
-    const secretHash = createHash('sha256')
-      .update(NEXTAUTH_SECRET)
-      .digest('hex')
-      .slice(0, 12);
-    req.log.info(`[oauth] NEXTAUTH_SECRET hash prefix: ${secretHash}, length: ${NEXTAUTH_SECRET.length}`);
-
-    // Extract cookie value manually to try direct decode
-    const cookieMatch = rawCookieHeader.match(
-      new RegExp(`(?:^|;\\s*)${secureCookieName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=([^;]*)`),
-    );
-    const cookieValue = cookieMatch?.[1] ?? null;
-    req.log.info(
-      `[oauth] Extracted cookie value: ${cookieValue ? `${cookieValue.length} chars, starts with: ${cookieValue.slice(0, 20)}...` : 'null'}`,
-    );
-
-    if (cookieValue) {
-      // Try manual decode with different salt values
-      for (const salt of [secureCookieName, plainCookieName, 'next-auth.session-token']) {
-        try {
-          const decoded = await decode({ token: cookieValue, secret: NEXTAUTH_SECRET, salt });
-          req.log.info(`[oauth] Manual decode with salt="${salt}": ${decoded ? `email=${decoded.email}` : 'null'}`);
-          if (decoded?.email) return String(decoded.email);
-        } catch (decodeErr) {
-          req.log.warn(`[oauth] Manual decode with salt="${salt}" threw: ${decodeErr}`);
-        }
-      }
-    }
-
-    // Also try getToken as before
-    const adaptedReq = {
-      headers: req.headers as Record<string, string | string[] | undefined>,
-      cookies: (req as unknown as { cookies?: Record<string, string> }).cookies ?? {},
-      method: req.method,
-      url: req.url,
-      body: req.body,
-    };
-    const token = await getToken({
-      req: adaptedReq as Parameters<typeof getToken>[0]['req'],
-      secret: NEXTAUTH_SECRET,
-    });
-    req.log.info(`[oauth] getToken (auto-detect) result: ${token ? `email=${token.email}` : 'null'}`);
-    if (!token?.email) return null;
-    return String(token.email);
-  } catch (err) {
-    req.log.error(`[oauth] getSessionEmail error: ${err}`);
+  // Verify HMAC signature
+  const payload = `${email}|${expiryStr}`;
+  const expectedSig = createHmac('sha256', NEXTAUTH_SECRET).update(payload).digest('base64url');
+  if (sig !== expectedSig) {
+    req.log.warn('[oauth] Bridge cookie signature mismatch');
     return null;
   }
+
+  req.log.info(`[oauth] Bridge cookie valid for email=${email}`);
+  return email;
 }
 
 // ---------------------------------------------------------------------------
@@ -229,13 +207,13 @@ export async function oauthRoutes(app: FastifyInstance) {
       return reply.status(400).send('Unknown client_id');
     }
 
-    const email = await getSessionEmail(req);
+    const email = getSessionEmail(req);
     if (!email) {
-      // Use the full external URL so NextAuth redirects back to the MCP server
-      // (not to the hub) after login.
+      // Redirect through the hub's bridge endpoint which verifies the NextAuth
+      // session and sets a simple HMAC cookie readable by this MCP server.
       const fullUrl = `${req.protocol}://${req.hostname}${req.url}`;
-      const loginUrl = `${envConfig.HUB_URL}/auth/signin?callbackUrl=${encodeURIComponent(fullUrl)}`;
-      return reply.redirect(loginUrl);
+      const bridgeUrl = `${envConfig.HUB_URL}/api/auth/mcp-bridge?redirect=${encodeURIComponent(fullUrl)}`;
+      return reply.redirect(bridgeUrl);
     }
 
     if (EMAIL_WHITELIST.length > 0 && !EMAIL_WHITELIST.includes(email.toLowerCase())) {
@@ -275,7 +253,7 @@ export async function oauthRoutes(app: FastifyInstance) {
     const client = await findOAuthClient(clientId);
     if (!client) return sendError('invalid_client');
 
-    const email = await getSessionEmail(req);
+    const email = getSessionEmail(req);
     if (!email) return sendError('login_required');
 
     if (EMAIL_WHITELIST.length > 0 && !EMAIL_WHITELIST.includes(email.toLowerCase())) {
