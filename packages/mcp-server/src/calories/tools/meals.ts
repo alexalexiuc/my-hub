@@ -1,25 +1,47 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { logMeal, getMeals, deleteMeal } from '@my-hub/shared/services';
+import {
+  logMeal,
+  getMeals,
+  deleteMeal,
+  getCalorieProfile,
+  getMealsForDate,
+  getLatestMeasurementsPerType,
+} from '@my-hub/shared/services';
 import { omitNullish } from '@my-hub/shared/utils';
 import { MealType, DEFAULT_MEAL_LIMIT, MAX_MEAL_LIMIT } from '../constants';
 import type { MealEntry } from '../types';
 import type { MealLog } from '@my-hub/shared/types';
+import { rowToProfile, profileToTargets } from './profile';
 
 const yyyyMmDdSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD');
+
+const MealItemSchema = z.object({
+  name: z.string().describe('Name of the food item, e.g. "grilled chicken breast"'),
+  calories: z.number().int().positive().describe('Estimated calories for this item'),
+  protein_g: z.number().positive().optional().describe('Estimated protein in grams'),
+  carbs_g: z.number().positive().optional().describe('Estimated carbs in grams'),
+  fat_g: z.number().positive().optional().describe('Estimated fat in grams'),
+});
 
 const LogMealSchema = z.object({
   description: z
     .string()
     .describe(
-      'What was eaten — describe the meal as seen in the photo or as told by the user, e.g. "grilled chicken breast with rice and salad"',
+      'What was eaten — describe the meal as seen in the photo or as told by the user, e.g. "grilled chicken breast with rice and salad". If multiple foods are present, include them in a single call using the items array instead of making multiple calls.',
+    ),
+  items: z
+    .array(MealItemSchema)
+    .optional()
+    .describe(
+      'Individual food items that make up the meal. When the meal consists of multiple distinct foods (e.g. burger + fries + drink), list each one here so they are tracked separately. If provided, each item is logged as its own entry.',
     ),
   calories: z
     .number()
     .int()
     .positive()
     .describe(
-      'Estimated calorie content of the meal. If analyzing a photo, estimate based on visible portion sizes and typical nutritional values.',
+      'Total estimated calorie content of the meal. If analyzing a photo, estimate based on visible portion sizes and typical nutritional values. When items are provided this should equal the sum of all item calories.',
     ),
   meal_type: z
     .nativeEnum(MealType)
@@ -61,7 +83,7 @@ export function registerMealTools(server: McpServer) {
     'calories_log_meal',
     {
       description:
-        'Log a meal and its calorie content. Use this after analyzing a food photo or when the user describes what they ate. The model should estimate calories and optionally macros before calling this tool.',
+        'Log a meal and its calorie content. Use this after analyzing a food photo or when the user describes what they ate. The model should estimate calories and optionally macros before calling this tool. If the meal consists of multiple distinct foods (e.g. burger + fries), use the items array to log them all in a single call instead of calling this tool multiple times.',
       inputSchema: LogMealSchema.shape,
       annotations: { idempotentHint: false, destructiveHint: false },
     },
@@ -70,7 +92,6 @@ export function registerMealTools(server: McpServer) {
       if (!userId) throw new Error('Authentication required');
       const today = new Date().toISOString().split('T')[0]!;
       const date = input.date ?? today;
-      const mealId = crypto.randomUUID();
 
       let meal_type = input.meal_type;
       if (!meal_type) {
@@ -81,28 +102,78 @@ export function registerMealTools(server: McpServer) {
         else meal_type = MealType.SNACK;
       }
 
-      const row = await logMeal({
-        mealId,
-        userId,
-        date,
-        mealType: meal_type,
-        description: input.description,
-        kcal: input.calories,
-        protein: input.protein_g ?? null,
-        carbs: input.carbs_g ?? null,
-        fat: input.fat_g ?? null,
-        notes: input.notes ?? null,
-      });
+      // Determine items to log: individual items if provided, otherwise the whole meal as one entry
+      const itemsToLog =
+        input.items && input.items.length > 0
+          ? input.items.map((item) => ({
+              description: item.name,
+              kcal: item.calories,
+              protein: item.protein_g ?? null,
+              carbs: item.carbs_g ?? null,
+              fat: item.fat_g ?? null,
+            }))
+          : [
+              {
+                description: input.description,
+                kcal: input.calories,
+                protein: input.protein_g ?? null,
+                carbs: input.carbs_g ?? null,
+                fat: input.fat_g ?? null,
+              },
+            ];
+
+      const rows = await Promise.all(
+        itemsToLog.map((item) =>
+          logMeal({
+            mealId: crypto.randomUUID(),
+            userId,
+            date,
+            mealType: meal_type,
+            description: item.description,
+            kcal: item.kcal,
+            protein: item.protein,
+            carbs: item.carbs,
+            fat: item.fat,
+            notes: input.notes ?? null,
+          }),
+        ),
+      );
+
+      // Fetch remaining calories for the day (includes the meals just logged)
+      const [profileRow, dayRows, latestMeasurements] = await Promise.all([
+        getCalorieProfile(userId),
+        getMealsForDate(userId, date),
+        getLatestMeasurementsPerType(userId),
+      ]);
+
+      const profile = profileRow ? rowToProfile(profileRow) : {};
+      const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
+      const targets = profileToTargets(profile, weightM?.value);
+      const maxCal = targets.maxCalories;
+      const caloriesConsumed = dayRows.reduce((s, r) => s + (r.kcal ?? 0), 0);
+      const remainingCalories = maxCal !== null ? maxCal - caloriesConsumed : null;
+
+      const remaining = {
+        calories_consumed: caloriesConsumed,
+        goal_calories: targets.goalCalories,
+        min_calories: targets.minCalories,
+        max_calories: maxCal,
+        remaining_calories: remainingCalories,
+        over_budget: remainingCalories !== null ? remainingCalories < 0 : null,
+      };
 
       return toolResponse({
-        meal_id: row.mealId,
-        date,
-        meal_type,
-        description: input.description,
-        calories: input.calories,
-        protein_g: input.protein_g ?? null,
-        carbs_g: input.carbs_g ?? null,
-        fat_g: input.fat_g ?? null,
+        meals: rows.map((row) => ({
+          meal_id: row.mealId,
+          date,
+          meal_type,
+          description: row.description,
+          calories: row.kcal,
+          protein_g: row.protein ?? null,
+          carbs_g: row.carbs ?? null,
+          fat_g: row.fat ?? null,
+        })),
+        remaining,
       });
     },
   );
