@@ -21,25 +21,25 @@ route redirects to `/calories`.
 
 ### Functional Requirements
 
-| ID    | Requirement                                                                                                                     |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------- |
-| FR-01 | The main dashboard must display the user's display name as a greeting in the header when a name is set.                         |
-| FR-02 | The main dashboard must display an interactive **Todo widget** showing open todos with inline add and mark-done functionality.   |
-| FR-03 | The main dashboard must display an interactive **Calories widget** with a circular progress ring, macros, and quick meal add.   |
-| FR-04 | The main dashboard must display app tiles linking to each feature dashboard (Calories, Todo).                                   |
-| FR-05 | The main dashboard must display a Setup section with a link to MCP Control.                                                     |
-| FR-06 | The main dashboard header must include a Profile icon link and a Sign-out button.                                               |
-| FR-07 | The main dashboard must display a footer with links to Terms of Use, Privacy Policy, and Contact Us.                            |
-| FR-08 | While data is loading, a skeleton placeholder must be shown instead of partially rendered content.                               |
+| ID    | Requirement                                                                                                                    |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------ |
+| FR-01 | The main dashboard must display the user's display name as a greeting in the header when a name is set.                        |
+| FR-02 | The main dashboard must display an interactive **Todo widget** showing open todos with inline add and mark-done functionality. |
+| FR-03 | The main dashboard must display an interactive **Calories widget** with a circular progress ring, macros, and quick meal add.  |
+| FR-04 | The main dashboard must display app tiles linking to each feature dashboard (Calories, Todo).                                  |
+| FR-05 | The main dashboard must display a Setup section with a link to MCP Control.                                                    |
+| FR-06 | The main dashboard header must include a Profile icon link and a Sign-out button.                                              |
+| FR-07 | The main dashboard must display a footer with links to Terms of Use, Privacy Policy, and Contact Us.                           |
+| FR-08 | While data is loading, a skeleton placeholder must be shown instead of partially rendered content.                             |
 
 ### Technical Requirements
 
-| ID    | Requirement                                                                                                                          |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| TR-01 | The page is a client component (`"use client"`) at `packages/hub/src/app/page.tsx`.                                                  |
-| TR-02 | Data is fetched in parallel: `GET /api/calories/profile`, `GET /api/calories/meals?date=<today>`, and `GET /api/todo`.               |
-| TR-03 | TDEE calculation is done client-side using the same Mifflin-St Jeor formula as the server.                                           |
-| TR-04 | Dashboard header, footer, todo widget, calories widget, and circular progress are in `packages/hub/src/components/dashboard/`.       |
+| ID    | Requirement                                                                                                                    |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------ |
+| TR-01 | The page is a client component (`"use client"`) at `packages/hub/src/app/page.tsx`.                                            |
+| TR-02 | Data is fetched in parallel: `GET /api/calories/profile`, `GET /api/calories/meals?date=<today>`, and `GET /api/todo`.         |
+| TR-03 | TDEE calculation is done client-side using the same Mifflin-St Jeor formula as the server.                                     |
+| TR-04 | Dashboard header, footer, todo widget, calories widget, and circular progress are in `packages/hub/src/components/dashboard/`. |
 
 ---
 
@@ -47,20 +47,20 @@ route redirects to `/calories`.
 
 ### Functional Requirements
 
-| ID    | Requirement                                                                                                           |
-| ----- | --------------------------------------------------------------------------------------------------------------------- |
-| FR-07 | The Calories dashboard must display the user's calorie profile (age, sex, activity, height, weight, daily target).    |
-| FR-08 | The user must be able to edit the calorie profile inline without leaving the page.                                    |
+| ID    | Requirement                                                                                                                |
+| ----- | -------------------------------------------------------------------------------------------------------------------------- |
+| FR-07 | The Calories dashboard must display the user's calorie profile (age, sex, activity, height, weight, daily target).         |
+| FR-08 | The user must be able to edit the calorie profile inline without leaving the page.                                         |
 | FR-09 | The Calories dashboard must display meals grouped by meal type with per-meal macros, kcal total, and a totals summary row. |
 | FR-10 | The user must be able to add a meal from the Calories dashboard (description, type, date, kcal, macros, notes).            |
 | FR-11 | The user must be able to delete a meal from the Calories dashboard.                                                        |
-| FR-16 | The user must be able to edit an existing meal inline (click to expand edit form with all fields).                          |
+| FR-16 | The user must be able to edit an existing meal inline (click to expand edit form with all fields).                         |
 | FR-17 | The meals section must support date navigation (prev/next arrows) to browse meals from past dates.                         |
 | FR-18 | The meals section must show a slim progress bar indicating consumed vs target calories.                                    |
-| FR-12 | The Calories dashboard must display the latest body measurement for each recorded type in a summary grid.             |
-| FR-13 | The user must be able to log a new body measurement from the Calories dashboard (type, value, date, notes).           |
-| FR-14 | The user must be able to delete a body measurement entry from the Calories dashboard.                                 |
-| FR-15 | All data on the Calories dashboard must refresh after any add/delete action without a full page reload.               |
+| FR-12 | The Calories dashboard must display the latest body measurement for each recorded type in a summary grid.                  |
+| FR-13 | The user must be able to log a new body measurement from the Calories dashboard (type, value, date, notes).                |
+| FR-14 | The user must be able to delete a body measurement entry from the Calories dashboard.                                      |
+| FR-15 | All data on the Calories dashboard must refresh after any add/delete action without a full page reload.                    |
 
 ### Technical Requirements
 

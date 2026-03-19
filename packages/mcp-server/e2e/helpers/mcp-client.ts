@@ -8,7 +8,9 @@ export type McpClient = Client;
  * The Bearer token is attached to every request via requestInit headers.
  */
 export async function createMcpClient(baseUrl: string, path: string, token: string): Promise<McpClient> {
-  const url = new URL(path, baseUrl);
+  const pathWithApiPrefix = path.startsWith('/api/') ? path : `/api${path}`;
+  const url = new URL(pathWithApiPrefix, baseUrl);
+  console.log(`Connecting MCP client to ${url} with token ${token.slice(0, 4)}...`);
   const transport = new StreamableHTTPClientTransport(url, {
     requestInit: {
       headers: { Authorization: `Bearer ${token}` },
