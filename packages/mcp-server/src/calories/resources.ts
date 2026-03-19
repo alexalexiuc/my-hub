@@ -2,13 +2,13 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   getCalorieProfile,
   getLatestMeasurementsPerType,
-  getMealsForDate,
   getMealsForDateRange,
   getMeasurements,
 } from '@my-hub/shared/services';
 import { rowToProfile, profileToTargets } from './models/profile';
 import { rowToMealEntry } from './models/meals';
 import { sumMeals, getWeekBounds } from './models/summary';
+import { buildDailySummary } from './models/daily';
 
 function today(): string {
   return new Date().toISOString().split('T')[0]!;
@@ -20,11 +20,11 @@ function daysAgo(n: number): string {
   return d.toISOString().split('T')[0]!;
 }
 
-function resourceResponse(payload: unknown) {
+function resourceResponse(uri: URL | string, payload: unknown) {
   return {
     contents: [
       {
-        uri: '',
+        uri: uri.toString(),
         mimeType: 'application/json',
         text: JSON.stringify(payload, null, 2),
       },
@@ -45,7 +45,7 @@ export function registerCaloriesResources(server: McpServer): void {
         "Current calorie profile including TDEE, goal targets (goal_calories, min_calories, max_calories), and latest body measurements. Read this first to understand the user's setup.",
       mimeType: 'application/json',
     },
-    async (_uri, extra) => {
+    async (uri, extra) => {
       const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
       if (!userId) throw new Error('Authentication required');
 
@@ -58,7 +58,7 @@ export function registerCaloriesResources(server: McpServer): void {
       const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
       const targets = profileToTargets(profile, weightM?.value);
 
-      return resourceResponse({
+      return resourceResponse(uri, {
         profile,
         calculated: {
           tdee: targets.tdee,
@@ -89,45 +89,12 @@ export function registerCaloriesResources(server: McpServer): void {
         "All meals logged today with totals (kcal, macros) and progress against the user's daily calorie targets.",
       mimeType: 'application/json',
     },
-    async (_uri, extra) => {
+    async (uri, extra) => {
       const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
       if (!userId) throw new Error('Authentication required');
 
-      const date = today();
-      const [profileRow, dayRows, latestMeasurements] = await Promise.all([
-        getCalorieProfile(userId),
-        getMealsForDate(userId, date),
-        getLatestMeasurementsPerType(userId),
-      ]);
-
-      const profile = profileRow ? rowToProfile(profileRow) : {};
-      const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
-      const targets = profileToTargets(profile, weightM?.value);
-
-      const meals = dayRows.map(rowToMealEntry);
-      const totalKcal = meals.reduce((s, m) => s + m.calories, 0);
-      const totalProtein = meals.reduce((s, m) => s + (m.protein_g ?? 0), 0);
-      const totalCarbs = meals.reduce((s, m) => s + (m.carbs_g ?? 0), 0);
-      const totalFat = meals.reduce((s, m) => s + (m.fat_g ?? 0), 0);
-      const maxCal = targets.maxCalories;
-      const remaining = maxCal !== null ? maxCal - totalKcal : null;
-
-      return resourceResponse({
-        date,
-        meals,
-        totals: {
-          calories: totalKcal,
-          protein_g: totalProtein || null,
-          carbs_g: totalCarbs || null,
-          fat_g: totalFat || null,
-          meal_count: meals.length,
-        },
-        goal_calories: targets.goalCalories,
-        min_calories: targets.minCalories,
-        max_calories: maxCal,
-        remaining_calories: remaining,
-        over_budget: remaining !== null ? remaining < 0 : null,
-      });
+      const summary = await buildDailySummary(userId, today());
+      return resourceResponse(uri, summary);
     },
   );
 
@@ -143,7 +110,7 @@ export function registerCaloriesResources(server: McpServer): void {
         'Last 7 days of daily calorie intake totals and weight measurements. Useful for spotting trends and progress toward the weight goal.',
       mimeType: 'application/json',
     },
-    async (_uri, extra) => {
+    async (uri, extra) => {
       const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
       if (!userId) throw new Error('Authentication required');
 
@@ -175,7 +142,7 @@ export function registerCaloriesResources(server: McpServer): void {
         cur.setUTCDate(cur.getUTCDate() + 1);
       }
 
-      return resourceResponse({
+      return resourceResponse(uri, {
         period: { start: startDate, end: endDate },
         goal_calories: targets.goalCalories,
         max_calories: targets.maxCalories,
@@ -201,7 +168,7 @@ export function registerCaloriesResources(server: McpServer): void {
         'Calorie summary for each day of the current week (Mon–Sun). Shows daily totals, macros, and weekly average vs target.',
       mimeType: 'application/json',
     },
-    async (_uri, extra) => {
+    async (uri, extra) => {
       const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
       if (!userId) throw new Error('Authentication required');
 
@@ -235,7 +202,7 @@ export function registerCaloriesResources(server: McpServer): void {
       const weeklyAverage = daysWithData > 0 ? Math.round(totalCalories / daysWithData) : 0;
       const weeklyTarget = goalCal !== null ? goalCal * 7 : null;
 
-      return resourceResponse({
+      return resourceResponse(uri, {
         week: { start, end },
         days,
         weekly_total_calories: totalCalories,

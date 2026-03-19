@@ -21,7 +21,7 @@ import type { MeasurementTypeKey } from '@my-hub/shared/types';
 import { rowToProfile, profileToTargets } from './models/profile';
 import { rowToMealEntry } from './models/meals';
 import { rowToMeasurementEntry } from './models/measurements';
-import { sumMeals } from './models/summary';
+import { buildDailySummary } from './models/daily';
 
 const yyyyMmDdSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD');
 
@@ -395,54 +395,19 @@ export function registerCaloriesTools(server: McpServer): void {
     'calories_get_daily_summary',
     {
       description:
-        'Get a full calorie and macro summary for a given day, broken down by meal. Also shows progress against the daily target. For today use the calories://today resource instead.',
+        'Get a full calorie and macro summary for a specific past or custom date, broken down by meal type. ' +
+        'Shows progress against daily targets and whether the goal was met. ' +
+        "For today's summary, always use the calories://today resource instead — it is faster and always up to date. " +
+        'Use this tool only for past or specific dates (e.g. "what did I eat last Monday?").',
       inputSchema: GetDailySummarySchema.shape,
       annotations: { readOnlyHint: true },
     },
     async (input: GetDailySummaryInput, extra) => {
       const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
       if (!userId) throw new Error('Authentication required');
-      const today = new Date().toISOString().split('T')[0]!;
-      const date = input.date ?? today;
-
-      const [profileRow, dayRows, latestMeasurements] = await Promise.all([
-        getCalorieProfile(userId),
-        getMealsForDate(userId, date),
-        getLatestMeasurementsPerType(userId),
-      ]);
-
-      const profile = profileRow ? rowToProfile(profileRow) : {};
-      const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
-      const targets = profileToTargets(profile, weightM?.value);
-      const meals = dayRows.map(rowToMealEntry);
-      const totals = sumMeals(meals);
-      const goalCal = targets.goalCalories;
-      const maxCal = targets.maxCalories;
-      const remaining = maxCal !== null ? maxCal - totals.calories : null;
-
-      // goal_met: for weight_loss stay under max; for weight_gain hit the goal; otherwise hit goal
-      const goalType = 'goal_type' in profile ? profile.goal_type : null;
-      let goalMet: boolean | null = null;
-      if (maxCal !== null) {
-        goalMet = goalType === 'weight_gain' ? totals.calories >= (goalCal ?? maxCal) : totals.calories <= maxCal;
-      }
-
-      return toolResponse({
-        date,
-        meals,
-        totals: {
-          calories: totals.calories,
-          protein_g: totals.protein_g || null,
-          carbs_g: totals.carbs_g || null,
-          fat_g: totals.fat_g || null,
-          meal_count: meals.length,
-        },
-        goal_calories: goalCal,
-        min_calories: targets.minCalories,
-        max_calories: maxCal,
-        remaining_calories: remaining,
-        goal_met: goalMet,
-      });
+      const date = input.date ?? new Date().toISOString().split('T')[0]!;
+      const summary = await buildDailySummary(userId, date);
+      return toolResponse(summary);
     },
   );
 
