@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-user';
 import { deleteMeal, updateMeal } from '@my-hub/shared/services';
-import { z } from 'zod';
 
-const MealUpdateSchema = z.object({
-  description: z.string().min(1).optional(),
-  kcal: z.coerce.number().optional(),
-  protein: z.coerce.number().optional(),
-  carbs: z.coerce.number().optional(),
-  fat: z.coerce.number().optional(),
-  mealType: z.string().optional(),
-  notes: z.string().optional(),
-});
+type MealUpdateBody = {
+  description?: string;
+  kcal?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  mealType?: string;
+  notes?: string;
+};
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ mealId: string }> }) {
   const user = await getAuthUser();
@@ -19,22 +18,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ mealId
 
   const { mealId } = await params;
 
-  let body: unknown;
+  let body: MealUpdateBody;
   try {
-    body = await req.json();
+    body = (await req.json()) as MealUpdateBody;
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const result = MealUpdateSchema.safeParse(body);
-  if (!result.success) {
-    return NextResponse.json(
-      { error: 'Invalid request body', details: result.error.format() },
-      { status: 400 },
-    );
-  }
-
-  const updated = await updateMeal(user.id, mealId, result.data);
+  const updated = await updateMeal(user.id, mealId, body);
   if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   return NextResponse.json({ meal: updated });
