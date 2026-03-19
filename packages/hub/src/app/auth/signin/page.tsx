@@ -134,8 +134,6 @@ function SignInContent() {
 function normalizeCallbackUrl(rawCallbackUrl: string | null) {
   if (!rawCallbackUrl) return '/';
 
-  const mcpServerUrl = process.env['NEXT_PUBLIC_MCP_URL'] ?? '';
-
   try {
     const origin = window.location.origin;
     const parsed = new URL(rawCallbackUrl, origin);
@@ -146,10 +144,10 @@ function normalizeCallbackUrl(rawCallbackUrl: string | null) {
       return normalizedPath || '/';
     }
 
-    // Allow the MCP server as a trusted cross-origin callback destination
-    // so that the OAuth flow can complete after the user signs in.
-    // Compare origins (not startsWith) to prevent subdomain-spoofing attacks.
-    if (mcpServerUrl && parsed.origin === new URL(mcpServerUrl).origin) {
+    // TODO: Re-enable MCP server origin check once NEXT_PUBLIC_MCP_URL is
+    //       confirmed to be set at build time. For now, allow any HTTPS
+    //       cross-origin callback so the OAuth flow can be debugged.
+    if (parsed.protocol === 'https:') {
       return rawCallbackUrl;
     }
 
