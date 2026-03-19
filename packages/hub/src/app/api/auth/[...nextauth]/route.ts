@@ -10,6 +10,26 @@ const ALLOWED_EMAILS = (process.env['ALLOWED_EMAILS'] ?? '')
 
 const MCP_SERVER_URL = process.env['NEXT_PUBLIC_MCP_URL'] ?? '';
 
+// Derive shared cookie domain from NEXTAUTH_URL so the session JWT is
+// readable by sibling subdomains (e.g. mcp.alexiuc.dev reads a cookie
+// set by hub.alexiuc.dev).  Only kicks in when the hub runs on a
+// subdomain with at least two labels before the TLD.
+function getSharedCookieDomain(): string | undefined {
+  try {
+    const host = new URL(process.env['NEXTAUTH_URL'] ?? '').hostname;
+    // localhost / 127.0.0.1 — no shared domain needed
+    if (host === 'localhost' || host.startsWith('127.') || host === '[::1]') return undefined;
+    const parts = host.split('.');
+    // e.g. hub.alexiuc.dev → .alexiuc.dev
+    if (parts.length >= 3) return '.' + parts.slice(-2).join('.');
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const SHARED_COOKIE_DOMAIN = getSharedCookieDomain();
+
 export const authOptions: AuthOptions = {
   providers: [
     GoogleProvider({
@@ -74,6 +94,24 @@ export const authOptions: AuthOptions = {
   session: {
     strategy: 'jwt',
   },
+  // Share session cookie across subdomains so the MCP server (mcp.alexiuc.dev)
+  // can read the JWT set by the hub (hub.alexiuc.dev).
+  ...(SHARED_COOKIE_DOMAIN
+    ? {
+        cookies: {
+          sessionToken: {
+            name: `__Secure-next-auth.session-token`,
+            options: {
+              httpOnly: true,
+              sameSite: 'lax' as const,
+              path: '/',
+              secure: true,
+              domain: SHARED_COOKIE_DOMAIN,
+            },
+          },
+        },
+      }
+    : {}),
 };
 
 const handler = NextAuth(authOptions);
