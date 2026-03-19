@@ -38,11 +38,14 @@ export const getMyDataResource: ReadResourceCallback = async (uri, extra) => {
 
   // ... fetch data, compute, etc.
 
-  return resourceResponse(uri, { /* structured output */ });
+  return resourceResponse(uri, {
+    /* structured output */
+  });
 };
 ```
 
 Key rules:
+
 - Always extract `userId` from `extra.authInfo?.extra?.['userId']`.
 - Return via `resourceResponse(uri, payload)` — this wraps the payload as MCP resource content
   with `mimeType: 'application/json'` and pretty-printed JSON.
@@ -91,25 +94,27 @@ defineResource({
 
 ## Shared utilities reference
 
-| Utility | Location | Purpose |
-|---|---|---|
-| `resourceResponse(uri, payload)` | `../../shared/resourcesUtils` | Wrap any object as MCP resource response |
-| `defineResource(def)` | `../../shared/toolsUtils` | Type-safe resource definition (used in index.ts) |
-| `withUserIdCheckResource(cb)` | `../../shared/toolsUtils` | Auth middleware (applied automatically in registerCaloriesResources) |
-| `today()` | `../../shared/dateUTils` | Returns today's date as "YYYY-MM-DD" |
-| `daysAgo(n)` | `../../shared/dateUTils` | Returns "YYYY-MM-DD" for n days ago |
-| `buildDailySummary(userId, date)` | `../models/daily` | Full daily summary (meals + targets + macros) |
-| `getWeekBounds(dateStr)` | `../models/summary` | Monday–Sunday bounds for a given date |
-| `sumMeals(meals)` | `../models/summary` | Aggregate calories + macros from a meals array |
+| Utility                           | Location                      | Purpose                                                              |
+| --------------------------------- | ----------------------------- | -------------------------------------------------------------------- |
+| `resourceResponse(uri, payload)`  | `../../shared/resourcesUtils` | Wrap any object as MCP resource response                             |
+| `defineResource(def)`             | `../../shared/toolsUtils`     | Type-safe resource definition (used in index.ts)                     |
+| `withUserIdCheckResource(cb)`     | `../../shared/toolsUtils`     | Auth middleware (applied automatically in registerCaloriesResources) |
+| `today()`                         | `../../shared/dateUTils`      | Returns today's date as "YYYY-MM-DD"                                 |
+| `daysAgo(n)`                      | `../../shared/dateUTils`      | Returns "YYYY-MM-DD" for n days ago                                  |
+| `buildDailySummary(userId, date)` | `../models/daily`             | Full daily summary (meals + targets + macros)                        |
+| `getWeekBounds(dateStr)`          | `../models/summary`           | Monday–Sunday bounds for a given date                                |
+| `sumMeals(meals)`                 | `../models/summary`           | Aggregate calories + macros from a meals array                       |
 
 ## Tools vs Resources — when to use which
 
 Use a **resource** when:
+
 - The data has a stable, addressable identity (today's summary, this week's data, the user profile)
 - No input parameters are needed beyond the user's identity
 - Claude should read the data as background context before acting
 
 Use a **tool** when:
+
 - The operation requires user-supplied parameters (a date, an ID, a filter)
 - The operation writes or mutates data
 - The operation is an action rather than a data lookup
