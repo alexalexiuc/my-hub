@@ -1,6 +1,6 @@
 import { ReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { buildDailySummary } from '../models/daily';
-import { today } from '../../shared/dateUTils';
+import { today } from '../../shared/dateUtils';
 import { resourceResponse } from '../../shared/resourcesUtils';
 
 export const getTodayResource: ReadResourceCallback = async (uri, extra) => {

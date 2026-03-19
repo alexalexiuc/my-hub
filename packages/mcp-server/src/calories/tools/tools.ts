@@ -26,7 +26,7 @@ const caloriesTools = [
   defineTool({
     name: 'calories_get_meals',
     description:
-      'Retrieve logged meal entries. Filter by date or meal type. Useful for reviewing what was eaten on a given day.',
+      'Retrieve individual meal entries with their meal_ids, descriptions, calories, and macros. Use when you need to inspect or delete specific entries (meal_id is required for deletion). For calorie summaries and trends, use calories://today, calories://history-7days, or calories://history-30days instead.',
     inputSchema: GetMealsSchema.shape,
     annotations: { readOnlyHint: true },
     callback: getMealsTool,
@@ -56,10 +56,10 @@ const caloriesTools = [
   defineTool({
     name: 'calories_get_daily_summary',
     description:
-      'Get a full calorie and macro summary for a specific past or custom date, broken down by meal type. ' +
+      'Get a full calorie and macro summary for a specific date, broken down by meal type. ' +
       'Shows progress against daily targets and whether the goal was met. ' +
-      "For today's summary, always use the calories://today resource instead — it is faster and always up to date. " +
-      'Use this tool only for past or specific dates (e.g. "what did I eat last Monday?").',
+      'For today use calories://today. For dates within the last 7 or 30 days, prefer calories://history-7days or calories://history-30days. ' +
+      'Use this tool for dates older than 30 days.',
     inputSchema: GetDailySummarySchema.shape,
     annotations: { readOnlyHint: true },
     callback: getDailySummaryTool,
