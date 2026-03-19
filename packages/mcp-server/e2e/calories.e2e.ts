@@ -23,7 +23,7 @@ interface GetMealsResult {
   next_offset: number | null;
 }
 
-interface LogMealResult {
+interface LoggedMeal {
   meal_id: string;
   date: string;
   meal_type: string;
@@ -32,6 +32,20 @@ interface LogMealResult {
   protein_g: number | null;
   carbs_g: number | null;
   fat_g: number | null;
+}
+
+interface RemainingInfo {
+  calories_consumed: number;
+  goal_calories: number | null;
+  min_calories: number | null;
+  max_calories: number | null;
+  remaining_calories: number | null;
+  over_budget: boolean | null;
+}
+
+interface LogMealResult {
+  meals: LoggedMeal[];
+  remaining: RemainingInfo;
 }
 
 interface DeleteMealResult {
@@ -51,6 +65,7 @@ interface DeleteMealResult {
 describe.sequential('calories — meal lifecycle', () => {
   let client: McpClient;
   let mealId: string | undefined;
+  const itemMealIds: string[] = [];
 
   // Use a far-future date to avoid colliding with real meal data.
   // The server only validates YYYY-MM-DD format, not that the date is in the past.
@@ -65,10 +80,11 @@ describe.sequential('calories — meal lifecycle', () => {
   });
 
   afterAll(async () => {
-    // Best-effort cleanup: delete the test meal if it was logged but not yet deleted.
-    if (mealId) {
+    // Best-effort cleanup: delete test meals if not yet deleted.
+    const idsToClean = [...(mealId ? [mealId] : []), ...itemMealIds];
+    for (const id of idsToClean) {
       try {
-        await client.callTool({ name: 'calories_delete_meal', arguments: { meal_id: mealId } });
+        await client.callTool({ name: 'calories_delete_meal', arguments: { meal_id: id } });
       } catch {
         // Ignore — meal may already be deleted by a test.
       }
@@ -76,7 +92,7 @@ describe.sequential('calories — meal lifecycle', () => {
     await client.close();
   });
 
-  it('logs a meal and returns a meal_id', async () => {
+  it('logs a meal and returns meals array with remaining info', async () => {
     const result = await client.callTool({
       name: 'calories_log_meal',
       arguments: {
@@ -93,16 +109,61 @@ describe.sequential('calories — meal lifecycle', () => {
 
     const data = parseToolResult<LogMealResult>(result);
 
-    expect(data.meal_id).toBeTruthy();
-    expect(data.date).toBe(testDate);
-    expect(data.meal_type).toBe('lunch');
-    expect(data.description).toBe(mealDescription);
-    expect(data.calories).toBe(550);
-    expect(data.protein_g).toBe(42);
-    expect(data.carbs_g).toBe(60);
-    expect(data.fat_g).toBe(12);
+    expect(Array.isArray(data.meals)).toBe(true);
+    expect(data.meals).toHaveLength(1);
 
-    mealId = data.meal_id;
+    const meal = data.meals[0]!;
+    expect(meal.meal_id).toBeTruthy();
+    expect(meal.date).toBe(testDate);
+    expect(meal.meal_type).toBe('lunch');
+    expect(meal.description).toBe(mealDescription);
+    expect(meal.calories).toBe(550);
+    expect(meal.protein_g).toBe(42);
+    expect(meal.carbs_g).toBe(60);
+    expect(meal.fat_g).toBe(12);
+
+    expect(data.remaining).toBeDefined();
+    expect(typeof data.remaining.calories_consumed).toBe('number');
+
+    mealId = meal.meal_id;
+  });
+
+  it('logs a meal with multiple items and returns one entry per item', async () => {
+    const result = await client.callTool({
+      name: 'calories_log_meal',
+      arguments: {
+        description: `[e2e:${runId}] Burger meal`,
+        calories: 900,
+        meal_type: 'lunch',
+        date: testDate,
+        items: [
+          { name: `[e2e:${runId}] Burger`, calories: 600, protein_g: 30, fat_g: 25 },
+          { name: `[e2e:${runId}] Fries`, calories: 300, carbs_g: 40 },
+        ],
+      },
+    });
+
+    const data = parseToolResult<LogMealResult>(result);
+
+    expect(Array.isArray(data.meals)).toBe(true);
+    expect(data.meals).toHaveLength(2);
+
+    const [burger, fries] = data.meals as [LoggedMeal, LoggedMeal];
+    expect(burger.meal_id).toBeTruthy();
+    expect(burger.description).toBe(`[e2e:${runId}] Burger`);
+    expect(burger.calories).toBe(600);
+    expect(burger.protein_g).toBe(30);
+    expect(burger.fat_g).toBe(25);
+
+    expect(fries.meal_id).toBeTruthy();
+    expect(fries.description).toBe(`[e2e:${runId}] Fries`);
+    expect(fries.calories).toBe(300);
+    expect(fries.carbs_g).toBe(40);
+
+    expect(data.remaining).toBeDefined();
+    expect(typeof data.remaining.calories_consumed).toBe('number');
+
+    itemMealIds.push(burger.meal_id, fries.meal_id);
   });
 
   it('retrieves the logged meal with correct data', async () => {
