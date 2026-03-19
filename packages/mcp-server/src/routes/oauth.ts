@@ -111,9 +111,7 @@ function getSessionEmail(req: FastifyRequest): string | null {
   if (!NEXTAUTH_SECRET) return null;
 
   const rawCookieHeader = req.headers.cookie ?? '';
-  const match = rawCookieHeader.match(
-    new RegExp(`(?:^|;\\s*)${BRIDGE_COOKIE_NAME}=([^;]*)`),
-  );
+  const match = rawCookieHeader.match(new RegExp(`(?:^|;\\s*)${BRIDGE_COOKIE_NAME}=([^;]*)`));
   if (!match?.[1]) return null;
 
   const token = decodeURIComponent(match[1]);

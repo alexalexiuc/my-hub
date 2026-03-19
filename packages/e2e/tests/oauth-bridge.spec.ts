@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { createHmac } from 'node:crypto';
 
 const MCP_BASE_URL = process.env['E2E_MCP_BASE_URL'] ?? 'http://localhost:3001';
 
@@ -11,7 +10,7 @@ test.describe('OAuth Bridge Flow', () => {
     const bridgeUrl = `/api/auth/mcp-bridge?redirect=${encodeURIComponent(mcpAuthorizeUrl)}`;
 
     // Navigate to the bridge endpoint
-    const response = await page.goto(bridgeUrl);
+    await page.goto(bridgeUrl);
 
     // The bridge should redirect us to the MCP server authorize URL.
     // Since the MCP server may not be running in e2e, we check the redirect target
@@ -26,7 +25,6 @@ test.describe('OAuth Bridge Flow', () => {
     expect(bridgeCookie!.httpOnly).toBe(true);
 
     // Verify the bridge cookie value is a valid HMAC-signed token
-    const tokenParts = bridgeCookie!.value.split('|');
     // Cookie value may be URL-encoded, so decode first
     const decoded = decodeURIComponent(bridgeCookie!.value);
     const parts = decoded.split('|');
