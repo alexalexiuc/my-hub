@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { getToken } from 'next-auth/jwt';
+import { getToken, decode } from 'next-auth/jwt';
 import { envConfig } from '../config/env.js';
 import {
   findOAuthClient,
@@ -113,8 +113,37 @@ async function getSessionEmail(req: FastifyRequest): Promise<string | null> {
       `[oauth] Cookie header present: ${!!rawCookieHeader}, hasSecureCookie: ${hasSecureCookie}, hasPlainCookie: ${hasPlainCookie}, header length: ${rawCookieHeader.length}`,
     );
 
-    // next-auth/jwt getToken reads the session cookie from the request
-    // We need to adapt the Fastify request to the shape getToken expects
+    // Log a hash of the secret so we can compare with the hub without exposing it
+    const secretHash = crypto
+      .createHash('sha256')
+      .update(NEXTAUTH_SECRET)
+      .digest('hex')
+      .slice(0, 12);
+    req.log.info(`[oauth] NEXTAUTH_SECRET hash prefix: ${secretHash}, length: ${NEXTAUTH_SECRET.length}`);
+
+    // Extract cookie value manually to try direct decode
+    const cookieMatch = rawCookieHeader.match(
+      new RegExp(`(?:^|;\\s*)${secureCookieName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=([^;]*)`),
+    );
+    const cookieValue = cookieMatch?.[1] ?? null;
+    req.log.info(
+      `[oauth] Extracted cookie value: ${cookieValue ? `${cookieValue.length} chars, starts with: ${cookieValue.slice(0, 20)}...` : 'null'}`,
+    );
+
+    if (cookieValue) {
+      // Try manual decode with different salt values
+      for (const salt of [secureCookieName, plainCookieName, 'next-auth.session-token']) {
+        try {
+          const decoded = await decode({ token: cookieValue, secret: NEXTAUTH_SECRET, salt });
+          req.log.info(`[oauth] Manual decode with salt="${salt}": ${decoded ? `email=${decoded.email}` : 'null'}`);
+          if (decoded?.email) return String(decoded.email);
+        } catch (decodeErr) {
+          req.log.warn(`[oauth] Manual decode with salt="${salt}" threw: ${decodeErr}`);
+        }
+      }
+    }
+
+    // Also try getToken as before
     const adaptedReq = {
       headers: req.headers as Record<string, string | string[] | undefined>,
       cookies: (req as unknown as { cookies?: Record<string, string> }).cookies ?? {},
@@ -125,10 +154,8 @@ async function getSessionEmail(req: FastifyRequest): Promise<string | null> {
     const token = await getToken({
       req: adaptedReq as Parameters<typeof getToken>[0]['req'],
       secret: NEXTAUTH_SECRET,
-      secureCookie: true,
-      cookieName: secureCookieName,
     });
-    req.log.info(`[oauth] getToken result: ${token ? `email=${token.email}` : 'null'}`);
+    req.log.info(`[oauth] getToken (auto-detect) result: ${token ? `email=${token.email}` : 'null'}`);
     if (!token?.email) return null;
     return String(token.email);
   } catch (err) {
