@@ -14,6 +14,7 @@ import type {
   apiRequestLogs,
   todos,
   inviteTokens,
+  verificationTokens,
 } from '../db/schema/index';
 
 // Identity & Auth
@@ -55,3 +56,6 @@ export type NewTodo = InferInsertModel<typeof todos>;
 
 // Invites
 export type InviteToken = InferSelectModel<typeof inviteTokens>;
+
+// Verification
+export type VerificationToken = InferSelectModel<typeof verificationTokens>;

@@ -1,14 +1,20 @@
 import NextAuth, { type AuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { verifyUserPassword, findOrCreateUser } from '@my-hub/shared/services';
+import { cookies } from 'next/headers';
+import {
+  verifyUserPassword,
+  findOrCreateUser,
+  findUserByEmail,
+  claimInviteToken,
+  bindInviteTokenToUser,
+} from '@my-hub/shared/services';
+import { INVITE_COOKIE_NAME } from '../../../../lib/auth-constants';
 
 const ALLOWED_EMAILS = (process.env['ALLOWED_EMAILS'] ?? '')
   .split(',')
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
-
-const MCP_SERVER_URL = process.env['NEXT_PUBLIC_MCP_URL'] ?? '';
 
 // Derive shared cookie domain from NEXTAUTH_URL so the session JWT is
 // readable by sibling subdomains (e.g. mcp.alexiuc.dev reads a cookie
@@ -55,15 +61,55 @@ export const authOptions: AuthOptions = {
       // Credentials users: already verified in authorize(); let them through.
       if (account?.provider === 'credentials') return true;
 
-      // Google OAuth: apply the email whitelist and provision user in DB.
-      if (ALLOWED_EMAILS.length === 0) return false;
+      // Google OAuth: check email whitelist or a pending invite token cookie.
       const email = user.email?.trim().toLowerCase();
       if (!email) return false;
-      if (!ALLOWED_EMAILS.includes(email)) return false;
 
-      // Create user in database if they don't exist yet (first-time Google OAuth login).
+      const emailAllowed = ALLOWED_EMAILS.length > 0 && ALLOWED_EMAILS.includes(email);
+
+      if (!emailAllowed) {
+        // Check for a pending invite token stored by /api/auth/store-invite
+        const cookieStore = await cookies();
+        const inviteToken = cookieStore.get(INVITE_COOKIE_NAME)?.value;
+        if (!inviteToken) return false;
+
+        // Atomically claim the token
+        const claimed = await claimInviteToken(inviteToken);
+        if (!claimed) return false;
+
+        // Provision the user (auto-verifies email since OAuth = trusted source)
+        const dbUser = await findOrCreateUser(email, user.name ?? undefined);
+
+        // Bind the token to the newly created user and clear the cookie
+        await bindInviteTokenToUser(inviteToken, dbUser.id);
+        cookieStore.delete(INVITE_COOKIE_NAME);
+
+        return true;
+      }
+
+      // Email is in the whitelist — provision user if needed.
       await findOrCreateUser(email, user.name ?? undefined);
       return true;
+    },
+    async jwt({ token, user, account }) {
+      if (user) {
+        token['userId'] = user.id;
+      }
+      // On initial sign-in, attach emailVerified from DB
+      if (account && user?.email) {
+        const dbUser = await findUserByEmail(user.email);
+        if (dbUser) {
+          token['emailVerified'] = dbUser.emailVerified?.toISOString() ?? null;
+        }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token['userId']) {
+        session.user.id = token['userId'] as string;
+      }
+      session.user.emailVerified = (token['emailVerified'] as string | null | undefined) ?? null;
+      return session;
     },
     async redirect({ url, baseUrl }) {
       const fallbackUrl = new URL('/', baseUrl).toString();

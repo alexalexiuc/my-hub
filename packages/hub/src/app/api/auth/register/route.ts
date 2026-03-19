@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createUserWithPassword, claimInviteToken, bindInviteTokenToUser } from '@my-hub/shared/services';
+import {
+  createUserWithPassword,
+  claimInviteToken,
+  bindInviteTokenToUser,
+  createVerificationToken,
+} from '@my-hub/shared/services';
+import { sendVerificationEmail } from '../../../../lib/email';
 
 const ALLOWED_EMAILS = (process.env['ALLOWED_EMAILS'] ?? '')
   .split(',')
@@ -53,6 +59,15 @@ export async function POST(req: Request) {
     if (needsToken && inviteToken) {
       await bindInviteTokenToUser(inviteToken, user.id);
     }
+
+    // Send verification email (non-blocking — registration succeeds even if email fails)
+    try {
+      const verificationToken = await createVerificationToken(user.id);
+      await sendVerificationEmail(user.email, verificationToken.token);
+    } catch (emailErr) {
+      console.error('[register] Failed to send verification email:', emailErr);
+    }
+
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Registration failed';

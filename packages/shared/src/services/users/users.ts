@@ -50,16 +50,25 @@ export async function verifyUserPassword(email: string, password: string): Promi
   return ok ? user : null;
 }
 
-/** Find user by email, creating them if they don't exist. */
+/** Find user by email, creating them if they don't exist. Used for OAuth sign-in. */
 export async function findOrCreateUser(email: string, name?: string | null): Promise<User> {
   const normalizedEmail = email.toLowerCase();
+  const now = new Date();
 
   const [inserted] = await db
     .insert(users)
-    .values({ email: normalizedEmail, name: name ?? null })
+    .values({ email: normalizedEmail, name: name ?? null, emailVerified: now })
     .onConflictDoNothing({ target: users.email })
     .returning();
   if (inserted) return inserted;
+
+  // User already exists — make sure their email is marked as verified (OAuth = trusted).
+  const [updated] = await db
+    .update(users)
+    .set({ emailVerified: now, updatedAt: now })
+    .where(eq(users.email, normalizedEmail))
+    .returning();
+  if (updated) return updated;
 
   const existing = await findUserByEmail(normalizedEmail);
   if (!existing) throw new Error('User was not found after conflict handling');

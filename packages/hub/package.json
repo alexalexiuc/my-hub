@@ -16,12 +16,14 @@
     "@my-hub/shared": "workspace:*",
     "next": "~16.1.6",
     "next-auth": "^4.24.7",
+    "nodemailer": "^7.0.13",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.8.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",
+    "@types/nodemailer": "^7.0.11",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",
