@@ -4,6 +4,7 @@ import { DeleteMealSchema, deleteMealTool, GetMealsSchema, getMealsTool, LogMeal
 import { defineTool, toolResponse, withUserIdCheck } from '../../shared/toolsUtils';
 import { UpdateProfileSchema, updateProfileTool } from './profile';
 import { GetDailySummarySchema, getDailySummaryTool } from './summary';
+import { GetHistorySchema, getHistoryTool } from './history';
 import {
   DeleteMeasurementSchema,
   deleteMeasurementTool,
@@ -26,7 +27,7 @@ const caloriesTools = [
   defineTool({
     name: 'calories_get_meals',
     description:
-      'Retrieve individual meal entries with their meal_ids, descriptions, calories, and macros. Use when you need to inspect or delete specific entries (meal_id is required for deletion). For calorie summaries and trends, use calories://today, calories://history-7days, or calories://history-30days instead.',
+      'Retrieve individual meal entries with their meal_ids, descriptions, calories, and macros. Use when you need to inspect or delete specific entries (meal_id is required for deletion). For calorie summaries and trends, use calories_get_history or calories://today instead.',
     inputSchema: GetMealsSchema.shape,
     annotations: { readOnlyHint: true },
     callback: getMealsTool,
@@ -58,11 +59,22 @@ const caloriesTools = [
     description:
       'Get a full calorie and macro summary for a specific date, broken down by meal type. ' +
       'Shows progress against daily targets and whether the goal was met. ' +
-      'For today use calories://today. For dates within the last 7 or 30 days, prefer calories://history-7days or calories://history-30days. ' +
-      'Use this tool for dates older than 30 days.',
+      'Use this tool for a single date. For multi-day trends use calories_get_history.',
     inputSchema: GetDailySummarySchema.shape,
     annotations: { readOnlyHint: true },
     callback: getDailySummaryTool,
+  }),
+  defineTool({
+    name: 'calories_get_history',
+    description:
+      'Get a calorie and weight history for a date range. Returns per-day calorie and macro totals, ' +
+      'weight logs, period totals and averages vs goal. ' +
+      'start_date and end_date both default to today when omitted. ' +
+      'Use instead of the calories://history-7days and calories://history-30days resources when ' +
+      'a custom date range is needed or when resources are not supported.',
+    inputSchema: GetHistorySchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getHistoryTool,
   }),
   // ---- Measurement tools ----
   defineTool({
