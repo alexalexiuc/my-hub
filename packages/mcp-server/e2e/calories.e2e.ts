@@ -148,7 +148,7 @@ describe.sequential('calories — meal lifecycle', () => {
     expect(Array.isArray(data.meals)).toBe(true);
     expect(data.meals).toHaveLength(2);
 
-    const [burger, fries] = data.meals as [LoggedMeal, LoggedMeal];
+    const [burger, fries] = [data.meals[0]!, data.meals[1]!];
     expect(burger.meal_id).toBeTruthy();
     expect(burger.description).toBe(`[e2e:${runId}] Burger`);
     expect(burger.calories).toBe(600);
