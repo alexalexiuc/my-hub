@@ -8,8 +8,6 @@ const ALLOWED_EMAILS = (process.env['ALLOWED_EMAILS'] ?? '')
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
-const MCP_SERVER_URL = process.env['NEXT_PUBLIC_MCP_URL'] ?? '';
-
 // Derive shared cookie domain from NEXTAUTH_URL so the session JWT is
 // readable by sibling subdomains (e.g. mcp.alexiuc.dev reads a cookie
 // set by hub.alexiuc.dev).  Only kicks in when the hub runs on a

@@ -1,11 +1,10 @@
 name: E2E Tests
 
 on:
-  # Run automatically after deploy to staging
+  # Run automatically after CI passes on a PR targeting main
   workflow_run:
-    workflows: [Deploy]
+    workflows: [CI]
     types: [completed]
-    branches: [staging]
 
   # Allow manual runs targeting any environment
   workflow_dispatch:
@@ -23,12 +22,18 @@ jobs:
   e2e:
     name: E2E
     runs-on: ubuntu-latest
-    # For workflow_run trigger: only run when the deploy succeeded
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # For workflow_run trigger: only run when CI passed on a PR targeting main
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'pull_request' &&
+       github.event.workflow_run.pull_requests[0].base.ref == 'main')
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -57,20 +62,31 @@ jobs:
           echo "E2E_MCP_CLIENT_ID=$CLIENT_ID" > packages/mcp-server/e2e/.env.e2e
           echo "E2E_MCP_CLIENT_SECRET=$CLIENT_SECRET" >> packages/mcp-server/e2e/.env.e2e
 
+      - name: Resolve deployment branch
+        id: branch
+        run: |
+          BRANCH="${{ github.event.workflow_run.head_branch }}"
+          echo "name=${BRANCH:-staging}" >> $GITHUB_OUTPUT
+
       - name: Deploy staging stack
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: DEPLOY_BRANCH
           script_stop: true
           script: |
             set -e
             cd /opt/my-hub
-            git pull origin staging
+            git fetch origin
+            git checkout $DEPLOY_BRANCH
+            git pull origin $DEPLOY_BRANCH
             docker compose --project-name my-hub-traefik -f infra/docker-compose.traefik.yml up -d
             docker compose --project-name my-hub-staging --env-file .env.staging \
               -f infra/docker-compose.staging.yml up -d --build --wait
+        env:
+          DEPLOY_BRANCH: ${{ steps.branch.outputs.name }}
 
       - name: Provision E2E user on server
         uses: appleboy/ssh-action@v1.0.3
@@ -101,6 +117,7 @@ jobs:
           E2E_HUB_USER_PASSWORD: ${{ secrets.E2E_HUB_USER_PASSWORD }}
 
       - name: Cleanup staging stack
+        if: always()
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -112,3 +129,4 @@ jobs:
             cd /opt/my-hub
             docker compose --project-name my-hub-staging --env-file .env.staging \
               -f infra/docker-compose.staging.yml down -v
+            git checkout main
