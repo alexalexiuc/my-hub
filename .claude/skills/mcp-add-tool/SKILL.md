@@ -45,11 +45,14 @@ export const myActionTool: ToolCallback<typeof MyActionSchema.shape> = async (in
 
   // ... business logic, call shared services, etc.
 
-  return toolResponse({ /* structured output */ });
+  return toolResponse({
+    /* structured output */
+  });
 };
 ```
 
 Key rules:
+
 - Always extract and check `userId` unless the tool is truly public (like `getMeasurementTypes`).
 - Return via `toolResponse(payload)` — this wraps the payload in the MCP text content format.
 - Throw plain `Error` instances for user-visible errors (the SDK surfaces them cleanly).
@@ -104,11 +107,11 @@ defineTool({
 
 **Annotation reference:**
 
-| Scenario | Annotations |
-|---|---|
-| Read-only query | `{ readOnlyHint: true }` |
-| Write, non-destructive | `{ idempotentHint: false, destructiveHint: false }` |
-| Write, destructive (delete) | `{ idempotentHint: false, destructiveHint: true }` |
+| Scenario                    | Annotations                                         |
+| --------------------------- | --------------------------------------------------- |
+| Read-only query             | `{ readOnlyHint: true }`                            |
+| Write, non-destructive      | `{ idempotentHint: false, destructiveHint: false }` |
+| Write, destructive (delete) | `{ idempotentHint: false, destructiveHint: true }`  |
 
 ## Step 3 — Export from `tools/index.ts` (only if needed)
 
@@ -118,21 +121,21 @@ Currently this file just re-exports `./tools`. Only add an explicit export if sy
 new file are consumed outside the `tools/` folder:
 
 ```typescript
-export * from './my-action';  // add only if needed externally
+export * from './my-action'; // add only if needed externally
 ```
 
 Most tools do NOT need this — `tools.ts` imports directly from the implementation file.
 
 ## Shared utilities reference
 
-| Utility | Location | Purpose |
-|---|---|---|
-| `toolResponse(payload)` | `../../shared/toolsUtils` | Wrap any object as MCP tool response |
-| `defineTool(def)` | `../../shared/toolsUtils` | Type-safe tool definition (used in tools.ts) |
+| Utility                      | Location                  | Purpose                                                          |
+| ---------------------------- | ------------------------- | ---------------------------------------------------------------- |
+| `toolResponse(payload)`      | `../../shared/toolsUtils` | Wrap any object as MCP tool response                             |
+| `defineTool(def)`            | `../../shared/toolsUtils` | Type-safe tool definition (used in tools.ts)                     |
 | `withUserIdCheck(cb, skip?)` | `../../shared/toolsUtils` | Auth middleware (applied automatically in registerCaloriesTools) |
-| `yyyyMmDdSchema` | `../../shared/schemas` | Zod schema for "YYYY-MM-DD" date strings |
-| `today()` | `../../shared/dateUTils` | Returns today's date as "YYYY-MM-DD" |
-| `daysAgo(n)` | `../../shared/dateUTils` | Returns "YYYY-MM-DD" for n days ago |
+| `yyyyMmDdSchema`             | `../../shared/schemas`    | Zod schema for "YYYY-MM-DD" date strings                         |
+| `today()`                    | `../../shared/dateUTils`  | Returns today's date as "YYYY-MM-DD"                             |
+| `daysAgo(n)`                 | `../../shared/dateUTils`  | Returns "YYYY-MM-DD" for n days ago                              |
 
 ## Verification
 
