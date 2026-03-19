@@ -1,7 +1,7 @@
 'use client';
 
-import { Suspense, useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { Suspense, useState, useEffect } from 'react';
+import { signIn, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -17,11 +17,19 @@ export default function SignInPage() {
 
 function SignInContent() {
   const searchParams = useSearchParams();
+  const { status } = useSession();
   const callbackUrl = normalizeCallbackUrl(searchParams.get('callbackUrl'));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect away from sign-in page if the user is already authenticated.
+  useEffect(() => {
+    if (status === 'authenticated') {
+      window.location.href = callbackUrl;
+    }
+  }, [status, callbackUrl]);
 
   async function handleCredentials(e: React.FormEvent) {
     e.preventDefault();
@@ -126,14 +134,26 @@ function SignInContent() {
 function normalizeCallbackUrl(rawCallbackUrl: string | null) {
   if (!rawCallbackUrl) return '/';
 
+  const mcpServerUrl = process.env['NEXT_PUBLIC_MCP_URL'] ?? '';
+
   try {
     const origin = window.location.origin;
     const parsed = new URL(rawCallbackUrl, origin);
-    if (parsed.origin !== origin) return '/';
-    if (parsed.pathname.startsWith('/.well-known')) return '/';
 
-    const normalizedPath = `${parsed.pathname}${parsed.search}${parsed.hash}`;
-    return normalizedPath || '/';
+    if (parsed.origin === origin) {
+      if (parsed.pathname.startsWith('/.well-known')) return '/';
+      const normalizedPath = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+      return normalizedPath || '/';
+    }
+
+    // Allow the MCP server as a trusted cross-origin callback destination
+    // so that the OAuth flow can complete after the user signs in.
+    // Compare origins (not startsWith) to prevent subdomain-spoofing attacks.
+    if (mcpServerUrl && parsed.origin === new URL(mcpServerUrl).origin) {
+      return rawCallbackUrl;
+    }
+
+    return '/';
   } catch {
     return '/';
   }
