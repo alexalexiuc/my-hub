@@ -239,12 +239,12 @@ no token blocklist — deletion is the revocation mechanism.
 
 ## Key Files
 
-| Purpose                                               | Path                                                          |
-| ----------------------------------------------------- | ------------------------------------------------------------- |
+| Purpose                                                           | Path                                                          |
+| ----------------------------------------------------------------- | ------------------------------------------------------------- |
 | OAuth endpoints (`/api/register`, `/api/authorize`, `/api/token`) | `packages/mcp-server/src/routes/oauth.ts`                     |
-| Bearer token verifier                                 | `packages/mcp-server/src/plugins/oauth-verifier.ts`           |
-| Token signing / verification                          | `packages/shared/src/auth/index.ts`                           |
-| OAuth clients DB service                              | `packages/shared/src/services/oauth-clients/oauth-clients.ts` |
-| OAuth clients DB schema                               | `packages/shared/src/db/schema/oauth-clients.ts`              |
-| MCP server provisioning                               | `packages/shared/src/services/mcp-servers/mcp-servers.ts`     |
-| Hub API routes for client management                  | `packages/hub/src/app/api/mcp/clients/`                       |
+| Bearer token verifier                                             | `packages/mcp-server/src/plugins/oauth-verifier.ts`           |
+| Token signing / verification                                      | `packages/shared/src/auth/index.ts`                           |
+| OAuth clients DB service                                          | `packages/shared/src/services/oauth-clients/oauth-clients.ts` |
+| OAuth clients DB schema                                           | `packages/shared/src/db/schema/oauth-clients.ts`              |
+| MCP server provisioning                                           | `packages/shared/src/services/mcp-servers/mcp-servers.ts`     |
+| Hub API routes for client management                              | `packages/hub/src/app/api/mcp/clients/`                       |

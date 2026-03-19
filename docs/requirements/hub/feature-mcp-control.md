@@ -24,17 +24,17 @@ rather than on a separate `/oauth-clients` route.
 
 ## Functional Requirements
 
-| ID    | Requirement                                                                                                                                                             |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FR-01 | The admin must be able to see a list of all registered MCP sub-servers (e.g. Calories, Todo, Hive Manager, Products) and their current enabled/disabled state.          |
-| FR-02 | The admin must be able to toggle a sub-server on or off with a single UI interaction (e.g. a toggle switch).                                                            |
-| FR-03 | When a sub-server is disabled, requests to its MCP route must return an appropriate error (e.g. HTTP 503 or an MCP-level error) and not execute any tool handlers.      |
-| FR-04 | When a sub-server is re-enabled, it must begin accepting requests immediately without requiring a process restart.                                                      |
-| FR-05 | The enabled/disabled state must persist across server restarts (stored in the database, not in memory).                                                                 |
-| FR-06 | Inactive (not yet implemented) servers must be visually distinguished (reduced opacity, disabled toggle, "Coming soon" label).                                          |
-| FR-07 | Each server card must display its full MCP URL with a copy button for active servers.                                                                                   |
-| FR-08 | An **Audit Log** section must allow users to review API request logs filtered by service, date range, and limit.                                                        |
-| FR-09 | Audit log rows must be expandable to show request/response bodies and error details.                                                                                    |
+| ID    | Requirement                                                                                                                                                        |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FR-01 | The admin must be able to see a list of all registered MCP sub-servers (e.g. Calories, Todo, Hive Manager, Products) and their current enabled/disabled state.     |
+| FR-02 | The admin must be able to toggle a sub-server on or off with a single UI interaction (e.g. a toggle switch).                                                       |
+| FR-03 | When a sub-server is disabled, requests to its MCP route must return an appropriate error (e.g. HTTP 503 or an MCP-level error) and not execute any tool handlers. |
+| FR-04 | When a sub-server is re-enabled, it must begin accepting requests immediately without requiring a process restart.                                                 |
+| FR-05 | The enabled/disabled state must persist across server restarts (stored in the database, not in memory).                                                            |
+| FR-06 | Inactive (not yet implemented) servers must be visually distinguished (reduced opacity, disabled toggle, "Coming soon" label).                                     |
+| FR-07 | Each server card must display its full MCP URL with a copy button for active servers.                                                                              |
+| FR-08 | An **Audit Log** section must allow users to review API request logs filtered by service, date range, and limit.                                                   |
+| FR-09 | Audit log rows must be expandable to show request/response bodies and error details.                                                                               |
 
 ---
 
