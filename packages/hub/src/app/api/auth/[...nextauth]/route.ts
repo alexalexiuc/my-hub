@@ -8,6 +8,8 @@ const ALLOWED_EMAILS = (process.env['ALLOWED_EMAILS'] ?? '')
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
+const MCP_SERVER_URL = process.env['NEXT_PUBLIC_MCP_URL'] ?? '';
+
 export const authOptions: AuthOptions = {
   providers: [
     GoogleProvider({
@@ -50,7 +52,13 @@ export const authOptions: AuthOptions = {
       try {
         const targetUrl = new URL(url, baseUrl);
 
-        if (targetUrl.origin !== baseOrigin) return fallbackUrl;
+        if (targetUrl.origin !== baseOrigin) {
+          // Allow redirects back to the MCP server so the OAuth flow can
+          // complete after the user signs in on the hub.
+          // Compare origins (not startsWith) to prevent subdomain-spoofing attacks.
+          if (MCP_SERVER_URL && targetUrl.origin === new URL(MCP_SERVER_URL).origin) return url;
+          return fallbackUrl;
+        }
         if (targetUrl.pathname.startsWith('/.well-known')) return fallbackUrl;
 
         return targetUrl.toString();
