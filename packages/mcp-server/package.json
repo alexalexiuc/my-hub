@@ -26,8 +26,7 @@
     "fastify": "^5.8.2",
     "fastify-mcp-server": "^0.7.0",
     "fastify-plugin": "^5.1.0",
-    "next-auth": "^4.24.7",
-    "pino-pretty": "^13.0.0",
+"pino-pretty": "^13.0.0",
     "promise-cachex": "^2.0.0",
     "zod": "^3.23.8"
   },
