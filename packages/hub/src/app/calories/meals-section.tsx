@@ -222,7 +222,6 @@ export default function MealsSection({
             onClick={() => onDateChange(shiftDate(selectedDate, -1))}
             aria-label="Previous day"
             className="w-8 h-8 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition"
-            aria-label="Previous day"
           >
             <svg
               width="16"
@@ -243,7 +242,6 @@ export default function MealsSection({
             disabled={selectedDate >= today}
             aria-label="Next day"
             className="w-8 h-8 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition disabled:opacity-30 disabled:cursor-not-allowed"
-            aria-label="Next day"
           >
             <svg
               width="16"
