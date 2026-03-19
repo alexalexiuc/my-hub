@@ -99,8 +99,20 @@ function tokenError(error: string): { status: number; body: string } {
 }
 
 async function getSessionEmail(req: FastifyRequest): Promise<string | null> {
-  if (!NEXTAUTH_SECRET) return null;
+  if (!NEXTAUTH_SECRET) {
+    req.log.warn('[oauth] NEXTAUTH_SECRET is not set — cannot verify session');
+    return null;
+  }
   try {
+    const rawCookieHeader = req.headers.cookie ?? '';
+    const secureCookieName = '__Secure-next-auth.session-token';
+    const plainCookieName = 'next-auth.session-token';
+    const hasSecureCookie = rawCookieHeader.includes(secureCookieName);
+    const hasPlainCookie = rawCookieHeader.includes(plainCookieName);
+    req.log.info(
+      `[oauth] Cookie header present: ${!!rawCookieHeader}, hasSecureCookie: ${hasSecureCookie}, hasPlainCookie: ${hasPlainCookie}, header length: ${rawCookieHeader.length}`,
+    );
+
     // next-auth/jwt getToken reads the session cookie from the request
     // We need to adapt the Fastify request to the shape getToken expects
     const adaptedReq = {
@@ -113,10 +125,14 @@ async function getSessionEmail(req: FastifyRequest): Promise<string | null> {
     const token = await getToken({
       req: adaptedReq as Parameters<typeof getToken>[0]['req'],
       secret: NEXTAUTH_SECRET,
+      secureCookie: true,
+      cookieName: secureCookieName,
     });
+    req.log.info(`[oauth] getToken result: ${token ? `email=${token.email}` : 'null'}`);
     if (!token?.email) return null;
     return String(token.email);
-  } catch {
+  } catch (err) {
+    req.log.error(`[oauth] getSessionEmail error: ${err}`);
     return null;
   }
 }
