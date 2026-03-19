@@ -117,6 +117,7 @@ jobs:
           script: |
             set -e
             cd /opt/my-hub
+            git checkout main
             git pull origin main
             docker compose --project-name my-hub-traefik -f infra/docker-compose.traefik.yml up -d
             IMAGE_OWNER=${{ env.IMAGE_OWNER }} docker compose --project-name my-hub --env-file .env -f infra/docker-compose.prod.yml pull
