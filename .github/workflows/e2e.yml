@@ -129,3 +129,4 @@ jobs:
             cd /opt/my-hub
             docker compose --project-name my-hub-staging --env-file .env.staging \
               -f infra/docker-compose.staging.yml down -v
+            git checkout main
