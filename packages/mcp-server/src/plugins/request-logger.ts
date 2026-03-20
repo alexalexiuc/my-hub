@@ -1,5 +1,5 @@
 import fp from 'fastify-plugin';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import { putLog } from '@my-hub/shared/services';
 import { envConfig } from '../config/env.js';
@@ -14,6 +14,13 @@ function capPayload(value: unknown): unknown {
   return { _truncated: true, preview: serialised.slice(0, MAX_PAYLOAD_BYTES) };
 }
 
+// Extend FastifyRequest to carry the captured response body between hooks.
+declare module 'fastify' {
+  interface FastifyRequest {
+    _capturedResponseBody?: unknown;
+  }
+}
+
 async function requestLoggerPlugin(app: FastifyInstance) {
   app.addHook('onRequest', async (req) => {
     // logLevel:'silent' set on known routes; empty url means no route matched (setNotFoundHandler)
@@ -22,8 +29,24 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     console.log(`<-- ${req.method} ${req.url}`);
     if (envConfig.PRINT_PAYLOADS) {
       console.log(
-        `    Payload: ${JSON.stringify(capPayload({ body: req.body, query: req.query, headers: req.headers }), null, 2)}`,
+        `\tRequest: ${JSON.stringify(capPayload({ body: req.body, query: req.query, headers: req.headers }), null, 2)}`,
       );
+    }
+  });
+
+  // onSend is the only hook where the serialised response payload is available.
+  // Capture it onto the request for use in onResponse (where it is no longer accessible).
+  // Return undefined so Fastify keeps the original payload untouched.
+  app.addHook('onSend', async (req: FastifyRequest, _reply, payload) => {
+    if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
+
+    if (envConfig.LOG_PAYLOADS || envConfig.PRINT_PAYLOADS) {
+      try {
+        const raw = typeof payload === 'string' ? payload : Buffer.isBuffer(payload) ? payload.toString('utf8') : null;
+        if (raw) req._capturedResponseBody = JSON.parse(raw);
+      } catch {
+        // binary or non-JSON response — skip capture
+      }
     }
   });
 
@@ -53,17 +76,12 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     };
 
     if (envConfig.LOG_PAYLOADS) {
-      logData.requestBody = capPayload({
-        body: req.body,
-        query: req.query,
-        headers: req.headers,
-      });
+      logData.requestBody = capPayload({ body: req.body, query: req.query, headers: req.headers });
+      logData.responseBody = capPayload(req._capturedResponseBody);
     }
 
     if (envConfig.PRINT_PAYLOADS) {
-      console.log(
-        `    Payload: ${JSON.stringify(capPayload({ body: req.body, query: req.query, headers: req.headers }), null, 2)}`,
-      );
+      console.log(`\tResponse: ${JSON.stringify(capPayload(req._capturedResponseBody), null, 2)}`);
     }
 
     putLog(logData).catch((err) => {

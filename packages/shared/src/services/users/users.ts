@@ -50,18 +50,29 @@ export async function verifyUserPassword(email: string, password: string): Promi
   return ok ? user : null;
 }
 
-/** Find user by email, creating them if they don't exist. */
-export async function findOrCreateUser(email: string, name?: string | null): Promise<User> {
+/** Find user by email, creating them if they don't exist. Saves googleId on creation or backfills it if missing. */
+export async function findOrCreateUser(email: string, name?: string | null, googleId?: string | null): Promise<User> {
   const normalizedEmail = email.toLowerCase();
 
   const [inserted] = await db
     .insert(users)
-    .values({ email: normalizedEmail, name: name ?? null })
+    .values({ email: normalizedEmail, name: name ?? null, googleId: googleId ?? null })
     .onConflictDoNothing({ target: users.email })
     .returning();
   if (inserted) return inserted;
 
   const existing = await findUserByEmail(normalizedEmail);
   if (!existing) throw new Error('User was not found after conflict handling');
+
+  // Backfill googleId for users who registered via credentials before linking Google
+  if (googleId && !existing.googleId) {
+    const [updated] = await db
+      .update(users)
+      .set({ googleId, updatedAt: new Date() })
+      .where(eq(users.id, existing.id))
+      .returning();
+    return updated ?? existing;
+  }
+
   return existing;
 }

@@ -18,6 +18,7 @@ export const envConfig = {
   HUB_URL: process.env['NEXTAUTH_URL'] ?? process.env['HUB_URL'] ?? 'http://localhost:3000',
   LOG_PAYLOADS: process.env['LOG_PAYLOADS'] === 'true',
   PRINT_PAYLOADS: process.env['PRINT_PAYLOADS'] === 'true',
+  IS_LOCAL: process.env['IS_LOCAL'] === 'true',
 } as const;
 
 console.log('Loaded environment configuration:', JSON.stringify(envConfig, null, 2));

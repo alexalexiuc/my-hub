@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./dist/main.js",
   "scripts": {
-    "dev": "tsx watch src/main.ts",
+    "dev": "nodemon",
     "build": "tsup",
     "build:clear": "rimraf dist",
     "start": "node dist/main.js",
@@ -14,7 +14,8 @@
     "test": "pnpm run test:unit",
     "test:unit": "vitest run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
-    "e2e:setup": "tsx e2e/scripts/setup-e2e-user.ts"
+    "e2e:setup": "tsx e2e/scripts/setup-e2e-user.ts",
+    "kill:port": "node scripts/kill-port.js"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.14",
+    "nodemon": "^3.1.14",
     "tsup": "^8.0.0",
     "tsx": "^4.15.1",
     "typescript": "^5.4.5",

@@ -60,7 +60,8 @@ export const authOptions: AuthOptions = {
       if (!ALLOWED_EMAILS.includes(email)) return false;
 
       // Create user in database if they don't exist yet (first-time Google OAuth login).
-      await findOrCreateUser(email, user.name ?? undefined);
+      // user.id from the Google provider is the Google account ID (sub claim).
+      await findOrCreateUser(email, user.name ?? undefined, user.id);
       return true;
     },
     async redirect({ url, baseUrl }) {

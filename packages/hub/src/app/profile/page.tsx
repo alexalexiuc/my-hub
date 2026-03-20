@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { signOut } from 'next-auth/react';
 import PageHeader from '@/components/page-header';
 import SectionCard from '@/components/section-card';
 import Field from '@/components/field';
@@ -286,12 +286,12 @@ export default function ProfilePage() {
       <SectionCard title="Session">
         <div className="flex items-center justify-between">
           <p className="text-sm text-zinc-400">Signed in as {user?.email}</p>
-          <Link
-            href="/api/auth/signout"
+          <button
+            onClick={() => signOut({ callbackUrl: '/auth/signin' })}
             className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 hover:bg-zinc-800 transition"
           >
             Sign out
-          </Link>
+          </button>
         </div>
       </SectionCard>
     </main>
