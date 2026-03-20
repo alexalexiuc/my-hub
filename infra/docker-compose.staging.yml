@@ -1,6 +1,7 @@
 # Staging environment — standalone, not an overlay.
-# Usage: docker compose --env-file .env.staging \
-#          -f infra/docker-compose.staging.yml up -d --build
+# Usage: IMAGE_OWNER=<owner> docker compose --env-file .env.staging \
+#          -f infra/docker-compose.staging.yml pull && up -d
+# Images are pre-built and pushed to GHCR by CI (e2e.yml build-and-push job).
 # Prerequisite: Traefik running via docker-compose.traefik.yml (creates the proxy network)
 
 name: my-hub-staging
@@ -30,9 +31,7 @@ services:
   # DB Migrations (Drizzle) — runs once per deploy then exits
   # ---------------------------------------------------------------------------
   migrate:
-    build:
-      context: ..
-      dockerfile: packages/shared/Dockerfile.migrate
+    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-migrate:staging-latest
     restart: 'no'
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
@@ -43,12 +42,10 @@ services:
       - internal-staging
 
   # ---------------------------------------------------------------------------
-  # MCP Server (Fastify) — built from source
+  # MCP Server (Fastify) — pre-built image from GHCR
   # ---------------------------------------------------------------------------
   mcp:
-    build:
-      context: ..
-      dockerfile: packages/mcp-server/Dockerfile
+    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-mcp-server:staging-latest
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -83,12 +80,10 @@ services:
       - 'traefik.http.services.mcp-staging.loadbalancer.server.port=3001'
 
   # ---------------------------------------------------------------------------
-  # Hub Panel (Next.js) — built from source
+  # Hub Panel (Next.js) — pre-built image from GHCR
   # ---------------------------------------------------------------------------
   hub:
-    build:
-      context: ..
-      dockerfile: packages/hub/Dockerfile
+    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-hub:staging-latest
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -98,6 +93,7 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is required}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET is required}
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:?ALLOWED_EMAILS is required}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
     depends_on:
       db:
