@@ -12,6 +12,7 @@ import { registerMcpSubServer } from './mcp/sub-server.js';
 import { mcpSubServers } from './mcp/registry.js';
 import { createCaloriesServer } from './calories/server.js';
 import { createTodoServer } from './todo/server.js';
+import { createApiaryServer } from './apiary/server.js';
 import { envConfig } from './config/env.js';
 
 export async function buildServer() {
@@ -80,7 +81,7 @@ export async function buildServer() {
   // manages its own child scopes and fp()-based plugins bypass prefix inheritance.
   registerMcpSubServer(app, '/api/calories/mcp', McpServerName.Calories, createCaloriesServer);
   registerMcpSubServer(app, '/api/todo/mcp', McpServerName.Todo, createTodoServer);
-  // registerMcpSubServer(app, '/api/hive-manager/mcp', McpServerName.Hive, createHiveManagerServer);
+  registerMcpSubServer(app, '/api/apiary/mcp', McpServerName.Apiary, createApiaryServer);
 
   // Session cleanup plugin (reads mcpSubServers registry via onReady hook)
   await app.register(sessionCleanupPlugin);
