@@ -60,7 +60,7 @@ export default function HivesTab() {
   // Group hives by yard
   const grouped = new Map<string, ApiaryHive[]>();
   for (const hive of hives) {
-    const key = hive.yardId ? yardMap.get(hive.yardId) ?? 'Unknown Yard' : 'Unassigned';
+    const key = hive.yardId ? (yardMap.get(hive.yardId) ?? 'Unknown Yard') : 'Unassigned';
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key)!.push(hive);
   }
@@ -138,10 +138,7 @@ export default function HivesTab() {
           <SectionCard key={yardName} title={yardName}>
             <div className="space-y-2">
               {yardHives.map((hive) => (
-                <div
-                  key={hive.id}
-                  className="flex items-center justify-between rounded-lg bg-zinc-800/50 px-4 py-3"
-                >
+                <div key={hive.id} className="flex items-center justify-between rounded-lg bg-zinc-800/50 px-4 py-3">
                   <div>
                     <p className="text-sm font-medium text-zinc-200">{hive.name}</p>
                     <p className="text-xs text-zinc-500">

@@ -14,18 +14,34 @@ export const LogInspectionSchema = z.object({
   brood_pattern: z.string().optional().describe('Brood pattern quality (e.g. "solid", "spotty", "empty")'),
   queen_seen: z.boolean().optional().describe('Whether the queen was spotted during inspection'),
   population: z.string().optional().describe('Colony population estimate (e.g. "strong", "moderate", "weak")'),
-  disease_signs: z.string().optional().describe('Any disease signs observed (e.g. "possible chalkbrood", null if none)'),
+  disease_signs: z
+    .string()
+    .optional()
+    .describe('Any disease signs observed (e.g. "possible chalkbrood", null if none)'),
   notes: z.string().optional().describe('Additional inspection notes'),
-  logged_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Date of inspection (YYYY-MM-DD). Defaults to today.'),
+  logged_at: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe('Date of inspection (YYYY-MM-DD). Defaults to today.'),
 });
 
 export const LogTreatmentSchema = z.object({
   hive_id: z.number().int().positive().describe('ID of the hive treated'),
   product: z.string().describe('Treatment product name (e.g. "Apivar", "Formic Pro", "Oxalic acid")'),
   method: z.string().optional().describe('Application method (e.g. "strip", "pad", "dribble", "vaporization")'),
-  duration_days: z.number().int().positive().optional().describe('Treatment duration in days (used to compute active treatment end date)'),
+  duration_days: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('Treatment duration in days (used to compute active treatment end date)'),
   notes: z.string().optional().describe('Additional treatment notes'),
-  logged_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Date of treatment (YYYY-MM-DD). Defaults to today.'),
+  logged_at: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe('Date of treatment (YYYY-MM-DD). Defaults to today.'),
 });
 
 export const LogFeedingSchema = z.object({
@@ -34,7 +50,11 @@ export const LogFeedingSchema = z.object({
   ratio: z.string().optional().describe('Feed ratio if applicable (e.g. "1:1", "2:1")'),
   amount_liters: z.number().positive().optional().describe('Amount of feed in liters'),
   notes: z.string().optional().describe('Additional feeding notes'),
-  logged_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Date of feeding (YYYY-MM-DD). Defaults to today.'),
+  logged_at: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe('Date of feeding (YYYY-MM-DD). Defaults to today.'),
 });
 
 export const LogHarvestSchema = z.object({
@@ -43,7 +63,11 @@ export const LogHarvestSchema = z.object({
   weight_kg: z.number().positive().optional().describe('Total weight of harvest in kilograms'),
   honey_type: z.string().optional().describe('Type of honey (e.g. "wildflower", "acacia", "clover")'),
   notes: z.string().optional().describe('Additional harvest notes'),
-  logged_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Date of harvest (YYYY-MM-DD). Defaults to today.'),
+  logged_at: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe('Date of harvest (YYYY-MM-DD). Defaults to today.'),
 });
 
 export const LogQueenEventSchema = z.object({
@@ -53,7 +77,11 @@ export const LogQueenEventSchema = z.object({
   marked: z.boolean().optional().describe('Whether the queen is marked'),
   color: z.string().optional().describe('Mark color (e.g. "blue", "white", "yellow", "red", "green")'),
   notes: z.string().optional().describe('Additional queen event notes'),
-  logged_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Date of queen event (YYYY-MM-DD). Defaults to today.'),
+  logged_at: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe('Date of queen event (YYYY-MM-DD). Defaults to today.'),
 });
 
 export const LogRelocationSchema = z.object({
@@ -62,19 +90,37 @@ export const LogRelocationSchema = z.object({
   to_yard_id: z.number().int().positive().describe('ID of the yard the hive is moving to'),
   reason: z.string().optional().describe('Reason for the move (e.g. "summer flow", "winter shelter")'),
   notes: z.string().optional().describe('Additional relocation notes'),
-  logged_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Date of relocation (YYYY-MM-DD). Defaults to today.'),
+  logged_at: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe('Date of relocation (YYYY-MM-DD). Defaults to today.'),
 });
 
 export const AddNoteSchema = z.object({
   hive_id: z.number().int().positive().optional().describe('ID of the hive (optional — can be a general note)'),
   notes: z.string().describe('Note text'),
-  logged_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Date (YYYY-MM-DD). Defaults to today.'),
+  logged_at: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe('Date (YYYY-MM-DD). Defaults to today.'),
 });
 
 export const GetHiveLogsSchema = z.object({
   hive_id: z.number().int().positive().describe('ID of the hive to get logs for'),
-  type: z.string().optional().describe('Filter by event type (inspection, treatment, feeding, harvest, relocation, queen_event, note)'),
-  limit: z.number().int().positive().max(200).default(50).optional().describe('Max entries to return (default: 50, max: 200)'),
+  type: z
+    .string()
+    .optional()
+    .describe('Filter by event type (inspection, treatment, feeding, harvest, relocation, queen_event, note)'),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .max(200)
+    .default(50)
+    .optional()
+    .describe('Max entries to return (default: 50, max: 200)'),
   offset: z.number().int().min(0).default(0).optional().describe('Pagination offset'),
 });
 
@@ -151,7 +197,10 @@ export const logQueenEventTool: ToolCallback<typeof LogQueenEventSchema.shape> =
     loggedAt: parseLogDate(input.logged_at),
     hiveId: input.hive_id,
     notes: input.notes ?? null,
-    data: { event: input.event, ...omitNullish({ queen_source: input.queen_source, marked: input.marked, color: input.color }) },
+    data: {
+      event: input.event,
+      ...omitNullish({ queen_source: input.queen_source, marked: input.marked, color: input.color }),
+    },
   });
   return toolResponse(log);
 };

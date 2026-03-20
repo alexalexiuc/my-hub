@@ -1,4 +1,4 @@
-import { and, eq, desc, asc, sql, max, inArray } from 'drizzle-orm';
+import { and, eq, desc, asc, max, inArray } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { apiaryHives, apiaryLogs, apiaryTasks, apiaryYards } from '../../db/schema/apiary';
 import type { ApiaryHive, ApiaryLog, ApiaryTask } from '../../types/index';
@@ -368,7 +368,9 @@ export async function getApiaryYardBriefing(userId: string, yardId: number): Pro
     db
       .select()
       .from(apiaryTasks)
-      .where(and(eq(apiaryTasks.userId, userId), inArray(apiaryTasks.hiveId, hiveIds), eq(apiaryTasks.completed, false)))
+      .where(
+        and(eq(apiaryTasks.userId, userId), inArray(apiaryTasks.hiveId, hiveIds), eq(apiaryTasks.completed, false)),
+      )
       .orderBy(asc(apiaryTasks.dueAt)),
     db
       .select()

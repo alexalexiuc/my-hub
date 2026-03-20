@@ -9,7 +9,7 @@ export const getHivesResource: ReadResourceCallback = async (uri, extra) => {
   const yardMap = new Map(yards.map((y) => [y.id, y.name]));
   const enriched = hives.map((h) => ({
     ...h,
-    yardName: h.yardId ? yardMap.get(h.yardId) ?? null : null,
+    yardName: h.yardId ? (yardMap.get(h.yardId) ?? null) : null,
   }));
 
   return resourceResponse(uri, { hives: enriched, count: enriched.length });

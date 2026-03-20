@@ -22,7 +22,10 @@ export const UpdateYardSchema = z.object({
 
 export const createYardTool: ToolCallback<typeof CreateYardSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
-  const yard = await createApiaryYard(userId, { name: input.name, ...omitNullish({ location: input.location, notes: input.notes }) });
+  const yard = await createApiaryYard(userId, {
+    name: input.name,
+    ...omitNullish({ location: input.location, notes: input.notes }),
+  });
   return toolResponse(yard);
 };
 

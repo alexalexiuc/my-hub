@@ -148,7 +148,11 @@ export default function TasksTab() {
 
       {tasks.length === 0 ? (
         <p className="text-sm text-zinc-500">
-          {filter === 'pending' ? 'No pending tasks.' : filter === 'completed' ? 'No completed tasks.' : 'No tasks yet.'}
+          {filter === 'pending'
+            ? 'No pending tasks.'
+            : filter === 'completed'
+              ? 'No completed tasks.'
+              : 'No tasks yet.'}
         </p>
       ) : (
         <div className="space-y-2">

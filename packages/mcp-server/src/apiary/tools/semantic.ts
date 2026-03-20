@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getApiaryActiveTreatments, getApiaryOverdueInspections, moveApiaryHives, getApiaryYardBriefing } from '@my-hub/shared/services';
+import {
+  getApiaryActiveTreatments,
+  getApiaryOverdueInspections,
+  moveApiaryHives,
+  getApiaryYardBriefing,
+} from '@my-hub/shared/services';
 import { toolResponse } from '../../shared/toolsUtils';
 import { omitNullish } from '@my-hub/shared/utils';
 
@@ -22,7 +27,11 @@ export const MoveHivesSchema = z.object({
   hive_ids: z.array(z.number().int().positive()).min(1).describe('IDs of the hives to move'),
   to_yard_id: z.number().int().positive().describe('ID of the destination yard'),
   reason: z.string().optional().describe('Reason for the move (e.g. "spring season start", "winter shelter")'),
-  moved_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Date of the move (YYYY-MM-DD). Defaults to today.'),
+  moved_at: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe('Date of the move (YYYY-MM-DD). Defaults to today.'),
 });
 
 export const GetYardBriefingSchema = z.object({
