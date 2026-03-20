@@ -59,8 +59,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub-migrate
           tags: |
-            type=raw,value=staging-latest
             type=sha,prefix=sha-
+            type=raw,value=staging-latest
 
       - name: Build & push — migrate
         uses: docker/build-push-action@v5
@@ -80,8 +80,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub-mcp-server
           tags: |
-            type=raw,value=staging-latest
             type=sha,prefix=sha-
+            type=raw,value=staging-latest
 
       - name: Build & push — mcp-server
         uses: docker/build-push-action@v5
@@ -101,8 +101,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub-hub
           tags: |
-            type=raw,value=staging-latest
             type=sha,prefix=sha-
+            type=raw,value=staging-latest
 
       - name: Build & push — hub
         uses: docker/build-push-action@v5
