@@ -51,7 +51,7 @@ services:
       dockerfile: packages/mcp-server/Dockerfile
     restart: unless-stopped
     environment:
-      NODE_ENV: staging
+      NODE_ENV: production
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -91,7 +91,7 @@ services:
       dockerfile: packages/hub/Dockerfile
     restart: unless-stopped
     environment:
-      NODE_ENV: staging
+      NODE_ENV: production
       PORT: 3000
       NEXTAUTH_URL: ${NEXTAUTH_URL:-https://staging.hub.alexiuc.dev}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
