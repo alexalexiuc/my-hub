@@ -46,6 +46,10 @@ import {
   getActiveTreatmentsTool,
   GetOverdueInspectionsSchema,
   getOverdueInspectionsTool,
+  MoveHivesSchema,
+  moveHivesTool,
+  GetYardBriefingSchema,
+  getYardBriefingTool,
 } from './semantic';
 
 const apiaryTools = [
@@ -70,6 +74,16 @@ const apiaryTools = [
     inputSchema: UpdateYardSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: updateYardTool,
+  }),
+  defineTool({
+    name: 'apiary_get_yard_briefing',
+    description:
+      'Get a full yard briefing — all hives at this yard, overdue inspections, active treatments, ' +
+      'open hive-level tasks, and open yard-level tasks. ' +
+      'Use when the beekeeper says "I\'m heading to yard X, what\'s waiting for me?"',
+    inputSchema: GetYardBriefingSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getYardBriefingTool,
   }),
   // ---- Hive tools (4) ----
   defineTool({
@@ -192,17 +206,30 @@ const apiaryTools = [
     annotations: { readOnlyHint: true },
     callback: getOverdueInspectionsTool,
   }),
+  // ---- Bulk operations (1) ----
+  defineTool({
+    name: 'apiary_move_hives',
+    description:
+      'Bulk-move multiple hives to a different yard in one call. ' +
+      'Atomically updates yard_id on all hives and creates a relocation log entry per hive. ' +
+      'Use for seasonal moves like "I moved hives 1–40 to Pădurea 1 today".',
+    inputSchema: MoveHivesSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: moveHivesTool,
+  }),
   // ---- Task tools (4) ----
   defineTool({
     name: 'apiary_list_tasks',
-    description: 'List tasks with optional filters by hive, completion status, and due date.',
+    description: 'List tasks with optional filters by hive, yard, completion status, and due date.',
     inputSchema: ListTasksSchema.shape,
     annotations: { readOnlyHint: true },
     callback: listTasksTool,
   }),
   defineTool({
     name: 'apiary_create_task',
-    description: 'Create a beekeeping task, optionally tied to a specific hive',
+    description:
+      'Create a beekeeping task. Can be tied to a specific hive (hive_id), a yard (yard_id), or neither (general task). ' +
+      'Cannot set both hive_id and yard_id.',
     inputSchema: CreateTaskSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: createTaskTool,

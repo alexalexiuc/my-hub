@@ -9,10 +9,11 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const hiveId = searchParams.get('hive_id') ? Number(searchParams.get('hive_id')) : undefined;
+  const yardId = searchParams.get('yard_id') ? Number(searchParams.get('yard_id')) : undefined;
   const completed = searchParams.get('completed') !== null ? searchParams.get('completed') === 'true' : undefined;
   const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined;
 
-  const tasks = await getApiaryTasks(user.id, omitNullish({ hiveId, completed, limit }));
+  const tasks = await getApiaryTasks(user.id, omitNullish({ hiveId, yardId, completed, limit }));
   return NextResponse.json({ tasks });
 }
 
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
     title: title.trim(),
     ...omitNullish({
       hiveId: body.hive_id as number | undefined,
+      yardId: body.yard_id as number | undefined,
       dueAt,
     }),
   });

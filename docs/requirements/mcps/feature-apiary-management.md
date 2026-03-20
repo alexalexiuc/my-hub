@@ -27,12 +27,14 @@ Key design decisions:
 | FR-01 | Users can create, list, and update **yards** (physical locations where hives are kept).                  |
 | FR-02 | Users can create, list, and update **hives**, optionally assigning them to a yard.                       |
 | FR-03 | Users can log **events** (inspection, treatment, feeding, harvest, relocation, queen_event, note) with type-specific JSONB data payloads. |
-| FR-04 | Users can create, complete, and delete **tasks**, optionally tied to a specific hive.                    |
+| FR-04 | Users can create, complete, and delete **tasks**, scoped to a hive (hive_id), a yard (yard_id), or neither (general task). A task cannot be tied to both a hive and a yard. |
 | FR-05 | A **summary** endpoint/resource returns yard count, hive count, pending task count, recent logs, and upcoming tasks. |
 | FR-06 | All data is scoped to the authenticated user (multi-user support via `userId` FK).                       |
-| FR-07 | The MCP server exposes 12 tools and 3 resources for AI client interaction.                               |
+| FR-07 | The MCP server exposes 26 tools and 3 resources for AI client interaction.                               |
 | FR-08 | The Hub UI provides a tabbed interface with Dashboard, Hives, Log, and Tasks tabs.                       |
 | FR-09 | The Hub dashboard page (`/`) shows an Apiary app card linking to `/apiary`.                              |
+| FR-10 | Users can **bulk-move** multiple hives to a different yard in one operation, with a relocation log per hive. |
+| FR-11 | A **yard briefing** tool returns a complete picture for one yard: hives, overdue inspections, active treatments, open hive-level tasks, and open yard-level tasks. |
 
 ---
 
@@ -50,15 +52,16 @@ Key design decisions:
 
 ---
 
-## MCP Tools (22)
+## MCP Tools (26)
 
-### Yard Tools (3)
+### Yard Tools (4)
 
-| Tool Name              | Description                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------ |
-| `apiary_create_yard`   | Create a new yard (physical location where hives are kept)                     |
-| `apiary_list_yards`    | List all yards for the authenticated user                                      |
-| `apiary_update_yard`   | Update an existing yard's details                                              |
+| Tool Name                  | Description                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| `apiary_create_yard`       | Create a new yard (physical location where hives are kept)                     |
+| `apiary_list_yards`        | List all yards for the authenticated user                                      |
+| `apiary_update_yard`       | Update an existing yard's details                                              |
+| `apiary_get_yard_briefing` | Full yard visit briefing: hives, overdue inspections, active treatments, hive tasks, yard tasks |
 
 ### Hive Tools (4)
 
@@ -78,7 +81,7 @@ Key design decisions:
 | `apiary_log_feeding`      | Record a feeding event (feed type, ratio, amount)                              |
 | `apiary_log_harvest`      | Record a honey harvest (frames, weight, honey type)                            |
 | `apiary_log_queen_event`  | Record a queen event (requeened, lost, seen, emerged, superseded)              |
-| `apiary_log_relocation`   | Relocate a hive to a different yard (atomically updates hive.yard_id)          |
+| `apiary_log_relocation`   | Relocate a single hive to a different yard (atomically updates hive.yard_id)   |
 | `apiary_add_note`         | Add a general freetext note, optionally tied to a hive                         |
 
 ### Log Query Tools (2)
@@ -95,14 +98,29 @@ Key design decisions:
 | `apiary_get_active_treatments`   | Currently active treatments (computes end dates from logged_at + duration_days server-side) |
 | `apiary_get_overdue_inspections` | Hives where last inspection > N days ago (default 14), includes never-inspected hives |
 
+### Bulk Operations (1)
+
+| Tool Name              | Description                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `apiary_move_hives`    | Bulk-move multiple hives to a yard (updates yard_id + creates relocation log per hive) |
+
 ### Task Tools (4)
 
 | Tool Name              | Description                                                                    |
 | ---------------------- | ------------------------------------------------------------------------------ |
-| `apiary_list_tasks`    | List tasks with filters by hive, completion status, and due date               |
-| `apiary_create_task`   | Create a beekeeping task, optionally tied to a specific hive                   |
+| `apiary_list_tasks`    | List tasks with filters by hive, yard, completion status, and due date         |
+| `apiary_create_task`   | Create a task scoped to a hive, a yard, or neither (general). Cannot set both. |
 | `apiary_complete_task` | Mark a task as completed                                                       |
 | `apiary_delete_task`   | Delete a task by ID                                                            |
+
+### Tool Design Summary: Before vs After
+
+| Beekeeper question               | Calls needed                                |
+| --------------------------------- | ------------------------------------------- |
+| "I moved 40 hives to Pădurea 1"  | 1 → `move_hives`                            |
+| "I'm heading to yard X, brief me" | 1 → `get_yard_briefing`                     |
+| "Fix the platform at Câmpul 2"   | 1 → `create_task(yard_id: Câmpul 2)`        |
+| "Buy 50kg of sugar"              | 1 → `create_task(title: "Buy 50kg sugar")`  |
 
 ---
 
