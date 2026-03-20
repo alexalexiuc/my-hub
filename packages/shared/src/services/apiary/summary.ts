@@ -19,6 +19,8 @@ export interface ApiarySummary {
     title: string;
     hiveId: number | null;
     hiveName: string | null;
+    yardId: number | null;
+    yardName: string | null;
     dueAt: Date | null;
   }[];
 }
@@ -57,10 +59,13 @@ export async function getApiarySummary(userId: string): Promise<ApiarySummary> {
       title: apiaryTasks.title,
       hiveId: apiaryTasks.hiveId,
       hiveName: apiaryHives.name,
+      yardId: apiaryTasks.yardId,
+      yardName: apiaryYards.name,
       dueAt: apiaryTasks.dueAt,
     })
     .from(apiaryTasks)
     .leftJoin(apiaryHives, eq(apiaryTasks.hiveId, apiaryHives.id))
+    .leftJoin(apiaryYards, eq(apiaryTasks.yardId, apiaryYards.id))
     .where(and(eq(apiaryTasks.userId, userId), eq(apiaryTasks.completed, false)))
     .orderBy(asc(apiaryTasks.dueAt))
     .limit(5);

@@ -54,6 +54,7 @@ export const apiaryTasks = pgTable('apiary_tasks', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   hiveId: integer('hive_id').references(() => apiaryHives.id, { onDelete: 'set null' }),
+  yardId: integer('yard_id').references(() => apiaryYards.id, { onDelete: 'set null' }),
   title: text('title').notNull(),
   completed: boolean('completed').notNull().default(false),
   dueAt: timestamp('due_at'),

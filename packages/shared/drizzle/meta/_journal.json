@@ -43,6 +43,13 @@
       "when": 1773851978187,
       "tag": "0006_military_yellow_claw",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1774029897815,
+      "tag": "0007_add-yard-id-to-apiary-tasks",
+      "breakpoints": true
     }
   ]
 }

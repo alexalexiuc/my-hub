@@ -8,6 +8,7 @@ export type ApiaryTaskUpdate = Partial<Pick<typeof apiaryTasks.$inferInsert, 'ti
 
 export interface GetApiaryTasksOpts {
   hiveId?: number;
+  yardId?: number;
   completed?: boolean;
   dueBefore?: Date;
   limit?: number;
@@ -16,6 +17,7 @@ export interface GetApiaryTasksOpts {
 export async function getApiaryTasks(userId: string, opts: GetApiaryTasksOpts = {}): Promise<ApiaryTask[]> {
   const conditions = [eq(apiaryTasks.userId, userId)];
   if (opts.hiveId !== undefined) conditions.push(eq(apiaryTasks.hiveId, opts.hiveId));
+  if (opts.yardId !== undefined) conditions.push(eq(apiaryTasks.yardId, opts.yardId));
   if (opts.completed !== undefined) conditions.push(eq(apiaryTasks.completed, opts.completed));
   if (opts.dueBefore !== undefined) conditions.push(lte(apiaryTasks.dueAt, opts.dueBefore));
 
@@ -30,6 +32,9 @@ export async function getApiaryTasks(userId: string, opts: GetApiaryTasksOpts = 
 }
 
 export async function createApiaryTask(userId: string, data: ApiaryTaskInsert): Promise<ApiaryTask> {
+  if (data.hiveId && data.yardId) {
+    throw new Error('A task cannot be tied to both a hive and a yard. Provide hive_id or yard_id, not both.');
+  }
   const [row] = await db
     .insert(apiaryTasks)
     .values({ ...data, userId })
