@@ -41,8 +41,8 @@ const lines =
     `E2E_MCP_USER_ID=${user.id}`,
   ].join('\n') + '\n';
 
-// Write .env.e2e when running locally via tsx (not inside the Docker container)
-if (process.env['NODE_ENV'] !== 'production') {
+// Write .env.e2e only on local machines (IS_LOCAL=true in .env)
+if (process.env['IS_LOCAL'] === 'true') {
   const envPath = resolve(__dirname, '../.env.e2e');
   writeFileSync(envPath, lines);
   console.error('Written to', envPath);
