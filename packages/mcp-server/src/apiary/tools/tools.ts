@@ -1,6 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { defineTool, withUserIdCheck } from '../../shared/toolsUtils';
-import { CreateYardSchema, createYardTool, ListYardsSchema, listYardsTool, UpdateYardSchema, updateYardTool } from './yards';
+import {
+  CreateYardSchema,
+  createYardTool,
+  ListYardsSchema,
+  listYardsTool,
+  UpdateYardSchema,
+  updateYardTool,
+} from './yards';
 import {
   CreateHiveSchema,
   createHiveTool,
@@ -159,8 +166,7 @@ const apiaryTools = [
   }),
   defineTool({
     name: 'apiary_log_relocation',
-    description:
-      'Record a hive relocation to a different yard. Atomically updates the hive\'s yard_id to to_yard_id.',
+    description: "Record a hive relocation to a different yard. Atomically updates the hive's yard_id to to_yard_id.",
     inputSchema: LogRelocationSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: logRelocationTool,

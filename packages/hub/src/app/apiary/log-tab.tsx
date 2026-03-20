@@ -190,13 +190,13 @@ export default function LogTab() {
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-zinc-300">
-                  {log.hiveId && <span className="text-zinc-400">{hiveMap.get(log.hiveId) ?? `Hive #${log.hiveId}`}: </span>}
+                  {log.hiveId && (
+                    <span className="text-zinc-400">{hiveMap.get(log.hiveId) ?? `Hive #${log.hiveId}`}: </span>
+                  )}
                   {log.notes || '—'}
                 </p>
                 {log.data && typeof log.data === 'object' && Object.keys(log.data as object).length > 0 ? (
-                  <pre className="text-xs text-zinc-500 mt-1 overflow-x-auto">
-                    {JSON.stringify(log.data, null, 2)}
-                  </pre>
+                  <pre className="text-xs text-zinc-500 mt-1 overflow-x-auto">{JSON.stringify(log.data, null, 2)}</pre>
                 ) : null}
                 <p className="text-xs text-zinc-600 mt-1">{new Date(log.loggedAt).toLocaleDateString()}</p>
               </div>

@@ -8,8 +8,7 @@ const apiaryResources = [
   defineResource({
     name: 'apiary-summary',
     uri: 'apiary://summary',
-    description:
-      'Overview: yard count, hive count, pending task count, 5 most recent logs, 5 upcoming tasks',
+    description: 'Overview: yard count, hive count, pending task count, 5 most recent logs, 5 upcoming tasks',
     mimeType: 'application/json',
     callback: getSummaryResource,
   }),

@@ -1,6 +1,6 @@
 {
-  "id": "507e74ff-9b71-452a-a416-d5961e511b2d",
-  "prevId": "8a6d22fb-a0c9-4c16-822c-46c2a2bf5533",
+  "id": "951dbef4-c7b7-43eb-be11-ffc9128f2f25",
+  "prevId": "507e74ff-9b71-452a-a416-d5961e511b2d",
   "version": "6",
   "dialect": "postgresql",
   "tables": {
@@ -67,10 +67,10 @@
       "uniqueConstraints": {
         "users_email_unique": {
           "name": "users_email_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
     },
@@ -141,25 +141,25 @@
         "oauth_clients_user_id_users_id_fk": {
           "name": "oauth_clients_user_id_users_id_fk",
           "tableFrom": "oauth_clients",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "oauth_clients_client_id_unique": {
           "name": "oauth_clients_client_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "client_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
     },
@@ -206,26 +206,26 @@
         "mcp_servers_user_id_users_id_fk": {
           "name": "mcp_servers_user_id_users_id_fk",
           "tableFrom": "mcp_servers",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "uq_mcp_user_server": {
           "name": "uq_mcp_user_server",
+          "nullsNotDistinct": false,
           "columns": [
             "user_id",
             "server_name"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
     },
@@ -283,15 +283,15 @@
         "hive_logs_hive_id_hives_id_fk": {
           "name": "hive_logs_hive_id_hives_id_fk",
           "tableFrom": "hive_logs",
+          "tableTo": "hives",
           "columnsFrom": [
             "hive_id"
           ],
-          "tableTo": "hives",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -345,15 +345,15 @@
         "hive_todos_hive_id_hives_id_fk": {
           "name": "hive_todos_hive_id_hives_id_fk",
           "tableFrom": "hive_todos",
+          "tableTo": "hives",
           "columnsFrom": [
             "hive_id"
           ],
-          "tableTo": "hives",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -510,25 +510,25 @@
         "calorie_profiles_user_id_users_id_fk": {
           "name": "calorie_profiles_user_id_users_id_fk",
           "tableFrom": "calorie_profiles",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "calorie_profiles_user_id_unique": {
           "name": "calorie_profiles_user_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "user_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
     },
@@ -651,25 +651,25 @@
         "meal_logs_user_id_users_id_fk": {
           "name": "meal_logs_user_id_users_id_fk",
           "tableFrom": "meal_logs",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "meal_logs_meal_id_unique": {
           "name": "meal_logs_meal_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "meal_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
     },
@@ -757,28 +757,28 @@
         "body_measurements_user_id_users_id_fk": {
           "name": "body_measurements_user_id_users_id_fk",
           "tableFrom": "body_measurements",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "body_measurements_type_key_measurement_types_key_fk": {
           "name": "body_measurements_type_key_measurement_types_key_fk",
           "tableFrom": "body_measurements",
+          "tableTo": "measurement_types",
           "columnsFrom": [
             "type_key"
           ],
-          "tableTo": "measurement_types",
           "columnsTo": [
             "key"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -980,15 +980,15 @@
         "todos_user_id_users_id_fk": {
           "name": "todos_user_id_users_id_fk",
           "tableFrom": "todos",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1048,40 +1048,414 @@
         "invite_tokens_created_by_users_id_fk": {
           "name": "invite_tokens_created_by_users_id_fk",
           "tableFrom": "invite_tokens",
+          "tableTo": "users",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "invite_tokens_used_by_users_id_fk": {
           "name": "invite_tokens_used_by_users_id_fk",
           "tableFrom": "invite_tokens",
+          "tableTo": "users",
           "columnsFrom": [
             "used_by"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "invite_tokens_token_unique": {
           "name": "invite_tokens_token_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "token"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
+    },
+    "public.apiary_hives": {
+      "name": "apiary_hives",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "yard_id": {
+          "name": "yard_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "queen_status": {
+          "name": "queen_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "queen_marked": {
+          "name": "queen_marked",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "queen_year": {
+          "name": "queen_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "boxes": {
+          "name": "boxes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "apiary_hives_user_id_users_id_fk": {
+          "name": "apiary_hives_user_id_users_id_fk",
+          "tableFrom": "apiary_hives",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "apiary_hives_yard_id_apiary_yards_id_fk": {
+          "name": "apiary_hives_yard_id_apiary_yards_id_fk",
+          "tableFrom": "apiary_hives",
+          "tableTo": "apiary_yards",
+          "columnsFrom": [
+            "yard_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.apiary_logs": {
+      "name": "apiary_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hive_id": {
+          "name": "hive_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "logged_at": {
+          "name": "logged_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data": {
+          "name": "data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "apiary_logs_user_id_users_id_fk": {
+          "name": "apiary_logs_user_id_users_id_fk",
+          "tableFrom": "apiary_logs",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "apiary_logs_hive_id_apiary_hives_id_fk": {
+          "name": "apiary_logs_hive_id_apiary_hives_id_fk",
+          "tableFrom": "apiary_logs",
+          "tableTo": "apiary_hives",
+          "columnsFrom": [
+            "hive_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.apiary_tasks": {
+      "name": "apiary_tasks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hive_id": {
+          "name": "hive_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yard_id": {
+          "name": "yard_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "completed": {
+          "name": "completed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "due_at": {
+          "name": "due_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "apiary_tasks_user_id_users_id_fk": {
+          "name": "apiary_tasks_user_id_users_id_fk",
+          "tableFrom": "apiary_tasks",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "apiary_tasks_hive_id_apiary_hives_id_fk": {
+          "name": "apiary_tasks_hive_id_apiary_hives_id_fk",
+          "tableFrom": "apiary_tasks",
+          "tableTo": "apiary_hives",
+          "columnsFrom": [
+            "hive_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "apiary_tasks_yard_id_apiary_yards_id_fk": {
+          "name": "apiary_tasks_yard_id_apiary_yards_id_fk",
+          "tableFrom": "apiary_tasks",
+          "tableTo": "apiary_yards",
+          "columnsFrom": [
+            "yard_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.apiary_yards": {
+      "name": "apiary_yards",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "location": {
+          "name": "location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "apiary_yards_user_id_users_id_fk": {
+          "name": "apiary_yards_user_id_users_id_fk",
+          "tableFrom": "apiary_yards",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
     }
   },
   "enums": {
@@ -1089,6 +1463,7 @@
       "name": "mcp_server",
       "schema": "public",
       "values": [
+        "apiary",
         "calories",
         "hive",
         "products",
