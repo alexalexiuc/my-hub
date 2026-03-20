@@ -18,18 +18,21 @@ export default function SignInPage() {
 function SignInContent() {
   const searchParams = useSearchParams();
   const { status } = useSession();
-  const callbackUrl = normalizeCallbackUrl(searchParams.get('callbackUrl'));
+  const rawCallbackUrl = searchParams.get('callbackUrl');
+  const callbackUrl = normalizeCallbackUrl(rawCallbackUrl);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Redirect away from sign-in page if the user is already authenticated.
+  // Redirect away from sign-in page only when arriving via a protected route
+  // (i.e. there is an explicit callbackUrl). Without one the user likely landed
+  // here after sign-out, so we keep them on the page instead of bouncing back.
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && rawCallbackUrl) {
       window.location.href = callbackUrl;
     }
-  }, [status, callbackUrl]);
+  }, [status, callbackUrl, rawCallbackUrl]);
 
   async function handleCredentials(e: React.FormEvent) {
     e.preventDefault();

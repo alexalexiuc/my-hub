@@ -5,7 +5,7 @@ import closeWithGrace from 'close-with-grace';
 async function main() {
   const app = await buildServer();
 
-  closeWithGrace({ delay: 2000 }, async ({ signal, err }: { signal?: string; err?: Error }) => {
+  closeWithGrace({ delay: 500 }, async ({ signal, err }: { signal?: string; err?: Error }) => {
     if (err) {
       app.log.error({ err }, 'Server closing due to error');
     } else {
