@@ -9,7 +9,8 @@ MCP sub-servers currently available:
 
 - **Calorie Tracker** — meal logging, nutritional summaries, user profiles, body measurements
 - **Todo** — task management, reminders
-- **Hive Manager** — beekeeping data (logs, profiles, todos, relocations) _(implemented, pending deployment)_
+- **Apiary** — yard, hive, inspection log, and task management for beekeepers (12 tools, 3 resources)
+- **Hive Manager** — _(superseded by Apiary)_
 - **Products Manager** _(planned)_ — home inventory, shopping lists, product catalog
 
 **Platform repo:** https://github.com/alexalexiuc/my-hub

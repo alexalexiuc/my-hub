@@ -1,8 +1,11 @@
 # Feature: Hive Manager MCP
 
+> **⚠️ Superseded by [`feature-apiary-management.md`](./feature-apiary-management.md).**
+> The Apiary Management feature replaces this Hive Manager prototype with multi-user support, yards, and a richer tool/resource set.
+
 | Field    | Value                          |
 | -------- | ------------------------------ |
-| Status   | in-progress                    |
+| Status   | superseded                     |
 | Priority | high                           |
 | File     | `mcps/feature-hive-manager.md` |
 
