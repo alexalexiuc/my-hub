@@ -24,11 +24,15 @@ test.describe('MCP Services Page', () => {
   });
 
   test('shows four MCP server cards', async ({ page }) => {
-    // Use exact:true so that 'Calories' doesn't partial-match the MCP URL code element
-    await expect(page.getByText('Calories', { exact: true })).toBeVisible();
-    await expect(page.getByText('Todo', { exact: true })).toBeVisible();
-    await expect(page.getByText('Hive Manager', { exact: true })).toBeVisible();
-    await expect(page.getByText('Products', { exact: true })).toBeVisible();
+    // Scope to the MCP Servers section — the Audit Log filter dropdown also
+    // has options with these exact names, which causes strict mode violations.
+    const serversSection = page.locator('section').filter({
+      has: page.getByRole('heading', { name: 'MCP Servers' }),
+    });
+    await expect(serversSection.getByText('Calories', { exact: true })).toBeVisible();
+    await expect(serversSection.getByText('Todo', { exact: true })).toBeVisible();
+    await expect(serversSection.getByText('Hive Manager', { exact: true })).toBeVisible();
+    await expect(serversSection.getByText('Products', { exact: true })).toBeVisible();
   });
 
   test('inactive servers show Coming soon label', async ({ page }) => {

@@ -67,6 +67,6 @@ test.describe('Profile Page', () => {
   });
 
   test('sign out link is present', async ({ page }) => {
-    await expect(page.getByRole('link', { name: /sign out/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /sign out/i })).toBeVisible();
   });
 });

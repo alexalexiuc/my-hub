@@ -13,8 +13,8 @@ test.describe('Calories Dashboard', () => {
 
   test('page shows Calories heading and Profile section', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Calories', level: 1 })).toBeVisible();
-    // SectionCard renders an h2 titled "Profile"
-    await expect(page.getByRole('heading', { name: 'Profile', level: 2 })).toBeVisible();
+    // SectionCard renders an h2 titled "Settings" (the ProfileCard section)
+    await expect(page.getByRole('heading', { name: 'Settings', level: 2 })).toBeVisible();
   });
 
   test('open edit profile form and save', async ({ page }) => {
@@ -59,6 +59,7 @@ test.describe('Calories Dashboard', () => {
     await page.getByRole('spinbutton', { name: /value/i }).fill('75.5');
     await page.getByRole('button', { name: /^save$/i }).click();
 
-    await expect(page.getByText('75.5 kg').first()).toBeVisible({ timeout: 5_000 });
+    // Value and unit are in separate DOM nodes; match the numeric value only
+    await expect(page.getByText(/75\.5/).first()).toBeVisible({ timeout: 5_000 });
   });
 });
