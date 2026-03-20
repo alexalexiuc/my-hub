@@ -8,9 +8,32 @@ import {
   listHivesTool,
   UpdateHiveSchema,
   updateHiveTool,
+  GetHiveStatusSchema,
+  getHiveStatusTool,
 } from './hives';
-import { LogEventSchema, logEventTool, GetLogsSchema, getLogsTool, DeleteLogSchema, deleteLogTool } from './logs';
 import {
+  LogInspectionSchema,
+  logInspectionTool,
+  LogTreatmentSchema,
+  logTreatmentTool,
+  LogFeedingSchema,
+  logFeedingTool,
+  LogHarvestSchema,
+  logHarvestTool,
+  LogQueenEventSchema,
+  logQueenEventTool,
+  LogRelocationSchema,
+  logRelocationTool,
+  AddNoteSchema,
+  addNoteTool,
+  GetHiveLogsSchema,
+  getHiveLogsTool,
+  DeleteLogSchema,
+  deleteLogTool,
+} from './logs';
+import {
+  ListTasksSchema,
+  listTasksTool,
   CreateTaskSchema,
   createTaskTool,
   CompleteTaskSchema,
@@ -18,9 +41,15 @@ import {
   DeleteTaskSchema,
   deleteTaskTool,
 } from './tasks';
+import {
+  GetActiveTreatmentsSchema,
+  getActiveTreatmentsTool,
+  GetOverdueInspectionsSchema,
+  getOverdueInspectionsTool,
+} from './semantic';
 
 const apiaryTools = [
-  // ---- Yard tools ----
+  // ---- Yard tools (3) ----
   defineTool({
     name: 'apiary_create_yard',
     description: 'Create a new yard (physical location where hives are kept)',
@@ -42,7 +71,7 @@ const apiaryTools = [
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: updateYardTool,
   }),
-  // ---- Hive tools ----
+  // ---- Hive tools (4) ----
   defineTool({
     name: 'apiary_create_hive',
     description: 'Register a new hive. Optionally assign to a yard.',
@@ -64,22 +93,78 @@ const apiaryTools = [
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: updateHiveTool,
   }),
-  // ---- Log tools ----
   defineTool({
-    name: 'apiary_log_event',
+    name: 'apiary_get_hive_status',
     description:
-      'Record a hive event (inspection, treatment, feeding, harvest, relocation, queen_event, or note). ' +
-      'The `data` field holds type-specific details — see the JSONB payload table in the schema section.',
-    inputSchema: LogEventSchema.shape,
+      'Get full status for a hive — returns the hive details, yard name, last inspection summary, ' +
+      'any active treatments (computed from duration_days), and all open tasks. ' +
+      'Use this when asked "How is Hive X doing?" for a single-call complete picture.',
+    inputSchema: GetHiveStatusSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getHiveStatusTool,
+  }),
+  // ---- Typed log tools (7) ----
+  defineTool({
+    name: 'apiary_log_inspection',
+    description:
+      'Record a hive inspection with typed fields: temperament, brood pattern, queen sighting, population, disease signs.',
+    inputSchema: LogInspectionSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
-    callback: logEventTool,
+    callback: logInspectionTool,
   }),
   defineTool({
-    name: 'apiary_get_logs',
-    description: 'Retrieve event logs with optional filters. Returns newest first.',
-    inputSchema: GetLogsSchema.shape,
+    name: 'apiary_log_treatment',
+    description:
+      'Record a treatment event with product, method, and duration. ' +
+      'The duration_days field is used to compute active treatment windows (via apiary_get_active_treatments).',
+    inputSchema: LogTreatmentSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: logTreatmentTool,
+  }),
+  defineTool({
+    name: 'apiary_log_feeding',
+    description: 'Record a feeding event with feed type, ratio, and amount.',
+    inputSchema: LogFeedingSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: logFeedingTool,
+  }),
+  defineTool({
+    name: 'apiary_log_harvest',
+    description: 'Record a honey harvest with frame count, weight, and honey type.',
+    inputSchema: LogHarvestSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: logHarvestTool,
+  }),
+  defineTool({
+    name: 'apiary_log_queen_event',
+    description:
+      'Record a queen event (requeened, lost, seen, emerged, superseded) with optional queen source, mark color.',
+    inputSchema: LogQueenEventSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: logQueenEventTool,
+  }),
+  defineTool({
+    name: 'apiary_log_relocation',
+    description:
+      'Record a hive relocation to a different yard. Atomically updates the hive\'s yard_id to to_yard_id.',
+    inputSchema: LogRelocationSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: logRelocationTool,
+  }),
+  defineTool({
+    name: 'apiary_add_note',
+    description: 'Add a general freetext note, optionally tied to a specific hive.',
+    inputSchema: AddNoteSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: addNoteTool,
+  }),
+  // ---- Log query tools (2) ----
+  defineTool({
+    name: 'apiary_get_hive_logs',
+    description: 'Get the event history for a specific hive, filterable by type. Returns newest first.',
+    inputSchema: GetHiveLogsSchema.shape,
     annotations: { readOnlyHint: true },
-    callback: getLogsTool,
+    callback: getHiveLogsTool,
   }),
   defineTool({
     name: 'apiary_delete_log',
@@ -88,7 +173,33 @@ const apiaryTools = [
     annotations: { idempotentHint: false, destructiveHint: true },
     callback: deleteLogTool,
   }),
-  // ---- Task tools ----
+  // ---- Semantic query tools (2) ----
+  defineTool({
+    name: 'apiary_get_active_treatments',
+    description:
+      'Get all currently active treatments — computes end dates from logged_at + duration_days server-side. ' +
+      'No manual date math needed. Optionally filter by hive.',
+    inputSchema: GetActiveTreatmentsSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getActiveTreatmentsTool,
+  }),
+  defineTool({
+    name: 'apiary_get_overdue_inspections',
+    description:
+      'Get hives where the last inspection was more than N days ago (default: 14). ' +
+      'Includes hives that have never been inspected. Use to answer "Which hives need checking?"',
+    inputSchema: GetOverdueInspectionsSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getOverdueInspectionsTool,
+  }),
+  // ---- Task tools (4) ----
+  defineTool({
+    name: 'apiary_list_tasks',
+    description: 'List tasks with optional filters by hive, completion status, and due date.',
+    inputSchema: ListTasksSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: listTasksTool,
+  }),
   defineTool({
     name: 'apiary_create_task',
     description: 'Create a beekeeping task, optionally tied to a specific hive',

@@ -1,4 +1,4 @@
-import { and, eq, asc } from 'drizzle-orm';
+import { and, eq, asc, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { apiaryTasks } from '../../db/schema/apiary';
 import type { ApiaryTask } from '../../types/index';
@@ -9,6 +9,7 @@ export type ApiaryTaskUpdate = Partial<Pick<typeof apiaryTasks.$inferInsert, 'ti
 export interface GetApiaryTasksOpts {
   hiveId?: number;
   completed?: boolean;
+  dueBefore?: Date;
   limit?: number;
 }
 
@@ -16,6 +17,7 @@ export async function getApiaryTasks(userId: string, opts: GetApiaryTasksOpts = 
   const conditions = [eq(apiaryTasks.userId, userId)];
   if (opts.hiveId !== undefined) conditions.push(eq(apiaryTasks.hiveId, opts.hiveId));
   if (opts.completed !== undefined) conditions.push(eq(apiaryTasks.completed, opts.completed));
+  if (opts.dueBefore !== undefined) conditions.push(lte(apiaryTasks.dueAt, opts.dueBefore));
 
   const limit = opts.limit ?? 100;
 

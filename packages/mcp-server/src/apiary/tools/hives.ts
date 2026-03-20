@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getApiaryHives, createApiaryHive, updateApiaryHive } from '@my-hub/shared/services';
+import { getApiaryHives, createApiaryHive, updateApiaryHive, getApiaryHiveStatus } from '@my-hub/shared/services';
 import { toolResponse } from '../../shared/toolsUtils';
 import { omitNullish } from '@my-hub/shared/utils';
 
@@ -29,6 +29,10 @@ export const UpdateHiveSchema = z.object({
   boxes: z.number().int().positive().optional().describe('Updated number of boxes'),
   notes: z.string().optional().describe('Updated notes'),
   is_active: z.boolean().optional().describe('Whether the hive is active'),
+});
+
+export const GetHiveStatusSchema = z.object({
+  hive_id: z.number().int().positive().describe('ID of the hive to get full status for'),
 });
 
 export const createHiveTool: ToolCallback<typeof CreateHiveSchema.shape> = async (input, extra) => {
@@ -71,4 +75,11 @@ export const updateHiveTool: ToolCallback<typeof UpdateHiveSchema.shape> = async
   );
   if (!hive) throw new Error(`Hive with id ${input.hive_id} not found`);
   return toolResponse(hive);
+};
+
+export const getHiveStatusTool: ToolCallback<typeof GetHiveStatusSchema.shape> = async (input, extra) => {
+  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const status = await getApiaryHiveStatus(userId, input.hive_id);
+  if (!status) throw new Error(`Hive with id ${input.hive_id} not found`);
+  return toolResponse(status);
 };
