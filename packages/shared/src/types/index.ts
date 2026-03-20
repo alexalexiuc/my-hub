@@ -14,6 +14,10 @@ import type {
   apiRequestLogs,
   todos,
   inviteTokens,
+  apiaryYards,
+  apiaryHives,
+  apiaryLogs,
+  apiaryTasks,
 } from '../db/schema/index';
 
 // Identity & Auth
@@ -55,3 +59,13 @@ export type NewTodo = InferInsertModel<typeof todos>;
 
 // Invites
 export type InviteToken = InferSelectModel<typeof inviteTokens>;
+
+// Apiary
+export type ApiaryYard = InferSelectModel<typeof apiaryYards>;
+export type NewApiaryYard = InferInsertModel<typeof apiaryYards>;
+export type ApiaryHive = InferSelectModel<typeof apiaryHives>;
+export type NewApiaryHive = InferInsertModel<typeof apiaryHives>;
+export type ApiaryLog = InferSelectModel<typeof apiaryLogs>;
+export type NewApiaryLog = InferInsertModel<typeof apiaryLogs>;
+export type ApiaryTask = InferSelectModel<typeof apiaryTasks>;
+export type NewApiaryTask = InferInsertModel<typeof apiaryTasks>;

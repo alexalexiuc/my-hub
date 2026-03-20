@@ -7,3 +7,4 @@ export * from './measurements/index';
 export * from './logs/index';
 export * from './todos/index';
 export * from './invites/index';
+export * from './apiary/index';

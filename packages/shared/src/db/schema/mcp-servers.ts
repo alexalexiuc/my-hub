@@ -8,6 +8,7 @@ import { users } from './users';
  * compatible with Drizzle column types and existing runtime code.
  */
 export const McpServerName = {
+  Apiary: 'apiary',
   Calories: 'calories',
   Hive: 'hive',
   Products: 'products',
@@ -17,6 +18,7 @@ export const McpServerName = {
 export type McpServerName = (typeof McpServerName)[keyof typeof McpServerName];
 
 export const mcpServerEnum = pgEnum('mcp_server', [
+  McpServerName.Apiary,
   McpServerName.Calories,
   McpServerName.Hive,
   McpServerName.Products,
