@@ -63,7 +63,7 @@ function SignInContent() {
       </div>
 
       <div className="relative z-10 w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl shadow-black/50">
-        <h1 className="mb-6 text-2xl font-bold text-center">Sign in to my-hub</h1>
+        <h1 className="mb-6 text-2xl font-bold text-center">Sign in to My HUB</h1>
 
         {/* Email + password form */}
         <form onSubmit={handleCredentials} className="space-y-3">
