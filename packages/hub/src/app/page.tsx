@@ -25,6 +25,13 @@ const appSections = [
     color: 'bg-blue-950/30 border-blue-800/50 hover:border-blue-600/70',
     labelColor: 'text-blue-400',
   },
+  {
+    href: '/apiary',
+    label: 'Apiary',
+    description: 'Manage bee yards, hives, inspections & tasks',
+    color: 'bg-amber-950/30 border-amber-800/50 hover:border-amber-600/70',
+    labelColor: 'text-amber-400',
+  },
 ];
 
 interface Macros {
