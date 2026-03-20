@@ -22,12 +22,14 @@
     "logs:server:staging": "node infra/scripts/server-compose-logs.mjs --env staging",
     "db:generate": "pnpm --filter shared db:generate",
     "db:migrate": "pnpm --filter shared db:migrate",
-    "prepare": "husky"
+    "prepare": "husky",
+    "lint:timing": "cross-env TIMING=1 eslint ."
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@next/eslint-plugin-next": "^16.1.6",
     "@types/node": "^22.13.14",
+    "cross-env": "^10.1.0",
     "eslint": "^10.0.3",
     "eslint-config-flat-gitignore": "^2.2.1",
     "eslint-config-prettier": "^10.1.8",

@@ -6,12 +6,8 @@ import { toolResponse } from '../../shared/toolsUtils';
 import { buildHistoryPeriod } from '../models/history';
 
 export const GetHistorySchema = z.object({
-  start_date: yyyyMmDdSchema
-    .optional()
-    .describe('Start of the period (YYYY-MM-DD). Defaults to today when omitted.'),
-  end_date: yyyyMmDdSchema
-    .optional()
-    .describe('End of the period (YYYY-MM-DD). Defaults to today when omitted.'),
+  start_date: yyyyMmDdSchema.optional().describe('Start of the period (YYYY-MM-DD). Defaults to today when omitted.'),
+  end_date: yyyyMmDdSchema.optional().describe('End of the period (YYYY-MM-DD). Defaults to today when omitted.'),
 });
 
 export const getHistoryTool: ToolCallback<typeof GetHistorySchema.shape> = async (input, extra) => {
