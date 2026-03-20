@@ -12,3 +12,7 @@
 - [x] Add turborepo for better monorepo management during builds/checks.
 - [ ] Review [CrowdSec](https://www.crowdsec.net/) to be added as a security layer in front of the MCP server, to block malicious IPs and prevent abuse. It can be run as a sidecar container in the same network as the MCP server, and configured to forward allowed requests to it while blocking suspicious ones. This would add an extra layer of protection against attacks like brute-force login attempts, DDoS, and other common web threats.
 - [ ] Check calories min max if works properly and makes sense.
+- [ ] Enhance Harvesting with a dedicated table for to store harvests(start, end, collection per hive. etc. Add MCP tools for reporting & UI elements)
+- [ ] Verify issue with Github PR checks where E2E test action is finished with success but in PR checks it has pending status.
+- [ ] Mobile authorization redirects to localhost. Check!
+- [ ] Add refresh token support to the OAuth implementation. Then increase access token expiration.
