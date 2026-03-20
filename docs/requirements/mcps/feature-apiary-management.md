@@ -50,19 +50,56 @@ Key design decisions:
 
 ---
 
-## MCP Tools (12)
+## MCP Tools (22)
+
+### Yard Tools (3)
 
 | Tool Name              | Description                                                                    |
 | ---------------------- | ------------------------------------------------------------------------------ |
 | `apiary_create_yard`   | Create a new yard (physical location where hives are kept)                     |
 | `apiary_list_yards`    | List all yards for the authenticated user                                      |
 | `apiary_update_yard`   | Update an existing yard's details                                              |
-| `apiary_create_hive`   | Register a new hive, optionally assigned to a yard                             |
-| `apiary_list_hives`    | List hives with optional filters by yard and active status                     |
-| `apiary_update_hive`   | Update hive details (queen info, boxes, yard assignment, etc.)                 |
-| `apiary_log_event`     | Record a hive event (inspection, treatment, feeding, harvest, etc.)            |
-| `apiary_get_logs`      | Retrieve event logs with optional filters, newest first                        |
+
+### Hive Tools (4)
+
+| Tool Name                 | Description                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------ |
+| `apiary_create_hive`      | Register a new hive, optionally assigned to a yard                             |
+| `apiary_list_hives`       | List hives with optional filters by yard and active status                     |
+| `apiary_update_hive`      | Update hive details (queen info, boxes, yard assignment, etc.)                 |
+| `apiary_get_hive_status`  | Full status for one hive: details, yard, last inspection, active treatments, open tasks |
+
+### Typed Logging Tools (7)
+
+| Tool Name                 | Description                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------ |
+| `apiary_log_inspection`   | Record a hive inspection with typed fields (temperament, brood pattern, queen seen, population, disease signs) |
+| `apiary_log_treatment`    | Record a treatment event (product, method, duration_days for active treatment tracking) |
+| `apiary_log_feeding`      | Record a feeding event (feed type, ratio, amount)                              |
+| `apiary_log_harvest`      | Record a honey harvest (frames, weight, honey type)                            |
+| `apiary_log_queen_event`  | Record a queen event (requeened, lost, seen, emerged, superseded)              |
+| `apiary_log_relocation`   | Relocate a hive to a different yard (atomically updates hive.yard_id)          |
+| `apiary_add_note`         | Add a general freetext note, optionally tied to a hive                         |
+
+### Log Query Tools (2)
+
+| Tool Name              | Description                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `apiary_get_hive_logs` | Event history for a specific hive, filterable by type, newest first            |
 | `apiary_delete_log`    | Delete a log entry by ID                                                       |
+
+### Semantic Query Tools (2)
+
+| Tool Name                        | Description                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| `apiary_get_active_treatments`   | Currently active treatments (computes end dates from logged_at + duration_days server-side) |
+| `apiary_get_overdue_inspections` | Hives where last inspection > N days ago (default 14), includes never-inspected hives |
+
+### Task Tools (4)
+
+| Tool Name              | Description                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `apiary_list_tasks`    | List tasks with filters by hive, completion status, and due date               |
 | `apiary_create_task`   | Create a beekeeping task, optionally tied to a specific hive                   |
 | `apiary_complete_task` | Mark a task as completed                                                       |
 | `apiary_delete_task`   | Delete a task by ID                                                            |
