@@ -36,6 +36,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Turborepo
+.turbo/
+
 # Logs
 *.log
 npm-debug.log*

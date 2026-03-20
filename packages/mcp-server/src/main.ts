@@ -5,13 +5,14 @@ import closeWithGrace from 'close-with-grace';
 async function main() {
   const app = await buildServer();
 
-  closeWithGrace({ delay: 10000 }, async ({ signal, err }: { signal?: string; err?: Error }) => {
+  closeWithGrace({ delay: 2000 }, async ({ signal, err }: { signal?: string; err?: Error }) => {
     if (err) {
       app.log.error({ err }, 'Server closing due to error');
     } else {
       app.log.info(`${signal ?? 'shutdown'} received — shutting down gracefully`);
     }
     await app.close();
+    process.exit(err ? 1 : 0);
   });
 
   await app.listen({

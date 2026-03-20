@@ -4,16 +4,16 @@
   "private": true,
   "author": "Alexiuc Alex",
   "scripts": {
-    "dev": "pnpm --parallel -r dev",
-    "build": "pnpm --filter @my-hub/shared build && pnpm --filter @my-hub/mcp-server build && pnpm --filter @my-hub/hub build",
-    "build:clear": "pnpm -r build:clear",
-    "lint": "pnpm exec eslint .",
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "build:clear": "turbo build:clear",
+    "lint": "turbo lint",
     "lint:fix": "pnpm exec eslint . --fix",
     "format": "pnpm exec prettier --write .",
     "format:check": "pnpm exec prettier --check .",
-    "typecheck": "pnpm run build && pnpm --filter @my-hub/shared typecheck && pnpm --filter @my-hub/mcp-server typecheck && pnpm --filter @my-hub/hub typecheck",
+    "typecheck": "turbo typecheck",
     "test": "pnpm run test:unit",
-    "test:unit": "pnpm -r --if-present test:unit",
+    "test:unit": "turbo test:unit",
     "test:e2e": "pnpm -r --if-present test:e2e",
     "start:prod": "docker compose --project-name my-hub --env-file .env -f infra/docker-compose.prod.yml up -d --remove-orphans",
     "start:local": "docker compose --project-name my-hub-local --env-file .env -f infra/docker-compose.local.yml up -d --build --remove-orphans",
@@ -21,7 +21,8 @@
     "logs:server:prod": "node infra/scripts/server-compose-logs.mjs --env prod",
     "logs:server:staging": "node infra/scripts/server-compose-logs.mjs --env staging",
     "db:generate": "pnpm --filter shared db:generate",
-    "db:migrate": "pnpm --filter shared db:migrate"
+    "db:migrate": "pnpm --filter shared db:migrate",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -32,17 +33,30 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "rimraf": "^6.1.3",
     "tsup": "^8.0.0",
+    "turbo": "^2.8.20",
     "typescript": "^5.4.5",
     "typescript-eslint": "^8.57.0"
   },
+  "packageManager": "pnpm@10.32.1",
   "engines": {
     "node": ">=22",
     "pnpm": ">=9"
   },
   "dependencies": {
     "dotenv-mono": "^1.5.1"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,mjs,mts}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "**/*.{json,md,yml,yaml,css}": [
+      "prettier --write"
+    ]
   }
 }
