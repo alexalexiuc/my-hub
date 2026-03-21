@@ -1,27 +1,24 @@
 'use client';
 
-import {
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-  Legend,
-} from 'recharts';
+import { ComposedChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import type { TooltipContentProps, TooltipPayloadEntry } from 'recharts';
 import SectionCard from '@/components/section-card';
 
 interface DayData {
   date: string;
   label: string;
-  kcal: number;
+}
+
+interface WeightMeasurement {
+  date: string;
+  value: number;
 }
 
 interface Props {
-  data: DayData[];
-  target: number | null;
+  days: DayData[];
+  weightHistory: WeightMeasurement[];
+  goalType: string | null;
+  goalWeeklyRateKg: number | null;
 }
 
 function CustomTooltip({ active, payload, label }: TooltipContentProps<number, string>) {
@@ -45,53 +42,145 @@ function CustomTooltip({ active, payload, label }: TooltipContentProps<number, s
           style={{ color: (entry.color as string | undefined) ?? '#e4e4e7', marginBottom: 2 }}
         >
           {entry.name === 'actual' ? 'Actual' : 'Projected'}:{' '}
-          <strong>{entry.value != null ? `${entry.value as number} kcal` : '—'}</strong>
+          <strong>{entry.value != null ? `${(entry.value as number).toFixed(1)} kg` : '—'}</strong>
         </p>
       ))}
     </div>
   );
 }
 
-export default function GoalProgressCard({ data, target }: Props) {
-  if (!target || data.length === 0) return null;
+function getDailyGoalDelta(goalType: string | null, goalWeeklyRateKg: number | null): number | null {
+  if (goalType === 'maintain') return 0;
+  if (!goalWeeklyRateKg || goalWeeklyRateKg <= 0) return null;
+  if (goalType === 'weight_loss') return -(goalWeeklyRateKg / 7);
+  if (goalType === 'weight_gain') return goalWeeklyRateKg / 7;
+  return null;
+}
+
+function findNearestPastWeight(weightRows: WeightMeasurement[], date: string): number | null {
+  for (const row of weightRows) {
+    if (row.date <= date) return row.value;
+  }
+  return null;
+}
+
+function findNearestFutureWeight(weightRows: WeightMeasurement[], date: string): number | null {
+  let nearest: WeightMeasurement | null = null;
+  for (const row of weightRows) {
+    if (row.date >= date && (!nearest || row.date < nearest.date)) {
+      nearest = row;
+    }
+  }
+  return nearest?.value ?? null;
+}
+
+function findFirstWeightDateInRange(
+  weightRows: WeightMeasurement[],
+  startDate: string,
+  endDate: string,
+): string | null {
+  let firstDate: string | null = null;
+  for (const row of weightRows) {
+    if (row.date >= startDate && row.date <= endDate && (firstDate === null || row.date < firstDate)) {
+      firstDate = row.date;
+    }
+  }
+  return firstDate;
+}
+
+export default function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRateKg }: Props) {
+  if (days.length === 0 || !goalType) return null;
+
+  const dailyDelta = getDailyGoalDelta(goalType, goalWeeklyRateKg);
+  if (dailyDelta === null) return null;
+
+  const orderedWeights = [...weightHistory].sort((a, b) => b.date.localeCompare(a.date));
+  const weekStart = days[0]!.date;
+  const weekEnd = days[days.length - 1]!.date;
+  const pastAtWeekStart = findNearestPastWeight(orderedWeights, weekStart);
+  const firstWeightDateInWeek = findFirstWeightDateInRange(orderedWeights, weekStart, weekEnd);
+
+  const displayDays =
+    pastAtWeekStart !== null || firstWeightDateInWeek === null
+      ? days
+      : days.filter((d) => d.date >= firstWeightDateInWeek);
+
+  const chartStartDate = displayDays[0]?.date ?? weekStart;
+  const baselineWeight =
+    findNearestPastWeight(orderedWeights, chartStartDate) ?? findNearestFutureWeight(orderedWeights, chartStartDate);
+  if (baselineWeight === null) {
+    return (
+      <SectionCard title="Weekly goal progress">
+        <p className="text-sm text-zinc-500">No recent weight data available for progress projection.</p>
+      </SectionCard>
+    );
+  }
 
   const today = new Date().toISOString().split('T')[0] ?? '';
 
-  let cumulativeActual = 0;
-  let cumulativeProjected = 0;
-  const chartData = data.map(({ date, label, kcal }) => {
-    const isPast = date <= today;
-    if (isPast) cumulativeActual += kcal;
-    cumulativeProjected += target;
+  const chartData = displayDays.map(({ date, label }, index) => {
+    const projected = baselineWeight + dailyDelta * index;
+    const actual = findNearestPastWeight(orderedWeights, date);
     return {
       date,
       label,
-      actual: isPast ? cumulativeActual : null,
-      projected: cumulativeProjected,
+      actual,
+      projected,
     };
   });
 
-  const lastPastIndex = data.reduce((idx, d, i) => (d.date <= today ? i : idx), -1);
-  const totalActual = lastPastIndex >= 0 ? (chartData[lastPastIndex]?.actual ?? 0) : 0;
-  const totalProjected = (lastPastIndex + 1) * target;
-  const delta = totalActual - totalProjected;
+  const lastPastIndex = displayDays.reduce((idx, d, i) => (d.date <= today ? i : idx), -1);
+  const lastPastPoint = lastPastIndex >= 0 ? chartData[lastPastIndex] : null;
+  const delta =
+    lastPastPoint && lastPastPoint.actual !== null ? (lastPastPoint.actual as number) - lastPastPoint.projected : null;
 
-  const maxVal = Math.max(...chartData.map((d) => Math.max(d.actual ?? 0, d.projected)));
-  const maxDisplayValue = Math.ceil(maxVal * 1.1);
+  const values = chartData.flatMap((d) => [d.projected, d.actual ?? d.projected]);
+  const minVal = Math.min(...values);
+  const maxVal = Math.max(...values);
+  const range = Math.max(maxVal - minVal, 0.4);
+  const minDisplayValue = Math.floor((minVal - range * 0.2) * 10) / 10;
+  const maxDisplayValue = Math.ceil((maxVal + range * 0.2) * 10) / 10;
   const numDigits = String(maxDisplayValue).length;
   const yAxisWidth = numDigits >= 5 ? 56 : 46;
   const leftMargin = numDigits >= 5 ? -6 : -16;
 
-  const summaryColor = delta > 0 ? 'text-red-400' : delta < 0 ? 'text-green-400' : 'text-zinc-400';
-  const summaryText =
-    delta > 0 ? `+${delta} kcal over target` : delta < 0 ? `${Math.abs(delta)} kcal under target` : 'On track';
+  let summaryColor = 'text-zinc-400';
+  let summaryText = 'No weight data yet';
+  if (delta !== null) {
+    if (Math.abs(delta) < 0.1) {
+      summaryText = 'On track';
+    } else if (goalType === 'weight_loss') {
+      const ahead = delta < 0;
+      summaryColor = ahead ? 'text-green-400' : 'text-red-400';
+      summaryText = ahead
+        ? `${Math.abs(delta).toFixed(1)} kg ahead of loss goal`
+        : `${delta.toFixed(1)} kg behind loss goal`;
+    } else if (goalType === 'weight_gain') {
+      const ahead = delta > 0;
+      summaryColor = ahead ? 'text-green-400' : 'text-red-400';
+      summaryText = ahead
+        ? `${delta.toFixed(1)} kg ahead of gain goal`
+        : `${Math.abs(delta).toFixed(1)} kg behind gain goal`;
+    } else {
+      summaryColor = 'text-amber-300';
+      summaryText =
+        delta > 0
+          ? `${delta.toFixed(1)} kg above maintain target`
+          : `${Math.abs(delta).toFixed(1)} kg below maintain target`;
+    }
+  }
+
+  const actualNow = lastPastPoint?.actual ?? null;
+  const projectedNow = lastPastPoint?.projected ?? null;
 
   return (
     <SectionCard title="Weekly goal progress">
       <div className="mb-3 flex items-baseline gap-2">
         <span className="text-sm text-zinc-400">
-          <span className="font-semibold text-zinc-200">{totalActual.toLocaleString()}</span> /{' '}
-          {totalProjected.toLocaleString()} kcal so far
+          <span className="font-semibold text-zinc-200">
+            {actualNow !== null ? `${(actualNow as number).toFixed(1)} kg` : '—'}
+          </span>{' '}
+          / {projectedNow !== null ? `${(projectedNow as number).toFixed(1)} kg` : '—'} projected
         </span>
         {lastPastIndex >= 0 && <span className={`text-xs font-medium ${summaryColor}`}>{summaryText}</span>}
       </div>
@@ -103,7 +192,7 @@ export default function GoalProgressCard({ data, target }: Props) {
               axisLine={false}
               tickLine={false}
               tick={{ fill: '#52525b', fontSize: 11 }}
-              domain={[0, maxDisplayValue]}
+              domain={[minDisplayValue, maxDisplayValue]}
               width={yAxisWidth}
             />
             <RechartsTooltip
@@ -123,7 +212,16 @@ export default function GoalProgressCard({ data, target }: Props) {
               wrapperStyle={{ fontSize: 11, color: '#71717a', paddingTop: 4 }}
               formatter={(value) => (value === 'actual' ? 'Actual' : 'Projected')}
             />
-            <Bar dataKey="actual" name="actual" radius={[4, 4, 0, 0]} maxBarSize={40} fill="#6366f1" />
+            <Line
+              dataKey="actual"
+              name="actual"
+              type="monotone"
+              stroke="#60a5fa"
+              strokeWidth={2}
+              dot={{ fill: '#60a5fa', r: 3, strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: '#93c5fd' }}
+              connectNulls
+            />
             <Line
               dataKey="projected"
               name="projected"

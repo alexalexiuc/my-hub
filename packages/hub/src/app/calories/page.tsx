@@ -15,17 +15,26 @@ import WeightChart from './weight-chart';
 import MacroChart from './macro-chart';
 import GoalProgressCard from './goal-progress-card';
 
-function getLast7Days(): { date: string; label: string }[] {
+function getCurrentWeekDays(): { date: string; label: string }[] {
   const days: { date: string; label: string }[] = [];
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  const today = new Date();
+  const todayDay = today.getDay(); // Sun=0 ... Sat=6
+  const daysSinceMonday = (todayDay + 6) % 7;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - daysSinceMonday);
+
+  const cursor = new Date(monday);
+  while (cursor <= today) {
+    const d = new Date(cursor);
     days.push({
       date: d.toISOString().split('T')[0]!,
-      label: i === 0 ? 'Today' : dayNames[d.getDay()]!,
+      label: d.toDateString() === today.toDateString() ? 'Today' : dayNames[(d.getDay() + 6) % 7]!,
     });
+    cursor.setDate(cursor.getDate() + 1);
   }
+
   return days;
 }
 
@@ -42,8 +51,8 @@ export default function CaloriesDashboardPage() {
   const today = new Date().toISOString().split('T')[0]!;
   const [selectedDate, setSelectedDate] = useState(today);
   const selectedDateRef = useRef(selectedDate);
-  const last7 = getLast7Days();
-  const weekStart = last7[0]!.date;
+  const weekDays = getCurrentWeekDays();
+  const weekStart = weekDays[0]!.date;
 
   const loadMeals = useCallback(async (date: string) => {
     const res = await fetch(`/api/calories/meals?date=${date}&limit=100`);
@@ -163,7 +172,7 @@ export default function CaloriesDashboardPage() {
   const arcColor = cap !== null ? (isOver ? '#ef4444' : '#4ade80') : '#3f3f46';
 
   // Weekly chart data
-  const weeklyData = last7.map(({ date, label }) => {
+  const weeklyData = weekDays.map(({ date, label }) => {
     const dayMeals = weeklyMeals.filter((m) => m.date === date);
     return { date, label, kcal: dayMeals.reduce((sum, m) => sum + (m.kcal ?? 0), 0) };
   });
@@ -245,7 +254,12 @@ export default function CaloriesDashboardPage() {
       </div>
 
       {/* Goal progress */}
-      <GoalProgressCard data={weeklyData} target={calorieTargets.goalCalories ?? null} />
+      <GoalProgressCard
+        days={weekDays}
+        weightHistory={weightHistory}
+        goalType={profile?.goalType ?? null}
+        goalWeeklyRateKg={profile?.goalWeeklyRateKg ?? null}
+      />
 
       {/* Weight trend (shown when enough data) */}
       <WeightChart data={weightChartData} />

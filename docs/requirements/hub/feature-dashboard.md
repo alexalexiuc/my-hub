@@ -47,20 +47,21 @@ route redirects to `/calories`.
 
 ### Functional Requirements
 
-| ID    | Requirement                                                                                                                |
-| ----- | -------------------------------------------------------------------------------------------------------------------------- |
-| FR-07 | The Calories dashboard must display the user's calorie profile (age, sex, activity, height, weight, daily target).         |
-| FR-08 | The user must be able to edit the calorie profile inline without leaving the page.                                         |
-| FR-09 | The Calories dashboard must display meals grouped by meal type with per-meal macros, kcal total, and a totals summary row. |
-| FR-10 | The user must be able to add a meal from the Calories dashboard (description, type, date, kcal, macros, notes).            |
-| FR-11 | The user must be able to delete a meal from the Calories dashboard.                                                        |
-| FR-16 | The user must be able to edit an existing meal inline (click to expand edit form with all fields).                         |
-| FR-17 | The meals section must support date navigation (prev/next arrows) to browse meals from past dates.                         |
-| FR-18 | The meals section must show a slim progress bar indicating consumed vs target calories.                                    |
-| FR-12 | The Calories dashboard must display the latest body measurement for each recorded type in a summary grid.                  |
-| FR-13 | The user must be able to log a new body measurement from the Calories dashboard (type, value, date, notes).                |
-| FR-14 | The user must be able to delete a body measurement entry from the Calories dashboard.                                      |
-| FR-15 | All data on the Calories dashboard must refresh after any add/delete action without a full page reload.                    |
+| ID    | Requirement                                                                                                                                                                                |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FR-07 | The Calories dashboard must display the user's calorie profile (age, sex, activity, height, weight, daily target).                                                                         |
+| FR-08 | The user must be able to edit the calorie profile inline without leaving the page.                                                                                                         |
+| FR-09 | The Calories dashboard must display meals grouped by meal type with per-meal macros, kcal total, and a totals summary row.                                                                 |
+| FR-10 | The user must be able to add a meal from the Calories dashboard (description, type, date, kcal, macros, notes).                                                                            |
+| FR-11 | The user must be able to delete a meal from the Calories dashboard.                                                                                                                        |
+| FR-16 | The user must be able to edit an existing meal inline (click to expand edit form with all fields).                                                                                         |
+| FR-17 | The meals section must support date navigation (prev/next arrows) to browse meals from past dates.                                                                                         |
+| FR-18 | The meals section must show a slim progress bar indicating consumed vs target calories.                                                                                                    |
+| FR-12 | The Calories dashboard must display the latest body measurement for each recorded type in a summary grid.                                                                                  |
+| FR-13 | The user must be able to log a new body measurement from the Calories dashboard (type, value, date, notes).                                                                                |
+| FR-14 | The user must be able to delete a body measurement entry from the Calories dashboard.                                                                                                      |
+| FR-15 | All data on the Calories dashboard must refresh after any add/delete action without a full page reload.                                                                                    |
+| FR-19 | The Calories dashboard must display a weekly goal progress card in kg, using goal type (lose, maintain, gain) and a projection anchored to the week start weight (or nearest past weight). |
 
 ### Technical Requirements
 
@@ -114,4 +115,5 @@ route redirects to `/calories`.
 - [x] A slim progress bar shows consumed vs target calories.
 - [x] Logging a body measurement persists it and updates the measurements grid.
 - [x] Deleting a body measurement removes it from the grid.
+- [x] Weekly goal progress shows actual vs projected weight in kg and adapts projection direction to goal type.
 - [x] Navigating to `/dashboard` redirects to `/calories`.

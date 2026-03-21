@@ -15,4 +15,4 @@
 - [ ] Enhance Harvesting with a dedicated table for to store harvests(start, end, collection per hive. etc. Add MCP tools for reporting & UI elements)
 - [ ] Verify issue with Github PR checks where E2E test action is finished with success but in PR checks it has pending status.
 - [ ] Mobile authorization redirects to localhost. Check!
-- [ ] Add refresh token support to the OAuth implementation. Then increase access token expiration.
+- [x] Add refresh token support to the OAuth implementation. Then increase access token expiration.

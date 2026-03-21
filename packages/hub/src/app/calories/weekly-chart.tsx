@@ -81,25 +81,22 @@ export default function WeeklyChart({ data, target, min, max }: Props) {
 
   const maxVal = Math.max(...data.map((d) => d.kcal), target ?? 0, max ?? 0);
   const maxDisplayValue = Math.ceil(maxVal * 1.15);
-  const numDigits = String(maxDisplayValue).length;
-  const yAxisWidth = numDigits >= 5 ? 56 : 46;
-  const leftMargin = numDigits >= 5 ? -6 : -16;
 
   // Embed target/min/max in each data point for the custom tooltip
   const chartData = data.map((d) => ({ ...d, _target: target, _min: min ?? null, _max: max ?? null }));
 
   return (
-    <SectionCard title="Last 7 days">
+    <SectionCard title="This week">
       <div className="h-52">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 8, right: 4, bottom: 0, left: leftMargin }}>
+          <BarChart data={chartData} margin={{ top: 8, right: 4, bottom: 0, left: -16 }}>
             <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 12 }} />
             <YAxis
               axisLine={false}
               tickLine={false}
               tick={{ fill: '#52525b', fontSize: 11 }}
               domain={[0, maxDisplayValue]}
-              width={yAxisWidth}
+              width={56}
             />
             <RechartsTooltip
               cursor={{ fill: 'rgba(63, 63, 70, 0.3)' }}
