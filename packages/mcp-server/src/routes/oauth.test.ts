@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
+import type { AuthCodePayload } from '@my-hub/shared/auth';
 
 // ---------------------------------------------------------------------------
 // Module mocks — must be declared before any imports that trigger the module
@@ -41,7 +42,7 @@ import {
   findRefreshToken,
   deleteRefreshToken,
 } from '@my-hub/shared/services';
-import { signToken } from '@my-hub/shared/auth';
+import { signToken, verifyToken, verifyPkceS256 } from '@my-hub/shared/auth';
 import { oauthRoutes } from './oauth';
 
 // ---------------------------------------------------------------------------
@@ -213,8 +214,6 @@ describe('POST /token — authorization_code grant returns refresh_token', () =>
     vi.mocked(findUserById).mockResolvedValue(MOCK_USER);
     vi.mocked(createRefreshToken).mockResolvedValue('issued-refresh-token');
     vi.mocked(signToken).mockResolvedValue('issued-access-token');
-
-    const { verifyToken, verifyPkceS256 } = await import('@my-hub/shared/auth');
     vi.mocked(verifyToken).mockResolvedValue({
       client_id: 'hub_test1234',
       user_id: 'user-uuid-1',
@@ -222,7 +221,7 @@ describe('POST /token — authorization_code grant returns refresh_token', () =>
       code_challenge: 'challenge123',
       code_challenge_method: 'S256',
       exp: Date.now() + 300_000,
-    });
+    } as AuthCodePayload);
     vi.mocked(verifyPkceS256).mockResolvedValue(true);
 
     const response = await app.inject({
