@@ -13,6 +13,7 @@ import MeasurementsSection from './measurements-section';
 import WeeklyChart from './weekly-chart';
 import WeightChart from './weight-chart';
 import MacroChart from './macro-chart';
+import GoalProgressCard from './goal-progress-card';
 
 function getLast7Days(): { date: string; label: string }[] {
   const days: { date: string; label: string }[] = [];
@@ -234,9 +235,17 @@ export default function CaloriesDashboardPage() {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <WeeklyChart data={weeklyData} target={calorieTargets.goalCalories ?? null} />
+        <WeeklyChart
+          data={weeklyData}
+          target={calorieTargets.goalCalories ?? null}
+          min={calorieTargets.minCalories ?? null}
+          max={calorieTargets.maxCalories ?? null}
+        />
         <MacroChart protein={todayProtein} carbs={todayCarbs} fat={todayFat} />
       </div>
+
+      {/* Goal progress */}
+      <GoalProgressCard data={weeklyData} target={calorieTargets.goalCalories ?? null} />
 
       {/* Weight trend (shown when enough data) */}
       <WeightChart data={weightChartData} />

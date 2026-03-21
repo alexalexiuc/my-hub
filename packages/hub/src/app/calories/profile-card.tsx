@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { CalorieProfile } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { calculateCalorieTargets } from '@my-hub/shared/utils';
+import { calculateCalorieTargets, calculateBMR } from '@my-hub/shared/utils';
 import SectionCard from '@/components/section-card';
 import Field from '@/components/field';
 import Button from '@/components/button';
@@ -62,6 +62,14 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
     goalMinCalories: profile?.goalMinCalories ?? null,
     goalMaxCalories: profile?.goalMaxCalories ?? null,
   });
+
+  const bmr = calculateBMR(
+    profile?.age ?? null,
+    profile?.sex ?? null,
+    profile?.heightCm ?? null,
+    weightMeasure?.value ?? null,
+  );
+  const activeEnergy = targets.tdee !== null && bmr !== null ? targets.tdee - Math.round(bmr) : null;
 
   async function save() {
     setSaving(true);
@@ -140,6 +148,8 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
             {/* Calorie targets */}
             {targets.tdee && (
               <div className="flex flex-wrap gap-3">
+                {bmr !== null && <TargetPill label="Resting (BMR)" value={`${Math.round(bmr)}`} unit="kcal" />}
+                {activeEnergy !== null && <TargetPill label="Active energy" value={`${activeEnergy}`} unit="kcal" />}
                 <TargetPill label="TDEE" value={`${targets.tdee}`} unit="kcal" />
                 {targets.goalCalories && targets.goalCalories !== targets.tdee && (
                   <TargetPill
