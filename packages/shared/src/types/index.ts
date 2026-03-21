@@ -3,6 +3,7 @@ import type { MeasurementTypeKey } from '../db/schema/measurements';
 import type {
   users,
   oauthClients,
+  oauthRefreshTokens,
   mcpServers,
   hives,
   hiveLogs,
@@ -25,6 +26,8 @@ export type User = InferSelectModel<typeof users>;
 export type NewUser = InferInsertModel<typeof users>;
 export type OAuthClient = InferSelectModel<typeof oauthClients>;
 export type NewOAuthClient = InferInsertModel<typeof oauthClients>;
+export type OAuthRefreshToken = InferSelectModel<typeof oauthRefreshTokens>;
+export type NewOAuthRefreshToken = InferInsertModel<typeof oauthRefreshTokens>;
 export type McpServer = InferSelectModel<typeof mcpServers>;
 export type NewMcpServer = InferInsertModel<typeof mcpServers>;
 
