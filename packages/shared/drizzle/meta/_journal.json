@@ -50,6 +50,13 @@
       "when": 1774032400492,
       "tag": "0007_petite_nomad",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1774078413913,
+      "tag": "0008_messy_komodo",
+      "breakpoints": true
     }
   ]
 }

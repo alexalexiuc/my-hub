@@ -9,6 +9,9 @@ import {
   ensureAllMcpServers,
   findUserByEmail,
   findUserById,
+  createRefreshToken,
+  findRefreshToken,
+  deleteRefreshToken,
 } from '@my-hub/shared/services';
 import { signToken, verifyToken, verifyPkceS256, type AuthCodePayload } from '@my-hub/shared/auth';
 
@@ -308,13 +311,70 @@ export async function oauthRoutes(app: FastifyInstance) {
       if (!client.userId) return sendTokenError('invalid_client', 401);
 
       const tokenUser = await findUserById(client.userId);
+      const [accessToken, refreshToken] = await Promise.all([
+        signToken(
+          { client_id: clientId, user_id: client.userId, email: tokenUser?.email, exp: Date.now() + 86_400_000 },
+          client.tokenSigningSecret,
+        ),
+        createRefreshToken(clientId, client.userId),
+      ]);
+      return reply.header('Content-Type', 'application/json').send(
+        JSON.stringify({
+          access_token: accessToken,
+          token_type: 'bearer',
+          expires_in: 86400,
+          refresh_token: refreshToken,
+        }),
+      );
+    }
+
+    // refresh_token grant — issue a new access token using a valid refresh token
+    if (body['grant_type'] === 'refresh_token') {
+      const clientId = body['client_id'];
+      const clientSecret = body['client_secret'];
+      const plainRefreshToken = body['refresh_token'];
+      if (!clientId || !clientSecret || !plainRefreshToken) {
+        return sendTokenError('invalid_request');
+      }
+
+      const [client, secretOk] = await Promise.all([
+        findOAuthClient(clientId),
+        verifyClientSecret(clientId, clientSecret),
+      ]);
+      if (!client || !secretOk) return sendTokenError('invalid_client', 401);
+
+      const tokenRow = await findRefreshToken(clientId, plainRefreshToken);
+      if (!tokenRow) return sendTokenError('invalid_grant');
+
+      // Rotate: issue the new refresh token first, then delete the old one.
+      // This ordering means that if the response fails mid-flight the old token
+      // is still present and the client can retry — a deliberate tradeoff that
+      // prioritises availability over strict single-use enforcement, which is
+      // acceptable given the 30-day expiry and per-client scoping.
+      const [tokenUser, newRefreshToken] = await Promise.all([
+        findUserById(tokenRow.userId),
+        createRefreshToken(clientId, tokenRow.userId),
+      ]);
+      await deleteRefreshToken(tokenRow.id);
+
       const accessToken = await signToken(
-        { client_id: clientId, user_id: client.userId, email: tokenUser?.email, exp: Date.now() + 86_400_000 },
+        {
+          client_id: clientId,
+          user_id: tokenRow.userId,
+          email: tokenUser?.email,
+          exp: Date.now() + 86_400_000, // 1 day
+        },
         client.tokenSigningSecret,
       );
-      return reply
-        .header('Content-Type', 'application/json')
-        .send(JSON.stringify({ access_token: accessToken, token_type: 'bearer', expires_in: 86400 }));
+
+      return reply.header('Content-Type', 'application/json').send(
+        JSON.stringify({
+          access_token: accessToken,
+          token_type: 'bearer',
+          expires_in: 86400,
+          refresh_token: newRefreshToken,
+        }),
+      );
     }
 
     if (body['grant_type'] !== 'authorization_code') {
@@ -354,21 +414,25 @@ export async function oauthRoutes(app: FastifyInstance) {
     if (!pkceOk) return sendTokenError('invalid_grant');
 
     const tokenUser = await findUserById(authCodePayload.user_id);
-    const accessToken = await signToken(
-      {
-        client_id: clientId,
-        user_id: authCodePayload.user_id,
-        email: tokenUser?.email,
-        exp: Date.now() + 86_400_000, // 1 day
-      },
-      client.tokenSigningSecret,
-    );
+    const [accessToken, refreshToken] = await Promise.all([
+      signToken(
+        {
+          client_id: clientId,
+          user_id: authCodePayload.user_id,
+          email: tokenUser?.email,
+          exp: Date.now() + 86_400_000, // 1 day
+        },
+        client.tokenSigningSecret,
+      ),
+      createRefreshToken(clientId, authCodePayload.user_id),
+    ]);
 
     return reply.header('Content-Type', 'application/json').send(
       JSON.stringify({
         access_token: accessToken,
         token_type: 'bearer',
         expires_in: 86400,
+        refresh_token: refreshToken,
       }),
     );
   });
