@@ -19,13 +19,13 @@ for using any MCP tool on the platform.
 
 ## Functional Requirements
 
-| ID    | Requirement                                                                                                                                                                |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FR-01 | An admin user must be able to create a new OAuth client by specifying a display name and optionally a description.                                                         |
-| FR-02 | On creation, the system must generate and display a `client_id` and `client_secret`. The secret must be shown only once and never retrievable again after initial display. |
-| FR-03 | The admin must be able to list all existing OAuth clients with their display name, `client_id`, creation date, and last-used date.                                         |
-| FR-04 | The admin must be able to revoke (delete) an OAuth client. Revocation must immediately invalidate all active sessions issued to that client.                               |
-| FR-05 | Revoked clients must not appear in the active clients list, but their history may be retained for audit purposes.                                                          |
+| ID    | Requirement                                                                                                                                                                        |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-01 | An admin user must be able to create a new OAuth client by specifying a display name and optionally a description.                                                                 |
+| FR-02 | On creation, the system must generate and display a `client_id` and `client_secret`. The secret must be shown only once and never retrievable again after initial display.         |
+| FR-03 | The admin must be able to list all existing OAuth clients with their display name, `client_id`, creation date, last-used timestamp, and the last request path used by that client. |
+| FR-04 | The admin must be able to revoke (delete) an OAuth client. Revocation must immediately invalidate all active sessions issued to that client.                                       |
+| FR-05 | Revoked clients must not appear in the active clients list, but their history may be retained for audit purposes.                                                                  |
 
 ---
 
@@ -60,4 +60,5 @@ for using any MCP tool on the platform.
 - [x] The client secret is not visible in the database or API responses after initial creation.
 - [x] The Hub UI lists active OAuth clients and allows revocation (implemented in `/mcp-control` page — "Connections" section).
 - [x] OAuth clients can be enabled/disabled (toggled) without full revocation.
+- [x] The Hub UI shows each client's latest logged usage timestamp and request path when available.
 - [ ] After revocation (delete), the previously issued token is rejected by the MCP server with a 401.

@@ -63,6 +63,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     // Falls back to null for unauthenticated or non-MCP routes — never uses unverified token data.
     const auth = (req.raw as { auth?: AuthInfo }).auth;
     const verifiedUserId = (auth?.extra?.['userId'] as string | undefined) ?? null;
+    const verifiedClientId = (auth?.extra?.['clientId'] as string | undefined) ?? null;
 
     // Write to DB asynchronously — don't await so we don't slow down the response.
     const logData: Parameters<typeof putLog>[0] = {
@@ -73,6 +74,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
       durationMs,
       ip: req.ip || null,
       userId: verifiedUserId,
+      clientId: verifiedClientId,
     };
 
     if (envConfig.LOG_PAYLOADS) {

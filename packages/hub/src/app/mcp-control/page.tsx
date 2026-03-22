@@ -21,6 +21,8 @@ interface OAuthClientRow {
   enabled: boolean;
   userId: string | null;
   createdAt: string;
+  lastUsedAt?: string | null;
+  lastUsedPath?: string | null;
 }
 
 interface CreatedClient extends OAuthClientRow {
@@ -54,6 +56,12 @@ const SERVER_META: Record<string, { label: string; path: string; description: st
     label: 'Todo',
     path: '/api/todo/mcp',
     description: 'Task management, reminders, to-do lists',
+    active: true,
+  },
+  apiary: {
+    label: 'Apiary',
+    path: '/api/apiary/mcp',
+    description: 'Apiary management, hive tracking, beekeeping analytics',
     active: true,
   },
 };
@@ -266,6 +274,16 @@ function ClientCard({
     month: 'short',
     year: 'numeric',
   });
+  const lastUsed = client.lastUsedAt
+    ? new Date(client.lastUsedAt).toLocaleString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+    : null;
 
   return (
     <div
@@ -288,15 +306,18 @@ function ClientCard({
           <CopyButton value={client.clientId} />
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-24 text-zinc-500 shrink-0">MCP URL</span>
-          <code className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono border border-zinc-700 text-zinc-300">
-            {MCP_BASE_URL}
-          </code>
-          <CopyButton value={MCP_BASE_URL} />
-        </div>
-        <div className="flex items-center gap-2">
           <span className="w-24 text-zinc-500 shrink-0">Secret</span>
           <span className="text-zinc-500 italic">hidden — shown only at creation</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-24 text-zinc-500 shrink-0">Last used</span>
+          <span className="text-zinc-300">{lastUsed ?? 'Never'}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-24 text-zinc-500 shrink-0">Last path</span>
+          <code className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono border border-zinc-700 text-zinc-300 truncate max-w-[200px]">
+            {client.lastUsedPath ?? '—'}
+          </code>
         </div>
       </div>
 
@@ -388,12 +409,13 @@ interface LogEntry {
   error: string | null;
 }
 
-const SERVICE_OPTIONS = [
+const SERVICE_OPTIONS: { value: McpServerName | ''; label: string }[] = [
   { value: '', label: 'All services' },
   { value: 'calories', label: 'Calories' },
   { value: 'todo', label: 'Todo' },
   { value: 'hive', label: 'Hive Manager' },
   { value: 'products', label: 'Products' },
+  { value: 'apiary', label: 'Apiary' },
 ];
 
 function StatusBadge({ code }: { code: number | null }) {

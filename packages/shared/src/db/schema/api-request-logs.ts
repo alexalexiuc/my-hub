@@ -1,4 +1,5 @@
 import { bigserial, index, inet, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { oauthClients } from './oauth-clients';
 
 export const apiRequestLogs = pgTable(
   'api_request_logs',
@@ -12,6 +13,7 @@ export const apiRequestLogs = pgTable(
     durationMs: integer('duration_ms'),
     ip: inet('ip'),
     userId: uuid('user_id'),
+    clientId: text('client_id').references(() => oauthClients.clientId, { onDelete: 'set null' }),
     requestBody: jsonb('request_body'),
     responseBody: jsonb('response_body'),
     error: text('error'),
@@ -22,5 +24,6 @@ export const apiRequestLogs = pgTable(
     userIdx: index('idx_logs_user').on(table.userId),
     statusIdx: index('idx_logs_status').on(table.statusCode),
     serviceIdx: index('idx_logs_service').on(table.service),
+    clientIdx: index('idx_logs_client').on(table.clientId).desc(),
   }),
 );

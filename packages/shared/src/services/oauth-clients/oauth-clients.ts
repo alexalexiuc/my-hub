@@ -1,6 +1,7 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { oauthClients } from '../../db/schema/oauth-clients';
+import { apiRequestLogs } from '../../db/schema/api-request-logs';
 import type { OAuthClient, NewOAuthClient } from '../../types/index';
 import { encrypt, decrypt, hashSecret, verifySecret } from '../../crypto/index';
 
@@ -18,7 +19,10 @@ export type CreateOAuthClientData = Omit<
 };
 
 /** Public view of an OAuth client — no secrets at all. */
-export type PublicOAuthClient = Omit<OAuthClient, 'clientSecret' | 'tokenSigningSecret'>;
+export type PublicOAuthClient = Omit<OAuthClient, 'clientSecret' | 'tokenSigningSecret'> & {
+  lastUsedAt?: Date | null;
+  lastUsedPath?: string | null;
+};
 
 /** Returned only at creation time — contains the one-time plain secret. */
 export type CreatedOAuthClient = PublicOAuthClient & { plainClientSecret: string };
@@ -72,7 +76,35 @@ export async function listUserOAuthClients(userId: string): Promise<PublicOAuthC
     where: eq(oauthClients.userId, userId),
     orderBy: oauthClients.createdAt,
   });
-  return rows.map(toPublic);
+
+  const clients = rows.map(toPublic);
+  const clientIds = clients.map((client) => client.clientId);
+  if (clientIds.length === 0) return clients;
+
+  const latestLogs = await db
+    .select({
+      clientId: apiRequestLogs.clientId,
+      createdAt: apiRequestLogs.createdAt,
+      path: apiRequestLogs.path,
+    })
+    .from(apiRequestLogs)
+    .where(and(eq(apiRequestLogs.userId, userId), inArray(apiRequestLogs.clientId, clientIds)))
+    .orderBy(desc(apiRequestLogs.createdAt));
+
+  const usageByClientId = new Map<string, { lastUsedAt: Date | null; lastUsedPath: string | null }>();
+  for (const log of latestLogs) {
+    if (!log.clientId || usageByClientId.has(log.clientId)) continue;
+    usageByClientId.set(log.clientId, {
+      lastUsedAt: log.createdAt,
+      lastUsedPath: log.path,
+    });
+  }
+
+  return clients.map((client) => ({
+    ...client,
+    lastUsedAt: usageByClientId.get(client.clientId)?.lastUsedAt ?? null,
+    lastUsedPath: usageByClientId.get(client.clientId)?.lastUsedPath ?? null,
+  }));
 }
 
 /**
