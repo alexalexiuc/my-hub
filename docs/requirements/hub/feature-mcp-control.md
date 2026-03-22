@@ -47,6 +47,7 @@ rather than on a separate `/oauth-clients` route.
 | TR-03 | The admin panel page lives in `packages/hub`; state changes are applied via a Next.js Server Action or API route that writes to the database.                            |
 | TR-04 | Only authenticated admin users can access the MCP Control page.                                                                                                          |
 | TR-05 | Cache invalidation (if any caching is applied to the enabled state) must happen within 5 seconds of a toggle in the admin panel.                                         |
+| TR-06 | Hub MCP control API routes must enforce auth via a shared route-wrapper and may use a short-lived cache for DB user resolution to reduce repeated lookups.               |
 
 ---
 
@@ -69,3 +70,4 @@ rather than on a separate `/oauth-clients` route.
 - [x] The enabled state survives a server restart (stored in `mcp_servers` DB table).
 - [x] Accessing the MCP Control page while unauthenticated redirects to the login page.
 - [x] Audit Log section shows API request logs with service/date/limit filters and expandable detail rows.
+- [x] MCP control API routes (`/api/mcp/servers`, `/api/mcp/servers/:name`, `/api/mcp/clients`, `/api/mcp/clients/:id`, `/api/mcp/logs`) share a centralized auth wrapper instead of duplicating per-handler auth checks.

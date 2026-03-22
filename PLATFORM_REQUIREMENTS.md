@@ -96,6 +96,7 @@ Personal cabinet with the following sections:
   - Later: domain-specific views (apiary timeline, calorie charts, etc.)
 
 Auth: Google OAuth via NextAuth.js (single-user / small invite group). Users are automatically provisioned in the `users` table on first sign-in.
+Protected Hub API routes in `packages/hub/src/app/api/**` use a shared auth route-wrapper that resolves the DB user from NextAuth session context (short-lived in-process cache for lookup efficiency).
 
 ---
 

@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth-user';
+import { withAuth } from '@/lib/api/with-auth';
 import { getApiaryTasks, createApiaryTask } from '@my-hub/shared/services';
 import { omitNullish } from '@my-hub/shared/utils';
 
-export async function GET(req: Request) {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const GET = withAuth(async ({ req, user }) => {
   const { searchParams } = new URL(req.url);
   const hiveId = searchParams.get('hive_id') ? Number(searchParams.get('hive_id')) : undefined;
   const yardId = searchParams.get('yard_id') ? Number(searchParams.get('yard_id')) : undefined;
@@ -15,12 +12,9 @@ export async function GET(req: Request) {
 
   const tasks = await getApiaryTasks(user.id, omitNullish({ hiveId, yardId, completed, limit }));
   return NextResponse.json({ tasks });
-}
+});
 
-export async function POST(req: Request) {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const POST = withAuth(async ({ req, user }) => {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -44,4 +38,4 @@ export async function POST(req: Request) {
     }),
   });
   return NextResponse.json({ task }, { status: 201 });
-}
+});

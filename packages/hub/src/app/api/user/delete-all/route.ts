@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth-user';
+import { withAuth } from '@/lib/api/with-auth';
 import {
   deleteAllUserMeals,
   deleteAllUserMeasurements,
@@ -11,10 +11,7 @@ import {
  * DELETE all data for the authenticated user across every feature.
  * Useful for e2e test cleanup and for the "nuke everything" UI action.
  */
-export async function POST() {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const POST = withAuth(async ({ user }) => {
   const [meals, measurements, mcpClients, calorieProfile] = await Promise.all([
     deleteAllUserMeals(user.id),
     deleteAllUserMeasurements(user.id),
@@ -25,4 +22,4 @@ export async function POST() {
   return NextResponse.json({
     results: { meals, measurements, mcp_clients: mcpClients, calorie_profile: calorieProfile },
   });
-}
+});

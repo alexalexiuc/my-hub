@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth-user';
+import { withAuth } from '@/lib/api/with-auth';
 import { getApiaryHive, updateApiaryHive, deleteApiaryHive } from '@my-hub/shared/services';
 
 function parseId(id: string): number | null {
@@ -7,10 +7,7 @@ function parseId(id: string): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
   const { id } = await params;
   const numId = parseId(id);
   if (!numId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
@@ -19,12 +16,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!hive) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   return NextResponse.json({ hive });
-}
+});
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
   const { id } = await params;
   const numId = parseId(id);
   if (!numId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
@@ -40,12 +34,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!hive) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   return NextResponse.json({ hive });
-}
+});
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const DELETE = withAuth<{ id: string }>(async ({ user, params }) => {
   const { id } = await params;
   const numId = parseId(id);
   if (!numId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
@@ -54,4 +45,4 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!hive) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   return NextResponse.json({ hive });
-}
+});

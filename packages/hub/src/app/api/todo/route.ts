@@ -1,19 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth-user';
+import { withAuth } from '@/lib/api/with-auth';
 import { getTodos, addTodo } from '@my-hub/shared/services';
 
-export async function GET() {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const GET = withAuth(async ({ user }) => {
   const items = await getTodos(user.id);
   return NextResponse.json({ todos: items });
-}
+});
 
-export async function POST(req: Request) {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const POST = withAuth(async ({ req, user }) => {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -28,4 +22,4 @@ export async function POST(req: Request) {
 
   const todo = await addTodo(user.id, title.trim());
   return NextResponse.json({ todo }, { status: 201 });
-}
+});

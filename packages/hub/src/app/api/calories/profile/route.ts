@@ -1,23 +1,17 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth-user';
+import { withAuth } from '@/lib/api/with-auth';
 import { getCalorieProfile, upsertCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shared/services';
 
-export async function GET() {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const GET = withAuth(async ({ user }) => {
   const [profile, measurements] = await Promise.all([
     getCalorieProfile(user.id),
     getLatestMeasurementsPerType(user.id),
   ]);
 
   return NextResponse.json({ profile: profile ?? null, measurements });
-}
+});
 
-export async function PUT(req: Request) {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const PUT = withAuth(async ({ req, user }) => {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -44,4 +38,4 @@ export async function PUT(req: Request) {
 
   const profile = await upsertCalorieProfile(user.id, updates);
   return NextResponse.json({ profile });
-}
+});

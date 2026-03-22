@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth-user';
+import { withAuth } from '@/lib/api/with-auth';
 import { getApiarySummary } from '@my-hub/shared/services';
 
-export async function GET() {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const GET = withAuth(async ({ user }) => {
   const summary = await getApiarySummary(user.id);
   return NextResponse.json(summary);
-}
+});

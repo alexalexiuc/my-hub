@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth-user';
+import { withAuth } from '@/lib/api/with-auth';
 import { getLogs } from '@my-hub/shared/services';
 
-export async function GET(req: Request) {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const GET = withAuth(async ({ req, user }) => {
   const url = new URL(req.url);
   const service = url.searchParams.get('service') ?? undefined;
   const limit = Math.min(Number(url.searchParams.get('limit') ?? 50), 200);
@@ -21,4 +18,4 @@ export async function GET(req: Request) {
   });
 
   return NextResponse.json({ logs });
-}
+});

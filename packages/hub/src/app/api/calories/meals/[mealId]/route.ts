@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth-user';
+import { withAuth } from '@/lib/api/with-auth';
 import { deleteMeal, updateMeal } from '@my-hub/shared/services';
 
 type MealUpdateBody = {
@@ -12,10 +12,7 @@ type MealUpdateBody = {
   notes?: string;
 };
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ mealId: string }> }) {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const PATCH = withAuth<{ mealId: string }>(async ({ req, user, params }) => {
   const { mealId } = await params;
 
   let body: MealUpdateBody;
@@ -29,15 +26,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ mealId
   if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   return NextResponse.json({ meal: updated });
-}
+});
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ mealId: string }> }) {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const DELETE = withAuth<{ mealId: string }>(async ({ user, params }) => {
   const { mealId } = await params;
   const deleted = await deleteMeal(user.id, mealId);
   if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   return NextResponse.json({ deleted: true });
-}
+});

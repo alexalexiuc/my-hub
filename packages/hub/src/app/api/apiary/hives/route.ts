@@ -1,24 +1,18 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth-user';
+import { withAuth } from '@/lib/api/with-auth';
 import { getApiaryHives, createApiaryHive } from '@my-hub/shared/services';
 import { omitNullish } from '@my-hub/shared/utils';
 
-export async function GET(req: Request) {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const GET = withAuth(async ({ req, user }) => {
   const { searchParams } = new URL(req.url);
   const yardId = searchParams.get('yard_id') ? Number(searchParams.get('yard_id')) : undefined;
   const active = searchParams.get('active') !== null ? searchParams.get('active') === 'true' : undefined;
 
   const hives = await getApiaryHives(user.id, omitNullish({ yardId, active }));
   return NextResponse.json({ hives });
-}
+});
 
-export async function POST(req: Request) {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const POST = withAuth(async ({ req, user }) => {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -43,4 +37,4 @@ export async function POST(req: Request) {
     }),
   });
   return NextResponse.json({ hive }, { status: 201 });
-}
+});

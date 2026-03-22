@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth-user';
+import { withAuth } from '@/lib/api/with-auth';
 import {
   deleteAllUserMeals,
   deleteAllUserMeasurements,
@@ -11,10 +11,7 @@ type Feature = 'meals' | 'measurements' | 'calories_profile' | 'todos';
 
 const SUPPORTED_FEATURES: Feature[] = ['meals', 'measurements', 'calories_profile', 'todos'];
 
-export async function POST(req: Request) {
-  const user = await getAuthUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+export const POST = withAuth(async ({ req, user }) => {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -63,4 +60,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ results });
-}
+});
