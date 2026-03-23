@@ -10,6 +10,7 @@ MCP sub-servers currently available:
 - **Calorie Tracker** — meal logging, nutritional summaries, user profiles, body measurements
 - **Todo** — task management, reminders
 - **Apiary** — yard, hive, inspection log, and task management for beekeepers (12 tools, 3 resources)
+- **Travel** — trip planning, reservation capture, checklist preparation, companions, and document links
 - **Hive Manager** — _(superseded by Apiary)_
 - **Products Manager** _(planned)_ — home inventory, shopping lists, product catalog
 
@@ -34,12 +35,12 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 
 ### Services (all Docker containers)
 
-| Service | Technology        | Role                                           |
-| ------- | ----------------- | ---------------------------------------------- |
-| `db`    | PostgreSQL 18     | Primary datastore replacing Google Sheets      |
-| `mcp`   | Node.js / Fastify | MCP server(s) — hive-manager, calories, future |
-| `hub`   | Next.js           | Admin panel / personal cabinet                 |
-| `proxy` | Traefik           | TLS termination, routing, static assets        |
+| Service | Technology        | Role                                                   |
+| ------- | ----------------- | ------------------------------------------------------ |
+| `db`    | PostgreSQL 18     | Primary datastore replacing Google Sheets              |
+| `mcp`   | Node.js / Fastify | MCP server(s) — calories, todo, apiary, travel, future |
+| `hub`   | Next.js           | Admin panel / personal cabinet                         |
+| `proxy` | Traefik           | TLS termination, routing, static assets                |
 
 ---
 
@@ -67,6 +68,7 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 | `hive_logs`         | Beekeeping inspection/treatment/feeding events                                                            |
 | `hives`             | Hive registry                                                                                             |
 | `hive_todos`        | Task list scoped to a hive                                                                                |
+| `trips` + `trip_*`  | Travel domain tables for reservations, places, checklist, companions, and documents                       |
 | `api_request_logs`  | HTTP request/response audit log (`service`=app, `server`=MCP sub-server) with trigram-indexed error field |
 
 ---
@@ -75,9 +77,9 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 
 - Replace Cloudflare Worker HTTP layer with a Fastify app
 - Expose MCP over HTTP (SSE or Streamable HTTP — MCP SDK supports both)
-- Routes mirroring current structure: `/mcp/hive/:id`, `/mcp/calories/:id`
+- Endpoint pattern: `/api/<domain>/mcp` (for example: `/api/calories/mcp`, `/api/todo/mcp`, `/api/apiary/mcp`, `/api/travel/mcp`)
 - OAuth 2.0 stays — adapt existing implementation from `src/http/`
-- Each MCP sub-server remains its own module (hiveManager, calories, ...)
+- Each MCP sub-server remains its own module (calories, todo, apiary, travel, ...)
 - Future MCPs are added as new modules without touching infrastructure
 
 ---

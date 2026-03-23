@@ -4,12 +4,16 @@ description: |
   This skill should be used when the user asks to "add a tool", "create a tool",
   "add a new MCP tool", "create a new MCP tool", "implement a tool", or asks to
   add a new capability to the MCP server as a tool (as opposed to a resource).
-  Applies specifically to the calories MCP server in packages/mcp-server/src/calories/.
-version: 1.0.0
-allowed-tools: [Read, Edit, Write, Glob, Grep]
+  Applies to MCP servers in this repository.
+metadata:
+  scope: mcp-server
+  stage: implementation
 ---
 
-# Adding a New Calories MCP Tool
+# Adding a New MCP Tool
+
+Before using this skill, first design tools with `.claude/skills/mcp-task-tools/SKILL.md`.
+This implementation skill should be used after task-oriented tool semantics are approved.
 
 Adding a tool requires changes to two places: a new implementation file and a registration
 entry in `tools/tools.ts`. Follow the steps below exactly.

@@ -13,6 +13,7 @@ import { mcpSubServers } from './mcp/registry.js';
 import { createCaloriesServer } from './calories/server.js';
 import { createTodoServer } from './todo/server.js';
 import { createApiaryServer } from './apiary/server.js';
+import { createTravelServer } from './travel/server.js';
 import { envConfig } from './config/env.js';
 
 export async function buildServer() {
@@ -82,6 +83,7 @@ export async function buildServer() {
   registerMcpSubServer(app, '/api/calories/mcp', McpServerName.Calories, createCaloriesServer);
   registerMcpSubServer(app, '/api/todo/mcp', McpServerName.Todo, createTodoServer);
   registerMcpSubServer(app, '/api/apiary/mcp', McpServerName.Apiary, createApiaryServer);
+  registerMcpSubServer(app, '/api/travel/mcp', McpServerName.Travel, createTravelServer);
 
   // Session cleanup plugin (reads mcpSubServers registry via onReady hook)
   await app.register(sessionCleanupPlugin);
