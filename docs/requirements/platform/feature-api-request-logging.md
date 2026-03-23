@@ -35,6 +35,7 @@ analytics while enforcing bounded retention.
 | TR-03 | Indexes must exist on `created_at`, `path`, `user_id`, `status_code`, `service`, and `server` for common dashboard and filter queries.                                                                              |
 | TR-04 | A trigram GIN index on `error` should be present to accelerate fuzzy search across failure messages.                                                                                                                |
 | TR-05 | A typed Drizzle schema definition for `api_request_logs` must be available from `packages/shared/src/db/schema` and exported through shared schema/types barrels.                                                   |
+| TR-06 | Before request payloads are printed or persisted, sensitive headers (`authorization`, `cookie`, `set-cookie`, API-key style headers) must be redacted.                                                              |
 
 ---
 
@@ -55,4 +56,5 @@ analytics while enforcing bounded retention.
 - [ ] Migration SQL creates required PostgreSQL extensions when missing.
 - [ ] Migration SQL creates the `api_request_logs` table and required indexes.
 - [ ] Drizzle schema exports allow typed reads/inserts for API request logs from shared package consumers.
+- [x] Logger redacts sensitive request headers before writing `request_body` or printing request payloads.
 - [ ] Documentation includes retention policy and cleanup query guidance.

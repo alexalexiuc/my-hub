@@ -6,6 +6,31 @@ import { McpServerName } from '@my-hub/shared/schema';
 import { envConfig } from '../config/env.js';
 
 const MAX_PAYLOAD_BYTES = 10_240; // 10 KB cap per payload field
+const REDACTED = '[REDACTED]';
+const SENSITIVE_HEADERS = new Set([
+  'authorization',
+  'proxy-authorization',
+  'cookie',
+  'set-cookie',
+  'x-api-key',
+  'x-auth-token',
+]);
+
+function redactHeaders(headers: Record<string, unknown>): Record<string, unknown> {
+  const redacted: Record<string, unknown> = {};
+  for (const [name, value] of Object.entries(headers)) {
+    redacted[name] = SENSITIVE_HEADERS.has(name.toLowerCase()) ? REDACTED : value;
+  }
+  return redacted;
+}
+
+function buildRequestPayload(req: FastifyRequest) {
+  return {
+    body: req.body,
+    query: req.query,
+    headers: redactHeaders(req.headers as Record<string, unknown>),
+  };
+}
 
 /** Truncate a JSON-serialisable value to MAX_PAYLOAD_BYTES (serialised). */
 function capPayload(value: unknown): unknown {
@@ -29,9 +54,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
 
     console.log(`<-- ${req.method} ${req.url}`);
     if (envConfig.PRINT_PAYLOADS) {
-      console.log(
-        `\tRequest: ${JSON.stringify(capPayload({ body: req.body, query: req.query, headers: req.headers }), null, 2)}`,
-      );
+      console.log(`\tRequest: ${JSON.stringify(capPayload(buildRequestPayload(req)), null, 2)}`);
     }
   });
 
@@ -81,7 +104,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     };
 
     if (envConfig.LOG_PAYLOADS) {
-      logData.requestBody = capPayload({ body: req.body, query: req.query, headers: req.headers });
+      logData.requestBody = capPayload(buildRequestPayload(req));
       logData.responseBody = capPayload(req._capturedResponseBody);
     }
 
