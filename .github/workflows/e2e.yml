@@ -116,7 +116,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   e2e:
-    name: E2E
+    name: E2EExpected
     runs-on: ubuntu-latest
     needs: build-and-push
 
