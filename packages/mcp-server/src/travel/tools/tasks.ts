@@ -276,4 +276,3 @@ export const travelAttachDocumentLinkTool: ToolCallback<typeof TravelAttachDocum
     document,
   });
 };
-
