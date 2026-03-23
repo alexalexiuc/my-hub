@@ -64,13 +64,13 @@ export default function MeasurementsSection({ latestMeasurements, measurementTyp
       action={
         <button
           onClick={() => setShowAdd(true)}
-          className="w-8 h-8 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
           title="Log measurement"
           aria-label="Log measurement"
         >
           <svg
-            width="18"
-            height="18"
+            width="12"
+            height="12"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -80,6 +80,7 @@ export default function MeasurementsSection({ latestMeasurements, measurementTyp
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
+          Add
         </button>
       }
     >
