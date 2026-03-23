@@ -14,7 +14,7 @@
     "test": "pnpm run test:unit",
     "test:unit": "vitest run",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
-    "e2e:setup": "tsx e2e/scripts/setup-e2e-user.ts",
+    "e2e:setup": "tsx e2e/scripts/setup-e2e-db.ts",
     "kill:port": "node scripts/kill-port.js"
   },
   "dependencies": {
