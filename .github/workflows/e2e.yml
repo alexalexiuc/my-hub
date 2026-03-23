@@ -191,17 +191,19 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: E2E_MCP_CLIENT_ID,E2E_MCP_CLIENT_SECRET,IMAGE_OWNER
+          envs: E2E_MCP_CLIENT_ID,E2E_MCP_CLIENT_SECRET,E2E_HUB_USER_EMAIL,IMAGE_OWNER
           script: |
             cd /opt/my-hub
             docker compose --project-name my-hub-staging \
               -f infra/docker-compose.staging.yml exec -T \
               -e E2E_MCP_CLIENT_ID=$E2E_MCP_CLIENT_ID \
               -e E2E_MCP_CLIENT_SECRET=$E2E_MCP_CLIENT_SECRET \
+              -e E2E_HUB_USER_EMAIL=$E2E_HUB_USER_EMAIL \
               mcp node /app/dist/e2e-setup.js
         env:
           E2E_MCP_CLIENT_ID: ${{ steps.creds.outputs.client_id }}
           E2E_MCP_CLIENT_SECRET: ${{ steps.creds.outputs.client_secret }}
+          E2E_HUB_USER_EMAIL: ${{ vars.E2E_HUB_USER_EMAIL }}
           IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
 
       - name: Run E2E tests

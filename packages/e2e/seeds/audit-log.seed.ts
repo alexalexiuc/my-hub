@@ -6,9 +6,9 @@ import { users, apiRequestLogs } from '@my-hub/shared/schema';
 const SEED_PATH_PREFIX = '/e2e/audit-log/';
 
 export async function seedAuditLogFixtures(userEmail: string): Promise<void> {
-  const databaseUrl = process.env['DATABASE_URL'];
+  const databaseUrl = process.env['E2E_DATABASE_URL'] ?? process.env['DATABASE_URL'];
   if (!databaseUrl) {
-    throw new Error('DATABASE_URL is required to seed audit-log fixtures');
+    throw new Error('E2E_DATABASE_URL (or DATABASE_URL) is required to seed audit-log fixtures');
   }
 
   const sqlClient = postgres(databaseUrl);
