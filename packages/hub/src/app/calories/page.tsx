@@ -193,7 +193,7 @@ export default function CaloriesDashboardPage() {
       <PageHeader title="Calories" backHref="/" backLabel="← Home" />
 
       {/* Today's summary */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-sm">
+      <div className="rounded-xl border border-green-900/50 bg-gradient-to-br from-green-950/30 to-zinc-900 p-6 shadow-sm">
         <div className="flex flex-col md:flex-row items-center gap-6">
           {/* Donut */}
           <div className="relative w-[150px] h-[150px] flex-shrink-0">

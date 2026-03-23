@@ -104,17 +104,17 @@ export default function CaloriesWidget({
   return (
     <SectionCard
       title="Calories"
-      className="border-orange-800/50 bg-orange-950/20"
+      className="border-orange-800/50 bg-gradient-to-br from-orange-950/40 to-zinc-900"
       action={
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="w-7 h-7 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
           aria-label="Log meal"
           title="Log meal"
         >
           <svg
-            width="16"
-            height="16"
+            width="12"
+            height="12"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -124,6 +124,7 @@ export default function CaloriesWidget({
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
+          Add
         </button>
       }
     >
