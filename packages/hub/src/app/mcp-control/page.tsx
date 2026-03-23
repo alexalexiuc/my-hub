@@ -393,6 +393,7 @@ function ServerCard({
 interface LogEntry {
   id: number;
   service: string;
+  server: string | null;
   method: string;
   path: string;
   statusCode: number | null;
@@ -403,8 +404,8 @@ interface LogEntry {
   error: string | null;
 }
 
-const SERVICE_OPTIONS: { value: McpServerName | ''; label: string }[] = [
-  { value: '', label: 'All services' },
+const SERVER_OPTIONS: { value: McpServerName | ''; label: string }[] = [
+  { value: '', label: 'All servers' },
   { value: 'calories', label: 'Calories' },
   { value: 'todo', label: 'Todo' },
   { value: 'products', label: 'Products' },
@@ -437,7 +438,7 @@ function AuditLogSection() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [service, setService] = useState('');
+  const [server, setServer] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [limit, setLimit] = useState(50);
@@ -447,7 +448,7 @@ function AuditLogSection() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (service) params.set('service', service);
+      if (server) params.set('server', server);
       if (dateFrom) params.set('from', dateFrom);
       if (dateTo) params.set('to', dateTo);
       params.set('limit', String(limit));
@@ -485,9 +486,9 @@ function AuditLogSection() {
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="text-xs text-zinc-500 block mb-1">Service</label>
-          <select className="input text-sm" value={service} onChange={(e) => setService(e.target.value)}>
-            {SERVICE_OPTIONS.map((o) => (
+          <label className="text-xs text-zinc-500 block mb-1">Server</label>
+          <select className="input text-sm" value={server} onChange={(e) => setServer(e.target.value)}>
+            {SERVER_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
@@ -529,7 +530,7 @@ function AuditLogSection() {
             <div className="divide-y divide-zinc-800">
               {/* Header */}
               <div className="grid grid-cols-[5rem_3.5rem_1fr_4rem_4.5rem_8rem] gap-2 px-4 py-2 text-xs font-semibold text-zinc-500 bg-zinc-900/50">
-                <span>Service</span>
+                <span>Server</span>
                 <span>Method</span>
                 <span>Path</span>
                 <span>Status</span>
@@ -542,7 +543,7 @@ function AuditLogSection() {
                     className="grid grid-cols-[5rem_3.5rem_1fr_4rem_4.5rem_8rem] gap-2 px-4 py-2.5 text-sm hover:bg-zinc-800/50 cursor-pointer transition"
                     onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
                   >
-                    <span className="text-xs text-zinc-400 truncate">{log.service}</span>
+                    <span className="text-xs text-zinc-400 truncate">{log.server ?? log.service}</span>
                     <MethodBadge method={log.method} />
                     <span className="text-zinc-300 font-mono text-xs truncate" title={log.path}>
                       {log.path}
@@ -643,7 +644,7 @@ export default function McpControlPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 space-y-10">
-      <PageHeader title="MCP Services" backHref="/" backLabel="← Home" />
+      <PageHeader title="MCP Service" backHref="/" backLabel="← Home" />
 
       {/* OAuth Clients */}
       <section className="space-y-4">

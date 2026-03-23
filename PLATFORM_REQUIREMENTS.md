@@ -55,19 +55,19 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 
 **Key tables (current):**
 
-| Table               | Purpose                                                              |
-| ------------------- | -------------------------------------------------------------------- |
-| `users`             | Platform accounts (Google OAuth, provisioned on first Hub login)     |
-| `oauth_clients`     | OAuth 2.1 credentials for MCP clients                                |
-| `mcp_servers`       | Per-user enable/disable flags for each MCP sub-server                |
-| `calorie_profiles`  | Dietary profile: age, sex, activity level, calorie goal override     |
-| `meal_logs`         | Time-stamped meal entries with kcal and macros                       |
-| `measurement_types` | Lookup: key, label, unit (e.g. `weight`/`Weight`/`kg`)               |
-| `body_measurements` | Time-series body measurements (weight, height, waist, etc.) per user |
-| `hive_logs`         | Beekeeping inspection/treatment/feeding events                       |
-| `hives`             | Hive registry                                                        |
-| `hive_todos`        | Task list scoped to a hive                                           |
-| `api_request_logs`  | HTTP request/response audit log with trigram-indexed error field     |
+| Table               | Purpose                                                                                                   |
+| ------------------- | --------------------------------------------------------------------------------------------------------- |
+| `users`             | Platform accounts (Google OAuth, provisioned on first Hub login)                                          |
+| `oauth_clients`     | OAuth 2.1 credentials for MCP clients                                                                     |
+| `mcp_servers`       | Per-user enable/disable flags for each MCP sub-server                                                     |
+| `calorie_profiles`  | Dietary profile: age, sex, activity level, calorie goal override                                          |
+| `meal_logs`         | Time-stamped meal entries with kcal and macros                                                            |
+| `measurement_types` | Lookup: key, label, unit (e.g. `weight`/`Weight`/`kg`)                                                    |
+| `body_measurements` | Time-series body measurements (weight, height, waist, etc.) per user                                      |
+| `hive_logs`         | Beekeeping inspection/treatment/feeding events                                                            |
+| `hives`             | Hive registry                                                                                             |
+| `hive_todos`        | Task list scoped to a hive                                                                                |
+| `api_request_logs`  | HTTP request/response audit log (`service`=app, `server`=MCP sub-server) with trigram-indexed error field |
 
 ---
 

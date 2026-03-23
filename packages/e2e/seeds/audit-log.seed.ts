@@ -29,7 +29,8 @@ export async function seedAuditLogFixtures(userEmail: string): Promise<void> {
 
     await db.insert(apiRequestLogs).values([
       {
-        service: 'calories',
+        service: 'mcp-service',
+        server: 'calories',
         method: 'POST',
         path: `${SEED_PATH_PREFIX}calories-entry`,
         statusCode: 201,
@@ -40,7 +41,8 @@ export async function seedAuditLogFixtures(userEmail: string): Promise<void> {
         responseBody: { id: 1001, ok: true },
       },
       {
-        service: 'todo',
+        service: 'mcp-service',
+        server: 'todo',
         method: 'GET',
         path: `${SEED_PATH_PREFIX}todo-list`,
         statusCode: 200,
@@ -51,7 +53,8 @@ export async function seedAuditLogFixtures(userEmail: string): Promise<void> {
         responseBody: { count: 2 },
       },
       {
-        service: 'apiary',
+        service: 'mcp-service',
+        server: 'apiary',
         method: 'PATCH',
         path: `${SEED_PATH_PREFIX}apiary-sync`,
         statusCode: 500,

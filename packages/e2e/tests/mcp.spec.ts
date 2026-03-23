@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('MCP Services Page', () => {
+test.describe('MCP Service Page', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate first to establish session context, then clean up OAuth clients
     await page.goto('/mcp-control');
@@ -18,9 +18,9 @@ test.describe('MCP Services Page', () => {
     }
   });
 
-  test('page shows Connections and MCP Servers headings', async ({ page }) => {
+  test('page shows Connections and MCP Service headings', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Connections' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'MCP Servers' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'MCP Service' })).toBeVisible();
   });
 
   test('shows four MCP server cards', async ({ page }) => {
@@ -120,7 +120,7 @@ test.describe('MCP Services Page', () => {
 
     await auditSection.getByRole('button', { name: /load logs/i }).click();
 
-    await expect(auditSection.getByText('Service', { exact: true })).toBeVisible();
+    await expect(auditSection.getByText('Server', { exact: true })).toBeVisible();
     await expect(auditSection.getByText('Method', { exact: true })).toBeVisible();
     await expect(auditSection.getByText('Path', { exact: true })).toBeVisible();
     await expect(auditSection.getByText('Status', { exact: true })).toBeVisible();

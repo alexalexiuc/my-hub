@@ -33,7 +33,7 @@ rather than on a separate `/oauth-clients` route.
 | FR-05 | The enabled/disabled state must persist across server restarts (stored in the database, not in memory).                                                            |
 | FR-06 | Inactive (not yet implemented) servers must be visually distinguished (reduced opacity, disabled toggle, "Coming soon" label).                                     |
 | FR-07 | Each server card must display its full MCP URL with a copy button for active servers.                                                                              |
-| FR-08 | An **Audit Log** section must allow users to review API request logs filtered by service, date range, and limit.                                                   |
+| FR-08 | An **Audit Log** section must allow users to review API request logs filtered by MCP server, date range, and limit.                                                |
 | FR-09 | Audit log rows must be expandable to show request/response bodies and error details.                                                                               |
 
 ---
@@ -69,5 +69,5 @@ rather than on a separate `/oauth-clients` route.
 - [ ] Re-enabling a sub-server causes tool calls to succeed again without restarting the Fastify process.
 - [x] The enabled state survives a server restart (stored in `mcp_servers` DB table).
 - [x] Accessing the MCP Control page while unauthenticated redirects to the login page.
-- [x] Audit Log section shows API request logs with service/date/limit filters and expandable detail rows.
+- [x] Audit Log section shows API request logs with server/date/limit filters and expandable detail rows.
 - [x] MCP control API routes (`/api/mcp/servers`, `/api/mcp/servers/:name`, `/api/mcp/clients`, `/api/mcp/clients/:id`, `/api/mcp/logs`) share a centralized auth wrapper instead of duplicating per-handler auth checks.

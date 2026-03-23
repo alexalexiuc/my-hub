@@ -1,4 +1,5 @@
 import { bigserial, index, inet, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { McpServerName } from './mcp-servers';
 import { oauthClients } from './oauth-clients';
 
 export const apiRequestLogs = pgTable(
@@ -6,6 +7,7 @@ export const apiRequestLogs = pgTable(
   {
     id: bigserial('id', { mode: 'number' }).primaryKey(),
     service: text('service').notNull(),
+    server: text('server').$type<McpServerName>(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     method: text('method').notNull(),
     path: text('path').notNull(),
@@ -25,5 +27,6 @@ export const apiRequestLogs = pgTable(
     statusIdx: index('idx_logs_status').on(table.statusCode),
     serviceIdx: index('idx_logs_service').on(table.service),
     clientIdx: index('idx_logs_client').on(table.clientId).desc(),
+    serverIdx: index('idx_logs_server').on(table.server),
   }),
 );

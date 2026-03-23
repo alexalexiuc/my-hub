@@ -2,6 +2,7 @@ import fp from 'fastify-plugin';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import { putLog } from '@my-hub/shared/services';
+import { McpServerName } from '@my-hub/shared/schema';
 import { envConfig } from '../config/env.js';
 
 const MAX_PAYLOAD_BYTES = 10_240; // 10 KB cap per payload field
@@ -64,10 +65,12 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     const auth = (req.raw as { auth?: AuthInfo }).auth;
     const verifiedUserId = (auth?.extra?.['userId'] as string | undefined) ?? null;
     const verifiedClientId = (auth?.extra?.['clientId'] as string | undefined) ?? null;
+    const verifiedServerName = (auth?.extra?.['serverName'] as McpServerName | undefined) ?? null;
 
     // Write to DB asynchronously — don't await so we don't slow down the response.
     const logData: Parameters<typeof putLog>[0] = {
       service: 'mcp-service',
+      server: verifiedServerName,
       method: req.method,
       path: req.url,
       statusCode: status,

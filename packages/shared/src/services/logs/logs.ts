@@ -2,6 +2,7 @@ import { and, desc, eq, gte, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { apiRequestLogs } from '../../db/schema/api-request-logs';
 import type { ApiRequestLog, NewApiRequestLog } from '../../types/index';
+import type { McpServerName } from '../../db/schema/mcp-servers';
 
 // ---------------------------------------------------------------------------
 // API Request Log service
@@ -11,6 +12,7 @@ export type PutLogData = Omit<NewApiRequestLog, 'id' | 'createdAt'>;
 
 export interface GetLogsFilter {
   service?: string;
+  server?: McpServerName;
   userId?: string;
   statusCode?: number;
   from?: Date;
@@ -26,7 +28,7 @@ export async function putLog(data: PutLogData): Promise<ApiRequestLog> {
 }
 
 export async function getLogs(filter: GetLogsFilter = {}): Promise<ApiRequestLog[]> {
-  const { service, userId, statusCode, from, to, limit = 100 } = filter;
+  const { service, server, userId, statusCode, from, to, limit = 100 } = filter;
 
   return db
     .select()
@@ -34,6 +36,7 @@ export async function getLogs(filter: GetLogsFilter = {}): Promise<ApiRequestLog
     .where(
       and(
         service !== undefined ? eq(apiRequestLogs.service, service) : undefined,
+        server !== undefined ? eq(apiRequestLogs.server, server) : undefined,
         userId !== undefined ? eq(apiRequestLogs.userId, userId) : undefined,
         statusCode !== undefined ? eq(apiRequestLogs.statusCode, statusCode) : undefined,
         from !== undefined ? gte(apiRequestLogs.createdAt, from) : undefined,
