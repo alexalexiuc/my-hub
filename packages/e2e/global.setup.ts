@@ -1,7 +1,6 @@
 import { test as setup, expect } from '@playwright/test';
 import path from 'path';
 import { TEST_USER, BASE_URL } from './config';
-import { seedAuditLogFixtures } from './seeds/audit-log.seed';
 
 const AUTH_FILE = path.join(__dirname, '.auth', 'user.json');
 
@@ -33,9 +32,6 @@ setup('write seeds, create test user and authenticate', async ({ request, page }
 
   // Should land on the dashboard
   await expect(page).toHaveURL(`${BASE_URL}/`, { timeout: 15_000 });
-
-  // Seed deterministic audit-log fixtures for MCP Control page tests.
-  await seedAuditLogFixtures(TEST_USER.email);
 
   // Persist auth state (cookies / localStorage) for reuse across tests
   await page.context().storageState({ path: AUTH_FILE });
