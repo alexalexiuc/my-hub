@@ -15,11 +15,6 @@ import {
 } from '@my-hub/shared/services';
 import { signToken, verifyToken, verifyPkceS256, type AuthCodePayload } from '@my-hub/shared/auth';
 
-const EMAIL_WHITELIST = (process.env['ALLOWED_EMAILS'] ?? '')
-  .split(',')
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
-
 const NEXTAUTH_SECRET = process.env['NEXTAUTH_SECRET'] ?? '';
 
 // ---------------------------------------------------------------------------
@@ -217,10 +212,6 @@ export async function oauthRoutes(app: FastifyInstance) {
       return reply.redirect(bridgeUrl);
     }
 
-    if (EMAIL_WHITELIST.length > 0 && !EMAIL_WHITELIST.includes(email.toLowerCase())) {
-      return reply.status(403).send('Email not authorized');
-    }
-
     // Add client_name to params for the consent page
     if (client.clientName) params.set('client_name', client.clientName);
 
@@ -256,10 +247,6 @@ export async function oauthRoutes(app: FastifyInstance) {
 
     const email = getSessionEmail(req);
     if (!email) return sendError('login_required');
-
-    if (EMAIL_WHITELIST.length > 0 && !EMAIL_WHITELIST.includes(email.toLowerCase())) {
-      return sendError('access_denied');
-    }
 
     // Bind client + provision MCP server rows
     const user = await findUserByEmail(email);
