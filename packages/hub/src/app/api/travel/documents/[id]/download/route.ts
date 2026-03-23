@@ -26,10 +26,16 @@ export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
   const absolutePath = path.join(root, document.storagePath);
   const file = await readFile(absolutePath);
 
+  const rawName = (document.originalName ?? document.title ?? 'download').toString();
+  // Replace characters that could break the header or enable response splitting
+  const safeFilename = rawName.replace(/["\r\n]/g, '_');
+  const encodedFilename = encodeURIComponent(rawName);
+  const contentDisposition = `attachment; filename="${safeFilename}"; filename*=UTF-8''${encodedFilename}`;
+
   return new NextResponse(file, {
     headers: {
       'Content-Type': document.mimeType ?? 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${document.originalName ?? document.title}"`,
+      'Content-Disposition': contentDisposition,
     },
   });
 });

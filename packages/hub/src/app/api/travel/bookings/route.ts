@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
+import { parseAndValidateDate } from '@/lib/api/date-validation';
 import { addTripBooking } from '@my-hub/shared/services';
 import type { TripBookingType } from '@my-hub/shared/types';
 
@@ -41,13 +42,22 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: 'title is required' }, { status: 400 });
   }
 
+  const { date: startAt, error: startAtError } = parseAndValidateDate(body.start_at, 'start_at');
+  if (startAtError) {
+    return NextResponse.json({ error: startAtError }, { status: 400 });
+  }
+
+  const { date: endAt, error: endAtError } = parseAndValidateDate(body.end_at, 'end_at');
+  if (endAtError) {
+    return NextResponse.json({ error: endAtError }, { status: 400 });
+  }
   const booking = await addTripBooking(user.id, tripId, {
     bookingType,
     title,
     provider: typeof body.provider === 'string' ? body.provider : null,
     confirmationNumber: typeof body.confirmation_number === 'string' ? body.confirmation_number : null,
-    startAt: typeof body.start_at === 'string' ? new Date(body.start_at) : null,
-    endAt: typeof body.end_at === 'string' ? new Date(body.end_at) : null,
+    startAt,
+    endAt,
     status: typeof body.status === 'string' ? body.status : 'scheduled',
     costAmount: typeof body.cost_amount === 'number' ? body.cost_amount : null,
     costCurrency: typeof body.cost_currency === 'string' ? body.cost_currency : 'EUR',

@@ -60,14 +60,26 @@ export async function getTripBookings(
     .orderBy(asc(tripBookings.startAt), asc(tripBookings.id));
 }
 
-export async function getUpcomingTripBookings(userId: string, hoursAhead = 48): Promise<TripBooking[]> {
+/** Fetch upcoming trip bookings for a user within a specified time window (default: 48 hours) and optional booking type filter */
+export async function getUpcomingTripBookings(
+  userId: string,
+  hoursAhead = 48,
+  bookingType?: TripBookingType,
+): Promise<TripBooking[]> {
   const now = new Date();
   const until = new Date(now.getTime() + hoursAhead * 60 * 60 * 1000);
+
+  const conditions = [
+    eq(tripBookings.userId, userId),
+    gte(tripBookings.startAt, now),
+    lte(tripBookings.startAt, until),
+  ];
+  if (bookingType) conditions.push(eq(tripBookings.bookingType, bookingType));
 
   return db
     .select()
     .from(tripBookings)
-    .where(and(eq(tripBookings.userId, userId), gte(tripBookings.startAt, now), lte(tripBookings.startAt, until)))
+    .where(and(...conditions))
     .orderBy(asc(tripBookings.startAt), asc(tripBookings.id));
 }
 
