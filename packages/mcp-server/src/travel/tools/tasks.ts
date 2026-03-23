@@ -7,6 +7,7 @@ import {
   addTripDocument,
   createTrip,
   deleteTripCompanion,
+  getTripBrief,
   getTripCompanions,
   getTripOverview,
   getTrips,
@@ -227,7 +228,7 @@ export const travelWhoIsTravelingTool: ToolCallback<typeof TravelWhoIsTravelingS
 
 export const travelGetTripBriefTool: ToolCallback<typeof TravelGetTripBriefSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
-  const overview = input.trip_id ? await getTripOverview(userId, input.trip_id) : await getTripOverviewForNext(userId);
+  const overview = await getTripBrief(userId, input.trip_id);
 
   if (!overview) {
     return toolResponse({
@@ -276,16 +277,3 @@ export const travelAttachDocumentLinkTool: ToolCallback<typeof TravelAttachDocum
   });
 };
 
-async function getTripOverviewForNext(userId: string) {
-  const allTrips = await getTrips(userId);
-  const next = allTrips
-    .filter((trip) => (trip.startAt ? trip.startAt.getTime() >= Date.now() : true))
-    .sort((a, b) => {
-      const aTime = a.startAt ? a.startAt.getTime() : Number.MAX_SAFE_INTEGER;
-      const bTime = b.startAt ? b.startAt.getTime() : Number.MAX_SAFE_INTEGER;
-      return aTime - bTime;
-    })[0];
-
-  if (!next) return null;
-  return getTripOverview(userId, next.id);
-}
