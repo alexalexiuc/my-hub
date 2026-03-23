@@ -2,6 +2,7 @@ import { and, asc, eq, gte, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { tripBookings } from '../../db/schema/travel';
 import type { NewTripBooking, TripBooking, TripBookingType } from '../../types/index';
+import { verifyTripOwnership } from './trips';
 
 export type TripBookingInsert = Omit<NewTripBooking, 'id' | 'userId' | 'tripId' | 'createdAt' | 'updatedAt'>;
 export type TripBookingUpdate = Partial<
@@ -27,6 +28,9 @@ export interface GetTripBookingsOpts {
 }
 
 export async function addTripBooking(userId: string, tripId: number, data: TripBookingInsert): Promise<TripBooking> {
+  if (!(await verifyTripOwnership(userId, tripId))) {
+    throw new Error('Trip not found');
+  }
   const [row] = await db
     .insert(tripBookings)
     .values({

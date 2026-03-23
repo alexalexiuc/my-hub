@@ -104,3 +104,12 @@ export async function getTripBookingRanges(userId: string): Promise<TripBookingR
     .groupBy(tripBookings.tripId)
     .orderBy(asc(tripBookings.tripId));
 }
+
+export async function verifyTripOwnership(userId: string, tripId: number): Promise<boolean> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(trips)
+    .where(and(eq(trips.userId, userId), eq(trips.id, tripId)));
+
+  return (row?.count ?? 0) > 0;
+}

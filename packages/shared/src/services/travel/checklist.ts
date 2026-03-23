@@ -3,6 +3,7 @@ import { db } from '../../db/client';
 import { tripChecklistItems } from '../../db/schema/travel';
 import { omitNullish } from '../../utils/index';
 import type { NewTripChecklistItem, TripChecklistItem } from '../../types/index';
+import { verifyTripOwnership } from './trips';
 
 export type TripChecklistItemInsert = Omit<
   NewTripChecklistItem,
@@ -15,6 +16,9 @@ export async function addChecklistItem(
   tripId: number,
   data: TripChecklistItemInsert,
 ): Promise<TripChecklistItem> {
+  if (!(await verifyTripOwnership(userId, tripId))) {
+    throw new Error('Trip not found');
+  }
   const [row] = await db
     .insert(tripChecklistItems)
     .values({

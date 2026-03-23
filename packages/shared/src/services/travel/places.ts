@@ -3,6 +3,7 @@ import { db } from '../../db/client';
 import { tripPlaces } from '../../db/schema/travel';
 import { omitNullish } from '../../utils/index';
 import type { NewTripPlace, TripPlace, TripPlacePriority } from '../../types/index';
+import { verifyTripOwnership } from './trips';
 
 export type TripPlaceInsert = Omit<NewTripPlace, 'id' | 'userId' | 'tripId' | 'createdAt' | 'updatedAt'>;
 export type TripPlaceUpdate = Partial<Pick<TripPlaceInsert, 'name' | 'location' | 'notes' | 'visited' | 'priority'>>;
@@ -13,6 +14,9 @@ export interface GetTripPlacesOpts {
 }
 
 export async function addTripPlace(userId: string, tripId: number, data: TripPlaceInsert): Promise<TripPlace> {
+  if (!(await verifyTripOwnership(userId, tripId))) {
+    throw new Error('Trip not found');
+  }
   const [row] = await db
     .insert(tripPlaces)
     .values({

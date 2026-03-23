@@ -3,6 +3,7 @@ import { db } from '../../db/client';
 import { tripCompanions } from '../../db/schema/travel';
 import { omitNullish } from '../../utils/index';
 import type { NewTripCompanion, TripCompanion } from '../../types/index';
+import { verifyTripOwnership } from './trips';
 
 export type TripCompanionInsert = Omit<NewTripCompanion, 'id' | 'userId' | 'tripId' | 'createdAt' | 'updatedAt'>;
 export type TripCompanionUpdate = Partial<Pick<TripCompanionInsert, 'name' | 'email' | 'phone' | 'notes'>>;
@@ -12,6 +13,9 @@ export async function addTripCompanion(
   tripId: number,
   data: TripCompanionInsert,
 ): Promise<TripCompanion> {
+  if (!(await verifyTripOwnership(userId, tripId))) {
+    throw new Error('Trip not found');
+  }
   const [row] = await db
     .insert(tripCompanions)
     .values({
