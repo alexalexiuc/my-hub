@@ -31,13 +31,13 @@ test.describe('MCP Services Page', () => {
     });
     await expect(serversSection.getByText('Calories', { exact: true })).toBeVisible();
     await expect(serversSection.getByText('Todo', { exact: true })).toBeVisible();
-    await expect(serversSection.getByText('Hive Manager', { exact: true })).toBeVisible();
+    await expect(serversSection.getByText('Apiary', { exact: true })).toBeVisible();
     await expect(serversSection.getByText('Products', { exact: true })).toBeVisible();
   });
 
   test('inactive servers show Coming soon label', async ({ page }) => {
-    const hiveCard = page.locator('[class*="rounded-xl"]', { hasText: 'Hive Manager' });
-    await expect(hiveCard.getByText('Coming soon')).toBeVisible();
+    const apiaryCard = page.locator('[class*="rounded-xl"]', { hasText: 'Apiary' });
+    await expect(apiaryCard.getByText('Coming soon')).toBeVisible();
     const productsCard = page.locator('[class*="rounded-xl"]', { hasText: 'Products' });
     await expect(productsCard.getByText('Coming soon')).toBeVisible();
   });

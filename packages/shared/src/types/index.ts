@@ -5,9 +5,6 @@ import type {
   oauthClients,
   oauthRefreshTokens,
   mcpServers,
-  hives,
-  hiveLogs,
-  hiveTodos,
   calorieProfiles,
   mealLogs,
   measurementTypes,
@@ -30,14 +27,6 @@ export type OAuthRefreshToken = InferSelectModel<typeof oauthRefreshTokens>;
 export type NewOAuthRefreshToken = InferInsertModel<typeof oauthRefreshTokens>;
 export type McpServer = InferSelectModel<typeof mcpServers>;
 export type NewMcpServer = InferInsertModel<typeof mcpServers>;
-
-// Hive
-export type Hive = InferSelectModel<typeof hives>;
-export type NewHive = InferInsertModel<typeof hives>;
-export type HiveLog = InferSelectModel<typeof hiveLogs>;
-export type NewHiveLog = InferInsertModel<typeof hiveLogs>;
-export type HiveTodo = InferSelectModel<typeof hiveTodos>;
-export type NewHiveTodo = InferInsertModel<typeof hiveTodos>;
 
 // Calories
 export type CalorieProfile = InferSelectModel<typeof calorieProfiles>;

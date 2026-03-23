@@ -40,12 +40,6 @@ const SERVER_META: Record<string, { label: string; path: string; description: st
     description: 'Meal logging, body measurements, nutritional summaries',
     active: true,
   },
-  hive: {
-    label: 'Hive Manager',
-    path: '/api/hive/mcp',
-    description: 'Beekeeping logs, hive profiles, inspection history',
-    active: false,
-  },
   products: {
     label: 'Products',
     path: '/api/products/mcp',
@@ -413,7 +407,6 @@ const SERVICE_OPTIONS: { value: McpServerName | ''; label: string }[] = [
   { value: '', label: 'All services' },
   { value: 'calories', label: 'Calories' },
   { value: 'todo', label: 'Todo' },
-  { value: 'hive', label: 'Hive Manager' },
   { value: 'products', label: 'Products' },
   { value: 'apiary', label: 'Apiary' },
 ];

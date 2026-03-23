@@ -10,7 +10,6 @@ import { users } from './users';
 export const McpServerName = {
   Apiary: 'apiary',
   Calories: 'calories',
-  Hive: 'hive',
   Products: 'products',
   Todo: 'todo',
 } as const;
@@ -20,7 +19,6 @@ export type McpServerName = (typeof McpServerName)[keyof typeof McpServerName];
 export const mcpServerEnum = pgEnum('mcp_server', [
   McpServerName.Apiary,
   McpServerName.Calories,
-  McpServerName.Hive,
   McpServerName.Products,
   McpServerName.Todo,
 ]);

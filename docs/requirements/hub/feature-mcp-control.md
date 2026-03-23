@@ -26,7 +26,7 @@ rather than on a separate `/oauth-clients` route.
 
 | ID    | Requirement                                                                                                                                                        |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| FR-01 | The admin must be able to see a list of all registered MCP sub-servers (e.g. Calories, Todo, Hive Manager, Products) and their current enabled/disabled state.     |
+| FR-01 | The admin must be able to see a list of all registered MCP sub-servers (e.g. Calories, Todo, Apiary, Products) and their current enabled/disabled state.           |
 | FR-02 | The admin must be able to toggle a sub-server on or off with a single UI interaction (e.g. a toggle switch).                                                       |
 | FR-03 | When a sub-server is disabled, requests to its MCP route must return an appropriate error (e.g. HTTP 503 or an MCP-level error) and not execute any tool handlers. |
 | FR-04 | When a sub-server is re-enabled, it must begin accepting requests immediately without requiring a process restart.                                                 |
@@ -63,7 +63,7 @@ rather than on a separate `/oauth-clients` route.
 
 - [x] All registered MCP sub-servers are listed on the control page with their current state.
 - [x] Toggle switch UI allows enabling/disabling each active sub-server; state is persisted to the database via `/api/mcp/servers/:name`.
-- [x] Inactive servers (Hive Manager, Products) are shown with reduced opacity, disabled toggles, and "Coming soon" labels.
+- [x] Inactive servers (Apiary, Products) are shown with reduced opacity, disabled toggles, and "Coming soon" labels.
 - [x] Each server card displays the full MCP URL with a copy button.
 - [ ] Disabling a sub-server causes subsequent MCP tool calls to that sub-server to fail with a clear error within 5 seconds.
 - [ ] Re-enabling a sub-server causes tool calls to succeed again without restarting the Fastify process.

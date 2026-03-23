@@ -2,7 +2,6 @@ export * from './users';
 export * from './oauth-clients';
 export * from './oauth-refresh-tokens';
 export * from './mcp-servers';
-export * from './hive';
 export * from './calories';
 export * from './measurements';
 export * from './api-request-logs';
