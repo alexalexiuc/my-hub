@@ -338,7 +338,9 @@ export default function TravelPage() {
     if (!value) return '';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '';
-    return date.toISOString().slice(0, 10);
+    // Adjust for timezone offset to get the correct local date
+    const timezoneOffsetMs = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
   }
 
   function startEditBooking(booking: TripBooking) {

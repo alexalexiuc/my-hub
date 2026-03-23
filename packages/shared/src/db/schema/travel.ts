@@ -1,30 +1,50 @@
 import { boolean, index, integer, jsonb, pgTable, real, serial, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { users } from './users';
 
-export const tripStatusValues = ['planned', 'active', 'completed', 'cancelled'] as const;
-export type TripStatus = (typeof tripStatusValues)[number];
+export const TripStatuses = {
+  Planned: 'planned',
+  Active: 'active',
+  Completed: 'completed',
+  Cancelled: 'cancelled',
+} as const;
+export type TripStatus = (typeof TripStatuses)[keyof typeof TripStatuses];
+export const tripStatusValues: TripStatus[] = Object.values(TripStatuses);
 
-export const tripBookingTypeValues = [
-  'flight',
-  'accommodation',
-  'rental_car',
-  'train',
-  'bus',
-  'ferry',
-  'taxi',
-  'restaurant',
-  'tour',
-  'activity',
-  'ticket',
-  'other',
-] as const;
-export type TripBookingType = (typeof tripBookingTypeValues)[number];
+export const TripBookingTypes = {
+  Flight: 'flight',
+  Accommodation: 'accommodation',
+  RentalCar: 'rental_car',
+  Train: 'train',
+  Bus: 'bus',
+  Ferry: 'ferry',
+  Taxi: 'taxi',
+  Restaurant: 'restaurant',
+  Tour: 'tour',
+  Activity: 'activity',
+  Ticket: 'ticket',
+  Other: 'other',
+} as const;
+export type TripBookingType = (typeof TripBookingTypes)[keyof typeof TripBookingTypes];
+export const tripBookingTypeValues = Object.values(TripBookingTypes) as TripBookingType[];
 
-export const tripPlacePriorityValues = ['low', 'medium', 'high'] as const;
-export type TripPlacePriority = (typeof tripPlacePriorityValues)[number];
+export const TripPlacePriorities = {
+  Low: 'low',
+  Medium: 'medium',
+  High: 'high',
+} as const;
+export type TripPlacePriority = (typeof TripPlacePriorities)[keyof typeof TripPlacePriorities];
+export const tripPlacePriorityValues = Object.values(TripPlacePriorities) as TripPlacePriority[];
 
-export const tripDocumentTypeValues = ['passport', 'visa', 'boarding_pass', 'voucher', 'ticket', 'other'] as const;
-export type TripDocumentType = (typeof tripDocumentTypeValues)[number];
+export const TripDocumentTypes = {
+  Passport: 'passport',
+  Visa: 'visa',
+  BoardingPass: 'boarding_pass',
+  Voucher: 'voucher',
+  Ticket: 'ticket',
+  Other: 'other',
+} as const;
+export type TripDocumentType = (typeof TripDocumentTypes)[keyof typeof TripDocumentTypes];
+export const tripDocumentTypeValues = Object.values(TripDocumentTypes) as TripDocumentType[];
 
 export const trips = pgTable(
   'trips',

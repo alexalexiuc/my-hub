@@ -2,6 +2,7 @@ import { ReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getTrips, getUpcomingTripBookings } from '@my-hub/shared/services';
 import { resourceResponse } from '../../shared/resourcesUtils';
 import { travelFilesConfig } from '../files-config';
+import { TripBookingTypes } from '@my-hub/shared/schema';
 
 export const getTravelTripsResource: ReadResourceCallback = async (uri, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
@@ -26,7 +27,7 @@ export const getTravelUpcomingResource: ReadResourceCallback = async (uri, extra
         return aTime - bTime;
       })[0] ?? null;
 
-  const upcomingFlights = await getUpcomingTripBookings(userId, 48);
+  const upcomingFlights = await getUpcomingTripBookings(userId, 48, TripBookingTypes.Flight);
 
   return resourceResponse(uri, {
     next_trip: nextTrip,

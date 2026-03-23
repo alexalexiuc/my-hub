@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import { deleteTripBooking, updateTripBooking } from '@my-hub/shared/services';
 import type { TripBookingType } from '@my-hub/shared/types';
+import { parseAndValidateDateForPatch } from '@/lib/api/date-validation';
 
 const bookingTypes: TripBookingType[] = [
   'flight',
@@ -32,6 +33,16 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
+  const { date: startAt, error: startAtError } = parseAndValidateDateForPatch(body.start_at, 'start_at');
+  if (startAtError) {
+    return NextResponse.json({ error: startAtError }, { status: 400 });
+  }
+
+  const { date: endAt, error: endAtError } = parseAndValidateDateForPatch(body.end_at, 'end_at');
+  if (endAtError) {
+    return NextResponse.json({ error: endAtError }, { status: 400 });
+  }
+
   const booking = await updateTripBooking(user.id, bookingId, {
     title: typeof body.title === 'string' ? body.title.trim() : undefined,
     bookingType:
@@ -39,22 +50,8 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
         ? (body.booking_type as TripBookingType)
         : undefined,
     provider: typeof body.provider === 'string' ? body.provider.trim() || null : undefined,
-    startAt:
-      typeof body.start_at === 'string'
-        ? body.start_at
-          ? new Date(body.start_at)
-          : null
-        : body.start_at === null
-          ? null
-          : undefined,
-    endAt:
-      typeof body.end_at === 'string'
-        ? body.end_at
-          ? new Date(body.end_at)
-          : null
-        : body.end_at === null
-          ? null
-          : undefined,
+    startAt: startAt,
+    endAt: endAt,
   });
 
   if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
