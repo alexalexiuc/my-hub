@@ -1,7 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
-
-const BASE_URL = process.env['E2E_HUB_BASE_URL'] ?? 'http://localhost:3000';
+import { BASE_URL } from './config';
 
 export const AUTH_FILE = path.join(__dirname, '.auth', 'user.json');
 
@@ -36,16 +35,4 @@ export default defineConfig({
       dependencies: ['setup'],
     },
   ],
-
-  // NOTE: The hub dev server must be running before tests start.
-  // Start it with: ALLOWED_EMAILS=e2e-hub@test.local pnpm --filter @my-hub/hub dev
-  //
-  // For CI, uncomment the webServer block below:
-  //
-  // webServer: {
-  //   command: 'ALLOWED_EMAILS=e2e-hub@test.local pnpm --filter @my-hub/hub dev',
-  //   url: `${BASE_URL}/auth/signin`,
-  //   reuseExistingServer: false,
-  //   timeout: 120_000,
-  // },
 });

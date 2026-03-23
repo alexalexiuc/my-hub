@@ -114,4 +114,22 @@ test.describe('MCP Services Page', () => {
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-checked', 'false');
   });
+
+  test('audit log loads seeded rows and shows table columns', async ({ page }) => {
+    const auditSection = page.locator('section').filter({
+      has: page.getByRole('heading', { name: 'Audit Log' }),
+    });
+
+    await auditSection.getByRole('button', { name: /load logs/i }).click();
+
+    await expect(auditSection.getByText('Service', { exact: true })).toBeVisible();
+    await expect(auditSection.getByText('Method', { exact: true })).toBeVisible();
+    await expect(auditSection.getByText('Path', { exact: true })).toBeVisible();
+    await expect(auditSection.getByText('Status', { exact: true })).toBeVisible();
+    await expect(auditSection.getByText('Duration', { exact: true })).toBeVisible();
+    await expect(auditSection.getByText('Time', { exact: true })).toBeVisible();
+
+    await expect(auditSection.getByText('/e2e/audit-log/', { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+    await expect(auditSection.getByText('No logs found for the selected filters.')).not.toBeVisible();
+  });
 });

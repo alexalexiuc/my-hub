@@ -5,28 +5,34 @@
   "type": "module",
   "exports": {
     "./schema": {
+      "types": "./dist/db/schema/index.d.ts",
       "import": "./dist/db/schema/index.js",
-      "types": "./dist/db/schema/index.d.ts"
+      "require": "./dist/db/schema/index.cjs"
     },
     "./types": {
+      "types": "./dist/types/index.d.ts",
       "import": "./dist/types/index.js",
-      "types": "./dist/types/index.d.ts"
+      "require": "./dist/types/index.cjs"
     },
     "./auth": {
+      "types": "./dist/auth/index.d.ts",
       "import": "./dist/auth/index.js",
-      "types": "./dist/auth/index.d.ts"
+      "require": "./dist/auth/index.cjs"
     },
     "./db": {
+      "types": "./dist/db/client.d.ts",
       "import": "./dist/db/client.js",
-      "types": "./dist/db/client.d.ts"
+      "require": "./dist/db/client.cjs"
     },
     "./services": {
+      "types": "./dist/services/index.d.ts",
       "import": "./dist/services/index.js",
-      "types": "./dist/services/index.d.ts"
+      "require": "./dist/services/index.cjs"
     },
     "./utils": {
+      "types": "./dist/utils/index.d.ts",
       "import": "./dist/utils/index.js",
-      "types": "./dist/utils/index.d.ts"
+      "require": "./dist/utils/index.cjs"
     }
   },
   "scripts": {

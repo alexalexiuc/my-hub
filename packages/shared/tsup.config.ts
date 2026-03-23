@@ -9,7 +9,7 @@ export default defineConfig({
     'services/index': 'src/services/index.ts',
     'utils/index': 'src/utils/index.ts',
   },
-  format: ['esm'],
+  format: ['esm', 'cjs'],
   dts: true,
   clean: true,
   sourcemap: true,
