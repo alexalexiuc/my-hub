@@ -109,7 +109,11 @@ export default function GoalProgressCard({ days, weightHistory, goalType, goalWe
   const baselineWeight =
     findNearestPastWeight(orderedWeights, chartStartDate) ?? findNearestFutureWeight(orderedWeights, chartStartDate);
   if (baselineWeight === null) {
-    return <p className="text-xs text-zinc-600 px-1">Weekly goal progress — no recent weight data available.</p>;
+    return (
+      <SectionCard title="Weekly goal progress">
+        <p className="text-xs text-zinc-600 px-1">No recent weight data available.</p>
+      </SectionCard>
+    );
   }
 
   const today = new Date().toISOString().split('T')[0] ?? '';

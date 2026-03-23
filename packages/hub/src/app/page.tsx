@@ -148,8 +148,13 @@ export default function HomePage() {
   }
 
   async function handleDeleteTodo(id: number) {
-    await fetch(`/api/todo/${id}`, { method: 'DELETE' });
-    setData((prev) => (prev ? { ...prev, todos: prev.todos.filter((t) => t.id !== id) } : prev));
+    const res = await fetch(`/api/todo/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      setData((prev) => (prev ? { ...prev, todos: prev.todos.filter((t) => t.id !== id) } : prev));
+    } else {
+      setError('Failed to delete todo. Please try again.');
+      await loadData(true);
+    }
   }
 
   async function handleMealAdded() {

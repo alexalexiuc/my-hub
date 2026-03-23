@@ -189,9 +189,16 @@ export default function TodoWidget({ todos, loading, onAdd, onMarkDone, onDelete
                     {todo.title}
                   </span>
                   <button
-                    onClick={() => onDelete(todo.id)}
+                    onClick={async () => {
+                      try {
+                        await onDelete(todo.id);
+                      } catch (error) {
+                        console.error('Failed to delete todo', error);
+                      }
+                    }}
                     className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all duration-200"
                     title="Delete"
+                    aria-label="Delete todo"
                   >
                     <svg
                       width="14"
