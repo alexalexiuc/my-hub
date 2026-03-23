@@ -38,10 +38,7 @@ test.describe('OAuth Refresh Token Flow', () => {
     }
   });
 
-  test('client_credentials grant returns a refresh_token alongside access_token', async ({
-    page,
-    request,
-  }) => {
+  test('client_credentials grant returns a refresh_token alongside access_token', async ({ page, request }) => {
     // Create a client pre-bound to the e2e test user via the Hub API
     const createRes = await page.request.post('/api/mcp/clients', {
       data: { name: 'E2E Refresh Token Test' },
@@ -68,10 +65,7 @@ test.describe('OAuth Refresh Token Flow', () => {
     expect(tokens.expires_in).toBe(86400);
   });
 
-  test('refresh_token grant returns a new access_token and rotated refresh_token', async ({
-    page,
-    request,
-  }) => {
+  test('refresh_token grant returns a new access_token and rotated refresh_token', async ({ page, request }) => {
     // Create a client pre-bound to the e2e test user
     const createRes = await page.request.post('/api/mcp/clients', {
       data: { name: 'E2E Token Rotation Test' },
@@ -118,10 +112,7 @@ test.describe('OAuth Refresh Token Flow', () => {
     expect(refreshedTokens.refresh_token).not.toBe(initialRefreshToken);
   });
 
-  test('refresh_token grant rejects an already-rotated (old) refresh_token', async ({
-    page,
-    request,
-  }) => {
+  test('refresh_token grant rejects an already-rotated (old) refresh_token', async ({ page, request }) => {
     // Create a client
     const createRes = await page.request.post('/api/mcp/clients', {
       data: { name: 'E2E Rotation Rejection Test' },
