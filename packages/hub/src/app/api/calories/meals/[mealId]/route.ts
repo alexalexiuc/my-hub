@@ -22,6 +22,8 @@ export const PATCH = withAuth<{ mealId: string }>(async ({ req, user, params }) 
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
+  if (body.kcal != null) body.kcal = Math.round(body.kcal);
+
   const updated = await updateMeal(user.id, mealId, body);
   if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 

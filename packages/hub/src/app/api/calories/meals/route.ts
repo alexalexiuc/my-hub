@@ -49,7 +49,7 @@ export const POST = withAuth(async ({ req, user }) => {
     date: date ?? today,
     mealType,
     description,
-    kcal: kcal ?? null,
+    kcal: kcal != null ? Math.round(kcal) : null,
     protein: protein ?? null,
     carbs: carbs ?? null,
     fat: fat ?? null,

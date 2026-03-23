@@ -88,7 +88,7 @@ export default function CaloriesWidget({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description: form.description,
-          kcal: form.kcal ? Number(form.kcal) : undefined,
+          kcal: form.kcal ? Math.round(Number(form.kcal)) : undefined,
           mealType: form.mealType,
           date: today,
         }),
@@ -220,6 +220,8 @@ export default function CaloriesWidget({
               <input
                 className="input"
                 type="number"
+                step="1"
+                min="0"
                 placeholder="kcal"
                 value={form.kcal}
                 onChange={(e) => setForm({ ...form, kcal: e.target.value })}

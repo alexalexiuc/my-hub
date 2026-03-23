@@ -36,6 +36,11 @@ export const PUT = withAuth(async ({ req, user }) => {
     if (key in body) updates[key] = body[key];
   }
 
+  // Coerce calorie goal fields to integers (DB columns are integer type)
+  for (const key of ['goalMinCalories', 'goalMaxCalories'] as const) {
+    if (typeof updates[key] === 'number') updates[key] = Math.round(updates[key] as number);
+  }
+
   const profile = await upsertCalorieProfile(user.id, updates);
   return NextResponse.json({ profile });
 });

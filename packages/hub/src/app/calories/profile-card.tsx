@@ -84,8 +84,8 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
           activityLevel: form.activityLevel || undefined,
           goalType: form.goalType || undefined,
           goalWeeklyRateKg: form.goalWeeklyRateKg ? Number(form.goalWeeklyRateKg) : undefined,
-          goalMinCalories: form.goalMinCalories ? Number(form.goalMinCalories) : undefined,
-          goalMaxCalories: form.goalMaxCalories ? Number(form.goalMaxCalories) : undefined,
+          goalMinCalories: form.goalMinCalories ? Math.round(Number(form.goalMinCalories)) : undefined,
+          goalMaxCalories: form.goalMaxCalories ? Math.round(Number(form.goalMaxCalories)) : undefined,
           notes: form.notes || undefined,
         }),
       });
@@ -254,6 +254,8 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
             <input
               className="input"
               type="number"
+              step="1"
+              min="0"
               placeholder="Optional floor"
               value={form.goalMinCalories}
               onChange={(e) => setForm({ ...form, goalMinCalories: e.target.value })}
@@ -263,6 +265,8 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
             <input
               className="input"
               type="number"
+              step="1"
+              min="0"
               placeholder="Optional ceiling"
               value={form.goalMaxCalories}
               onChange={(e) => setForm({ ...form, goalMaxCalories: e.target.value })}
