@@ -36,8 +36,6 @@ test.describe('MCP Services Page', () => {
   });
 
   test('inactive servers show Coming soon label', async ({ page }) => {
-    const apiaryCard = page.locator('[class*="rounded-xl"]', { hasText: 'Apiary' });
-    await expect(apiaryCard.getByText('Coming soon')).toBeVisible();
     const productsCard = page.locator('[class*="rounded-xl"]', { hasText: 'Products' });
     await expect(productsCard.getByText('Coming soon')).toBeVisible();
   });

@@ -21,6 +21,12 @@ const NEXTAUTH_SECRET = process.env['NEXTAUTH_SECRET'] ?? '';
 // Helpers
 // ---------------------------------------------------------------------------
 
+const DEFAULT_ALLOWED_REDIRECT_URIS = [
+  'http://localhost:3000',
+  'https://my-hub.dev',
+  'https://claude.ai/api/auth/mcp/callback',
+];
+
 function validateRedirectUri(redirectUri: string): URL | null {
   let parsed: URL;
   try {
@@ -29,24 +35,10 @@ function validateRedirectUri(redirectUri: string): URL | null {
     return null;
   }
 
-  // TODO: Re-enable redirect URI allowlist/HTTPS validation once the OAuth
-  //       flow with Claude.ai is fully debugged.
-  // const allowlist = envConfig.ALLOWED_REDIRECT_URIS;
-  // if (allowlist.length > 0) {
-  //   const allowed = allowlist.some((entry) => redirectUri === entry || redirectUri.startsWith(entry));
-  //   return allowed ? parsed : null;
-  // }
-  //
-  // if (parsed.protocol === 'https:') return parsed;
-  // if (
-  //   parsed.protocol === 'http:' &&
-  //   (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === '[::1]')
-  // ) {
-  //   return parsed;
-  // }
-  // return null;
+  const allowlist = [...DEFAULT_ALLOWED_REDIRECT_URIS, ...envConfig.ALLOWED_REDIRECT_URIS];
 
-  return parsed;
+  const allowed = allowlist.some((entry) => redirectUri === entry || redirectUri.startsWith(entry));
+  return allowed ? parsed : null;
 }
 
 function escapeHtml(s: string): string {
