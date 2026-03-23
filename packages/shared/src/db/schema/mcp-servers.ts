@@ -11,6 +11,7 @@ export const McpServerName = {
   Apiary: 'apiary',
   Calories: 'calories',
   Products: 'products',
+  Travel: 'travel',
   Todo: 'todo',
 } as const;
 
@@ -20,6 +21,7 @@ export const mcpServerEnum = pgEnum('mcp_server', [
   McpServerName.Apiary,
   McpServerName.Calories,
   McpServerName.Products,
+  McpServerName.Travel,
   McpServerName.Todo,
 ]);
 

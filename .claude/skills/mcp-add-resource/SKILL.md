@@ -4,12 +4,13 @@ description: |
   This skill should be used when the user asks to "add a resource", "create a resource",
   "add a new MCP resource", "create a new MCP resource", "implement a resource", or asks
   to expose data as a readable resource on the MCP server (as opposed to a tool).
-  Applies specifically to the calories MCP server in packages/mcp-server/src/calories/.
-version: 1.0.0
-allowed-tools: [Read, Edit, Write, Glob, Grep]
+  Applies to MCP servers in this repository.
+metadata:
+  scope: mcp-server
+  stage: implementation
 ---
 
-# Adding a New Calories MCP Resource
+# Adding a New MCP Resource
 
 Resources are read-only data endpoints identified by a URI (e.g. `calories://today`).
 They differ from tools in that they take no user-supplied input — Claude reads them

@@ -56,3 +56,11 @@ When a feature spans multiple layers, change in this order:
 - Keep Fastify/MCP transport code out of `hub`.
 - Document every new runtime variable in the relevant `.env.example` and in the root `.env.example` if Docker uses it.
 - If you add a new package, also update root workspace config, Docker, and CI.
+
+## MCP tool design rules
+
+- Design MCP tools around user intents and natural-language tasks, not raw CRUD operations.
+- Prefer outcome-oriented tool names (for example, `travel_plan_trip`) over table-oriented names (for example, `travel_create_trip`).
+- Keep full, granular CRUD capabilities in Hub UI and internal APIs when possible; avoid exposing redundant MCP CRUD tools unless required for composition.
+- Use MCP resources for read-only context snapshots and MCP tools for action workflows.
+- For new MCP tool design work, start from `.claude/skills/mcp-task-tools/SKILL.md`, then implement with `.claude/skills/mcp-add-tool/SKILL.md`.

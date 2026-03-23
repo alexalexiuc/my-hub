@@ -16,7 +16,14 @@ import type {
   apiaryHives,
   apiaryLogs,
   apiaryTasks,
+  trips,
+  tripBookings,
+  tripPlaces,
+  tripChecklistItems,
+  tripCompanions,
+  tripDocuments,
 } from '../db/schema/index';
+import type { TripStatus, TripBookingType, TripPlacePriority, TripDocumentType } from '../db/schema/travel';
 
 // Identity & Auth
 export type User = InferSelectModel<typeof users>;
@@ -61,3 +68,18 @@ export type ApiaryLog = InferSelectModel<typeof apiaryLogs>;
 export type NewApiaryLog = InferInsertModel<typeof apiaryLogs>;
 export type ApiaryTask = InferSelectModel<typeof apiaryTasks>;
 export type NewApiaryTask = InferInsertModel<typeof apiaryTasks>;
+
+// Travel
+export type Trip = InferSelectModel<typeof trips>;
+export type NewTrip = InferInsertModel<typeof trips>;
+export type TripBooking = InferSelectModel<typeof tripBookings>;
+export type NewTripBooking = InferInsertModel<typeof tripBookings>;
+export type TripPlace = InferSelectModel<typeof tripPlaces>;
+export type NewTripPlace = InferInsertModel<typeof tripPlaces>;
+export type TripChecklistItem = InferSelectModel<typeof tripChecklistItems>;
+export type NewTripChecklistItem = InferInsertModel<typeof tripChecklistItems>;
+export type TripCompanion = InferSelectModel<typeof tripCompanions>;
+export type NewTripCompanion = InferInsertModel<typeof tripCompanions>;
+export type TripDocument = InferSelectModel<typeof tripDocuments>;
+export type NewTripDocument = InferInsertModel<typeof tripDocuments>;
+export type { TripStatus, TripBookingType, TripPlacePriority, TripDocumentType };

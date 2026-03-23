@@ -8,3 +8,4 @@ export * from './api-request-logs';
 export * from './todos';
 export * from './invite-tokens';
 export * from './apiary';
+export * from './travel';
