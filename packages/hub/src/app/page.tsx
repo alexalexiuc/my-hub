@@ -38,6 +38,13 @@ const appSections = [
     labelColor: 'text-amber-400',
     accentColor: 'bg-amber-500/60',
   },
+  {
+    href: '/travel',
+    label: 'My Travels',
+    description: 'Plan trips, track reservations, checklist, companions and documents',
+    color: 'bg-emerald-950/30 border-emerald-800/50 hover:border-emerald-600/70',
+    labelColor: 'text-emerald-400',
+  },
 ];
 
 interface Macros {
@@ -54,6 +61,125 @@ interface DashboardData {
   maxCalories: number | null;
   macros: Macros;
   todos: Todo[];
+  travelFocus: TravelFocus | null;
+}
+
+interface BookingRange {
+  tripId: number;
+  fromAt: string | null;
+  toAt: string | null;
+}
+
+interface TravelFocus {
+  tripId: number;
+  name: string;
+  destination: string | null;
+  color: string;
+  status: 'ongoing' | 'upcoming';
+  fromAt: string | null;
+  toAt: string | null;
+}
+
+interface TravelTripsResponse {
+  trips: Array<{
+    id: number;
+    name: string;
+    destination: string | null;
+    color?: string | null;
+    startAt?: string | null;
+    endAt?: string | null;
+  }>;
+  booking_ranges?: BookingRange[];
+}
+
+function parseDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDateRange(fromAt: string | null, toAt: string | null): string {
+  const from = parseDate(fromAt);
+  const to = parseDate(toAt);
+
+  if (!from && !to) return 'Dates not set';
+  if (from && !to) return from.toLocaleDateString();
+  if (!from && to) return to.toLocaleDateString();
+
+  const fromText = from!.toLocaleDateString();
+  const toText = to!.toLocaleDateString();
+  return fromText === toText ? fromText : `${fromText} -> ${toText}`;
+}
+
+function pickTravelFocus(
+  trips: Array<{
+    id: number;
+    name: string;
+    destination: string | null;
+    color?: string | null;
+    startAt?: string | null;
+    endAt?: string | null;
+  }>,
+  bookingRanges: BookingRange[],
+): TravelFocus | null {
+  const now = new Date();
+  const rangeByTripId = new Map<number, BookingRange>(bookingRanges.map((range) => [range.tripId, range]));
+
+  const candidates = trips
+    .map((trip) => {
+      const range = rangeByTripId.get(trip.id);
+      const from = parseDate(range?.fromAt ?? trip.startAt ?? null);
+      const to = parseDate(range?.toAt ?? trip.endAt ?? null);
+
+      if (!from) return null;
+
+      if (to && from <= now && now <= to) {
+        return {
+          tripId: trip.id,
+          name: trip.name,
+          destination: trip.destination,
+          color: trip.color ?? '#3B82F6',
+          status: 'ongoing' as const,
+          fromAt: range?.fromAt ?? trip.startAt ?? null,
+          toAt: range?.toAt ?? trip.endAt ?? null,
+          sortKey: to.getTime(),
+          priority: 0,
+        };
+      }
+
+      if (from >= now) {
+        return {
+          tripId: trip.id,
+          name: trip.name,
+          destination: trip.destination,
+          color: trip.color ?? '#3B82F6',
+          status: 'upcoming' as const,
+          fromAt: range?.fromAt ?? trip.startAt ?? null,
+          toAt: range?.toAt ?? trip.endAt ?? null,
+          sortKey: from.getTime(),
+          priority: 1,
+        };
+      }
+
+      return null;
+    })
+    .filter((trip): trip is NonNullable<typeof trip> => Boolean(trip))
+    .sort((a, b) => (a.priority !== b.priority ? a.priority - b.priority : a.sortKey - b.sortKey));
+
+  if (candidates.length === 0) return null;
+
+  const first = candidates[0];
+  if (!first) return null;
+
+  return {
+    tripId: first.tripId,
+    name: first.name,
+    destination: first.destination,
+    color: first.color,
+    status: first.status,
+    fromAt: first.fromAt,
+    toAt: first.toAt,
+  };
 }
 
 export default function HomePage() {
@@ -68,52 +194,56 @@ export default function HomePage() {
       if (!silent) setLoading(true);
       setError(null);
       try {
-        const [profileRes, mealsRes, todosRes] = await Promise.all([
-          fetch('/api/calories/profile'),
-          fetch(`/api/calories/meals?date=${today}&limit=200`),
-          fetch('/api/todo'),
-        ]);
+      const [profileRes, mealsRes, todosRes, travelRes] = await Promise.all([
+        fetch('/api/calories/profile'),
+        fetch(`/api/calories/meals?date=${today}&limit=200`),
+        fetch('/api/todo'),
+        fetch('/api/travel/trips'),
+      ]);
 
-        const [profileData, mealsData, todosData] = await Promise.all([
-          profileRes.ok ? profileRes.json() : null,
-          mealsRes.ok ? mealsRes.json() : null,
-          todosRes.ok ? todosRes.json() : null,
-        ]);
+      const [profileData, mealsData, todosData, travelData] = await Promise.all([
+        profileRes.ok ? profileRes.json() : null,
+        mealsRes.ok ? mealsRes.json() : null,
+        todosRes.ok ? todosRes.json() : null,
+        travelRes.ok ? (travelRes.json() as Promise<TravelTripsResponse>) : null,
+      ]);
 
-        const profile: CalorieProfile | null = profileData?.profile ?? null;
-        const measurements: MeasurementWithType[] = profileData?.measurements ?? [];
-        const meals: MealLog[] = mealsData?.meals ?? [];
-        const todos: Todo[] = todosData?.todos ?? [];
+      const profile: CalorieProfile | null = profileData?.profile ?? null;
+      const measurements: MeasurementWithType[] = profileData?.measurements ?? [];
+      const meals: MealLog[] = mealsData?.meals ?? [];
+      const todos: Todo[] = todosData?.todos ?? [];
+      const travelFocus = travelData ? pickTravelFocus(travelData.trips ?? [], travelData.booking_ranges ?? []) : null;
 
-        const todayKcal = meals.reduce((sum: number, m: MealLog) => sum + (m.kcal ?? 0), 0);
-        const macros: Macros = {
-          protein: Math.round(meals.reduce((sum, m) => sum + (m.protein ?? 0), 0)),
-          carbs: Math.round(meals.reduce((sum, m) => sum + (m.carbs ?? 0), 0)),
-          fat: Math.round(meals.reduce((sum, m) => sum + (m.fat ?? 0), 0)),
-        };
-        const latestWeight = measurements.find((m) => m.typeKey === 'weight');
+      const todayKcal = meals.reduce((sum: number, m: MealLog) => sum + (m.kcal ?? 0), 0);
+      const macros: Macros = {
+        protein: Math.round(meals.reduce((sum, m) => sum + (m.protein ?? 0), 0)),
+        carbs: Math.round(meals.reduce((sum, m) => sum + (m.carbs ?? 0), 0)),
+        fat: Math.round(meals.reduce((sum, m) => sum + (m.fat ?? 0), 0)),
+      };
+      const latestWeight = measurements.find((m) => m.typeKey === 'weight');
 
-        const targets = calculateCalorieTargets({
-          age: profile?.age ?? null,
-          sex: profile?.sex ?? null,
-          heightCm: profile?.heightCm ?? null,
-          weightKg: latestWeight?.value ?? null,
-          activityLevel: profile?.activityLevel ?? null,
-          goalType: profile?.goalType ?? null,
-          goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? null,
-          goalMinCalories: profile?.goalMinCalories ?? null,
-          goalMaxCalories: profile?.goalMaxCalories ?? null,
-        });
+      const targets = calculateCalorieTargets({
+        age: profile?.age ?? null,
+        sex: profile?.sex ?? null,
+        heightCm: profile?.heightCm ?? null,
+        weightKg: latestWeight?.value ?? null,
+        activityLevel: profile?.activityLevel ?? null,
+        goalType: profile?.goalType ?? null,
+        goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? null,
+        goalMinCalories: profile?.goalMinCalories ?? null,
+        goalMaxCalories: profile?.goalMaxCalories ?? null,
+      });
 
-        setData({
-          userName: profile?.name ?? null,
-          todayKcal,
-          todayTarget: targets.maxCalories ?? targets.goalCalories ?? targets.tdee ?? null,
-          minCalories: targets.minCalories ?? null,
-          maxCalories: targets.maxCalories ?? null,
-          macros,
-          todos,
-        });
+      setData({
+        userName: profile?.name ?? null,
+        todayKcal,
+        todayTarget: targets.maxCalories ?? targets.goalCalories ?? targets.tdee ?? null,
+        minCalories: targets.minCalories ?? null,
+        maxCalories: targets.maxCalories ?? null,
+        macros,
+        todos,
+        travelFocus,
+      });
       } catch (err) {
         console.error('Failed to load dashboard data', err);
         setData(null);
@@ -190,6 +320,32 @@ export default function HomePage() {
 
       <main className="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-8 py-8 space-y-8">
         {/* Interactive Widgets */}
+        {data.travelFocus && (
+          <section>
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Travel</h2>
+            <Link
+              href="/travel"
+              className="block rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm hover:bg-zinc-800 hover:border-zinc-700 transition"
+              style={{ borderLeftColor: data.travelFocus.color, borderLeftWidth: '4px' }}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: data.travelFocus.color }}
+                />
+                <span className="text-sm font-semibold text-zinc-100">
+                  {data.travelFocus.status === 'ongoing' ? 'Ongoing Trip' : 'Upcoming Trip'}
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-zinc-200">{data.travelFocus.name}</p>
+              <p className="text-xs text-zinc-400">
+                {data.travelFocus.destination ?? 'Destination not set'} ·{' '}
+                {formatDateRange(data.travelFocus.fromAt, data.travelFocus.toAt)}
+              </p>
+            </Link>
+          </section>
+        )}
+
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">Overview</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">

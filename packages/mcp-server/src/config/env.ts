@@ -1,6 +1,21 @@
+import {
+  TRAVEL_FILES_ALLOWED_MIME_DEFAULT,
+  TRAVEL_FILES_MAX_MB_DEFAULT,
+  TRAVEL_FILES_ROOT_DEFAULT,
+} from '@my-hub/shared/constants';
+
 function parseNum(val: string | undefined, fallback: number): number {
   const n = Number(val);
   return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+function parseCsv(val: string | undefined, fallback: string[]): string[] {
+  if (!val) return fallback;
+  const items = val
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return items.length > 0 ? items : fallback;
 }
 
 export const envConfig = {
@@ -19,6 +34,9 @@ export const envConfig = {
   LOG_PAYLOADS: process.env['LOG_PAYLOADS'] === 'true',
   PRINT_PAYLOADS: process.env['PRINT_PAYLOADS'] === 'true',
   IS_LOCAL: process.env['IS_LOCAL'] === 'true',
+  TRAVEL_FILES_ROOT: process.env['TRAVEL_FILES_ROOT'] ?? TRAVEL_FILES_ROOT_DEFAULT,
+  TRAVEL_FILES_MAX_MB: parseNum(process.env['TRAVEL_FILES_MAX_MB'], TRAVEL_FILES_MAX_MB_DEFAULT),
+  TRAVEL_FILES_ALLOWED_MIME: parseCsv(process.env['TRAVEL_FILES_ALLOWED_MIME'], [...TRAVEL_FILES_ALLOWED_MIME_DEFAULT]),
 } as const;
 
 console.log('Loaded environment configuration:', JSON.stringify(envConfig, null, 2));

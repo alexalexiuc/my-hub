@@ -20,8 +20,13 @@ services:
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:?ALLOWED_EMAILS is required}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
       ALLOWED_REDIRECT_URIS: ${ALLOWED_REDIRECT_URIS:-}
+      TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
+      TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
+      TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
     extra_hosts:
       - 'host.docker.internal:host-gateway'
+    volumes:
+      - ./data/travel-documents:/app/data/travel-documents
     ports:
       - '3001:3001'
 
@@ -44,7 +49,12 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET is required}
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:?ALLOWED_EMAILS is required}
       DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@host.docker.internal:5432/${POSTGRES_DB:-myhub}}
+      TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
+      TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
+      TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
     extra_hosts:
       - 'host.docker.internal:host-gateway'
+    volumes:
+      - ./data/travel-documents:/app/data/travel-documents
     ports:
       - '3000:3000'

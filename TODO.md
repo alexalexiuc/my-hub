@@ -16,3 +16,4 @@
 - [ ] Verify issue with Github PR checks where E2E test action is finished with success but in PR checks it has pending status.
 - [ ] Mobile authorization redirects to localhost. Check!
 - [x] Add refresh token support to the OAuth implementation. Then increase access token expiration.
+- [ ] Wire up MCP Service monitor to HUB UI.

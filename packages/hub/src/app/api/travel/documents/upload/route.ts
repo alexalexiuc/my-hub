@@ -1,0 +1,65 @@
+import { NextResponse } from 'next/server';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import path from 'node:path';
+import { withAuth } from '@/lib/api/with-auth';
+import { getTravelFileMaxBytes, travelFilesConfig } from '@/lib/travel-files-config';
+import { addTripDocument } from '@my-hub/shared/services';
+import type { TripDocumentType } from '@my-hub/shared/types';
+
+export const runtime = 'nodejs';
+
+const documentTypes: TripDocumentType[] = ['passport', 'visa', 'boarding_pass', 'voucher', 'ticket', 'other'];
+
+export const POST = withAuth(async ({ req, user }) => {
+  const form = await req.formData();
+  const file = form.get('file');
+  const tripId = Number(form.get('trip_id'));
+  const title = String(form.get('title') ?? '').trim();
+  const typeRaw = String(form.get('type') ?? 'other');
+  const notes = String(form.get('notes') ?? '').trim();
+
+  if (!Number.isInteger(tripId) || tripId <= 0) {
+    return NextResponse.json({ error: 'trip_id is required' }, { status: 400 });
+  }
+
+  if (!(file instanceof File)) {
+    return NextResponse.json({ error: 'file is required' }, { status: 400 });
+  }
+
+  const maxBytes = getTravelFileMaxBytes();
+  if (file.size > maxBytes) {
+    return NextResponse.json({ error: `File exceeds max size of ${maxBytes} bytes` }, { status: 400 });
+  }
+
+  const allowedMime = travelFilesConfig.allowedMime;
+  if (!allowedMime.includes(file.type)) {
+    return NextResponse.json({ error: `MIME type ${file.type} is not allowed` }, { status: 400 });
+  }
+
+  const type = documentTypes.includes(typeRaw as TripDocumentType) ? (typeRaw as TripDocumentType) : 'other';
+
+  const root = travelFilesConfig.storageRoot;
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const docUuid = randomUUID();
+  const relativePath = path.join(user.id, String(tripId), `${docUuid}-${safeName}`);
+  const absolutePath = path.join(root, relativePath);
+
+  await mkdir(path.dirname(absolutePath), { recursive: true });
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await writeFile(absolutePath, buffer);
+
+  const document = await addTripDocument(user.id, tripId, {
+    type,
+    title: title || file.name,
+    notes: notes || null,
+    sourceUrl: null,
+    originalName: file.name,
+    mimeType: file.type,
+    byteSize: file.size,
+    storagePath: relativePath,
+    publicUrl: null,
+  });
+
+  return NextResponse.json({ document }, { status: 201 });
+});

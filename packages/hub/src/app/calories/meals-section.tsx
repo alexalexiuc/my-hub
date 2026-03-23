@@ -130,7 +130,7 @@ export default function MealsSection({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description: editForm.description,
-          kcal: editForm.kcal ? Number(editForm.kcal) : undefined,
+          kcal: editForm.kcal ? Math.round(Number(editForm.kcal)) : undefined,
           mealType: editForm.mealType,
           protein: editForm.protein ? Number(editForm.protein) : undefined,
           carbs: editForm.carbs ? Number(editForm.carbs) : undefined,
@@ -154,7 +154,7 @@ export default function MealsSection({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description: form.description,
-          kcal: form.kcal ? Number(form.kcal) : undefined,
+          kcal: form.kcal ? Math.round(Number(form.kcal)) : undefined,
           mealType: form.mealType,
           date: selectedDate,
           protein: form.protein ? Number(form.protein) : undefined,
@@ -313,6 +313,8 @@ export default function MealsSection({
                           <input
                             className="input"
                             type="number"
+                            step="1"
+                            min="0"
                             value={editForm.kcal}
                             onChange={(e) => setEditForm({ ...editForm, kcal: e.target.value })}
                           />
@@ -460,6 +462,8 @@ export default function MealsSection({
               <input
                 className="input"
                 type="number"
+                step="1"
+                min="0"
                 value={form.kcal}
                 onChange={(e) => setForm({ ...form, kcal: e.target.value })}
               />

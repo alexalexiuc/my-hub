@@ -4,10 +4,19 @@ import { users } from './users';
 // ---------------------------------------------------------------------------
 // Body Measurements tables
 // ---------------------------------------------------------------------------
+export const MeasurementTypes = {
+  Weight: 'weight',
+  Height: 'height',
+  Neck: 'neck',
+  Waist: 'waist',
+  Hips: 'hips',
+  Chest: 'chest',
+  Bicep: 'bicep',
+  BodyFat: 'body_fat',
+} as const;
 
-export const measurementTypeKeys = ['weight', 'height', 'neck', 'waist', 'hips', 'chest', 'bicep', 'body_fat'] as const;
-
-export type MeasurementTypeKey = (typeof measurementTypeKeys)[number];
+export type MeasurementTypeKey = (typeof MeasurementTypes)[keyof typeof MeasurementTypes];
+export const measurementTypeKeys = Object.values(MeasurementTypes) as MeasurementTypeKey[];
 
 /** Lookup table for measurement types (weight, height, neck, etc.) */
 export const measurementTypes = pgTable('measurement_types', {

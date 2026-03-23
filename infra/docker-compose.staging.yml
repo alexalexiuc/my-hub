@@ -59,11 +59,16 @@ services:
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:?ALLOWED_EMAILS is required}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
       ALLOWED_REDIRECT_URIS: ${ALLOWED_REDIRECT_URIS:-}
+      TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
+      TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
+      TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
     depends_on:
       db:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+    volumes:
+      - travel_docs_staging_data:/app/data/travel-documents
     networks:
       - internal-staging
       - proxy
@@ -95,11 +100,16 @@ services:
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:?ALLOWED_EMAILS is required}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
+      TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
+      TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
+      TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
     depends_on:
       db:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+    volumes:
+      - travel_docs_staging_data:/app/data/travel-documents
     networks:
       - internal-staging
       - proxy
@@ -112,6 +122,7 @@ services:
 
 volumes:
   db_staging_data:
+  travel_docs_staging_data:
 
 networks:
   internal-staging:
