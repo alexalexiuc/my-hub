@@ -2,7 +2,7 @@
 
 | Field    | Value                       |
 | -------- | --------------------------- |
-| Status   | in-progress                 |
+| Status   | implemented                 |
 | Priority | high                        |
 | File     | `hub/feature-my-travels.md` |
 
@@ -83,4 +83,4 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 - [x] Hub supports view-only trip sharing with owner-managed shares.
 - [x] Hub suggests share targets from companion emails that match existing Hub users.
 - [x] Hub trip cards display owner identity for shared trips.
-- [ ] E2E test coverage added for core `/travel` interactions.
+- [x] E2E test coverage added for core `/travel` interactions.
