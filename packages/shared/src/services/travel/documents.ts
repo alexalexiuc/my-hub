@@ -1,6 +1,6 @@
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { tripDocuments } from '../../db/schema/travel';
+import { tripBookings, tripDocuments } from '../../db/schema/travel';
 import { omitNullish } from '../../utils/index';
 import type { NewTripDocument, TripDocument } from '../../types/index';
 import { getTripByIdAccessible, verifyTripOwnership } from './trips';
@@ -22,10 +22,26 @@ export type TripDocumentUpdate = Partial<
   >
 >;
 
+async function assertBookingBelongsToTripOwner(userId: string, tripId: number, bookingId: number): Promise<void> {
+  const [booking] = await db
+    .select({ id: tripBookings.id })
+    .from(tripBookings)
+    .where(and(eq(tripBookings.id, bookingId), eq(tripBookings.tripId, tripId), eq(tripBookings.userId, userId)));
+
+  if (!booking) {
+    throw new Error('booking_id does not belong to this trip');
+  }
+}
+
 export async function addTripDocument(userId: string, tripId: number, data: TripDocumentInsert): Promise<TripDocument> {
   if (!(await verifyTripOwnership(userId, tripId))) {
     throw new Error('Trip not found');
   }
+
+  if (typeof data.bookingId === 'number') {
+    await assertBookingBelongsToTripOwner(userId, tripId, data.bookingId);
+  }
+
   const [row] = await db
     .insert(tripDocuments)
     .values({
@@ -60,6 +76,16 @@ export async function updateTripDocument(
   documentId: number,
   data: TripDocumentUpdate,
 ): Promise<TripDocument | null> {
+  if (typeof data.bookingId === 'number') {
+    const [existing] = await db
+      .select({ tripId: tripDocuments.tripId })
+      .from(tripDocuments)
+      .where(and(eq(tripDocuments.userId, userId), eq(tripDocuments.id, documentId)));
+
+    if (!existing) return null;
+    await assertBookingBelongsToTripOwner(userId, existing.tripId, data.bookingId);
+  }
+
   const [row] = await db
     .update(tripDocuments)
     .set({

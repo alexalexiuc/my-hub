@@ -173,23 +173,17 @@ export default function TravelPage() {
     }
   }, [activeTripId]);
 
-  const loadOverview = useCallback(
-    async (tripId: number) => {
-      setLoadingOverview(true);
-      try {
-        const res = await fetch(`/api/travel/trips/${tripId}/overview`);
-        if (!res.ok) throw new Error(`Failed to load trip overview (${res.status})`);
-        const data = (await res.json()) as TripOverviewResponse;
-        setOverview(data);
-        if (data.documents.every((doc) => doc.bookingId !== documentBookingId)) {
-          setDocumentBookingId(null);
-        }
-      } finally {
-        setLoadingOverview(false);
-      }
-    },
-    [documentBookingId],
-  );
+  const loadOverview = useCallback(async (tripId: number) => {
+    setLoadingOverview(true);
+    try {
+      const res = await fetch(`/api/travel/trips/${tripId}/overview`);
+      if (!res.ok) throw new Error(`Failed to load trip overview (${res.status})`);
+      const data = (await res.json()) as TripOverviewResponse;
+      setOverview(data);
+    } finally {
+      setLoadingOverview(false);
+    }
+  }, []);
 
   const loadShares = useCallback(async (tripId: number) => {
     const res = await fetch(`/api/travel/trips/${tripId}/shares`);
@@ -212,6 +206,14 @@ export default function TravelPage() {
     if (!activeTripId) return;
     loadOverview(activeTripId);
   }, [activeTripId, loadOverview]);
+
+  useEffect(() => {
+    if (documentBookingId === null || !overview) return;
+    const bookingStillExists = overview.bookings.some((booking) => booking.id === documentBookingId);
+    if (!bookingStillExists) {
+      setDocumentBookingId(null);
+    }
+  }, [documentBookingId, overview]);
 
   useEffect(() => {
     if (!activeTripId || !canEditActiveTrip) {

@@ -32,18 +32,30 @@ export const POST = withAuth(async ({ req, user }) => {
       ? (body.type as TripDocumentType)
       : 'other';
 
-  const document = await addTripDocument(user.id, tripId, {
-    type,
-    bookingId,
-    title,
-    notes: typeof body.notes === 'string' ? body.notes : null,
-    sourceUrl: typeof body.source_url === 'string' ? body.source_url : null,
-    originalName: null,
-    mimeType: null,
-    byteSize: null,
-    storagePath: null,
-    publicUrl: null,
-  });
+  let document;
+  try {
+    document = await addTripDocument(user.id, tripId, {
+      type,
+      bookingId,
+      title,
+      notes: typeof body.notes === 'string' ? body.notes : null,
+      sourceUrl: typeof body.source_url === 'string' ? body.source_url : null,
+      originalName: null,
+      mimeType: null,
+      byteSize: null,
+      storagePath: null,
+      publicUrl: null,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create document';
+    if (message === 'Trip not found') {
+      return NextResponse.json({ error: message }, { status: 404 });
+    }
+    if (message === 'booking_id does not belong to this trip') {
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+    throw error;
+  }
 
   return NextResponse.json({ document }, { status: 201 });
 });

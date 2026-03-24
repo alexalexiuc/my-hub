@@ -55,18 +55,30 @@ export const POST = withAuth(async ({ req, user }) => {
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(absolutePath, buffer);
 
-  const document = await addTripDocument(user.id, tripId, {
-    type,
-    bookingId,
-    title: title || file.name,
-    notes: notes || null,
-    sourceUrl: null,
-    originalName: file.name,
-    mimeType: file.type,
-    byteSize: file.size,
-    storagePath: relativePath,
-    publicUrl: null,
-  });
+  let document;
+  try {
+    document = await addTripDocument(user.id, tripId, {
+      type,
+      bookingId,
+      title: title || file.name,
+      notes: notes || null,
+      sourceUrl: null,
+      originalName: file.name,
+      mimeType: file.type,
+      byteSize: file.size,
+      storagePath: relativePath,
+      publicUrl: null,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to upload document';
+    if (message === 'Trip not found') {
+      return NextResponse.json({ error: message }, { status: 404 });
+    }
+    if (message === 'booking_id does not belong to this trip') {
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+    throw error;
+  }
 
   return NextResponse.json({ document }, { status: 201 });
 });
