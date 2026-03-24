@@ -15,6 +15,15 @@ const SENSITIVE_HEADERS = new Set([
   'x-api-key',
   'x-auth-token',
 ]);
+const SENSITIVE_FIELDS = new Set([
+  'client_name',
+  'client_secret',
+  'code',
+  'code_challenge',
+  'code_verifier',
+  'access_token',
+  'refresh_token',
+]);
 
 function redactHeaders(headers: Record<string, unknown>): Record<string, unknown> {
   const redacted: Record<string, unknown> = {};
@@ -24,10 +33,33 @@ function redactHeaders(headers: Record<string, unknown>): Record<string, unknown
   return redacted;
 }
 
+function redactSensitiveFields(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+
+  if (Array.isArray(value)) {
+    return value.map((item) => redactSensitiveFields(item));
+  }
+
+  if (typeof value === 'object') {
+    const input = value as Record<string, unknown>;
+    const output: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(input)) {
+      if (SENSITIVE_FIELDS.has(key.toLowerCase())) {
+        output[key] = REDACTED;
+      } else {
+        output[key] = redactSensitiveFields(nested);
+      }
+    }
+    return output;
+  }
+
+  return value;
+}
+
 function buildRequestPayload(req: FastifyRequest) {
   return {
-    body: req.body,
-    query: req.query,
+    body: redactSensitiveFields(req.body),
+    query: redactSensitiveFields(req.query),
     headers: redactHeaders(req.headers as Record<string, unknown>),
   };
 }
@@ -103,13 +135,15 @@ async function requestLoggerPlugin(app: FastifyInstance) {
       clientId: verifiedClientId,
     };
 
+    const redactedResponsePayload = redactSensitiveFields(req._capturedResponseBody);
+
     if (envConfig.LOG_PAYLOADS) {
       logData.requestBody = capPayload(buildRequestPayload(req));
-      logData.responseBody = capPayload(req._capturedResponseBody);
+      logData.responseBody = capPayload(redactedResponsePayload);
     }
 
     if (envConfig.PRINT_PAYLOADS) {
-      console.log(`\tResponse: ${JSON.stringify(capPayload(req._capturedResponseBody), null, 2)}`);
+      console.log(`\tResponse: ${JSON.stringify(capPayload(redactedResponsePayload), null, 2)}`);
     }
 
     putLog(logData).catch((err) => {

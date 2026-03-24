@@ -6,6 +6,14 @@ const nextConfig = {
   experimental: {
     serverExternalPackages: ['@my-hub/shared'],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/favicon.ico',
+        destination: '/favicon.svg',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

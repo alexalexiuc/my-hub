@@ -36,6 +36,7 @@ analytics while enforcing bounded retention.
 | TR-04 | A trigram GIN index on `error` should be present to accelerate fuzzy search across failure messages.                                                                                                                |
 | TR-05 | A typed Drizzle schema definition for `api_request_logs` must be available from `packages/shared/src/db/schema` and exported through shared schema/types barrels.                                                   |
 | TR-06 | Before request payloads are printed or persisted, sensitive headers (`authorization`, `cookie`, `set-cookie`, API-key style headers) must be redacted.                                                              |
+| TR-07 | Before request/response payloads are printed or persisted, sensitive OAuth fields (`client_name`, `client_secret`, `code`, `code_challenge`, `code_verifier`, `access_token`, `refresh_token`) must be redacted.    |
 
 ---
 
@@ -57,4 +58,5 @@ analytics while enforcing bounded retention.
 - [ ] Migration SQL creates the `api_request_logs` table and required indexes.
 - [ ] Drizzle schema exports allow typed reads/inserts for API request logs from shared package consumers.
 - [x] Logger redacts sensitive request headers before writing `request_body` or printing request payloads.
+- [x] Logger redacts sensitive OAuth request/response fields before writing payloads or printing payloads.
 - [ ] Documentation includes retention policy and cleanup query guidance.

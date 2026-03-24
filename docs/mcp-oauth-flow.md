@@ -38,14 +38,16 @@ Claude.ai                    Hub (MCP server)               User (browser)
 
 ## Step 1 — Discovery
 
-Claude.ai fetches the OAuth server metadata to learn which endpoints exist:
+Claude.ai may first fetch the protected-resource metadata and then the authorization-server metadata:
 
 ```
+GET /.well-known/oauth-protected-resource
 GET /.well-known/oauth-authorization-server
 ```
 
-Response advertises `/api/register`, `/api/authorize`, and `/api/token`, and declares that
-PKCE S256 is required.
+`oauth-protected-resource` tells the client which authorization server protects this resource.
+`oauth-authorization-server` advertises `/api/register`, `/api/authorize`, and `/api/token`, and
+declares that PKCE S256 is required.
 
 ---
 

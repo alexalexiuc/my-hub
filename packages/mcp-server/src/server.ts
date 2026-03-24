@@ -5,7 +5,9 @@ import formbody from '@fastify/formbody';
 import { healthRoutes } from './routes/health.js';
 import { oauthRoutes } from './routes/oauth.js';
 import { monitorRoute } from './routes/monitor.js';
+import { publicRoutes } from './routes/public/index.js';
 import { sessionCleanupPlugin } from './plugins/session-cleanup.js';
+import relaxedJsonBodyPlugin from './plugins/relaxed-json-body.js';
 import requestLoggerPlugin from './plugins/request-logger.js';
 import { McpServerName } from '@my-hub/shared/schema';
 import { registerMcpSubServer } from './mcp/sub-server.js';
@@ -45,33 +47,21 @@ export async function buildServer() {
     origin: envConfig.CORS_ORIGIN,
   });
 
+  // Claude probes MCP endpoints with Content-Type: application/json even when
+  // some methods (notably DELETE) send no body. Treat empty JSON payloads as
+  // null so the transport can handle the request instead of failing in parsing.
+  await app.register(relaxedJsonBodyPlugin);
+
   // Parse application/x-www-form-urlencoded payloads used by OAuth /token.
   await app.register(formbody);
 
   // Custom two-line request logger (console + DB)
   await app.register(requestLoggerPlugin);
 
-  // OAuth discovery — must stay at root per RFC 8414.
-  // Points clients to the /api-prefixed endpoints below.
-  app.get('/.well-known/oauth-authorization-server', { logLevel: 'silent' }, async (req, reply) => {
-    // trustProxy: true (set on the Fastify instance) makes req.protocol read
-    // X-Forwarded-Proto and req.hostname read X-Forwarded-Host, both of which
-    // Traefik sets automatically — so this always reflects the external URL.
-    const base = `${req.protocol}://${req.hostname}`;
-    return reply.send({
-      issuer: base,
-      authorization_endpoint: `${base}/api/authorize`,
-      token_endpoint: `${base}/api/token`,
-      registration_endpoint: `${base}/api/register`,
-      response_types_supported: ['code'],
-      grant_types_supported: ['authorization_code', 'client_credentials', 'refresh_token'],
-      code_challenge_methods_supported: ['S256'],
-      token_endpoint_auth_methods_supported: ['client_secret_post'],
-    });
-  });
+  // Public root routes: discovery metadata + favicon.
+  await app.register(publicRoutes);
 
   // OAuth endpoints: /api/register  /api/authorize  /api/token
-  // (oauthRoutes no longer includes /.well-known)
   await app.register(oauthRoutes, { prefix: '/api' });
 
   // Health check: /api/health
