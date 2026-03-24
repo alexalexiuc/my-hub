@@ -65,6 +65,7 @@ export type NewTodo = InferInsertModel<typeof todos>;
 
 // Invites
 export type InviteToken = InferSelectModel<typeof inviteTokens>;
+export type InviteTokenWithUsedByEmail = InviteToken & { usedByEmail: string | null };
 
 // Apiary
 export type ApiaryYard = InferSelectModel<typeof apiaryYards>;
