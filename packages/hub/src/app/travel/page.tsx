@@ -917,7 +917,7 @@ export default function TravelPage() {
                                 >
                                   <IconAttachment />
                                 </button>
-                                <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-64 -translate-x-1/2 rounded-md border border-zinc-700 bg-zinc-950 p-2 opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
+                                <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-64 -translate-x-1/2 rounded-md border border-zinc-700 bg-zinc-950 p-2 opacity-0 shadow-xl transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
                                   <p className="mb-1 text-[11px] uppercase tracking-wide text-zinc-500">Attachments</p>
                                   <ul className="space-y-1">
                                     {documentsByBookingId.get(booking.id)?.map((doc) => (
