@@ -72,7 +72,8 @@ export const POST = withAuth<{ id: string }>(async ({ user, params, req }) => {
   if (typeof body.user_id === 'string' && body.user_id.trim()) {
     targetUserId = body.user_id.trim();
   } else if (typeof body.email === 'string' && body.email.trim()) {
-    const found = await findUserByEmail(body.email);
+    const email = normalizeEmail(body.email);
+    const found = await findUserByEmail(email);
     if (!found) return NextResponse.json({ error: 'User not found' }, { status: 404 });
     targetUserId = found.id;
   }
