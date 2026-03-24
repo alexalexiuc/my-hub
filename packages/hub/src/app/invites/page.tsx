@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import PageHeader from '@/components/page-header';
 import SectionCard from '@/components/section-card';
 import Button from '@/components/button';
-import type { InviteToken } from '@my-hub/shared/types';
+import type { InviteTokenWithUsedByEmail } from '@my-hub/shared/types';
 
 type ExpiryOption = '7' | '30' | 'none';
 
-function inviteStatus(invite: InviteToken): 'used' | 'expired' | 'pending' {
+function inviteStatus(invite: InviteTokenWithUsedByEmail): 'used' | 'expired' | 'pending' {
   if (invite.usedAt) return 'used';
   if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) return 'expired';
   return 'pending';
@@ -21,7 +21,7 @@ const STATUS_STYLES = {
 };
 
 export default function InvitesPage() {
-  const [invites, setInvites] = useState<InviteToken[]>([]);
+  const [invites, setInvites] = useState<InviteTokenWithUsedByEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [expiry, setExpiry] = useState<ExpiryOption>('7');
@@ -51,7 +51,7 @@ export default function InvitesPage() {
         body: JSON.stringify(body),
       });
       if (!res.ok) return;
-      const data = (await res.json()) as { invite: InviteToken };
+      const data = (await res.json()) as { invite: InviteTokenWithUsedByEmail };
       setInvites((prev) => [data.invite, ...prev]);
       const link = `${window.location.origin}/auth/register?invite=${data.invite.token}`;
       setNewLink(link);
@@ -150,6 +150,9 @@ export default function InvitesPage() {
                   {status === 'used' && invite.usedAt && (
                     <span className="text-xs text-zinc-500 shrink-0">
                       Used {new Date(invite.usedAt).toLocaleDateString()}
+                      {invite.usedByEmail && (
+                        <span className="ml-1">by {invite.usedByEmail}</span>
+                      )}
                     </span>
                   )}
                   {status === 'pending' && (

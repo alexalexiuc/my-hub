@@ -2,7 +2,8 @@ import { randomBytes } from 'crypto';
 import { and, eq, isNull, or, gt } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { inviteTokens } from '../../db/schema/invite-tokens';
-import type { InviteToken } from '../../types/index';
+import { users } from '../../db/schema/users';
+import type { InviteToken, InviteTokenWithUsedByEmail } from '../../types/index';
 
 export async function createInviteToken(createdBy: string, expiresInDays?: number): Promise<InviteToken> {
   const token = randomBytes(32).toString('hex');
@@ -43,8 +44,23 @@ export async function bindInviteTokenToUser(token: string, userId: string): Prom
   await db.update(inviteTokens).set({ usedBy: userId }).where(eq(inviteTokens.token, token));
 }
 
-export async function listInviteTokens(createdBy: string): Promise<InviteToken[]> {
-  return db.select().from(inviteTokens).where(eq(inviteTokens.createdBy, createdBy)).orderBy(inviteTokens.createdAt);
+export async function listInviteTokens(createdBy: string): Promise<InviteTokenWithUsedByEmail[]> {
+  const rows = await db
+    .select({
+      id: inviteTokens.id,
+      token: inviteTokens.token,
+      createdBy: inviteTokens.createdBy,
+      usedBy: inviteTokens.usedBy,
+      usedAt: inviteTokens.usedAt,
+      expiresAt: inviteTokens.expiresAt,
+      createdAt: inviteTokens.createdAt,
+      usedByEmail: users.email,
+    })
+    .from(inviteTokens)
+    .leftJoin(users, eq(inviteTokens.usedBy, users.id))
+    .where(eq(inviteTokens.createdBy, createdBy))
+    .orderBy(inviteTokens.createdAt);
+  return rows;
 }
 
 export async function revokeInviteToken(id: string, ownerId: string): Promise<void> {
