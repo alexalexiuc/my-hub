@@ -40,6 +40,8 @@ Options:
   --host <hostname>      SSH host (default: VPS_HOST env var)
   --user <username>      SSH user (default: VPS_USER env var)
   --repo-path <path>     Remote repo path (default: /opt/my-hub)
+  --project-name <name>  Optional compose project override
+  --verbose              Print resolved SSH/compose command before running
   --help                 Show this help
 
 Examples:
@@ -60,7 +62,9 @@ const since = readOption('since');
 const host = readOption('host', process.env['VPS_HOST']);
 const user = readOption('user', process.env['VPS_USER']);
 const repoPath = readOption('repo-path', '/opt/my-hub');
+const projectNameOverride = readOption('project-name');
 const follow = hasFlag('follow');
+const verbose = hasFlag('verbose');
 
 if (!host) {
   console.error('Missing SSH host. Set VPS_HOST or pass --host <hostname>.');
@@ -78,14 +82,24 @@ if (!/^\d+$/.test(tail)) {
 }
 
 let composeArgs;
+let envFile;
+let composeFile;
+let defaultProjectName;
 if (envName === 'prod') {
-  composeArgs = ['--env-file', '.env', '-f', 'infra/docker-compose.prod.yml'];
+  envFile = '.env';
+  composeFile = 'infra/docker-compose.prod.yml';
+  defaultProjectName = 'my-hub';
 } else if (envName === 'staging') {
-  composeArgs = ['--env-file', '.env.staging', '-f', 'infra/docker-compose.staging.yml'];
+  envFile = '.env.staging';
+  composeFile = 'infra/docker-compose.staging.yml';
+  defaultProjectName = 'my-hub-staging';
 } else {
   console.error('Invalid --env value. Use "prod" or "staging".');
   process.exit(1);
 }
+
+const projectName = projectNameOverride || defaultProjectName;
+composeArgs = ['--project-name', projectName, '--env-file', envFile, '-f', composeFile];
 
 const logArgs = ['logs', `--tail=${tail}`];
 if (follow) {
@@ -98,12 +112,35 @@ if (service) {
   logArgs.push(service);
 }
 
-const remoteCommand = [
-  `cd '${sanitizeSingleQuotes(repoPath)}'`,
-  ['docker compose', ...composeArgs, ...logArgs].join(' '),
-].join('; ');
+const escapedRepoPath = sanitizeSingleQuotes(repoPath);
+const escapedComposeFile = sanitizeSingleQuotes(composeFile);
+const escapedService = service ? sanitizeSingleQuotes(service) : undefined;
+const composeCommand = ['docker compose', ...composeArgs, ...logArgs].join(' ');
+
+const remoteSteps = [
+  'set -euo pipefail',
+  `cd '${escapedRepoPath}'`,
+  `test -f '${escapedComposeFile}' || { echo "Compose file not found: ${composeFile}" >&2; exit 1; }`,
+  `docker compose --project-name ${projectName} --env-file ${envFile} -f ${composeFile} config --services >/dev/null`,
+];
+
+if (escapedService) {
+  remoteSteps.push(
+    `docker compose --project-name ${projectName} --env-file ${envFile} -f ${composeFile} config --services | grep -Fx '${escapedService}' >/dev/null || { echo "Unknown service: ${service}" >&2; exit 1; }`,
+  );
+}
+
+remoteSteps.push(composeCommand);
+
+const remoteCommand = remoteSteps.join('; ');
 
 const sshTarget = `${user}@${host}`;
+
+if (verbose) {
+  console.error(`[logs] SSH target: ${sshTarget}`);
+  console.error(`[logs] Remote command: ${remoteCommand}`);
+}
+
 const child = spawn('ssh', [sshTarget, remoteCommand], {
   stdio: 'inherit',
 });

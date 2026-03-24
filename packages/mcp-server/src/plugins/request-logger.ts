@@ -52,7 +52,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     // logLevel:'silent' set on known routes; empty url means no route matched (setNotFoundHandler)
     if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
 
-    console.log(`<-- ${req.method} ${req.url}`);
+    console.log(`--> ${req.method} ${req.url}`);
     if (envConfig.PRINT_PAYLOADS) {
       console.log(`\tRequest: ${JSON.stringify(capPayload(buildRequestPayload(req)), null, 2)}`);
     }
@@ -81,7 +81,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     const bodySize = Number(reply.getHeader('content-length') ?? 0);
     const status = reply.statusCode;
 
-    console.log(`--> ${req.method} ${req.url} ${status} ${durationMs}ms ${bodySize}b`);
+    console.log(`<-- ${req.method} ${req.url} ${status} ${durationMs}ms ${bodySize}b`);
 
     // Read userId from verified auth (set by fastify-mcp-server's bearer middleware).
     // Falls back to null for unauthenticated or non-MCP routes — never uses unverified token data.

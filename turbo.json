@@ -3,7 +3,11 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**"]
+    },
+    "@my-hub/hub#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/server/**", ".next/static/**", "!.next/cache/**", "!.next/dev/**", "!.next/standalone/**"]
     },
     "typecheck": {
       "dependsOn": ["^build"],
