@@ -58,6 +58,12 @@ const SERVER_META: Record<string, { label: string; path: string; description: st
     description: 'Apiary management, hive tracking, beekeeping analytics',
     active: true,
   },
+  travel: {
+    label: 'Travel',
+    path: '/api/travel/mcp',
+    description: 'Trip planning, itinerary management, travel document storage',
+    active: true,
+  },
 };
 
 // ─── Toggle Switch ────────────────────────────────────────────────────────────
