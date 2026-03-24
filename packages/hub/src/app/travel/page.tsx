@@ -380,7 +380,7 @@ export default function TravelPage() {
   }
 
   async function saveCompanionEdits(companionId: number) {
-    if (!activeTripId) return;
+    if (!activeTripId || !canEditActiveTrip) return;
 
     const name = editCompanionName.trim();
     if (!name) return;
