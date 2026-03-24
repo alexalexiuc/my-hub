@@ -1,4 +1,16 @@
-import { boolean, index, integer, jsonb, pgTable, real, serial, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  real,
+  serial,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { users } from './users';
 
 export const TripStatuses = {
@@ -180,6 +192,7 @@ export const tripDocuments = pgTable(
     tripId: integer('trip_id')
       .notNull()
       .references(() => trips.id, { onDelete: 'cascade' }),
+    bookingId: integer('booking_id').references(() => tripBookings.id, { onDelete: 'set null' }),
     type: text('type').$type<TripDocumentType>().notNull().default('other'),
     title: text('title').notNull(),
     notes: text('notes'),
@@ -194,6 +207,41 @@ export const tripDocuments = pgTable(
   },
   (table) => ({
     tripIdIdx: index('idx_trip_documents_trip_id').on(table.tripId),
+    bookingIdIdx: index('idx_trip_documents_booking_id').on(table.bookingId),
     userIdIdx: index('idx_trip_documents_user_id').on(table.userId),
+  }),
+);
+
+export const TripSharePermissions = {
+  View: 'view',
+} as const;
+export type TripSharePermission = (typeof TripSharePermissions)[keyof typeof TripSharePermissions];
+export const tripSharePermissionValues = Object.values(TripSharePermissions) as TripSharePermission[];
+
+export const tripShares = pgTable(
+  'trip_shares',
+  {
+    id: serial('id').primaryKey(),
+    ownerUserId: uuid('owner_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tripId: integer('trip_id')
+      .notNull()
+      .references(() => trips.id, { onDelete: 'cascade' }),
+    sharedWithUserId: uuid('shared_with_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    permission: text('permission').$type<TripSharePermission>().notNull().default('view'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    ownerTripUniqueIdx: uniqueIndex('uniq_trip_shares_owner_trip_shared_with').on(
+      table.ownerUserId,
+      table.tripId,
+      table.sharedWithUserId,
+    ),
+    tripIdIdx: index('idx_trip_shares_trip_id').on(table.tripId),
+    sharedWithUserIdIdx: index('idx_trip_shares_shared_with_user_id').on(table.sharedWithUserId),
   }),
 );

@@ -14,10 +14,16 @@ export const POST = withAuth(async ({ req, user }) => {
   }
 
   const tripId = Number(body.trip_id);
+  const bookingIdRaw = body.booking_id;
+  const bookingId =
+    bookingIdRaw === null || bookingIdRaw === undefined || bookingIdRaw === '' ? null : Number(bookingIdRaw);
   const title = typeof body.title === 'string' ? body.title.trim() : '';
 
   if (!Number.isInteger(tripId) || tripId <= 0) {
     return NextResponse.json({ error: 'trip_id is required' }, { status: 400 });
+  }
+  if (bookingId !== null && (!Number.isInteger(bookingId) || bookingId <= 0)) {
+    return NextResponse.json({ error: 'booking_id must be a positive integer' }, { status: 400 });
   }
   if (!title) return NextResponse.json({ error: 'title is required' }, { status: 400 });
 
@@ -28,6 +34,7 @@ export const POST = withAuth(async ({ req, user }) => {
 
   const document = await addTripDocument(user.id, tripId, {
     type,
+    bookingId,
     title,
     notes: typeof body.notes === 'string' ? body.notes : null,
     sourceUrl: typeof body.source_url === 'string' ? body.source_url : null,

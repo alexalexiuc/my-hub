@@ -17,11 +17,15 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
+  if (typeof body.name === 'string' && body.name.trim().length === 0) {
+    return NextResponse.json({ error: 'name cannot be empty' }, { status: 400 });
+  }
+
   const companion = await updateTripCompanion(user.id, companionId, {
     name: typeof body.name === 'string' ? body.name.trim() : undefined,
-    email: typeof body.email === 'string' ? body.email : undefined,
-    phone: typeof body.phone === 'string' ? body.phone : undefined,
-    notes: typeof body.notes === 'string' ? body.notes : undefined,
+    email: body.email === null ? null : typeof body.email === 'string' ? body.email.trim() || null : undefined,
+    phone: body.phone === null ? null : typeof body.phone === 'string' ? body.phone.trim() || null : undefined,
+    notes: body.notes === null ? null : typeof body.notes === 'string' ? body.notes : undefined,
   });
 
   if (!companion) return NextResponse.json({ error: 'Companion not found' }, { status: 404 });

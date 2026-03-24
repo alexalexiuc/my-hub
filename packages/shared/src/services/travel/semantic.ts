@@ -2,7 +2,7 @@ import { and, asc, eq, gte, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { tripBookings, tripChecklistItems, tripCompanions, tripDocuments, tripPlaces } from '../../db/schema/travel';
 import type { Trip, TripBooking, TripChecklistItem, TripCompanion, TripDocument, TripPlace } from '../../types/index';
-import { getNextTrip, getTripById } from './trips';
+import { getNextTrip, getTripByIdAccessible } from './trips';
 
 export interface TripOverview {
   trip: Trip;
@@ -14,35 +14,27 @@ export interface TripOverview {
 }
 
 export async function getTripOverview(userId: string, tripId: number): Promise<TripOverview | null> {
-  const trip = await getTripById(userId, tripId);
+  const trip = await getTripByIdAccessible(userId, tripId);
   if (!trip) return null;
 
   const [bookings, places, checklist, companions, documents] = await Promise.all([
     db
       .select()
       .from(tripBookings)
-      .where(and(eq(tripBookings.userId, userId), eq(tripBookings.tripId, tripId)))
+      .where(eq(tripBookings.tripId, tripId))
       .orderBy(asc(tripBookings.startAt), asc(tripBookings.id)),
     db
       .select()
       .from(tripPlaces)
-      .where(and(eq(tripPlaces.userId, userId), eq(tripPlaces.tripId, tripId)))
+      .where(eq(tripPlaces.tripId, tripId))
       .orderBy(asc(tripPlaces.visited), asc(tripPlaces.priority), asc(tripPlaces.id)),
     db
       .select()
       .from(tripChecklistItems)
-      .where(and(eq(tripChecklistItems.userId, userId), eq(tripChecklistItems.tripId, tripId)))
+      .where(eq(tripChecklistItems.tripId, tripId))
       .orderBy(asc(tripChecklistItems.done), asc(tripChecklistItems.id)),
-    db
-      .select()
-      .from(tripCompanions)
-      .where(and(eq(tripCompanions.userId, userId), eq(tripCompanions.tripId, tripId)))
-      .orderBy(asc(tripCompanions.id)),
-    db
-      .select()
-      .from(tripDocuments)
-      .where(and(eq(tripDocuments.userId, userId), eq(tripDocuments.tripId, tripId)))
-      .orderBy(asc(tripDocuments.id)),
+    db.select().from(tripCompanions).where(eq(tripCompanions.tripId, tripId)).orderBy(asc(tripCompanions.id)),
+    db.select().from(tripDocuments).where(eq(tripDocuments.tripId, tripId)).orderBy(asc(tripDocuments.id)),
   ]);
 
   return {

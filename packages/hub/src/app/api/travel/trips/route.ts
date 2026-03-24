@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
-import { createTrip, getTripBookingRanges, getTrips } from '@my-hub/shared/services';
+import { createTrip, getAccessibleTrips, getTripBookingRangesByTripIds } from '@my-hub/shared/services';
 import type { TripStatus } from '@my-hub/shared/types';
 import { parseAndValidateDate } from '@/lib/api/date-validation';
 
@@ -8,11 +8,19 @@ const tripStatuses: TripStatus[] = ['planned', 'active', 'completed', 'cancelled
 const hexColorRe = /^#[0-9A-F]{6}$/i;
 
 export const GET = withAuth(async ({ user }) => {
-  const trips = await getTrips(user.id);
-  const ranges = await getTripBookingRanges(user.id);
+  const accessibleTrips = await getAccessibleTrips(user.id);
+  const ranges = await getTripBookingRangesByTripIds(accessibleTrips.map((item) => item.trip.id));
 
   return NextResponse.json({
-    trips,
+    trips: accessibleTrips.map((item) => ({
+      ...item.trip,
+      owner_user_id: item.ownerUserId,
+      owner_name: item.ownerName,
+      owner_email: item.ownerEmail,
+      access_role: item.accessRole,
+      can_edit: item.accessRole === 'owner',
+      permission: item.permission,
+    })),
     booking_ranges: ranges,
   });
 });

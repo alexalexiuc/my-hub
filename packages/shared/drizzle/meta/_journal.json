@@ -92,6 +92,13 @@
       "when": 1774284364271,
       "tag": "0013_nifty_ozymandias",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1774342068517,
+      "tag": "0014_many_stranger",
+      "breakpoints": true
     }
   ]
 }

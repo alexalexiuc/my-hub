@@ -15,12 +15,18 @@ export const POST = withAuth(async ({ req, user }) => {
   const form = await req.formData();
   const file = form.get('file');
   const tripId = Number(form.get('trip_id'));
+  const bookingIdRaw = form.get('booking_id');
+  const bookingId =
+    bookingIdRaw === null || bookingIdRaw === undefined || String(bookingIdRaw) === '' ? null : Number(bookingIdRaw);
   const title = String(form.get('title') ?? '').trim();
   const typeRaw = String(form.get('type') ?? 'other');
   const notes = String(form.get('notes') ?? '').trim();
 
   if (!Number.isInteger(tripId) || tripId <= 0) {
     return NextResponse.json({ error: 'trip_id is required' }, { status: 400 });
+  }
+  if (bookingId !== null && (!Number.isInteger(bookingId) || bookingId <= 0)) {
+    return NextResponse.json({ error: 'booking_id must be a positive integer' }, { status: 400 });
   }
 
   if (!(file instanceof File)) {
@@ -51,6 +57,7 @@ export const POST = withAuth(async ({ req, user }) => {
 
   const document = await addTripDocument(user.id, tripId, {
     type,
+    bookingId,
     title: title || file.name,
     notes: notes || null,
     sourceUrl: null,

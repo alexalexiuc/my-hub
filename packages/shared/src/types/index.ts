@@ -22,8 +22,15 @@ import type {
   tripChecklistItems,
   tripCompanions,
   tripDocuments,
+  tripShares,
 } from '../db/schema/index';
-import type { TripStatus, TripBookingType, TripPlacePriority, TripDocumentType } from '../db/schema/travel';
+import type {
+  TripStatus,
+  TripBookingType,
+  TripPlacePriority,
+  TripDocumentType,
+  TripSharePermission,
+} from '../db/schema/travel';
 
 // Identity & Auth
 export type User = InferSelectModel<typeof users>;
@@ -82,4 +89,6 @@ export type TripCompanion = InferSelectModel<typeof tripCompanions>;
 export type NewTripCompanion = InferInsertModel<typeof tripCompanions>;
 export type TripDocument = InferSelectModel<typeof tripDocuments>;
 export type NewTripDocument = InferInsertModel<typeof tripDocuments>;
-export type { TripStatus, TripBookingType, TripPlacePriority, TripDocumentType };
+export type TripShare = InferSelectModel<typeof tripShares>;
+export type NewTripShare = InferInsertModel<typeof tripShares>;
+export type { TripStatus, TripBookingType, TripPlacePriority, TripDocumentType, TripSharePermission };
