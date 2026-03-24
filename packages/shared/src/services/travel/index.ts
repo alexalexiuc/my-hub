@@ -4,4 +4,5 @@ export * from './places';
 export * from './checklist';
 export * from './companions';
 export * from './documents';
+export * from './shares';
 export * from './semantic';

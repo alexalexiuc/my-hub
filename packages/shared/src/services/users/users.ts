@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
 import { hashSecret, verifySecret } from '../../crypto/index';
@@ -14,6 +14,13 @@ export async function findUserById(userId: string): Promise<User | undefined> {
   return db.query.users.findFirst({
     where: eq(users.id, userId),
   });
+}
+
+export async function findUsersByEmails(emails: string[]): Promise<User[]> {
+  const normalized = [...new Set(emails.map((email) => email.trim().toLowerCase()).filter(Boolean))];
+  if (normalized.length === 0) return [];
+
+  return db.select().from(users).where(inArray(users.email, normalized));
 }
 
 export async function updateUserName(userId: string, name: string): Promise<User> {

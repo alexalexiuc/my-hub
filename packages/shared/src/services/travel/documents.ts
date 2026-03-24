@@ -3,13 +3,22 @@ import { db } from '../../db/client';
 import { tripDocuments } from '../../db/schema/travel';
 import { omitNullish } from '../../utils/index';
 import type { NewTripDocument, TripDocument } from '../../types/index';
-import { verifyTripOwnership } from './trips';
+import { getTripByIdAccessible, verifyTripOwnership } from './trips';
 
 export type TripDocumentInsert = Omit<NewTripDocument, 'id' | 'userId' | 'tripId' | 'createdAt' | 'updatedAt'>;
 export type TripDocumentUpdate = Partial<
   Pick<
     TripDocumentInsert,
-    'type' | 'title' | 'notes' | 'sourceUrl' | 'originalName' | 'mimeType' | 'byteSize' | 'storagePath' | 'publicUrl'
+    | 'type'
+    | 'title'
+    | 'notes'
+    | 'sourceUrl'
+    | 'originalName'
+    | 'mimeType'
+    | 'byteSize'
+    | 'storagePath'
+    | 'publicUrl'
+    | 'bookingId'
   >
 >;
 
@@ -39,12 +48,11 @@ export async function getTripDocuments(userId: string, tripId: number): Promise<
 }
 
 export async function getTripDocumentById(userId: string, documentId: number): Promise<TripDocument | null> {
-  const [row] = await db
-    .select()
-    .from(tripDocuments)
-    .where(and(eq(tripDocuments.userId, userId), eq(tripDocuments.id, documentId)));
+  const [row] = await db.select().from(tripDocuments).where(eq(tripDocuments.id, documentId));
+  if (!row) return null;
 
-  return row ?? null;
+  const canAccess = await getTripByIdAccessible(userId, row.tripId);
+  return canAccess ? row : null;
 }
 
 export async function updateTripDocument(
