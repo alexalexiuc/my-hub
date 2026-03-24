@@ -13,8 +13,8 @@ test.describe('Calories Dashboard', () => {
 
   test('page shows Calories heading and Profile section', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Calories', level: 1 })).toBeVisible();
-    // SectionCard renders an h2 titled "Settings" (the ProfileCard section)
-    await expect(page.getByRole('heading', { name: 'Settings', level: 2 })).toBeVisible();
+    // ProfileCard section renders as an h2 titled "Profile"
+    await expect(page.getByRole('heading', { name: 'Profile', level: 2 })).toBeVisible();
   });
 
   test('open edit profile form and save', async ({ page }) => {

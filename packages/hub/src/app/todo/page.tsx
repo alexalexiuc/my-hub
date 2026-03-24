@@ -118,6 +118,7 @@ export default function TodoPage() {
         action={
           <button
             onClick={startAdding}
+            aria-label="Add task"
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
             title="Add task"
           >
