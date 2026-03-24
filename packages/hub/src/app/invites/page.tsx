@@ -150,9 +150,7 @@ export default function InvitesPage() {
                   {status === 'used' && invite.usedAt && (
                     <span className="text-xs text-zinc-500 shrink-0">
                       Used {new Date(invite.usedAt).toLocaleDateString()}
-                      {invite.usedByEmail && (
-                        <span className="ml-1">by {invite.usedByEmail}</span>
-                      )}
+                      {invite.usedByEmail && <span className="ml-1">by {invite.usedByEmail}</span>}
                     </span>
                   )}
                   {status === 'pending' && (
