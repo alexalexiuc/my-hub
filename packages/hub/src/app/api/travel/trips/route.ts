@@ -14,14 +14,14 @@ export const GET = withAuth(async ({ user }) => {
   return NextResponse.json({
     trips: accessibleTrips.map((item) => ({
       ...item.trip,
-      owner_user_id: item.ownerUserId,
-      owner_name: item.ownerName,
-      owner_email: item.ownerEmail,
-      access_role: item.accessRole,
-      can_edit: item.accessRole === 'owner',
+      ownerUserId: item.ownerUserId,
+      ownerName: item.ownerName,
+      ownerEmail: item.ownerEmail,
+      accessRole: item.accessRole,
+      canEdit: item.accessRole === 'owner',
       permission: item.permission,
     })),
-    booking_ranges: ranges,
+    bookingRanges: ranges,
   });
 });
 
