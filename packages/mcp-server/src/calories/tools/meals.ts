@@ -5,6 +5,7 @@ import {
   logMeal,
   getMeals,
   deleteMeal,
+  findUserById,
 } from '@my-hub/shared/services';
 import z from 'zod';
 import { MealType, MAX_MEAL_LIMIT, DEFAULT_MEAL_LIMIT } from '../constants';
@@ -12,7 +13,7 @@ import { rowToProfile, profileToTargets } from '../models/profile';
 import { toolResponse } from '../../shared/toolsUtils';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { omitNullish } from '@my-hub/shared/utils';
+import { omitNullish, localDateString, localHour } from '@my-hub/shared/utils';
 import { rowToMealEntry } from '../models/meals';
 import { MealEntry } from '../types';
 
@@ -77,12 +78,16 @@ export const DeleteMealSchema = z.object({
 export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
   if (!userId) throw new Error('Authentication required');
-  const today = new Date().toISOString().split('T')[0]!;
-  const date = input.date ?? today;
+
+  // Fetch user record first to resolve timezone for date/meal_type inference
+  const [profileRow, userRecord] = await Promise.all([getCalorieProfile(userId), findUserById(userId)]);
+  const timezone = userRecord?.timezone ?? null;
+
+  const date = input.date ?? localDateString(timezone);
 
   let meal_type = input.meal_type;
   if (!meal_type) {
-    const hour = new Date().getUTCHours();
+    const hour = localHour(timezone);
     if (hour < 10) meal_type = MealType.BREAKFAST;
     else if (hour < 14) meal_type = MealType.LUNCH;
     else if (hour < 19) meal_type = MealType.DINNER;
@@ -127,8 +132,7 @@ export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (inpu
   );
 
   // Fetch remaining calories for the day (includes the meals just logged)
-  const [profileRow, dayRows, latestMeasurements] = await Promise.all([
-    getCalorieProfile(userId),
+  const [dayRows, latestMeasurements] = await Promise.all([
     getMealsForDate(userId, date),
     getLatestMeasurementsPerType(userId),
   ]);

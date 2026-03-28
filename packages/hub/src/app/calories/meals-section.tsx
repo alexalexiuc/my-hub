@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { MealLog } from '@my-hub/shared/types';
+import { dateToString } from '@my-hub/shared/utils';
 import SectionCard from '@/components/section-card';
 import Field from '@/components/field';
 import Button from '@/components/button';
@@ -35,8 +36,10 @@ function groupByMealType(meals: MealLog[]): Record<string, MealLog[]> {
 }
 
 function formatDateLabel(date: string): string {
-  const today = new Date().toISOString().split('T')[0]!;
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]!;
+  const now = new Date();
+  const today = dateToString(now);
+  now.setDate(now.getDate() - 1);
+  const yesterday = dateToString(now);
   if (date === today) return 'Today';
   if (date === yesterday) return 'Yesterday';
   const d = new Date(date + 'T12:00:00');
@@ -46,7 +49,7 @@ function formatDateLabel(date: string): string {
 function shiftDate(date: string, days: number): string {
   const d = new Date(date + 'T12:00:00');
   d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0]!;
+  return dateToString(d);
 }
 
 interface EditForm {
@@ -68,7 +71,7 @@ export default function MealsSection({
   minCalories,
   maxCalories,
 }: Props) {
-  const today = new Date().toISOString().split('T')[0]!;
+  const today = dateToString(new Date());
   const [showAdd, setShowAdd] = useState(false);
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);

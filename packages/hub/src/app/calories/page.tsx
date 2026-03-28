@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import type { CalorieProfile, MealLog, MeasurementType } from '@my-hub/shared/types';
+import type { CalorieProfile, MealLog, MeasurementType, User } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { calculateCalorieTargets } from '@my-hub/shared/utils';
+import { calculateCalorieTargets, dateToString } from '@my-hub/shared/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import PageHeader from '@/components/page-header';
 import ProfileCard from './profile-card';
@@ -29,7 +29,7 @@ function getCurrentWeekDays(): { date: string; label: string }[] {
   while (cursor <= today) {
     const d = new Date(cursor);
     days.push({
-      date: d.toISOString().split('T')[0]!,
+      date: dateToString(d),
       label: d.toDateString() === today.toDateString() ? 'Today' : dayNames[(d.getDay() + 6) % 7]!,
     });
     cursor.setDate(cursor.getDate() + 1);
@@ -40,6 +40,7 @@ function getCurrentWeekDays(): { date: string; label: string }[] {
 
 export default function CaloriesDashboardPage() {
   const [profile, setProfile] = useState<CalorieProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<Pick<User, 'country' | 'timezone'> | null>(null);
   const [latestMeasurements, setLatestMeasurements] = useState<MeasurementWithType[]>([]);
   const [meals, setMeals] = useState<MealLog[]>([]);
   const [weeklyMeals, setWeeklyMeals] = useState<MealLog[]>([]);
@@ -48,7 +49,7 @@ export default function CaloriesDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const today = new Date().toISOString().split('T')[0]!;
+  const today = dateToString(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
   const selectedDateRef = useRef(selectedDate);
   const weekDays = getCurrentWeekDays();
@@ -68,12 +69,13 @@ export default function CaloriesDashboardPage() {
   const loadData = useCallback(async () => {
     try {
       const date = selectedDateRef.current;
-      const [profileRes, mealsRes, typesRes, weeklyRes, weightRes] = await Promise.all([
+      const [profileRes, mealsRes, typesRes, weeklyRes, weightRes, userProfileRes] = await Promise.all([
         fetch('/api/calories/profile'),
         fetch(`/api/calories/meals?date=${date}&limit=100`),
         fetch('/api/calories/measurement-types'),
         fetch(`/api/calories/meals?dateFrom=${weekStart}&dateTo=${today}`),
         fetch('/api/calories/measurements?type=weight&limit=30'),
+        fetch('/api/users/profile'),
       ]);
 
       if (profileRes.status === 401 || mealsRes.status === 401) {
@@ -81,15 +83,19 @@ export default function CaloriesDashboardPage() {
         return;
       }
 
-      const [profileData, mealsData, typesData, weeklyData, weightData] = await Promise.all([
+      const [profileData, mealsData, typesData, weeklyData, weightData, userProfileData] = await Promise.all([
         profileRes.json() as Promise<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>,
         mealsRes.json() as Promise<{ meals: MealLog[] }>,
         typesRes.json() as Promise<{ types: MeasurementType[] }>,
         weeklyRes.json() as Promise<{ meals: MealLog[] }>,
         weightRes.json() as Promise<{ measurements: MeasurementWithType[] }>,
+        userProfileRes.ok
+          ? (userProfileRes.json() as Promise<{ user: Pick<User, 'country' | 'timezone'> }>)
+          : Promise.resolve({ user: null }),
       ]);
 
       setProfile(profileData.profile);
+      setUserProfile(userProfileData.user);
       setLatestMeasurements(profileData.measurements);
       if (selectedDateRef.current === date) {
         setMeals(mealsData.meals);
@@ -283,7 +289,12 @@ export default function CaloriesDashboardPage() {
       </div>
 
       {/* Settings (profile) — at the bottom */}
-      <ProfileCard profile={profile} latestMeasurements={latestMeasurements} onUpdated={loadData} />
+      <ProfileCard
+        profile={profile}
+        userProfile={userProfile}
+        latestMeasurements={latestMeasurements}
+        onUpdated={loadData}
+      />
     </main>
   );
 }

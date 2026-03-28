@@ -67,6 +67,8 @@ const MOCK_USER = {
   passwordHash: null,
   googleId: null,
   active: true,
+  country: null,
+  timezone: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

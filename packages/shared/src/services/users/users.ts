@@ -83,3 +83,18 @@ export async function findOrCreateUser(email: string, name?: string | null, goog
 
   return existing;
 }
+
+/** Update a user's profile fields (name, country, timezone). Only provided fields are updated. */
+export async function updateUserProfile(
+  userId: string,
+  data: { name?: string | null; country?: string | null; timezone?: string | null },
+): Promise<User> {
+  const patch: Partial<typeof users.$inferInsert> = { updatedAt: new Date() };
+  if (data.name !== undefined) patch.name = data.name;
+  if (data.country !== undefined) patch.country = data.country;
+  if (data.timezone !== undefined) patch.timezone = data.timezone;
+
+  const [row] = await db.update(users).set(patch).where(eq(users.id, userId)).returning();
+  if (!row) throw new Error('Update did not return a row');
+  return row;
+}
