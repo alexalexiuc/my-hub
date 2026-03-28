@@ -142,7 +142,7 @@ export default function InvitesPage() {
                 >
                   <span className={`rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[status]}`}>{status}</span>
                   <code className="flex-1 truncate text-xs text-zinc-400 font-mono">{invite.token.slice(0, 16)}…</code>
-                  {invite.expiresAt && (
+                  {invite.expiresAt && status !== 'used' && (
                     <span className="text-xs text-zinc-500 shrink-0">
                       {status === 'expired' ? 'Expired' : 'Expires'} {new Date(invite.expiresAt).toLocaleDateString()}
                     </span>
