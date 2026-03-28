@@ -30,8 +30,6 @@ export const PUT = withAuth(async ({ req, user }) => {
     'goalMinCalories',
     'goalMaxCalories',
     'notes',
-    'country',
-    'timezone',
   ] as const;
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {

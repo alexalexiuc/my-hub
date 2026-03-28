@@ -5,6 +5,7 @@ import {
   logMeal,
   getMeals,
   deleteMeal,
+  findUserById,
 } from '@my-hub/shared/services';
 import z from 'zod';
 import { MealType, MAX_MEAL_LIMIT, DEFAULT_MEAL_LIMIT } from '../constants';
@@ -78,9 +79,9 @@ export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (inpu
   const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
   if (!userId) throw new Error('Authentication required');
 
-  // Fetch profile first to resolve timezone for date/meal_type inference
-  const profileRow = await getCalorieProfile(userId);
-  const timezone = profileRow?.timezone ?? null;
+  // Fetch user record first to resolve timezone for date/meal_type inference
+  const [profileRow, userRecord] = await Promise.all([getCalorieProfile(userId), findUserById(userId)]);
+  const timezone = userRecord?.timezone ?? null;
 
   const date = input.date ?? localDateString(timezone);
 

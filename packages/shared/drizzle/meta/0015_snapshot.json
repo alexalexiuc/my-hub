@@ -1,5 +1,5 @@
 {
-  "id": "d27c1c73-6f2c-482e-8e6f-6b6fb9729347",
+  "id": "2df75f44-45d9-4dd9-85f4-7ffb73088626",
   "prevId": "9efb4caa-98df-42c8-8983-b5491ae63667",
   "version": "6",
   "dialect": "postgresql",
@@ -45,6 +45,18 @@
           "primaryKey": false,
           "notNull": true,
           "default": true
+        },
+        "country": {
+          "name": "country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -383,18 +395,6 @@
         },
         "notes": {
           "name": "notes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "country": {
-          "name": "country",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "timezone": {
-          "name": "timezone",
           "type": "text",
           "primaryKey": false,
           "notNull": false

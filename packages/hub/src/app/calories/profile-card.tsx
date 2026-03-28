@@ -1,15 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import type { CalorieProfile } from '@my-hub/shared/types';
+import type { CalorieProfile, User } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { calculateCalorieTargets, calculateBMR } from '@my-hub/shared/utils';
+import { COUNTRIES, TIMEZONES } from '@my-hub/shared/constants';
 import SectionCard from '@/components/section-card';
 import Field from '@/components/field';
 import Button from '@/components/button';
 
 interface Props {
   profile: CalorieProfile | null;
+  userProfile: Pick<User, 'country' | 'timezone'> | null;
   latestMeasurements: MeasurementWithType[];
   onUpdated: () => void;
 }
@@ -34,10 +36,12 @@ const GOAL_LABELS: Record<string, string> = {
   weight_gain: 'Gain weight',
 };
 
-export default function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
+const TIMEZONE_LABELS: Record<string, string> = Object.fromEntries(TIMEZONES.map((t) => [t.value, t.label]));
+const COUNTRY_LABELS: Record<string, string> = Object.fromEntries(COUNTRIES.map((c) => [c.value, c.label]));
+
+export default function ProfileCard({ profile, userProfile, latestMeasurements, onUpdated }: Props) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [timezoneError, setTimezoneError] = useState('');
   const [form, setForm] = useState({
     age: profile?.age?.toString() ?? '',
     sex: profile?.sex ?? '',
@@ -48,8 +52,8 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
     goalMinCalories: profile?.goalMinCalories?.toString() ?? '',
     goalMaxCalories: profile?.goalMaxCalories?.toString() ?? '',
     notes: profile?.notes ?? '',
-    country: profile?.country ?? '',
-    timezone: profile?.timezone ?? '',
+    country: userProfile?.country ?? '',
+    timezone: userProfile?.timezone ?? '',
   });
 
   const weightMeasure = latestMeasurements.find((m) => m.typeKey === 'weight');
@@ -75,37 +79,33 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
   const activeEnergy = targets.tdee !== null && bmr !== null ? targets.tdee - Math.round(bmr) : null;
 
   async function save() {
-    // Validate timezone if provided
-    if (form.timezone) {
-      try {
-        Intl.DateTimeFormat(undefined, { timeZone: form.timezone });
-        setTimezoneError('');
-      } catch {
-        setTimezoneError('Invalid timezone identifier');
-        return;
-      }
-    } else {
-      setTimezoneError('');
-    }
     setSaving(true);
     try {
-      await fetch('/api/calories/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          age: form.age ? Number(form.age) : undefined,
-          sex: form.sex || undefined,
-          heightCm: form.heightCm ? Number(form.heightCm) : undefined,
-          activityLevel: form.activityLevel || undefined,
-          goalType: form.goalType || undefined,
-          goalWeeklyRateKg: form.goalWeeklyRateKg ? Number(form.goalWeeklyRateKg) : undefined,
-          goalMinCalories: form.goalMinCalories ? Math.round(Number(form.goalMinCalories)) : undefined,
-          goalMaxCalories: form.goalMaxCalories ? Math.round(Number(form.goalMaxCalories)) : undefined,
-          notes: form.notes || undefined,
-          country: form.country || undefined,
-          timezone: form.timezone || undefined,
+      await Promise.all([
+        fetch('/api/calories/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            age: form.age ? Number(form.age) : undefined,
+            sex: form.sex || undefined,
+            heightCm: form.heightCm ? Number(form.heightCm) : undefined,
+            activityLevel: form.activityLevel || undefined,
+            goalType: form.goalType || undefined,
+            goalWeeklyRateKg: form.goalWeeklyRateKg ? Number(form.goalWeeklyRateKg) : undefined,
+            goalMinCalories: form.goalMinCalories ? Math.round(Number(form.goalMinCalories)) : undefined,
+            goalMaxCalories: form.goalMaxCalories ? Math.round(Number(form.goalMaxCalories)) : undefined,
+            notes: form.notes || undefined,
+          }),
         }),
-      });
+        fetch('/api/users/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            country: form.country || null,
+            timezone: form.timezone || null,
+          }),
+        }),
+      ]);
       setEditing(false);
       onUpdated();
     } finally {
@@ -124,8 +124,8 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
       goalMinCalories: profile?.goalMinCalories?.toString() ?? '',
       goalMaxCalories: profile?.goalMaxCalories?.toString() ?? '',
       notes: profile?.notes ?? '',
-      country: profile?.country ?? '',
-      timezone: profile?.timezone ?? '',
+      country: userProfile?.country ?? '',
+      timezone: userProfile?.timezone ?? '',
     });
     setEditing(true);
   }
@@ -165,7 +165,12 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
                   hint={ACTIVITY_DESCRIPTIONS[profile!.activityLevel!]}
                 />
               )}
-              {profile!.timezone && <Stat label="Timezone" value={profile!.timezone} />}
+              {userProfile?.timezone && (
+                <Stat label="Timezone" value={TIMEZONE_LABELS[userProfile.timezone] ?? userProfile.timezone} />
+              )}
+              {userProfile?.country && (
+                <Stat label="Country" value={COUNTRY_LABELS[userProfile.country] ?? userProfile.country} />
+              )}
             </div>
 
             {/* Calorie targets */}
@@ -309,23 +314,33 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
         {/* Location section */}
         <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide pt-1">Location</p>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Country (ISO code)">
-            <input
+          <Field label="Country">
+            <select
               className="input"
-              placeholder="e.g. US, GB, RO"
-              maxLength={2}
               value={form.country}
-              onChange={(e) => setForm({ ...form, country: e.target.value.toUpperCase() })}
-            />
+              onChange={(e) => setForm({ ...form, country: e.target.value })}
+            >
+              <option value="">— not set —</option>
+              {COUNTRIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
           </Field>
           <Field label="Timezone">
-            <input
+            <select
               className="input"
-              placeholder="e.g. America/New_York"
               value={form.timezone}
               onChange={(e) => setForm({ ...form, timezone: e.target.value })}
-            />
-            {timezoneError && <p className="text-xs text-red-400 mt-1">{timezoneError}</p>}
+            >
+              <option value="">— not set —</option>
+              {TIMEZONES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
           </Field>
         </div>
 
