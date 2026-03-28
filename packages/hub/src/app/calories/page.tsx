@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { CalorieProfile, MealLog, MeasurementType, User } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { calculateCalorieTargets } from '@my-hub/shared/utils';
+import { calculateCalorieTargets, dateToString } from '@my-hub/shared/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import PageHeader from '@/components/page-header';
 import ProfileCard from './profile-card';
@@ -29,7 +29,7 @@ function getCurrentWeekDays(): { date: string; label: string }[] {
   while (cursor <= today) {
     const d = new Date(cursor);
     days.push({
-      date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+      date: dateToString(d),
       label: d.toDateString() === today.toDateString() ? 'Today' : dayNames[(d.getDay() + 6) % 7]!,
     });
     cursor.setDate(cursor.getDate() + 1);
@@ -49,8 +49,7 @@ export default function CaloriesDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const td = new Date();
-  const today = `${td.getFullYear()}-${String(td.getMonth() + 1).padStart(2, '0')}-${String(td.getDate()).padStart(2, '0')}`;
+  const today = dateToString(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
   const selectedDateRef = useRef(selectedDate);
   const weekDays = getCurrentWeekDays();

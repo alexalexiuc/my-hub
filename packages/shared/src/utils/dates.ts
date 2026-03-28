@@ -3,6 +3,14 @@ export function isValidDate(d: unknown): d is Date {
   return d instanceof Date && !isNaN(d.getTime());
 }
 
+/**
+ * Formats a Date object as a YYYY-MM-DD string using the environment's local time.
+ * Use this wherever a calendar date string is needed from a local Date value.
+ */
+export function dateToString(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 /** Returns true when the string is a UTC offset like "+2", "-5", "+5:30". */
 function isOffsetString(s: string): boolean {
   return /^[+-]\d{1,2}(:\d{2})?$/.test(s);
@@ -51,7 +59,7 @@ export function localDateString(timezone?: string | null): string {
     }
   }
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return dateToString(d);
 }
 
 /**

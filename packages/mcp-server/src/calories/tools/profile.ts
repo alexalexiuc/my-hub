@@ -1,5 +1,5 @@
 import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { upsertCalorieProfile, getLatestMeasurementsPerType, updateUserProfile } from '@my-hub/shared/services';
+import { upsertCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shared/services';
 import { omitNullish } from '@my-hub/shared/utils';
 import z from 'zod';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -48,44 +48,27 @@ export const UpdateProfileSchema = z.object({
     .optional()
     .describe('Override: explicit maximum daily calories ceiling (optional). Overrides the TDEE-derived target.'),
   notes: z.string().optional().describe('Additional notes about your health goals'),
-  country: z
-    .string()
-    .regex(/^[A-Z]{2}$/, 'Must be a 2-letter uppercase ISO 3166-1 alpha-2 code')
-    .optional()
-    .describe(
-      'ISO 3166-1 alpha-2 country code (e.g. "US", "GB"). Stored on the user profile and shared across services.',
-    ),
-  timezone: z
-    .string()
-    .optional()
-    .describe(
-      'UTC offset string (e.g. "+2", "-5", "+5:30"). Stored on the user profile and used to determine local date when logging meals without an explicit date.',
-    ),
 });
 
 export const updateProfileTool: ToolCallback<typeof UpdateProfileSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
   if (!userId) throw new Error('Authentication required');
 
-  // country/timezone belong to the user profile (shared across services)
-  const userUpdates = omitNullish({ country: input.country, timezone: input.timezone });
-  const calorieUpdates = omitNullish({
-    name: input.name,
-    age: input.age,
-    sex: input.sex,
-    heightCm: input.height_cm,
-    activityLevel: input.activity_level,
-    goalType: input.goal_type,
-    goalWeeklyRateKg: input.goal_weekly_rate_kg,
-    goalMinCalories: input.goal_min_calories,
-    goalMaxCalories: input.goal_max_calories,
-    notes: input.notes,
-  });
-
-  const [row] = await Promise.all([
-    upsertCalorieProfile(userId, calorieUpdates),
-    Object.keys(userUpdates).length > 0 ? updateUserProfile(userId, userUpdates) : Promise.resolve(null),
-  ]);
+  const row = await upsertCalorieProfile(
+    userId,
+    omitNullish({
+      name: input.name,
+      age: input.age,
+      sex: input.sex,
+      heightCm: input.height_cm,
+      activityLevel: input.activity_level,
+      goalType: input.goal_type,
+      goalWeeklyRateKg: input.goal_weekly_rate_kg,
+      goalMinCalories: input.goal_min_calories,
+      goalMaxCalories: input.goal_max_calories,
+      notes: input.notes,
+    }),
+  );
 
   const profile = rowToProfile(row);
   const latestMeasurements = await getLatestMeasurementsPerType(userId);

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { dateToString } from '@my-hub/shared/utils';
 import SectionCard from '@/components/section-card';
 import Button from '@/components/button';
 
@@ -82,8 +83,7 @@ export default function CaloriesWidget({
     if (!form.description) return;
     setSaving(true);
     try {
-      const d = new Date();
-      const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const today = dateToString(new Date());
       await fetch('/api/calories/meals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
