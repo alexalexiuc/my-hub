@@ -35,8 +35,10 @@ function groupByMealType(meals: MealLog[]): Record<string, MealLog[]> {
 }
 
 function formatDateLabel(date: string): string {
-  const today = new Date().toISOString().split('T')[0]!;
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]!;
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  now.setDate(now.getDate() - 1);
+  const yesterday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   if (date === today) return 'Today';
   if (date === yesterday) return 'Yesterday';
   const d = new Date(date + 'T12:00:00');
@@ -68,7 +70,8 @@ export default function MealsSection({
   minCalories,
   maxCalories,
 }: Props) {
-  const today = new Date().toISOString().split('T')[0]!;
+  const td = new Date();
+  const today = `${td.getFullYear()}-${String(td.getMonth() + 1).padStart(2, '0')}-${String(td.getDate()).padStart(2, '0')}`;
   const [showAdd, setShowAdd] = useState(false);
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);

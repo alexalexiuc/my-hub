@@ -29,7 +29,7 @@ function getCurrentWeekDays(): { date: string; label: string }[] {
   while (cursor <= today) {
     const d = new Date(cursor);
     days.push({
-      date: d.toISOString().split('T')[0]!,
+      date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
       label: d.toDateString() === today.toDateString() ? 'Today' : dayNames[(d.getDay() + 6) % 7]!,
     });
     cursor.setDate(cursor.getDate() + 1);
@@ -48,7 +48,8 @@ export default function CaloriesDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const today = new Date().toISOString().split('T')[0]!;
+  const td = new Date();
+  const today = `${td.getFullYear()}-${String(td.getMonth() + 1).padStart(2, '0')}-${String(td.getDate()).padStart(2, '0')}`;
   const [selectedDate, setSelectedDate] = useState(today);
   const selectedDateRef = useRef(selectedDate);
   const weekDays = getCurrentWeekDays();

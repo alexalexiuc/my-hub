@@ -82,7 +82,8 @@ export default function CaloriesWidget({
     if (!form.description) return;
     setSaving(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const d = new Date();
+      const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       await fetch('/api/calories/meals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

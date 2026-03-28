@@ -37,6 +37,7 @@ const GOAL_LABELS: Record<string, string> = {
 export default function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [timezoneError, setTimezoneError] = useState('');
   const [form, setForm] = useState({
     age: profile?.age?.toString() ?? '',
     sex: profile?.sex ?? '',
@@ -47,6 +48,8 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
     goalMinCalories: profile?.goalMinCalories?.toString() ?? '',
     goalMaxCalories: profile?.goalMaxCalories?.toString() ?? '',
     notes: profile?.notes ?? '',
+    country: profile?.country ?? '',
+    timezone: profile?.timezone ?? '',
   });
 
   const weightMeasure = latestMeasurements.find((m) => m.typeKey === 'weight');
@@ -72,6 +75,18 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
   const activeEnergy = targets.tdee !== null && bmr !== null ? targets.tdee - Math.round(bmr) : null;
 
   async function save() {
+    // Validate timezone if provided
+    if (form.timezone) {
+      try {
+        Intl.DateTimeFormat(undefined, { timeZone: form.timezone });
+        setTimezoneError('');
+      } catch {
+        setTimezoneError('Invalid timezone identifier');
+        return;
+      }
+    } else {
+      setTimezoneError('');
+    }
     setSaving(true);
     try {
       await fetch('/api/calories/profile', {
@@ -87,6 +102,8 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
           goalMinCalories: form.goalMinCalories ? Math.round(Number(form.goalMinCalories)) : undefined,
           goalMaxCalories: form.goalMaxCalories ? Math.round(Number(form.goalMaxCalories)) : undefined,
           notes: form.notes || undefined,
+          country: form.country || undefined,
+          timezone: form.timezone || undefined,
         }),
       });
       setEditing(false);
@@ -107,6 +124,8 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
       goalMinCalories: profile?.goalMinCalories?.toString() ?? '',
       goalMaxCalories: profile?.goalMaxCalories?.toString() ?? '',
       notes: profile?.notes ?? '',
+      country: profile?.country ?? '',
+      timezone: profile?.timezone ?? '',
     });
     setEditing(true);
   }
@@ -146,6 +165,7 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
                   hint={ACTIVITY_DESCRIPTIONS[profile!.activityLevel!]}
                 />
               )}
+              {profile!.timezone && <Stat label="Timezone" value={profile!.timezone} />}
             </div>
 
             {/* Calorie targets */}
@@ -285,6 +305,29 @@ export default function ProfileCard({ profile, latestMeasurements, onUpdated }: 
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
           />
         </Field>
+
+        {/* Location section */}
+        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide pt-1">Location</p>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Country (ISO code)">
+            <input
+              className="input"
+              placeholder="e.g. US, GB, RO"
+              maxLength={2}
+              value={form.country}
+              onChange={(e) => setForm({ ...form, country: e.target.value.toUpperCase() })}
+            />
+          </Field>
+          <Field label="Timezone">
+            <input
+              className="input"
+              placeholder="e.g. America/New_York"
+              value={form.timezone}
+              onChange={(e) => setForm({ ...form, timezone: e.target.value })}
+            />
+            {timezoneError && <p className="text-xs text-red-400 mt-1">{timezoneError}</p>}
+          </Field>
+        </div>
 
         <div className="flex gap-2">
           <Button onClick={save} loading={saving}>

@@ -23,6 +23,8 @@ export const calorieProfiles = pgTable('calorie_profiles', {
   goalMinCalories: integer('goal_min_calories'), // explicit daily minimum floor
   goalMaxCalories: integer('goal_max_calories'), // explicit daily maximum ceiling
   notes: text('notes'),
+  country: text('country'), // ISO 3166-1 alpha-2, e.g. 'US', 'GB'
+  timezone: text('timezone'), // IANA timezone, e.g. 'America/New_York'
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

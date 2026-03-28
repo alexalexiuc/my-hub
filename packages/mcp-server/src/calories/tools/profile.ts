@@ -48,6 +48,17 @@ export const UpdateProfileSchema = z.object({
     .optional()
     .describe('Override: explicit maximum daily calories ceiling (optional). Overrides the TDEE-derived target.'),
   notes: z.string().optional().describe('Additional notes about your health goals'),
+  country: z
+    .string()
+    .regex(/^[A-Z]{2}$/, 'Must be a 2-letter uppercase ISO 3166-1 alpha-2 code')
+    .optional()
+    .describe('ISO 3166-1 alpha-2 country code (e.g. "US", "GB"). Used as fallback timezone context.'),
+  timezone: z
+    .string()
+    .optional()
+    .describe(
+      'IANA timezone identifier (e.g. "America/New_York", "Europe/Bucharest"). Used to determine local date when logging meals without an explicit date.',
+    ),
 });
 
 export const updateProfileTool: ToolCallback<typeof UpdateProfileSchema.shape> = async (input, extra) => {
@@ -67,6 +78,8 @@ export const updateProfileTool: ToolCallback<typeof UpdateProfileSchema.shape> =
       goalMinCalories: input.goal_min_calories,
       goalMaxCalories: input.goal_max_calories,
       notes: input.notes,
+      country: input.country,
+      timezone: input.timezone,
     }),
   );
 
