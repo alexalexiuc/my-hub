@@ -6,3 +6,5 @@ export * from './companions';
 export * from './documents';
 export * from './shares';
 export * from './semantic';
+export * from './flightData';
+export * from './flightDataApi';

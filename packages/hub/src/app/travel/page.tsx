@@ -5,6 +5,8 @@ import PageHeader from '@/components/page-header';
 import SectionCard from '@/components/section-card';
 import BookingsCalendar from '@/components/travel/bookings-calendar';
 import type {
+  FlightData,
+  FlightDetails,
   Trip,
   TripBooking,
   TripChecklistItem,
@@ -14,9 +16,11 @@ import type {
   TripStatus,
 } from '@my-hub/shared/types';
 
+type TripBookingWithFlight = TripBooking & { flightData: FlightData | null };
+
 interface TripOverviewResponse {
   trip: Trip;
-  bookings: TripBooking[];
+  bookings: TripBookingWithFlight[];
   places: TripPlace[];
   checklist: TripChecklistItem[];
   companions: TripCompanion[];
@@ -118,6 +122,13 @@ export default function TravelPage() {
   const [editBookingProvider, setEditBookingProvider] = useState('');
   const [editBookingStartAt, setEditBookingStartAt] = useState('');
   const [editBookingEndAt, setEditBookingEndAt] = useState('');
+  // Flight-specific edit state
+  const [editFlightNumber, setEditFlightNumber] = useState('');
+  const [editFlightSeat, setEditFlightSeat] = useState('');
+  const [editFlightOriginIata, setEditFlightOriginIata] = useState('');
+  const [editFlightDestIata, setEditFlightDestIata] = useState('');
+  const [editFlightTerminal, setEditFlightTerminal] = useState('');
+  const [editFlightGate, setEditFlightGate] = useState('');
 
   const [editingChecklistId, setEditingChecklistId] = useState<number | null>(null);
   const [editChecklistTitle, setEditChecklistTitle] = useState('');
@@ -454,13 +465,21 @@ export default function TravelPage() {
     return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
   }
 
-  function startEditBooking(booking: TripBooking) {
+  function startEditBooking(booking: TripBookingWithFlight) {
     setEditingBookingId(booking.id);
     setEditBookingTitle(booking.title);
     setEditBookingType(booking.bookingType as (typeof bookingTypeOptions)[number]);
     setEditBookingProvider(booking.provider ?? '');
     setEditBookingStartAt(toDateTimeLocalValue(booking.startAt));
     setEditBookingEndAt(toDateTimeLocalValue(booking.endAt));
+    // Populate flight fields from manually-stored details (seat always comes from details)
+    const fd = (booking.details ?? {}) as FlightDetails;
+    setEditFlightNumber(fd.flight_number ?? '');
+    setEditFlightSeat(fd.seat ?? '');
+    setEditFlightOriginIata(fd.origin_iata ?? '');
+    setEditFlightDestIata(fd.destination_iata ?? '');
+    setEditFlightTerminal(fd.terminal ?? '');
+    setEditFlightGate(fd.gate ?? '');
   }
 
   function cancelEditBooking() {
@@ -470,21 +489,40 @@ export default function TravelPage() {
     setEditBookingProvider('');
     setEditBookingStartAt('');
     setEditBookingEndAt('');
+    setEditFlightNumber('');
+    setEditFlightSeat('');
+    setEditFlightOriginIata('');
+    setEditFlightDestIata('');
+    setEditFlightTerminal('');
+    setEditFlightGate('');
   }
 
   async function saveBookingEdits(bookingId: number) {
     if (!activeTripId || !canEditActiveTrip || !editBookingTitle.trim()) return;
 
+    const body: Record<string, unknown> = {
+      title: editBookingTitle.trim(),
+      booking_type: editBookingType,
+      provider: editBookingProvider.trim() || null,
+      start_at: editBookingStartAt ? new Date(editBookingStartAt).toISOString() : null,
+      end_at: editBookingEndAt ? new Date(editBookingEndAt).toISOString() : null,
+    };
+
+    if (editBookingType === 'flight') {
+      body.flight_details = {
+        ...(editFlightNumber.trim() && { flight_number: editFlightNumber.trim() }),
+        ...(editFlightSeat.trim() && { seat: editFlightSeat.trim() }),
+        ...(editFlightOriginIata.trim() && { origin_iata: editFlightOriginIata.trim().toUpperCase() }),
+        ...(editFlightDestIata.trim() && { destination_iata: editFlightDestIata.trim().toUpperCase() }),
+        ...(editFlightTerminal.trim() && { terminal: editFlightTerminal.trim() }),
+        ...(editFlightGate.trim() && { gate: editFlightGate.trim() }),
+      };
+    }
+
     await fetch(`/api/travel/bookings/${bookingId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: editBookingTitle.trim(),
-        booking_type: editBookingType,
-        provider: editBookingProvider.trim() || null,
-        start_at: editBookingStartAt ? new Date(editBookingStartAt).toISOString() : null,
-        end_at: editBookingEndAt ? new Date(editBookingEndAt).toISOString() : null,
-      }),
+      body: JSON.stringify(body),
     });
 
     cancelEditBooking();
@@ -880,6 +918,48 @@ export default function TravelPage() {
                             className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                           />
                         </div>
+                        {editBookingType === 'flight' && (
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              value={editFlightNumber}
+                              onChange={(e) => setEditFlightNumber(e.target.value)}
+                              placeholder="Flight no. (e.g. BA2490)"
+                              className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
+                            />
+                            <input
+                              value={editFlightSeat}
+                              onChange={(e) => setEditFlightSeat(e.target.value)}
+                              placeholder="Seat (e.g. 14A)"
+                              className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
+                            />
+                            <input
+                              value={editFlightOriginIata}
+                              onChange={(e) => setEditFlightOriginIata(e.target.value)}
+                              placeholder="From IATA (e.g. LHR)"
+                              maxLength={3}
+                              className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm uppercase"
+                            />
+                            <input
+                              value={editFlightDestIata}
+                              onChange={(e) => setEditFlightDestIata(e.target.value)}
+                              placeholder="To IATA (e.g. CDG)"
+                              maxLength={3}
+                              className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm uppercase"
+                            />
+                            <input
+                              value={editFlightTerminal}
+                              onChange={(e) => setEditFlightTerminal(e.target.value)}
+                              placeholder="Terminal"
+                              className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
+                            />
+                            <input
+                              value={editFlightGate}
+                              onChange={(e) => setEditFlightGate(e.target.value)}
+                              placeholder="Gate"
+                              className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
+                            />
+                          </div>
+                        )}
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => saveBookingEdits(booking.id)}
@@ -906,6 +986,54 @@ export default function TravelPage() {
                               {booking.startAt ? ` · ${new Date(booking.startAt).toLocaleString()}` : ''}
                               {booking.endAt ? ` → ${new Date(booking.endAt).toLocaleString()}` : ''}
                             </p>
+                          </div>
+                          {booking.bookingType === 'flight' &&
+                            (() => {
+                              const fd = booking.flightData;
+                              const d = (booking.details ?? {}) as FlightDetails;
+                              const flightNo = fd?.flightNumber ?? d.flight_number;
+                              const origin = fd?.originIata ?? d.origin_iata;
+                              const dest = fd?.destinationIata ?? d.destination_iata;
+                              const terminal = fd?.departureTerminal ?? d.terminal;
+                              const gate = fd?.departureGate ?? d.gate;
+                              const status = fd?.status;
+                              const seat = d.seat;
+                              const parts = [
+                                flightNo,
+                                origin && dest ? `${origin}→${dest}` : (origin ?? dest),
+                                seat && `Seat ${seat}`,
+                                terminal && `T${terminal}`,
+                                gate && `Gate ${gate}`,
+                                status && status !== 'scheduled' && status,
+                              ].filter(Boolean);
+                              if (parts.length === 0) return null;
+                              return (
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <p className="text-xs text-sky-400">{parts.join(' · ')}</p>
+                                  {fd && (
+                                    <button
+                                      type="button"
+                                      title={
+                                        fd.autoUpdateEnabled
+                                          ? 'Auto-update on — click to disable'
+                                          : 'Auto-update off — click to enable'
+                                      }
+                                      onClick={() =>
+                                        fetch(`/api/travel/flight-data/${fd.id}`, {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ auto_update_enabled: !fd.autoUpdateEnabled }),
+                                        }).then(() => loadOverview(activeTripId!))
+                                      }
+                                      className={`text-[10px] rounded px-1 py-0.5 ${fd.autoUpdateEnabled ? 'bg-sky-900 text-sky-300' : 'bg-zinc-800 text-zinc-500'}`}
+                                    >
+                                      {fd.autoUpdateEnabled ? 'live' : 'paused'}
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          <div className="flex items-center gap-2">
                             {(documentsByBookingId.get(booking.id)?.length ?? 0) > 0 && (
                               <div
                                 className="relative group"

@@ -1,12 +1,29 @@
-import { and, asc, eq, gte, lte } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { tripBookings, tripChecklistItems, tripCompanions, tripDocuments, tripPlaces } from '../../db/schema/travel';
-import type { Trip, TripBooking, TripChecklistItem, TripCompanion, TripDocument, TripPlace } from '../../types/index';
+import {
+  flightData,
+  tripBookings,
+  tripChecklistItems,
+  tripCompanions,
+  tripDocuments,
+  tripPlaces,
+} from '../../db/schema/travel';
+import type {
+  FlightData,
+  Trip,
+  TripBooking,
+  TripChecklistItem,
+  TripCompanion,
+  TripDocument,
+  TripPlace,
+} from '../../types/index';
 import { getNextTrip, getTripByIdAccessible } from './trips';
+
+export type TripBookingWithFlight = TripBooking & { flightData: FlightData | null };
 
 export interface TripOverview {
   trip: Trip;
-  bookings: TripBooking[];
+  bookings: TripBookingWithFlight[];
   places: TripPlace[];
   checklist: TripChecklistItem[];
   companions: TripCompanion[];
@@ -17,7 +34,7 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
   const trip = await getTripByIdAccessible(userId, tripId);
   if (!trip) return null;
 
-  const [bookings, places, checklist, companions, documents] = await Promise.all([
+  const [rawBookings, places, checklist, companions, documents] = await Promise.all([
     db
       .select()
       .from(tripBookings)
@@ -36,6 +53,20 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
     db.select().from(tripCompanions).where(eq(tripCompanions.tripId, tripId)).orderBy(asc(tripCompanions.id)),
     db.select().from(tripDocuments).where(eq(tripDocuments.tripId, tripId)).orderBy(asc(tripDocuments.id)),
   ]);
+
+  // Attach flight_data rows to flight bookings that have a link
+  const flightDataIds = rawBookings.map((b) => b.flightDataId).filter((id): id is number => id != null);
+
+  const flightDataMap = new Map<number, FlightData>();
+  if (flightDataIds.length > 0) {
+    const rows = await db.select().from(flightData).where(inArray(flightData.id, flightDataIds));
+    for (const row of rows) flightDataMap.set(row.id, row);
+  }
+
+  const bookings: TripBookingWithFlight[] = rawBookings.map((b) => ({
+    ...b,
+    flightData: b.flightDataId != null ? (flightDataMap.get(b.flightDataId) ?? null) : null,
+  }));
 
   return {
     trip,

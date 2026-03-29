@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -58,6 +59,47 @@ export const TripDocumentTypes = {
 export type TripDocumentType = (typeof TripDocumentTypes)[keyof typeof TripDocumentTypes];
 export const tripDocumentTypeValues = Object.values(TripDocumentTypes) as TripDocumentType[];
 
+export const flightData = pgTable(
+  'flight_data',
+  {
+    id: serial('id').primaryKey(),
+    flightNumber: text('flight_number').notNull(),
+    flightDate: date('flight_date').notNull(),
+    // Airport
+    originIata: text('origin_iata'),
+    destinationIata: text('destination_iata'),
+    // Scheduled times
+    scheduledDepartureAt: timestamp('scheduled_departure_at'),
+    scheduledArrivalAt: timestamp('scheduled_arrival_at'),
+    // Actual / estimated times
+    actualDepartureAt: timestamp('actual_departure_at'),
+    actualArrivalAt: timestamp('actual_arrival_at'),
+    // Gate info
+    departureTerminal: text('departure_terminal'),
+    departureGate: text('departure_gate'),
+    arrivalTerminal: text('arrival_terminal'),
+    // Status
+    status: text('status'),
+    // Aircraft
+    aircraftType: text('aircraft_type'),
+    aircraftRegistration: text('aircraft_registration'),
+    // Airline
+    airlineIata: text('airline_iata'),
+    airlineName: text('airline_name'),
+    // Fetch metadata
+    lastFetchedAt: timestamp('last_fetched_at'),
+    nextFetchAt: timestamp('next_fetch_at').notNull(),
+    autoUpdateEnabled: boolean('auto_update_enabled').notNull().default(true),
+    rawResponse: jsonb('raw_response'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    flightDateUniqueIdx: uniqueIndex('uniq_flight_data_number_date').on(table.flightNumber, table.flightDate),
+    nextFetchAtIdx: index('idx_flight_data_next_fetch_at').on(table.nextFetchAt),
+  }),
+);
+
 export const trips = pgTable(
   'trips',
   {
@@ -104,6 +146,7 @@ export const tripBookings = pgTable(
     location: text('location'),
     notes: text('notes'),
     details: jsonb('details'),
+    flightDataId: integer('flight_data_id').references(() => flightData.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
