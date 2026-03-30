@@ -149,4 +149,98 @@ test.describe('Travel', () => {
     await expect(page.getByRole('button', { name: 'Add Reservation' })).toBeDisabled();
     await expect(page.locator('p.font-medium', { hasText: fixture.bookingTitle })).toBeVisible();
   });
+
+  test('adds flight booking with details and displays them properly', async ({ page }) => {
+    const tripName = uniqueName('E2E Flight Details Trip');
+    const flightBookingTitle = uniqueName('London to Paris Flight');
+    const flightNumber = 'BA2490';
+    const seat = '14A';
+    const originIata = 'LHR';
+    const destIata = 'CDG';
+    const terminal = '3';
+    const gate = 'B25';
+
+    await createTrip(page, tripName);
+    const tripButton = page.getByRole('button', { name: new RegExp(tripName) });
+    await tripButton.click();
+
+    // Add a flight booking with all details
+    await page.getByPlaceholder('Reservation title').fill(flightBookingTitle);
+
+    // Select "Flight" as booking type
+    const bookingTypeSelect = page.locator('select').first();
+    await bookingTypeSelect.selectOption('flight');
+
+    // Fill in flight details
+    await page.getByPlaceholder('Flight no. (e.g. BA2490)').fill(flightNumber);
+    await page.getByPlaceholder('Seat (e.g. 14A)').fill(seat);
+    await page.getByPlaceholder('From IATA (e.g. LHR)').fill(originIata);
+    await page.getByPlaceholder('To IATA (e.g. CDG)').fill(destIata);
+    await page.getByPlaceholder('Terminal').fill(terminal);
+    await page.getByPlaceholder('Gate').fill(gate);
+
+    await page.getByRole('button', { name: 'Add Reservation' }).click();
+
+    // Verify the flight booking is created and details are displayed
+    await expect(page.locator('p.font-medium', { hasText: flightBookingTitle })).toBeVisible();
+
+    // Verify all flight details are displayed in the summary
+    const flightDetailsText = page.getByText(new RegExp(flightNumber, 'i'));
+    await expect(flightDetailsText).toBeVisible();
+
+    const routeText = page.getByText(`${originIata}→${destIata}`);
+    await expect(routeText).toBeVisible();
+
+    const seatText = page.getByText(new RegExp(`Seat ${seat}`, 'i'));
+    await expect(seatText).toBeVisible();
+
+    const terminalText = page.getByText(new RegExp(`T${terminal}`, 'i'));
+    await expect(terminalText).toBeVisible();
+
+    const gateText = page.getByText(new RegExp(`Gate ${gate}`, 'i'));
+    await expect(gateText).toBeVisible();
+  });
+
+  test('editing flight booking preserves all flight detail fields', async ({ page }) => {
+    const tripName = uniqueName('E2E Edit Flight Trip');
+    const flightBookingTitle = uniqueName('Edit Flight Booking');
+    const updatedFlightNumber = 'BA2491';
+    const updatedSeat = '15B';
+
+    await createTrip(page, tripName);
+    const tripButton = page.getByRole('button', { name: new RegExp(tripName) });
+    await tripButton.click();
+
+    // Add a flight booking
+    await page.getByPlaceholder('Reservation title').fill(flightBookingTitle);
+    const bookingTypeSelect = page.locator('select').first();
+    await bookingTypeSelect.selectOption('flight');
+    await page.getByPlaceholder('Flight no. (e.g. BA2490)').fill('BA2490');
+    await page.getByPlaceholder('Seat (e.g. 14A)').fill('14A');
+    await page.getByPlaceholder('From IATA (e.g. LHR)').fill('LHR');
+    await page.getByPlaceholder('To IATA (e.g. CDG)').fill('CDG');
+    await page.getByRole('button', { name: 'Add Reservation' }).click();
+
+    await expect(page.locator('p.font-medium', { hasText: flightBookingTitle })).toBeVisible();
+
+    // Click Edit button
+    const bookingCard = page
+      .locator('div.rounded-md.border.border-zinc-700.bg-zinc-900.px-3.py-2.text-sm')
+      .filter({ has: page.locator('p.font-medium', { hasText: flightBookingTitle }) })
+      .first();
+    await bookingCard.getByRole('button', { name: /edit|pencil/i }).click();
+
+    // Update flight details
+    const flightNumberInput = page.getByPlaceholder('Flight no. (e.g. BA2490)');
+    await flightNumberInput.fill(updatedFlightNumber);
+    const seatInput = page.getByPlaceholder('Seat (e.g. 14A)');
+    await seatInput.fill(updatedSeat);
+
+    // Save
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+    // Verify updated details are displayed
+    await expect(page.getByText(new RegExp(updatedFlightNumber, 'i'))).toBeVisible();
+    await expect(page.getByText(new RegExp(`Seat ${updatedSeat}`, 'i'))).toBeVisible();
+  });
 });

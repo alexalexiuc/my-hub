@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import { deleteTripBooking, updateTripBooking } from '@my-hub/shared/services';
-import type { TripBookingType } from '@my-hub/shared/types';
+import type { FlightDetails, TripBookingType } from '@my-hub/shared/types';
 import { parseAndValidateDateForPatch } from '@/lib/api/date-validation';
 
 const bookingTypes: TripBookingType[] = [
@@ -43,6 +43,11 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
     return NextResponse.json({ error: endAtError }, { status: 400 });
   }
 
+  const flightDetails =
+    body.flight_details != null && typeof body.flight_details === 'object' && !Array.isArray(body.flight_details)
+      ? (body.flight_details as Partial<FlightDetails>)
+      : undefined;
+
   const booking = await updateTripBooking(user.id, bookingId, {
     title: typeof body.title === 'string' ? body.title.trim() : undefined,
     bookingType:
@@ -52,6 +57,7 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
     provider: typeof body.provider === 'string' ? body.provider.trim() || null : undefined,
     startAt: startAt,
     endAt: endAt,
+    ...(flightDetails !== undefined && { details: flightDetails }),
   });
 
   if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });

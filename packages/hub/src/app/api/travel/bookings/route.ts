@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import { parseAndValidateDate } from '@/lib/api/date-validation';
 import { addTripBooking } from '@my-hub/shared/services';
-import type { TripBookingType } from '@my-hub/shared/types';
+import type { FlightDetails, TripBookingType } from '@my-hub/shared/types';
 
 const bookingTypes: TripBookingType[] = [
   'flight',
@@ -51,6 +51,14 @@ export const POST = withAuth(async ({ req, user }) => {
   if (endAtError) {
     return NextResponse.json({ error: endAtError }, { status: 400 });
   }
+  const flightDetails =
+    bookingType === 'flight' &&
+    body.flight_details != null &&
+    typeof body.flight_details === 'object' &&
+    !Array.isArray(body.flight_details)
+      ? (body.flight_details as Partial<FlightDetails>)
+      : null;
+
   const booking = await addTripBooking(user.id, tripId, {
     bookingType,
     title,
@@ -63,7 +71,7 @@ export const POST = withAuth(async ({ req, user }) => {
     costCurrency: typeof body.cost_currency === 'string' ? body.cost_currency : 'EUR',
     location: typeof body.location === 'string' ? body.location : null,
     notes: typeof body.notes === 'string' ? body.notes : null,
-    details: null,
+    details: flightDetails,
   });
 
   return NextResponse.json({ booking }, { status: 201 });

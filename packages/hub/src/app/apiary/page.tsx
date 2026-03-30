@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import PageHeader from '@/components/page-header';
-import DashboardTab from './dashboard-tab';
-import HivesTab from './hives-tab';
-import LogTab from './log-tab';
-import TasksTab from './tasks-tab';
+import { PageHeader } from '@/components/PageHeader';
+import { DashboardTab } from './DashboardTab';
+import { HivesTab } from './HivesTab';
+import { LogTab } from './LogTab';
+import { TasksTab } from './TasksTab';
 
 const tabs = [
   { key: 'dashboard', label: 'Dashboard' },

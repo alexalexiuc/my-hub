@@ -233,6 +233,31 @@ importers:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@22.19.15)
 
+  packages/worker:
+    dependencies:
+      '@my-hub/shared':
+        specifier: workspace:*
+        version: link:../shared
+      dotenv-mono:
+        specifier: ^1.5.1
+        version: 1.5.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.14
+        version: 22.19.15
+      nodemon:
+        specifier: ^3.1.14
+        version: 3.1.14
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.8)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.3)
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+
 packages:
 
   '@alloc/quick-lru@5.2.0':

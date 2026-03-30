@@ -1,0 +1,41 @@
+import type { ButtonHTMLAttributes } from 'react';
+
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
+
+interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: Variant;
+  loading?: boolean;
+  size?: 'sm' | 'md';
+}
+
+const variants: Record<Variant, string> = {
+  primary: 'bg-indigo-600 text-white hover:bg-indigo-500',
+  secondary: 'border border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700',
+  danger: 'bg-red-600 text-white hover:bg-red-500',
+  ghost: 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800',
+};
+
+const sizes = {
+  sm: 'px-3 py-1.5 text-sm',
+  md: 'px-4 py-2 text-sm',
+};
+
+export function Button({
+  variant = 'primary',
+  loading = false,
+  size = 'md',
+  disabled,
+  children,
+  className = '',
+  ...props
+}: Props) {
+  return (
+    <button
+      disabled={disabled || loading}
+      className={`rounded-lg font-medium transition disabled:opacity-50 ${variants[variant]} ${sizes[size]} ${className}`}
+      {...props}
+    >
+      {loading ? <span className="opacity-70">{children}</span> : children}
+    </button>
+  );
+}

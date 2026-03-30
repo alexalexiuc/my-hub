@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import PageHeader from '@/components/page-header';
+import { PageHeader } from '@/components/PageHeader';
 import { McpServerName } from '@my-hub/shared/schema';
 
 // ─── Types ───────────────────────────────────────────────────────────────────

@@ -17,3 +17,4 @@
 - [ ] Mobile authorization redirects to localhost. Check!
 - [x] Add refresh token support to the OAuth implementation. Then increase access token expiration.
 - [ ] Wire up MCP Service monitor to HUB UI.
+- [ ] **Travel UX:** Allow users to override flight details shown in the UI (fetched from flightDetails table) with user-inserted values (via Hub UI form or MCP). Provide a "Use manual details" toggle or similar UX to let users override auto-fetched flight info (status, gate, terminal, etc.) when manually entered values should take precedence.

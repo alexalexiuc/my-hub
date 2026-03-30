@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { Todo } from '@my-hub/shared/types';
-import PageHeader from '@/components/page-header';
-import SectionCard from '@/components/section-card';
+import { PageHeader } from '@/components/PageHeader';
+import { SectionCard } from '@/components/SectionCard';
 
 export default function TodoPage() {
   const [todos, setTodos] = useState<Todo[]>([]);

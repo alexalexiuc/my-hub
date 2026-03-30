@@ -55,6 +55,27 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # ---- worker ----
+      - name: Docker meta — worker
+        id: meta-worker
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub-worker
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest
+
+      - name: Build & push — worker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: packages/worker/Dockerfile
+          push: true
+          tags: ${{ steps.meta-worker.outputs.tags }}
+          labels: ${{ steps.meta-worker.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       # ---- mcp-server ----
       - name: Docker meta — mcp-server
         id: meta-mcp

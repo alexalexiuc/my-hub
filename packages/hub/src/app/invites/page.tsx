@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import PageHeader from '@/components/page-header';
-import SectionCard from '@/components/section-card';
-import Button from '@/components/button';
+import { PageHeader } from '@/components/PageHeader';
+import { SectionCard } from '@/components/SectionCard';
+import { Button } from '@/components';
 import type { InviteTokenWithUsedByEmail } from '@my-hub/shared/types';
 
 type ExpiryOption = '7' | '30' | 'none';

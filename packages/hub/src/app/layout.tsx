@@ -1,6 +1,6 @@
 import '@/styles/globals.css';
 import type { Metadata } from 'next';
-import Providers from '@/components/providers';
+import { Providers } from '@/components';
 
 export const metadata: Metadata = {
   title: 'My Hub',

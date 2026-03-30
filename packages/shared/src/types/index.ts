@@ -23,6 +23,7 @@ import type {
   tripCompanions,
   tripDocuments,
   tripShares,
+  flightData,
 } from '../db/schema/index';
 import type {
   TripStatus,
@@ -77,7 +78,22 @@ export type NewApiaryLog = InferInsertModel<typeof apiaryLogs>;
 export type ApiaryTask = InferSelectModel<typeof apiaryTasks>;
 export type NewApiaryTask = InferInsertModel<typeof apiaryTasks>;
 
+// Travel — flight metadata stored in trip_bookings.details (user-provided / AI-extracted fallback)
+export interface FlightDetails {
+  flight_number?: string;
+  seat?: string;
+  origin_iata?: string;
+  destination_iata?: string;
+  terminal?: string;
+  gate?: string;
+  aircraft_type?: string;
+  source?: string;
+  raw_text?: string;
+}
+
 // Travel
+export type FlightData = InferSelectModel<typeof flightData>;
+export type NewFlightData = InferInsertModel<typeof flightData>;
 export type Trip = InferSelectModel<typeof trips>;
 export type NewTrip = InferInsertModel<typeof trips>;
 export type TripBooking = InferSelectModel<typeof tripBookings>;

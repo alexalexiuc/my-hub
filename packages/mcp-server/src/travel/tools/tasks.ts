@@ -11,8 +11,10 @@ import {
   getTripCompanions,
   getTripOverview,
   getTrips,
+  linkBookingToFlightData,
   suggestChecklistTemplate,
   updateTripCompanion,
+  upsertFlightData,
 } from '@my-hub/shared/services';
 import type { TripBookingType, TripDocumentType } from '@my-hub/shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -60,6 +62,25 @@ export const TravelAddReservationFromTextSchema = z.object({
   start_at: z.string().datetime().optional().describe('Start datetime in ISO 8601 if known.'),
   end_at: z.string().datetime().optional().describe('End datetime in ISO 8601 if known.'),
   confirmation_number: z.string().optional().describe('Confirmation reference if available.'),
+  // Flight-specific fields — extract from booking text when booking_type is "flight"
+  flight_number: z
+    .string()
+    .optional()
+    .describe('IATA flight number extracted from the booking text, e.g. "BA2490". Extract this whenever possible.'),
+  seat: z.string().optional().describe('Seat assignment, e.g. "14A".'),
+  origin_iata: z
+    .string()
+    .length(3)
+    .optional()
+    .describe('3-letter IATA code of the departure airport, e.g. "LHR". Extract from the booking text.'),
+  destination_iata: z
+    .string()
+    .length(3)
+    .optional()
+    .describe('3-letter IATA code of the arrival airport, e.g. "CDG". Extract from the booking text.'),
+  terminal: z.string().optional().describe('Departure terminal, if mentioned.'),
+  gate: z.string().optional().describe('Departure gate, if mentioned.'),
+  aircraft_type: z.string().optional().describe('Aircraft type or model, e.g. "A320", if mentioned.'),
 });
 
 export const TravelPrepareTripChecklistSchema = z.object({
@@ -154,8 +175,27 @@ export const travelAddReservationFromTextTool: ToolCallback<typeof TravelAddRese
     details: {
       source: 'nl_import',
       raw_text: input.booking_text,
+      ...(input.flight_number && { flight_number: input.flight_number }),
+      ...(input.seat && { seat: input.seat }),
+      ...(input.origin_iata && { origin_iata: input.origin_iata }),
+      ...(input.destination_iata && { destination_iata: input.destination_iata }),
+      ...(input.terminal && { terminal: input.terminal }),
+      ...(input.gate && { gate: input.gate }),
+      ...(input.aircraft_type && { aircraft_type: input.aircraft_type }),
     },
   });
+
+  // When we have a flight number + departure date, create/find a flight_data row
+  // so the background worker will start polling for live updates automatically.
+  if (bookingType === 'flight' && input.flight_number && input.start_at) {
+    try {
+      const flightDate = input.start_at.slice(0, 10); // YYYY-MM-DD
+      const fd = await upsertFlightData(input.flight_number, flightDate);
+      await linkBookingToFlightData(booking.id, fd.id);
+    } catch {
+      // Non-fatal: booking is already saved; worker link can be added later.
+    }
+  }
 
   return toolResponse({
     message: 'Reservation captured from text.',

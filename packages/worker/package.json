@@ -1,0 +1,25 @@
+{
+  "name": "@my-hub/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsup",
+    "build:clear": "rimraf dist",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@my-hub/shared": "workspace:*",
+    "dotenv-mono": "^1.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.14",
+    "nodemon": "^3.1.14",
+    "tsup": "^8.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.4.5"
+  }
+}

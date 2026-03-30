@@ -15,15 +15,7 @@ const SENSITIVE_HEADERS = new Set([
   'x-api-key',
   'x-auth-token',
 ]);
-const SENSITIVE_FIELDS = new Set([
-  'client_name',
-  'client_secret',
-  'code',
-  'code_challenge',
-  'code_verifier',
-  'access_token',
-  'refresh_token',
-]);
+const SENSITIVE_FIELDS = new Set(['client_secret', 'code_challenge', 'code_verifier', 'access_token', 'refresh_token']);
 
 function redactHeaders(headers: Record<string, unknown>): Record<string, unknown> {
   const redacted: Record<string, unknown> = {};
