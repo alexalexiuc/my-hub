@@ -66,7 +66,6 @@ export function BookingsSection({
   const [newBookingStartAt, setNewBookingStartAt] = useState('');
   const [newBookingEndAt, setNewBookingEndAt] = useState('');
   const [newFlightNumber, setNewFlightNumber] = useState('');
-  const [newFlightSeat, setNewFlightSeat] = useState('');
   const [newFlightOriginIata, setNewFlightOriginIata] = useState('');
   const [newFlightDestIata, setNewFlightDestIata] = useState('');
   const [newFlightTerminal, setNewFlightTerminal] = useState('');
@@ -79,7 +78,6 @@ export function BookingsSection({
   const [editBookingStartAt, setEditBookingStartAt] = useState('');
   const [editBookingEndAt, setEditBookingEndAt] = useState('');
   const [editFlightNumber, setEditFlightNumber] = useState('');
-  const [editFlightSeat, setEditFlightSeat] = useState('');
   const [editFlightOriginIata, setEditFlightOriginIata] = useState('');
   const [editFlightDestIata, setEditFlightDestIata] = useState('');
   const [editFlightTerminal, setEditFlightTerminal] = useState('');
@@ -98,7 +96,6 @@ export function BookingsSection({
     if (newBookingType === 'flight') {
       body.flight_details = {
         ...(newFlightNumber.trim() && { flight_number: newFlightNumber.trim() }),
-        ...(newFlightSeat.trim() && { seat: newFlightSeat.trim() }),
         ...(newFlightOriginIata.trim() && { origin_iata: newFlightOriginIata.trim().toUpperCase() }),
         ...(newFlightDestIata.trim() && { destination_iata: newFlightDestIata.trim().toUpperCase() }),
         ...(newFlightTerminal.trim() && { terminal: newFlightTerminal.trim() }),
@@ -115,7 +112,6 @@ export function BookingsSection({
     setNewBookingStartAt('');
     setNewBookingEndAt('');
     setNewFlightNumber('');
-    setNewFlightSeat('');
     setNewFlightOriginIata('');
     setNewFlightDestIata('');
     setNewFlightTerminal('');
@@ -138,7 +134,6 @@ export function BookingsSection({
     setEditBookingEndAt(toDateTimeLocalValue(booking.endAt));
     const fd = (booking.details ?? {}) as FlightDetails;
     setEditFlightNumber(fd.flight_number ?? '');
-    setEditFlightSeat(fd.seat ?? '');
     setEditFlightOriginIata(fd.origin_iata ?? '');
     setEditFlightDestIata(fd.destination_iata ?? '');
     setEditFlightTerminal(fd.terminal ?? '');
@@ -153,7 +148,6 @@ export function BookingsSection({
     setEditBookingStartAt('');
     setEditBookingEndAt('');
     setEditFlightNumber('');
-    setEditFlightSeat('');
     setEditFlightOriginIata('');
     setEditFlightDestIata('');
     setEditFlightTerminal('');
@@ -172,7 +166,6 @@ export function BookingsSection({
     if (editBookingType === 'flight') {
       body.flight_details = {
         ...(editFlightNumber.trim() && { flight_number: editFlightNumber.trim() }),
-        ...(editFlightSeat.trim() && { seat: editFlightSeat.trim() }),
         ...(editFlightOriginIata.trim() && { origin_iata: editFlightOriginIata.trim().toUpperCase() }),
         ...(editFlightDestIata.trim() && { destination_iata: editFlightDestIata.trim().toUpperCase() }),
         ...(editFlightTerminal.trim() && { terminal: editFlightTerminal.trim() }),
@@ -234,12 +227,6 @@ export function BookingsSection({
               value={newFlightNumber}
               onChange={(e) => setNewFlightNumber(e.target.value)}
               placeholder="Flight no. (e.g. BA2490)"
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-            />
-            <input
-              value={newFlightSeat}
-              onChange={(e) => setNewFlightSeat(e.target.value)}
-              placeholder="Seat (e.g. 14A)"
               className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
             />
             <input
@@ -332,12 +319,6 @@ export function BookingsSection({
                       className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                     />
                     <input
-                      value={editFlightSeat}
-                      onChange={(e) => setEditFlightSeat(e.target.value)}
-                      placeholder="Seat (e.g. 14A)"
-                      className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
-                    />
-                    <input
                       value={editFlightOriginIata}
                       onChange={(e) => setEditFlightOriginIata(e.target.value)}
                       placeholder="From IATA (e.g. LHR)"
@@ -402,11 +383,9 @@ export function BookingsSection({
                       const terminal = fd?.departureTerminal ?? d.terminal;
                       const gate = fd?.departureGate ?? d.gate;
                       const status = fd?.status;
-                      const seat = d.seat;
                       const parts = [
                         flightNo,
                         origin && dest ? `${origin}→${dest}` : (origin ?? dest),
-                        seat && `Seat ${seat}`,
                         terminal && `T${terminal}`,
                         gate && `Gate ${gate}`,
                         status && status !== 'scheduled' && status,
