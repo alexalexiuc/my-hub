@@ -25,10 +25,10 @@ export async function syncDueFlights(): Promise<void> {
         await updateFlightData(fd.id, {
           originIata: result.originIata,
           destinationIata: result.destinationIata,
-          scheduledDepartureAt: result.scheduledDepartureAt ?? null,
-          scheduledArrivalAt: result.scheduledArrivalAt ?? null,
-          actualDepartureAt: result.actualDepartureAt ?? null,
-          actualArrivalAt: result.actualArrivalAt ?? null,
+          scheduledDepartureAt: result.scheduledDepartureAt,
+          scheduledArrivalAt: result.scheduledArrivalAt,
+          actualDepartureAt: result.actualDepartureAt,
+          actualArrivalAt: result.actualArrivalAt,
           departureTerminal: result.departureTerminal,
           departureGate: result.departureGate,
           arrivalTerminal: result.arrivalTerminal,
@@ -37,7 +37,7 @@ export async function syncDueFlights(): Promise<void> {
           aircraftRegistration: result.aircraftRegistration,
           airlineIata: result.airlineIata,
           airlineName: result.airlineName,
-          rawResponse: result.rawResponse as Record<string, unknown>,
+          rawResponse: result.rawResponse,
         });
         console.log(
           `[worker] Updated ${fd.flightNumber}/${fd.flightDate}: status=${result.status ?? 'n/a'}, gate=${result.departureGate ?? '-'}`,

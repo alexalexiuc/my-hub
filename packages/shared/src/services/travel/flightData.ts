@@ -2,18 +2,8 @@ import { and, asc, eq, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { flightData, tripBookings } from '../../db/schema/travel';
 import type { FlightData } from '../../types/index';
-
-// ---------------------------------------------------------------------------
-// Schedule helpers
-// ---------------------------------------------------------------------------
-
-function addMinutes(date: Date, minutes: number): Date {
-  return new Date(date.getTime() + minutes * 60_000);
-}
-
-function addHours(date: Date, hours: number): Date {
-  return new Date(date.getTime() + hours * 3_600_000);
-}
+import { omitUndefined } from '../../utils/objects';
+import { addHours, addMinutes } from '../../utils';
 
 /**
  * Compute when we should next poll the API for this flight, based on how far
@@ -56,25 +46,27 @@ export function computeNextFetchAt(scheduledDepartureAt: Date | null, finished: 
  * Sets nextFetchAt = now so the worker picks it up immediately.
  */
 export async function upsertFlightData(flightNumber: string, flightDate: string): Promise<FlightData> {
-  const existing = await db
-    .select()
-    .from(flightData)
-    .where(and(eq(flightData.flightNumber, flightNumber), eq(flightData.flightDate, flightDate)))
-    .limit(1);
-
-  if (existing[0]) return existing[0];
-
-  const [row] = await db
+  const [inserted] = await db
     .insert(flightData)
     .values({
       flightNumber,
       flightDate,
       nextFetchAt: new Date(), // fetch immediately
     })
+    .onConflictDoNothing()
     .returning();
 
-  if (!row) throw new Error('flightData insert did not return a row');
-  return row;
+  if (inserted) return inserted;
+
+  // A concurrent caller won the race — the row already exists.
+  const [existing] = await db
+    .select()
+    .from(flightData)
+    .where(and(eq(flightData.flightNumber, flightNumber), eq(flightData.flightDate, flightDate)))
+    .limit(1);
+
+  if (!existing) throw new Error(`flightData row missing after conflict for ${flightNumber} ${flightDate}`);
+  return existing;
 }
 
 /**
@@ -130,15 +122,19 @@ export type FlightDataUpdate = Partial<
  * Persist API-fetched fields and advance the polling schedule.
  */
 export async function updateFlightData(id: number, fields: FlightDataUpdate): Promise<FlightData> {
+  const [current] = await db.select().from(flightData).where(eq(flightData.id, id)).limit(1);
+  if (!current) throw new Error(`flightData row ${id} not found`);
+
   const now = new Date();
-  const departure = fields.scheduledDepartureAt ?? null;
-  const arrival = fields.actualArrivalAt ?? null;
+  const departure =
+    fields.scheduledDepartureAt !== undefined ? fields.scheduledDepartureAt : current.scheduledDepartureAt;
+  const arrival = fields.actualArrivalAt !== undefined ? fields.actualArrivalAt : current.actualArrivalAt;
   const finished = fields.finished ?? arrival !== null;
 
   const [row] = await db
     .update(flightData)
     .set({
-      ...fields,
+      ...omitUndefined(fields),
       lastFetchedAt: now,
       nextFetchAt: computeNextFetchAt(departure, finished),
       finished,

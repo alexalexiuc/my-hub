@@ -8,7 +8,7 @@ import type { ApiTrip, BookingRange, TripOverviewResponse } from './types';
 import { BookingsCalendar } from './BookingsCalendar';
 import { BookingsSection } from './BookingsSection';
 import { ChecklistSection } from './ChecklistSection';
-import { DocumentsSection } from './CocumentsSection';
+import { DocumentsSection } from './DocumentsSection';
 import { CompanionsSection } from './CompanionsSection';
 import { SharingSection } from './SharingSection';
 import { TripOverviewCards } from './TripOverviewCards';

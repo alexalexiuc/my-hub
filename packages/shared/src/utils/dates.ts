@@ -96,3 +96,13 @@ export function localHour(timezone?: string | null): number {
   }
   return new Date().getHours();
 }
+
+/** Returns a new Date shifted by the given number of minutes. */
+export function addMinutes(date: Date, minutes: number): Date {
+  return new Date(date.getTime() + minutes * 60_000);
+}
+
+/** Returns a new Date shifted by the given number of hours. */
+export function addHours(date: Date, hours: number): Date {
+  return new Date(date.getTime() + hours * 3_600_000);
+}

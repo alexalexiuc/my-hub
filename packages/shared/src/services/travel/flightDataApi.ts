@@ -5,7 +5,7 @@
  * Docs: https://doc.aerodatabox.com
  *
  * Required env var: RAPIDAPI_KEY
- * Endpoint: GET https://aerodatabox.p.rapidapi.com/flights/iata/{flightNumber}/{date}
+ * Endpoint: GET https://aerodatabox.p.rapidapi.com/flights/number/{flightNumber}/{date}
  */
 
 export interface FlightApiResult {
