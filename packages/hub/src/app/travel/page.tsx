@@ -1010,26 +1010,6 @@ export default function TravelPage() {
                               return (
                                 <div className="flex items-center gap-2 mt-0.5">
                                   <p className="text-xs text-sky-400">{parts.join(' · ')}</p>
-                                  {fd && (
-                                    <button
-                                      type="button"
-                                      title={
-                                        fd.autoUpdateEnabled
-                                          ? 'Auto-update on — click to disable'
-                                          : 'Auto-update off — click to enable'
-                                      }
-                                      onClick={() =>
-                                        fetch(`/api/travel/flight-data/${fd.id}`, {
-                                          method: 'PATCH',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ auto_update_enabled: !fd.autoUpdateEnabled }),
-                                        }).then(() => loadOverview(activeTripId!))
-                                      }
-                                      className={`text-[10px] rounded px-1 py-0.5 ${fd.autoUpdateEnabled ? 'bg-sky-900 text-sky-300' : 'bg-zinc-800 text-zinc-500'}`}
-                                    >
-                                      {fd.autoUpdateEnabled ? 'live' : 'paused'}
-                                    </button>
-                                  )}
                                 </div>
                               );
                             })()}

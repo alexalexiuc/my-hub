@@ -91,12 +91,14 @@ export const flightData = pgTable(
     nextFetchAt: timestamp('next_fetch_at').notNull(),
     autoUpdateEnabled: boolean('auto_update_enabled').notNull().default(true),
     rawResponse: jsonb('raw_response'),
+    finished: boolean('finished').notNull().default(false),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   (table) => ({
     flightDateUniqueIdx: uniqueIndex('uniq_flight_data_number_date').on(table.flightNumber, table.flightDate),
     nextFetchAtIdx: index('idx_flight_data_next_fetch_at').on(table.nextFetchAt),
+    finishedIdx: index('idx_flight_data_finished').on(table.finished),
   }),
 );
 

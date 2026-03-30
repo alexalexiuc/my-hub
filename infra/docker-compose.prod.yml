@@ -38,7 +38,7 @@ services:
       - internal
 
   # ---------------------------------------------------------------------------
-  # Flight Data Sync Worker — long-running background poller
+  # Worker — long-running background poller
   # ---------------------------------------------------------------------------
   worker:
     image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-worker:latest

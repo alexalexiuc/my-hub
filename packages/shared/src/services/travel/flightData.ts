@@ -1,4 +1,4 @@
-import { and, eq, lte } from 'drizzle-orm';
+import { and, asc, eq, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { flightData, tripBookings } from '../../db/schema/travel';
 import type { FlightData } from '../../types/index';
@@ -20,15 +20,16 @@ function addHours(date: Date, hours: number): Date {
  * away the scheduled departure is.
  *
  * Schedule:
- *   already departed (< 0h)  → check once more in 4 h, then stop
- *   ≤ 3 h until departure    → every 15 min  (gate window)
- *   ≤ 24 h                   → every 1 h     (day-of)
- *   ≤ 72 h  (3 days)         → every 1 h
- *   ≤ 168 h (1 week)         → every 6 h
- *   ≤ 720 h (30 days)        → every 24 h
- *   > 30 days                → every 7 days  (weekly)
+ *   * finished (landed)         → no more fetches (returns now, row stays finished)
+ *   * already departed (< 0h)  → check once more in 4 h, then stop
+ *   * ≤ 3 h until departure    → every 15 min  (gate window)
+ *   * ≤ 24 h                   → every 1 h     (day-of)
+ *   * ≤ 72 h  (3 days)         → every 1 h
+ *   * ≤ 168 h (1 week)         → every 6 h
+ *   * ≤ 720 h (30 days)        → every 24 h
+ *   * \> 30 days                → every 7 days  (weekly)
  */
-export function computeNextFetchAt(scheduledDepartureAt: Date | null): Date {
+export function computeNextFetchAt(scheduledDepartureAt: Date | null, finished: boolean): Date {
   const now = new Date();
 
   if (!scheduledDepartureAt) {
@@ -37,6 +38,7 @@ export function computeNextFetchAt(scheduledDepartureAt: Date | null): Date {
 
   const hoursUntil = (scheduledDepartureAt.getTime() - now.getTime()) / 3_600_000;
 
+  if (finished) return now;
   if (hoursUntil < 0) return addHours(now, 4);
   if (hoursUntil <= 3) return addMinutes(now, 15);
   if (hoursUntil <= 72) return addHours(now, 1);
@@ -83,14 +85,23 @@ export async function linkBookingToFlightData(bookingId: number, flightDataId: n
 }
 
 /**
- * Return flight_data rows due for an API fetch (nextFetchAt <= now AND auto_update_enabled).
+ * Return flight_data rows due for an API fetch (nextFetchAt <= now AND auto_update_enabled AND not finished).
  */
-export async function getFlightDataDueForFetch(limit = 50): Promise<FlightData[]> {
-  return db
+export async function getFlightDataDueForFetch(limit?: number): Promise<FlightData[]> {
+  const query = db
     .select()
     .from(flightData)
-    .where(and(lte(flightData.nextFetchAt, new Date()), eq(flightData.autoUpdateEnabled, true)))
-    .limit(limit);
+    .where(
+      and(
+        eq(flightData.autoUpdateEnabled, true),
+        lte(flightData.nextFetchAt, new Date()),
+        eq(flightData.finished, false),
+      ),
+    )
+    .orderBy(asc(flightData.nextFetchAt), asc(flightData.id));
+
+  if (limit) query.limit(limit);
+  return query;
 }
 
 export type FlightDataUpdate = Partial<
@@ -111,6 +122,7 @@ export type FlightDataUpdate = Partial<
     | 'airlineIata'
     | 'airlineName'
     | 'rawResponse'
+    | 'finished'
   >
 >;
 
@@ -120,13 +132,16 @@ export type FlightDataUpdate = Partial<
 export async function updateFlightData(id: number, fields: FlightDataUpdate): Promise<FlightData> {
   const now = new Date();
   const departure = fields.scheduledDepartureAt ?? null;
+  const arrival = fields.actualArrivalAt ?? null;
+  const finished = fields.finished ?? arrival !== null;
 
   const [row] = await db
     .update(flightData)
     .set({
       ...fields,
       lastFetchedAt: now,
-      nextFetchAt: computeNextFetchAt(departure),
+      nextFetchAt: computeNextFetchAt(departure, finished),
+      finished,
       updatedAt: now,
     })
     .where(eq(flightData.id, id))
@@ -139,10 +154,15 @@ export async function updateFlightData(id: number, fields: FlightDataUpdate): Pr
 /**
  * Advance nextFetchAt without updating other fields (back-off after failed fetch).
  */
-export async function backOffFlightData(id: number, scheduledDepartureAt: Date | null): Promise<void> {
+export async function backOffFlightData(
+  id: number,
+  scheduledDepartureAt: Date | null,
+  actualArrivalAt: Date | null,
+): Promise<void> {
+  const finished = actualArrivalAt !== null;
   await db
     .update(flightData)
-    .set({ nextFetchAt: computeNextFetchAt(scheduledDepartureAt), updatedAt: new Date() })
+    .set({ nextFetchAt: computeNextFetchAt(scheduledDepartureAt, finished), updatedAt: new Date() })
     .where(eq(flightData.id, id));
 }
 

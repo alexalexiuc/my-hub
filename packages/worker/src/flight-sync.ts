@@ -12,7 +12,7 @@ export async function syncDueFlights(): Promise<void> {
     return;
   }
 
-  const due = await getFlightDataDueForFetch(50);
+  const due = await getFlightDataDueForFetch();
   if (due.length === 0) return;
 
   console.log(`[worker] Syncing ${due.length} flight(s)...`);
@@ -44,12 +44,12 @@ export async function syncDueFlights(): Promise<void> {
         );
       } else {
         // Flight not found — back off but keep auto-updating (may appear closer to date)
-        await backOffFlightData(fd.id, fd.scheduledDepartureAt);
+        await backOffFlightData(fd.id, fd.scheduledDepartureAt, fd.actualArrivalAt);
         console.log(`[worker] No data for ${fd.flightNumber}/${fd.flightDate}, backing off`);
       }
     } catch (err) {
       console.error(`[worker] Error syncing ${fd.flightNumber}/${fd.flightDate}:`, err);
-      await backOffFlightData(fd.id, fd.scheduledDepartureAt).catch(() => {});
+      await backOffFlightData(fd.id, fd.scheduledDepartureAt, fd.actualArrivalAt).catch(() => {});
     }
   }
 }

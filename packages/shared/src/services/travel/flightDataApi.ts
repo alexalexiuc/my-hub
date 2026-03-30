@@ -1,7 +1,7 @@
 /**
  * AeroDataBox flight data client (via RapidAPI).
  *
- * Free tier: 4 000 requests / month.
+ * Free tier: 600 requests / month.
  * Docs: https://doc.aerodatabox.com
  *
  * Required env var: RAPIDAPI_KEY
@@ -71,7 +71,7 @@ export async function fetchFlightFromApi(
   flightDate: string,
   apiKey: string,
 ): Promise<FlightApiResult | null> {
-  const url = `https://aerodatabox.p.rapidapi.com/flights/iata/${encodeURIComponent(flightNumber)}/${encodeURIComponent(flightDate)}`;
+  const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flightNumber)}/${encodeURIComponent(flightDate)}?withAircraftImage=false&withLocation=false&withFlightPlan=false&dateLocalRole=Both`;
 
   let response: Response;
   try {
@@ -79,6 +79,7 @@ export async function fetchFlightFromApi(
       headers: {
         'X-RapidAPI-Key': apiKey,
         'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com',
+        'Content-Type': 'application/json',
       },
     });
   } catch (err) {

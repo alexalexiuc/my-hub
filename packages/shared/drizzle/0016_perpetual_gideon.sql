@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS "flight_data" (
 	"next_fetch_at" timestamp NOT NULL,
 	"auto_update_enabled" boolean DEFAULT true NOT NULL,
 	"raw_response" jsonb,
+	"finished" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -27,6 +28,7 @@ CREATE TABLE IF NOT EXISTS "flight_data" (
 ALTER TABLE "trip_bookings" ADD COLUMN "flight_data_id" integer;--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "uniq_flight_data_number_date" ON "flight_data" ("flight_number","flight_date");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_flight_data_next_fetch_at" ON "flight_data" ("next_fetch_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_flight_data_finished" ON "flight_data" ("finished");--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "trip_bookings" ADD CONSTRAINT "trip_bookings_flight_data_id_flight_data_id_fk" FOREIGN KEY ("flight_data_id") REFERENCES "public"."flight_data"("id") ON DELETE set null ON UPDATE no action;
 EXCEPTION

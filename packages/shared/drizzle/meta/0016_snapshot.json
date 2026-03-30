@@ -1,5 +1,5 @@
 {
-  "id": "94000940-f4a4-4c23-9575-75b335447acf",
+  "id": "b2a5be0f-9292-47ef-a90d-ccde10633b59",
   "prevId": "2df75f44-45d9-4dd9-85f4-7ffb73088626",
   "version": "6",
   "dialect": "postgresql",
@@ -1537,6 +1537,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "finished": {
+          "name": "finished",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -1565,6 +1572,13 @@
           "name": "idx_flight_data_next_fetch_at",
           "columns": [
             "next_fetch_at"
+          ],
+          "isUnique": false
+        },
+        "idx_flight_data_finished": {
+          "name": "idx_flight_data_finished",
+          "columns": [
+            "finished"
           ],
           "isUnique": false
         }

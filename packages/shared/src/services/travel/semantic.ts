@@ -56,10 +56,11 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
 
   // Attach flight_data rows to flight bookings that have a link
   const flightDataIds = rawBookings.map((b) => b.flightDataId).filter((id): id is number => id != null);
+  const uniqueFlightDataIds = Array.from(new Set(flightDataIds));
 
   const flightDataMap = new Map<number, FlightData>();
-  if (flightDataIds.length > 0) {
-    const rows = await db.select().from(flightData).where(inArray(flightData.id, flightDataIds));
+  if (uniqueFlightDataIds.length > 0) {
+    const rows = await db.select().from(flightData).where(inArray(flightData.id, uniqueFlightDataIds));
     for (const row of rows) flightDataMap.set(row.id, row);
   }
 
