@@ -6,14 +6,14 @@ import type { CalorieProfile, MealLog, MeasurementType, User } from '@my-hub/sha
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { calculateCalorieTargets, dateToString } from '@my-hub/shared/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import PageHeader from '@/components/page-header';
-import ProfileCard from './profile-card';
-import MealsSection from './meals-section';
-import MeasurementsSection from './measurements-section';
-import WeeklyChart from './weekly-chart';
-import WeightChart from './weight-chart';
-import MacroChart from './macro-chart';
-import GoalProgressCard from './goal-progress-card';
+import { PageHeader } from '@/components/PageHeader';
+import { GoalProgressCard } from './GoalProgressCard';
+import { MacroChart } from './MacroChart';
+import { MealsSection } from './MealsSection';
+import { MeasurementsSection } from './MeasurementsSection';
+import { ProfileCard } from './ProfileCard';
+import { WeeklyChart } from './WeeklyChart';
+import { WeightChart } from './WeightChart';
 
 function getCurrentWeekDays(): { date: string; label: string }[] {
   const days: { date: string; label: string }[] = [];

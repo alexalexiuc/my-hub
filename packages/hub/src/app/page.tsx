@@ -5,10 +5,7 @@ import Link from 'next/link';
 import type { CalorieProfile, MealLog, Todo } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { calculateCalorieTargets } from '@my-hub/shared/utils';
-import DashboardHeader from '@/components/dashboard/dashboard-header';
-import DashboardFooter from '@/components/dashboard/dashboard-footer';
-import TodoWidget from '@/components/dashboard/todo-widget';
-import CaloriesWidget from '@/components/dashboard/calories-widget';
+import { CaloriesWidget, DashboardFooter, DashboardHeader, TodoWidget } from '@/components/dashboard';
 
 const appSections = [
   {
@@ -42,8 +39,10 @@ const appSections = [
     href: '/travel',
     label: 'My Travels',
     description: 'Plan trips, track reservations, checklist, companions and documents',
-    color: 'bg-emerald-950/30 border-emerald-800/50 hover:border-emerald-600/70',
+    color:
+      'bg-gradient-to-br from-emerald-950/30 to-zinc-900 border-emerald-800/50 hover:border-emerald-600/70 hover:shadow-lg hover:shadow-emerald-950/20 hover:-translate-y-0.5',
     labelColor: 'text-emerald-400',
+    accentColor: 'bg-emerald-500/60',
   },
 ];
 

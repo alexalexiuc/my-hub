@@ -7,6 +7,7 @@ This repository is a pnpm TypeScript monorepo. Keep changes small, explicit, and
 - `packages/shared`: Drizzle schema, shared types, auth helpers, service layer (`src/services/`), and utilities (`src/utils/`). Put cross-package domain types and DB queries here first.
 - `packages/mcp-server`: Fastify app, MCP transport/router wiring, health checks, server-side integrations. Must not contain raw Drizzle queries — import from `@my-hub/shared/services` instead.
 - `packages/hub`: Next.js App Router UI, NextAuth integration, Hub Dashboard pages and client/server UI code.
+- `packages/worker`: Standalone Node.js background service. Runs scheduled polling jobs (e.g. flight data sync). Imports from `@my-hub/shared/services` only — no direct DB access, no HTTP routes.
 - `packages/e2e`: Playwright end-to-end tests for the hub UI. Tests run against a live hub instance (`E2E_HUB_BASE_URL`). Global setup auto-registers the test user (`e2e-hub@test.local`) and persists auth state in `.auth/user.json`. Run with `pnpm --filter @my-hub/e2e test:e2e`.
 - `infra`: Docker Compose, Traefik, deployment/runtime wiring only.
   - `docker-compose.traefik.yml` — **run once on the server**; starts the shared Traefik reverse proxy and creates the named `proxy` Docker network. Both prod and staging connect to this external network. Never stopped between deploys. Usage: `docker compose --project-name my-hub-traefik -f infra/docker-compose.traefik.yml up -d`.
@@ -22,8 +23,9 @@ When a feature spans multiple layers, change in this order:
 1. `packages/shared`
 2. `packages/mcp-server`
 3. `packages/hub`
-4. `infra`
-5. `.github/workflows` if the build/runtime contract changed
+4. `packages/worker`
+5. `infra`
+6. `.github/workflows` if the build/runtime contract changed
 
 ## Documentation
 

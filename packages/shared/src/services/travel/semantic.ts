@@ -19,11 +19,11 @@ import type {
 } from '../../types/index';
 import { getNextTrip, getTripByIdAccessible } from './trips';
 
-export type TripBookingWithFlight = TripBooking & { flightData: FlightData | null };
+export type TripBookingExtended = TripBooking & { flightData: FlightData | null };
 
 export interface TripOverview {
   trip: Trip;
-  bookings: TripBookingWithFlight[];
+  bookings: TripBookingExtended[];
   places: TripPlace[];
   checklist: TripChecklistItem[];
   companions: TripCompanion[];
@@ -64,7 +64,7 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
     for (const row of rows) flightDataMap.set(row.id, row);
   }
 
-  const bookings: TripBookingWithFlight[] = rawBookings.map((b) => ({
+  const bookings: TripBookingExtended[] = rawBookings.map((b) => ({
     ...b,
     flightData: b.flightDataId != null ? (flightDataMap.get(b.flightDataId) ?? null) : null,
   }));

@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
-import PageHeader from '@/components/page-header';
-import SectionCard from '@/components/section-card';
-import Field from '@/components/field';
-import Button from '@/components/button';
+import { PageHeader } from '@/components/PageHeader';
+import { SectionCard } from '@/components/SectionCard';
+import { Button, Field } from '@/components';
 
 interface UserProfile {
   id: string;
