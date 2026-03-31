@@ -88,7 +88,7 @@ const bucketTimeClasses: Record<TimeBucket, string> = {
 
 function SegmentCard({ segment }: { segment: Segment }) {
   const [expanded, setExpanded] = useState(false);
-  const activeRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<HTMLElement | null>(null);
   const { text: timeText } = formatSegmentTime(segment.datetime);
   const { timeBucket, isPast, isActive } = segment;
 
