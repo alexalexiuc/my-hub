@@ -216,7 +216,7 @@ test.describe('Travel', () => {
 
     // Helpers for relative datetimes
     const pastStart = new Date(now.getTime() - 5 * 60 * 60 * 1000); // 5h ago
-    const pastEnd = new Date(now.getTime() - 3 * 60 * 60 * 1000);   // 3h ago
+    const pastEnd = new Date(now.getTime() - 3 * 60 * 60 * 1000); // 3h ago
     const imminentStart = new Date(now.getTime() + 30 * 60 * 1000); // +30 min
     const futureStart = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // +3 days
 
@@ -280,9 +280,7 @@ test.describe('Travel', () => {
     await expect(page.locator('p.font-medium', { hasText: bookingTitle })).toBeVisible();
 
     // Details should not be visible before expanding
-    const bookingRow = page
-      .getByRole('button', { name: new RegExp(`Expand reservation: ${bookingTitle}`) })
-      .first();
+    const bookingRow = page.getByRole('button', { name: new RegExp(`Expand reservation: ${bookingTitle}`) }).first();
     await expect(bookingRow).toBeVisible();
 
     // Click to expand

@@ -35,10 +35,10 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 | FR-15 | Flight bookings show a structured info line: flight number, route (origin → destination), seat, terminal, gate, and live status.                                                 |
 | FR-16 | Flight bookings show a live/paused badge that the user can click to toggle automatic flight data updates.                                                                        |
 | FR-17 | The booking edit form exposes flight-specific fields (flight number, seat, origin IATA, destination IATA, terminal, gate, aircraft type) only when the booking type is `flight`. |
-| FR-18 | Coming Next chips are color-coded by time proximity: past (dimmed, dashed border), active (sky blue), imminent <1h (red), soon <24h (amber), future (neutral zinc). |
-| FR-19 | Past Coming Next chips collapse to a compact row (icon + date/time + label + "Done" badge) and can be expanded by clicking. |
-| FR-20 | Past chip time display includes both date and time (e.g. "31 Mar · 08:30") so the user can clearly see when the segment occurred. |
-| FR-21 | Reservation rows are expandable on click, revealing location, confirmation number, cost, status, notes, and attachments. |
+| FR-18 | Coming Next chips are color-coded by time proximity: past (dimmed, dashed border), active (sky blue), imminent <1h (red), soon <24h (amber), future (neutral zinc).              |
+| FR-19 | Past Coming Next chips collapse to a compact row (icon + date/time + label + "Done" badge) and can be expanded by clicking.                                                      |
+| FR-20 | Past chip time display includes both date and time (e.g. "31 Mar · 08:30") so the user can clearly see when the segment occurred.                                                |
+| FR-21 | Reservation rows are expandable on click, revealing location, confirmation number, cost, status, notes, and attachments.                                                         |
 
 ---
 
@@ -68,10 +68,10 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 | TR-20 | `PATCH /api/travel/flight-data/[id]` toggles `auto_update_enabled` on a `flight_data` row.                                                                                                                                                                                                          |
 | TR-21 | The trip overview API joins `flight_data` rows into booking responses so the UI receives live data without extra round-trips.                                                                                                                                                                       |
 | TR-22 | The MCP `travel_add_reservation_from_text` tool extracts flight fields (flight number, seat, origin/destination IATA, terminal, gate, aircraft type) from booking text and automatically upserts a `flight_data` row linked to the booking.                                                         |
-| TR-23 | `coming-next-utils.ts` computes `timeBucket` (`past \| now \| imminent \| soon \| future`) and `isPast` per segment; `formatSegmentTime` returns date+time string (e.g. "31 Mar · 08:30") for past segments. |
-| TR-24 | `SegmentCard` renders collapsed compact chip for past segments (clickable button with "Done" badge); click expands to full card. Imminent segments display a pulsing "Soon!" badge. Color theme: past=dimmed dashed, now=sky, imminent=red, soon=amber, future=zinc. |
-| TR-25 | `BookingsSection` reservation rows are expandable via click; expanded panel shows location, confirmationNumber, cost, status, notes, and linked attachments inline. |
-| TR-26 | `BookingsSection` flight form includes a seat field (`seat` stored in `details` JSONB) in both add and edit modes. |
+| TR-23 | `coming-next-utils.ts` computes `timeBucket` (`past \| now \| imminent \| soon \| future`) and `isPast` per segment; `formatSegmentTime` returns date+time string (e.g. "31 Mar · 08:30") for past segments.                                                                                        |
+| TR-24 | `SegmentCard` renders collapsed compact chip for past segments (clickable button with "Done" badge); click expands to full card. Imminent segments display a pulsing "Soon!" badge. Color theme: past=dimmed dashed, now=sky, imminent=red, soon=amber, future=zinc.                                |
+| TR-25 | `BookingsSection` reservation rows are expandable via click; expanded panel shows location, confirmationNumber, cost, status, notes, and linked attachments inline.                                                                                                                                 |
+| TR-26 | `BookingsSection` flight form includes a seat field (`seat` stored in `details` JSONB) in both add and edit modes.                                                                                                                                                                                  |
 
 ---
 

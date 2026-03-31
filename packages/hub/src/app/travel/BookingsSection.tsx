@@ -292,7 +292,11 @@ export function BookingsSection({
 
       <div className="space-y-2 max-h-[28rem] overflow-auto">
         {bookings.map((booking) => (
-          <div key={booking.id} className="rounded-md border border-zinc-700 bg-zinc-900 text-sm" data-testid="booking-row">
+          <div
+            key={booking.id}
+            className="rounded-md border border-zinc-700 bg-zinc-900 text-sm"
+            data-testid="booking-row"
+          >
             {editingBookingId === booking.id ? (
               <div className="space-y-2 px-3 py-2">
                 <input
@@ -418,7 +422,8 @@ export function BookingsSection({
                     <div className="flex items-center gap-2">
                       <p className="flex items-center gap-1 text-xs text-zinc-400 truncate">
                         <BookingTypeIcon type={booking.bookingType} />
-                        {bookingTypeLabels[booking.bookingType as keyof typeof bookingTypeLabels] ?? booking.bookingType}
+                        {bookingTypeLabels[booking.bookingType as keyof typeof bookingTypeLabels] ??
+                          booking.bookingType}
                         {booking.provider ? ` · ${booking.provider}` : ''}
                         {booking.startAt ? ` · ${new Date(booking.startAt).toLocaleString()}` : ''}
                         {booking.endAt ? ` → ${new Date(booking.endAt).toLocaleString()}` : ''}
@@ -473,9 +478,7 @@ export function BookingsSection({
                           status && status !== 'scheduled' && status,
                         ].filter(Boolean);
                         if (parts.length === 0) return null;
-                        return (
-                          <p className="text-xs text-sky-400">{parts.join(' · ')}</p>
-                        );
+                        return <p className="text-xs text-sky-400">{parts.join(' · ')}</p>;
                       })()}
 
                     {/* Extra metadata grid */}
