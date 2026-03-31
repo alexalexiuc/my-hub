@@ -21,11 +21,18 @@ function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLa
   const [copied, setCopied] = useState(false);
   const Icon = actionIcons[action.type];
 
-  function handleClick() {
+  async function handleClick() {
     if (action.type === 'copy_ref') {
-      navigator.clipboard.writeText(action.value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      if (!navigator.clipboard || !navigator.clipboard.writeText) {
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(action.value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } catch {
+        // Clipboard write failed; do not show "Copied!" state.
+      }
       return;
     }
     if (action.type === 'navigate' || action.type === 'call') {
