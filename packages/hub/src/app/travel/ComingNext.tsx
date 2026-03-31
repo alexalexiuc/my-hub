@@ -36,11 +36,18 @@ function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLa
       return;
     }
     if (action.type === 'navigate' || action.type === 'call') {
-      window.open(action.type === 'call' ? `tel:${action.value}` : action.value, '_blank');
+      const url = action.type === 'call' ? `tel:${action.value}` : action.value;
+      const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+      if (newWindow) {
+        newWindow.opener = null;
+      }
       return;
     }
     // boarding_pass, view_booking
-    window.open(action.value, '_blank');
+    const newWindow = window.open(action.value, '_blank', 'noopener,noreferrer');
+    if (newWindow) {
+      newWindow.opener = null;
+    }
   }
 
   const ariaLabel =
