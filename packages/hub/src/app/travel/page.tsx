@@ -11,6 +11,7 @@ import { ChecklistSection } from './ChecklistSection';
 import { DocumentsSection } from './DocumentsSection';
 import { CompanionsSection } from './CompanionsSection';
 import { SharingSection } from './SharingSection';
+import { ComingNext } from './ComingNext';
 import { TripOverviewCards } from './TripOverviewCards';
 import { TripsSidebar } from './TripsSidebar';
 
@@ -102,7 +103,7 @@ export default function TravelPage() {
         />
 
         <div className="space-y-6">
-          <TripOverviewCards activeTrip={activeTrip} overview={overview} loadingOverview={loadingOverview} />
+          <ComingNext bookings={overview?.bookings ?? []} documents={overview?.documents ?? []} />
 
           <SectionCard title="Calendar" className="bg-cyan-950/20 border-cyan-800/50">
             {overview ? (
@@ -140,6 +141,7 @@ export default function TravelPage() {
               bookings={overview?.bookings ?? []}
               onChanged={handleOverviewChanged}
             />
+            <TripOverviewCards activeTrip={activeTrip} overview={overview} loadingOverview={loadingOverview} />
           </div>
         </div>
       </section>
