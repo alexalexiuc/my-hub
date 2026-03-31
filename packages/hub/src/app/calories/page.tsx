@@ -177,6 +177,13 @@ export default function CaloriesDashboardPage() {
       : [{ value: 1, key: 'empty' }];
   const arcColor = cap !== null ? (isOver ? '#ef4444' : '#4ade80') : '#3f3f46';
 
+  // When over, show how much the overflow wraps around (capped at one full revolution)
+  const overflowAmount = isOver && cap ? Math.min(todayKcal - cap, cap) : 0;
+  const overflowData = [
+    { value: overflowAmount, key: 'overflow' },
+    { value: cap! - overflowAmount, key: 'overflow-empty' },
+  ];
+
   // Weekly chart data
   const weeklyData = weekDays.map(({ date, label }) => {
     const dayMeals = weeklyMeals.filter((m) => m.date === date);
@@ -205,22 +212,58 @@ export default function CaloriesDashboardPage() {
           <div className="relative w-[150px] h-[150px] flex-shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={donutData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={48}
-                  outerRadius={66}
-                  startAngle={90}
-                  endAngle={-270}
-                  dataKey="value"
-                  strokeWidth={0}
-                  animationDuration={800}
-                >
-                  {donutData.map((entry, i) => (
-                    <Cell key={entry.key} fill={i === 0 ? arcColor : '#27272a'} />
-                  ))}
-                </Pie>
+                {isOver ? (
+                  <>
+                    {/* Full red background ring — represents hitting the cap */}
+                    <Pie
+                      data={[{ value: 1, key: 'bg' }]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={48}
+                      outerRadius={66}
+                      startAngle={90}
+                      endAngle={-270}
+                      dataKey="value"
+                      strokeWidth={0}
+                      isAnimationActive={false}
+                    >
+                      <Cell fill="#ef4444" />
+                    </Pie>
+                    {/* Lighter overlay arc showing how far over the cap we are */}
+                    <Pie
+                      data={overflowData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={48}
+                      outerRadius={66}
+                      startAngle={90}
+                      endAngle={-270}
+                      dataKey="value"
+                      strokeWidth={0}
+                      animationDuration={800}
+                    >
+                      <Cell key="overflow" fill="#fecaca" />
+                      <Cell key="overflow-empty" fill="transparent" />
+                    </Pie>
+                  </>
+                ) : (
+                  <Pie
+                    data={donutData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={48}
+                    outerRadius={66}
+                    startAngle={90}
+                    endAngle={-270}
+                    dataKey="value"
+                    strokeWidth={0}
+                    animationDuration={800}
+                  >
+                    {donutData.map((entry, i) => (
+                      <Cell key={entry.key} fill={i === 0 ? arcColor : '#27272a'} />
+                    ))}
+                  </Pie>
+                )}
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
