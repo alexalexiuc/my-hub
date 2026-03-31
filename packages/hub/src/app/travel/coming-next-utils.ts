@@ -2,7 +2,7 @@ import type { FlightDetails, TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 
 export interface SegmentAction {
-  type: 'boarding_pass' | 'view_booking' | 'copy_ref' | 'navigate' | 'call';
+  type: 'boarding_pass' | 'view_booking' | 'copy_ref' | 'navigate';
   label: string;
   value: string;
 }
