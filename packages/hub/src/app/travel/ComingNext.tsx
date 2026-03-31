@@ -88,13 +88,15 @@ const bucketTimeClasses: Record<TimeBucket, string> = {
 
 function SegmentCard({ segment }: { segment: Segment }) {
   const [expanded, setExpanded] = useState(false);
-  const activeRef = useRef<HTMLElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const divRef = useRef<HTMLDivElement | null>(null);
   const { text: timeText } = formatSegmentTime(segment.datetime);
   const { timeBucket, isPast, isActive } = segment;
 
   useEffect(() => {
-    if (isActive && activeRef.current) {
-      activeRef.current.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    if (isActive) {
+      const el = buttonRef.current ?? divRef.current;
+      el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
   }, [isActive]);
 
@@ -103,7 +105,7 @@ function SegmentCard({ segment }: { segment: Segment }) {
     return (
       <button
         type="button"
-        ref={activeRef}
+        ref={isActive ? buttonRef : undefined}
         onClick={() => setExpanded(true)}
         aria-label={`Expand past segment: ${segment.primaryLabel}`}
         title="Click to expand"
@@ -123,7 +125,7 @@ function SegmentCard({ segment }: { segment: Segment }) {
 
   return (
     <div
-      ref={isActive ? activeRef : undefined}
+      ref={isActive ? divRef : undefined}
       aria-current={isActive ? 'true' : undefined}
       role={isPast ? 'button' : undefined}
       tabIndex={isPast ? 0 : undefined}
