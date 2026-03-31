@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import { BookingTypeIcon } from '@/components';
-import { TicketIcon, DocumentIcon, ClipboardIcon, PinIcon, PhoneIcon } from '@/components/icons';
+import { TicketIcon, DocumentIcon, ClipboardIcon, PinIcon } from '@/components/icons';
 import type { TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { mapBookingsToSegments, formatSegmentTime } from './coming-next-utils';
@@ -14,7 +14,6 @@ const actionIcons: Record<SegmentAction['type'], () => React.JSX.Element> = {
   view_booking: DocumentIcon,
   copy_ref: ClipboardIcon,
   navigate: PinIcon,
-  call: PhoneIcon,
 };
 
 function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLabel: string }) {
@@ -35,9 +34,8 @@ function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLa
       }
       return;
     }
-    if (action.type === 'navigate' || action.type === 'call') {
-      const url = action.type === 'call' ? `tel:${action.value}` : action.value;
-      const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
+    if (action.type === 'navigate') {
+      const newWindow = window.open(action.value, '_blank', 'noopener,noreferrer');
       if (newWindow) {
         newWindow.opener = null;
       }
