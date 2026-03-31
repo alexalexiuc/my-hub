@@ -1,4 +1,4 @@
-import type { FlightDetails, TripDocument } from '@my-hub/shared/types';
+import type { FlightDetails, TripBookingType, TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 
 export interface SegmentAction {
@@ -9,7 +9,7 @@ export interface SegmentAction {
 
 export interface Segment {
   id: number;
-  bookingType: string;
+  bookingType: TripBookingType;
   datetime: string;
   isActive: boolean;
   primaryLabel: string;
@@ -132,11 +132,25 @@ export function formatSegmentTime(datetime: string, now: Date = new Date()): { t
   const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
   const isSoon = diffMs > 0 && diffMs <= THREE_HOURS;
 
+  const hours = target.getHours().toString().padStart(2, '0');
+  const minutes = target.getMinutes().toString().padStart(2, '0');
+
   if (diffMs < 0) {
     // In the past — show absolute
-    const hours = target.getHours().toString().padStart(2, '0');
-    const minutes = target.getMinutes().toString().padStart(2, '0');
     return { text: `${hours}:${minutes}`, isSoon: false };
+  }
+
+  // Check if the target falls on tomorrow's calendar day before applying relative format,
+  // so that e.g. 23:50 → 00:15 shows "Tomorrow · 00:15" instead of "In 25 min".
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const isTargetTomorrow =
+    target.getFullYear() === tomorrow.getFullYear() &&
+    target.getMonth() === tomorrow.getMonth() &&
+    target.getDate() === tomorrow.getDate();
+
+  if (isTargetTomorrow) {
+    return { text: `Tomorrow · ${hours}:${minutes}`, isSoon: false };
   }
 
   if (diffMs <= TWENTY_FOUR_HOURS) {
@@ -147,21 +161,7 @@ export function formatSegmentTime(datetime: string, now: Date = new Date()): { t
     return { text: `In ${h} h ${m} min`, isSoon };
   }
 
-  // Beyond 24h — show day + time
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const isTargetTomorrow =
-    target.getFullYear() === tomorrow.getFullYear() &&
-    target.getMonth() === tomorrow.getMonth() &&
-    target.getDate() === tomorrow.getDate();
-
-  const hours = target.getHours().toString().padStart(2, '0');
-  const minutes = target.getMinutes().toString().padStart(2, '0');
-
-  if (isTargetTomorrow) {
-    return { text: `Tomorrow · ${hours}:${minutes}`, isSoon: false };
-  }
-
+  // Beyond 24h and not tomorrow — show day + time
   const month = target.toLocaleString('en', { month: 'short' });
   return { text: `${target.getDate()} ${month} · ${hours}:${minutes}`, isSoon: false };
 }

@@ -1,3 +1,4 @@
+import type { TripBookingType } from '@my-hub/shared/types';
 import {
   PlaneIcon,
   BuildingIcon,
@@ -12,7 +13,7 @@ import {
   CalendarIcon,
 } from '@/components/icons';
 
-const iconMap: Record<string, () => React.JSX.Element> = {
+const iconMap: Record<TripBookingType, () => React.JSX.Element> = {
   flight: PlaneIcon,
   accommodation: BuildingIcon,
   rental_car: CarKeyIcon,
@@ -27,7 +28,7 @@ const iconMap: Record<string, () => React.JSX.Element> = {
   other: CalendarIcon,
 };
 
-export function BookingTypeIcon({ type }: { type: string }) {
+export function BookingTypeIcon({ type }: { type: TripBookingType }) {
   const Icon = iconMap[type] ?? CalendarIcon;
   return <Icon />;
 }

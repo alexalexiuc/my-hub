@@ -255,6 +255,16 @@ describe('formatSegmentTime', () => {
     expect(result.isSoon).toBe(false);
   });
 
+  it('formats next-day time as "Tomorrow" even when less than 24h away', () => {
+    // now = 23:30, target = 00:15 next calendar day (~45 min away)
+    const lateNow = new Date('2026-03-31T23:30:00Z');
+    const earlyTomorrow = new Date('2026-04-01T00:15:00Z');
+    const result = formatSegmentTime(earlyTomorrow.toISOString(), lateNow);
+    expect(result.text).toContain('Tomorrow');
+    expect(result.text).toContain('00:15');
+    expect(result.isSoon).toBe(false);
+  });
+
   it('formats dates beyond tomorrow with date + time', () => {
     const future = new Date('2026-04-05T09:30:00Z');
     const result = formatSegmentTime(future.toISOString(), now);
