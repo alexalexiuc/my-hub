@@ -292,7 +292,7 @@ export function BookingsSection({
 
       <div className="space-y-2 max-h-[28rem] overflow-auto">
         {bookings.map((booking) => (
-          <div key={booking.id} className="rounded-md border border-zinc-700 bg-zinc-900 text-sm">
+          <div key={booking.id} className="rounded-md border border-zinc-700 bg-zinc-900 text-sm" data-testid="booking-row">
             {editingBookingId === booking.id ? (
               <div className="space-y-2 px-3 py-2">
                 <input
