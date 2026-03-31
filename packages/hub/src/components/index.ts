@@ -6,3 +6,4 @@ export * from './MultiButtonGroup';
 export * from './PageHeader';
 export * from './Providers';
 export * from './SectionCard';
+export * from './BookingTypeIcon';

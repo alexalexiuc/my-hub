@@ -5,7 +5,7 @@ import { SectionCard } from '@/components/SectionCard';
 import type { FlightDetails, TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { AttachmentIcon, PencilIcon, TrashIcon } from '@/components/icons';
-import { IconButton } from '@/components';
+import { BookingTypeIcon, IconButton } from '@/components';
 
 const bookingTypeOptions = [
   'flight',
@@ -191,17 +191,22 @@ export function BookingsSection({
           className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
         />
         <div className="grid grid-cols-2 gap-2">
-          <select
-            value={newBookingType}
-            onChange={(e) => setNewBookingType(e.target.value as (typeof bookingTypeOptions)[number])}
-            className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-          >
-            {bookingTypeOptions.map((type) => (
-              <option key={type} value={type}>
-                {bookingTypeLabels[type]}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-1.5">
+            <span className="text-zinc-400">
+              <BookingTypeIcon type={newBookingType} />
+            </span>
+            <select
+              value={newBookingType}
+              onChange={(e) => setNewBookingType(e.target.value as (typeof bookingTypeOptions)[number])}
+              className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+            >
+              {bookingTypeOptions.map((type) => (
+                <option key={type} value={type}>
+                  {bookingTypeLabels[type]}
+                </option>
+              ))}
+            </select>
+          </div>
           <input
             value={newBookingProvider}
             onChange={(e) => setNewBookingProvider(e.target.value)}
@@ -278,17 +283,22 @@ export function BookingsSection({
                   className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                 />
                 <div className="grid grid-cols-2 gap-2">
-                  <select
-                    value={editBookingType}
-                    onChange={(e) => setEditBookingType(e.target.value as (typeof bookingTypeOptions)[number])}
-                    className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
-                  >
-                    {bookingTypeOptions.map((type) => (
-                      <option key={type} value={type}>
-                        {bookingTypeLabels[type]}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-zinc-400">
+                      <BookingTypeIcon type={editBookingType} />
+                    </span>
+                    <select
+                      value={editBookingType}
+                      onChange={(e) => setEditBookingType(e.target.value as (typeof bookingTypeOptions)[number])}
+                      className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
+                    >
+                      {bookingTypeOptions.map((type) => (
+                        <option key={type} value={type}>
+                          {bookingTypeLabels[type]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <input
                     value={editBookingProvider}
                     onChange={(e) => setEditBookingProvider(e.target.value)}
@@ -366,8 +376,9 @@ export function BookingsSection({
                 <div>
                   <p className="font-medium">{booking.title}</p>
                   <div className="flex items-center gap-2">
-                    <p className="text-xs text-zinc-400">
-                      {booking.bookingType}
+                    <p className="flex items-center gap-1 text-xs text-zinc-400">
+                      <BookingTypeIcon type={booking.bookingType} />
+                      {bookingTypeLabels[booking.bookingType as keyof typeof bookingTypeLabels] ?? booking.bookingType}
                       {booking.provider ? ` · ${booking.provider}` : ''}
                       {booking.startAt ? ` · ${new Date(booking.startAt).toLocaleString()}` : ''}
                       {booking.endAt ? ` → ${new Date(booking.endAt).toLocaleString()}` : ''}
