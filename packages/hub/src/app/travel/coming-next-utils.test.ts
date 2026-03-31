@@ -360,9 +360,10 @@ describe('formatSegmentTime', () => {
   it('formats past times as date + time', () => {
     const past = new Date('2026-03-31T08:30:00Z');
     const result = formatSegmentTime(past.toISOString(), now);
+    // Exact time is omitted because getHours()/getMinutes() use local timezone
+    // and would differ across environments; date and month are stable.
     expect(result.text).toContain('31');
     expect(result.text).toContain('Mar');
-    expect(result.text).toContain('08:30');
     expect(result.isSoon).toBe(false);
   });
 });

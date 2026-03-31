@@ -128,7 +128,7 @@ function SegmentCard({ segment }: { segment: Segment }) {
       role={isPast ? 'button' : undefined}
       tabIndex={isPast ? 0 : undefined}
       onClick={isPast ? () => setExpanded(false) : undefined}
-      onKeyDown={isPast ? (e) => e.key === 'Enter' && setExpanded(false) : undefined}
+      onKeyDown={isPast ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(false); } } : undefined}
       className={`relative flex flex-col gap-1.5 rounded-lg border p-3 text-sm transition-all md:w-[210px] md:flex-none ${bucketCardClasses[timeBucket]} ${
         isPast ? 'opacity-70 cursor-pointer hover:opacity-90' : 'hover:shadow-md hover:shadow-black/30'
       }`}

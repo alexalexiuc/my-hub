@@ -399,10 +399,17 @@ export function BookingsSection({
             ) : (
               <>
                 {/* Clickable header row */}
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left hover:bg-zinc-800/40 transition-colors rounded-md"
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left hover:bg-zinc-800/40 transition-colors rounded-md cursor-pointer"
                   onClick={() => toggleExpand(booking.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleExpand(booking.id);
+                    }
+                  }}
                   aria-expanded={expandedBookingId === booking.id}
                   aria-label={`${expandedBookingId === booking.id ? 'Collapse' : 'Expand'} reservation: ${booking.title}`}
                 >
@@ -440,7 +447,7 @@ export function BookingsSection({
                       </div>
                     )}
                   </div>
-                </button>
+                </div>
 
                 {/* Expanded details panel */}
                 {expandedBookingId === booking.id && (
