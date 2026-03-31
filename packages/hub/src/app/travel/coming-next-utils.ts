@@ -7,11 +7,15 @@ export interface SegmentAction {
   value: string;
 }
 
+export type TimeBucket = 'past' | 'now' | 'imminent' | 'soon' | 'future';
+
 export interface Segment {
   id: number;
   bookingType: TripBookingType;
   datetime: string;
   isActive: boolean;
+  isPast: boolean;
+  timeBucket: TimeBucket;
   primaryLabel: string;
   secondaryLabel: string;
   actions: SegmentAction[];
@@ -102,6 +106,8 @@ export function mapBookingsToSegments(
 
   const nowMs = now.getTime();
   const TWO_HOURS = 2 * 60 * 60 * 1000;
+  const ONE_HOUR = 60 * 60 * 1000;
+  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
   return bookings
     .filter((b) => b.startAt != null)
@@ -110,6 +116,16 @@ export function mapBookingsToSegments(
       const startMs = new Date(booking.startAt!).getTime();
       const endMs = booking.endAt ? new Date(booking.endAt).getTime() : startMs + TWO_HOURS;
       const isActive = nowMs >= startMs && nowMs <= endMs;
+      const isPast = endMs < nowMs;
+      const diffMs = startMs - nowMs;
+
+      let timeBucket: TimeBucket;
+      if (isPast) timeBucket = 'past';
+      else if (isActive) timeBucket = 'now';
+      else if (diffMs <= ONE_HOUR) timeBucket = 'imminent';
+      else if (diffMs <= TWENTY_FOUR_HOURS) timeBucket = 'soon';
+      else timeBucket = 'future';
+
       const labels = deriveLabels(booking);
       const actions = deriveActions(booking, docsByBookingId.get(booking.id) ?? []);
 
@@ -118,6 +134,8 @@ export function mapBookingsToSegments(
         bookingType: booking.bookingType,
         datetime: new Date(booking.startAt!).toISOString(),
         isActive,
+        isPast,
+        timeBucket,
         primaryLabel: labels.primary,
         secondaryLabel: labels.secondary,
         actions,
@@ -136,8 +154,9 @@ export function formatSegmentTime(datetime: string, now: Date = new Date()): { t
   const minutes = target.getMinutes().toString().padStart(2, '0');
 
   if (diffMs < 0) {
-    // In the past — show absolute
-    return { text: `${hours}:${minutes}`, isSoon: false };
+    // In the past — show date + time so it's clear when it occurred
+    const month = target.toLocaleString('en', { month: 'short' });
+    return { text: `${target.getDate()} ${month} · ${hours}:${minutes}`, isSoon: false };
   }
 
   // Check if the target falls on tomorrow's calendar day before applying relative format,

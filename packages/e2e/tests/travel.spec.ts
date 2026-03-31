@@ -3,6 +3,15 @@ import type { Page } from '@playwright/test';
 import { TEST_USER } from '../config';
 import { seedSharedTripFixture } from '../seeds/travel.seed';
 
+/** Format a Date for a datetime-local input value (local time, no seconds). */
+function toDateTimeLocal(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
+}
+
 function uniqueName(prefix: string): string {
   return `${prefix} ${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
@@ -199,6 +208,88 @@ test.describe('Travel', () => {
 
     const gateText = page.getByText(new RegExp(`Gate ${gate}`, 'i'));
     await expect(gateText).toBeVisible();
+  });
+
+  test('ComingNext shows chips for multiple bookings with correct time-state styling', async ({ page }) => {
+    const tripName = uniqueName('E2E ComingNext Chips');
+    const now = new Date();
+
+    // Helpers for relative datetimes
+    const pastStart = new Date(now.getTime() - 5 * 60 * 60 * 1000); // 5h ago
+    const pastEnd = new Date(now.getTime() - 3 * 60 * 60 * 1000); // 3h ago
+    const imminentStart = new Date(now.getTime() + 30 * 60 * 1000); // +30 min
+    const futureStart = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // +3 days
+
+    await createTrip(page, tripName);
+    const tripButton = page.getByRole('button', { name: new RegExp(tripName) });
+    await tripButton.click();
+
+    // Add past booking
+    await page.getByPlaceholder('Reservation title').fill('Past Hotel');
+    await page.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(pastStart));
+    await page.locator('input[type="datetime-local"]').nth(1).fill(toDateTimeLocal(pastEnd));
+    await page.getByRole('button', { name: 'Add Reservation' }).click();
+    await expect(page.locator('p.font-medium, button', { hasText: /Past Hotel/ }).first()).toBeVisible();
+
+    // Add imminent booking (< 1h away)
+    await page.getByPlaceholder('Reservation title').fill('Imminent Flight');
+    await page.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(imminentStart));
+    await page.getByRole('button', { name: 'Add Reservation' }).click();
+    await expect(page.locator('p.font-medium, button', { hasText: /Imminent Flight/ }).first()).toBeVisible();
+
+    // Add far-future booking (> 24h)
+    await page.getByPlaceholder('Reservation title').fill('Future Tour');
+    await page.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(futureStart));
+    await page.getByRole('button', { name: 'Add Reservation' }).click();
+    await expect(page.locator('p.font-medium, button', { hasText: /Future Tour/ }).first()).toBeVisible();
+
+    // ComingNext section should be visible with all three chips
+    const comingNext = page.getByRole('heading', { name: 'Coming Next' }).locator('xpath=ancestor::section[1]');
+    await expect(comingNext).toBeVisible();
+
+    // Past chip: collapsed compact button with "Done" badge
+    const pastChip = comingNext.getByRole('button', { name: /Expand past segment: Past Hotel/ });
+    await expect(pastChip).toBeVisible();
+    await expect(pastChip).toContainText('Done');
+    await expect(pastChip).toContainText('Past Hotel');
+
+    // Clicking past chip expands it
+    await pastChip.click();
+    const expandedPastCard = comingNext.getByText('Past Hotel').last();
+    await expect(expandedPastCard).toBeVisible();
+
+    // Imminent chip: visible with "Soon!" badge
+    const imminentChip = comingNext.getByText('Imminent Flight');
+    await expect(imminentChip).toBeVisible();
+    await expect(comingNext.getByText('Soon!')).toBeVisible();
+
+    // Future chip visible
+    await expect(comingNext.getByText('Future Tour')).toBeVisible();
+  });
+
+  test('reservation row expands on click to show extra details', async ({ page }) => {
+    const tripName = uniqueName('E2E Expand Reservation');
+    const bookingTitle = uniqueName('Hotel Expand Test');
+
+    await createTrip(page, tripName);
+    await page.getByRole('button', { name: new RegExp(tripName) }).click();
+
+    await page.getByPlaceholder('Reservation title').fill(bookingTitle);
+    await page.getByPlaceholder('Provider').fill('Test Provider');
+    await page.getByRole('button', { name: 'Add Reservation' }).click();
+    await expect(page.locator('p.font-medium', { hasText: bookingTitle })).toBeVisible();
+
+    // Details should not be visible before expanding
+    const bookingRow = page.getByRole('button', { name: new RegExp(`Expand reservation: ${bookingTitle}`) }).first();
+    await expect(bookingRow).toBeVisible();
+
+    // Click to expand
+    await bookingRow.click();
+    await expect(bookingRow).toHaveAttribute('aria-expanded', 'true');
+
+    // Click again to collapse
+    await bookingRow.click();
+    await expect(bookingRow).toHaveAttribute('aria-expanded', 'false');
   });
 
   test('editing flight booking preserves all flight detail fields', async ({ page }) => {
