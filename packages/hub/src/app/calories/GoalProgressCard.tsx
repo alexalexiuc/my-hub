@@ -57,35 +57,19 @@ function getDailyGoalDelta(goalType: string | null, goalWeeklyRateKg: number | n
   return null;
 }
 
+function getBaselineWeightForWeek(weightRows: WeightMeasurement[], weekStartDate: string): number | null {
+  const mondayWeight = weightRows.find((row) => row.date === weekStartDate)?.value ?? null;
+  if (mondayWeight !== null) return mondayWeight;
+
+  // If Monday has no measurement, fall back to the most recent known value.
+  return weightRows[0]?.value ?? null;
+}
+
 function findNearestPastWeight(weightRows: WeightMeasurement[], date: string): number | null {
   for (const row of weightRows) {
     if (row.date <= date) return row.value;
   }
   return null;
-}
-
-function findNearestFutureWeight(weightRows: WeightMeasurement[], date: string): number | null {
-  let nearest: WeightMeasurement | null = null;
-  for (const row of weightRows) {
-    if (row.date >= date && (!nearest || row.date < nearest.date)) {
-      nearest = row;
-    }
-  }
-  return nearest?.value ?? null;
-}
-
-function findFirstWeightDateInRange(
-  weightRows: WeightMeasurement[],
-  startDate: string,
-  endDate: string,
-): string | null {
-  let firstDate: string | null = null;
-  for (const row of weightRows) {
-    if (row.date >= startDate && row.date <= endDate && (firstDate === null || row.date < firstDate)) {
-      firstDate = row.date;
-    }
-  }
-  return firstDate;
 }
 
 export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRateKg }: Props) {
@@ -96,18 +80,8 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
 
   const orderedWeights = [...weightHistory].sort((a, b) => b.date.localeCompare(a.date));
   const weekStart = days[0]!.date;
-  const weekEnd = days[days.length - 1]!.date;
-  const pastAtWeekStart = findNearestPastWeight(orderedWeights, weekStart);
-  const firstWeightDateInWeek = findFirstWeightDateInRange(orderedWeights, weekStart, weekEnd);
-
-  const displayDays =
-    pastAtWeekStart !== null || firstWeightDateInWeek === null
-      ? days
-      : days.filter((d) => d.date >= firstWeightDateInWeek);
-
-  const chartStartDate = displayDays[0]?.date ?? weekStart;
-  const baselineWeight =
-    findNearestPastWeight(orderedWeights, chartStartDate) ?? findNearestFutureWeight(orderedWeights, chartStartDate);
+  const displayDays = days;
+  const baselineWeight = getBaselineWeightForWeek(orderedWeights, weekStart);
   if (baselineWeight === null) {
     return <p className="text-xs text-zinc-600 px-1">Weekly goal progress — no recent weight data available.</p>;
   }
@@ -116,7 +90,7 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
 
   const chartData = displayDays.map(({ date, label }, index) => {
     const projected = baselineWeight + dailyDelta * index;
-    const actual = findNearestPastWeight(orderedWeights, date);
+    const actual = date <= today ? findNearestPastWeight(orderedWeights, date) : null;
     return {
       date,
       label,

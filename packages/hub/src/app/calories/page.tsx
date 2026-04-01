@@ -26,7 +26,7 @@ function getCurrentWeekDays(): { date: string; label: string }[] {
   monday.setDate(today.getDate() - daysSinceMonday);
 
   const cursor = new Date(monday);
-  while (cursor <= today) {
+  for (let i = 0; i < 7; i += 1) {
     const d = new Date(cursor);
     days.push({
       date: dateToString(d),
