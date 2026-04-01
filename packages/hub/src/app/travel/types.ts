@@ -1,17 +1,17 @@
 import type {
   FlightData,
-  Trip,
   TripBooking,
   TripChecklistItem,
   TripCompanion,
   TripDocument,
   TripPlace,
+  TripWithStatus,
 } from '@my-hub/shared/types';
 
 export type TripBookingExtended = TripBooking & { flightData: FlightData | null };
 
 export interface TripOverviewResponse {
-  trip: Trip;
+  trip: TripWithStatus;
   bookings: TripBookingExtended[];
   places: TripPlace[];
   checklist: TripChecklistItem[];
@@ -19,7 +19,7 @@ export interface TripOverviewResponse {
   documents: TripDocument[];
 }
 
-export interface ApiTrip extends Trip {
+export interface ApiTrip extends TripWithStatus {
   owner_user_id: string;
   owner_name: string | null;
   owner_email: string;

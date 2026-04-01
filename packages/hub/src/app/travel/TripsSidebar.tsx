@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { IconButton, MultiButtonGroup, SectionCard } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
-import type { Trip, TripStatus } from '@my-hub/shared/types';
+import type { Trip } from '@my-hub/shared/types';
 import type { ApiTrip, BookingRange } from './types';
 
 const tripColorPalette = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#84CC16'];
@@ -11,8 +11,6 @@ const tripColorPalette = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
 function randomTripColor(): string {
   return tripColorPalette[Math.floor(Math.random() * tripColorPalette.length)] ?? '#3B82F6';
 }
-
-const statusOptions: TripStatus[] = ['planned', 'active', 'completed', 'cancelled'];
 
 function toDateInputValue(value: Date | string | null | undefined): string {
   if (!value) return '';
@@ -63,7 +61,7 @@ export function TripsSidebar({
 
   const filteredTrips = useMemo(() => {
     const base =
-      filterMode === 'upcoming' ? trips.filter((t) => t.status !== 'completed' && t.status !== 'cancelled') : trips;
+      filterMode === 'upcoming' ? trips.filter((t) => t.status !== 'cancelled' && t.status !== 'completed') : trips;
     return [...base].sort((a, b) => {
       const aDate = a.startAt ? new Date(a.startAt).getTime() : null;
       const bDate = b.startAt ? new Date(b.startAt).getTime() : null;
@@ -76,7 +74,6 @@ export function TripsSidebar({
 
   async function createTrip() {
     if (!newTripName.trim()) return;
-    const status = statusOptions[0];
     const res = await fetch('/api/travel/trips', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -86,7 +83,6 @@ export function TripsSidebar({
         destination: newTripDestination.trim() || null,
         start_at: newTripStartAt ? `${newTripStartAt}T00:00:00.000Z` : undefined,
         end_at: newTripEndAt ? `${newTripEndAt}T00:00:00.000Z` : undefined,
-        status,
       }),
     });
     if (!res.ok) return;

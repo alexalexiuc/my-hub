@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import { deleteTrip, updateTrip } from '@my-hub/shared/services';
-import type { TripStatus } from '@my-hub/shared/types';
 import { parseAndValidateDateForPatch } from '@/lib/api/date-validation';
 
-const tripStatuses: TripStatus[] = ['planned', 'active', 'completed', 'cancelled'];
 const hexColorRe = /^#[0-9A-F]{6}$/i;
 
 export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
@@ -31,16 +29,21 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
     return NextResponse.json({ error: endAtError }, { status: 400 });
   }
 
+  const { date: cancelledAt, error: cancelledAtError } = parseAndValidateDateForPatch(
+    body.cancelled_at,
+    'cancelled_at',
+  );
+  if (cancelledAtError) {
+    return NextResponse.json({ error: cancelledAtError }, { status: 400 });
+  }
+
   const trip = await updateTrip(user.id, tripId, {
     name: typeof body.name === 'string' ? body.name.trim() : undefined,
     destination: typeof body.destination === 'string' ? body.destination.trim() || null : undefined,
     color: typeof body.color === 'string' && hexColorRe.test(body.color) ? body.color : undefined,
     startAt,
     endAt,
-    status:
-      typeof body.status === 'string' && tripStatuses.includes(body.status as TripStatus)
-        ? (body.status as TripStatus)
-        : undefined,
+    cancelledAt,
     notes: typeof body.notes === 'string' ? body.notes : undefined,
     coverImageUrl: typeof body.cover_image_url === 'string' ? body.cover_image_url : undefined,
   });

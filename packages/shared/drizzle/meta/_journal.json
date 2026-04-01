@@ -113,6 +113,13 @@
       "when": 1774866982236,
       "tag": "0016_perpetual_gideon",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1775055861580,
+      "tag": "0017_short_stone_men",
+      "breakpoints": true
     }
   ]
 }

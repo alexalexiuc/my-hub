@@ -32,6 +32,7 @@ import type {
   TripDocumentType,
   TripSharePermission,
 } from '../db/schema/travel';
+export { deriveTripStatus } from '../db/schema/travel';
 
 // Identity & Auth
 export type User = InferSelectModel<typeof users>;
@@ -96,6 +97,7 @@ export type FlightData = InferSelectModel<typeof flightData>;
 export type NewFlightData = InferInsertModel<typeof flightData>;
 export type Trip = InferSelectModel<typeof trips>;
 export type NewTrip = InferInsertModel<typeof trips>;
+export type TripWithStatus = Trip & { status: TripStatus };
 export type TripBooking = InferSelectModel<typeof tripBookings>;
 export type NewTripBooking = InferInsertModel<typeof tripBookings>;
 export type TripPlace = InferSelectModel<typeof tripPlaces>;

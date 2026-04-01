@@ -1,9 +1,9 @@
-import { and, asc, eq, gte, inArray, or, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
-import { tripBookings, tripShares, trips } from '../../db/schema/travel';
+import { deriveTripStatus, tripBookings, tripShares, trips } from '../../db/schema/travel';
 import { omitNullish } from '../../utils/index';
-import type { NewTrip, Trip, TripStatus, TripSharePermission } from '../../types/index';
+import type { NewTrip, Trip, TripSharePermission, TripWithStatus } from '../../types/index';
 
 const tripColorPalette = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#84CC16'];
 
@@ -13,12 +13,8 @@ function randomTripColor(): string {
 
 export type TripInsert = Omit<NewTrip, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
 export type TripUpdate = Partial<
-  Pick<TripInsert, 'name' | 'color' | 'destination' | 'startAt' | 'endAt' | 'status' | 'notes' | 'coverImageUrl'>
+  Pick<TripInsert, 'name' | 'color' | 'destination' | 'startAt' | 'endAt' | 'cancelledAt' | 'notes' | 'coverImageUrl'>
 >;
-
-export interface GetTripsOpts {
-  status?: TripStatus;
-}
 
 export interface TripBookingRange {
   tripId: number;
@@ -27,7 +23,7 @@ export interface TripBookingRange {
 }
 
 export interface AccessibleTrip {
-  trip: Trip;
+  trip: TripWithStatus;
   ownerUserId: string;
   ownerName: string | null;
   ownerEmail: string;
@@ -35,7 +31,11 @@ export interface AccessibleTrip {
   permission: TripSharePermission;
 }
 
-export async function createTrip(userId: string, data: TripInsert): Promise<Trip> {
+function withStatus(trip: Trip, now = new Date()): TripWithStatus {
+  return { ...trip, status: deriveTripStatus(trip.cancelledAt, trip.startAt, trip.endAt, now) };
+}
+
+export async function createTrip(userId: string, data: TripInsert): Promise<TripWithStatus> {
   const [row] = await db
     .insert(trips)
     .values({
@@ -46,24 +46,18 @@ export async function createTrip(userId: string, data: TripInsert): Promise<Trip
     .returning();
 
   if (!row) throw new Error('Insert did not return a row');
-  return row;
+  return withStatus(row);
 }
 
-export async function getTrips(userId: string, opts: GetTripsOpts = {}): Promise<Trip[]> {
-  if (opts.status) {
-    return db
-      .select()
-      .from(trips)
-      .where(and(eq(trips.userId, userId), eq(trips.status, opts.status)))
-      .orderBy(asc(trips.startAt), asc(trips.id));
-  }
-
-  return db.select().from(trips).where(eq(trips.userId, userId)).orderBy(asc(trips.startAt), asc(trips.id));
+export async function getTrips(userId: string): Promise<TripWithStatus[]> {
+  const now = new Date();
+  const rows = await db.select().from(trips).where(eq(trips.userId, userId)).orderBy(asc(trips.startAt), asc(trips.id));
+  return rows.map((r) => withStatus(r, now));
 }
 
-export async function getAccessibleTrips(userId: string, opts: GetTripsOpts = {}): Promise<AccessibleTrip[]> {
+export async function getAccessibleTrips(userId: string): Promise<AccessibleTrip[]> {
+  const now = new Date();
   const baseWhere = or(eq(trips.userId, userId), eq(tripShares.sharedWithUserId, userId));
-  const statusWhere = opts.status ? eq(trips.status, opts.status) : undefined;
 
   const rows = await db
     .select({
@@ -84,11 +78,11 @@ export async function getAccessibleTrips(userId: string, opts: GetTripsOpts = {}
       ),
     )
     .innerJoin(users, eq(users.id, trips.userId))
-    .where(statusWhere ? and(baseWhere, statusWhere) : baseWhere)
+    .where(baseWhere)
     .orderBy(asc(trips.startAt), asc(trips.id));
 
   return rows.map((row) => ({
-    trip: row.trip,
+    trip: withStatus(row.trip, now),
     ownerUserId: row.ownerUserId,
     ownerName: row.ownerName,
     ownerEmail: row.ownerEmail,
@@ -97,15 +91,15 @@ export async function getAccessibleTrips(userId: string, opts: GetTripsOpts = {}
   }));
 }
 
-export async function getTripById(userId: string, tripId: number): Promise<Trip | null> {
+export async function getTripById(userId: string, tripId: number): Promise<TripWithStatus | null> {
   const [row] = await db
     .select()
     .from(trips)
     .where(and(eq(trips.userId, userId), eq(trips.id, tripId)));
-  return row ?? null;
+  return row ? withStatus(row) : null;
 }
 
-export async function getTripByIdAccessible(userId: string, tripId: number): Promise<Trip | null> {
+export async function getTripByIdAccessible(userId: string, tripId: number): Promise<TripWithStatus | null> {
   const [row] = await db
     .select({ trip: trips })
     .from(trips)
@@ -119,10 +113,10 @@ export async function getTripByIdAccessible(userId: string, tripId: number): Pro
     )
     .where(and(eq(trips.id, tripId), or(eq(trips.userId, userId), eq(tripShares.sharedWithUserId, userId))));
 
-  return row?.trip ?? null;
+  return row ? withStatus(row.trip) : null;
 }
 
-export async function updateTrip(userId: string, tripId: number, data: TripUpdate): Promise<Trip | null> {
+export async function updateTrip(userId: string, tripId: number, data: TripUpdate): Promise<TripWithStatus | null> {
   const [row] = await db
     .update(trips)
     .set({
@@ -132,27 +126,27 @@ export async function updateTrip(userId: string, tripId: number, data: TripUpdat
     .where(and(eq(trips.userId, userId), eq(trips.id, tripId)))
     .returning();
 
-  return row ?? null;
+  return row ? withStatus(row) : null;
 }
 
-export async function deleteTrip(userId: string, tripId: number): Promise<Trip | null> {
+export async function deleteTrip(userId: string, tripId: number): Promise<TripWithStatus | null> {
   const [row] = await db
     .delete(trips)
     .where(and(eq(trips.userId, userId), eq(trips.id, tripId)))
     .returning();
 
-  return row ?? null;
+  return row ? withStatus(row) : null;
 }
 
-export async function getNextTrip(userId: string, now = new Date()): Promise<Trip | null> {
+export async function getNextTrip(userId: string, now = new Date()): Promise<TripWithStatus | null> {
   const [row] = await db
     .select()
     .from(trips)
-    .where(and(eq(trips.userId, userId), gte(trips.startAt, now)))
+    .where(and(eq(trips.userId, userId), gte(trips.startAt, now), isNull(trips.cancelledAt)))
     .orderBy(asc(trips.startAt), asc(trips.id))
     .limit(1);
 
-  return row ?? null;
+  return row ? withStatus(row, now) : null;
 }
 
 export async function getTripBookingRanges(userId: string): Promise<TripBookingRange[]> {

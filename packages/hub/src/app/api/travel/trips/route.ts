@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import { createTrip, getAccessibleTrips, getTripBookingRangesByTripIds } from '@my-hub/shared/services';
-import type { TripStatus } from '@my-hub/shared/types';
 import { parseAndValidateDate } from '@/lib/api/date-validation';
 
-const tripStatuses: TripStatus[] = ['planned', 'active', 'completed', 'cancelled'];
 const hexColorRe = /^#[0-9A-F]{6}$/i;
 
 export const GET = withAuth(async ({ user }) => {
@@ -37,10 +35,6 @@ export const POST = withAuth(async ({ req, user }) => {
   if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 });
 
   const destination = typeof body.destination === 'string' ? body.destination.trim() : null;
-  const status =
-    typeof body.status === 'string' && tripStatuses.includes(body.status as TripStatus)
-      ? (body.status as TripStatus)
-      : 'planned';
   const notes = typeof body.notes === 'string' ? body.notes : null;
   const { date: startAt, error: startAtError } = parseAndValidateDate(body.start_at, 'start_at');
   if (startAtError) {
@@ -59,7 +53,6 @@ export const POST = withAuth(async ({ req, user }) => {
     destination,
     startAt,
     endAt,
-    status,
     notes,
     coverImageUrl: null,
   });

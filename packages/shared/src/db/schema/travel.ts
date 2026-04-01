@@ -23,6 +23,19 @@ export const TripStatuses = {
 export type TripStatus = (typeof TripStatuses)[keyof typeof TripStatuses];
 export const tripStatusValues: TripStatus[] = Object.values(TripStatuses);
 
+// Derived from dates + cancelledAt — not stored in DB
+export function deriveTripStatus(
+  cancelledAt: Date | null,
+  startAt: Date | null,
+  endAt: Date | null,
+  now = new Date(),
+): TripStatus {
+  if (cancelledAt != null) return 'cancelled';
+  if (!startAt || startAt > now) return 'planned';
+  if (!endAt || endAt >= now) return 'active';
+  return 'completed';
+}
+
 export const TripBookingTypes = {
   Flight: 'flight',
   Accommodation: 'accommodation',
@@ -114,7 +127,7 @@ export const trips = pgTable(
     destination: text('destination'),
     startAt: timestamp('start_at'),
     endAt: timestamp('end_at'),
-    status: text('status').$type<TripStatus>().notNull().default('planned'),
+    cancelledAt: timestamp('cancelled_at'),
     notes: text('notes'),
     coverImageUrl: text('cover_image_url'),
     createdAt: timestamp('created_at').notNull().defaultNow(),

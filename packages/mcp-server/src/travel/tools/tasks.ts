@@ -126,7 +126,6 @@ export const travelPlanTripTool: ToolCallback<typeof TravelPlanTripSchema.shape>
     destination: input.destination,
     startAt: input.start_at ? new Date(input.start_at) : null,
     endAt: input.end_at ? new Date(input.end_at) : null,
-    status: 'planned',
     notes: input.notes ?? null,
     coverImageUrl: null,
   });
