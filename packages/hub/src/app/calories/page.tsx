@@ -178,11 +178,18 @@ export default function CaloriesDashboardPage() {
   const arcColor = cap !== null ? (isOver ? '#ef4444' : '#4ade80') : '#3f3f46';
 
   // When over, show how much the overflow wraps around (capped at one full revolution)
-  const overflowAmount = isOver && cap ? Math.min(todayKcal - cap, cap) : 0;
-  const overflowData = [
-    { value: overflowAmount, key: 'overflow' },
-    { value: cap! - overflowAmount, key: 'overflow-empty' },
-  ];
+  const overflowAmount =
+    cap !== null && isOver ? Math.min(todayKcal - cap, cap) : 0;
+  const overflowData =
+    cap !== null
+      ? [
+          { value: overflowAmount, key: 'overflow' },
+          { value: cap - overflowAmount, key: 'overflow-empty' },
+        ]
+      : [
+          { value: 0, key: 'overflow' },
+          { value: 0, key: 'overflow-empty' },
+        ];
 
   // Weekly chart data
   const weeklyData = weekDays.map(({ date, label }) => {
