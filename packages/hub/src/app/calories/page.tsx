@@ -178,8 +178,7 @@ export default function CaloriesDashboardPage() {
   const arcColor = cap !== null ? (isOver ? '#ef4444' : '#4ade80') : '#3f3f46';
 
   // When over, show how much the overflow wraps around (capped at one full revolution)
-  const overflowAmount =
-    cap !== null && isOver ? Math.min(todayKcal - cap, cap) : 0;
+  const overflowAmount = cap !== null && isOver ? Math.min(todayKcal - cap, cap) : 0;
   const overflowData =
     cap !== null
       ? [
