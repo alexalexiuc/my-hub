@@ -79,11 +79,17 @@ export function CaloriesWidget({
   const arcColor = cap !== null ? (isOver ? '#ef4444' : isUnder ? '#facc15' : '#4ade80') : '#3f3f46';
 
   // When over, show how much the overflow wraps around (capped at one full revolution)
-  const overflowAmount = isOver && cap ? Math.min(todayKcal - cap, cap) : 0;
-  const overflowData = [
-    { value: overflowAmount, key: 'overflow' },
-    { value: cap! - overflowAmount, key: 'overflow-empty' },
-  ];
+  const overflowAmount = isOver && cap !== null ? Math.min(todayKcal - cap, cap) : 0;
+  const overflowData =
+    isOver && cap !== null
+      ? [
+          { value: overflowAmount, key: 'overflow' },
+          { value: cap - overflowAmount, key: 'overflow-empty' },
+        ]
+      : [
+          { value: 0, key: 'overflow' },
+          { value: 0, key: 'overflow-empty' },
+        ];
 
   async function addMeal() {
     if (!form.description) return;
