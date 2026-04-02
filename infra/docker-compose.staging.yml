@@ -42,6 +42,33 @@ services:
       - internal-staging
 
   # ---------------------------------------------------------------------------
+  # Worker — long-running background poller
+  # ---------------------------------------------------------------------------
+  worker:
+    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-worker:staging-latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
+      RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-}
+      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - internal-staging
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # ---------------------------------------------------------------------------
   # MCP Server (Fastify) — pre-built image from GHCR
   # ---------------------------------------------------------------------------
   mcp:

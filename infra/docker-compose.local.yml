@@ -41,6 +41,10 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@host.docker.internal:5432/${POSTGRES_DB:-myhub}}
       RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-}
+      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 

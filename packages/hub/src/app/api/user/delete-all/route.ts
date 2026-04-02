@@ -5,6 +5,7 @@ import {
   deleteAllUserMeasurements,
   deleteCalorieProfile,
   deleteAllUserOAuthClients,
+  deleteAllUserTodos,
 } from '@my-hub/shared/services';
 
 /**
@@ -17,6 +18,8 @@ export const POST = withAuth(async ({ user }) => {
     deleteAllUserMeasurements(user.id),
     deleteAllUserOAuthClients(user.id),
     deleteCalorieProfile(user.id),
+    deleteAllUserTodos(user.id),
+    // TODO: Add Travel related data
   ]);
 
   return NextResponse.json({

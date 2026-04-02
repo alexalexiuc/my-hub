@@ -1,20 +1,45 @@
+import { Cron } from 'croner';
 import { syncDueFlights } from './flight-sync.js';
+import { backupDbToS3 } from './db-backup.js';
+import { cleanupOldLogs } from './log-cleanup.js';
 
-const POLL_INTERVAL_MS = 60_000; // wake up every 60 s
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+interface Task {
+  name: string;
+  cron: string;
+  fn: () => Promise<void>;
 }
 
-export async function startPollLoop(): Promise<never> {
-  console.log('[worker] Poll loop started. Interval:', POLL_INTERVAL_MS / 1000, 's');
+const tasks: Task[] = [
+  {
+    name: 'flight-sync',
+    cron: '*/5 * * * *', // every 5th minute
+    fn: syncDueFlights,
+  },
+  {
+    name: 'db-backup',
+    cron: '0 0 1 * * *', // every day at 1:00 AM
+    fn: backupDbToS3,
+  },
+  {
+    name: 'log-cleanup',
+    cron: '0 0 1 1 * *', // 1st of every month at 1:00 AM
+    fn: cleanupOldLogs,
+  },
+];
 
-  while (true) {
-    try {
-      await syncDueFlights();
-    } catch (err) {
-      console.error('[worker] Unexpected error during sync cycle:', err);
-    }
-    await sleep(POLL_INTERVAL_MS);
+export function startPollLoop(): void {
+  console.log('[worker] Scheduling tasks:');
+
+  for (const task of tasks) {
+    new Cron(task.cron, { protect: true }, async () => {
+      console.log(`[worker] Running task: ${task.name}`);
+      try {
+        await task.fn();
+      } catch (err) {
+        console.error(`[worker] Error in task ${task.name}:`, err);
+      }
+    });
+
+    console.log(`[worker]   ${task.name} → ${task.cron}`);
   }
 }

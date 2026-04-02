@@ -25,6 +25,8 @@ FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
+RUN apk add --no-cache postgresql-client
+
 COPY --from=builder /prod/worker/dist ./dist
 COPY --from=builder /prod/worker/node_modules ./node_modules
 COPY --from=builder /prod/worker/package.json ./package.json

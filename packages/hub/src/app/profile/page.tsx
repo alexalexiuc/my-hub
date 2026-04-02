@@ -13,7 +13,7 @@ interface UserProfile {
   createdAt: string;
 }
 
-type Feature = 'meals' | 'measurements' | 'calories_profile';
+type Feature = 'meals' | 'measurements' | 'calories_profile' | 'my_travels' | 'todos';
 
 const DATA_FEATURES: { key: Feature; label: string; description: string }[] = [
   {
@@ -30,6 +30,16 @@ const DATA_FEATURES: { key: Feature; label: string; description: string }[] = [
     key: 'calories_profile',
     label: 'Calorie profile',
     description: 'Health profile settings (age, sex, activity level, goals)',
+  },
+  {
+    key: 'my_travels',
+    label: 'My Travels data',
+    description: 'All data related to My Travels feature (travel logs, travel meals, etc.)',
+  },
+  {
+    key: 'todos',
+    label: 'Todos',
+    description: 'All data related to Todos feature (tasks, reminders, etc.)',
   },
 ];
 

@@ -16,7 +16,7 @@ services:
     networks:
       - internal
     ports:
-      - '127.0.0.1:5432:5432' # ← add this
+      - '127.0.0.1:5432:5432'
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-myhub} -d ${POSTGRES_DB:-myhub}']
       interval: 10s
@@ -47,6 +47,10 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub}
       RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_REGION: ${AWS_REGION:-}
+      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
     depends_on:
       db:
         condition: service_healthy

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte } from 'drizzle-orm';
+import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { apiRequestLogs } from '../../db/schema/api-request-logs';
 import type { ApiRequestLog, NewApiRequestLog } from '../../types/index';
@@ -51,4 +51,13 @@ export async function getLogs(filter: GetLogsFilter = {}): Promise<ApiRequestLog
 export async function deleteOldLogs(olderThanDays = 30): Promise<void> {
   const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
   await db.delete(apiRequestLogs).where(lte(apiRequestLogs.createdAt, cutoff));
+}
+
+/** Retention cleanup — remove logs older than 3 months using a SQL interval. */
+export async function deleteLogsOlderThan3Months(): Promise<{ rowsDeleted: number }> {
+  const result = await db
+    .delete(apiRequestLogs)
+    .where(sql`${apiRequestLogs.createdAt} < NOW() - INTERVAL '3 month'`)
+    .returning({ id: apiRequestLogs.id });
+  return { rowsDeleted: result.length };
 }

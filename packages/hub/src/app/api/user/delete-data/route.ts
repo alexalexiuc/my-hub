@@ -7,9 +7,9 @@ import {
   deleteAllUserTodos,
 } from '@my-hub/shared/services';
 
-type Feature = 'meals' | 'measurements' | 'calories_profile' | 'todos';
+type Feature = 'meals' | 'measurements' | 'calories_profile' | 'todos' | 'my_travels';
 
-const SUPPORTED_FEATURES: Feature[] = ['meals', 'measurements', 'calories_profile', 'todos'];
+const SUPPORTED_FEATURES: Feature[] = ['meals', 'measurements', 'calories_profile', 'todos', 'my_travels'];
 
 export const POST = withAuth(async ({ req, user }) => {
   let body: Record<string, unknown>;
@@ -54,6 +54,11 @@ export const POST = withAuth(async ({ req, user }) => {
       case 'todos': {
         const count = await deleteAllUserTodos(user.id);
         results.todos = { deleted: count };
+        break;
+      }
+      case 'my_travels': {
+        // TODO: implement deletion of all user data related to My Travels feature (travel logs, travel meals, etc.)
+        results.my_travels = { deleted: 'not_implemented' };
         break;
       }
     }
