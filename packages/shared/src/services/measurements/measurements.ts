@@ -16,10 +16,18 @@ export interface MeasurementWithType extends BodyMeasurement {
   typeUnit: string;
 }
 
+/** Rounds a measurement value to 4 decimal places to avoid IEEE 754 floating-point artifacts. */
+function roundMeasurementValue(value: number): number {
+  return Math.round(value * 10000) / 10000;
+}
+
 export async function logMeasurement(data: Omit<NewBodyMeasurement, 'id' | 'createdAt'>): Promise<BodyMeasurement> {
-  const [row] = await db.insert(bodyMeasurements).values(data).returning();
+  const [row] = await db
+    .insert(bodyMeasurements)
+    .values({ ...data, value: roundMeasurementValue(data.value) })
+    .returning();
   if (!row) throw new Error('Insert did not return a row');
-  return row;
+  return { ...row, value: roundMeasurementValue(row.value) };
 }
 
 export async function getMeasurements(
@@ -54,7 +62,7 @@ export async function getMeasurements(
     .orderBy(desc(bodyMeasurements.date), desc(bodyMeasurements.createdAt))
     .limit(limit);
 
-  return rows;
+  return rows.map((row) => ({ ...row, value: roundMeasurementValue(row.value) }));
 }
 
 /** Returns the latest measurement value for each type the user has recorded */
@@ -82,7 +90,7 @@ export async function getLatestMeasurementsPerType(userId: string): Promise<Meas
   for (const row of allRows) {
     if (!seen.has(row.typeKey)) {
       seen.add(row.typeKey);
-      latest.push(row);
+      latest.push({ ...row, value: roundMeasurementValue(row.value) });
     }
   }
   return latest;
