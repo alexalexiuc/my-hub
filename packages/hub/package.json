@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:clear": "rimraf dist",
+    "build:clear": "rimraf dist; rimraf .next",
     "start": "next start",
     "lint": "pnpm exec eslint .",
     "typecheck": "tsc --noEmit",

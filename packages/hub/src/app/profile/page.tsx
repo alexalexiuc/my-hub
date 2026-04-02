@@ -5,6 +5,7 @@ import { signOut } from 'next-auth/react';
 import { PageHeader } from '@/components/PageHeader';
 import { SectionCard } from '@/components/SectionCard';
 import { Button, Field } from '@/components';
+import { NotificationsSection } from './NotificationsSection';
 
 interface UserProfile {
   id: string;
@@ -261,6 +262,9 @@ export default function ProfilePage() {
           )}
         </div>
       </SectionCard>
+
+      {/* Notification preferences */}
+      <NotificationsSection />
 
       {/* Danger zone */}
       <SectionCard title="Danger zone">
