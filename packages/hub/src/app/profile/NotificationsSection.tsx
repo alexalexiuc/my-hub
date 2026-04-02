@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { SectionCard } from '@/components/SectionCard';
-import { NOTIFICATION_SUBSCRIPTIONS } from '@my-hub/shared/services';
-import type { SubscriptionKey } from '@my-hub/shared/services';
+import { NOTIFICATION_SUBSCRIPTIONS } from '@my-hub/shared/constants';
+import type { SubscriptionKey } from '@my-hub/shared/constants';
 
 interface SubscriptionState {
   key: SubscriptionKey;
