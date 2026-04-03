@@ -49,12 +49,13 @@ function CustomTooltip({ active, payload, label }: TooltipContentProps<number, s
   const date = (payload[0] as { payload?: { date?: string } })?.payload?.date ?? label;
 
   const ceiling = max ?? target;
+  const ceilingLabel = max != null ? 'limit' : 'target';
   let deltaLine: string | null = null;
   if (ceiling !== null) {
     const delta = kcal - ceiling;
-    if (delta > 0) deltaLine = `+${delta} kcal above target`;
-    else if (delta < 0) deltaLine = `${Math.abs(delta)} kcal below target`;
-    else deltaLine = 'On target';
+    if (delta > 0) deltaLine = `+${delta} kcal above ${ceilingLabel}`;
+    else if (delta < 0) deltaLine = `${Math.abs(delta)} kcal below ${ceilingLabel}`;
+    else deltaLine = `On ${ceilingLabel}`;
   } else if (min != null && kcal < min) {
     deltaLine = `${min - kcal} kcal below min`;
   }
@@ -79,7 +80,9 @@ function CustomTooltip({ active, payload, label }: TooltipContentProps<number, s
 export function WeeklyChart({ data, target, min, max }: Props) {
   if (data.length === 0) return null;
 
-  const maxVal = Math.max(...data.map((d) => d.kcal), target ?? 0, max ?? 0);
+  const ceiling = max ?? target;
+  const lineLabel = max != null ? 'Limit' : 'Target';
+  const maxVal = Math.max(...data.map((d) => d.kcal), ceiling ?? 0, min ?? 0);
   const maxDisplayValue = Math.ceil(maxVal * 1.15);
 
   // Embed target/min/max in each data point for the custom tooltip
@@ -116,14 +119,14 @@ export function WeeklyChart({ data, target, min, max }: Props) {
                 <Cell key={entry.date} fill={getBarColor(entry.kcal, min, max, target)} />
               ))}
             </Bar>
-            {target && (
+            {ceiling != null && (
               <ReferenceLine
-                y={target}
+                y={ceiling}
                 stroke="#f59e0b"
                 strokeDasharray="6 3"
                 strokeWidth={1.5}
                 label={{
-                  value: `Target ${target}`,
+                  value: `${lineLabel} ${ceiling}`,
                   position: 'right',
                   fill: '#a1a1aa',
                   fontSize: 11,

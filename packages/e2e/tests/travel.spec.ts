@@ -16,11 +16,31 @@ function uniqueName(prefix: string): string {
   return `${prefix} ${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
 
+function reservationRowLocator(page: Page, title: string) {
+  return page.getByRole('button', { name: new RegExp(`(Expand|Collapse) reservation: ${title}`) }).first();
+}
+
+async function ensureUserExists(page: Page, email: string, password: string, name: string) {
+  const res = await page.request.post('/api/auth/register', {
+    data: { email, password, name },
+  });
+  expect([201, 409]).toContain(res.status());
+}
+
 async function createTrip(page: Page, tripName: string): Promise<void> {
   await page.getByPlaceholder('Trip name').first().fill(tripName);
   await page.getByPlaceholder('Destination').first().fill('Rome');
   await page.getByRole('button', { name: 'Create Trip' }).click();
   await expect(page.getByRole('button', { name: new RegExp(tripName) })).toBeVisible();
+}
+
+async function getTripIdByName(page: Page, tripName: string): Promise<number> {
+  const res = await page.request.get('/api/travel/trips');
+  expect(res.ok()).toBeTruthy();
+  const data = (await res.json()) as { trips: Array<{ id: number; name: string }> };
+  const trip = data.trips.find((t) => t.name === tripName);
+  expect(trip).toBeTruthy();
+  return trip!.id;
 }
 
 test.describe('Travel', () => {
@@ -41,6 +61,46 @@ test.describe('Travel', () => {
     await expect(page.getByPlaceholder('Share with user email')).toBeEnabled();
   });
 
+  test('shares a trip by email and revokes that share', async ({ page }) => {
+    const tripName = uniqueName('E2E Share Trip');
+    const sharedEmail = 'e2e-mcp@test.local';
+
+    await ensureUserExists(page, sharedEmail, 'E2eMcpPass123!', 'E2E MCP User');
+
+    await createTrip(page, tripName);
+    const tripButton = page.getByRole('button', { name: new RegExp(tripName) });
+    await tripButton.click();
+
+    const sharingSection = page.getByRole('heading', { name: 'Sharing' }).locator('xpath=ancestor::section[1]');
+    await expect(sharingSection.getByPlaceholder('Share with user email')).toBeVisible();
+
+    const removeButtons = sharingSection.getByRole('button', { name: 'Remove', exact: true });
+    const beforeCount = await removeButtons.count();
+
+    await sharingSection.getByPlaceholder('Share with user email').fill(sharedEmail);
+    const shareResponsePromise = page.waitForResponse(
+      (res) =>
+        res.url().includes('/api/travel/trips/') && res.url().includes('/shares') && res.request().method() === 'POST',
+    );
+    await sharingSection.getByRole('button', { name: 'Share', exact: true }).click();
+    const shareResponse = await shareResponsePromise;
+    expect(shareResponse.status()).toBe(201);
+
+    await expect(removeButtons).toHaveCount(beforeCount + 1);
+
+    const revokeResponsePromise = page.waitForResponse(
+      (res) =>
+        res.url().includes('/api/travel/trips/') &&
+        res.url().includes('/shares/') &&
+        res.request().method() === 'DELETE',
+    );
+    await removeButtons.nth(beforeCount).click();
+    const revokeResponse = await revokeResponsePromise;
+    expect(revokeResponse.status()).toBe(200);
+
+    await expect(removeButtons).toHaveCount(beforeCount);
+  });
+
   test('supports full trip flow: create, edit, reservations, checklist, companions, and delete', async ({ page }) => {
     const tripName = uniqueName('E2E Full Trip');
     const editedTripName = `${tripName} Updated`;
@@ -59,11 +119,8 @@ test.describe('Travel', () => {
 
     await page.getByPlaceholder('Reservation title').fill(bookingTitle);
     await page.getByRole('button', { name: 'Add Reservation' }).click();
-    const bookingCard = page
-      .locator('div.rounded-md.border.border-zinc-700.bg-zinc-900.px-3.py-2.text-sm')
-      .filter({ has: page.locator('p.font-medium', { hasText: bookingTitle }) })
-      .first();
-    await expect(bookingCard).toBeVisible();
+    const bookingRow = reservationRowLocator(page, bookingTitle);
+    await expect(bookingRow).toBeVisible();
 
     await page.getByPlaceholder('Add checklist item').fill(checklistTitle);
     await page.getByRole('button', { name: 'Add', exact: true }).click();
@@ -85,7 +142,7 @@ test.describe('Travel', () => {
       .first();
     await expect(companionCard).toBeVisible();
 
-    await bookingCard.getByRole('button', { name: 'Remove reservation' }).click();
+    await bookingRow.getByRole('button', { name: 'Remove reservation' }).click();
     await expect(page.locator('p.font-medium', { hasText: bookingTitle })).not.toBeVisible();
 
     await checklistRow.getByRole('button', { name: 'Remove checklist item' }).click();
@@ -129,9 +186,13 @@ test.describe('Travel', () => {
     await expect(page.locator('p.font-medium', { hasText: documentTitle })).toBeVisible();
     await expect(page.getByText(`Linked to: ${bookingTitle}`)).toBeVisible();
 
-    const attachmentButton = page.getByRole('button', { name: 'Show booking attachments' }).first();
-    await expect(attachmentButton).toBeVisible();
-    await attachmentButton.hover();
+    const bookingRow = reservationRowLocator(page, bookingTitle);
+    await expect(bookingRow).toBeVisible();
+
+    const attachmentIndicator = bookingRow.locator('span[title="Has attachments"]').first();
+    await expect(attachmentIndicator).toBeVisible();
+
+    await bookingRow.click();
     const documentDownloadLink = page.getByRole('link', { name: documentTitle }).first();
     await expect(documentDownloadLink).toBeVisible();
 
@@ -193,7 +254,12 @@ test.describe('Travel', () => {
     // Verify the flight booking is created and details are displayed
     await expect(page.locator('p.font-medium', { hasText: flightBookingTitle })).toBeVisible();
 
-    // Verify all flight details are displayed in the summary
+    // Flight details render in the expanded reservation panel.
+    const bookingRow = reservationRowLocator(page, flightBookingTitle);
+    await expect(bookingRow).toBeVisible();
+    await bookingRow.click();
+
+    // Verify all flight details are displayed.
     const flightDetailsText = page.getByText(new RegExp(flightNumber, 'i'));
     await expect(flightDetailsText).toBeVisible();
 
@@ -280,7 +346,7 @@ test.describe('Travel', () => {
     await expect(page.locator('p.font-medium', { hasText: bookingTitle })).toBeVisible();
 
     // Details should not be visible before expanding
-    const bookingRow = page.getByRole('button', { name: new RegExp(`Expand reservation: ${bookingTitle}`) }).first();
+    const bookingRow = reservationRowLocator(page, bookingTitle);
     await expect(bookingRow).toBeVisible();
 
     // Click to expand
@@ -290,6 +356,135 @@ test.describe('Travel', () => {
     // Click again to collapse
     await bookingRow.click();
     await expect(bookingRow).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('sidebar Upcoming filter hides cancelled trips and All shows them', async ({ page }) => {
+    const tripName = uniqueName('E2E Cancelled Trip');
+
+    await createTrip(page, tripName);
+    const tripButton = page.getByRole('button', { name: new RegExp(tripName) }).first();
+    await expect(tripButton).toBeVisible();
+
+    const tripId = await getTripIdByName(page, tripName);
+    const cancelRes = await page.request.patch(`/api/travel/trips/${tripId}`, {
+      data: { cancelled_at: new Date().toISOString() },
+    });
+    expect(cancelRes.status()).toBe(200);
+
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('button', { name: 'Upcoming', exact: true }).click();
+    await expect(page.getByRole('button', { name: new RegExp(tripName) })).not.toBeVisible();
+
+    await page.getByRole('button', { name: 'All', exact: true }).click();
+    await expect(page.getByRole('button', { name: new RegExp(tripName) })).toBeVisible();
+  });
+
+  test('sidebar trip card shows booking date range after adding dated reservation', async ({ page }) => {
+    const tripName = uniqueName('E2E Sidebar Range');
+    const bookingTitle = uniqueName('Range Booking');
+    const startAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const endAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+
+    await createTrip(page, tripName);
+    const tripButton = page.getByRole('button', { name: new RegExp(tripName) }).first();
+    const tripCard = tripButton.locator('xpath=ancestor::div[contains(@class,"rounded-lg")]').first();
+    await expect(tripCard).toContainText('Reservation dates not set');
+
+    await tripButton.click();
+    const reservationsSection = page
+      .getByRole('heading', { name: 'Reservations' })
+      .locator('xpath=ancestor::section[1]');
+    await reservationsSection.getByPlaceholder('Reservation title').fill(bookingTitle);
+    await reservationsSection.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(startAt));
+    await reservationsSection.locator('input[type="datetime-local"]').nth(1).fill(toDateTimeLocal(endAt));
+    await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
+    await expect(page.locator('p.font-medium', { hasText: bookingTitle })).toBeVisible();
+
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    const updatedTripButton = page.getByRole('button', { name: new RegExp(tripName) }).first();
+    const updatedTripCard = updatedTripButton.locator('xpath=ancestor::div[contains(@class,"rounded-lg")]').first();
+    await expect(updatedTripCard).not.toContainText('Reservation dates not set');
+    await expect(updatedTripCard).toContainText('->');
+  });
+
+  test('edits checklist item and preserves title on cancel', async ({ page }) => {
+    const tripName = uniqueName('E2E Checklist Edit Trip');
+    const checklistTitle = uniqueName('Original Checklist');
+    const updatedChecklistTitle = `${checklistTitle} Updated`;
+
+    await createTrip(page, tripName);
+    await page.getByRole('button', { name: new RegExp(tripName) }).click();
+
+    const checklistSection = page.getByRole('heading', { name: 'Checklist' }).locator('xpath=ancestor::section[1]');
+    await checklistSection.getByPlaceholder('Add checklist item').fill(checklistTitle);
+    await checklistSection.getByRole('button', { name: 'Add', exact: true }).click();
+
+    const checklistItemButton = checklistSection.getByRole('button', { name: checklistTitle }).first();
+    await expect(checklistItemButton).toBeVisible();
+    await checklistSection.getByRole('button', { name: 'Edit checklist item' }).first().click();
+
+    await expect(checklistSection.locator('input')).toHaveCount(2);
+    await checklistSection.locator('input').nth(1).fill(updatedChecklistTitle);
+    await checklistSection.getByRole('button', { name: 'Save', exact: true }).first().click();
+
+    await expect(
+      checklistSection.getByRole('button', { name: new RegExp(`^${updatedChecklistTitle}$`) }),
+    ).toBeVisible();
+    await expect(checklistSection.getByRole('button', { name: new RegExp(`^${checklistTitle}$`) })).not.toBeVisible();
+
+    await checklistSection.getByRole('button', { name: 'Edit checklist item' }).first().click();
+    await expect(checklistSection.locator('input')).toHaveCount(2);
+    await checklistSection.locator('input').nth(1).fill(`${updatedChecklistTitle} Draft`);
+    await checklistSection.getByRole('button', { name: 'Cancel', exact: true }).first().click();
+
+    await expect(
+      checklistSection.getByRole('button', { name: new RegExp(`^${updatedChecklistTitle}$`) }),
+    ).toBeVisible();
+    await expect(
+      checklistSection.getByRole('button', { name: new RegExp(`^${updatedChecklistTitle} Draft$`) }),
+    ).not.toBeVisible();
+  });
+
+  test('edits companion details and preserves values on cancel', async ({ page }) => {
+    const tripName = uniqueName('E2E Companion Edit Trip');
+    const companionName = uniqueName('Original Companion');
+    const updatedCompanionName = `${companionName} Updated`;
+
+    await createTrip(page, tripName);
+    await page.getByRole('button', { name: new RegExp(tripName) }).click();
+
+    const companionsSection = page.getByRole('heading', { name: 'Companions' }).locator('xpath=ancestor::section[1]');
+    await companionsSection.getByPlaceholder('Name').fill(companionName);
+    await companionsSection.getByPlaceholder('Email').fill('original-companion@test.local');
+    await companionsSection.getByRole('button', { name: 'Add Companion' }).click();
+
+    await expect(companionsSection.locator('p.font-medium', { hasText: companionName }).first()).toBeVisible();
+
+    await companionsSection.getByRole('button', { name: 'Edit companion' }).first().click();
+    await expect(companionsSection.locator('input')).toHaveCount(6);
+    await companionsSection.locator('input').nth(3).fill(updatedCompanionName);
+    await companionsSection.locator('input').nth(4).fill('updated-companion@test.local');
+    await companionsSection.locator('input').nth(5).fill('+40123456789');
+    await companionsSection.getByRole('button', { name: 'Save', exact: true }).first().click();
+
+    const updatedCompanionCard = companionsSection
+      .locator('div.rounded-md.border.border-zinc-700.bg-zinc-900.px-3.py-2.text-sm')
+      .filter({ has: page.locator('p.font-medium', { hasText: updatedCompanionName }) })
+      .first();
+    await expect(updatedCompanionCard).toBeVisible();
+    await expect(updatedCompanionCard).toContainText('updated-companion@test.local');
+
+    await companionsSection.getByRole('button', { name: 'Edit companion' }).first().click();
+    await expect(companionsSection.locator('input')).toHaveCount(6);
+    await companionsSection.locator('input').nth(3).fill(`${updatedCompanionName} Draft`);
+    await companionsSection.getByRole('button', { name: 'Cancel', exact: true }).first().click();
+
+    await expect(updatedCompanionCard).toContainText(updatedCompanionName);
+    await expect(updatedCompanionCard).not.toContainText(`${updatedCompanionName} Draft`);
   });
 
   test('editing flight booking preserves all flight detail fields', async ({ page }) => {
@@ -315,22 +510,26 @@ test.describe('Travel', () => {
     await expect(page.locator('p.font-medium', { hasText: flightBookingTitle })).toBeVisible();
 
     // Click Edit button
-    const bookingCard = page
-      .locator('div.rounded-md.border.border-zinc-700.bg-zinc-900.px-3.py-2.text-sm')
-      .filter({ has: page.locator('p.font-medium', { hasText: flightBookingTitle }) })
-      .first();
-    await bookingCard.getByRole('button', { name: /edit|pencil/i }).click();
+    const bookingRow = reservationRowLocator(page, flightBookingTitle);
+    await expect(bookingRow).toBeVisible();
+    await bookingRow.getByRole('button', { name: 'Edit reservation' }).click();
+    const editingBookingRow = page.getByTestId('booking-row').first();
 
     // Update flight details
-    const flightNumberInput = page.getByPlaceholder('Flight no. (e.g. BA2490)');
+    const flightNumberInput = editingBookingRow.getByPlaceholder('Flight no. (e.g. BA2490)');
     await flightNumberInput.fill(updatedFlightNumber);
-    const seatInput = page.getByPlaceholder('Seat (e.g. 14A)');
+    const seatInput = editingBookingRow.getByPlaceholder('Seat (e.g. 14A)');
     await seatInput.fill(updatedSeat);
 
     // Save
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await editingBookingRow.getByRole('button', { name: 'Save', exact: true }).click();
 
-    // Verify updated details are displayed
+    // Updated flight details render in the expanded details panel.
+    const updatedBookingRow = reservationRowLocator(page, flightBookingTitle);
+    await expect(updatedBookingRow).toBeVisible();
+    await updatedBookingRow.click();
+
+    // Verify updated details are displayed.
     await expect(page.getByText(new RegExp(updatedFlightNumber, 'i'))).toBeVisible();
     await expect(page.getByText(new RegExp(`Seat ${updatedSeat}`, 'i'))).toBeVisible();
   });
