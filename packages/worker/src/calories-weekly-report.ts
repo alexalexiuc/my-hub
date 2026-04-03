@@ -1,13 +1,14 @@
 import { getSubscribedUserIds, sendEmail, buildWeeklyReportHtml } from '@my-hub/shared/services';
 import { fetchWeeklyReportData } from './report-data.js';
 
-/** Returns the most recent Monday (UTC) at 00:00:00. */
+/** Returns the Monday of the previous week (UTC) at 00:00:00. */
 function getLastMonday(): Date {
   const now = new Date();
-  const dayOfWeek = now.getUTCDay(); // 0=Sun, 1=Mon … 6=Sat
-  const daysBack = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysBack));
-  return monday;
+  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const dayOfWeek = todayUtc.getUTCDay(); // 0=Sun, 1=Mon … 6=Sat
+  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  todayUtc.setUTCDate(todayUtc.getUTCDate() - daysSinceMonday - 7);
+  return todayUtc;
 }
 
 export async function sendCaloriesWeeklyReports(): Promise<void> {

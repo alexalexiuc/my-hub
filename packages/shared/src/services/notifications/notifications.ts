@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { notificationPreferences } from '../../db/schema/notifications';
 import { users } from '../../db/schema/users';
@@ -42,18 +42,18 @@ export async function setSubscription(userId: string, key: SubscriptionKey, subs
  * A user is subscribed if they have no row (default) OR a row with subscribed=true.
  */
 export async function getSubscribedUserIds(subscriptionKey: SubscriptionKey): Promise<string[]> {
-  // Get users who have explicitly unsubscribed
-  const unsubscribedRows = await db
-    .select({ userId: notificationPreferences.userId })
-    .from(notificationPreferences)
-    .where(
-      and(eq(notificationPreferences.subscriptionKey, subscriptionKey), eq(notificationPreferences.subscribed, false)),
-    );
+  const rows = await db
+    .select({ id: users.id })
+    .from(users)
+    .leftJoin(
+      notificationPreferences,
+      and(
+        eq(notificationPreferences.userId, users.id),
+        eq(notificationPreferences.subscriptionKey, subscriptionKey),
+        eq(notificationPreferences.subscribed, false),
+      ),
+    )
+    .where(and(eq(users.active, true), isNull(notificationPreferences.id)));
 
-  const unsubscribedIds = new Set(unsubscribedRows.map((r) => r.userId));
-
-  // Get all active users
-  const allActiveUsers = await db.select({ id: users.id }).from(users).where(eq(users.active, true));
-
-  return allActiveUsers.filter((u) => !unsubscribedIds.has(u.id)).map((u) => u.id);
+  return rows.map((r) => r.id);
 }

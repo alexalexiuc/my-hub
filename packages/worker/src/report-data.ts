@@ -281,22 +281,22 @@ export async function fetchMonthlyReportData(userId: string, monthStart: Date): 
 
   // Body composition: start and end of month
   function getSnapshot(dateStr: string): MeasurementSnapshot {
-    const byType = new Map<string, number>();
+    const byType = new Map<string, { value: number; date: string }>();
     // Find nearest measurement at or before dateStr for each type
     for (const m of allMeasurements) {
       if (m.date <= dateStr) {
         const existing = byType.get(m.typeKey);
-        if (existing === undefined || m.date > (byType.get(`${m.typeKey}_date`) ?? '')) {
-          byType.set(m.typeKey, m.value);
+        if (existing === undefined || m.date > existing.date) {
+          byType.set(m.typeKey, { value: m.value, date: m.date });
         }
       }
     }
     return {
-      weight: byType.get('weight') ?? null,
-      bodyFat: byType.get('body_fat') ?? null,
-      waist: byType.get('waist') ?? null,
-      chest: byType.get('chest') ?? null,
-      neck: byType.get('neck') ?? null,
+      weight: byType.get('weight')?.value ?? null,
+      bodyFat: byType.get('body_fat')?.value ?? null,
+      waist: byType.get('waist')?.value ?? null,
+      chest: byType.get('chest')?.value ?? null,
+      neck: byType.get('neck')?.value ?? null,
     };
   }
 

@@ -31,9 +31,11 @@ function getISOWeek(d: Date): number {
 
 function getLastMonday(): Date {
   const now = new Date();
-  const dayOfWeek = now.getUTCDay();
-  const daysBack = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysBack));
+  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const dayOfWeek = todayUtc.getUTCDay();
+  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  todayUtc.setUTCDate(todayUtc.getUTCDate() - daysSinceMonday - 7);
+  return todayUtc;
 }
 
 /**

@@ -43,7 +43,7 @@ export function startPollLoop(): void {
   console.log('[worker] Scheduling tasks:');
 
   for (const task of tasks) {
-    new Cron(task.cron, { protect: true }, async () => {
+    new Cron(task.cron, { protect: true, timezone: 'UTC' }, async () => {
       console.log(`[worker] Running task: ${task.name}`);
       try {
         await task.fn();
