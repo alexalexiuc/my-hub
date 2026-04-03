@@ -27,7 +27,7 @@ export async function sendCaloriesMonthlyReports(): Promise<void> {
         viewInAppUrl: `${HUB_URL}/calories/reports/monthly?monthStart=${monthStartStr}`,
       };
       const data = await fetchMonthlyReportData(userId, monthStart, urls);
-      if (!data || data.userEmail !== 'a.alex.alexiuc@gmail.com') {
+      if (!data) {
         skipped++;
         continue;
       }

@@ -28,7 +28,7 @@ export async function sendCaloriesWeeklyReports(): Promise<void> {
         viewInAppUrl: `${HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
       };
       const data = await fetchWeeklyReportData(userId, weekStart, urls);
-      if (!data || data.userEmail !== 'a.alex.alexiuc@gmail.com') {
+      if (!data) {
         skipped++;
         continue;
       }
