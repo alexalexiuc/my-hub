@@ -5,25 +5,16 @@ import {
   fetchWeeklyReportData,
   generateUnsubscribeToken,
 } from '@my-hub/shared/services';
+import { getLastMonday, toUTCDateStr } from '@my-hub/shared/utils';
 
 const HUB_URL = process.env.HUB_URL ?? 'https://hub.alexiuc.dev';
-
-/** Returns the Monday of the previous week (UTC) at 00:00:00. */
-function getLastMonday(): Date {
-  const now = new Date();
-  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const dayOfWeek = todayUtc.getUTCDay(); // 0=Sun, 1=Mon … 6=Sat
-  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  todayUtc.setUTCDate(todayUtc.getUTCDate() - daysSinceMonday - 7);
-  return todayUtc;
-}
 
 export async function sendCaloriesWeeklyReports(): Promise<void> {
   const weekStart = getLastMonday();
   const userIds = await getSubscribedUserIds('calories_weekly_report');
 
   console.log(
-    `[calories-weekly-report] Sending to ${userIds.length} user(s) for week starting ${weekStart.toISOString().slice(0, 10)}`,
+    `[calories-weekly-report] Sending to ${userIds.length} user(s) for week starting ${toUTCDateStr(weekStart)}`,
   );
 
   let sent = 0;
@@ -31,7 +22,7 @@ export async function sendCaloriesWeeklyReports(): Promise<void> {
 
   for (const userId of userIds) {
     try {
-      const weekStartStr = weekStart.toISOString().slice(0, 10);
+      const weekStartStr = toUTCDateStr(weekStart);
       const urls = {
         unsubscribeUrl: `${HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(userId, 'calories_weekly_report')}`,
         viewInAppUrl: `${HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,

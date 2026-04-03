@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { isValidDate, addMinutes, addHours, toUTCDateStr, addDays, getISOWeek } from './dates';
+import {
+  isValidDate,
+  addMinutes,
+  addHours,
+  toUTCDateStr,
+  addDays,
+  getISOWeek,
+  getLastMonthStart,
+  addMonths,
+  monthLabel,
+  getLastMonday,
+  isoWeekAndYear,
+  weekLabel,
+} from './dates';
 
 describe('isValidDate', () => {
   it('returns true for valid Date objects', () => {
@@ -114,5 +127,66 @@ describe('getISOWeek', () => {
     expect(getISOWeek(new Date('2026-03-29T00:00:00.000Z'))).toBe(13);
     // 2026-03-30 is a Monday — start of week 14
     expect(getISOWeek(new Date('2026-03-30T00:00:00.000Z'))).toBe(14);
+  });
+});
+
+describe('getLastMonthStart', () => {
+  it('returns first day of previous month in UTC', () => {
+    const reference = new Date('2026-04-15T10:30:00.000Z');
+    expect(toUTCDateStr(getLastMonthStart(reference))).toBe('2026-03-01');
+  });
+
+  it('crosses year boundary', () => {
+    const reference = new Date('2026-01-10T12:00:00.000Z');
+    expect(toUTCDateStr(getLastMonthStart(reference))).toBe('2025-12-01');
+  });
+});
+
+describe('addMonths', () => {
+  it('moves month start forward by one month', () => {
+    expect(toUTCDateStr(addMonths(new Date('2026-03-01T00:00:00.000Z'), 1))).toBe('2026-04-01');
+  });
+
+  it('moves month start backward by one month', () => {
+    expect(toUTCDateStr(addMonths(new Date('2026-03-01T00:00:00.000Z'), -1))).toBe('2026-02-01');
+  });
+});
+
+describe('monthLabel', () => {
+  it('formats month start as Month YYYY', () => {
+    expect(monthLabel(new Date('2026-03-01T00:00:00.000Z'))).toBe('March 2026');
+  });
+});
+
+describe('getLastMonday', () => {
+  it('returns Monday of previous week for a mid-week reference date', () => {
+    const reference = new Date('2026-04-15T10:30:00.000Z'); // Wednesday
+    expect(toUTCDateStr(getLastMonday(reference))).toBe('2026-04-06');
+  });
+
+  it('returns previous Monday when reference date is Monday', () => {
+    const reference = new Date('2026-04-13T10:30:00.000Z');
+    expect(toUTCDateStr(getLastMonday(reference))).toBe('2026-04-06');
+  });
+
+  it('handles Sunday correctly as end of week', () => {
+    const reference = new Date('2026-04-12T10:30:00.000Z');
+    expect(toUTCDateStr(getLastMonday(reference))).toBe('2026-03-30');
+  });
+});
+
+describe('isoWeekAndYear', () => {
+  it('returns ISO week and ISO week-year', () => {
+    expect(isoWeekAndYear(new Date('2021-01-01T00:00:00.000Z'))).toEqual({ week: 53, year: 2020 });
+  });
+
+  it('returns expected week/year mid-year', () => {
+    expect(isoWeekAndYear(new Date('2026-04-13T00:00:00.000Z'))).toEqual({ week: 16, year: 2026 });
+  });
+});
+
+describe('weekLabel', () => {
+  it('formats ISO week label', () => {
+    expect(weekLabel(new Date('2026-04-13T00:00:00.000Z'))).toBe('Week 16, 2026');
   });
 });

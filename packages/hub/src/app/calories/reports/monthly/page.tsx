@@ -2,26 +2,10 @@
 
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { addMonths, getLastMonthStart, monthLabel, toUTCDateStr } from '@my-hub/shared/utils';
 import { IconButton } from '@/components/IconButton';
 import { PageHeader } from '@/components/PageHeader';
 import { BarChartIcon } from '@/components/icons';
-
-function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function getLastMonthStart(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-}
-
-function addMonths(d: Date, n: number): Date {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1));
-}
-
-function monthLabel(monthStart: Date): string {
-  return monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
-}
 
 function MonthlyReportContent() {
   const searchParams = useSearchParams();
@@ -43,7 +27,7 @@ function MonthlyReportContent() {
     setNoData(false);
     setError(null);
     try {
-      const res = await fetch(`/api/calories/reports/monthly-preview?monthStart=${toDateStr(date)}`);
+      const res = await fetch(`/api/calories/reports/monthly-preview?monthStart=${toUTCDateStr(date)}`);
       if (res.status === 401) {
         setError('Not signed in');
         return;

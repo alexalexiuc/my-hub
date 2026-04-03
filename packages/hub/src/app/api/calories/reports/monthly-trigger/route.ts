@@ -6,13 +6,9 @@ import {
   sendEmail,
   generateUnsubscribeToken,
 } from '@my-hub/shared/services';
+import { getLastMonthStart, toUTCDateStr } from '@my-hub/shared/utils';
 
 const HUB_URL = process.env.HUB_URL ?? 'https://hub.alexiuc.dev';
-
-function getLastMonthStart(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-}
 
 /**
  * POST /api/calories/reports/monthly-trigger
@@ -20,7 +16,7 @@ function getLastMonthStart(): Date {
  */
 export const POST = withAuth(async ({ user }) => {
   const monthStart = getLastMonthStart();
-  const monthStartStr = monthStart.toISOString().slice(0, 10);
+  const monthStartStr = toUTCDateStr(monthStart);
   const urls = {
     unsubscribeUrl: `${HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(user.id, 'calories_monthly_report')}`,
     viewInAppUrl: `${HUB_URL}/calories/reports/monthly?monthStart=${monthStartStr}`,

@@ -6,17 +6,9 @@ import {
   sendEmail,
   generateUnsubscribeToken,
 } from '@my-hub/shared/services';
+import { getLastMonday, toUTCDateStr } from '@my-hub/shared/utils';
 
 const HUB_URL = process.env.HUB_URL ?? 'https://hub.alexiuc.dev';
-
-function getLastMonday(): Date {
-  const now = new Date();
-  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const dayOfWeek = todayUtc.getUTCDay();
-  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  todayUtc.setUTCDate(todayUtc.getUTCDate() - daysSinceMonday - 7);
-  return todayUtc;
-}
 
 /**
  * POST /api/calories/reports/weekly-trigger
@@ -24,7 +16,7 @@ function getLastMonday(): Date {
  */
 export const POST = withAuth(async ({ user }) => {
   const weekStart = getLastMonday();
-  const weekStartStr = weekStart.toISOString().slice(0, 10);
+  const weekStartStr = toUTCDateStr(weekStart);
   const urls = {
     unsubscribeUrl: `${HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(user.id, 'calories_weekly_report')}`,
     viewInAppUrl: `${HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,

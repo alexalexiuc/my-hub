@@ -2,42 +2,10 @@
 
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { addDays, getLastMonday, toUTCDateStr, weekLabel } from '@my-hub/shared/utils';
 import { IconButton } from '@/components/IconButton';
 import { PageHeader } from '@/components/PageHeader';
 import { CalendarIcon } from '@/components/icons';
-
-function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function getLastMonday(): Date {
-  const now = new Date();
-  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const dayOfWeek = todayUtc.getUTCDay();
-  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  todayUtc.setUTCDate(todayUtc.getUTCDate() - daysSinceMonday - 7);
-  return todayUtc;
-}
-
-function addDays(d: Date, n: number): Date {
-  const out = new Date(d);
-  out.setUTCDate(out.getUTCDate() + n);
-  return out;
-}
-
-function isoWeekAndYear(d: Date): { week: number; year: number } {
-  const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-  const dayNum = date.getUTCDay() || 7;
-  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  const week = Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  return { week, year: date.getUTCFullYear() };
-}
-
-function weekLabel(weekStart: Date): string {
-  const { week, year } = isoWeekAndYear(weekStart);
-  return `Week ${week}, ${year}`;
-}
 
 function WeeklyReportContent() {
   const searchParams = useSearchParams();
@@ -59,7 +27,7 @@ function WeeklyReportContent() {
     setNoData(false);
     setError(null);
     try {
-      const res = await fetch(`/api/calories/reports/weekly-preview?weekStart=${toDateStr(date)}`);
+      const res = await fetch(`/api/calories/reports/weekly-preview?weekStart=${toUTCDateStr(date)}`);
       if (res.status === 401) {
         setError('Not signed in');
         return;

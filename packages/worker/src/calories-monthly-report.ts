@@ -5,28 +5,23 @@ import {
   fetchMonthlyReportData,
   generateUnsubscribeToken,
 } from '@my-hub/shared/services';
+import { getLastMonthStart, monthLabel, toUTCDateStr } from '@my-hub/shared/utils';
 
 const HUB_URL = process.env.HUB_URL ?? 'https://hub.alexiuc.dev';
-
-/** Returns the first day of the previous calendar month (UTC). */
-function getLastMonthStart(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-}
 
 export async function sendCaloriesMonthlyReports(): Promise<void> {
   const monthStart = getLastMonthStart();
   const userIds = await getSubscribedUserIds('calories_monthly_report');
 
-  const monthLabel = monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
-  console.log(`[calories-monthly-report] Sending to ${userIds.length} user(s) for ${monthLabel}`);
+  const currentMonthLabel = monthLabel(monthStart);
+  console.log(`[calories-monthly-report] Sending to ${userIds.length} user(s) for ${currentMonthLabel}`);
 
   let sent = 0;
   let skipped = 0;
 
   for (const userId of userIds) {
     try {
-      const monthStartStr = monthStart.toISOString().slice(0, 10);
+      const monthStartStr = toUTCDateStr(monthStart);
       const urls = {
         unsubscribeUrl: `${HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(userId, 'calories_monthly_report')}`,
         viewInAppUrl: `${HUB_URL}/calories/reports/monthly?monthStart=${monthStartStr}`,
