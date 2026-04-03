@@ -29,7 +29,8 @@ function deltaClass(delta: number): string {
 }
 
 function weekRange(start: Date, end: Date): string {
-  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  const fmt = (d: Date) =>
+    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   return `${fmt(start)} \u2013 ${fmt(end)}`;
 }
 
