@@ -245,12 +245,12 @@ function buildWeightTrendChart(data: MonthlyReportData): string {
   const yRange = yMax - yMin || 1;
 
   // Map dates to x positions within 560px SVG (x 42–518)
-  const monthStartMs = data.monthStart.getTime();
-  const monthEndMs = data.monthEnd.getTime();
+  const monthStartMs = new Date(data.monthStart.toISOString().slice(0, 10) + 'T00:00:00Z').getTime();
+  const monthEndMs = new Date(data.monthEnd.toISOString().slice(0, 10) + 'T00:00:00Z').getTime();
   const totalDurationMs = monthEndMs - monthStartMs || 1;
 
   function toX(dateStr: string): number {
-    const ms = new Date(dateStr + 'T12:00:00Z').getTime();
+    const ms = new Date(dateStr + 'T00:00:00Z').getTime();
     return 42 + ((ms - monthStartMs) / totalDurationMs) * 476;
   }
 

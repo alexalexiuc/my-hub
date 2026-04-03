@@ -4,7 +4,7 @@ const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 function getSecret(): string {
   const s = process.env.UNSUBSCRIBE_SECRET ?? process.env.NEXTAUTH_SECRET;
-  if (!s) throw new Error('UNSUBSCRIBE_SECRET env var is not set');
+  if (!s) throw new Error('UNSUBSCRIBE_SECRET (or NEXTAUTH_SECRET as fallback) env var is not set');
   return s;
 }
 
@@ -21,7 +21,9 @@ export function verifyUnsubscribeToken(token: string): { userId: string; subscri
     const parts = decoded.split('|');
     if (parts.length !== 4) return null;
     const [userId, subscriptionKey, expiryStr, sig] = parts;
-    if (Date.now() > Number(expiryStr)) return null;
+    const expiry = Number(expiryStr);
+    if (!Number.isFinite(expiry)) return null;
+    if (Date.now() > expiry) return null;
     const payload = `${userId}|${subscriptionKey}|${expiryStr}`;
     const expected = createHmac('sha256', getSecret()).update(payload).digest('base64url');
     const sigBuf = Buffer.from(sig!, 'base64url');

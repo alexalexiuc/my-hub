@@ -29,7 +29,7 @@ function deltaClass(delta: number): string {
 }
 
 function weekRange(start: Date, end: Date): string {
-  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   return `${fmt(start)} \u2013 ${fmt(end)}`;
 }
 
@@ -507,10 +507,10 @@ function buildSparklineSvg(points: WeightPoint[], data: WeeklyReportData): strin
 
   // Build a map of day index → weight value
   const dayValues = new Map<number, number>();
+  const weekStartMs = new Date(data.weekStart.toISOString().slice(0, 10) + 'T00:00:00Z').getTime();
   for (const pt of points) {
-    const d = new Date(pt.date + 'T12:00:00Z');
-    const weekStartMs = data.weekStart.getTime();
-    const dayIndex = Math.round((d.getTime() - weekStartMs) / 86400000);
+    const d = new Date(pt.date + 'T00:00:00Z');
+    const dayIndex = Math.floor((d.getTime() - weekStartMs) / 86400000);
     if (dayIndex >= 0 && dayIndex < 7) {
       dayValues.set(dayIndex, pt.value);
     }
