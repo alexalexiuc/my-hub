@@ -15,7 +15,7 @@ import { getLogs } from '@my-hub/shared/services';
  * the api_request_logs table, and that other JSON-RPC methods are captured too.
  */
 describe.sequential('session logger — MCP messages written to DB', () => {
-  let client: McpClient;
+  let client: McpClient | undefined;
   let userId: string;
 
   beforeAll(async () => {
@@ -29,10 +29,12 @@ describe.sequential('session logger — MCP messages written to DB', () => {
   });
 
   afterAll(async () => {
-    await client.close();
+    await client?.close();
   });
 
   it('writes a DB log entry for a tools/call within an established session', async () => {
+    if (!client) throw new Error('MCP client was not initialized');
+
     const callStart = new Date();
 
     // Use a far-future date to avoid touching real data.
@@ -52,9 +54,20 @@ describe.sequential('session logger — MCP messages written to DB', () => {
     expect(entry!.server).toBe('calories');
     expect(entry!.userId).toBe(userId);
     expect(entry!.path).toBe('/api/calories/mcp#calories_get_meals');
+
+    const logPayloadsEnabled = process.env['LOG_PAYLOADS'] === 'true';
+    if (logPayloadsEnabled) {
+      expect(entry!.requestBody).toBeTruthy();
+      const payload = entry!.requestBody as Record<string, unknown>;
+      expect(payload['method']).toBe('tools/call');
+    } else {
+      expect(entry!.requestBody).toBeNull();
+    }
   });
 
   it('writes a DB log entry for non-tool-call MCP requests (tools/list)', async () => {
+    if (!client) throw new Error('MCP client was not initialized');
+
     const callStart = new Date();
 
     await client.listTools();

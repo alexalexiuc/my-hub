@@ -2,7 +2,7 @@ import {
   getSubscribedUserIds,
   sendEmail,
   buildMonthlyReportHtml,
-  fetchMonthlyReportData,
+  fetchMonthlyReportCaloriesData,
   generateUnsubscribeToken,
 } from '@my-hub/shared/services';
 import { getLastMonthStart, monthLabel, toUTCDateStr } from '@my-hub/shared/utils';
@@ -26,7 +26,7 @@ export async function sendCaloriesMonthlyReports(): Promise<void> {
         unsubscribeUrl: `${HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(userId, 'calories_monthly_report')}`,
         viewInAppUrl: `${HUB_URL}/calories/reports/monthly?monthStart=${monthStartStr}`,
       };
-      const data = await fetchMonthlyReportData(userId, monthStart, urls);
+      const data = await fetchMonthlyReportCaloriesData(userId, monthStart, urls);
       if (!data) {
         skipped++;
         continue;

@@ -4,7 +4,9 @@ import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { MessageExtraInfo } from '@modelcontextprotocol/sdk/types.js';
 import { putLog } from '@my-hub/shared/services';
 import type { McpServerName } from '@my-hub/shared/schema';
+import { envConfig } from '../config/env.js';
 import { mcpSubServers } from '../mcp/registry.js';
+import { capPayload, redactSensitiveFields } from './payload-logging.js';
 
 function extractMessageInfo(message: JSONRPCMessage): { method: string; toolName?: string } | null {
   if (!('method' in message)) return null; // skip responses
@@ -31,12 +33,16 @@ function logSessionMessage(
   const userId = (authInfo?.extra?.['userId'] as string | undefined) ?? null;
   const clientId = (authInfo?.extra?.['clientId'] as string | undefined) ?? null;
   const serverName = (authInfo?.extra?.['serverName'] as McpServerName | undefined) ?? null;
+  const redactedMessage = redactSensitiveFields(message);
 
   console.log(`--> MCP ${method}${toolName ? ` (${toolName})` : ''} [session:${sessionId.slice(0, 8)}]`);
+  if (envConfig.PRINT_PAYLOADS) {
+    console.log(`\tMCP Message: ${JSON.stringify(capPayload(redactedMessage), null, 2)}`);
+  }
 
   const path = toolName ? `${endpoint}#${toolName}` : endpoint;
 
-  putLog({
+  const logData: Parameters<typeof putLog>[0] = {
     service: 'mcp-service',
     server: serverName,
     method,
@@ -46,7 +52,13 @@ function logSessionMessage(
     ip: null,
     userId,
     clientId,
-  }).catch((err: unknown) => {
+  };
+
+  if (envConfig.LOG_PAYLOADS) {
+    logData.requestBody = capPayload(redactedMessage);
+  }
+
+  putLog(logData).catch((err: unknown) => {
     app.log.error({ err }, 'Failed to write MCP session message log to DB');
   });
 }

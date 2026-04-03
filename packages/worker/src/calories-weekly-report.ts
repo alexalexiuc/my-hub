@@ -2,7 +2,7 @@ import {
   getSubscribedUserIds,
   sendEmail,
   buildWeeklyReportHtml,
-  fetchWeeklyReportData,
+  fetchWeeklyReportCaloriesData,
   generateUnsubscribeToken,
 } from '@my-hub/shared/services';
 import { getLastMonday, toUTCDateStr } from '@my-hub/shared/utils';
@@ -27,7 +27,7 @@ export async function sendCaloriesWeeklyReports(): Promise<void> {
         unsubscribeUrl: `${HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(userId, 'calories_weekly_report')}`,
         viewInAppUrl: `${HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
       };
-      const data = await fetchWeeklyReportData(userId, weekStart, urls);
+      const data = await fetchWeeklyReportCaloriesData(userId, weekStart, urls);
       if (!data) {
         skipped++;
         continue;

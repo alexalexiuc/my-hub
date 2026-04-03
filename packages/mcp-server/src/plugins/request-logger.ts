@@ -4,8 +4,8 @@ import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import { putLog } from '@my-hub/shared/services';
 import { McpServerName } from '@my-hub/shared/schema';
 import { envConfig } from '../config/env.js';
+import { capPayload, redactSensitiveFields } from './payload-logging.js';
 
-const MAX_PAYLOAD_BYTES = 10_240; // 10 KB cap per payload field
 const REDACTED = '[REDACTED]';
 const SENSITIVE_HEADERS = new Set([
   'authorization',
@@ -15,7 +15,6 @@ const SENSITIVE_HEADERS = new Set([
   'x-api-key',
   'x-auth-token',
 ]);
-const SENSITIVE_FIELDS = new Set(['client_secret', 'code_challenge', 'code_verifier', 'access_token', 'refresh_token']);
 
 function redactHeaders(headers: Record<string, unknown>): Record<string, unknown> {
   const redacted: Record<string, unknown> = {};
@@ -25,43 +24,12 @@ function redactHeaders(headers: Record<string, unknown>): Record<string, unknown
   return redacted;
 }
 
-function redactSensitiveFields(value: unknown): unknown {
-  if (value === null || value === undefined) return value;
-
-  if (Array.isArray(value)) {
-    return value.map((item) => redactSensitiveFields(item));
-  }
-
-  if (typeof value === 'object') {
-    const input = value as Record<string, unknown>;
-    const output: Record<string, unknown> = {};
-    for (const [key, nested] of Object.entries(input)) {
-      if (SENSITIVE_FIELDS.has(key.toLowerCase())) {
-        output[key] = REDACTED;
-      } else {
-        output[key] = redactSensitiveFields(nested);
-      }
-    }
-    return output;
-  }
-
-  return value;
-}
-
 function buildRequestPayload(req: FastifyRequest) {
   return {
     body: redactSensitiveFields(req.body),
     query: redactSensitiveFields(req.query),
     headers: redactHeaders(req.headers as Record<string, unknown>),
   };
-}
-
-/** Truncate a JSON-serialisable value to MAX_PAYLOAD_BYTES (serialised). */
-function capPayload(value: unknown): unknown {
-  if (value === undefined || value === null) return value;
-  const serialised = JSON.stringify(value);
-  if (serialised.length <= MAX_PAYLOAD_BYTES) return value;
-  return { _truncated: true, preview: serialised.slice(0, MAX_PAYLOAD_BYTES) };
 }
 
 // Extend FastifyRequest to carry the captured response body between hooks.

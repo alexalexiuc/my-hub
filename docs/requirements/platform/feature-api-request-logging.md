@@ -38,6 +38,7 @@ analytics while enforcing bounded retention.
 | TR-06 | Before request payloads are printed or persisted, sensitive headers (`authorization`, `cookie`, `set-cookie`, API-key style headers) must be redacted.                                                                                                                                                                   |
 | TR-07 | Before request/response payloads are printed or persisted, sensitive OAuth fields (`client_name`, `client_secret`, `code`, `code_challenge`, `code_verifier`, `access_token`, `refresh_token`) must be redacted.                                                                                                         |
 | TR-08 | MCP session messages (tool calls and other JSON-RPC messages sent over SSE streams) must be logged via transport-level `onmessage` interception in `sessionLoggerPlugin`, since HTTP request hooks do not fire for messages exchanged within an existing session. Tool call paths are stored as `{endpoint}#{toolName}`. |
+| TR-09 | MCP session payload persistence and console payload printing must respect `LOG_PAYLOADS` and `PRINT_PAYLOADS` respectively; payload fields remain omitted from DB rows when `LOG_PAYLOADS=false`.                                                                                                                        |
 
 ---
 
@@ -61,4 +62,5 @@ analytics while enforcing bounded retention.
 - [x] Logger redacts sensitive request headers before writing `request_body` or printing request payloads.
 - [x] Logger redacts sensitive OAuth request/response fields before writing payloads or printing payloads.
 - [x] MCP session messages (tool calls, resource reads, etc.) are logged via transport `onmessage` interception, not HTTP hooks.
+- [x] MCP session logger honors `LOG_PAYLOADS` and `PRINT_PAYLOADS` for DB payload persistence and console payload output.
 - [ ] Documentation includes retention policy and cleanup query guidance.
