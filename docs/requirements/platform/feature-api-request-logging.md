@@ -28,15 +28,16 @@ analytics while enforcing bounded retention.
 
 ## Technical Requirements
 
-| ID    | Requirement                                                                                                                                                                                                         |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TR-01 | PostgreSQL extensions `pgcrypto`, `pg_trgm`, and `pg_stat_statements` must be enabled via migration SQL.                                                                                                            |
-| TR-02 | The table `api_request_logs` must include columns: `id`, `service`, `server`, `created_at`, `method`, `path`, `status_code`, `duration_ms`, `ip`, `user_id`, `client_id`, `request_body`, `response_body`, `error`. |
-| TR-03 | Indexes must exist on `created_at`, `path`, `user_id`, `status_code`, `service`, and `server` for common dashboard and filter queries.                                                                              |
-| TR-04 | A trigram GIN index on `error` should be present to accelerate fuzzy search across failure messages.                                                                                                                |
-| TR-05 | A typed Drizzle schema definition for `api_request_logs` must be available from `packages/shared/src/db/schema` and exported through shared schema/types barrels.                                                   |
-| TR-06 | Before request payloads are printed or persisted, sensitive headers (`authorization`, `cookie`, `set-cookie`, API-key style headers) must be redacted.                                                              |
-| TR-07 | Before request/response payloads are printed or persisted, sensitive OAuth fields (`client_name`, `client_secret`, `code`, `code_challenge`, `code_verifier`, `access_token`, `refresh_token`) must be redacted.    |
+| ID    | Requirement                                                                                                                                                                                                                                                                                                              |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| TR-01 | PostgreSQL extensions `pgcrypto`, `pg_trgm`, and `pg_stat_statements` must be enabled via migration SQL.                                                                                                                                                                                                                 |
+| TR-02 | The table `api_request_logs` must include columns: `id`, `service`, `server`, `created_at`, `method`, `path`, `status_code`, `duration_ms`, `ip`, `user_id`, `client_id`, `request_body`, `response_body`, `error`.                                                                                                      |
+| TR-03 | Indexes must exist on `created_at`, `path`, `user_id`, `status_code`, `service`, and `server` for common dashboard and filter queries.                                                                                                                                                                                   |
+| TR-04 | A trigram GIN index on `error` should be present to accelerate fuzzy search across failure messages.                                                                                                                                                                                                                     |
+| TR-05 | A typed Drizzle schema definition for `api_request_logs` must be available from `packages/shared/src/db/schema` and exported through shared schema/types barrels.                                                                                                                                                        |
+| TR-06 | Before request payloads are printed or persisted, sensitive headers (`authorization`, `cookie`, `set-cookie`, API-key style headers) must be redacted.                                                                                                                                                                   |
+| TR-07 | Before request/response payloads are printed or persisted, sensitive OAuth fields (`client_name`, `client_secret`, `code`, `code_challenge`, `code_verifier`, `access_token`, `refresh_token`) must be redacted.                                                                                                         |
+| TR-08 | MCP session messages (tool calls and other JSON-RPC messages sent over SSE streams) must be logged via transport-level `onmessage` interception in `sessionLoggerPlugin`, since HTTP request hooks do not fire for messages exchanged within an existing session. Tool call paths are stored as `{endpoint}#{toolName}`. |
 
 ---
 
@@ -59,4 +60,5 @@ analytics while enforcing bounded retention.
 - [ ] Drizzle schema exports allow typed reads/inserts for API request logs from shared package consumers.
 - [x] Logger redacts sensitive request headers before writing `request_body` or printing request payloads.
 - [x] Logger redacts sensitive OAuth request/response fields before writing payloads or printing payloads.
+- [x] MCP session messages (tool calls, resource reads, etc.) are logged via transport `onmessage` interception, not HTTP hooks.
 - [ ] Documentation includes retention policy and cleanup query guidance.

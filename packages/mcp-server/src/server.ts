@@ -7,6 +7,7 @@ import { oauthRoutes } from './routes/oauth.js';
 import { monitorRoute } from './routes/monitor.js';
 import { publicRoutes } from './routes/public/index.js';
 import { sessionCleanupPlugin } from './plugins/session-cleanup.js';
+import { sessionLoggerPlugin } from './plugins/session-logger.js';
 import relaxedJsonBodyPlugin from './plugins/relaxed-json-body.js';
 import requestLoggerPlugin from './plugins/request-logger.js';
 import { McpServerName } from '@my-hub/shared/schema';
@@ -77,6 +78,9 @@ export async function buildServer() {
 
   // Session cleanup plugin (reads mcpSubServers registry via onReady hook)
   await app.register(sessionCleanupPlugin);
+
+  // Session logger plugin: intercepts transport onmessage to log MCP messages and tool calls
+  await app.register(sessionLoggerPlugin);
 
   // Monitor route: /api/monitor
   // Uses fp() so registered at root — path is set to /api/monitor directly in monitor.ts.
