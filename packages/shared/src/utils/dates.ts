@@ -97,6 +97,33 @@ export function localHour(timezone?: string | null): number {
   return new Date().getHours();
 }
 
+/**
+ * Formats a UTC Date as a YYYY-MM-DD string using UTC components.
+ * Use this wherever a calendar date in UTC is needed (e.g. report date ranges).
+ */
+export function toUTCDateStr(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+/** Returns a new Date shifted by n calendar days using UTC date arithmetic. */
+export function addDays(d: Date, n: number): Date {
+  const out = new Date(d);
+  out.setUTCDate(out.getUTCDate() + n);
+  return out;
+}
+
+/**
+ * Returns the ISO 8601 week number for the given date (week starts on Monday).
+ * Week 1 is the week containing the first Thursday of the year.
+ */
+export function getISOWeek(d: Date): number {
+  const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const dayOfWeek = date.getUTCDay() || 7; // Sun=0 → 7, Mon=1 … Sat=6
+  date.setUTCDate(date.getUTCDate() + 4 - dayOfWeek); // Thursday of current week
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
 /** Returns a new Date shifted by the given number of minutes. */
 export function addMinutes(date: Date, minutes: number): Date {
   return new Date(date.getTime() + minutes * 60_000);

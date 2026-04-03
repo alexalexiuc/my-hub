@@ -9,7 +9,8 @@
     "build:clear": "rimraf dist",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "run-task": "tsx scripts/run-task.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.0.0",

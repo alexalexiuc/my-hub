@@ -1,3 +1,4 @@
+export * from './BarChartIcon';
 export * from './PencilIcon';
 export * from './DownloadIcon';
 export * from './AttachmentIcon';

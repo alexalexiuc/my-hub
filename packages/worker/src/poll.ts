@@ -11,7 +11,7 @@ interface Task {
   fn: () => Promise<void>;
 }
 
-const tasks: Task[] = [
+export const tasks: Task[] = [
   {
     name: 'flight-sync',
     cron: '*/5 * * * *', // every 5th minute

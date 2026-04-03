@@ -98,7 +98,7 @@ body {
 }
 
 function buildHeader(data: MonthlyReportData): string {
-  const pct = data.totalDaysInMonth > 0 ? (data.daysOnTarget / data.totalDaysInMonth) * 100 : 0;
+  const pct = data.daysLogged > 0 ? (data.daysOnTarget / data.daysLogged) * 100 : 0;
   const onTrack = pct >= 50;
   const verdictClass = onTrack ? 'verdict-on-track' : 'verdict-over';
   const verdictLabel = onTrack ? 'On track' : 'Over';
@@ -138,8 +138,8 @@ function buildSummary(data: MonthlyReportData): string {
     </div>
     <div class="stat-card">
       <div class="stat-label">Days on target</div>
-      <div class="stat-value">${data.daysOnTarget}<span class="stat-unit">/ ${data.totalDaysInMonth}</span></div>
-      <div class="stat-sub">${data.daysLogged} days logged</div>
+      <div class="stat-value">${data.daysOnTarget}<span class="stat-unit">/ ${data.daysLogged}</span></div>
+      <div class="stat-sub">of ${data.totalDaysInMonth} days</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">${sectionLabel}</div>
@@ -464,11 +464,11 @@ function buildFooter(data: MonthlyReportData): string {
   <div class="footer">
     hub.alexiuc.dev &middot; calories module<br>
     ${data.monthLabel} &middot; Auto-generated<br>
-    <a href="#">Unsubscribe</a> &middot; <a href="#">View in app</a>
+    <a href="${data.unsubscribeUrl}">Unsubscribe</a> &middot; <a href="${data.viewInAppUrl}">View in app</a>
   </div>`;
 }
 
-export function buildMonthlyReportHtml(data: MonthlyReportData): string {
+export function buildMonthlyReportHtml(data: MonthlyReportData, options?: { hideFooter?: boolean }): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -489,7 +489,7 @@ ${buildWeightTrendChart(data)}
 ${buildCompositionProgress(data)}
 ${buildConsistency(data)}
 ${buildOutlook(data)}
-${buildFooter(data)}
+${options?.hideFooter ? '' : buildFooter(data)}
 </div>
 </body>
 </html>`;

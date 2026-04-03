@@ -13,3 +13,4 @@ export * from './travel';
 export * from './s3';
 export * from './notifications';
 export * from './email';
+export * from './reports';

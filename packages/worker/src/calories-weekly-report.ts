@@ -1,5 +1,12 @@
-import { getSubscribedUserIds, sendEmail, buildWeeklyReportHtml } from '@my-hub/shared/services';
-import { fetchWeeklyReportData } from './report-data.js';
+import {
+  getSubscribedUserIds,
+  sendEmail,
+  buildWeeklyReportHtml,
+  fetchWeeklyReportData,
+  generateUnsubscribeToken,
+} from '@my-hub/shared/services';
+
+const HUB_URL = process.env.HUB_URL ?? 'https://hub.alexiuc.dev';
 
 /** Returns the Monday of the previous week (UTC) at 00:00:00. */
 function getLastMonday(): Date {
@@ -24,8 +31,13 @@ export async function sendCaloriesWeeklyReports(): Promise<void> {
 
   for (const userId of userIds) {
     try {
-      const data = await fetchWeeklyReportData(userId, weekStart);
-      if (!data) {
+      const weekStartStr = weekStart.toISOString().slice(0, 10);
+      const urls = {
+        unsubscribeUrl: `${HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(userId, 'calories_weekly_report')}`,
+        viewInAppUrl: `${HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
+      };
+      const data = await fetchWeeklyReportData(userId, weekStart, urls);
+      if (!data || data.userEmail !== 'a.alex.alexiuc@gmail.com') {
         skipped++;
         continue;
       }

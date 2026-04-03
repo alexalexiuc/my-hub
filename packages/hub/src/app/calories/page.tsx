@@ -6,7 +6,9 @@ import type { CalorieProfile, MealLog, MeasurementType, User } from '@my-hub/sha
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { calculateCalorieTargets, dateToString } from '@my-hub/shared/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { IconButton } from '@/components/IconButton';
 import { PageHeader } from '@/components/PageHeader';
+import { BarChartIcon, CalendarIcon } from '@/components/icons';
 import { GoalProgressCard } from './GoalProgressCard';
 import { MacroChart } from './MacroChart';
 import { MealsSection } from './MealsSection';
@@ -207,9 +209,16 @@ export default function CaloriesDashboardPage() {
       value: m.value,
     }));
 
+  const reportActions = (
+    <>
+      <IconButton href="/calories/reports/weekly" label="Weekly Reports" icon={<BarChartIcon />} />
+      <IconButton href="/calories/reports/monthly" label="Monthly Reports" icon={<CalendarIcon />} />
+    </>
+  );
+
   return (
     <main className="mx-auto max-w-5xl p-8 space-y-6">
-      <PageHeader title="Calories" backHref="/" backLabel="← Home" />
+      <PageHeader title="Calories" backHref="/" backLabel="← Home" actions={reportActions} />
 
       {/* Today's summary */}
       <div className="rounded-xl border border-green-900/50 bg-gradient-to-br from-green-950/30 to-zinc-900 p-6 shadow-sm">

@@ -53,4 +53,6 @@ export interface MonthlyReportData {
   endMeasurements: MeasurementSnapshot;
 
   userEmail: string;
+  unsubscribeUrl: string;
+  viewInAppUrl: string;
 }

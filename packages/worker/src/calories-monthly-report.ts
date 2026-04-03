@@ -1,5 +1,12 @@
-import { getSubscribedUserIds, sendEmail, buildMonthlyReportHtml } from '@my-hub/shared/services';
-import { fetchMonthlyReportData } from './report-data.js';
+import {
+  getSubscribedUserIds,
+  sendEmail,
+  buildMonthlyReportHtml,
+  fetchMonthlyReportData,
+  generateUnsubscribeToken,
+} from '@my-hub/shared/services';
+
+const HUB_URL = process.env.HUB_URL ?? 'https://hub.alexiuc.dev';
 
 /** Returns the first day of the previous calendar month (UTC). */
 function getLastMonthStart(): Date {
@@ -19,8 +26,13 @@ export async function sendCaloriesMonthlyReports(): Promise<void> {
 
   for (const userId of userIds) {
     try {
-      const data = await fetchMonthlyReportData(userId, monthStart);
-      if (!data) {
+      const monthStartStr = monthStart.toISOString().slice(0, 10);
+      const urls = {
+        unsubscribeUrl: `${HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(userId, 'calories_monthly_report')}`,
+        viewInAppUrl: `${HUB_URL}/calories/reports/monthly?monthStart=${monthStartStr}`,
+      };
+      const data = await fetchMonthlyReportData(userId, monthStart, urls);
+      if (!data || data.userEmail !== 'a.alex.alexiuc@gmail.com') {
         skipped++;
         continue;
       }

@@ -1,34 +1,15 @@
-import {
-  getMealsForDateRange,
-  getMeasurements,
-  getLatestMeasurementsPerType,
-  getCalorieProfile,
-  findUserById,
-} from '@my-hub/shared/services';
-import { calculateBMR, calculateCalorieTargets } from '@my-hub/shared/utils';
-import type { WeeklyReportData, DayData, WeightPoint } from '@my-hub/shared/services';
-import type { MonthlyReportData, WeekSummary, MeasurementSnapshot, MonthlyWeightPoint } from '@my-hub/shared/services';
-
-// ─── Date helpers ─────────────────────────────────────────────────────────────
-
-function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function addDays(d: Date, n: number): Date {
-  const out = new Date(d);
-  out.setUTCDate(out.getUTCDate() + n);
-  return out;
-}
-
-/** ISO week number (Mon = start of week) */
-function getISOWeek(d: Date): number {
-  const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-  const dayOfWeek = date.getUTCDay() || 7; // Sun=0 → 7, Mon=1 … Sat=6
-  date.setUTCDate(date.getUTCDate() + 4 - dayOfWeek); // Thursday of current week
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  return Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-}
+import { getMealsForDateRange } from '../calories/meals.js';
+import { getCalorieProfile } from '../calories/profile.js';
+import { getMeasurements, getLatestMeasurementsPerType } from '../measurements/measurements.js';
+import { findUserById } from '../users/users.js';
+import { calculateBMR, calculateCalorieTargets, toUTCDateStr, addDays, getISOWeek } from '../../utils/index.js';
+import type { WeeklyReportData, DayData, WeightPoint } from '../email/templates/weekly-report/types.js';
+import type {
+  MonthlyReportData,
+  WeekSummary,
+  MeasurementSnapshot,
+  MonthlyWeightPoint,
+} from '../email/templates/monthly-report/types.js';
 
 // ─── Weekly report data ──────────────────────────────────────────────────────
 
@@ -36,14 +17,18 @@ function getISOWeek(d: Date): number {
  * Fetches all data needed to build a weekly calorie report.
  * Returns null if the user logged zero meals in the week.
  */
-export async function fetchWeeklyReportData(userId: string, weekStart: Date): Promise<WeeklyReportData | null> {
+export async function fetchWeeklyReportData(
+  userId: string,
+  weekStart: Date,
+  urls: { unsubscribeUrl: string; viewInAppUrl: string },
+): Promise<WeeklyReportData | null> {
   const weekEnd = addDays(weekStart, 6);
-  const weekStartStr = toDateStr(weekStart);
-  const weekEndStr = toDateStr(weekEnd);
+  const weekStartStr = toUTCDateStr(weekStart);
+  const weekEndStr = toUTCDateStr(weekEnd);
 
   // One week prior for prior weight delta
-  const priorWeekStartStr = toDateStr(addDays(weekStart, -7));
-  const priorWeekEndStr = toDateStr(addDays(weekStart, -1));
+  const priorWeekStartStr = toUTCDateStr(addDays(weekStart, -7));
+  const priorWeekEndStr = toUTCDateStr(addDays(weekStart, -1));
 
   const [user, profile, meals, weightMeasurements, allMeasurements, priorWeightMeasurements] = await Promise.all([
     findUserById(userId),
@@ -71,7 +56,7 @@ export async function fetchWeeklyReportData(userId: string, weekStart: Date): Pr
 
   const days: DayData[] = [];
   for (let i = 0; i < 7; i++) {
-    const date = toDateStr(addDays(weekStart, i));
+    const date = toUTCDateStr(addDays(weekStart, i));
     const agg = dayMap.get(date);
     days.push(
       agg
@@ -132,6 +117,7 @@ export async function fetchWeeklyReportData(userId: string, weekStart: Date): Pr
     latestMeasurements,
     priorWeekWeight,
     userEmail: user.email,
+    ...urls,
   };
 }
 
@@ -161,13 +147,17 @@ function longestConsecutiveStreak(loggedDates: Set<string>, year: number, month:
  * Fetches all data needed to build a monthly calorie report.
  * Returns null if the user logged zero meals in the month.
  */
-export async function fetchMonthlyReportData(userId: string, monthStart: Date): Promise<MonthlyReportData | null> {
+export async function fetchMonthlyReportData(
+  userId: string,
+  monthStart: Date,
+  urls: { unsubscribeUrl: string; viewInAppUrl: string },
+): Promise<MonthlyReportData | null> {
   const year = monthStart.getUTCFullYear();
   const month = monthStart.getUTCMonth() + 1; // 1-12
   const daysInMonth = getDaysInMonth(year, month);
   const monthEnd = new Date(Date.UTC(year, month - 1, daysInMonth));
-  const monthStartStr = toDateStr(monthStart);
-  const monthEndStr = toDateStr(monthEnd);
+  const monthStartStr = toUTCDateStr(monthStart);
+  const monthEndStr = toUTCDateStr(monthEnd);
 
   const [user, profile, meals, weightMeasurements, allMeasurements] = await Promise.all([
     findUserById(userId),
@@ -233,7 +223,7 @@ export async function fetchMonthlyReportData(userId: string, monthStart: Date): 
   const avgCarbs = daysLogged > 0 ? totalCarbs / daysLogged : 0;
   const avgProtein = daysLogged > 0 ? totalProtein / daysLogged : 0;
   const avgFat = daysLogged > 0 ? totalFat / daysLogged : 0;
-  const monthlyDeficit = goalMaxCalories * daysInMonth - Math.round(totalKcal);
+  const monthlyDeficit = goalMaxCalories * daysLogged - Math.round(totalKcal);
 
   // Week-by-week breakdown
   const weeks: WeekSummary[] = [];
@@ -252,7 +242,7 @@ export async function fetchMonthlyReportData(userId: string, monthStart: Date): 
     let weekDaysWithData = 0;
     const current = new Date(effectiveStart);
     while (current <= effectiveEnd) {
-      const dateStr = toDateStr(current);
+      const dateStr = toUTCDateStr(current);
       const agg = dayMap.get(dateStr);
       if (agg) {
         weekKcal += agg.kcal;
@@ -329,5 +319,6 @@ export async function fetchMonthlyReportData(userId: string, monthStart: Date): 
     startMeasurements,
     endMeasurements,
     userEmail: user.email,
+    ...urls,
   };
 }

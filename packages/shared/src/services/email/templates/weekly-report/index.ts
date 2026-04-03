@@ -321,8 +321,6 @@ function buildSummary(data: WeeklyReportData): string {
   const avgDailyKcal = daysWithData.length > 0 ? Math.round(totalKcal / daysWithData.length) : 0;
 
   const daysOnTarget = data.days.filter((d) => d.hasData && d.kcal <= data.goalMaxCalories).length;
-  const daysOver = data.days.filter((d) => d.hasData && d.kcal > data.goalMaxCalories).length;
-  const daysUnder = data.days.filter((d) => d.hasData && d.kcal < data.goalMaxCalories).length;
 
   // Deficit: positive = deficit (ate less than goal), negative = surplus
   const weeklyDeficit = data.goalMaxCalories * 7 - data.days.reduce((s, d) => s + (d.hasData ? d.kcal : 0), 0);
@@ -347,8 +345,8 @@ function buildSummary(data: WeeklyReportData): string {
     </div>
     <div class="stat-card">
       <div class="stat-label">Days on target</div>
-      <div class="stat-value">${daysOnTarget}<span class="stat-unit">/ 7</span></div>
-      <div class="stat-sub"><span class="c-red">${daysOver} over</span> &middot; <span class="c-green">${daysUnder} under</span></div>
+      <div class="stat-value">${daysOnTarget}<span class="stat-unit">/ ${daysWithData.length}</span></div>
+      <div class="stat-sub">of 7 days</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">${deficitSectionLabel}</div>
@@ -668,13 +666,13 @@ function buildFooter(data: WeeklyReportData): string {
   <div class="footer">
     hub.alexiuc.dev &middot; calories module<br>
     Week ${data.weekNumber}, ${data.year} &middot; Auto-generated<br>
-    <a href="#">Unsubscribe</a> &middot; <a href="#">View in app</a>
+    <a href="${data.unsubscribeUrl}">Unsubscribe</a> &middot; <a href="${data.viewInAppUrl}">View in app</a>
   </div>`;
 }
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
-export function buildWeeklyReportHtml(data: WeeklyReportData): string {
+export function buildWeeklyReportHtml(data: WeeklyReportData, options?: { hideFooter?: boolean }): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -694,7 +692,7 @@ ${buildMacros(data)}
 ${buildWeightSparkline(data)}
 ${buildMeasurements(data)}
 ${buildOutlook(data)}
-${buildFooter(data)}
+${options?.hideFooter ? '' : buildFooter(data)}
 </div>
 </body>
 </html>`;
