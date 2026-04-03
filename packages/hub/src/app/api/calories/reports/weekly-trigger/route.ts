@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import {
-  fetchWeeklyReportData,
+  fetchWeeklyReportCaloriesData,
   buildWeeklyReportHtml,
   sendEmail,
   generateUnsubscribeToken,
@@ -22,7 +22,7 @@ export const POST = withAuth(async ({ user }) => {
     viewInAppUrl: `${HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
   };
 
-  const data = await fetchWeeklyReportData(user.id, weekStart, urls);
+  const data = await fetchWeeklyReportCaloriesData(user.id, weekStart, urls);
   if (!data) {
     return NextResponse.json({ skipped: 'no_data' });
   }

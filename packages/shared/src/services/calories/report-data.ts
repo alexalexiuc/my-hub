@@ -1,5 +1,5 @@
-import { getMealsForDateRange } from '../calories/meals.js';
-import { getCalorieProfile } from '../calories/profile.js';
+import { getMealsForDateRange } from './meals.js';
+import { getCalorieProfile } from './profile.js';
 import { getMeasurements, getLatestMeasurementsPerType } from '../measurements/measurements.js';
 import { findUserById } from '../users/users.js';
 import { calculateBMR, calculateCalorieTargets, toUTCDateStr, addDays, getISOWeek } from '../../utils/index.js';
@@ -17,7 +17,7 @@ import type {
  * Fetches all data needed to build a weekly calorie report.
  * Returns null if the user logged zero meals in the week.
  */
-export async function fetchWeeklyReportData(
+export async function fetchWeeklyReportCaloriesData(
   userId: string,
   weekStart: Date,
   urls: { unsubscribeUrl: string; viewInAppUrl: string },
@@ -147,7 +147,7 @@ function longestConsecutiveStreak(loggedDates: Set<string>, year: number, month:
  * Fetches all data needed to build a monthly calorie report.
  * Returns null if the user logged zero meals in the month.
  */
-export async function fetchMonthlyReportData(
+export async function fetchMonthlyReportCaloriesData(
   userId: string,
   monthStart: Date,
   urls: { unsubscribeUrl: string; viewInAppUrl: string },

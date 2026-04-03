@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
-import { fetchMonthlyReportData, buildMonthlyReportHtml, generateUnsubscribeToken } from '@my-hub/shared/services';
+import {
+  fetchMonthlyReportCaloriesData,
+  buildMonthlyReportHtml,
+  generateUnsubscribeToken,
+} from '@my-hub/shared/services';
 
 const HUB_URL = process.env.HUB_URL ?? 'https://hub.alexiuc.dev';
 
@@ -27,7 +31,7 @@ export const GET = withAuth(async ({ req, user }) => {
     viewInAppUrl: `${HUB_URL}/calories/reports/monthly?monthStart=${monthStartStr}`,
   };
 
-  const data = await fetchMonthlyReportData(user.id, monthStart, urls);
+  const data = await fetchMonthlyReportCaloriesData(user.id, monthStart, urls);
   if (!data) {
     return NextResponse.json({ skipped: 'no_data' });
   }

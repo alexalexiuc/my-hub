@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
-import { fetchWeeklyReportData, buildWeeklyReportHtml, generateUnsubscribeToken } from '@my-hub/shared/services';
+import {
+  fetchWeeklyReportCaloriesData,
+  buildWeeklyReportHtml,
+  generateUnsubscribeToken,
+} from '@my-hub/shared/services';
 
 const HUB_URL = process.env.HUB_URL ?? 'https://hub.alexiuc.dev';
 
@@ -31,7 +35,7 @@ export const GET = withAuth(async ({ req, user }) => {
     viewInAppUrl: `${HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
   };
 
-  const data = await fetchWeeklyReportData(user.id, weekStart, urls);
+  const data = await fetchWeeklyReportCaloriesData(user.id, weekStart, urls);
   if (!data) {
     return NextResponse.json({ skipped: 'no_data' });
   }
