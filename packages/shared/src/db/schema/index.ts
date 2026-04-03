@@ -9,3 +9,4 @@ export * from './todos';
 export * from './invite-tokens';
 export * from './apiary';
 export * from './travel';
+export * from './notifications';

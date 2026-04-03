@@ -59,6 +59,12 @@ When a feature spans multiple layers, change in this order:
 - Document every new runtime variable in the relevant `.env.example` and in the root `.env.example` if Docker uses it.
 - If you add a new package, also update root workspace config, Docker, and CI.
 
+## Email & notification services
+
+- `packages/shared/src/services/notifications/` — notification subscription service. `NOTIFICATION_SUBSCRIPTIONS` in `config.ts` is the single source of truth for subscription keys, UI labels, and section groupings. Always add new subscription types here first. Never use PG enums for subscription keys — store them as plain `text`.
+- `packages/shared/src/services/email/` — AWS SES email service. Generic send function in `send-email.ts`; HTML templates under `templates/<report-name>/`. Always run the HTML string through `juice` before sending (CSS inlining for email client compatibility). Use `SES_FROM_EMAIL` env var as the sender address.
+- New email report types follow the pattern: add a `{ key, label, section }` entry to `NOTIFICATION_SUBSCRIPTIONS`, add a template directory under `templates/`, add a worker job in `packages/worker/src/`, and register the cron in `poll.ts`.
+
 ## MCP tool design rules
 
 - Design MCP tools around user intents and natural-language tasks, not raw CRUD operations.

@@ -1,0 +1,87 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { SectionCard } from '@/components/SectionCard';
+import { NOTIFICATION_SUBSCRIPTIONS } from '@my-hub/shared/constants';
+import type { SubscriptionKey } from '@my-hub/shared/constants';
+
+interface SubscriptionState {
+  key: SubscriptionKey;
+  subscribed: boolean;
+}
+
+export function NotificationsSection() {
+  const [subscriptions, setSubscriptions] = useState<SubscriptionState[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/user/notification-preferences')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.subscriptions) setSubscriptions(data.subscriptions);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function toggle(key: SubscriptionKey, subscribed: boolean) {
+    setSaving(key);
+    try {
+      const res = await fetch('/api/user/notification-preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, subscribed }),
+      });
+      if (res.ok) {
+        setSubscriptions((prev) => prev.map((s) => (s.key === key ? { ...s, subscribed } : s)));
+      }
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  // Group subscriptions by section using the config order
+  const sections = Array.from(new Map(NOTIFICATION_SUBSCRIPTIONS.map((s) => [s.section, s.section])).keys());
+
+  return (
+    <SectionCard title="Notifications">
+      {loading ? (
+        <p className="text-sm text-zinc-400">Loading…</p>
+      ) : (
+        <div className="space-y-5">
+          {sections.map((section) => {
+            const items = NOTIFICATION_SUBSCRIPTIONS.filter((s) => s.section === section);
+            return (
+              <div key={section}>
+                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">{section}</p>
+                <div className="space-y-2">
+                  {items.map(({ key, label }) => {
+                    const state = subscriptions.find((s) => s.key === key);
+                    const isSubscribed = state?.subscribed ?? true;
+                    const isSaving = saving === key;
+                    return (
+                      <label
+                        key={key}
+                        className="flex items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 cursor-pointer hover:border-zinc-600 transition"
+                      >
+                        <span className="text-sm">{label}</span>
+                        <input
+                          type="checkbox"
+                          checked={isSubscribed}
+                          disabled={isSaving}
+                          onChange={(e) => toggle(key, e.target.checked)}
+                          className="accent-blue-500 w-4 h-4"
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          <p className="text-xs text-zinc-500">You receive reports by default. Uncheck to opt out.</p>
+        </div>
+      )}
+    </SectionCard>
+  );
+}

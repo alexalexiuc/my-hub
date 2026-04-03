@@ -60,3 +60,4 @@ When adding a new component, also add it to the relevant barrel file.
 
 - `src/app/travel/` — 7 section components + `types.ts`
 - `src/app/calories/` — section components co-located with page
+- `src/app/profile/NotificationsSection.tsx` — pattern for rendering grouped notification checkboxes from `NOTIFICATION_SUBSCRIPTIONS` config; fetches and persists subscription state via `/api/user/notification-preferences`

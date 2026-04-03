@@ -1,0 +1,112 @@
+'use client';
+
+import { Suspense, useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { addDays, getLastMonday, toUTCDateStr, weekLabel } from '@my-hub/shared/utils';
+import { IconButton } from '@/components/IconButton';
+import { PageHeader } from '@/components/PageHeader';
+import { CalendarIcon } from '@/components/icons';
+
+function WeeklyReportContent() {
+  const searchParams = useSearchParams();
+
+  const [weekStart, setWeekStart] = useState<Date>(() => {
+    const param = searchParams.get('weekStart');
+    if (param && /^\d{4}-\d{2}-\d{2}$/.test(param)) return new Date(`${param}T00:00:00Z`);
+    return getLastMonday();
+  });
+
+  const [html, setHtml] = useState<string | null>(null);
+  const [noData, setNoData] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async (date: Date) => {
+    setLoading(true);
+    setHtml(null);
+    setNoData(false);
+    setError(null);
+    try {
+      const res = await fetch(`/api/calories/reports/weekly-preview?weekStart=${toUTCDateStr(date)}`);
+      if (res.status === 401) {
+        setError('Not signed in');
+        return;
+      }
+      const json = (await res.json()) as { html?: string; skipped?: string };
+      if (json.skipped === 'no_data') {
+        setNoData(true);
+        return;
+      }
+      setHtml(json.html ?? null);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load(weekStart);
+  }, [weekStart, load]);
+
+  function navigate(delta: number) {
+    setWeekStart((prev) => addDays(prev, delta * 7));
+  }
+
+  return (
+    <main className="mx-auto max-w-5xl p-8 space-y-4">
+      <PageHeader
+        title="Weekly Report"
+        backHref="/calories"
+        backLabel="← Calories"
+        actions={<IconButton href="/calories/reports/monthly" label="Monthly Reports" icon={<CalendarIcon />} />}
+      />
+
+      <div className="flex items-center justify-center gap-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="px-3 py-1.5 rounded bg-[#13283d] border border-[#1e3a52] text-sm hover:bg-[#1a3349] transition-colors"
+        >
+          ← Prev
+        </button>
+        <span className="text-sm text-[#8ca0b5] min-w-[140px] text-center">{weekLabel(weekStart)}</span>
+        <button
+          onClick={() => navigate(1)}
+          className="px-3 py-1.5 rounded bg-[#13283d] border border-[#1e3a52] text-sm hover:bg-[#1a3349] transition-colors"
+        >
+          Next →
+        </button>
+      </div>
+
+      {loading && <p className="text-[#8ca0b5] text-sm">Loading…</p>}
+      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {noData && <p className="text-[#8ca0b5] text-sm">No meals logged for this week.</p>}
+      {html && (
+        <iframe
+          srcDoc={html}
+          className="w-full border-0 rounded-lg"
+          style={{ minHeight: '800px' }}
+          onLoad={(e) => {
+            const iframe = e.currentTarget;
+            const doc = iframe.contentDocument;
+            if (doc) iframe.style.height = `${doc.documentElement.scrollHeight}px`;
+          }}
+        />
+      )}
+    </main>
+  );
+}
+
+export default function WeeklyReportPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto max-w-5xl p-8">
+          <p className="text-[#8ca0b5] text-sm">Loading…</p>
+        </main>
+      }
+    >
+      <WeeklyReportContent />
+    </Suspense>
+  );
+}
