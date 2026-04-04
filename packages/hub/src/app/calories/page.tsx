@@ -5,7 +5,6 @@ import Link from 'next/link';
 import type { CalorieProfile, MealLog, MeasurementType, User } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { calculateCalorieTargets, dateToString } from '@my-hub/shared/utils';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { IconButton } from '@/components/IconButton';
 import { PageHeader } from '@/components/PageHeader';
 import { BarChartIcon, CalendarIcon } from '@/components/icons';
@@ -159,38 +158,9 @@ export default function CaloriesDashboardPage() {
     goalMaxCalories: profile?.goalMaxCalories ?? null,
   });
 
-  const todayKcal = meals.reduce((sum, m) => sum + (m.kcal ?? 0), 0);
   const todayProtein = Math.round(meals.reduce((sum, m) => sum + (m.protein ?? 0), 0));
   const todayCarbs = Math.round(meals.reduce((sum, m) => sum + (m.carbs ?? 0), 0));
   const todayFat = Math.round(meals.reduce((sum, m) => sum + (m.fat ?? 0), 0));
-  const cap = calorieTargets.maxCalories ?? calorieTargets.goalCalories;
-  const isOver = cap !== null && todayKcal > cap;
-  const remaining = cap !== null ? Math.max(cap - todayKcal, 0) : null;
-
-  // Donut data
-  const donutData =
-    cap !== null
-      ? isOver
-        ? [{ value: cap, key: 'eaten' }]
-        : [
-            { value: todayKcal, key: 'eaten' },
-            { value: remaining!, key: 'remaining' },
-          ]
-      : [{ value: 1, key: 'empty' }];
-  const arcColor = cap !== null ? (isOver ? '#ef4444' : '#4ade80') : '#3f3f46';
-
-  // When over, show how much the overflow wraps around (capped at one full revolution)
-  const overflowAmount = cap !== null && isOver ? Math.min(todayKcal - cap, cap) : 0;
-  const overflowData =
-    cap !== null
-      ? [
-          { value: overflowAmount, key: 'overflow' },
-          { value: cap - overflowAmount, key: 'overflow-empty' },
-        ]
-      : [
-          { value: 0, key: 'overflow' },
-          { value: 0, key: 'overflow-empty' },
-        ];
 
   // Weekly chart data
   const weeklyData = weekDays.map(({ date, label }) => {
@@ -220,102 +190,26 @@ export default function CaloriesDashboardPage() {
     <main className="mx-auto max-w-5xl p-8 space-y-6">
       <PageHeader title="Calories" backHref="/" backLabel="← Home" actions={reportActions} />
 
-      {/* Today's summary */}
-      <div className="rounded-xl border border-green-900/50 bg-gradient-to-br from-green-950/30 to-zinc-900 p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row items-center gap-6">
-          {/* Donut */}
-          <div className="relative w-[150px] h-[150px] flex-shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                {isOver ? (
-                  <>
-                    {/* Full red background ring — represents hitting the cap */}
-                    <Pie
-                      data={[{ value: 1, key: 'bg' }]}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={48}
-                      outerRadius={66}
-                      startAngle={90}
-                      endAngle={-270}
-                      dataKey="value"
-                      strokeWidth={0}
-                      isAnimationActive={false}
-                    >
-                      <Cell fill="#ef4444" />
-                    </Pie>
-                    {/* Lighter overlay arc showing how far over the cap we are */}
-                    <Pie
-                      data={overflowData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={48}
-                      outerRadius={66}
-                      startAngle={90}
-                      endAngle={-270}
-                      dataKey="value"
-                      strokeWidth={0}
-                      animationDuration={800}
-                    >
-                      <Cell key="overflow" fill="#fecaca" />
-                      <Cell key="overflow-empty" fill="transparent" />
-                    </Pie>
-                  </>
-                ) : (
-                  <Pie
-                    data={donutData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={48}
-                    outerRadius={66}
-                    startAngle={90}
-                    endAngle={-270}
-                    dataKey="value"
-                    strokeWidth={0}
-                    animationDuration={800}
-                  >
-                    {donutData.map((entry, i) => (
-                      <Cell key={entry.key} fill={i === 0 ? arcColor : '#27272a'} />
-                    ))}
-                  </Pie>
-                )}
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={`text-2xl font-bold ${isOver ? 'text-red-400' : ''}`}>
-                {cap !== null ? (isOver ? `+${todayKcal - cap}` : remaining) : todayKcal}
-              </span>
-              <span className="text-[11px] text-zinc-500">
-                {cap !== null ? (isOver ? 'Over' : 'Remaining') : 'kcal'}
-              </span>
-            </div>
-          </div>
+      {/* Meals + calorie consumption (merged, with expandable meals list) */}
+      <MealsSection
+        meals={meals}
+        selectedDate={selectedDate}
+        onDateChange={handleDateChange}
+        onChanged={loadData}
+        goalCalories={calorieTargets.goalCalories}
+        maxCalories={calorieTargets.maxCalories}
+      />
 
-          {/* Stats */}
-          <div className="flex-1 w-full">
-            <p className="text-sm text-zinc-400 mb-3">
-              <span className="font-semibold text-zinc-200 text-lg">{todayKcal}</span>
-              {cap !== null && <> / {cap}</>} kcal {selectedDate === today ? 'today' : selectedDate}
-            </p>
-            <div className="grid grid-cols-3 gap-3">
-              <MacroPill label="Carbs" value={todayCarbs} unit="g" color="bg-amber-400" />
-              <MacroPill label="Protein" value={todayProtein} unit="g" color="bg-sky-400" />
-              <MacroPill label="Fat" value={todayFat} unit="g" color="bg-rose-400" />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Macro split — second card */}
+      <MacroChart protein={todayProtein} carbs={todayCarbs} fat={todayFat} />
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <WeeklyChart
-          data={weeklyData}
-          target={calorieTargets.goalCalories ?? null}
-          min={calorieTargets.minCalories ?? null}
-          max={calorieTargets.maxCalories ?? null}
-        />
-        <MacroChart protein={todayProtein} carbs={todayCarbs} fat={todayFat} />
-      </div>
+      {/* Weekly chart */}
+      <WeeklyChart
+        data={weeklyData}
+        target={calorieTargets.goalCalories ?? null}
+        min={calorieTargets.minCalories ?? null}
+        max={calorieTargets.maxCalories ?? null}
+      />
 
       {/* Goal progress */}
       <GoalProgressCard
@@ -328,23 +222,12 @@ export default function CaloriesDashboardPage() {
       {/* Weight trend (shown when enough data) */}
       <WeightChart data={weightChartData} />
 
-      {/* Meals + Measurements row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <MealsSection
-          meals={meals}
-          selectedDate={selectedDate}
-          onDateChange={handleDateChange}
-          onChanged={loadData}
-          goalCalories={calorieTargets.goalCalories}
-          minCalories={calorieTargets.minCalories}
-          maxCalories={calorieTargets.maxCalories}
-        />
-        <MeasurementsSection
-          latestMeasurements={latestMeasurements}
-          measurementTypes={measurementTypes}
-          onChanged={loadData}
-        />
-      </div>
+      {/* Measurements */}
+      <MeasurementsSection
+        latestMeasurements={latestMeasurements}
+        measurementTypes={measurementTypes}
+        onChanged={loadData}
+      />
 
       {/* Settings (profile) — at the bottom */}
       <ProfileCard
@@ -354,19 +237,5 @@ export default function CaloriesDashboardPage() {
         onUpdated={loadData}
       />
     </main>
-  );
-}
-
-function MacroPill({ label, value, unit, color }: { label: string; value: number; unit: string; color: string }) {
-  return (
-    <div className="rounded-lg bg-zinc-800/80 border border-zinc-700/50 px-3 py-2 text-center">
-      <div className="flex items-center justify-center gap-1.5 mb-1">
-        <div className={`w-2 h-2 rounded-full ${color}`} />
-        <span className="text-xs text-zinc-500">{label}</span>
-      </div>
-      <p className="text-sm font-semibold">
-        {value} <span className="text-xs font-normal text-zinc-500">{unit}</span>
-      </p>
-    </div>
   );
 }
