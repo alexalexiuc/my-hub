@@ -72,6 +72,8 @@ export const POST = withAuth(async ({ req, user }) => {
     location: typeof body.location === 'string' ? body.location : null,
     notes: typeof body.notes === 'string' ? body.notes : null,
     details: flightDetails,
+    lat: typeof body.lat === 'number' ? body.lat : null,
+    lng: typeof body.lng === 'number' ? body.lng : null,
   });
 
   return NextResponse.json({ booking }, { status: 201 });

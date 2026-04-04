@@ -5,6 +5,12 @@ import { users, trips, tripShares, tripBookings } from '@my-hub/shared/schema';
 
 const SHARED_OWNER_EMAIL = 'e2e-shared-owner@test.local';
 
+export const SHARED_TRIP_FIXTURE = {
+  tripName: 'E2E Shared View Trip',
+  ownerName: 'E2E Shared Owner',
+  bookingTitle: 'E2E Shared Booking',
+} as const;
+
 export interface SharedTripFixture {
   tripName: string;
   ownerName: string;
@@ -20,9 +26,9 @@ export async function seedSharedTripFixture(viewerEmail: string): Promise<Shared
   const sqlClient = postgres(databaseUrl);
   const db = drizzle(sqlClient, { schema: { users, trips, tripShares, tripBookings } });
 
-  const ownerName = 'E2E Shared Owner';
-  const tripName = 'E2E Shared View Trip';
-  const bookingTitle = 'E2E Shared Booking';
+  const ownerName = SHARED_TRIP_FIXTURE.ownerName;
+  const tripName = SHARED_TRIP_FIXTURE.tripName;
+  const bookingTitle = SHARED_TRIP_FIXTURE.bookingTitle;
 
   try {
     const normalizedViewerEmail = viewerEmail.trim().toLowerCase();

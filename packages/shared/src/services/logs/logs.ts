@@ -61,3 +61,12 @@ export async function deleteLogsOlderThan3Months(): Promise<{ rowsDeleted: numbe
     .returning({ id: apiRequestLogs.id });
   return { rowsDeleted: result.length };
 }
+
+export async function deleteAllUserApiRequestLogs(userId: string): Promise<number> {
+  const rows = await db
+    .delete(apiRequestLogs)
+    .where(eq(apiRequestLogs.userId, userId))
+    .returning({ id: apiRequestLogs.id });
+
+  return rows.length;
+}

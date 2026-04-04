@@ -51,3 +51,8 @@ export async function deleteApiaryLog(userId: string, logId: number): Promise<Ap
     .returning();
   return row ?? null;
 }
+
+export async function deleteAllUserApiaryLogs(userId: string): Promise<number> {
+  const rows = await db.delete(apiaryLogs).where(eq(apiaryLogs.userId, userId)).returning({ id: apiaryLogs.id });
+  return rows.length;
+}

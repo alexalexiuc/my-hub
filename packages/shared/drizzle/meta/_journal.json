@@ -127,6 +127,13 @@
       "when": 1775162607362,
       "tag": "0018_fantastic_catseye",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1775250640604,
+      "tag": "0019_wealthy_alice",
+      "breakpoints": true
     }
   ]
 }

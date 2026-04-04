@@ -20,6 +20,9 @@ export type TripBookingUpdate = Partial<
     | 'location'
     | 'notes'
     | 'details'
+    | 'timezone'
+    | 'lat'
+    | 'lng'
   >
 >;
 
@@ -107,6 +110,15 @@ export async function updateTripBooking(
   return row ?? null;
 }
 
+export async function getTripBookingById(userId: string, bookingId: number): Promise<TripBooking | null> {
+  const [row] = await db
+    .select()
+    .from(tripBookings)
+    .where(and(eq(tripBookings.userId, userId), eq(tripBookings.id, bookingId)))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function deleteTripBooking(userId: string, bookingId: number): Promise<TripBooking | null> {
   const [row] = await db
     .delete(tripBookings)
@@ -114,4 +126,10 @@ export async function deleteTripBooking(userId: string, bookingId: number): Prom
     .returning();
 
   return row ?? null;
+}
+
+export async function deleteAllUserTripBookings(userId: string): Promise<number> {
+  const rows = await db.delete(tripBookings).where(eq(tripBookings.userId, userId)).returning({ id: tripBookings.id });
+
+  return rows.length;
 }

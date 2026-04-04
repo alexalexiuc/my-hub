@@ -63,3 +63,8 @@ export async function deleteApiaryTask(userId: string, taskId: number): Promise<
     .returning();
   return row ?? null;
 }
+
+export async function deleteAllUserApiaryTasks(userId: string): Promise<number> {
+  const rows = await db.delete(apiaryTasks).where(eq(apiaryTasks.userId, userId)).returning({ id: apiaryTasks.id });
+  return rows.length;
+}

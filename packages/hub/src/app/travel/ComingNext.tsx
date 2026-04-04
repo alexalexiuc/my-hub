@@ -90,8 +90,9 @@ function SegmentCard({ segment }: { segment: Segment }) {
   const [expanded, setExpanded] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const divRef = useRef<HTMLDivElement | null>(null);
-  const { text: timeText } = formatSegmentTime(segment.datetime);
+  const { text: timeText } = formatSegmentTime(segment.datetime, segment.timezone);
   const { timeBucket, isPast, isActive } = segment;
+  const showUtcBadge = segment.timezone === null;
 
   useEffect(() => {
     if (isActive) {
@@ -159,10 +160,18 @@ function SegmentCard({ segment }: { segment: Segment }) {
           Soon!
         </span>
       )}
-      <div className={timeBucket === 'past' ? 'text-zinc-600' : 'text-zinc-400'}>
-        <BookingTypeIcon type={segment.bookingType} />
+      <div className="flex items-center gap-1.5">
+        <span className={timeBucket === 'past' ? 'text-zinc-600' : 'text-zinc-400'}>
+          <BookingTypeIcon type={segment.bookingType} />
+        </span>
+        <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">{segment.endpointLabel}</span>
       </div>
-      <span className={`text-xs ${bucketTimeClasses[timeBucket]}`}>{timeText}</span>
+      <div className="flex items-center gap-1.5">
+        <span className={`text-xs ${bucketTimeClasses[timeBucket]}`}>{timeText}</span>
+        {showUtcBadge && (
+          <span className="rounded bg-zinc-700 px-1 py-0.5 text-[9px] font-medium text-zinc-400 leading-none">UTC</span>
+        )}
+      </div>
       <span
         className={`font-medium text-sm leading-tight ${isPast ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-zinc-100'}`}
       >
@@ -173,24 +182,30 @@ function SegmentCard({ segment }: { segment: Segment }) {
           {segment.secondaryLabel}
         </span>
       )}
-      {!isPast && (
-        <>
-          {segment.actions.length > 0 ? (
-            <div className="flex flex-wrap gap-1 mt-0.5">
-              {segment.actions.map((action, i) => (
-                <ActionChip key={i} action={action} segmentLabel={segment.primaryLabel} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs italic text-zinc-500 mt-0.5">No documents attached</p>
-          )}
-        </>
+      {!isPast && segment.actions.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-0.5">
+          {segment.actions.map((action, i) => (
+            <ActionChip key={i} action={action} segmentLabel={segment.primaryLabel} />
+          ))}
+        </div>
+      )}
+      {!isPast && !segment.isEndSegment && segment.actions.length === 0 && (
+        <p className="text-xs italic text-zinc-500 mt-0.5">No documents attached</p>
       )}
     </div>
   );
 }
 
-function Connector({ dim }: { dim?: boolean }) {
+function Connector({ dim, durationBadge }: { dim?: boolean; durationBadge?: string | null }) {
+  if (durationBadge) {
+    return (
+      <div className="flex items-center justify-center py-1 md:py-0 md:px-1" aria-hidden="true">
+        <span className="rounded-full bg-zinc-800 border border-zinc-700 px-2 py-0.5 text-[10px] font-medium text-zinc-400 whitespace-nowrap">
+          {durationBadge}
+        </span>
+      </div>
+    );
+  }
   return (
     <div className="flex items-center justify-center py-1 md:py-0 md:px-1" aria-hidden="true">
       <span className={`hidden text-sm md:block ${dim ? 'text-zinc-700' : 'text-zinc-600'}`}>→</span>
@@ -210,14 +225,22 @@ export function ComingNext({ bookings, documents }: ComingNextProps) {
   if (segments.length === 0) return null;
 
   return (
-    <SectionCard title="Coming Next" className="bg-sky-950/20 border-sky-800/50">
+    <SectionCard title="Itinerary" className="bg-sky-950/20 border-sky-800/50">
       <div className="flex flex-col gap-0 md:flex-row md:overflow-x-auto md:items-stretch md:gap-0">
-        {segments.map((segment, i) => (
-          <div key={segment.id} className="contents">
-            <SegmentCard segment={segment} />
-            {i < segments.length - 1 && <Connector dim={segment.isPast && segments[i + 1]?.isPast} />}
-          </div>
-        ))}
+        {segments.map((segment, i) => {
+          const next = segments[i + 1];
+          // Duration badge shown on connector between same-booking start→end pair
+          const connectorDuration =
+            next?.bookingId === segment.bookingId && next?.isEndSegment ? next.durationBadge : null;
+          return (
+            <div key={segment.segmentId} className="contents">
+              <SegmentCard segment={segment} />
+              {i < segments.length - 1 && (
+                <Connector dim={segment.isPast && next?.isPast} durationBadge={connectorDuration} />
+              )}
+            </div>
+          );
+        })}
       </div>
     </SectionCard>
   );

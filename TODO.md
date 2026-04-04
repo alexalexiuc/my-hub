@@ -18,3 +18,5 @@
 - [x] Add refresh token support to the OAuth implementation. Then increase access token expiration.
 - [ ] Wire up MCP Service monitor to HUB UI.
 - [ ] **Travel UX:** Allow users to override flight details shown in the UI (fetched from flightDetails table) with user-inserted values (via Hub UI form or MCP). Provide a "Use manual details" toggle or similar UX to let users override auto-fetched flight info (status, gate, terminal, etc.) when manually entered values should take precedence.
+- [ ] Use e2e.ts for e2e tests and test for unit tests across all package for consistency
+- [ ] Merge e2e tests to seem more natural user flow rather than CRUD-ish test for each separate component.

@@ -29,6 +29,11 @@ function makeBooking(overrides: Partial<TripBookingExtended> & { id: number }): 
     details: null,
     flightDataId: null,
     flightData: null,
+    timezone: null,
+    lat: null,
+    lng: null,
+    startTimezone: null,
+    endTimezone: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -288,15 +293,20 @@ describe('mapBookingsToSegments', () => {
       makeBooking({ id: 5, title: 'Future Booking', startAt: new Date('2026-04-10T10:00:00Z') }),
     ];
     const segments = mapBookingsToSegments(bookings, [], now);
-    expect(segments).toHaveLength(5);
+    // Bookings with endAt emit 2 segments each (start + end), others emit 1.
+    // Sorted by datetime: PastStart(05Z), PastEnd(07Z), ActiveStart(09Z),
+    // ImminentStart(10:45Z), ActiveEnd(11Z), SoonStart(18Z), FutureStart(10 Apr)
+    expect(segments).toHaveLength(7);
     expect(segments[0]!.timeBucket).toBe('past');
-    expect(segments[1]!.timeBucket).toBe('now');
-    expect(segments[2]!.timeBucket).toBe('imminent');
-    expect(segments[3]!.timeBucket).toBe('soon');
-    expect(segments[4]!.timeBucket).toBe('future');
+    expect(segments[1]!.timeBucket).toBe('past');
+    expect(segments[2]!.timeBucket).toBe('now');
+    expect(segments[3]!.timeBucket).toBe('imminent');
+    expect(segments[4]!.timeBucket).toBe('imminent');
+    expect(segments[5]!.timeBucket).toBe('soon');
+    expect(segments[6]!.timeBucket).toBe('future');
     // Verify sort order
     expect(segments[0]!.primaryLabel).toBe('Past Booking');
-    expect(segments[4]!.primaryLabel).toBe('Future Booking');
+    expect(segments[6]!.primaryLabel).toBe('Future Booking');
   });
 
   it('derives accommodation labels', () => {
@@ -346,27 +356,27 @@ describe('formatSegmentTime', () => {
 
   it('formats time within 24h as relative', () => {
     const target = new Date(now.getTime() + 2 * HOUR + 40 * 60 * 1000).toISOString();
-    const result = formatSegmentTime(target, now);
+    const result = formatSegmentTime(target, null, now);
     expect(result.text).toBe('In 2 h 40 min');
     expect(result.isSoon).toBe(true);
   });
 
   it('formats time under 1h as minutes only', () => {
     const target = new Date(now.getTime() + 30 * 60 * 1000).toISOString();
-    const result = formatSegmentTime(target, now);
+    const result = formatSegmentTime(target, null, now);
     expect(result.text).toBe('In 30 min');
     expect(result.isSoon).toBe(true);
   });
 
   it('marks isSoon=false when more than 3h away', () => {
     const target = new Date(now.getTime() + 5 * HOUR).toISOString();
-    const result = formatSegmentTime(target, now);
+    const result = formatSegmentTime(target, null, now);
     expect(result.isSoon).toBe(false);
   });
 
   it('formats tomorrow with "Tomorrow" prefix', () => {
     const tomorrow = new Date('2026-04-01T14:00:00Z');
-    const result = formatSegmentTime(tomorrow.toISOString(), now);
+    const result = formatSegmentTime(tomorrow.toISOString(), null, now);
     expect(result.text).toContain('Tomorrow');
     expect(result.text).toContain(formatLocalClock(tomorrow));
     expect(result.isSoon).toBe(false);
@@ -377,7 +387,7 @@ describe('formatSegmentTime', () => {
     // now = 23:30, target = 00:15 next local calendar day (~45 min away)
     const lateNow = new Date(2026, 2, 31, 23, 30, 0);
     const earlyTomorrow = new Date(2026, 3, 1, 0, 15, 0);
-    const result = formatSegmentTime(earlyTomorrow.toISOString(), lateNow);
+    const result = formatSegmentTime(earlyTomorrow.toISOString(), null, lateNow);
     expect(result.text).toContain('Tomorrow');
     expect(result.text).toContain(formatLocalClock(earlyTomorrow));
     expect(result.isSoon).toBe(false);
@@ -385,7 +395,7 @@ describe('formatSegmentTime', () => {
 
   it('formats dates beyond tomorrow with date + time', () => {
     const future = new Date('2026-04-05T09:30:00Z');
-    const result = formatSegmentTime(future.toISOString(), now);
+    const result = formatSegmentTime(future.toISOString(), null, now);
     expect(result.text).toContain('5');
     expect(result.text).toContain('Apr');
     expect(result.text).toContain(formatLocalClock(future));
@@ -394,7 +404,7 @@ describe('formatSegmentTime', () => {
 
   it('formats past times as date + time', () => {
     const past = new Date('2026-03-31T08:30:00Z');
-    const result = formatSegmentTime(past.toISOString(), now);
+    const result = formatSegmentTime(past.toISOString(), null, now);
     // Exact time is omitted because getHours()/getMinutes() use local timezone
     // and would differ across environments; date and month are stable.
     expect(result.text).toContain('31');

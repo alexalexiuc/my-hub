@@ -12,6 +12,8 @@ import {
   getLastMonday,
   isoWeekAndYear,
   weekLabel,
+  isoDate,
+  calendarDays,
 } from './dates';
 
 describe('isValidDate', () => {
@@ -188,5 +190,30 @@ describe('isoWeekAndYear', () => {
 describe('weekLabel', () => {
   it('formats ISO week label', () => {
     expect(weekLabel(new Date('2026-04-13T00:00:00.000Z'))).toBe('Week 16, 2026');
+  });
+});
+
+describe('isoDate', () => {
+  it('formats date as YYYY-MM-DD', () => {
+    expect(isoDate(new Date('2026-03-23T00:00:00.000Z'))).toBe('2026-03-23');
+  });
+});
+
+describe('calendarDays', () => {
+  it('returns array of date strings between start and end dates', () => {
+    const start = new Date('2026-03-01T00:00:00.000Z');
+    const end = new Date('2026-03-05T00:00:00.000Z');
+    expect(calendarDays(start, end)).toEqual(['2026-03-01', '2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05']);
+  });
+
+  it('handles same start and end date', () => {
+    const date = new Date('2026-03-01T00:00:00.000Z');
+    expect(calendarDays(date, date)).toEqual(['2026-03-01']);
+  });
+
+  it('handles end date before start date by returning empty array', () => {
+    const start = new Date('2026-03-05T00:00:00.000Z');
+    const end = new Date('2026-03-01T00:00:00.000Z');
+    expect(calendarDays(start, end)).toEqual([]);
   });
 });

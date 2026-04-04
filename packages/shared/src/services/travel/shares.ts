@@ -1,4 +1,4 @@
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, or } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
 import { tripShares } from '../../db/schema/travel';
@@ -79,4 +79,13 @@ export async function deleteTripShare(ownerUserId: string, tripId: number, share
     .returning();
 
   return row ?? null;
+}
+
+export async function deleteAllUserTripShares(userId: string): Promise<number> {
+  const rows = await db
+    .delete(tripShares)
+    .where(or(eq(tripShares.ownerUserId, userId), eq(tripShares.sharedWithUserId, userId)))
+    .returning({ id: tripShares.id });
+
+  return rows.length;
 }

@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { TEST_USER } from '../config';
-import { seedSharedTripFixture } from '../seeds/travel.seed';
+import { SHARED_TRIP_FIXTURE } from '../seeds/travel.seed';
 
 /** Format a Date for a datetime-local input value (local time, no seconds). */
 function toDateTimeLocal(date: Date): string {
@@ -203,21 +202,19 @@ test.describe('Travel', () => {
   });
 
   test('shows a seeded shared trip in read-only mode for the viewer', async ({ page }) => {
-    const fixture = await seedSharedTripFixture(TEST_USER.email);
-
     await page.reload();
     await page.waitForLoadState('networkidle');
 
-    const tripButton = page.getByRole('button', { name: new RegExp(fixture.tripName) });
+    const tripButton = page.getByRole('button', { name: new RegExp(SHARED_TRIP_FIXTURE.tripName) });
     await expect(tripButton).toBeVisible();
     await tripButton.click();
 
-    await expect(tripButton).toContainText(`Owner: ${fixture.ownerName}`);
+    await expect(tripButton).toContainText(`Owner: ${SHARED_TRIP_FIXTURE.ownerName}`);
     await expect(
       page.getByText('Only the trip owner can manage sharing. You currently have view-only access.'),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add Reservation' })).toBeDisabled();
-    await expect(page.locator('p.font-medium', { hasText: fixture.bookingTitle })).toBeVisible();
+    await expect(page.locator('p.font-medium', { hasText: SHARED_TRIP_FIXTURE.bookingTitle })).toBeVisible();
   });
 
   test('adds flight booking with details and displays them properly', async ({ page }) => {
@@ -276,11 +273,47 @@ test.describe('Travel', () => {
     await expect(gateText).toBeVisible();
   });
 
+  test('shows map when trip has bookings with coordinates', async ({ page }) => {
+    const tripName = uniqueName('E2E Map Trip');
+    await createTrip(page, tripName);
+    const tripId = await getTripIdByName(page, tripName);
+
+    // Create two bookings with lat/lng via API — the UI does not expose coordinate fields.
+    // mapData.points requires >= 2 points to render the Leaflet map.
+    const res1 = await page.request.post('/api/travel/bookings', {
+      data: { trip_id: tripId, title: 'Paris Hotel', booking_type: 'accommodation', lat: 48.8566, lng: 2.3522 },
+    });
+    expect(res1.status()).toBe(201);
+    const b1 = (await res1.json()) as { booking: { lat: number | null } };
+    expect(b1.booking.lat).toBe(48.8566);
+
+    const res2 = await page.request.post('/api/travel/bookings', {
+      data: { trip_id: tripId, title: 'Rome Hotel', booking_type: 'accommodation', lat: 41.9028, lng: 12.4964 },
+    });
+    expect(res2.status()).toBe(201);
+
+    // Reload so the overview is fetched fresh with the new bookings (clicking an already-
+    // active trip button does not re-trigger loadOverview).
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    const overviewResponsePromise = page.waitForResponse(
+      (res) => res.url().includes(`/api/travel/trips/${tripId}/overview`) && res.status() === 200,
+    );
+    await page.getByRole('button', { name: new RegExp(tripName) }).click();
+    await overviewResponsePromise;
+
+    // TripMapInner renders a container div only when mapData.points.length >= 2.
+    // Asserting the container is visible confirms the API returned valid geo data
+    // and the component rendered. Leaflet class attachment depends on external CDN
+    // CSS (unpkg), so we only assert the container element, not Leaflet internals.
+    await expect(page.locator('[data-testid="trip-map-container"]')).toBeVisible({ timeout: 10_000 });
+  });
+
   test('ComingNext shows chips for multiple bookings with correct time-state styling', async ({ page }) => {
     const tripName = uniqueName('E2E ComingNext Chips');
     const now = new Date();
 
-    // Helpers for relative datetimes
     const pastStart = new Date(now.getTime() - 5 * 60 * 60 * 1000); // 5h ago
     const pastEnd = new Date(now.getTime() - 3 * 60 * 60 * 1000); // 3h ago
     const imminentStart = new Date(now.getTime() + 30 * 60 * 1000); // +30 min
@@ -290,47 +323,48 @@ test.describe('Travel', () => {
     const tripButton = page.getByRole('button', { name: new RegExp(tripName) });
     await tripButton.click();
 
-    // Add past booking
+    // Booking with start + end → should produce 2 chips (start chip + end chip)
     await page.getByPlaceholder('Reservation title').fill('Past Hotel');
     await page.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(pastStart));
     await page.locator('input[type="datetime-local"]').nth(1).fill(toDateTimeLocal(pastEnd));
     await page.getByRole('button', { name: 'Add Reservation' }).click();
     await expect(page.locator('p.font-medium, button', { hasText: /Past Hotel/ }).first()).toBeVisible();
 
-    // Add imminent booking (< 1h away)
+    // Booking with start only → should produce exactly 1 chip
     await page.getByPlaceholder('Reservation title').fill('Imminent Flight');
     await page.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(imminentStart));
+    // Intentionally no endAt
     await page.getByRole('button', { name: 'Add Reservation' }).click();
     await expect(page.locator('p.font-medium, button', { hasText: /Imminent Flight/ }).first()).toBeVisible();
 
-    // Add far-future booking (> 24h)
+    // Another future booking (start only)
     await page.getByPlaceholder('Reservation title').fill('Future Tour');
     await page.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(futureStart));
     await page.getByRole('button', { name: 'Add Reservation' }).click();
     await expect(page.locator('p.font-medium, button', { hasText: /Future Tour/ }).first()).toBeVisible();
 
-    // ComingNext section should be visible with all three chips
-    const comingNext = page.getByRole('heading', { name: 'Coming Next' }).locator('xpath=ancestor::section[1]');
+    const comingNext = page.getByRole('heading', { name: 'Itinerary' }).locator('xpath=ancestor::section[1]');
     await expect(comingNext).toBeVisible();
 
-    // Past chip: collapsed compact button with "Done" badge
-    const pastChip = comingNext.getByRole('button', { name: /Expand past segment: Past Hotel/ });
-    await expect(pastChip).toBeVisible();
-    await expect(pastChip).toContainText('Done');
-    await expect(pastChip).toContainText('Past Hotel');
+    // "Past Hotel" has both start and end → exactly 2 collapsed past-segment chips.
+    // Other chips (e.g. museum between check-in/check-out) may appear between them,
+    // so we assert count only, not adjacency.
+    const pastHotelChips = comingNext.getByRole('button', { name: /Expand past segment: Past Hotel/ });
+    await expect(pastHotelChips).toHaveCount(2);
+    await expect(pastHotelChips.first()).toContainText('Done');
+    await expect(pastHotelChips.first()).toContainText('Past Hotel');
 
-    // Clicking past chip expands it
-    await pastChip.click();
-    const expandedPastCard = comingNext.getByText('Past Hotel').last();
-    await expect(expandedPastCard).toBeVisible();
+    // Clicking a past chip expands it
+    await pastHotelChips.first().click();
+    await expect(comingNext.getByText('Past Hotel').first()).toBeVisible();
 
-    // Imminent chip: visible with "Soon!" badge
-    const imminentChip = comingNext.getByText('Imminent Flight');
-    await expect(imminentChip).toBeVisible();
+    // "Imminent Flight" has start only → exactly 1 chip, visible with "Soon!" badge
+    const imminentChips = comingNext.getByText('Imminent Flight');
+    await expect(imminentChips).toHaveCount(1);
     await expect(comingNext.getByText('Soon!')).toBeVisible();
 
-    // Future chip visible
-    await expect(comingNext.getByText('Future Tour')).toBeVisible();
+    // "Future Tour" has start only → exactly 1 chip
+    await expect(comingNext.getByText('Future Tour')).toHaveCount(1);
   });
 
   test('reservation row expands on click to show extra details', async ({ page }) => {
@@ -485,6 +519,131 @@ test.describe('Travel', () => {
 
     await expect(updatedCompanionCard).toContainText(updatedCompanionName);
     await expect(updatedCompanionCard).not.toContainText(`${updatedCompanionName} Draft`);
+  });
+
+  test('Itinerary renders two chips with endpoint labels when endAt is set', async ({ page }) => {
+    const tripName = uniqueName('E2E Two Chips');
+    const now = new Date();
+    const startAt = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000); // +2 days
+    const endAt = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000); // +5 days
+
+    await createTrip(page, tripName);
+    await page.getByRole('button', { name: new RegExp(tripName) }).click();
+
+    // Add accommodation with both start and end times
+    const reservationsSection = page
+      .getByRole('heading', { name: 'Reservations' })
+      .locator('xpath=ancestor::section[1]');
+    await reservationsSection.getByPlaceholder('Reservation title').fill('Hotel Roma');
+    await reservationsSection.locator('select').first().selectOption('accommodation');
+    await reservationsSection.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(startAt));
+    await reservationsSection.locator('input[type="datetime-local"]').nth(1).fill(toDateTimeLocal(endAt));
+    await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
+    await expect(page.locator('p.font-medium', { hasText: 'Hotel Roma' })).toBeVisible();
+
+    const itinerary = page.getByRole('heading', { name: 'Itinerary' }).locator('xpath=ancestor::section[1]');
+    await expect(itinerary).toBeVisible();
+
+    // Both endpoint labels should be present
+    await expect(itinerary.getByText('Check-in', { exact: true })).toBeVisible();
+    await expect(itinerary.getByText('Check-out', { exact: true })).toBeVisible();
+
+    // Duration badge should show nights count
+    await expect(itinerary.getByText(/\d+ nights?/)).toBeVisible();
+  });
+
+  test('Itinerary renders one chip when endAt is null', async ({ page }) => {
+    const tripName = uniqueName('E2E One Chip');
+    const startAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+
+    await createTrip(page, tripName);
+    await page.getByRole('button', { name: new RegExp(tripName) }).click();
+
+    const reservationsSection = page
+      .getByRole('heading', { name: 'Reservations' })
+      .locator('xpath=ancestor::section[1]');
+    await reservationsSection.getByPlaceholder('Reservation title').fill('Airport Pickup');
+    await reservationsSection.locator('select').first().selectOption('taxi');
+    await reservationsSection.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(startAt));
+    // Intentionally no endAt
+    await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
+    await expect(page.locator('p.font-medium', { hasText: 'Airport Pickup' })).toBeVisible();
+
+    const itinerary = page.getByRole('heading', { name: 'Itinerary' }).locator('xpath=ancestor::section[1]');
+    await expect(itinerary.getByText('Pickup', { exact: true })).toBeVisible();
+    await expect(itinerary.getByText('Drop-off', { exact: true })).not.toBeVisible();
+  });
+
+  test('Day by Day section appears for trips with start and end dates', async ({ page }) => {
+    const tripName = uniqueName('E2E DayByDay Visible');
+    const startAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    const endAt = new Date(Date.now() + 4 * 24 * 60 * 60 * 1000);
+
+    // Create via UI then add dates via API so section appears
+    await createTrip(page, tripName);
+    const tripId = await getTripIdByName(page, tripName);
+    await page.request.patch(`/api/travel/trips/${tripId}`, {
+      data: { start_at: startAt.toISOString(), end_at: endAt.toISOString() },
+    });
+
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page
+      .getByRole('button', { name: new RegExp(tripName) })
+      .first()
+      .click();
+
+    await expect(page.getByRole('heading', { name: 'Day by Day' })).toBeVisible();
+  });
+
+  test('Day by Day add, edit and delete a day note', async ({ page }) => {
+    const tripName = uniqueName('E2E DayByDay CRUD');
+    const startAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 1000 * 60);
+    const endAt = new Date(Date.now() + 4 * 24 * 60 * 60 * 1000 + 1000 * 60);
+
+    await createTrip(page, tripName);
+    const tripId = await getTripIdByName(page, tripName);
+    await page.request.patch(`/api/travel/trips/${tripId}`, {
+      data: { start_at: startAt.toISOString(), end_at: endAt.toISOString() },
+    });
+
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page
+      .getByRole('button', { name: new RegExp(tripName) })
+      .first()
+      .click();
+
+    const dayByDay = page.getByRole('heading', { name: 'Day by Day' }).locator('xpath=ancestor::section[1]');
+    await expect(dayByDay).toBeVisible();
+
+    // Click the first "+ Add notes" button
+    await dayByDay.getByRole('button', { name: '+ Add notes' }).first().click();
+
+    // Fill in title and notes
+    await dayByDay.locator('input[placeholder="Day title (optional)"]').fill('Arrival day');
+    await dayByDay.locator('textarea').fill('Pick up rental car, check in.');
+    await dayByDay.getByRole('button', { name: 'Save', exact: true }).first().click();
+
+    // Verify saved content appears
+    await expect(dayByDay.getByText('Arrival day')).toBeVisible();
+    await expect(dayByDay.getByText('Pick up rental car, check in.')).toBeVisible();
+
+    // Edit the note
+    await dayByDay.getByRole('button', { name: 'Edit', exact: true }).first().click();
+    await dayByDay.locator('input[placeholder="Day title (optional)"]').fill('Travel day');
+    await dayByDay.getByRole('button', { name: 'Save', exact: true }).first().click();
+
+    await expect(dayByDay.getByText('Travel day')).toBeVisible();
+    await expect(dayByDay.getByText('Arrival day')).not.toBeVisible();
+
+    // Delete the note
+    await dayByDay.getByRole('button', { name: 'Edit', exact: true }).first().click();
+    await dayByDay.getByRole('button', { name: 'Delete', exact: true }).first().click();
+
+    // Title should be gone; placeholder should return
+    await expect(dayByDay.getByText('Travel day')).not.toBeVisible();
+    await expect(dayByDay.getByRole('button', { name: '+ Add notes' }).first()).toBeVisible();
   });
 
   test('editing flight booking preserves all flight detail fields', async ({ page }) => {

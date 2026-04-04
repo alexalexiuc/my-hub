@@ -72,3 +72,9 @@ export async function deleteTripPlace(userId: string, placeId: number): Promise<
 
   return row ?? null;
 }
+
+export async function deleteAllUserTripPlaces(userId: string): Promise<number> {
+  const rows = await db.delete(tripPlaces).where(eq(tripPlaces.userId, userId)).returning({ id: tripPlaces.id });
+
+  return rows.length;
+}

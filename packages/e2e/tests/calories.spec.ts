@@ -7,6 +7,7 @@ test.describe('Calories Dashboard', () => {
     await page.goto('/calories');
     await page.waitForLoadState('networkidle');
     await deleteFeatures(page, ['meals', 'measurements', 'calories_profile']);
+    await page.request.put('/api/users/profile', { data: { country: null, timezone: null } });
     await page.reload();
     await page.waitForLoadState('networkidle');
   });
@@ -119,35 +120,44 @@ test.describe('Calories Dashboard', () => {
   });
 
   test('save and reload profile goals and location fields', async ({ page }) => {
-    await page.getByRole('button', { name: /^edit$/i }).click();
+    const profileSection = page.getByRole('heading', { name: 'Profile' }).locator('xpath=ancestor::section[1]');
 
-    await page.getByRole('spinbutton', { name: /^age$/i }).fill('31');
-    await page.getByRole('combobox', { name: /^sex$/i }).selectOption('female');
-    await page.getByRole('spinbutton', { name: /height/i }).fill('168');
-    await page.getByRole('combobox', { name: /activity level/i }).selectOption('moderately_active');
-    await page.getByRole('combobox', { name: /goal type/i }).selectOption('weight_loss');
-    await page.getByRole('spinbutton', { name: /rate/i }).fill('0.5');
-    await page.getByRole('spinbutton', { name: /min calories\/day/i }).fill('1400');
-    await page.getByRole('spinbutton', { name: /max calories\/day/i }).fill('1900');
-    await page.getByRole('combobox', { name: /country/i }).selectOption('RO');
-    await page.getByRole('combobox', { name: /timezone/i }).selectOption('+2');
-    await page
+    await profileSection.getByRole('button', { name: /^edit$/i }).click();
+
+    await profileSection.getByRole('spinbutton', { name: /^age$/i }).fill('31');
+    await profileSection.getByRole('combobox', { name: /^sex$/i }).selectOption('female');
+    await profileSection.getByRole('spinbutton', { name: /height/i }).fill('168');
+    await profileSection.getByRole('combobox', { name: /activity level/i }).selectOption('moderately_active');
+    await profileSection.getByRole('combobox', { name: /goal type/i }).selectOption('weight_loss');
+    await profileSection.getByRole('spinbutton', { name: /rate/i }).fill('0.5');
+    await profileSection.getByRole('spinbutton', { name: /min calories\/day/i }).fill('1400');
+    await profileSection.getByRole('spinbutton', { name: /max calories\/day/i }).fill('1900');
+    await profileSection.getByRole('combobox', { name: /country/i }).selectOption('RO');
+    await profileSection.getByRole('combobox', { name: /timezone/i }).selectOption('+2');
+    await profileSection
       .getByRole('button', { name: /^save$/i })
       .first()
       .click();
 
-    await expect(page.getByRole('button', { name: /^edit$/i })).toBeVisible({ timeout: 5_000 });
+    await expect(profileSection.getByRole('button', { name: /^edit$/i })).toBeVisible({ timeout: 5_000 });
 
-    await page.getByRole('button', { name: /^edit$/i }).click();
-    await expect(page.getByRole('spinbutton', { name: /^age$/i })).toHaveValue('31');
-    await expect(page.getByRole('combobox', { name: /^sex$/i })).toHaveValue('female');
-    await expect(page.getByRole('spinbutton', { name: /height/i })).toHaveValue('168');
-    await expect(page.getByRole('combobox', { name: /activity level/i })).toHaveValue('moderately_active');
-    await expect(page.getByRole('combobox', { name: /goal type/i })).toHaveValue('weight_loss');
-    await expect(page.getByRole('spinbutton', { name: /rate/i })).toHaveValue('0.5');
-    await expect(page.getByRole('spinbutton', { name: /min calories\/day/i })).toHaveValue('1400');
-    await expect(page.getByRole('spinbutton', { name: /max calories\/day/i })).toHaveValue('1900');
-    await expect(page.getByRole('combobox', { name: /country/i })).toHaveValue('RO');
-    await expect(page.getByRole('combobox', { name: /timezone/i })).toHaveValue('+2');
+    // Reload to assert persisted server state, not local in-memory form state.
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    const reloadedProfileSection = page.getByRole('heading', { name: 'Profile' }).locator('xpath=ancestor::section[1]');
+    await reloadedProfileSection.getByRole('button', { name: /^edit$/i }).click();
+    await expect(reloadedProfileSection.getByRole('spinbutton', { name: /^age$/i })).toHaveValue('31');
+    await expect(reloadedProfileSection.getByRole('combobox', { name: /^sex$/i })).toHaveValue('female');
+    await expect(reloadedProfileSection.getByRole('spinbutton', { name: /height/i })).toHaveValue('168');
+    await expect(reloadedProfileSection.getByRole('combobox', { name: /activity level/i })).toHaveValue(
+      'moderately_active',
+    );
+    await expect(reloadedProfileSection.getByRole('combobox', { name: /goal type/i })).toHaveValue('weight_loss');
+    await expect(reloadedProfileSection.getByRole('spinbutton', { name: /rate/i })).toHaveValue('0.5');
+    await expect(reloadedProfileSection.getByRole('spinbutton', { name: /min calories\/day/i })).toHaveValue('1400');
+    await expect(reloadedProfileSection.getByRole('spinbutton', { name: /max calories\/day/i })).toHaveValue('1900');
+    await expect(reloadedProfileSection.getByRole('combobox', { name: /country/i })).toHaveValue('RO');
+    await expect(reloadedProfileSection.getByRole('combobox', { name: /timezone/i })).toHaveValue('+2');
   });
 });

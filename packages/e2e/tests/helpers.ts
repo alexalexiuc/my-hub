@@ -8,7 +8,7 @@ export async function deleteAllData(page: Page): Promise<void> {
 /** Wipe only specific data features. */
 export async function deleteFeatures(
   page: Page,
-  features: ('meals' | 'measurements' | 'calories_profile' | 'todos')[],
+  features: ('meals' | 'measurements' | 'calories_profile' | 'todos' | 'my_travels')[],
 ): Promise<void> {
   await page.request.post('/api/user/delete-data', { data: { features } });
 }

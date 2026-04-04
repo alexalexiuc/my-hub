@@ -20,6 +20,14 @@ export async function deleteCalorieProfile(userId: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+export async function deleteAllUserCalorieProfiles(userId: string): Promise<number> {
+  const rows = await db
+    .delete(calorieProfiles)
+    .where(eq(calorieProfiles.userId, userId))
+    .returning({ id: calorieProfiles.id });
+  return rows.length;
+}
+
 export async function upsertCalorieProfile(userId: string, updates: ProfileUpdates): Promise<CalorieProfile> {
   const patch = { ...updates, updatedAt: new Date() };
 

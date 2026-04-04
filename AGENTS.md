@@ -8,7 +8,10 @@ This repository is a pnpm TypeScript monorepo. Keep changes small, explicit, and
 - `packages/mcp-server`: Fastify app, MCP transport/router wiring, health checks, server-side integrations. Must not contain raw Drizzle queries — import from `@my-hub/shared/services` instead.
 - `packages/hub`: Next.js App Router UI, NextAuth integration, Hub Dashboard pages and client/server UI code.
 - `packages/worker`: Standalone Node.js background service. Runs scheduled polling jobs (e.g. flight data sync). Imports from `@my-hub/shared/services` only — no direct DB access, no HTTP routes.
-- `packages/e2e`: Playwright end-to-end tests for the hub UI. Tests run against a live hub instance (`E2E_HUB_BASE_URL`). Global setup auto-registers the test user (`e2e-hub@test.local`) and persists auth state in `.auth/user.json`. Run with `pnpm --filter @my-hub/e2e test:e2e`.
+- `packages/e2e`: Playwright end-to-end tests for the **Hub UI and Hub REST API**. Tests are in `tests/*.spec.ts`. Tests run against a live hub instance (`E2E_HUB_BASE_URL`). Global setup auto-registers the test user (`e2e-hub@test.local`) and persists auth state in `.auth/user.json`. Run with `pnpm --filter @my-hub/e2e test:e2e`.
+- `packages/e2e`: Playwright end-to-end tests for the **Hub UI and Hub REST API**. Tests are in `tests/*.spec.ts`. Tests run against a live hub instance (`E2E_HUB_BASE_URL`). Global setup auto-registers the test user (`e2e-hub@test.local`) and persists auth state in `.auth/user.json`. Hub E2E seed sources must stay in `packages/e2e/seeds/`, orchestrated by `packages/e2e/scripts/setup-e2e-db.ts`. Local Playwright runs seed by spawning that script only when `IS_LOCAL=true`; CI seeds by running the compiled script inside the `hub` container over SSH. Do not move Hub E2E fixtures into MCP setup scripts or DB migrations. Run with `pnpm --filter @my-hub/e2e test:e2e`.
+- `packages/mcp-server/e2e`: Vitest end-to-end tests that exercise **MCP tools via the MCP protocol**. Tests are in `*.e2e.ts` files, use `createMcpClient`/`callTool` helpers (not Playwright), and run against a live MCP server instance. Run with `pnpm --filter @my-hub/mcp-server test:e2e`. **MCP tool tests belong here — not in `packages/e2e`.**
+- `packages/mcp-server/e2e`: Vitest end-to-end tests that exercise **MCP tools via the MCP protocol**. Tests are in `*.e2e.ts` files, use `createMcpClient`/`callTool` helpers (not Playwright), and run against a live MCP server instance. Local runs do **not** auto-provision test OAuth credentials; run `pnpm --filter @my-hub/mcp-server e2e:setup` first so `e2e/.env.e2e` is written, then run `pnpm --filter @my-hub/mcp-server test:e2e`. CI provisions MCP E2E credentials by executing `packages/mcp-server/e2e/scripts/setup-e2e-db.ts` inside the `mcp` container over SSH. **MCP tool tests belong here — not in `packages/e2e`.**
 - `infra`: Docker Compose, Traefik, deployment/runtime wiring only.
   - `docker-compose.traefik.yml` — **run once on the server**; starts the shared Traefik reverse proxy and creates the named `proxy` Docker network. Both prod and staging connect to this external network. Never stopped between deploys. Usage: `docker compose --project-name my-hub-traefik -f infra/docker-compose.traefik.yml up -d`.
   - `docker-compose.local.yml` — **standalone** local dev stack; no Traefik, services exposed directly on host ports (`3000`, `3001`), DB runs on the host machine (connected via `host.docker.internal`). Usage: `docker compose --project-name my-hub-local -f infra/docker-compose.local.yml up`.
@@ -52,12 +55,14 @@ When a feature spans multiple layers, change in this order:
 - For schema changes, run `pnpm db:generate` to create migrations instead of hand-writing migration files.
 - For data-only changes (seeds, backfills, one-off SQL, extensions), generate an empty custom migration via `pnpm --filter shared drizzle-kit generate --custom --name=<description>` and fill in the SQL manually. Never hand-write schema migrations.
 - All DB queries belong in `packages/shared/src/services/` under a domain subfolder. Never write raw Drizzle calls in `mcp-server` or `hub`.
+- Any table with a user-linked ownership column (for example `user_id`, `owner_user_id`, or `shared_with_user_id`) must expose a `deleteAllUser*` function from `packages/shared/src/services/`, and `packages/hub/src/app/api/user/delete-all/route.ts` (`POST`) must call it so the Profile "Delete all my data" action clears all user data. For cases with complex ownership rules (for example, `shared_with_user_id` can contain multiple users), the `deleteAllUser*` function should delete only rows where the user is the owner (`user_id`), and null out the user from shared ownership columns (`shared_with_user_id`) in rows they don't own.
 - Use `real()` columns (not `numeric`) for all decimal/float values — avoids string↔number conversions at the JS boundary.
 - Use `omitNullish()` from `@my-hub/shared/utils` instead of writing `if (val != null)` guards per property.
 - Keep hub-only UI logic out of `shared`.
 - Keep Fastify/MCP transport code out of `hub`.
 - Document every new runtime variable in the relevant `.env.example` and in the root `.env.example` if Docker uses it.
 - If you add a new package, also update root workspace config, Docker, and CI.
+- For Hub Playwright E2E setup, do not import local seed TS modules directly from `global.setup.ts`. Playwright setup runs through a CommonJS loader and will fail on the ESM seed graph. Invoke `packages/e2e/scripts/setup-e2e-db.ts` as a child process for local seeding instead.
 
 ## Email & notification services
 
@@ -72,3 +77,11 @@ When a feature spans multiple layers, change in this order:
 - Keep full, granular CRUD capabilities in Hub UI and internal APIs when possible; avoid exposing redundant MCP CRUD tools unless required for composition.
 - Use MCP resources for read-only context snapshots and MCP tools for action workflows.
 - For new MCP tool design work, start from `.claude/skills/mcp-task-tools/SKILL.md`, then implement with `.claude/skills/mcp-add-tool/SKILL.md`.
+
+## Shared function and utility design rules
+
+- For new shared functions, add them to `packages/shared/src/utils/` if they are pure utilities with no side effects or external dependencies. For example, a date formatting function or a string manipulation helper.
+- For functions that interact with external systems (databases, APIs, file system), or that encapsulate domain logic, add them to `packages/shared/src/services/` under the appropriate domain subfolder. For example, a function that queries the database for user data or calls an external API to fetch information.
+- Always write clear JSDoc comments for shared functions, describing their purpose, parameters, return values, and any side effects. This helps other developers understand how to use them correctly.
+- Avoid defining util functions in the same file as tsx component. If a function is used by multiple components or has complex logic, it should be moved to a separate file in `utils/` and imported where needed. This promotes code reuse and keeps component files focused on UI logic.
+- When adding a new utility function, consider if it can be made more generic and reusable across different parts of the codebase. For example, a function that formats dates could be designed to accept various formats and locales, making it useful in multiple contexts.

@@ -44,3 +44,8 @@ export async function setMcpServerEnabled(
   if (!row) throw new Error('MCP server row not found');
   return row;
 }
+
+export async function deleteAllUserMcpServers(userId: string): Promise<number> {
+  const rows = await db.delete(mcpServers).where(eq(mcpServers.userId, userId)).returning({ id: mcpServers.id });
+  return rows.length;
+}
