@@ -72,7 +72,7 @@ export default function TripMapInner({ mapData }: Props) {
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [mapData]);
 
   if (mapData.points.length < 2) return null;
 

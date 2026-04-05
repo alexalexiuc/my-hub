@@ -3,6 +3,7 @@ import { db } from '../../db/client';
 import { tripBookings } from '../../db/schema/travel';
 import type { NewTripBooking, TripBooking, TripBookingType } from '../../types/index';
 import { verifyTripOwnership } from './trips';
+import { validateCoords } from '../../utils';
 
 export type TripBookingInsert = Omit<NewTripBooking, 'id' | 'userId' | 'tripId' | 'createdAt' | 'updatedAt'>;
 export type TripBookingUpdate = Partial<
@@ -34,6 +35,7 @@ export async function addTripBooking(userId: string, tripId: number, data: TripB
   if (!(await verifyTripOwnership(userId, tripId))) {
     throw new Error('Trip not found');
   }
+  validateCoords({ lat: data.lat, lng: data.lng });
   const [row] = await db
     .insert(tripBookings)
     .values({

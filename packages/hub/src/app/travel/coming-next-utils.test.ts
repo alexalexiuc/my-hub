@@ -5,9 +5,9 @@ import type { TripDocument } from '@my-hub/shared/types';
 
 const HOUR = 60 * 60 * 1000;
 
-function formatLocalClock(date: Date): string {
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
+function formatUTCClock(date: Date): string {
+  const hours = date.getUTCHours().toString().padStart(2, '0');
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
   return `${hours}:${minutes}`;
 }
 
@@ -378,18 +378,18 @@ describe('formatSegmentTime', () => {
     const tomorrow = new Date('2026-04-01T14:00:00Z');
     const result = formatSegmentTime(tomorrow.toISOString(), null, now);
     expect(result.text).toContain('Tomorrow');
-    expect(result.text).toContain(formatLocalClock(tomorrow));
+    expect(result.text).toContain(formatUTCClock(tomorrow));
     expect(result.isSoon).toBe(false);
   });
 
   it('formats next-day time as "Tomorrow" even when less than 24h away', () => {
-    // Build local times so this remains stable across timezones.
-    // now = 23:30, target = 00:15 next local calendar day (~45 min away)
-    const lateNow = new Date(2026, 2, 31, 23, 30, 0);
-    const earlyTomorrow = new Date(2026, 3, 1, 0, 15, 0);
+    // Use UTC dates so the test is stable across timezones (tz=null → UTC).
+    // now = 23:30 UTC, target = 00:15 UTC next calendar day (~45 min away)
+    const lateNow = new Date('2026-03-31T23:30:00Z');
+    const earlyTomorrow = new Date('2026-04-01T00:15:00Z');
     const result = formatSegmentTime(earlyTomorrow.toISOString(), null, lateNow);
     expect(result.text).toContain('Tomorrow');
-    expect(result.text).toContain(formatLocalClock(earlyTomorrow));
+    expect(result.text).toContain(formatUTCClock(earlyTomorrow));
     expect(result.isSoon).toBe(false);
   });
 
@@ -398,7 +398,7 @@ describe('formatSegmentTime', () => {
     const result = formatSegmentTime(future.toISOString(), null, now);
     expect(result.text).toContain('5');
     expect(result.text).toContain('Apr');
-    expect(result.text).toContain(formatLocalClock(future));
+    expect(result.text).toContain(formatUTCClock(future));
     expect(result.isSoon).toBe(false);
   });
 

@@ -179,11 +179,6 @@ export function addHours(date: Date, hours: number): Date {
   return new Date(date.getTime() + hours * 3_600_000);
 }
 
-/** Formats a Date as a YYYY-MM-DD string using local time components. */
-export function isoDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
 /** Returns an array of YYYY-MM-DD strings for each calendar day from start to end (inclusive). */
 export function calendarDays(startAt: Date, endAt: Date): string[] {
   const days: string[] = [];

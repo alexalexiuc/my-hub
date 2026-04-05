@@ -299,8 +299,8 @@ export function formatSegmentTime(
   const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
   const isSoon = diffMs > 0 && diffMs <= THREE_HOURS;
 
-  // Format HH:MM in the endpoint's local timezone; fall back to machine local time when unset
-  const tz = timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // Format HH:MM in the endpoint's local timezone; fall back to UTC when unset
+  const tz = timezone ?? 'UTC';
   const timeFormatter = new Intl.DateTimeFormat('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
@@ -319,14 +319,13 @@ export function formatSegmentTime(
     return { text: `${dateFormatter.format(target)} · ${timeStr}`, isSoon: false };
   }
 
-  // Check if target is tomorrow in the local timezone
-  const tomorrowStart = new Date(now);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-  tomorrowStart.setHours(0, 0, 0, 0);
-  const tomorrowEnd = new Date(tomorrowStart);
-  tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+  // Check if target is tomorrow in tz (not the runtime's local timezone)
+  const isoInTz = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
+  const nowDateStr = isoInTz(now);
+  const [y, m, day] = nowDateStr.split('-').map(Number) as [number, number, number];
+  const tomorrowDateStr = isoInTz(new Date(Date.UTC(y, m - 1, day + 1)));
 
-  if (target >= tomorrowStart && target < tomorrowEnd) {
+  if (isoInTz(target) === tomorrowDateStr) {
     return { text: `Tomorrow · ${timeStr}`, isSoon: false };
   }
 

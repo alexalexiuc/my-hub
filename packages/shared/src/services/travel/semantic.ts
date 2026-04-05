@@ -19,7 +19,7 @@ import type {
   TripDocument,
   TripPlace,
 } from '../../types/index';
-import { coordsFromIata, timezoneFromIata } from '../../utils/airports';
+import { coordsFromIata, timezoneFromIata } from '../../server-only-utils/airports';
 import { getNextTrip, getTripByIdAccessible } from './trips';
 
 export type TripBookingExtended = TripBooking & {
@@ -93,15 +93,8 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
 
   const bookings: TripBookingExtended[] = rawBookings.map((b) => {
     const fd = b.flightDataId != null ? (flightDataMap.get(b.flightDataId) ?? null) : null;
-    let startTimezone: string | null;
-    let endTimezone: string | null;
-    if (fd) {
-      startTimezone = fd.originIata ? timezoneFromIata(fd.originIata) : null;
-      endTimezone = fd.destinationIata ? timezoneFromIata(fd.destinationIata) : null;
-    } else {
-      startTimezone = b.timezone ?? null;
-      endTimezone = b.timezone ?? null;
-    }
+    const startTimezone = (fd?.originIata ? timezoneFromIata(fd.originIata) : b.timezone) ?? null;
+    const endTimezone = (fd?.destinationIata ? timezoneFromIata(fd.destinationIata) : b.timezone) ?? null;
     return { ...b, flightData: fd, startTimezone, endTimezone };
   });
 
@@ -112,7 +105,8 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
   for (const b of bookings) {
     const fd = b.flightData;
     if (fd?.originIata && fd?.destinationIata) {
-      const origin = coordsFromIata(fd.originIata);
+      const origin =
+        coordsFromIata(fd.originIata) ?? (b.lat != null && b.lng != null ? { lat: b.lat, lng: b.lng } : null);
       const dest = coordsFromIata(fd.destinationIata);
       if (origin)
         mapPoints.push({ lat: origin.lat, lng: origin.lng, label: fd.originIata, sub: fd.airlineName ?? undefined });

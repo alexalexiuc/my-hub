@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import {
   isValidDate,
   addMinutes,
@@ -12,9 +12,17 @@ import {
   getLastMonday,
   isoWeekAndYear,
   weekLabel,
-  isoDate,
   calendarDays,
 } from './dates';
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-03-23T00:00:00.000Z'));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('isValidDate', () => {
   it('returns true for valid Date objects', () => {
@@ -190,12 +198,6 @@ describe('isoWeekAndYear', () => {
 describe('weekLabel', () => {
   it('formats ISO week label', () => {
     expect(weekLabel(new Date('2026-04-13T00:00:00.000Z'))).toBe('Week 16, 2026');
-  });
-});
-
-describe('isoDate', () => {
-  it('formats date as YYYY-MM-DD', () => {
-    expect(isoDate(new Date('2026-03-23T00:00:00.000Z'))).toBe('2026-03-23');
   });
 });
 

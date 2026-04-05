@@ -5,7 +5,7 @@ import { SectionCard } from '@/components/SectionCard';
 import { BookingTypeIcon } from '@/components';
 import type { TripWithStatus } from '@my-hub/shared/types';
 import type { TripBookingExtended, TripDay } from './types';
-import { calendarDays, isoDate } from '@my-hub/shared/utils';
+import { calendarDays, toUTCDateStr } from '@my-hub/shared/utils';
 
 interface DayByDayProps {
   trip: TripWithStatus;
@@ -35,7 +35,7 @@ function DayCard({ dateStr, note, bookings, canEdit, onSaved, onDeleted }: DayCa
   const [notes, setNotes] = useState(note?.notes ?? '');
   const [saving, setSaving] = useState(false);
 
-  const dayBookings = bookings.filter((b) => b.startAt && isoDate(new Date(b.startAt)) === dateStr);
+  const dayBookings = bookings.filter((b) => b.startAt && toUTCDateStr(new Date(b.startAt)) === dateStr);
 
   async function handleSave() {
     setSaving(true);
