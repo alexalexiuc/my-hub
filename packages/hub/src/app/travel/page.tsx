@@ -111,7 +111,7 @@ export default function TravelPage() {
           onOverviewChanged={loadOverview}
         />
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <ComingNext bookings={overview?.bookings ?? []} documents={overview?.documents ?? []} />
 
           {overview && <TripMap mapData={overview.mapData} />}

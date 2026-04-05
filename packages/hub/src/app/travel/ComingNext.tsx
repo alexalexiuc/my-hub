@@ -226,7 +226,7 @@ export function ComingNext({ bookings, documents }: ComingNextProps) {
 
   return (
     <SectionCard title="Itinerary" className="bg-sky-950/20 border-sky-800/50">
-      <div className="flex flex-col gap-0 md:flex-row md:overflow-x-auto md:items-stretch md:gap-0">
+      <div className="min-w-0 flex flex-col gap-0 md:flex-row md:items-stretch md:gap-0 md:overflow-x-auto">
         {segments.map((segment, i) => {
           const next = segments[i + 1];
           // Duration badge shown on connector between same-booking start→end pair
