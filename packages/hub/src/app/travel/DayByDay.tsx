@@ -160,17 +160,26 @@ export function DayByDay({ trip, bookings, dayNotes, canEdit, onChanged }: DayBy
 
   const noteByDate = new Map<string, TripDay>(dayNotes.map((n) => [n.date, n]));
 
+  async function ensureOk(res: Response, action: string) {
+    if (res.ok) return;
+
+    const message = await res.text().catch(() => '');
+    throw new Error(message || `Failed to ${action}.`);
+  }
+
   async function handleSaved(tripId: number, date: string, title: string, notes: string) {
-    await fetch(`/api/travel/trips/${tripId}/days`, {
+    const res = await fetch(`/api/travel/trips/${tripId}/days`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date, title: title || null, notes: notes || null }),
     });
+    await ensureOk(res, 'save day details');
     onChanged();
   }
 
   async function handleDeleted(id: number) {
-    await fetch(`/api/travel/days/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/travel/days/${id}`, { method: 'DELETE' });
+    await ensureOk(res, 'delete day details');
     onChanged();
   }
 
