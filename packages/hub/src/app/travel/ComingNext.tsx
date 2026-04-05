@@ -6,8 +6,9 @@ import { BookingTypeIcon } from '@/components';
 import { TicketIcon, DocumentIcon, ClipboardIcon, PinIcon } from '@/components/icons';
 import type { TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
-import { mapBookingsToSegments, formatSegmentTime } from './coming-next-utils';
+import { mapBookingsToSegments } from './coming-next-utils';
 import type { Segment, SegmentAction, TimeBucket } from './coming-next-utils';
+import { TravelTimeDisplay } from './TravelTimeDisplay';
 
 const actionIcons: Record<SegmentAction['type'], () => React.JSX.Element> = {
   boarding_pass: TicketIcon,
@@ -88,109 +89,115 @@ const bucketTimeClasses: Record<TimeBucket, string> = {
 
 function SegmentCard({ segment }: { segment: Segment }) {
   const [expanded, setExpanded] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const divRef = useRef<HTMLDivElement | null>(null);
-  const { text: timeText } = formatSegmentTime(segment.datetime, segment.timezone);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const { timeBucket, isPast, isActive } = segment;
-  const showUtcBadge = segment.timezone === null;
 
   useEffect(() => {
     if (isActive) {
-      const el = buttonRef.current ?? divRef.current;
-      el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      containerRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
   }, [isActive]);
 
-  // Past cards: collapsed compact chip unless user expands
-  if (isPast && !expanded) {
-    return (
-      <button
-        type="button"
-        ref={isActive ? buttonRef : undefined}
-        onClick={() => setExpanded(true)}
-        aria-label={`Expand past segment: ${segment.primaryLabel}`}
-        title="Click to expand"
-        className="relative flex items-center gap-2 rounded-lg border border-dashed border-zinc-700/40 bg-zinc-900/30 px-3 py-2 text-sm opacity-55 transition-all hover:opacity-80 hover:border-zinc-600/60 hover:bg-zinc-900/50 md:w-[210px] md:flex-none cursor-pointer"
-      >
-        <span className="shrink-0 text-zinc-500">
-          <BookingTypeIcon type={segment.bookingType} />
-        </span>
-        <span className={`text-xs shrink-0 ${bucketTimeClasses.past}`}>{timeText}</span>
-        <span className="text-xs text-zinc-400 truncate flex-1 text-left">{segment.primaryLabel}</span>
-        <span className="shrink-0 rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 ml-auto">
-          Done
-        </span>
-      </button>
-    );
-  }
+  const showCollapsed = isPast && !expanded;
 
+  // Stable outer wrapper — keeps a consistent footprint in the flex layout across
+  // both collapsed and expanded states, preventing the layout-jump on transition.
   return (
-    <div
-      ref={isActive ? divRef : undefined}
-      aria-current={isActive ? 'true' : undefined}
-      role={isPast ? 'button' : undefined}
-      tabIndex={isPast ? 0 : undefined}
-      onClick={isPast ? () => setExpanded(false) : undefined}
-      onKeyDown={
-        isPast
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setExpanded(false);
-              }
-            }
-          : undefined
-      }
-      className={`relative flex flex-col gap-1.5 rounded-lg border p-3 text-sm transition-all md:w-[210px] md:flex-none ${bucketCardClasses[timeBucket]} ${
-        isPast ? 'opacity-70 cursor-pointer hover:opacity-90' : 'hover:shadow-md hover:shadow-black/30'
-      }`}
-    >
-      {isActive && (
-        <span className="absolute top-1.5 right-1.5 rounded bg-sky-900 px-1.5 py-0.5 text-[10px] font-semibold text-sky-400">
-          Now
-        </span>
-      )}
-      {isPast && !isActive && (
-        <span className="absolute top-1.5 right-1.5 rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500">
-          Past ↑ collapse
-        </span>
-      )}
-      {timeBucket === 'imminent' && (
-        <span className="absolute top-1.5 right-1.5 rounded bg-red-900/60 px-1.5 py-0.5 text-[10px] font-semibold text-red-400 animate-pulse">
-          Soon!
-        </span>
-      )}
-      <div className="flex items-center gap-1.5">
-        <span className={timeBucket === 'past' ? 'text-zinc-600' : 'text-zinc-400'}>
-          <BookingTypeIcon type={segment.bookingType} />
-        </span>
-        <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">{segment.endpointLabel}</span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <span className={`text-xs ${bucketTimeClasses[timeBucket]}`}>{timeText}</span>
-        {showUtcBadge && (
-          <span className="rounded bg-zinc-700 px-1 py-0.5 text-[9px] font-medium text-zinc-400 leading-none">UTC</span>
-        )}
-      </div>
-      <span
-        className={`font-medium text-sm leading-tight ${isPast ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-zinc-100'}`}
-      >
-        {segment.primaryLabel}
-      </span>
-      {segment.secondaryLabel && (
-        <span className={`text-xs leading-tight ${isPast ? 'text-zinc-600' : 'text-zinc-400'}`}>
-          {segment.secondaryLabel}
-        </span>
-      )}
-      {!isPast && segment.actions.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-0.5">
-          {segment.actions.map((action, i) => (
-            <ActionChip key={i} action={action} segmentLabel={segment.primaryLabel} />
-          ))}
+    <div ref={isActive ? containerRef : undefined} className="flex items-center md:w-[210px] md:flex-none">
+      {showCollapsed ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          aria-label={`Expand past segment: ${segment.primaryLabel}`}
+          title="Click to expand"
+          className="relative flex items-center gap-2 h-fit w-full rounded-lg border border-dashed border-zinc-700/40 bg-zinc-900/30 px-3 py-2 text-sm opacity-55 transition-all hover:opacity-80 hover:border-zinc-600/60 hover:bg-zinc-900/50 cursor-pointer"
+        >
+          <span className="shrink-0 text-zinc-500">
+            <BookingTypeIcon type={segment.bookingType} />
+          </span>
+          <TravelTimeDisplay
+            datetime={segment.datetime}
+            timezone={segment.timezone}
+            size="xs"
+            showTimezoneOffset
+            className="shrink-0"
+            timeClassName={bucketTimeClasses.past}
+          />
+          <span className="text-xs text-zinc-400 truncate flex-1 text-left">{segment.primaryLabel}</span>
+        </button>
+      ) : (
+        <div
+          aria-current={isActive ? 'true' : undefined}
+          role={isPast ? 'button' : undefined}
+          tabIndex={isPast ? 0 : undefined}
+          onClick={isPast ? () => setExpanded(false) : undefined}
+          onKeyDown={
+            isPast
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpanded(false);
+                  }
+                }
+              : undefined
+          }
+          className={`relative flex flex-col gap-1.5 rounded-lg border p-3 text-sm transition-all w-full ${bucketCardClasses[timeBucket]} ${
+            isPast ? 'opacity-70 cursor-pointer hover:opacity-90' : 'hover:shadow-md hover:shadow-black/30'
+          }`}
+        >
+          {isActive && (
+            <span className="absolute top-1.5 right-1.5 rounded bg-sky-900 px-1.5 py-0.5 text-[10px] font-semibold text-sky-400">
+              Now
+            </span>
+          )}
+          {isPast && !isActive && (
+            <span className="absolute top-1.5 right-1.5 rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500">
+              Past ↑ collapse
+            </span>
+          )}
+          {timeBucket === 'imminent' && (
+            <span className="absolute top-1.5 right-1.5 rounded bg-red-900/60 px-1.5 py-0.5 text-[10px] font-semibold text-red-400 animate-pulse">
+              Soon!
+            </span>
+          )}
+          <div className="flex items-center gap-1.5">
+            <span className={timeBucket === 'past' ? 'text-zinc-600' : 'text-zinc-400'}>
+              <BookingTypeIcon type={segment.bookingType} />
+            </span>
+            <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+              {segment.endpointLabel}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <TravelTimeDisplay
+              datetime={segment.datetime}
+              timezone={segment.timezone}
+              size="xs"
+              showTimezoneOffset
+              timeClassName={bucketTimeClasses[timeBucket]}
+            />
+          </div>
+          <span
+            className={`font-medium text-sm leading-tight ${isPast ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-zinc-100'}`}
+          >
+            {segment.primaryLabel}
+          </span>
+          {segment.secondaryLabel && (
+            <span className={`text-xs leading-tight ${isPast ? 'text-zinc-600' : 'text-zinc-400'}`}>
+              {segment.secondaryLabel}
+            </span>
+          )}
+          {!isPast && segment.actions.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-0.5">
+              {segment.actions.map((action, i) => (
+                <ActionChip key={i} action={action} segmentLabel={segment.primaryLabel} />
+              ))}
+            </div>
+          )}
+          {!isPast && !segment.isEndSegment && segment.actions.length === 0 && (
+            <p className="text-xs italic text-zinc-500 mt-0.5">No documents attached</p>
+          )}
         </div>
-      )}
-      {!isPast && !segment.isEndSegment && segment.actions.length === 0 && (
-        <p className="text-xs italic text-zinc-500 mt-0.5">No documents attached</p>
       )}
     </div>
   );
@@ -226,7 +233,7 @@ export function ComingNext({ bookings, documents }: ComingNextProps) {
 
   return (
     <SectionCard title="Itinerary" className="bg-sky-950/20 border-sky-800/50">
-      <div className="min-w-0 flex flex-col gap-0 md:flex-row md:items-stretch md:gap-0 md:overflow-x-auto">
+      <div className="min-w-0 flex flex-col gap-0 md:flex-row md:items-stretch md:gap-0 md:overflow-x-auto pb-2">
         {segments.map((segment, i) => {
           const next = segments[i + 1];
           // Duration badge shown on connector between same-booking start→end pair

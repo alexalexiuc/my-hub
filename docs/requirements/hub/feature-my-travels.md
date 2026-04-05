@@ -16,30 +16,35 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 
 ## Functional Requirements
 
-| ID    | Requirement                                                                                                                                                                      |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FR-01 | Users can create, edit, remove, and select trips from Hub to manage an active trip.                                                                                              |
-| FR-02 | Users can add, edit, and remove reservations in a trip with booking type and provider/date metadata.                                                                             |
-| FR-03 | Users can add, complete, edit, and remove checklist items for a trip.                                                                                                            |
-| FR-04 | Users can add, edit, and remove travel companions with optional contact details.                                                                                                 |
-| FR-05 | Users can upload documents to server storage and download/remove them later.                                                                                                     |
-| FR-06 | Users can view trip overview counts (reservations/checklist/companions/places/documents).                                                                                        |
-| FR-07 | Users can view a calendar that highlights reservation date ranges (start-to-end) derived from trip bookings.                                                                     |
-| FR-08 | Users can view a reservation-based from-to date range directly on each trip card.                                                                                                |
-| FR-09 | Users can assign a color to each trip and use it consistently in trip cards and calendar reservation rendering.                                                                  |
-| FR-10 | Users can set custom trip-level from/to dates when creating or editing a trip.                                                                                                   |
-| FR-11 | Users can link uploaded documents to a reservation and see attachment indicators on reservation rows.                                                                            |
-| FR-12 | Users can share trips with other Hub users as view-only collaborators.                                                                                                           |
-| FR-13 | The sharing UI should suggest users based on companion emails that match existing Hub accounts.                                                                                  |
-| FR-14 | Trip cards should display owner identity so shared-view users can distinguish ownership.                                                                                         |
-| FR-15 | Flight bookings show a structured info line: flight number, route (origin → destination), seat, terminal, gate, and live status.                                                 |
-| FR-16 | Flight bookings show a live/paused badge that the user can click to toggle automatic flight data updates.                                                                        |
-| FR-17 | The booking edit form exposes flight-specific fields (flight number, seat, origin IATA, destination IATA, terminal, gate, aircraft type) only when the booking type is `flight`. |
-| FR-18 | Itinerary chips are color-coded by time proximity: past (dimmed, dashed border), active (sky blue), imminent <1h (red), soon <24h (amber), future (neutral zinc).                |
-| FR-19 | Past Itinerary chips collapse to a compact row (icon + date/time + label + "Done" badge) and can be expanded by clicking.                                                        |
-| FR-20 | Past chip time display includes both date and time (e.g. "31 Mar · 08:30") so the user can clearly see when the segment occurred.                                                |
-| FR-22 | When the travel page opens, it automatically selects the nearest upcoming trip (by start date); falls back to the first trip if none have a future start date.                   |
-| FR-21 | Reservation rows are expandable on click, revealing location, confirmation number, cost, status, notes, and attachments.                                                         |
+| ID    | Requirement                                                                                                                                                                                |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FR-01 | Users can create, edit, remove, and select trips from Hub to manage an active trip.                                                                                                        |
+| FR-02 | Users can add, edit, and remove reservations in a trip with booking type and provider/date metadata.                                                                                       |
+| FR-03 | Users can add, complete, edit, and remove checklist items for a trip.                                                                                                                      |
+| FR-04 | Users can add, edit, and remove travel companions with optional contact details.                                                                                                           |
+| FR-05 | Users can upload documents to server storage and download/remove them later.                                                                                                               |
+| FR-06 | Users can view trip overview counts (reservations/checklist/companions/places/documents).                                                                                                  |
+| FR-07 | Users can view a calendar that highlights reservation date ranges (start-to-end) derived from trip bookings.                                                                               |
+| FR-08 | Users can view a reservation-based from-to date range directly on each trip card.                                                                                                          |
+| FR-09 | Users can assign a color to each trip and use it consistently in trip cards and calendar reservation rendering.                                                                            |
+| FR-10 | Users can set custom trip-level from/to dates when creating or editing a trip.                                                                                                             |
+| FR-11 | Users can link uploaded documents to a reservation and see attachment indicators on reservation rows.                                                                                      |
+| FR-12 | Users can share trips with other Hub users as view-only collaborators.                                                                                                                     |
+| FR-13 | The sharing UI should suggest users based on companion emails that match existing Hub accounts.                                                                                            |
+| FR-14 | Trip cards should display owner identity so shared-view users can distinguish ownership.                                                                                                   |
+| FR-15 | Flight bookings show a structured info line: flight number, route (origin → destination), seat, terminal, gate, and live status.                                                           |
+| FR-16 | Flight bookings show a live/paused badge that the user can click to toggle automatic flight data updates.                                                                                  |
+| FR-17 | The booking edit form exposes flight-specific fields (flight number, seat, origin IATA, destination IATA, terminal, gate, aircraft type) only when the booking type is `flight`.           |
+| FR-18 | Itinerary chips are color-coded by time proximity: past (dimmed, dashed border), active (sky blue), imminent <1h (red), soon <24h (amber), future (neutral zinc).                          |
+| FR-19 | Past Itinerary chips collapse to a compact row (icon + date/time + label + "Done" badge) and can be expanded by clicking.                                                                  |
+| FR-20 | Past chip time display includes both date and time (e.g. "31 Mar · 08:30") so the user can clearly see when the segment occurred.                                                          |
+| FR-23 | Itinerary time rendering includes timezone metadata badge for each segment, with optional UTC offset text and a hover tooltip showing full date (including year and timezone name).        |
+| FR-24 | Itinerary Navigate actions should prioritize precise coordinates (`lat`/`lng`) and support common map input formats (Google share links, plus codes, `geo:` URIs, and coordinate strings). |
+| FR-27 | Navigate actions are endpoint-aware per chip: start segments route to origin/start location, end segments route to destination/end location (for example flight departure vs arrival).     |
+| FR-25 | While trip overview data is loading, the right-side travel content should render structured skeleton placeholders to avoid abrupt section pop-in.                                          |
+| FR-26 | Trip map section is collapsible and defaults to collapsed; users can expand it on demand per selected trip.                                                                                |
+| FR-22 | When the travel page opens, it automatically selects the nearest upcoming trip (by start date); falls back to the first trip if none have a future start date.                             |
+| FR-21 | Reservation rows are expandable on click, revealing location, confirmation number, cost, status, notes, and attachments.                                                                   |
 
 ---
 
@@ -73,6 +78,11 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 | TR-24 | `SegmentCard` renders collapsed compact chip for past segments (clickable button with "Done" badge); click expands to full card. Imminent segments display a pulsing "Soon!" badge. Color theme: past=dimmed dashed, now=sky, imminent=red, soon=amber, future=zinc.                                |
 | TR-25 | `BookingsSection` reservation rows are expandable via click; expanded panel shows location, confirmationNumber, cost, status, notes, and linked attachments inline.                                                                                                                                 |
 | TR-26 | `BookingsSection` flight form includes a seat field (`seat` stored in `details` JSONB) in both add and edit modes.                                                                                                                                                                                  |
+| TR-27 | `TravelTimeDisplay` in `packages/hub/src/app/travel/TravelTimeDisplay.tsx` centralizes timezone-aware itinerary time rendering, optional offset badge output, and full-date hover tooltips.                                                                                                         |
+| TR-28 | `coming-next-utils.ts` resolves Navigate action URLs by priority: valid booking `lat`/`lng`, then direct map links, then structured location strings (plus code, `geo:` URI, coordinate pair), then plain-text fallback query.                                                                      |
+| TR-31 | `coming-next-utils.ts` derives endpoint-specific Navigate actions (`start` vs `end`), using flight origin/destination IATA when present and directional location strings when available.                                                                                                            |
+| TR-29 | `TravelOverviewSkeleton` in `packages/hub/src/app/travel/TravelOverviewSkeleton.tsx` provides a placeholder layout shown when `loadingOverview` is true and no overview payload is yet available for the selected trip.                                                                             |
+| TR-30 | `packages/hub/src/app/travel/TripMap.tsx` owns map collapse/expand behavior (including header toggle UI) and resets to collapsed when its `tripId` prop changes.                                                                                                                                    |
 
 ---
 
@@ -113,6 +123,11 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 - [x] Itinerary chips show date+time for past segments (not just hour).
 - [x] Itinerary chips are color-coded by time proximity (past/active/imminent/soon/future).
 - [x] Past chips collapse to compact row by default; click to expand full card.
+- [x] Itinerary time labels show timezone badge metadata and hover full-date tooltip with timezone name.
+- [x] Navigate action uses coordinates when available and supports common map location formats (share links, plus codes, geo URI, coordinate strings).
+- [x] Navigate action is endpoint-aware across chips (start vs end), including flight departure/arrival routing.
+- [x] Travel page shows skeleton placeholders while selected-trip overview data is initially loading.
+- [x] Trip map is collapsible and starts collapsed for each selected trip.
 - [x] Travel page opens to the nearest upcoming trip automatically.
 - [x] Reservation rows expand on click to reveal full details (location, cost, notes, attachments).
 - [x] Flight booking form includes seat field in add and edit modes.

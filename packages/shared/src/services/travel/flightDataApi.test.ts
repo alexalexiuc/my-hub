@@ -66,6 +66,7 @@ describe('fetchFlightFromApi', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
@@ -128,9 +129,9 @@ describe('fetchFlightFromApi', () => {
       );
 
       const promise = fetchFlightFromApi('W4 3957', '2026-06-21', 'test-key');
+      const assertion = expect(promise).rejects.toThrow('AeroDataBox API error 500');
       await vi.runAllTimersAsync();
-
-      await expect(promise).rejects.toThrow('AeroDataBox API error 500');
+      await assertion;
     });
 
     it('wraps network-level errors', async () => {
@@ -139,9 +140,9 @@ describe('fetchFlightFromApi', () => {
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')));
 
       const promise = fetchFlightFromApi('W4 3957', '2026-06-21', 'test-key');
+      const assertion = expect(promise).rejects.toThrow('AeroDataBox network error');
       await vi.runAllTimersAsync();
-
-      await expect(promise).rejects.toThrow('AeroDataBox network error');
+      await assertion;
     });
   });
 
@@ -166,10 +167,10 @@ describe('fetchFlightFromApi', () => {
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse(429)));
 
       const promise = fetchFlightFromApi('W4 3957', '2026-06-21', 'test-key');
-      await vi.runAllTimersAsync();
-
       // withBackoffRetry throws "Failed after N attempts"; fetchFlightFromApi wraps it
-      await expect(promise).rejects.toThrow('AeroDataBox network error');
+      const assertion = expect(promise).rejects.toThrow('AeroDataBox network error');
+      await vi.runAllTimersAsync();
+      await assertion;
     });
   });
 });

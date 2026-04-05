@@ -158,29 +158,176 @@ function deriveLabels(booking: TripBookingExtended): { primary: string; secondar
   }
 }
 
-function deriveActions(booking: TripBookingExtended, bookingDocs: TripDocument[]): SegmentAction[] {
+function isFiniteCoordinate(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function hasValidLatLng(lat: unknown, lng: unknown): lat is number {
+  return isFiniteCoordinate(lat) && isFiniteCoordinate(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+}
+
+function buildGoogleMapsSearchUrl(query: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function parseCoordinatePair(value: string): { lat: number; lng: number } | null {
+  // Accept formats like "47.0105, 28.8638"
+  const match = value.match(/^\s*([-+]?\d+(?:\.\d+)?)\s*,\s*([-+]?\d+(?:\.\d+)?)\s*$/);
+  if (!match) return null;
+
+  const lat = Number(match[1]);
+  const lng = Number(match[2]);
+  if (!hasValidLatLng(lat, lng)) return null;
+  return { lat, lng };
+}
+
+function parseGeoUri(value: string): { lat: number; lng: number } | null {
+  // geo:47.0105,28.8638 or geo:47.0105,28.8638?q=...
+  const match = value.match(/^geo:([-+]?\d+(?:\.\d+)?),([-+]?\d+(?:\.\d+)?)(?:[;?].*)?$/i);
+  if (!match) return null;
+
+  const lat = Number(match[1]);
+  const lng = Number(match[2]);
+  if (!hasValidLatLng(lat, lng)) return null;
+  return { lat, lng };
+}
+
+function isDirectMapUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+
+    return (
+      host === 'maps.app.goo.gl' ||
+      host === 'maps.google.com' ||
+      host === 'google.com' ||
+      host.endsWith('.google.com') ||
+      host === 'goo.gl' ||
+      host === 'maps.apple.com' ||
+      host.endsWith('.waze.com') ||
+      host === 'waze.com' ||
+      host.endsWith('.openstreetmap.org') ||
+      host === 'openstreetmap.org'
+    );
+  } catch {
+    return false;
+  }
+}
+
+function containsPlusCode(value: string): boolean {
+  // Open Location Code / Plus Code, e.g. "8FVC9G8F+5W" or "2RFP+WM Chisinau"
+  return /\b[23456789CFGHJMPQRVWX]{2,8}\+[23456789CFGHJMPQRVWX]{2,3}\b/i.test(value);
+}
+
+function parseDirectionalLocation(location: string): { start: string; end: string } | null {
+  const arrow = location.match(/^\s*(.+?)\s*(?:->|→|=>|⟶)\s*(.+?)\s*$/);
+  if (arrow) {
+    const start = arrow[1]?.trim();
+    const end = arrow[2]?.trim();
+    if (start && end) return { start, end };
+  }
+
+  const fromTo = location.match(/^\s*from\s+(.+?)\s+to\s+(.+?)\s*$/i);
+  if (fromTo) {
+    const start = fromTo[1]?.trim();
+    const end = fromTo[2]?.trim();
+    if (start && end) return { start, end };
+  }
+
+  return null;
+}
+
+function endpointLocationQuery(booking: TripBookingExtended, endpoint: 'start' | 'end'): string | null {
+  const fd = booking.flightData;
+  const details = (booking.details ?? {}) as {
+    origin_iata?: string;
+    destination_iata?: string;
+  };
+
+  if (booking.bookingType === 'flight') {
+    const origin = fd?.originIata ?? details.origin_iata;
+    const destination = fd?.destinationIata ?? details.destination_iata;
+    const flightEndpoint = endpoint === 'start' ? origin : destination;
+    if (flightEndpoint) return flightEndpoint;
+  }
+
+  const rawLocation = booking.location?.trim();
+  if (!rawLocation) return null;
+
+  const directional = parseDirectionalLocation(rawLocation);
+  if (directional) {
+    return endpoint === 'start' ? directional.start : directional.end;
+  }
+
+  return rawLocation;
+}
+
+function buildNavigateUrl(booking: TripBookingExtended, endpoint: 'start' | 'end'): string | null {
+  const query = endpointLocationQuery(booking, endpoint);
+
+  // Prefer exact coordinates when we don't have a better endpoint-specific query.
+  if (!query && hasValidLatLng(booking.lat, booking.lng)) {
+    return buildGoogleMapsSearchUrl(`${booking.lat},${booking.lng}`);
+  }
+
+  if (hasValidLatLng(booking.lat, booking.lng) && query === booking.location?.trim()) {
+    return buildGoogleMapsSearchUrl(`${booking.lat},${booking.lng}`);
+  }
+
+  if (!query) return null;
+
+  if (isDirectMapUrl(query)) {
+    return query;
+  }
+
+  const geoCoords = parseGeoUri(query);
+  if (geoCoords) {
+    return buildGoogleMapsSearchUrl(`${geoCoords.lat},${geoCoords.lng}`);
+  }
+
+  const coordinatePair = parseCoordinatePair(query);
+  if (coordinatePair) {
+    return buildGoogleMapsSearchUrl(`${coordinatePair.lat},${coordinatePair.lng}`);
+  }
+
+  if (containsPlusCode(query)) {
+    return buildGoogleMapsSearchUrl(query);
+  }
+
+  // Common fallbacks: place names, addresses, place_id:..., what3words, free text.
+  return buildGoogleMapsSearchUrl(query);
+}
+
+function deriveActions(
+  booking: TripBookingExtended,
+  bookingDocs: TripDocument[],
+  endpoint: 'start' | 'end',
+): SegmentAction[] {
   const actions: SegmentAction[] = [];
 
-  for (const doc of bookingDocs) {
-    const url = doc.storagePath ? `/api/travel/documents/${doc.id}/download` : doc.sourceUrl;
-    if (!url) continue;
+  if (endpoint === 'start') {
+    for (const doc of bookingDocs) {
+      const url = doc.storagePath ? `/api/travel/documents/${doc.id}/download` : doc.sourceUrl;
+      if (!url) continue;
 
-    if (doc.type === 'boarding_pass') {
-      actions.push({ type: 'boarding_pass', label: 'Boarding pass', value: url });
-    } else {
-      actions.push({ type: 'view_booking', label: doc.title, value: url });
+      if (doc.type === 'boarding_pass') {
+        actions.push({ type: 'boarding_pass', label: 'Boarding pass', value: url });
+      } else {
+        actions.push({ type: 'view_booking', label: doc.title, value: url });
+      }
+    }
+
+    if (booking.confirmationNumber) {
+      actions.push({ type: 'copy_ref', label: 'Copy ref', value: booking.confirmationNumber });
     }
   }
 
-  if (booking.confirmationNumber) {
-    actions.push({ type: 'copy_ref', label: 'Copy ref', value: booking.confirmationNumber });
-  }
-
-  if (booking.location) {
+  const navigateUrl = buildNavigateUrl(booking, endpoint);
+  if (navigateUrl) {
     actions.push({
       type: 'navigate',
       label: 'Navigate',
-      value: `https://maps.google.com/?q=${encodeURIComponent(booking.location)}`,
+      value: navigateUrl,
     });
   }
 
@@ -234,7 +381,8 @@ export function mapBookingsToSegments(
   for (const booking of sorted) {
     const labels = endpointLabels(booking.bookingType);
     const primarySecondary = deriveLabels(booking);
-    const actions = deriveActions(booking, docsByBookingId.get(booking.id) ?? []);
+    const startActions = deriveActions(booking, docsByBookingId.get(booking.id) ?? [], 'start');
+    const endActions = deriveActions(booking, docsByBookingId.get(booking.id) ?? [], 'end');
     const fd = booking.flightData;
 
     const startMs = new Date(booking.startAt!).getTime();
@@ -254,7 +402,7 @@ export function mapBookingsToSegments(
       durationBadge: null,
       primaryLabel: primarySecondary.primary,
       secondaryLabel: primarySecondary.secondary,
-      actions,
+      actions: startActions,
       ...startBucket,
     });
 
@@ -272,7 +420,7 @@ export function mapBookingsToSegments(
         durationBadge: duration,
         primaryLabel: primarySecondary.primary,
         secondaryLabel: primarySecondary.secondary,
-        actions: [], // actions shown only on start chip
+        actions: endActions,
         ...endBucket,
       });
     }

@@ -201,8 +201,153 @@ describe('mapBookingsToSegments', () => {
     const segments = mapBookingsToSegments(bookings, [], now);
     const navAction = segments[0]!.actions.find((a) => a.type === 'navigate');
     expect(navAction).toBeDefined();
-    expect(navAction!.value).toContain('maps.google.com');
+    expect(navAction!.value).toContain('www.google.com/maps/search');
     expect(navAction!.value).toContain('123%20Main%20St');
+  });
+
+  it('prioritizes lat/lng over location when deriving navigate action', () => {
+    const bookings = [
+      makeBooking({
+        id: 1,
+        startAt: new Date('2026-03-31T12:00:00Z'),
+        location: 'Wrong text location',
+        lat: 47.0105,
+        lng: 28.8638,
+      }),
+    ];
+    const segments = mapBookingsToSegments(bookings, [], now);
+    const navAction = segments[0]!.actions.find((a) => a.type === 'navigate');
+    expect(navAction).toBeDefined();
+    expect(navAction!.value).toContain('www.google.com/maps/search');
+    expect(navAction!.value).toContain('47.0105%2C28.8638');
+    expect(navAction!.value).not.toContain('Wrong%20text%20location');
+  });
+
+  it('keeps Google Maps share links unchanged', () => {
+    const shareLink = 'https://maps.app.goo.gl/JRtactXLxVnJs1QH9';
+    const bookings = [
+      makeBooking({
+        id: 1,
+        startAt: new Date('2026-03-31T12:00:00Z'),
+        location: shareLink,
+      }),
+    ];
+    const segments = mapBookingsToSegments(bookings, [], now);
+    const navAction = segments[0]!.actions.find((a) => a.type === 'navigate');
+    expect(navAction).toBeDefined();
+    expect(navAction!.value).toBe(shareLink);
+  });
+
+  it('supports plus code locations', () => {
+    const plusCode = '2RFP+WM Chisinau, Moldova';
+    const bookings = [
+      makeBooking({
+        id: 1,
+        startAt: new Date('2026-03-31T12:00:00Z'),
+        location: plusCode,
+      }),
+    ];
+    const segments = mapBookingsToSegments(bookings, [], now);
+    const navAction = segments[0]!.actions.find((a) => a.type === 'navigate');
+    expect(navAction).toBeDefined();
+    expect(navAction!.value).toContain('www.google.com/maps/search');
+    expect(navAction!.value).toContain('2RFP%2BWM%20Chisinau%2C%20Moldova');
+  });
+
+  it('supports raw lat,lng location strings', () => {
+    const bookings = [
+      makeBooking({
+        id: 1,
+        startAt: new Date('2026-03-31T12:00:00Z'),
+        location: '47.0105, 28.8638',
+      }),
+    ];
+    const segments = mapBookingsToSegments(bookings, [], now);
+    const navAction = segments[0]!.actions.find((a) => a.type === 'navigate');
+    expect(navAction).toBeDefined();
+    expect(navAction!.value).toContain('47.0105%2C28.8638');
+  });
+
+  it('supports geo URI location strings', () => {
+    const bookings = [
+      makeBooking({
+        id: 1,
+        startAt: new Date('2026-03-31T12:00:00Z'),
+        location: 'geo:47.0105,28.8638',
+      }),
+    ];
+    const segments = mapBookingsToSegments(bookings, [], now);
+    const navAction = segments[0]!.actions.find((a) => a.type === 'navigate');
+    expect(navAction).toBeDefined();
+    expect(navAction!.value).toContain('47.0105%2C28.8638');
+  });
+
+  it('creates endpoint-aware navigate actions for flight start and end segments', () => {
+    const bookings = [
+      makeBooking({
+        id: 1,
+        bookingType: 'flight',
+        startAt: new Date('2026-03-31T12:00:00Z'),
+        endAt: new Date('2026-03-31T14:00:00Z'),
+        flightData: {
+          id: 11,
+          flightNumber: 'RO201',
+          flightDate: '2026-03-31',
+          originIata: 'RMO',
+          destinationIata: 'OTP',
+          departureGate: null,
+          departureTerminal: null,
+          arrivalTerminal: null,
+          status: null,
+          aircraftType: null,
+          aircraftRegistration: null,
+          airlineIata: null,
+          airlineName: null,
+          autoUpdateEnabled: true,
+          rawResponse: null,
+          finished: false,
+        } as TripBookingExtended['flightData'],
+      }),
+    ];
+
+    const segments = mapBookingsToSegments(bookings, [], now);
+    const startSegment = segments.find((s) => s.segmentId === '1-start');
+    const endSegment = segments.find((s) => s.segmentId === '1-end');
+
+    expect(startSegment).toBeDefined();
+    expect(endSegment).toBeDefined();
+
+    const startNav = startSegment!.actions.find((a) => a.type === 'navigate');
+    const endNav = endSegment!.actions.find((a) => a.type === 'navigate');
+
+    expect(startNav).toBeDefined();
+    expect(endNav).toBeDefined();
+    expect(startNav!.value).toContain('query=RMO');
+    expect(endNav!.value).toContain('query=OTP');
+  });
+
+  it('supports directional free-text location for start/end navigate actions', () => {
+    const bookings = [
+      makeBooking({
+        id: 2,
+        bookingType: 'train',
+        startAt: new Date('2026-03-31T12:00:00Z'),
+        endAt: new Date('2026-03-31T14:00:00Z'),
+        location: 'Gara de Nord -> Gara Centrala',
+      }),
+    ];
+
+    const segments = mapBookingsToSegments(bookings, [], now);
+    const startSegment = segments.find((s) => s.segmentId === '2-start');
+    const endSegment = segments.find((s) => s.segmentId === '2-end');
+
+    const startNav = startSegment!.actions.find((a) => a.type === 'navigate');
+    const endNav = endSegment!.actions.find((a) => a.type === 'navigate');
+
+    expect(startNav).toBeDefined();
+    expect(endNav).toBeDefined();
+    expect(startNav!.value).toContain('Gara%20de%20Nord');
+    expect(endNav!.value).toContain('Gara%20Centrala');
   });
 
   it('shows empty actions for booking with no docs, no confirmation, no location', () => {

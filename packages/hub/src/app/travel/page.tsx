@@ -16,6 +16,7 @@ import { DayByDay } from './DayByDay';
 import { TripMap } from './TripMap';
 import { TripOverviewCards } from './TripOverviewCards';
 import { TripsSidebar } from './TripsSidebar';
+import { TravelOverviewSkeleton } from './TravelOverviewSkeleton';
 
 export default function TravelPage() {
   const [trips, setTrips] = useState<ApiTrip[]>([]);
@@ -96,6 +97,8 @@ export default function TravelPage() {
     if (activeTripId) loadOverview(activeTripId);
   }
 
+  const showOverviewSkeleton = Boolean(activeTripId) && loadingOverview && !overview;
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-8 space-y-6">
       <PageHeader title="My Travels" backHref="/" backLabel="← Home" />
@@ -112,57 +115,63 @@ export default function TravelPage() {
         />
 
         <div className="min-w-0 space-y-6">
-          <ComingNext bookings={overview?.bookings ?? []} documents={overview?.documents ?? []} />
+          {showOverviewSkeleton ? (
+            <TravelOverviewSkeleton />
+          ) : (
+            <>
+              <ComingNext bookings={overview?.bookings ?? []} documents={overview?.documents ?? []} />
 
-          {overview && <TripMap mapData={overview.mapData} />}
+              {overview && <TripMap mapData={overview.mapData} tripId={activeTripId} />}
 
-          <SectionCard title="Calendar" className="bg-cyan-950/20 border-cyan-800/50">
-            {overview ? (
-              <BookingsCalendar bookings={overview.bookings} tripColor={overview.trip.color} />
-            ) : (
-              <p className="text-sm text-zinc-500">Select a trip to view booking dates on the calendar.</p>
-            )}
-          </SectionCard>
+              <SectionCard title="Calendar" className="bg-cyan-950/20 border-cyan-800/50">
+                {overview ? (
+                  <BookingsCalendar bookings={overview.bookings} tripColor={overview.trip.color} />
+                ) : (
+                  <p className="text-sm text-zinc-500">Select a trip to view booking dates on the calendar.</p>
+                )}
+              </SectionCard>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <BookingsSection
-              activeTripId={activeTripId}
-              canEdit={canEditActiveTrip}
-              bookings={overview?.bookings ?? []}
-              documentsByBookingId={documentsByBookingId}
-              onChanged={handleOverviewChanged}
-            />
-            <ChecklistSection
-              activeTripId={activeTripId}
-              canEdit={canEditActiveTrip}
-              checklist={overview?.checklist ?? []}
-              onChanged={handleOverviewChanged}
-            />
-            <CompanionsSection
-              activeTripId={activeTripId}
-              canEdit={canEditActiveTrip}
-              companions={overview?.companions ?? []}
-              onChanged={handleOverviewChanged}
-            />
-            <SharingSection activeTrip={activeTrip} canEdit={canEditActiveTrip} />
-            <DocumentsSection
-              activeTripId={activeTripId}
-              canEdit={canEditActiveTrip}
-              documents={overview?.documents ?? []}
-              bookings={overview?.bookings ?? []}
-              onChanged={handleOverviewChanged}
-            />
-            <TripOverviewCards activeTrip={activeTrip} overview={overview} loadingOverview={loadingOverview} />
-          </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <BookingsSection
+                  activeTripId={activeTripId}
+                  canEdit={canEditActiveTrip}
+                  bookings={overview?.bookings ?? []}
+                  documentsByBookingId={documentsByBookingId}
+                  onChanged={handleOverviewChanged}
+                />
+                <ChecklistSection
+                  activeTripId={activeTripId}
+                  canEdit={canEditActiveTrip}
+                  checklist={overview?.checklist ?? []}
+                  onChanged={handleOverviewChanged}
+                />
+                <CompanionsSection
+                  activeTripId={activeTripId}
+                  canEdit={canEditActiveTrip}
+                  companions={overview?.companions ?? []}
+                  onChanged={handleOverviewChanged}
+                />
+                <SharingSection activeTrip={activeTrip} canEdit={canEditActiveTrip} />
+                <DocumentsSection
+                  activeTripId={activeTripId}
+                  canEdit={canEditActiveTrip}
+                  documents={overview?.documents ?? []}
+                  bookings={overview?.bookings ?? []}
+                  onChanged={handleOverviewChanged}
+                />
+                <TripOverviewCards activeTrip={activeTrip} overview={overview} loadingOverview={loadingOverview} />
+              </div>
 
-          {overview && activeTrip && (
-            <DayByDay
-              trip={overview.trip}
-              bookings={overview.bookings}
-              dayNotes={overview.dayNotes}
-              canEdit={canEditActiveTrip}
-              onChanged={handleOverviewChanged}
-            />
+              {overview && activeTrip && (
+                <DayByDay
+                  trip={overview.trip}
+                  bookings={overview.bookings}
+                  dayNotes={overview.dayNotes}
+                  canEdit={canEditActiveTrip}
+                  onChanged={handleOverviewChanged}
+                />
+              )}
+            </>
           )}
         </div>
       </section>

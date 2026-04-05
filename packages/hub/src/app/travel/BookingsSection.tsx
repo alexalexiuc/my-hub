@@ -6,6 +6,7 @@ import type { FlightDetails, TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { AttachmentIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import { BookingTypeIcon, IconButton } from '@/components';
+import { TravelTimeDisplay } from './TravelTimeDisplay';
 
 const bookingTypeOptions = [
   'flight',
@@ -420,14 +421,34 @@ export function BookingsSection({
                   <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">{booking.title}</p>
                     <div className="flex items-center gap-2">
-                      <p className="flex items-center gap-1 text-xs text-zinc-400 truncate">
+                      <div className="flex flex-wrap items-center gap-1 text-xs text-zinc-400">
                         <BookingTypeIcon type={booking.bookingType} />
                         {bookingTypeLabels[booking.bookingType as keyof typeof bookingTypeLabels] ??
                           booking.bookingType}
                         {booking.provider ? ` · ${booking.provider}` : ''}
-                        {booking.startAt ? ` · ${new Date(booking.startAt).toLocaleString()}` : ''}
-                        {booking.endAt ? ` → ${new Date(booking.endAt).toLocaleString()}` : ''}
-                      </p>
+                        {booking.startAt && (
+                          <>
+                            <span aria-hidden="true">·</span>
+                            <TravelTimeDisplay
+                              datetime={new Date(booking.startAt).toISOString()}
+                              timezone={booking.startTimezone ?? null}
+                              size="xs"
+                              showTimezoneOffset
+                            />
+                          </>
+                        )}
+                        {booking.endAt && (
+                          <>
+                            <span aria-hidden="true">→</span>
+                            <TravelTimeDisplay
+                              datetime={new Date(booking.endAt).toISOString()}
+                              timezone={booking.endTimezone ?? null}
+                              size="xs"
+                              showTimezoneOffset
+                            />
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -499,6 +520,32 @@ export function BookingsSection({
                         <>
                           <dt className="text-zinc-500">Status</dt>
                           <dd className="text-zinc-300">{booking.status}</dd>
+                        </>
+                      )}
+                      {booking.startAt && (
+                        <>
+                          <dt className="text-zinc-500">Start</dt>
+                          <dd className="text-zinc-300">
+                            <TravelTimeDisplay
+                              datetime={new Date(booking.startAt).toISOString()}
+                              timezone={booking.startTimezone ?? null}
+                              size="xs"
+                              showTimezoneOffset
+                            />
+                          </dd>
+                        </>
+                      )}
+                      {booking.endAt && (
+                        <>
+                          <dt className="text-zinc-500">End</dt>
+                          <dd className="text-zinc-300">
+                            <TravelTimeDisplay
+                              datetime={new Date(booking.endAt).toISOString()}
+                              timezone={booking.endTimezone ?? null}
+                              size="xs"
+                              showTimezoneOffset
+                            />
+                          </dd>
                         </>
                       )}
                       {booking.costAmount != null && (
