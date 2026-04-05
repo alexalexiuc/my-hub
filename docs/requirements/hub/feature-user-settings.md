@@ -32,11 +32,13 @@ basis. Auth is handled by NextAuth.js with Google OAuth; there is no password ma
 
 ## Data features eligible for deletion
 
-| Feature key        | Data deleted                                 |
-| ------------------ | -------------------------------------------- |
-| `meals`            | All rows in `meal_logs` for the user         |
-| `measurements`     | All rows in `body_measurements` for the user |
-| `calories_profile` | The row in `calorie_profiles` for the user   |
+| Feature key        | Data deleted                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------- |
+| `meals`            | All rows in `meal_logs` for the user                                                                    |
+| `measurements`     | All rows in `body_measurements` for the user                                                            |
+| `calories_profile` | The row in `calorie_profiles` for the user                                                              |
+| `todos`            | All rows in `todos` for the user                                                                        |
+| `my_travels`       | All user-linked travel rows (`trips`, bookings, places, checklist, companions, documents, days, shares) |
 
 ---
 
@@ -69,6 +71,8 @@ basis. Auth is handled by NextAuth.js with Google OAuth; there is no password ma
 - [x] Selecting `meals` and confirming deletion removes all meal log rows for the user.
 - [x] Selecting `measurements` and confirming deletion removes all body measurement rows for the user.
 - [x] Selecting `calories_profile` and confirming deletion removes the calorie profile row for the user.
+- [x] Selecting `my_travels` and confirming deletion removes all user-linked travel records.
+- [x] The "Delete all my data" action clears all user-linked records across supported features (including OAuth/MCP, notifications, apiary, travel, and request logs).
 - [x] Deletion requires two steps (select + confirm); no data is deleted before the confirm button is clicked.
 - [x] Clicking "Sign out" ends the session and redirects to the sign-in page.
 - [x] Visiting `/profile` without a session redirects to `/auth/signin`.

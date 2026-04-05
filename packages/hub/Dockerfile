@@ -17,6 +17,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
   pnpm install -r --offline
 
 RUN pnpm --filter @my-hub/shared build
+RUN pnpm --filter @my-hub/e2e build:seed
 RUN pnpm --filter @my-hub/hub build
 RUN mkdir -p /app/packages/hub/public
 
@@ -31,6 +32,7 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/packages/hub/.next/standalone ./
 COPY --from=builder /app/packages/hub/.next/static ./packages/hub/.next/static
 COPY --from=builder /app/packages/hub/public ./packages/hub/public
+COPY --from=builder /app/packages/e2e/dist/setup-e2e-db.mjs ./e2e-seed-setup.mjs
 
 USER nextjs
 EXPOSE 3000

@@ -3,12 +3,18 @@ import type {
   TripBooking,
   TripChecklistItem,
   TripCompanion,
+  TripDay,
   TripDocument,
   TripPlace,
   TripWithStatus,
 } from '@my-hub/shared/types';
+import type { TripMapData } from '@my-hub/shared/services';
 
-export type TripBookingExtended = TripBooking & { flightData: FlightData | null };
+export type TripBookingExtended = TripBooking & {
+  flightData: FlightData | null;
+  startTimezone: string | null;
+  endTimezone: string | null;
+};
 
 export interface TripOverviewResponse {
   trip: TripWithStatus;
@@ -17,7 +23,11 @@ export interface TripOverviewResponse {
   checklist: TripChecklistItem[];
   companions: TripCompanion[];
   documents: TripDocument[];
+  dayNotes: TripDay[];
+  mapData: TripMapData;
 }
+
+export type { TripDay };
 
 export interface ApiTrip extends TripWithStatus {
   owner_user_id: string;

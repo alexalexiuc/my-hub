@@ -35,9 +35,10 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 | FR-15 | Flight bookings show a structured info line: flight number, route (origin → destination), seat, terminal, gate, and live status.                                                 |
 | FR-16 | Flight bookings show a live/paused badge that the user can click to toggle automatic flight data updates.                                                                        |
 | FR-17 | The booking edit form exposes flight-specific fields (flight number, seat, origin IATA, destination IATA, terminal, gate, aircraft type) only when the booking type is `flight`. |
-| FR-18 | Coming Next chips are color-coded by time proximity: past (dimmed, dashed border), active (sky blue), imminent <1h (red), soon <24h (amber), future (neutral zinc).              |
-| FR-19 | Past Coming Next chips collapse to a compact row (icon + date/time + label + "Done" badge) and can be expanded by clicking.                                                      |
+| FR-18 | Itinerary chips are color-coded by time proximity: past (dimmed, dashed border), active (sky blue), imminent <1h (red), soon <24h (amber), future (neutral zinc).                |
+| FR-19 | Past Itinerary chips collapse to a compact row (icon + date/time + label + "Done" badge) and can be expanded by clicking.                                                        |
 | FR-20 | Past chip time display includes both date and time (e.g. "31 Mar · 08:30") so the user can clearly see when the segment occurred.                                                |
+| FR-22 | When the travel page opens, it automatically selects the nearest upcoming trip (by start date); falls back to the first trip if none have a future start date.                   |
 | FR-21 | Reservation rows are expandable on click, revealing location, confirmation number, cost, status, notes, and attachments.                                                         |
 
 ---
@@ -109,8 +110,9 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 - [x] Booking edit form shows flight-specific fields only when type is `flight`.
 - [x] Worker polls `flight_data` rows on a 60-second interval and updates live fields.
 - [x] MCP reservation import extracts flight metadata and links a `flight_data` row.
-- [x] Coming Next chips show date+time for past segments (not just hour).
-- [x] Coming Next chips are color-coded by time proximity (past/active/imminent/soon/future).
+- [x] Itinerary chips show date+time for past segments (not just hour).
+- [x] Itinerary chips are color-coded by time proximity (past/active/imminent/soon/future).
 - [x] Past chips collapse to compact row by default; click to expand full card.
+- [x] Travel page opens to the nearest upcoming trip automatically.
 - [x] Reservation rows expand on click to reveal full details (location, cost, notes, attachments).
 - [x] Flight booking form includes seat field in add and edit modes.

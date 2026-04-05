@@ -3,8 +3,16 @@ import { withAuth } from '@/lib/api/with-auth';
 import {
   deleteAllUserMeals,
   deleteAllUserMeasurements,
-  deleteCalorieProfile,
+  deleteAllUserCalorieProfiles,
   deleteAllUserTodos,
+  deleteAllUserTripShares,
+  deleteAllUserTripDocuments,
+  deleteAllUserTripCompanions,
+  deleteAllUserTripChecklistItems,
+  deleteAllUserTripDays,
+  deleteAllUserTripPlaces,
+  deleteAllUserTripBookings,
+  deleteAllUserTrips,
 } from '@my-hub/shared/services';
 
 type Feature = 'meals' | 'measurements' | 'calories_profile' | 'todos' | 'my_travels';
@@ -47,7 +55,7 @@ export const POST = withAuth(async ({ req, user }) => {
         break;
       }
       case 'calories_profile': {
-        const deleted = await deleteCalorieProfile(user.id);
+        const deleted = await deleteAllUserCalorieProfiles(user.id);
         results.calories_profile = { deleted };
         break;
       }
@@ -57,8 +65,30 @@ export const POST = withAuth(async ({ req, user }) => {
         break;
       }
       case 'my_travels': {
-        // TODO: implement deletion of all user data related to My Travels feature (travel logs, travel meals, etc.)
-        results.my_travels = { deleted: 'not_implemented' };
+        const [shares, documents, companions, checklistItems, days, places, bookings, trips] = await Promise.all([
+          deleteAllUserTripShares(user.id),
+          deleteAllUserTripDocuments(user.id),
+          deleteAllUserTripCompanions(user.id),
+          deleteAllUserTripChecklistItems(user.id),
+          deleteAllUserTripDays(user.id),
+          deleteAllUserTripPlaces(user.id),
+          deleteAllUserTripBookings(user.id),
+          deleteAllUserTrips(user.id),
+        ]);
+
+        results.my_travels = {
+          deleted: shares + documents + companions + checklistItems + days + places + bookings + trips,
+          breakdown: {
+            trip_shares: shares,
+            trip_documents: documents,
+            trip_companions: companions,
+            trip_checklist_items: checklistItems,
+            trip_days: days,
+            trip_places: places,
+            trip_bookings: bookings,
+            trips,
+          },
+        };
         break;
       }
     }

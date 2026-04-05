@@ -62,3 +62,12 @@ export async function deleteTripCompanion(userId: string, companionId: number): 
 
   return row ?? null;
 }
+
+export async function deleteAllUserTripCompanions(userId: string): Promise<number> {
+  const rows = await db
+    .delete(tripCompanions)
+    .where(eq(tripCompanions.userId, userId))
+    .returning({ id: tripCompanions.id });
+
+  return rows.length;
+}

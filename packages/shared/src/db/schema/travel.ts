@@ -162,6 +162,9 @@ export const tripBookings = pgTable(
     notes: text('notes'),
     details: jsonb('details'),
     flightDataId: integer('flight_data_id').references(() => flightData.id, { onDelete: 'set null' }),
+    timezone: text('timezone'), // IANA timezone string, e.g. 'Europe/Chisinau'
+    lat: real('lat'),
+    lng: real('lng'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -187,6 +190,8 @@ export const tripPlaces = pgTable(
     notes: text('notes'),
     visited: boolean('visited').notNull().default(false),
     priority: text('priority').$type<TripPlacePriority>().notNull().default('medium'),
+    lat: real('lat'),
+    lng: real('lng'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -267,6 +272,29 @@ export const tripDocuments = pgTable(
     tripIdIdx: index('idx_trip_documents_trip_id').on(table.tripId),
     bookingIdIdx: index('idx_trip_documents_booking_id').on(table.bookingId),
     userIdIdx: index('idx_trip_documents_user_id').on(table.userId),
+  }),
+);
+
+export const tripDays = pgTable(
+  'trip_days',
+  {
+    id: serial('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tripId: integer('trip_id')
+      .notNull()
+      .references(() => trips.id, { onDelete: 'cascade' }),
+    date: date('date').notNull(), // calendar date, e.g. '2026-06-21'
+    title: text('title'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    tripDayUniqueIdx: uniqueIndex('uniq_trip_days_trip_date').on(table.tripId, table.date),
+    tripIdIdx: index('idx_trip_days_trip_id').on(table.tripId),
+    userIdIdx: index('idx_trip_days_user_id').on(table.userId),
   }),
 );
 

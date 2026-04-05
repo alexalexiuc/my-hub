@@ -178,3 +178,17 @@ export function addMinutes(date: Date, minutes: number): Date {
 export function addHours(date: Date, hours: number): Date {
   return new Date(date.getTime() + hours * 3_600_000);
 }
+
+/** Returns an array of YYYY-MM-DD strings for each calendar day from start to end (inclusive). */
+export function calendarDays(startAt: Date, endAt: Date): string[] {
+  const days: string[] = [];
+  const cur = new Date(startAt);
+  cur.setUTCHours(0, 0, 0, 0);
+  const end = new Date(endAt);
+  end.setUTCHours(0, 0, 0, 0);
+  while (cur <= end) {
+    days.push(toUTCDateStr(cur));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return days;
+}

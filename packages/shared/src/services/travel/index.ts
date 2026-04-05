@@ -1,5 +1,6 @@
 export * from './trips';
 export * from './bookings';
+export * from './days';
 export * from './places';
 export * from './checklist';
 export * from './companions';

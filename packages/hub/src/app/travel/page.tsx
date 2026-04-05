@@ -12,6 +12,8 @@ import { DocumentsSection } from './DocumentsSection';
 import { CompanionsSection } from './CompanionsSection';
 import { SharingSection } from './SharingSection';
 import { ComingNext } from './ComingNext';
+import { DayByDay } from './DayByDay';
+import { TripMap } from './TripMap';
 import { TripOverviewCards } from './TripOverviewCards';
 import { TripsSidebar } from './TripsSidebar';
 
@@ -55,7 +57,14 @@ export default function TravelPage() {
         setActiveTripId(null);
         setOverview(null);
       } else if (!activeTripId || !data.trips.some((trip) => trip.id === activeTripId)) {
-        setActiveTripId(data.trips[0]!.id);
+        const now = Date.now();
+        const upcoming = data.trips
+          .filter((t) => t.startAt && new Date(t.startAt as unknown as string).getTime() >= now)
+          .sort(
+            (a, b) =>
+              new Date(a.startAt as unknown as string).getTime() - new Date(b.startAt as unknown as string).getTime(),
+          );
+        setActiveTripId((upcoming[0] ?? data.trips[0])!.id);
       }
     } finally {
       setLoadingTrips(false);
@@ -105,6 +114,8 @@ export default function TravelPage() {
         <div className="space-y-6">
           <ComingNext bookings={overview?.bookings ?? []} documents={overview?.documents ?? []} />
 
+          {overview && <TripMap mapData={overview.mapData} />}
+
           <SectionCard title="Calendar" className="bg-cyan-950/20 border-cyan-800/50">
             {overview ? (
               <BookingsCalendar bookings={overview.bookings} tripColor={overview.trip.color} />
@@ -143,6 +154,16 @@ export default function TravelPage() {
             />
             <TripOverviewCards activeTrip={activeTrip} overview={overview} loadingOverview={loadingOverview} />
           </div>
+
+          {overview && activeTrip && (
+            <DayByDay
+              trip={overview.trip}
+              bookings={overview.bookings}
+              dayNotes={overview.dayNotes}
+              canEdit={canEditActiveTrip}
+              onChanged={handleOverviewChanged}
+            />
+          )}
         </div>
       </section>
     </main>

@@ -2,7 +2,6 @@ import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import {
   addChecklistItem,
-  addTripBooking,
   addTripCompanion,
   addTripDocument,
   createTrip,
@@ -11,28 +10,11 @@ import {
   getTripCompanions,
   getTripOverview,
   getTrips,
-  linkBookingToFlightData,
   suggestChecklistTemplate,
   updateTripCompanion,
-  upsertFlightData,
 } from '@my-hub/shared/services';
-import type { TripBookingType, TripDocumentType } from '@my-hub/shared/types';
+import type { TripDocumentType } from '@my-hub/shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
-
-const BookingTypeSchema = z.enum([
-  'flight',
-  'accommodation',
-  'rental_car',
-  'train',
-  'bus',
-  'ferry',
-  'taxi',
-  'restaurant',
-  'tour',
-  'activity',
-  'ticket',
-  'other',
-]);
 
 const DocumentTypeSchema = z.enum(['passport', 'visa', 'boarding_pass', 'voucher', 'ticket', 'other']);
 
@@ -47,40 +29,6 @@ export const TravelPlanTripSchema = z.object({
     .default(true)
     .optional()
     .describe('If true, create a starter checklist template automatically.'),
-});
-
-export const TravelAddReservationFromTextSchema = z.object({
-  trip_id: z.number().int().positive().describe('Trip ID where the reservation should be added.'),
-  booking_text: z
-    .string()
-    .min(5)
-    .describe('Raw confirmation text from chat/email/notes. The full text is stored for later extraction.'),
-  booking_type: BookingTypeSchema.optional().describe('Optional booking type if known.'),
-  title: z.string().optional().describe('Short reservation title. If omitted, fallback title is generated.'),
-  provider: z.string().optional().describe('Airline/hotel/provider name if already known.'),
-  location: z.string().optional().describe('Location or route summary for this reservation.'),
-  start_at: z.string().datetime().optional().describe('Start datetime in ISO 8601 if known.'),
-  end_at: z.string().datetime().optional().describe('End datetime in ISO 8601 if known.'),
-  confirmation_number: z.string().optional().describe('Confirmation reference if available.'),
-  // Flight-specific fields — extract from booking text when booking_type is "flight"
-  flight_number: z
-    .string()
-    .optional()
-    .describe('IATA flight number extracted from the booking text, e.g. "BA2490". Extract this whenever possible.'),
-  seat: z.string().optional().describe('Seat assignment, e.g. "14A".'),
-  origin_iata: z
-    .string()
-    .length(3)
-    .optional()
-    .describe('3-letter IATA code of the departure airport, e.g. "LHR". Extract from the booking text.'),
-  destination_iata: z
-    .string()
-    .length(3)
-    .optional()
-    .describe('3-letter IATA code of the arrival airport, e.g. "CDG". Extract from the booking text.'),
-  terminal: z.string().optional().describe('Departure terminal, if mentioned.'),
-  gate: z.string().optional().describe('Departure gate, if mentioned.'),
-  aircraft_type: z.string().optional().describe('Aircraft type or model, e.g. "A320", if mentioned.'),
 });
 
 export const TravelPrepareTripChecklistSchema = z.object({
@@ -147,58 +95,6 @@ export const travelPlanTripTool: ToolCallback<typeof TravelPlanTripSchema.shape>
     message: 'Trip planned successfully.',
     trip,
     seeded_checklist: seededChecklist,
-  });
-};
-
-export const travelAddReservationFromTextTool: ToolCallback<typeof TravelAddReservationFromTextSchema.shape> = async (
-  input,
-  extra,
-) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
-
-  const bookingType = (input.booking_type ?? 'other') as TripBookingType;
-  const title = input.title ?? `Imported ${bookingType} reservation`;
-
-  const booking = await addTripBooking(userId, input.trip_id, {
-    bookingType,
-    title,
-    provider: input.provider ?? null,
-    confirmationNumber: input.confirmation_number ?? null,
-    startAt: input.start_at ? new Date(input.start_at) : null,
-    endAt: input.end_at ? new Date(input.end_at) : null,
-    status: 'imported',
-    costAmount: null,
-    costCurrency: 'EUR',
-    location: input.location ?? null,
-    notes: null,
-    details: {
-      source: 'nl_import',
-      raw_text: input.booking_text,
-      ...(input.flight_number && { flight_number: input.flight_number }),
-      ...(input.seat && { seat: input.seat }),
-      ...(input.origin_iata && { origin_iata: input.origin_iata }),
-      ...(input.destination_iata && { destination_iata: input.destination_iata }),
-      ...(input.terminal && { terminal: input.terminal }),
-      ...(input.gate && { gate: input.gate }),
-      ...(input.aircraft_type && { aircraft_type: input.aircraft_type }),
-    },
-  });
-
-  // When we have a flight number + departure date, create/find a flight_data row
-  // so the background worker will start polling for live updates automatically.
-  if (bookingType === 'flight' && input.flight_number && input.start_at) {
-    try {
-      const flightDate = input.start_at.slice(0, 10); // YYYY-MM-DD
-      const fd = await upsertFlightData(input.flight_number, flightDate);
-      await linkBookingToFlightData(booking.id, fd.id);
-    } catch {
-      // Non-fatal: booking is already saved; worker link can be added later.
-    }
-  }
-
-  return toolResponse({
-    message: 'Reservation captured from text.',
-    booking,
   });
 };
 

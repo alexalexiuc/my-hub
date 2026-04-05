@@ -3,6 +3,7 @@ import { db } from '../../db/client';
 import { tripBookings } from '../../db/schema/travel';
 import type { NewTripBooking, TripBooking, TripBookingType } from '../../types/index';
 import { verifyTripOwnership } from './trips';
+import { validateCoords } from '../../utils';
 
 export type TripBookingInsert = Omit<NewTripBooking, 'id' | 'userId' | 'tripId' | 'createdAt' | 'updatedAt'>;
 export type TripBookingUpdate = Partial<
@@ -20,6 +21,9 @@ export type TripBookingUpdate = Partial<
     | 'location'
     | 'notes'
     | 'details'
+    | 'timezone'
+    | 'lat'
+    | 'lng'
   >
 >;
 
@@ -31,6 +35,7 @@ export async function addTripBooking(userId: string, tripId: number, data: TripB
   if (!(await verifyTripOwnership(userId, tripId))) {
     throw new Error('Trip not found');
   }
+  validateCoords({ lat: data.lat, lng: data.lng });
   const [row] = await db
     .insert(tripBookings)
     .values({
@@ -88,6 +93,10 @@ export async function updateTripBooking(
   bookingId: number,
   data: TripBookingUpdate,
 ): Promise<TripBooking | null> {
+  if (data.lat !== undefined || data.lng !== undefined) {
+    validateCoords({ lat: data.lat, lng: data.lng });
+  }
+
   const updates: Partial<TripBookingInsert> & { updatedAt: Date } = {
     updatedAt: new Date(),
   };
@@ -107,6 +116,15 @@ export async function updateTripBooking(
   return row ?? null;
 }
 
+export async function getTripBookingById(userId: string, bookingId: number): Promise<TripBooking | null> {
+  const [row] = await db
+    .select()
+    .from(tripBookings)
+    .where(and(eq(tripBookings.userId, userId), eq(tripBookings.id, bookingId)))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function deleteTripBooking(userId: string, bookingId: number): Promise<TripBooking | null> {
   const [row] = await db
     .delete(tripBookings)
@@ -114,4 +132,10 @@ export async function deleteTripBooking(userId: string, bookingId: number): Prom
     .returning();
 
   return row ?? null;
+}
+
+export async function deleteAllUserTripBookings(userId: string): Promise<number> {
+  const rows = await db.delete(tripBookings).where(eq(tripBookings.userId, userId)).returning({ id: tripBookings.id });
+
+  return rows.length;
 }

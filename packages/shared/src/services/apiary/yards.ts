@@ -41,3 +41,8 @@ export async function deleteApiaryYard(userId: string, yardId: number): Promise<
     .returning();
   return row ?? null;
 }
+
+export async function deleteAllUserApiaryYards(userId: string): Promise<number> {
+  const rows = await db.delete(apiaryYards).where(eq(apiaryYards.userId, userId)).returning({ id: apiaryYards.id });
+  return rows.length;
+}

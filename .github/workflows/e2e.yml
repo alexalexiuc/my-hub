@@ -206,6 +206,23 @@ jobs:
           E2E_HUB_USER_EMAIL: ${{ vars.E2E_HUB_USER_EMAIL }}
           IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
 
+      - name: Seed E2E Hub fixtures on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: E2E_HUB_USER_EMAIL,IMAGE_OWNER
+          script: |
+            cd /opt/my-hub
+            docker compose --project-name my-hub-staging \
+              -f infra/docker-compose.staging.yml exec -T \
+              -e E2E_HUB_USER_EMAIL=$E2E_HUB_USER_EMAIL \
+              hub node /app/e2e-seed-setup.mjs
+        env:
+          E2E_HUB_USER_EMAIL: ${{ vars.E2E_HUB_USER_EMAIL }}
+          IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
+
       - name: Run E2E tests
         run: pnpm test:e2e
         env:

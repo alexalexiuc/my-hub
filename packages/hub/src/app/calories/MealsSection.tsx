@@ -61,17 +61,10 @@ interface EditForm {
   notes: string;
 }
 
-export function MealsSection({
-  meals,
-  selectedDate,
-  onDateChange,
-  onChanged,
-  goalCalories,
-  maxCalories,
-}: Props) {
+export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goalCalories, maxCalories }: Props) {
   const today = dateToString(new Date());
   const [showAdd, setShowAdd] = useState(false);
-  const [showMeals, setShowMeals] = useState(true);
+  const [showMeals, setShowMeals] = useState(false);
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -343,9 +336,7 @@ export function MealsSection({
             <span className={`text-2xl font-bold ${isOver ? 'text-red-400' : ''}`}>
               {cap !== null ? (isOver ? `+${total - cap}` : remaining) : total}
             </span>
-            <span className="text-[11px] text-zinc-500">
-              {cap !== null ? (isOver ? 'Over' : 'Remaining') : 'kcal'}
-            </span>
+            <span className="text-[11px] text-zinc-500">{cap !== null ? (isOver ? 'Over' : 'Remaining') : 'kcal'}</span>
           </div>
         </div>
 

@@ -37,6 +37,15 @@ export async function setSubscription(userId: string, key: SubscriptionKey, subs
     });
 }
 
+export async function deleteAllUserNotificationPreferences(userId: string): Promise<number> {
+  const rows = await db
+    .delete(notificationPreferences)
+    .where(eq(notificationPreferences.userId, userId))
+    .returning({ id: notificationPreferences.id });
+
+  return rows.length;
+}
+
 /**
  * Returns the IDs of all active users who are subscribed to a given notification key.
  * A user is subscribed if they have no row (default) OR a row with subscribed=true.

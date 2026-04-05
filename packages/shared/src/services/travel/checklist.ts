@@ -73,3 +73,12 @@ export async function deleteChecklistItem(userId: string, itemId: number): Promi
 
   return row ?? null;
 }
+
+export async function deleteAllUserTripChecklistItems(userId: string): Promise<number> {
+  const rows = await db
+    .delete(tripChecklistItems)
+    .where(eq(tripChecklistItems.userId, userId))
+    .returning({ id: tripChecklistItems.id });
+
+  return rows.length;
+}

@@ -16,6 +16,7 @@ import { ProfileCard } from './ProfileCard';
 import { WeeklyChart } from './WeeklyChart';
 import { WeightChart } from './WeightChart';
 
+// TODO: Move to shared/utils/dates
 function getCurrentWeekDays(): { date: string; label: string }[] {
   const days: { date: string; label: string }[] = [];
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

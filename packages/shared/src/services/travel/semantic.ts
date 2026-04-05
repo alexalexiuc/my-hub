@@ -5,6 +5,7 @@ import {
   tripBookings,
   tripChecklistItems,
   tripCompanions,
+  tripDays,
   tripDocuments,
   tripPlaces,
 } from '../../db/schema/travel';
@@ -14,12 +15,35 @@ import type {
   TripBooking,
   TripChecklistItem,
   TripCompanion,
+  TripDay,
   TripDocument,
   TripPlace,
 } from '../../types/index';
+import { coordsFromIata, timezoneFromIata } from '../../server-only-utils/airports';
 import { getNextTrip, getTripByIdAccessible } from './trips';
 
-export type TripBookingExtended = TripBooking & { flightData: FlightData | null };
+export type TripBookingExtended = TripBooking & {
+  flightData: FlightData | null;
+  startTimezone: string | null;
+  endTimezone: string | null;
+};
+
+export interface TripMapPoint {
+  lat: number;
+  lng: number;
+  label: string;
+  sub?: string;
+}
+
+export interface TripFlightArc {
+  from: [number, number];
+  to: [number, number];
+}
+
+export interface TripMapData {
+  points: TripMapPoint[];
+  arcs: TripFlightArc[];
+}
 
 export interface TripOverview {
   trip: Trip;
@@ -28,13 +52,15 @@ export interface TripOverview {
   checklist: TripChecklistItem[];
   companions: TripCompanion[];
   documents: TripDocument[];
+  dayNotes: TripDay[];
+  mapData: TripMapData;
 }
 
 export async function getTripOverview(userId: string, tripId: number): Promise<TripOverview | null> {
   const trip = await getTripByIdAccessible(userId, tripId);
   if (!trip) return null;
 
-  const [rawBookings, places, checklist, companions, documents] = await Promise.all([
+  const [rawBookings, places, checklist, companions, documents, dayNotes] = await Promise.all([
     db
       .select()
       .from(tripBookings)
@@ -52,6 +78,7 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
       .orderBy(asc(tripChecklistItems.done), asc(tripChecklistItems.id)),
     db.select().from(tripCompanions).where(eq(tripCompanions.tripId, tripId)).orderBy(asc(tripCompanions.id)),
     db.select().from(tripDocuments).where(eq(tripDocuments.tripId, tripId)).orderBy(asc(tripDocuments.id)),
+    db.select().from(tripDays).where(eq(tripDays.tripId, tripId)).orderBy(asc(tripDays.date)),
   ]);
 
   // Attach flight_data rows to flight bookings that have a link
@@ -64,10 +91,38 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
     for (const row of rows) flightDataMap.set(row.id, row);
   }
 
-  const bookings: TripBookingExtended[] = rawBookings.map((b) => ({
-    ...b,
-    flightData: b.flightDataId != null ? (flightDataMap.get(b.flightDataId) ?? null) : null,
-  }));
+  const bookings: TripBookingExtended[] = rawBookings.map((b) => {
+    const fd = b.flightDataId != null ? (flightDataMap.get(b.flightDataId) ?? null) : null;
+    const startTimezone = (fd?.originIata ? timezoneFromIata(fd.originIata) : b.timezone) ?? null;
+    const endTimezone = (fd?.destinationIata ? timezoneFromIata(fd.destinationIata) : b.timezone) ?? null;
+    return { ...b, flightData: fd, startTimezone, endTimezone };
+  });
+
+  // Build map data server-side so the client never needs the airports JSON bundle
+  const mapPoints: TripMapPoint[] = [];
+  const mapArcs: TripFlightArc[] = [];
+
+  for (const b of bookings) {
+    const fd = b.flightData;
+    if (fd?.originIata && fd?.destinationIata) {
+      const origin =
+        coordsFromIata(fd.originIata) ?? (b.lat != null && b.lng != null ? { lat: b.lat, lng: b.lng } : null);
+      const dest = coordsFromIata(fd.destinationIata);
+      if (origin)
+        mapPoints.push({ lat: origin.lat, lng: origin.lng, label: fd.originIata, sub: fd.airlineName ?? undefined });
+      if (dest)
+        mapPoints.push({ lat: dest.lat, lng: dest.lng, label: fd.destinationIata, sub: fd.airlineName ?? undefined });
+      if (origin && dest) mapArcs.push({ from: [origin.lat, origin.lng], to: [dest.lat, dest.lng] });
+    } else if (b.lat != null && b.lng != null) {
+      mapPoints.push({ lat: b.lat, lng: b.lng, label: b.title, sub: b.provider ?? undefined });
+    }
+  }
+
+  for (const p of places) {
+    if (p.lat != null && p.lng != null) {
+      mapPoints.push({ lat: p.lat, lng: p.lng, label: p.name, sub: p.location ?? undefined });
+    }
+  }
 
   return {
     trip,
@@ -76,6 +131,8 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
     checklist,
     companions,
     documents,
+    dayNotes,
+    mapData: { points: mapPoints, arcs: mapArcs },
   };
 }
 

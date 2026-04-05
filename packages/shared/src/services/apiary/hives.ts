@@ -54,3 +54,8 @@ export async function deleteApiaryHive(userId: string, hiveId: number): Promise<
     .returning();
   return row ?? null;
 }
+
+export async function deleteAllUserApiaryHives(userId: string): Promise<number> {
+  const rows = await db.delete(apiaryHives).where(eq(apiaryHives.userId, userId)).returning({ id: apiaryHives.id });
+  return rows.length;
+}

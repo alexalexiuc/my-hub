@@ -24,6 +24,7 @@ export default defineConfig({
       name: 'setup',
       testDir: '.',
       testMatch: /global\.setup\.ts/,
+      // teardown: 'cleanup',
     },
     // 2. All e2e tests — depend on setup, run with pre-saved auth state
     {
@@ -34,5 +35,11 @@ export default defineConfig({
       },
       dependencies: ['setup'],
     },
+    // 3. Global teardown: cleanup user data via Profile UI
+    // {
+    //   name: 'cleanup',
+    //   testDir: '.',
+    //   testMatch: /global\.teardown\.ts/,
+    // },
   ],
 });

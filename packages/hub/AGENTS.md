@@ -61,3 +61,9 @@ When adding a new component, also add it to the relevant barrel file.
 - `src/app/travel/` — 7 section components + `types.ts`
 - `src/app/calories/` — section components co-located with page
 - `src/app/profile/NotificationsSection.tsx` — pattern for rendering grouped notification checkboxes from `NOTIFICATION_SUBSCRIPTIONS` config; fetches and persists subscription state via `/api/user/notification-preferences`
+
+## Hub E2E Notes
+
+- Hub UI Playwright fixtures live in `packages/e2e`, not in `packages/hub` or `packages/mcp-server`.
+- CI seeds Hub E2E data by executing the compiled `packages/e2e/scripts/setup-e2e-db.ts` bundle inside the `hub` container.
+- Local Hub E2E runs seed via `packages/e2e/global.setup.ts` only when `IS_LOCAL=true`; keep that flow process-based rather than directly importing the seed module into Playwright setup.

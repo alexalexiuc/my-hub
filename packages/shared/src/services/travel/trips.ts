@@ -138,6 +138,12 @@ export async function deleteTrip(userId: string, tripId: number): Promise<TripWi
   return row ? withStatus(row) : null;
 }
 
+export async function deleteAllUserTrips(userId: string): Promise<number> {
+  const rows = await db.delete(trips).where(eq(trips.userId, userId)).returning({ id: trips.id });
+
+  return rows.length;
+}
+
 export async function getNextTrip(userId: string, now = new Date()): Promise<TripWithStatus | null> {
   const [row] = await db
     .select()

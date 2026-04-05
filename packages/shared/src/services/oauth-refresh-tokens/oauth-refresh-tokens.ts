@@ -61,7 +61,16 @@ export async function deleteRefreshTokensByClient(clientId: string): Promise<voi
 
 /** Delete all refresh tokens for a given user (e.g. when the account is deleted). */
 export async function deleteRefreshTokensByUser(userId: string): Promise<void> {
-  await db.delete(oauthRefreshTokens).where(eq(oauthRefreshTokens.userId, userId));
+  await deleteAllUserOAuthRefreshTokens(userId);
+}
+
+export async function deleteAllUserOAuthRefreshTokens(userId: string): Promise<number> {
+  const rows = await db
+    .delete(oauthRefreshTokens)
+    .where(eq(oauthRefreshTokens.userId, userId))
+    .returning({ id: oauthRefreshTokens.id });
+
+  return rows.length;
 }
 
 /** Remove expired refresh tokens for a given client. */

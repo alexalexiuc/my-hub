@@ -23,6 +23,7 @@ import type {
   tripCompanions,
   tripDocuments,
   tripShares,
+  tripDays,
   flightData,
 } from '../db/schema/index';
 import type {
@@ -110,4 +111,6 @@ export type TripDocument = InferSelectModel<typeof tripDocuments>;
 export type NewTripDocument = InferInsertModel<typeof tripDocuments>;
 export type TripShare = InferSelectModel<typeof tripShares>;
 export type NewTripShare = InferInsertModel<typeof tripShares>;
+export type TripDay = InferSelectModel<typeof tripDays>;
+export type NewTripDay = InferInsertModel<typeof tripDays>;
 export type { TripStatus, TripBookingType, TripPlacePriority, TripDocumentType, TripSharePermission };
