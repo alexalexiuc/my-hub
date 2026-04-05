@@ -271,6 +271,9 @@ importers:
       dotenv-mono:
         specifier: ^1.5.1
         version: 1.5.1
+      promise-cachex:
+        specifier: ^2.0.0
+        version: 2.0.0
     devDependencies:
       '@types/node':
         specifier: ^22.13.14

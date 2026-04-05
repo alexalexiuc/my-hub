@@ -18,6 +18,8 @@ export async function syncDueFlights(): Promise<void> {
   console.log(`[worker] Syncing ${due.length} flight(s)...`);
 
   for (const fd of due) {
+    // wait 1 second to not hit rate limits
+    await new Promise((res) => setTimeout(res, 1000));
     try {
       const result = await fetchFlightFromApi(fd.flightNumber, fd.flightDate, apiKey);
 

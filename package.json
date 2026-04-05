@@ -5,6 +5,7 @@
   "author": "Alexiuc Alex",
   "scripts": {
     "dev": "turbo dev",
+    "dev:hub": "turbo dev --filter=@my-hub/hub",
     "build": "turbo build",
     "build:clear": "turbo build:clear",
     "lint": "turbo lint",

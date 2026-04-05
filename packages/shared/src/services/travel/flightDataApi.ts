@@ -8,6 +8,46 @@
  * Endpoint: GET https://aerodatabox.p.rapidapi.com/flights/number/{flightNumber}/{date}
  */
 
+import { PromiseCacheX } from 'promise-cachex';
+import { withBackoffRetry } from '../../utils';
+
+interface AeroDataBoxTime {
+  utc: string;
+  local: string;
+}
+
+interface AeroDataBoxEndpoint {
+  airport?: {
+    icao?: string;
+    iata?: string;
+    name?: string;
+    shortName?: string;
+    location?: { lat: number; lon: number };
+    countryCode?: string;
+    timeZone?: string;
+  };
+  scheduledTime?: AeroDataBoxTime;
+  predictedTime?: AeroDataBoxTime;
+  actualTime?: AeroDataBoxTime;
+  revisedTime?: AeroDataBoxTime;
+  terminal?: string;
+  gate?: string;
+  quality?: string[];
+}
+
+interface AeroDataBoxFlight {
+  number?: string;
+  status?: string;
+  codeshareStatus?: string;
+  isCargo?: boolean;
+  lastUpdatedUtc?: string;
+  departure?: AeroDataBoxEndpoint;
+  arrival?: AeroDataBoxEndpoint;
+  aircraft?: { model?: string; reg?: string };
+  airline?: { name?: string; iata?: string; icao?: string };
+  greatCircleDistance?: { km?: number };
+}
+
 export interface FlightApiResult {
   originIata?: string;
   destinationIata?: string;
@@ -32,9 +72,7 @@ function parseDate(value: unknown): Date | undefined {
   return isNaN(d.getTime()) ? undefined : d;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapAeroDataBox(raw: any): FlightApiResult {
-  // AeroDataBox returns an array; first element is the matching flight
+function mapAeroDataBox(raw: AeroDataBoxFlight | AeroDataBoxFlight[]): FlightApiResult {
   const flight = Array.isArray(raw) ? raw[0] : raw;
   if (!flight) return {};
 
@@ -44,23 +82,50 @@ function mapAeroDataBox(raw: any): FlightApiResult {
   const airline = flight.airline ?? {};
 
   return {
-    originIata: dep.airport?.iata ?? undefined,
-    destinationIata: arr.airport?.iata ?? undefined,
-    scheduledDepartureAt: parseDate(dep.scheduledTimeUtc ?? dep.scheduledTimeLocal),
-    scheduledArrivalAt: parseDate(arr.scheduledTimeUtc ?? arr.scheduledTimeLocal),
-    actualDepartureAt: parseDate(dep.actualTimeUtc ?? dep.revisedTimeUtc),
-    actualArrivalAt: parseDate(arr.actualTimeUtc ?? arr.revisedTimeUtc),
-    departureTerminal: dep.terminal ?? undefined,
-    departureGate: dep.gate ?? undefined,
-    arrivalTerminal: arr.terminal ?? undefined,
-    status: flight.status ?? undefined,
-    aircraftType: aircraft.model ?? undefined,
-    aircraftRegistration: aircraft.reg ?? undefined,
-    airlineIata: airline.iata ?? undefined,
-    airlineName: airline.name ?? undefined,
+    originIata: dep.airport?.iata,
+    destinationIata: arr.airport?.iata,
+    scheduledDepartureAt: parseDate(dep.scheduledTime?.utc),
+    scheduledArrivalAt: parseDate(arr.scheduledTime?.utc),
+    actualDepartureAt: parseDate(dep.actualTime?.utc ?? dep.revisedTime?.utc),
+    actualArrivalAt: parseDate(arr.actualTime?.utc ?? arr.predictedTime?.utc ?? arr.revisedTime?.utc),
+    departureTerminal: dep.terminal,
+    departureGate: dep.gate,
+    arrivalTerminal: arr.terminal,
+    status: flight.status,
+    aircraftType: aircraft.model,
+    aircraftRegistration: aircraft.reg,
+    airlineIata: airline.iata,
+    airlineName: airline.name,
     rawResponse: raw,
   };
 }
+
+const flightApiCache = new PromiseCacheX({
+  ttl: 5 * 60 * 1000, // 5 mins
+});
+
+const fetchApi = (flightNumber: string, flightDate: string, apiKey: string) => {
+  // Cache API responses to avoid hitting rate limits, especially since flight data doesn't change frequently and we are also limited on requests
+  return flightApiCache.get(`${flightNumber}-${flightDate}`, async () => {
+    const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flightNumber)}/${encodeURIComponent(flightDate)}?withAircraftImage=false&withLocation=false&withFlightPlan=false&dateLocalRole=Both`;
+    const response = await withBackoffRetry(
+      () =>
+        fetch(url, {
+          headers: {
+            'X-RapidAPI-Key': apiKey,
+            'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com',
+            'Content-Type': 'application/json',
+          },
+        }),
+      {
+        // we have 1 attempt per second on the free tier, so we want to retry on rate limit errors
+        shouldRetry: (result) => result?.status === 429, // Retry on rate limit errors,
+      },
+    );
+
+    return response;
+  });
+};
 
 /**
  * Fetch live flight data for the given IATA flight number and date (YYYY-MM-DD).
@@ -71,17 +136,9 @@ export async function fetchFlightFromApi(
   flightDate: string,
   apiKey: string,
 ): Promise<FlightApiResult | null> {
-  const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flightNumber)}/${encodeURIComponent(flightDate)}?withAircraftImage=false&withLocation=false&withFlightPlan=false&dateLocalRole=Both`;
-
   let response: Response;
   try {
-    response = await fetch(url, {
-      headers: {
-        'X-RapidAPI-Key': apiKey,
-        'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com',
-        'Content-Type': 'application/json',
-      },
-    });
+    response = await fetchApi(flightNumber, flightDate, apiKey);
   } catch (err) {
     throw new Error(`AeroDataBox network error: ${String(err)}`);
   }
@@ -93,6 +150,6 @@ export async function fetchFlightFromApi(
     throw new Error(`AeroDataBox API error ${response.status}: ${body}`);
   }
 
-  const json = await response.json();
+  const json = (await response.json()) as AeroDataBoxFlight | AeroDataBoxFlight[];
   return mapAeroDataBox(json);
 }
