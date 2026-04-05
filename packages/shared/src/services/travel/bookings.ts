@@ -93,6 +93,10 @@ export async function updateTripBooking(
   bookingId: number,
   data: TripBookingUpdate,
 ): Promise<TripBooking | null> {
+  if (data.lat !== undefined || data.lng !== undefined) {
+    validateCoords({ lat: data.lat, lng: data.lng });
+  }
+
   const updates: Partial<TripBookingInsert> & { updatedAt: Date } = {
     updatedAt: new Date(),
   };
