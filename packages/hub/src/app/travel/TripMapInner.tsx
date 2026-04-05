@@ -38,7 +38,18 @@ export default function TripMapInner({ mapData }: Props) {
       const bounds: LatLngTuple[] = [];
 
       for (const pt of mapData.points) {
-        const popup = `<strong>${pt.label}</strong>${pt.sub ? `<br/><span style="color:#aaa">${pt.sub}</span>` : ''}`;
+        const popup = document.createElement('div');
+        const label = document.createElement('strong');
+        label.textContent = pt.label;
+        popup.appendChild(label);
+
+        if (pt.sub) {
+          popup.appendChild(document.createElement('br'));
+          const sub = document.createElement('span');
+          sub.style.color = '#aaa';
+          sub.textContent = pt.sub;
+          popup.appendChild(sub);
+        }
         L.marker([pt.lat, pt.lng]).bindPopup(popup).addTo(map);
         bounds.push([pt.lat, pt.lng]);
       }
