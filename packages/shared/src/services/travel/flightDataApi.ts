@@ -10,43 +10,7 @@
 
 import { PromiseCacheX } from 'promise-cachex';
 import { withBackoffRetry } from '../../utils';
-
-interface AeroDataBoxTime {
-  utc: string;
-  local: string;
-}
-
-interface AeroDataBoxEndpoint {
-  airport?: {
-    icao?: string;
-    iata?: string;
-    name?: string;
-    shortName?: string;
-    location?: { lat: number; lon: number };
-    countryCode?: string;
-    timeZone?: string;
-  };
-  scheduledTime?: AeroDataBoxTime;
-  predictedTime?: AeroDataBoxTime;
-  actualTime?: AeroDataBoxTime;
-  revisedTime?: AeroDataBoxTime;
-  terminal?: string;
-  gate?: string;
-  quality?: string[];
-}
-
-interface AeroDataBoxFlight {
-  number?: string;
-  status?: string;
-  codeshareStatus?: string;
-  isCargo?: boolean;
-  lastUpdatedUtc?: string;
-  departure?: AeroDataBoxEndpoint;
-  arrival?: AeroDataBoxEndpoint;
-  aircraft?: { model?: string; reg?: string };
-  airline?: { name?: string; iata?: string; icao?: string };
-  greatCircleDistance?: { km?: number };
-}
+import { AeroDataBoxFlight } from './flightDataApiTypes';
 
 export interface FlightApiResult {
   originIata?: string;
@@ -86,8 +50,8 @@ function mapAeroDataBox(raw: AeroDataBoxFlight | AeroDataBoxFlight[]): FlightApi
     destinationIata: arr.airport?.iata,
     scheduledDepartureAt: parseDate(dep.scheduledTime?.utc),
     scheduledArrivalAt: parseDate(arr.scheduledTime?.utc),
-    actualDepartureAt: parseDate(dep.actualTime?.utc ?? dep.revisedTime?.utc),
-    actualArrivalAt: parseDate(arr.actualTime?.utc ?? arr.predictedTime?.utc ?? arr.revisedTime?.utc),
+    actualDepartureAt: parseDate(dep.revisedTime?.utc ?? dep.runwayTime?.utc),
+    actualArrivalAt: parseDate(arr.revisedTime?.utc ?? arr.runwayTime?.utc),
     departureTerminal: dep.terminal,
     departureGate: dep.gate,
     arrivalTerminal: arr.terminal,
@@ -150,6 +114,5 @@ export async function fetchFlightFromApi(
     throw new Error(`AeroDataBox API error ${response.status}: ${body}`);
   }
 
-  const json = (await response.json()) as AeroDataBoxFlight | AeroDataBoxFlight[];
-  return mapAeroDataBox(json);
+  return mapAeroDataBox((await response.json()) as AeroDataBoxFlight | AeroDataBoxFlight[]);
 }

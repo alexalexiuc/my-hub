@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchFlightFromApi } from './flightDataApi';
+import { AeroDataBoxFlight } from './flightDataApiTypes';
 
 // Make PromiseCacheX transparent so tests exercise the real fetch/retry logic
 vi.mock('promise-cachex', () => ({
@@ -8,9 +9,8 @@ vi.mock('promise-cachex', () => ({
   })),
 }));
 
-const SAMPLE_RESPONSE = [
+const SAMPLE_RESPONSE: AeroDataBoxFlight[] = [
   {
-    greatCircleDistance: { meter: 1394997.22, km: 1395, mile: 866.81, nm: 753.24, feet: 4576762.52 },
     departure: {
       airport: {
         icao: 'LUKK',
@@ -23,6 +23,8 @@ const SAMPLE_RESPONSE = [
         timeZone: 'Europe/Chisinau',
       },
       scheduledTime: { utc: '2026-06-21 02:30Z', local: '2026-06-21 05:30+03:00' },
+      revisedTime: { utc: '2026-06-21 02:35Z', local: '2026-06-21 05:30+03:00' },
+      runwayTime: { utc: '2026-06-21 02:40Z', local: '2026-06-21 05:40+03:00' },
       quality: ['Basic'],
     },
     arrival: {
@@ -38,6 +40,7 @@ const SAMPLE_RESPONSE = [
       },
       scheduledTime: { utc: '2026-06-21 05:00Z', local: '2026-06-21 08:00+03:00' },
       predictedTime: { utc: '2026-06-21 05:13Z', local: '2026-06-21 08:13+03:00' },
+      runwayTime: { utc: '2026-06-21 05:10Z', local: '2026-06-21 08:10+03:00' },
       quality: ['Basic'],
     },
     lastUpdatedUtc: '2026-03-29 05:21Z',
@@ -83,8 +86,8 @@ describe('fetchFlightFromApi', () => {
       expect(result!.destinationIata).toBe('LCA');
       expect(result!.scheduledDepartureAt).toEqual(new Date('2026-06-21 02:30Z'));
       expect(result!.scheduledArrivalAt).toEqual(new Date('2026-06-21 05:00Z'));
-      expect(result!.actualArrivalAt).toEqual(new Date('2026-06-21 05:13Z')); // falls back to predictedTime
-      expect(result!.actualDepartureAt).toBeUndefined();
+      expect(result!.actualArrivalAt).toEqual(new Date('2026-06-21 05:10Z'));
+      expect(result!.actualDepartureAt).toEqual(new Date('2026-06-21 02:35Z'));
       expect(result!.status).toBe('Expected');
       expect(result!.aircraftType).toBe('Airbus A320');
       expect(result!.aircraftRegistration).toBeUndefined();

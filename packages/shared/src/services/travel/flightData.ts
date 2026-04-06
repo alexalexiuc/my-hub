@@ -129,7 +129,9 @@ export async function updateFlightData(id: number, fields: FlightDataUpdate): Pr
   const departure =
     fields.scheduledDepartureAt !== undefined ? fields.scheduledDepartureAt : current.scheduledDepartureAt;
   const arrival = fields.actualArrivalAt !== undefined ? fields.actualArrivalAt : current.actualArrivalAt;
-  const finished = fields.finished ?? arrival !== null;
+  // either provided finished field, or if not provided, infer finished=true if we have an actual arrival time in the past (flight has landed), otherwise keep existing finished value
+  const finished =
+    fields.finished ?? (arrival !== null && departure !== null && arrival.getTime() >= Date.now()) ?? current.finished;
 
   const [row] = await db
     .update(flightData)
