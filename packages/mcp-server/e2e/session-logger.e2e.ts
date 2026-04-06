@@ -14,7 +14,8 @@ import { getLogs } from '@my-hub/shared/services';
  * These tests verify that tool calls made within an MCP session are written to
  * the api_request_logs table, and that other JSON-RPC methods are captured too.
  */
-describe.sequential('session logger — MCP messages written to DB', () => {
+// Skip for now since test run in github CI where we do not have access to DB to query it.
+describe.sequential.skip('session logger — MCP messages written to DB', () => {
   let client: McpClient | undefined;
   let userId: string;
 
@@ -24,7 +25,7 @@ describe.sequential('session logger — MCP messages written to DB', () => {
     // Connect is done here; initialize request fires before our wrapper is set,
     // so it will not appear in session-logger DB rows.
     client = await createMcpClient(baseUrl, '/calories/mcp', token);
-    userId = process.env['E2E_MCP_USER_ID']!;
+    userId = process.env['E2E_MCP_USER_ID']!; // this is also unavailable in github CI
     if (!userId) throw new Error('E2E_MCP_USER_ID missing — run pnpm e2e:setup first');
   });
 
