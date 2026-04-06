@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { SHARED_TRIP_FIXTURE } from '../seeds/travel.seed';
+import { SHARED_TRIP_FIXTURE } from '../constants';
 
 /** Format a Date for a datetime-local input value (local time, no seconds). */
 function toDateTimeLocal(date: Date): string {
