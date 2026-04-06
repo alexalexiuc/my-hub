@@ -42,6 +42,23 @@ services:
       - internal-staging
 
   # ---------------------------------------------------------------------------
+  # E2E Seeds (packages/e2e) — runs once per deploy then exits
+  # ---------------------------------------------------------------------------
+  e2e-seeds:
+    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-e2e-seeds:staging-latest
+    restart: 'no'
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
+      E2E_HUB_USER_EMAIL: ${E2E_HUB_USER_EMAIL:?E2E_HUB_USER_EMAIL is required}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - internal-staging
+
+  # ---------------------------------------------------------------------------
   # Worker — long-running background poller
   # ---------------------------------------------------------------------------
   worker:
