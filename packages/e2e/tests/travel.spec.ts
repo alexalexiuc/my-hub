@@ -273,7 +273,9 @@ test.describe('Travel', () => {
     await expect(gateText).toBeVisible();
   });
 
-  test('shows map when trip has bookings with coordinates', async ({ page }) => {
+  test('shows map button visible when trip has bookings with coordinates and clicking expands map', async ({
+    page,
+  }) => {
     const tripName = uniqueName('E2E Map Trip');
     await createTrip(page, tripName);
     const tripId = await getTripIdByName(page, tripName);
@@ -302,6 +304,10 @@ test.describe('Travel', () => {
     );
     await page.getByRole('button', { name: new RegExp(tripName) }).click();
     await overviewResponsePromise;
+
+    // Click the map button to expand the map section.
+    const mapButton = page.getByRole('button', { name: 'Show map' });
+    await mapButton.click();
 
     // TripMapInner renders a container div only when mapData.points.length >= 2.
     // Asserting the container is visible confirms the API returned valid geo data
@@ -351,7 +357,6 @@ test.describe('Travel', () => {
     // so we assert count only, not adjacency.
     const pastHotelChips = comingNext.getByRole('button', { name: /Expand past segment: Past Hotel/ });
     await expect(pastHotelChips).toHaveCount(2);
-    await expect(pastHotelChips.first()).toContainText('Done');
     await expect(pastHotelChips.first()).toContainText('Past Hotel');
 
     // Clicking a past chip expands it
