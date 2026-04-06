@@ -51,6 +51,27 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # ---- e2e-seeds ----
+      - name: Docker meta — e2e-seeds
+        id: meta-e2e-seeds
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub-e2e-seeds
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=staging-latest
+
+      - name: Build & push — e2e-seeds
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: packages/e2e/Dockerfile
+          push: true
+          tags: ${{ steps.meta-e2e-seeds.outputs.tags }}
+          labels: ${{ steps.meta-e2e-seeds.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       # ---- mcp-server ----
       - name: Docker meta — mcp-server
         id: meta-mcp
@@ -190,23 +211,6 @@ jobs:
         env:
           E2E_MCP_CLIENT_ID: ${{ steps.creds.outputs.client_id }}
           E2E_MCP_CLIENT_SECRET: ${{ steps.creds.outputs.client_secret }}
-          E2E_HUB_USER_EMAIL: ${{ vars.E2E_HUB_USER_EMAIL }}
-          IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
-
-      - name: Seed E2E Hub fixtures on server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          envs: E2E_HUB_USER_EMAIL,IMAGE_OWNER
-          script: |
-            cd /opt/my-hub
-            docker compose --project-name my-hub-staging \
-              -f infra/docker-compose.staging.yml exec -T \
-              -e E2E_HUB_USER_EMAIL=$E2E_HUB_USER_EMAIL \
-              hub node /app/e2e-seed-setup.mjs
-        env:
           E2E_HUB_USER_EMAIL: ${{ vars.E2E_HUB_USER_EMAIL }}
           IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
 
