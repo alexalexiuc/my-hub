@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { dateToString } from '@my-hub/shared/utils';
+import { dateToString, calculateMacroKcal } from '@my-hub/shared/utils';
 import { SectionCard, Button } from '@/components';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
@@ -27,17 +27,45 @@ interface CaloriesWidgetProps {
   minCalories: number | null;
   maxCalories: number | null;
   macros: Macros;
+  macroGoals: Macros | null;
   loading: boolean;
   onMealAdded: () => void;
 }
 
-function MacroBar({ label, value, color }: { label: string; value: number; color: string }) {
+function MacroBar({
+  label,
+  value,
+  goal,
+  sharePct,
+  color,
+}: {
+  label: string;
+  value: number;
+  goal: number | null;
+  sharePct: number;
+  color: string;
+}) {
+  const reached = goal !== null && goal > 0 && value >= goal;
+  const barPct = goal !== null && goal > 0 ? Math.min(100, Math.round((value / goal) * 100)) : sharePct;
   return (
     <div className="flex-1 text-center">
       <p className="text-xs text-zinc-500 mb-1">{label}</p>
-      <p className="text-sm font-semibold">{value}g</p>
+      {goal !== null && goal > 0 ? (
+        <p className="text-sm font-semibold">
+          {reached ? (
+            <span className="text-green-400">✓</span>
+          ) : (
+            <>
+              {value}
+              <span className="text-xs font-normal text-zinc-500">/{goal}g</span>
+            </>
+          )}
+        </p>
+      ) : (
+        <p className="text-sm font-semibold">{value}g</p>
+      )}
       <div className="mt-1 h-1 w-full rounded-full bg-zinc-800 overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max(0, Math.min(value, 100))}%` }} />
+        <div className={`h-full rounded-full ${reached ? 'bg-green-400' : color}`} style={{ width: `${barPct}%` }} />
       </div>
     </div>
   );
@@ -49,6 +77,7 @@ export function CaloriesWidget({
   minCalories,
   maxCalories,
   macros,
+  macroGoals,
   loading,
   onMealAdded,
 }: CaloriesWidgetProps) {
@@ -59,6 +88,9 @@ export function CaloriesWidget({
     kcal: '',
     mealType: 'lunch' as MealType,
   });
+
+  const totalMacroKcal = calculateMacroKcal(macros.protein, macros.carbs, macros.fat);
+  const sharePct = (kcal: number) => (totalMacroKcal > 0 ? Math.round((kcal / totalMacroKcal) * 100) : 0);
 
   const cap = maxCalories ?? todayTarget;
   const isOver = cap !== null && todayKcal > cap;
@@ -236,9 +268,27 @@ export function CaloriesWidget({
 
           {/* Macro bars */}
           <div className="flex gap-4 w-full mt-4 pt-3 border-t border-zinc-800">
-            <MacroBar label="Carbs" value={macros.carbs} color="bg-amber-400" />
-            <MacroBar label="Protein" value={macros.protein} color="bg-sky-400" />
-            <MacroBar label="Fat" value={macros.fat} color="bg-rose-400" />
+            <MacroBar
+              label="Carbs"
+              value={macros.carbs}
+              goal={macroGoals?.carbs ?? null}
+              sharePct={sharePct(macros.carbs * 4)}
+              color="bg-amber-400"
+            />
+            <MacroBar
+              label="Protein"
+              value={macros.protein}
+              goal={macroGoals?.protein ?? null}
+              sharePct={sharePct(macros.protein * 4)}
+              color="bg-sky-400"
+            />
+            <MacroBar
+              label="Fat"
+              value={macros.fat}
+              goal={macroGoals?.fat ?? null}
+              sharePct={sharePct(macros.fat * 9)}
+              color="bg-rose-400"
+            />
           </div>
         </div>
       )}

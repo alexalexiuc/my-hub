@@ -202,7 +202,14 @@ export default function CaloriesDashboardPage() {
       />
 
       {/* Macro split — second card */}
-      <MacroChart protein={todayProtein} carbs={todayCarbs} fat={todayFat} />
+      <MacroChart
+        protein={todayProtein}
+        carbs={todayCarbs}
+        fat={todayFat}
+        goalProtein={profile?.goalProtein ?? null}
+        goalCarbs={profile?.goalCarbs ?? null}
+        goalFat={profile?.goalFat ?? null}
+      />
 
       {/* Weekly chart */}
       <WeeklyChart

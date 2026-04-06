@@ -22,6 +22,9 @@ export const calorieProfiles = pgTable('calorie_profiles', {
   goalWeeklyRateKg: real('goal_weekly_rate_kg'), // kg/week for loss or gain
   goalMinCalories: integer('goal_min_calories'), // explicit daily minimum floor
   goalMaxCalories: integer('goal_max_calories'), // explicit daily maximum ceiling
+  goalProtein: real('goal_protein'), // optional daily protein target in grams
+  goalCarbs: real('goal_carbs'), // optional daily carbs target in grams
+  goalFat: real('goal_fat'), // optional daily fat target in grams
   notes: text('notes'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

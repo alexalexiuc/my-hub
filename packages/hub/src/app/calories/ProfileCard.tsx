@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { CalorieProfile, User } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { calculateCalorieTargets, calculateBMR } from '@my-hub/shared/utils';
+import { calculateCalorieTargets, calculateBMR, calculateMacroKcal } from '@my-hub/shared/utils';
 import { COUNTRIES, TIMEZONES } from '@my-hub/shared/constants';
 import { SectionCard, Field, Button } from '@/components';
 
@@ -37,10 +37,8 @@ const GOAL_LABELS: Record<string, string> = {
 const TIMEZONE_LABELS: Record<string, string> = Object.fromEntries(TIMEZONES.map((t) => [t.value, t.label]));
 const COUNTRY_LABELS: Record<string, string> = Object.fromEntries(COUNTRIES.map((c) => [c.value, c.label]));
 
-export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdated }: Props) {
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
+function buildForm(profile: Props['profile'], userProfile: Props['userProfile']) {
+  return {
     age: profile?.age?.toString() ?? '',
     sex: profile?.sex ?? '',
     heightCm: profile?.heightCm?.toString() ?? '',
@@ -49,10 +47,19 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
     goalWeeklyRateKg: profile?.goalWeeklyRateKg?.toString() ?? '',
     goalMinCalories: profile?.goalMinCalories?.toString() ?? '',
     goalMaxCalories: profile?.goalMaxCalories?.toString() ?? '',
+    goalProtein: profile?.goalProtein?.toString() ?? '',
+    goalCarbs: profile?.goalCarbs?.toString() ?? '',
+    goalFat: profile?.goalFat?.toString() ?? '',
     notes: profile?.notes ?? '',
     country: userProfile?.country ?? '',
     timezone: userProfile?.timezone ?? '',
-  });
+  };
+}
+
+export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdated }: Props) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(() => buildForm(profile, userProfile));
 
   const weightMeasure = latestMeasurements.find((m) => m.typeKey === 'weight');
 
@@ -90,8 +97,11 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
             activityLevel: form.activityLevel || undefined,
             goalType: form.goalType || undefined,
             goalWeeklyRateKg: form.goalWeeklyRateKg ? Number(form.goalWeeklyRateKg) : undefined,
-            goalMinCalories: form.goalMinCalories ? Math.round(Number(form.goalMinCalories)) : undefined,
-            goalMaxCalories: form.goalMaxCalories ? Math.round(Number(form.goalMaxCalories)) : undefined,
+            goalMinCalories: form.goalMinCalories ? Math.round(Number(form.goalMinCalories)) : null,
+            goalMaxCalories: form.goalMaxCalories ? Math.round(Number(form.goalMaxCalories)) : null,
+            goalProtein: form.goalProtein ? Number(form.goalProtein) : null,
+            goalCarbs: form.goalCarbs ? Number(form.goalCarbs) : null,
+            goalFat: form.goalFat ? Number(form.goalFat) : null,
             notes: form.notes || undefined,
           }),
         }),
@@ -112,23 +122,25 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
   }
 
   function openEdit() {
-    setForm({
-      age: profile?.age?.toString() ?? '',
-      sex: profile?.sex ?? '',
-      heightCm: profile?.heightCm?.toString() ?? '',
-      activityLevel: profile?.activityLevel ?? '',
-      goalType: profile?.goalType ?? '',
-      goalWeeklyRateKg: profile?.goalWeeklyRateKg?.toString() ?? '',
-      goalMinCalories: profile?.goalMinCalories?.toString() ?? '',
-      goalMaxCalories: profile?.goalMaxCalories?.toString() ?? '',
-      notes: profile?.notes ?? '',
-      country: userProfile?.country ?? '',
-      timezone: userProfile?.timezone ?? '',
-    });
+    setForm(buildForm(profile, userProfile));
     setEditing(true);
   }
 
   const showRate = form.goalType === 'weight_loss' || form.goalType === 'weight_gain';
+
+  const macroWarning = (() => {
+    const p = form.goalProtein ? Number(form.goalProtein) : 0;
+    const c = form.goalCarbs ? Number(form.goalCarbs) : 0;
+    const f = form.goalFat ? Number(form.goalFat) : 0;
+    if (!form.goalProtein && !form.goalCarbs && !form.goalFat) return null;
+    if (!form.goalMaxCalories) return null;
+    const macroKcal = calculateMacroKcal(p, c, f);
+    const maxCal = Math.round(Number(form.goalMaxCalories));
+    if (macroKcal > maxCal) {
+      return `Macro totals ${macroKcal} kcal which exceeds the max calorie limit of ${maxCal} kcal.`;
+    }
+    return null;
+  })();
 
   if (!editing) {
     // Compact view — just key stats + edit button
@@ -298,7 +310,41 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
               onChange={(e) => setForm({ ...form, goalMaxCalories: e.target.value })}
             />
           </Field>
+          <Field label="Protein goal (g/day)">
+            <input
+              className="input"
+              type="number"
+              step="1"
+              min="0"
+              placeholder="Optional"
+              value={form.goalProtein}
+              onChange={(e) => setForm({ ...form, goalProtein: e.target.value })}
+            />
+          </Field>
+          <Field label="Carbs goal (g/day)">
+            <input
+              className="input"
+              type="number"
+              step="1"
+              min="0"
+              placeholder="Optional"
+              value={form.goalCarbs}
+              onChange={(e) => setForm({ ...form, goalCarbs: e.target.value })}
+            />
+          </Field>
+          <Field label="Fat goal (g/day)">
+            <input
+              className="input"
+              type="number"
+              step="1"
+              min="0"
+              placeholder="Optional"
+              value={form.goalFat}
+              onChange={(e) => setForm({ ...form, goalFat: e.target.value })}
+            />
+          </Field>
         </div>
+        {macroWarning && <p className="text-xs text-amber-400 px-1">{macroWarning}</p>}
 
         <Field label="Notes" className="col-span-2">
           <textarea
@@ -343,7 +389,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={save} loading={saving}>
+          <Button onClick={save} loading={saving} disabled={!!macroWarning}>
             {saving ? 'Saving...' : 'Save'}
           </Button>
           <Button variant="secondary" onClick={() => setEditing(false)}>

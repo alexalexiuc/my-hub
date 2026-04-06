@@ -107,3 +107,11 @@ export function calculateCalorieTargets(params: CalorieTargetParams): CalorieTar
 
   return { tdee, goalCalories, minCalories, maxCalories };
 }
+
+/**
+ * Converts macro grams to total kilocalories.
+ * Protein: 4 kcal/g, Carbs: 4 kcal/g, Fat: 9 kcal/g.
+ */
+export function calculateMacroKcal(proteinG: number, carbsG: number, fatG: number): number {
+  return Math.round(proteinG * 4 + carbsG * 4 + fatG * 9);
+}
