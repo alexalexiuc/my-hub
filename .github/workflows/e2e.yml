@@ -1,22 +1,8 @@
 name: E2E Tests
 
 on:
-  # Run automatically after CI passes on a PR targeting main
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-
-  # Allow manual runs targeting any environment
-  workflow_dispatch:
-    inputs:
-      base_url:
-        description: 'MCP server base URL (leave blank to use https://staging.mcp.alexiuc.dev)'
-        required: false
-        type: string
-      hub_base_url:
-        description: 'Hub base URL (leave blank to use https://staging.hub.alexiuc.dev)'
-        required: false
-        type: string
+  pull_request:
+    branches: [main]
 
 env:
   REGISTRY: ghcr.io
@@ -26,12 +12,6 @@ jobs:
   build-and-push:
     name: Build & Push staging images to GHCR
     runs-on: ubuntu-latest
-    # For workflow_run trigger: only run when CI passed on a PR targeting main
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'pull_request' &&
-       github.event.workflow_run.pull_requests[0].base.ref == 'main')
     permissions:
       contents: read
       packages: write
@@ -39,8 +19,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -144,8 +122,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -174,16 +150,6 @@ jobs:
           echo "E2E_MCP_CLIENT_ID=$CLIENT_ID" > packages/mcp-server/e2e/.env.e2e
           echo "E2E_MCP_CLIENT_SECRET=$CLIENT_SECRET" >> packages/mcp-server/e2e/.env.e2e
 
-      - name: Resolve deployment branch
-        id: branch
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-          else
-            BRANCH="${{ github.event.workflow_run.head_branch }}"
-            echo "name=${BRANCH:-main}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Deploy staging stack
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -204,7 +170,7 @@ jobs:
               -f infra/docker-compose.staging.yml up -d --wait
         env:
           IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
-          DEPLOY_BRANCH: ${{ steps.branch.outputs.name }}
+          DEPLOY_BRANCH: ${{ github.head_ref }}
 
       - name: Provision E2E user on server
         uses: appleboy/ssh-action@v1.0.3
@@ -247,10 +213,10 @@ jobs:
       - name: Run E2E tests
         run: pnpm test:e2e
         env:
-          E2E_MCP_BASE_URL: ${{ inputs.base_url || 'https://staging.mcp.alexiuc.dev' }}
+          E2E_MCP_BASE_URL: https://staging.mcp.alexiuc.dev
           E2E_MCP_USER_EMAIL: ${{ vars.E2E_MCP_USER_EMAIL }}
 
-          E2E_HUB_BASE_URL: ${{ inputs.hub_base_url || 'https://staging.hub.alexiuc.dev' }}
+          E2E_HUB_BASE_URL: https://staging.hub.alexiuc.dev
           E2E_HUB_USER_EMAIL: ${{ vars.E2E_HUB_USER_EMAIL }}
           E2E_HUB_USER_PASSWORD: ${{ secrets.E2E_HUB_USER_PASSWORD }}
 
