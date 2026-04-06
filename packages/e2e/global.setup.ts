@@ -39,13 +39,8 @@ setup('write seeds, create test user and authenticate', async ({ request, page }
 
   // Seed Hub E2E fixtures when running locally (CI seeds via docker compose exec hub)
   if (process.env['IS_LOCAL'] === 'true') {
-    execSync('pnpm exec tsx ./scripts/setup-e2e-db.ts', {
-      cwd: __dirname,
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        E2E_HUB_USER_EMAIL: TEST_USER.email,
-      },
-    });
+    const seedEnv = { ...process.env, E2E_HUB_USER_EMAIL: TEST_USER.email };
+    execSync('npm run build:seed', { cwd: __dirname, stdio: 'inherit', env: seedEnv });
+    execSync('node ./dist/setup-e2e-db.mjs', { cwd: __dirname, stdio: 'inherit', env: seedEnv });
   }
 });

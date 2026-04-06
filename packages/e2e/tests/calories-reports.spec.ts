@@ -31,6 +31,9 @@ async function addMealForToday(page: Parameters<(typeof test)['beforeEach']>[0][
   await page.getByRole('spinbutton', { name: /calories/i }).fill('550');
   await page.getByRole('button', { name: /^add$/i }).click();
 
+  // expand the meal details to ensure it's fully saved and rendered (the report relies on fetching the meal details, not just the list)
+  await page.getByRole('button', { name: /Show meals/i }).click();
+
   await expect(page.getByText('Report E2E Meal')).toBeVisible({ timeout: 5_000 });
 }
 
@@ -63,7 +66,7 @@ test.describe('Calories Reports', () => {
     await expect(page.getByRole('heading', { name: 'Weekly Report', level: 1 })).toBeVisible();
     await expect(page.locator('iframe')).toBeVisible({ timeout: 10_000 });
 
-    await page.getByRole('link', { name: 'Monthly Reports' }).click();
+    await page.getByLabel('Monthly Reports').click();
     await expect(page).toHaveURL(/\/calories\/reports\/monthly/);
   });
 

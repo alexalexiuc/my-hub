@@ -77,7 +77,6 @@ export async function seedSharedTripFixture(viewerEmail: string): Promise<Shared
         userId: owner.id,
         name: tripName,
         destination: 'Barcelona',
-        status: 'planned',
         notes: 'Seeded shared trip for e2e',
       })
       .returning();

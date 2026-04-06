@@ -41,6 +41,8 @@ test.describe('Calories Dashboard', () => {
 
     await page.getByRole('button', { name: /^add$/i }).click();
 
+    await page.getByRole('button', { name: /Show meals/i }).click();
+
     await expect(page.getByText('Test breakfast')).toBeVisible({ timeout: 5_000 });
 
     // Delete: hover to reveal the ✕ button, then click it
@@ -72,6 +74,8 @@ test.describe('Calories Dashboard', () => {
     await page.getByRole('textbox', { name: /description/i }).fill(originalMeal);
     await page.getByRole('spinbutton', { name: /calories/i }).fill('400');
     await page.getByRole('button', { name: /^add$/i }).click();
+
+    await page.getByRole('button', { name: /Show meals/i }).click();
 
     await expect(page.getByText(originalMeal)).toBeVisible({ timeout: 5_000 });
 
