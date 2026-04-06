@@ -18,3 +18,4 @@ export * from './DocumentIcon';
 export * from './ClipboardIcon';
 export * from './PinIcon';
 export * from './PhoneIcon';
+export * from './GoogleIcon';
