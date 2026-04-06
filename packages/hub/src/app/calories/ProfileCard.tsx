@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { CalorieProfile, User } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { calculateCalorieTargets, calculateBMR, calculateMacroKcal } from '@my-hub/shared/utils';
+import { calculateCalorieTargets, calculateBMR } from '@my-hub/shared/utils';
 import { COUNTRIES, TIMEZONES } from '@my-hub/shared/constants';
 import { SectionCard, Field, Button } from '@/components';
 
@@ -60,6 +60,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(() => buildForm(profile, userProfile));
+  const [macroMode, setMacroMode] = useState<'g' | '%'>('g');
 
   const weightMeasure = latestMeasurements.find((m) => m.typeKey === 'weight');
 
@@ -99,9 +100,13 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
             goalWeeklyRateKg: form.goalWeeklyRateKg ? Number(form.goalWeeklyRateKg) : undefined,
             goalMinCalories: form.goalMinCalories ? Math.round(Number(form.goalMinCalories)) : null,
             goalMaxCalories: form.goalMaxCalories ? Math.round(Number(form.goalMaxCalories)) : null,
-            goalProtein: form.goalProtein ? Number(form.goalProtein) : null,
-            goalCarbs: form.goalCarbs ? Number(form.goalCarbs) : null,
-            goalFat: form.goalFat ? Number(form.goalFat) : null,
+            goalProtein: form.goalProtein
+              ? Number(macroMode === '%' ? pctToGrams(form.goalProtein, 4) : form.goalProtein)
+              : null,
+            goalCarbs: form.goalCarbs
+              ? Number(macroMode === '%' ? pctToGrams(form.goalCarbs, 4) : form.goalCarbs)
+              : null,
+            goalFat: form.goalFat ? Number(macroMode === '%' ? pctToGrams(form.goalFat, 9) : form.goalFat) : null,
             notes: form.notes || undefined,
           }),
         }),
@@ -123,21 +128,55 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
 
   function openEdit() {
     setForm(buildForm(profile, userProfile));
+    setMacroMode('g');
     setEditing(true);
   }
 
   const showRate = form.goalType === 'weight_loss' || form.goalType === 'weight_gain';
 
+  const maxCalNum = form.goalMaxCalories ? Math.round(Number(form.goalMaxCalories)) : null;
+
+  function pctToGrams(pct: string, kcalPerG: number): string {
+    if (!pct || !maxCalNum) return '';
+    return String(Math.round(((Number(pct) / 100) * maxCalNum) / kcalPerG));
+  }
+
+  function gramsToPct(g: string, kcalPerG: number): string {
+    if (!g || !maxCalNum) return '';
+    return String(Math.round(((Number(g) * kcalPerG) / maxCalNum) * 100));
+  }
+
+  function switchMacroMode(next: 'g' | '%') {
+    if (next === macroMode) return;
+    if (next === '%') {
+      setForm({
+        ...form,
+        goalProtein: gramsToPct(form.goalProtein, 4),
+        goalCarbs: gramsToPct(form.goalCarbs, 4),
+        goalFat: gramsToPct(form.goalFat, 9),
+      });
+    } else {
+      setForm({
+        ...form,
+        goalProtein: pctToGrams(form.goalProtein, 4),
+        goalCarbs: pctToGrams(form.goalCarbs, 4),
+        goalFat: pctToGrams(form.goalFat, 9),
+      });
+    }
+    setMacroMode(next);
+  }
+
   const macroWarning = (() => {
-    const p = form.goalProtein ? Number(form.goalProtein) : 0;
-    const c = form.goalCarbs ? Number(form.goalCarbs) : 0;
-    const f = form.goalFat ? Number(form.goalFat) : 0;
-    if (!form.goalProtein && !form.goalCarbs && !form.goalFat) return null;
-    if (!form.goalMaxCalories) return null;
-    const macroKcal = calculateMacroKcal(p, c, f);
-    const maxCal = Math.round(Number(form.goalMaxCalories));
-    if (macroKcal > maxCal) {
-      return `Macro totals ${macroKcal} kcal which exceeds the max calorie limit of ${maxCal} kcal.`;
+    if (macroMode === '%') {
+      const total = (Number(form.goalProtein) || 0) + (Number(form.goalCarbs) || 0) + (Number(form.goalFat) || 0);
+      return total > 100 ? true : null;
+    }
+    if (macroMode === 'g' && maxCalNum) {
+      const usedPct =
+        (Number(gramsToPct(form.goalProtein, 4)) || 0) +
+        (Number(gramsToPct(form.goalCarbs, 4)) || 0) +
+        (Number(gramsToPct(form.goalFat, 9)) || 0);
+      return usedPct > 100 ? true : null;
     }
     return null;
   })();
@@ -307,44 +346,130 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
               min="0"
               placeholder="Optional ceiling"
               value={form.goalMaxCalories}
-              onChange={(e) => setForm({ ...form, goalMaxCalories: e.target.value })}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (!val && macroMode === '%') {
+                  setMacroMode('g');
+                  setForm({ ...form, goalMaxCalories: val, goalProtein: '', goalCarbs: '', goalFat: '' });
+                } else {
+                  setForm({ ...form, goalMaxCalories: val });
+                }
+              }}
             />
           </Field>
-          <Field label="Protein goal (g/day)">
+          <div className="col-span-2 flex items-center justify-between pt-1">
+            <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Macros</span>
+            <div className="flex rounded-md border border-zinc-700 text-xs overflow-hidden">
+              <button
+                type="button"
+                onClick={() => switchMacroMode('g')}
+                className={`px-2.5 py-1 transition-colors ${macroMode === 'g' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+              >
+                g
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMacroMode('%')}
+                disabled={!maxCalNum}
+                title={!maxCalNum ? 'Set a max calories/day to use % mode' : undefined}
+                className={`px-2.5 py-1 transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${macroMode === '%' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+              >
+                %
+              </button>
+            </div>
+          </div>
+          {(() => {
+            if (macroMode === '%') {
+              const used =
+                (Number(form.goalProtein) || 0) + (Number(form.goalCarbs) || 0) + (Number(form.goalFat) || 0);
+              const remaining = 100 - used;
+              return (
+                <p className={`col-span-2 text-xs px-1 ${used > 100 ? 'text-amber-400' : 'text-zinc-500'}`}>
+                  Used: {used}% · Remaining: {remaining}%
+                </p>
+              );
+            }
+            if (macroMode === 'g' && maxCalNum) {
+              const usedPct =
+                (Number(gramsToPct(form.goalProtein, 4)) || 0) +
+                (Number(gramsToPct(form.goalCarbs, 4)) || 0) +
+                (Number(gramsToPct(form.goalFat, 9)) || 0);
+              const remainingPct = 100 - usedPct;
+              return (
+                <p className={`col-span-2 text-xs px-1 ${usedPct > 100 ? 'text-amber-400' : 'text-zinc-500'}`}>
+                  Used: {usedPct}% · Remaining: {remainingPct}%
+                </p>
+              );
+            }
+            return null;
+          })()}
+          <Field label={macroMode === 'g' ? 'Protein (g/day)' : 'Protein (%)'}>
             <input
               className="input"
               type="number"
               step="1"
               min="0"
+              max={macroMode === '%' ? 100 : undefined}
               placeholder="Optional"
               value={form.goalProtein}
               onChange={(e) => setForm({ ...form, goalProtein: e.target.value })}
             />
+            {macroMode === '%' && form.goalProtein && maxCalNum && (
+              <p className="text-xs text-zinc-500 mt-0.5">
+                ≈ {pctToGrams(form.goalProtein, 4)}g · {Math.round(Number(pctToGrams(form.goalProtein, 4)) * 4)} kcal
+              </p>
+            )}
+            {macroMode === 'g' && form.goalProtein && maxCalNum && (
+              <p className="text-xs text-zinc-500 mt-0.5">
+                ≈ {gramsToPct(form.goalProtein, 4)}% · {Math.round(Number(form.goalProtein) * 4)} kcal
+              </p>
+            )}
           </Field>
-          <Field label="Carbs goal (g/day)">
+          <Field label={macroMode === 'g' ? 'Carbs (g/day)' : 'Carbs (%)'}>
             <input
               className="input"
               type="number"
               step="1"
               min="0"
+              max={macroMode === '%' ? 100 : undefined}
               placeholder="Optional"
               value={form.goalCarbs}
               onChange={(e) => setForm({ ...form, goalCarbs: e.target.value })}
             />
+            {macroMode === '%' && form.goalCarbs && maxCalNum && (
+              <p className="text-xs text-zinc-500 mt-0.5">
+                ≈ {pctToGrams(form.goalCarbs, 4)}g · {Math.round(Number(pctToGrams(form.goalCarbs, 4)) * 4)} kcal
+              </p>
+            )}
+            {macroMode === 'g' && form.goalCarbs && maxCalNum && (
+              <p className="text-xs text-zinc-500 mt-0.5">
+                ≈ {gramsToPct(form.goalCarbs, 4)}% · {Math.round(Number(form.goalCarbs) * 4)} kcal
+              </p>
+            )}
           </Field>
-          <Field label="Fat goal (g/day)">
+          <Field label={macroMode === 'g' ? 'Fat (g/day)' : 'Fat (%)'}>
             <input
               className="input"
               type="number"
               step="1"
               min="0"
+              max={macroMode === '%' ? 100 : undefined}
               placeholder="Optional"
               value={form.goalFat}
               onChange={(e) => setForm({ ...form, goalFat: e.target.value })}
             />
+            {macroMode === '%' && form.goalFat && maxCalNum && (
+              <p className="text-xs text-zinc-500 mt-0.5">
+                ≈ {pctToGrams(form.goalFat, 9)}g · {Math.round(Number(pctToGrams(form.goalFat, 9)) * 9)} kcal
+              </p>
+            )}
+            {macroMode === 'g' && form.goalFat && maxCalNum && (
+              <p className="text-xs text-zinc-500 mt-0.5">
+                ≈ {gramsToPct(form.goalFat, 9)}% · {Math.round(Number(form.goalFat) * 9)} kcal
+              </p>
+            )}
           </Field>
         </div>
-        {macroWarning && <p className="text-xs text-amber-400 px-1">{macroWarning}</p>}
 
         <Field label="Notes" className="col-span-2">
           <textarea
