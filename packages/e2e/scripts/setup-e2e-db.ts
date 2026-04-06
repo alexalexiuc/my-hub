@@ -1,4 +1,3 @@
-import 'dotenv-mono/load';
 import { pathToFileURL } from 'url';
 import { seedAuditLogFixtures } from '../seeds/audit-log.seed';
 import { seedSharedTripFixture } from '../seeds/travel.seed';
