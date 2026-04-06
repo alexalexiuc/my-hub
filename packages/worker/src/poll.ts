@@ -24,7 +24,7 @@ export const tasks: Task[] = [
   },
   {
     name: 'log-cleanup',
-    cron: '0 0 1 1 * *', // 1st of every month at 1:00 AM
+    cron: '0 0 1 1 * *', // 1st of every month at 1:00
     fn: cleanupOldLogs,
   },
   {

@@ -18,7 +18,7 @@ type BackoffRetryOptions<T> = {
  * @returns A promise that resolves with the result of the function or rejects after exhausting retries.
  */
 export async function withBackoffRetry<T>(fn: () => Promise<T>, options: BackoffRetryOptions<T> = {}): Promise<T> {
-  const { retries = 5, delay = 1000, shouldRetry = (_, error) => !!error } = options;
+  const { retries = 5, delay = 500, shouldRetry = (_, error) => !!error } = options;
   let attempt = 0;
   while (attempt < retries) {
     try {

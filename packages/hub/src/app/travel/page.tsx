@@ -125,7 +125,7 @@ export default function TravelPage() {
 
               <SectionCard title="Calendar" className="bg-cyan-950/20 border-cyan-800/50">
                 {overview ? (
-                  <BookingsCalendar bookings={overview.bookings} tripColor={overview.trip.color} />
+                  <BookingsCalendar bookings={overview.bookings} tripColor={overview.trip.color} trip={overview.trip} />
                 ) : (
                   <p className="text-sm text-zinc-500">Select a trip to view booking dates on the calendar.</p>
                 )}

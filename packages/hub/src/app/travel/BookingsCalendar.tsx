@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import type { TripBooking } from '@my-hub/shared/types';
+import { useEffect, useMemo, useState } from 'react';
+import type { Trip, TripBooking } from '@my-hub/shared/types';
 
 interface BookingsCalendarProps {
+  trip: Trip;
   bookings: TripBooking[];
   tripColor?: string | null;
 }
@@ -72,11 +73,24 @@ function bookingDotClass(bookingType: string): string {
   }
 }
 
-export function BookingsCalendar({ bookings, tripColor }: BookingsCalendarProps) {
-  const [monthCursor, setMonthCursor] = useState(() => {
-    const withDate = bookings.map((booking) => toDate(booking.startAt)).find(Boolean);
-    return withDate ?? new Date();
-  });
+function getMinBookingDate(bookings: TripBooking[], trip: Trip): Date {
+  const dates = bookings
+    .map((b) => toDate(b.startAt))
+    .concat(toDate(trip.startAt || Date.now()))
+    .filter((d): d is Date => d !== null);
+
+  if (dates.length === 0) return new Date();
+  return new Date(Math.min(...dates.map((d) => d.getTime())));
+}
+
+export function BookingsCalendar({ bookings, tripColor, trip }: BookingsCalendarProps) {
+  const [monthCursor, setMonthCursor] = useState(() => getMonthStart(getMinBookingDate(bookings, trip)));
+
+  useEffect(() => {
+    const next = getMonthStart(getMinBookingDate(bookings, trip));
+    if (isSameDay(monthCursor, next)) return;
+    setMonthCursor(next);
+  }, [bookings, trip.startAt]);
 
   const { days, monthLabel } = useMemo(() => {
     const monthStart = getMonthStart(monthCursor);
