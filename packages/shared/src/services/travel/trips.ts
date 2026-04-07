@@ -67,7 +67,7 @@ export async function getAccessibleTrips(userId: string): Promise<AccessibleTrip
       ownerName: users.name,
       ownerEmail: users.email,
       accessRole: sql<'owner' | 'viewer'>`case when ${trips.userId} = ${userId} then 'owner' else 'viewer' end`,
-      permission: sql<TripSharePermission>`coalesce(${tripShares.permission}, '${TripSharePermissions.View}')`,
+      permission: sql<TripSharePermission>`coalesce(${tripShares.permission}, ${TripSharePermissions.View})`,
     })
     .from(trips)
     .leftJoin(

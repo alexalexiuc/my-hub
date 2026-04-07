@@ -93,7 +93,6 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
   if (dailyDelta === null) return null;
 
   const orderedWeights = [...weightHistory].sort((a, b) => b.date.localeCompare(a.date));
-  console.log('Ordered weights:', orderedWeights);
   const weekStart = days[0]!.date;
   const displayDays = days;
   const baselineWeight = getBaselineWeightForWeek(orderedWeights, weekStart);
@@ -114,8 +113,6 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
       projected,
     };
   });
-
-  console.log('Chart data:', chartData);
 
   const lastPastIndex = displayDays.reduce((idx, d, i) => (d.date <= today ? i : idx), -1);
   const lastPastPoint = lastPastIndex >= 0 ? chartData[lastPastIndex] : null;
