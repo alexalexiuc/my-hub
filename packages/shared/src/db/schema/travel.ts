@@ -12,65 +12,16 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+import {
+  TripDocumentTypes,
+  TripPlacePriorities,
+  TripSharePermissions,
+  type TripBookingType,
+  type TripDocumentType,
+  type TripPlacePriority,
+  type TripSharePermission,
+} from '../../constants/travel';
 import { users } from './users';
-
-export const TripStatuses = {
-  Planned: 'planned',
-  Active: 'active',
-  Completed: 'completed',
-  Cancelled: 'cancelled',
-} as const;
-export type TripStatus = (typeof TripStatuses)[keyof typeof TripStatuses];
-export const tripStatusValues: TripStatus[] = Object.values(TripStatuses);
-
-// Derived from dates + cancelledAt — not stored in DB
-export function deriveTripStatus(
-  cancelledAt: Date | null,
-  startAt: Date | null,
-  endAt: Date | null,
-  now = new Date(),
-): TripStatus {
-  if (cancelledAt != null) return 'cancelled';
-  if (!startAt || startAt > now) return 'planned';
-  if (!endAt || endAt >= now) return 'active';
-  return 'completed';
-}
-
-export const TripBookingTypes = {
-  Flight: 'flight',
-  Accommodation: 'accommodation',
-  RentalCar: 'rental_car',
-  Train: 'train',
-  Bus: 'bus',
-  Ferry: 'ferry',
-  Taxi: 'taxi',
-  Restaurant: 'restaurant',
-  Tour: 'tour',
-  Activity: 'activity',
-  Ticket: 'ticket',
-  Other: 'other',
-} as const;
-export type TripBookingType = (typeof TripBookingTypes)[keyof typeof TripBookingTypes];
-export const tripBookingTypeValues = Object.values(TripBookingTypes) as TripBookingType[];
-
-export const TripPlacePriorities = {
-  Low: 'low',
-  Medium: 'medium',
-  High: 'high',
-} as const;
-export type TripPlacePriority = (typeof TripPlacePriorities)[keyof typeof TripPlacePriorities];
-export const tripPlacePriorityValues = Object.values(TripPlacePriorities) as TripPlacePriority[];
-
-export const TripDocumentTypes = {
-  Passport: 'passport',
-  Visa: 'visa',
-  BoardingPass: 'boarding_pass',
-  Voucher: 'voucher',
-  Ticket: 'ticket',
-  Other: 'other',
-} as const;
-export type TripDocumentType = (typeof TripDocumentTypes)[keyof typeof TripDocumentTypes];
-export const tripDocumentTypeValues = Object.values(TripDocumentTypes) as TripDocumentType[];
 
 export const flightData = pgTable(
   'flight_data',
@@ -189,7 +140,7 @@ export const tripPlaces = pgTable(
     location: text('location'),
     notes: text('notes'),
     visited: boolean('visited').notNull().default(false),
-    priority: text('priority').$type<TripPlacePriority>().notNull().default('medium'),
+    priority: text('priority').$type<TripPlacePriority>().notNull().default(TripPlacePriorities.Medium),
     lat: real('lat'),
     lng: real('lng'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -256,7 +207,7 @@ export const tripDocuments = pgTable(
       .notNull()
       .references(() => trips.id, { onDelete: 'cascade' }),
     bookingId: integer('booking_id').references(() => tripBookings.id, { onDelete: 'set null' }),
-    type: text('type').$type<TripDocumentType>().notNull().default('other'),
+    type: text('type').$type<TripDocumentType>().notNull().default(TripDocumentTypes.Other),
     title: text('title').notNull(),
     notes: text('notes'),
     sourceUrl: text('source_url'),
@@ -298,12 +249,6 @@ export const tripDays = pgTable(
   }),
 );
 
-export const TripSharePermissions = {
-  View: 'view',
-} as const;
-export type TripSharePermission = (typeof TripSharePermissions)[keyof typeof TripSharePermissions];
-export const tripSharePermissionValues = Object.values(TripSharePermissions) as TripSharePermission[];
-
 export const tripShares = pgTable(
   'trip_shares',
   {
@@ -317,7 +262,7 @@ export const tripShares = pgTable(
     sharedWithUserId: uuid('shared_with_user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    permission: text('permission').$type<TripSharePermission>().notNull().default('view'),
+    permission: text('permission').$type<TripSharePermission>().notNull().default(TripSharePermissions.View),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },

@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import { addTripDocument, deleteTripDocument } from '@my-hub/shared/services';
 import type { TripDocumentType } from '@my-hub/shared/types';
-
-const documentTypes: TripDocumentType[] = ['passport', 'visa', 'boarding_pass', 'voucher', 'ticket', 'other'];
+import { TripDocumentTypes, tripDocumentTypeValues } from '@my-hub/shared/constants';
 
 export const POST = withAuth(async ({ req, user }) => {
   let body: Record<string, unknown>;
@@ -28,9 +27,9 @@ export const POST = withAuth(async ({ req, user }) => {
   if (!title) return NextResponse.json({ error: 'title is required' }, { status: 400 });
 
   const type =
-    typeof body.type === 'string' && documentTypes.includes(body.type as TripDocumentType)
+    typeof body.type === 'string' && tripDocumentTypeValues.includes(body.type as TripDocumentType)
       ? (body.type as TripDocumentType)
-      : 'other';
+      : TripDocumentTypes.Other;
 
   let document;
   try {

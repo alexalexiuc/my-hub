@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { apiaryYards } from '../../db/schema/apiary';
-import type { ApiaryYard } from '../../types/index';
+import type { ApiaryYard } from '../../types';
 
 export type YardInsert = Omit<typeof apiaryYards.$inferInsert, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
 export type YardUpdate = Partial<Omit<typeof apiaryYards.$inferInsert, 'id' | 'userId' | 'createdAt'>>;

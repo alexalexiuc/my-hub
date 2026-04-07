@@ -3,6 +3,7 @@ import type { MealEntry } from '../types';
 import { rowToProfile, profileToTargets } from './profile';
 import { rowToMealEntry } from './meals';
 import { sumMeals } from './summary';
+import { GoalTypes, MeasurementTypes } from '@my-hub/shared/constants';
 
 export interface DailySummary {
   date: string;
@@ -35,7 +36,7 @@ export async function buildDailySummary(userId: string, date: string): Promise<D
   ]);
 
   const profile = profileRow ? rowToProfile(profileRow) : {};
-  const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
+  const weightM = latestMeasurements.find((m) => m.typeKey === MeasurementTypes.Weight);
   const targets = profileToTargets(profile, weightM?.value);
 
   const meals = dayRows.map(rowToMealEntry);
@@ -48,7 +49,7 @@ export async function buildDailySummary(userId: string, date: string): Promise<D
   const goalType = 'goal_type' in profile ? profile.goal_type : null;
   let goalMet: boolean | null = null;
   if (maxCal !== null) {
-    goalMet = goalType === 'weight_gain' ? totals.calories >= (goalCal ?? maxCal) : totals.calories <= maxCal;
+    goalMet = goalType === GoalTypes.WeightGain ? totals.calories >= (goalCal ?? maxCal) : totals.calories <= maxCal;
   }
 
   return {

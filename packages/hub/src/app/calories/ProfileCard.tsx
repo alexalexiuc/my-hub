@@ -4,7 +4,15 @@ import { useState } from 'react';
 import type { CalorieProfile, User } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { calculateCalorieTargets, calculateBMR } from '@my-hub/shared/utils';
-import { COUNTRIES, TIMEZONES } from '@my-hub/shared/constants';
+import {
+  ActivityLevel,
+  ActivityLevels,
+  COUNTRIES,
+  GoalType,
+  GoalTypes,
+  Sexes,
+  TIMEZONES,
+} from '@my-hub/shared/constants';
 import { SectionCard, Field, Button } from '@/components';
 
 interface Props {
@@ -14,12 +22,16 @@ interface Props {
   onUpdated: () => void;
 }
 
-const ACTIVITY_OPTIONS: { value: string; label: string; description: string }[] = [
-  { value: 'sedentary', label: 'Sedentary', description: 'Little or no exercise, desk job' },
-  { value: 'lightly_active', label: 'Lightly active', description: 'Light exercise 1–3 days/week' },
-  { value: 'moderately_active', label: 'Moderately active', description: 'Moderate exercise 3–5 days/week' },
-  { value: 'very_active', label: 'Very active', description: 'Hard exercise 6–7 days/week' },
-  { value: 'extra_active', label: 'Extra active', description: 'Very hard exercise, physical job' },
+const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; description: string }[] = [
+  { value: ActivityLevels.Sedentary, label: 'Sedentary', description: 'Little or no exercise, desk job' },
+  { value: ActivityLevels.LightlyActive, label: 'Lightly active', description: 'Light exercise 1-3 days/week' },
+  {
+    value: ActivityLevels.ModeratelyActive,
+    label: 'Moderately active',
+    description: 'Moderate exercise 3-5 days/week',
+  },
+  { value: ActivityLevels.VeryActive, label: 'Very active', description: 'Hard exercise 6-7 days/week' },
+  { value: ActivityLevels.ExtraActive, label: 'Extra active', description: 'Very hard exercise, physical job' },
 ];
 
 const ACTIVITY_LABELS: Record<string, string> = Object.fromEntries(ACTIVITY_OPTIONS.map((o) => [o.value, o.label]));
@@ -28,10 +40,10 @@ const ACTIVITY_DESCRIPTIONS: Record<string, string> = Object.fromEntries(
   ACTIVITY_OPTIONS.map((o) => [o.value, o.description]),
 );
 
-const GOAL_LABELS: Record<string, string> = {
-  weight_loss: 'Lose weight',
-  maintain: 'Maintain',
-  weight_gain: 'Gain weight',
+const GOAL_LABELS: Record<GoalType, string> = {
+  [GoalTypes.WeightLoss]: 'Lose weight',
+  [GoalTypes.Maintain]: 'Maintain',
+  [GoalTypes.WeightGain]: 'Gain weight',
 };
 
 const TIMEZONE_LABELS: Record<string, string> = Object.fromEntries(TIMEZONES.map((t) => [t.value, t.label]));
@@ -132,7 +144,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
     setEditing(true);
   }
 
-  const showRate = form.goalType === 'weight_loss' || form.goalType === 'weight_gain';
+  const showRate = form.goalType === GoalTypes.WeightLoss || form.goalType === GoalTypes.WeightGain;
 
   const maxCalNum = form.goalMaxCalories ? Math.round(Number(form.goalMaxCalories)) : null;
 
@@ -204,7 +216,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
             {/* Inline stats row */}
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
               <Stat label="Age" value={`${profile!.age}`} />
-              <Stat label="Sex" value={profile!.sex === 'male' ? 'Male' : 'Female'} />
+              <Stat label="Sex" value={profile!.sex === Sexes.Male ? 'Male' : 'Female'} />
               <Stat label="Height" value={`${profile!.heightCm} cm`} />
               {weightMeasure && <Stat label="Weight" value={`${weightMeasure.value} kg`} />}
               {profile!.activityLevel && (
@@ -266,8 +278,8 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
           <Field label="Sex">
             <select className="input" value={form.sex} onChange={(e) => setForm({ ...form, sex: e.target.value })}>
               <option value="">—</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
+              <option value={Sexes.Male}>Male</option>
+              <option value={Sexes.Female}>Female</option>
             </select>
           </Field>
           <Field label="Height (cm)">
@@ -308,9 +320,9 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
               onChange={(e) => setForm({ ...form, goalType: e.target.value, goalWeeklyRateKg: '' })}
             >
               <option value="">— no goal —</option>
-              <option value="weight_loss">Lose weight</option>
-              <option value="maintain">Maintain</option>
-              <option value="weight_gain">Gain weight</option>
+              <option value={GoalTypes.WeightLoss}>Lose weight</option>
+              <option value={GoalTypes.Maintain}>Maintain</option>
+              <option value={GoalTypes.WeightGain}>Gain weight</option>
             </select>
           </Field>
           {showRate && (

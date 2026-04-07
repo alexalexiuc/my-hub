@@ -119,7 +119,7 @@ describe.sequential('travel — trip and booking lifecycle', () => {
       name: 'travel_add_reservation_from_text',
       arguments: {
         trip_id: tripId,
-        booking_text: 'Confirmation: your booking at Sunrise Hotel is confirmed for 1–5 July 2099.',
+        booking_text: 'Confirmation: your booking at Sunrise Hotel is confirmed for 1-5 July 2099.',
         booking_type: 'accommodation',
         title: `[e2e:${runId}] Sunrise Hotel`,
         provider: 'Sunrise Hotel',

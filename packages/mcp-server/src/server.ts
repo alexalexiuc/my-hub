@@ -10,7 +10,7 @@ import { sessionCleanupPlugin } from './plugins/session-cleanup.js';
 import { sessionLoggerPlugin } from './plugins/session-logger.js';
 import relaxedJsonBodyPlugin from './plugins/relaxed-json-body.js';
 import requestLoggerPlugin from './plugins/request-logger.js';
-import { McpServerName } from '@my-hub/shared/schema';
+import { McpServerName } from '@my-hub/shared/constants';
 import { registerMcpSubServer } from './mcp/sub-server.js';
 import { mcpSubServers } from './mcp/registry.js';
 import { createCaloriesServer } from './calories/server.js';

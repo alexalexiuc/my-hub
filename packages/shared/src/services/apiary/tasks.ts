@@ -1,7 +1,7 @@
 import { and, eq, asc, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { apiaryTasks } from '../../db/schema/apiary';
-import type { ApiaryTask } from '../../types/index';
+import type { ApiaryTask } from '../../types';
 
 export type ApiaryTaskInsert = Omit<typeof apiaryTasks.$inferInsert, 'id' | 'userId' | 'createdAt'>;
 export type ApiaryTaskUpdate = Partial<Pick<typeof apiaryTasks.$inferInsert, 'title' | 'completed' | 'dueAt'>>;

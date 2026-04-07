@@ -2,8 +2,9 @@ import { and, asc, eq, or } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
 import { tripShares } from '../../db/schema/travel';
-import type { TripShare } from '../../types/index';
+import type { TripShare } from '../../types';
 import { verifyTripOwnership } from './trips';
+import { TripSharePermissions } from '../../constants';
 
 export interface TripShareWithUser {
   share: TripShare;
@@ -50,7 +51,7 @@ export async function createTripShare(
       ownerUserId,
       tripId,
       sharedWithUserId,
-      permission: 'view',
+      permission: TripSharePermissions.View,
     })
     .onConflictDoNothing()
     .returning();

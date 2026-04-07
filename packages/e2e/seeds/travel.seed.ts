@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { users, trips, tripShares, tripBookings } from '@my-hub/shared/schema';
 import { SHARED_TRIP_FIXTURE, SHARED_OWNER_EMAIL } from '../constants';
+import { TripSharePermissions } from '@my-hub/shared/constants';
 
 export interface SharedTripFixture {
   tripName: string;
@@ -93,7 +94,7 @@ export async function seedSharedTripFixture(viewerEmail: string): Promise<Shared
       ownerUserId: owner.id,
       tripId: sharedTrip.id,
       sharedWithUserId: viewer.id,
-      permission: 'view',
+      permission: TripSharePermissions.View,
     });
 
     return { tripName, ownerName, bookingTitle };

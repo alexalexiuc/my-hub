@@ -1,8 +1,8 @@
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { tripChecklistItems } from '../../db/schema/travel';
-import { omitNullish } from '../../utils/index';
-import type { NewTripChecklistItem, TripChecklistItem } from '../../types/index';
+import { omitNullish } from '../../utils';
+import type { NewTripChecklistItem, TripChecklistItem } from '../../types';
 import { verifyTripOwnership } from './trips';
 
 export type TripChecklistItemInsert = Omit<

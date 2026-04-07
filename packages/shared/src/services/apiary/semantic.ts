@@ -1,7 +1,7 @@
 import { and, eq, desc, asc, max, inArray } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { apiaryHives, apiaryLogs, apiaryTasks, apiaryYards } from '../../db/schema/apiary';
-import type { ApiaryHive, ApiaryLog, ApiaryTask } from '../../types/index';
+import type { ApiaryHive, ApiaryLog, ApiaryTask } from '../../types';
 
 // ---------------------------------------------------------------------------
 // getApiaryHiveStatus — full picture for one hive

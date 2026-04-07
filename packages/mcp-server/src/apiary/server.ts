@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerApiaryTools } from './tools/index';
-import { registerApiaryResources } from './resources/index';
+import { registerApiaryTools } from './tools/';
+import { registerApiaryResources } from './resources/';
 
 export function createApiaryServer(): McpServer {
   const server = new McpServer({

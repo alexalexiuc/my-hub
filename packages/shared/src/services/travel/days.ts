@@ -1,7 +1,7 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { tripDays } from '../../db/schema/travel';
-import type { TripDay } from '../../types/index';
+import type { TripDay } from '../../types';
 import { verifyTripOwnership } from './trips';
 
 export interface TripDayUpsert {

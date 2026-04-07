@@ -244,7 +244,7 @@ function buildWeightTrendChart(data: MonthlyReportData): string {
   const yMid = parseFloat(((yMin + yMax) / 2).toFixed(1));
   const yRange = yMax - yMin || 1;
 
-  // Map dates to x positions within 560px SVG (x 42–518)
+  // Map dates to x positions within 560px SVG (x 42-518)
   const monthStartMs = new Date(data.monthStart.toISOString().slice(0, 10) + 'T00:00:00Z').getTime();
   const monthEndMs = new Date(data.monthEnd.toISOString().slice(0, 10) + 'T00:00:00Z').getTime();
   const totalDurationMs = monthEndMs - monthStartMs || 1;

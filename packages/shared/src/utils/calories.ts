@@ -2,12 +2,14 @@
 // Calorie / TDEE calculation utilities
 // ---------------------------------------------------------------------------
 
-const ACTIVITY_MULTIPLIERS: Record<string, number> = {
-  sedentary: 1.2,
-  lightly_active: 1.375,
-  moderately_active: 1.55,
-  very_active: 1.725,
-  extra_active: 1.9,
+import { ActivityLevel, ActivityLevels, Sex, GoalType, Sexes, GoalTypes } from '../constants';
+
+export const ActivityLevelMultipliers: Record<ActivityLevel, number> = {
+  [ActivityLevels.Sedentary]: 1.2,
+  [ActivityLevels.LightlyActive]: 1.375,
+  [ActivityLevels.ModeratelyActive]: 1.55,
+  [ActivityLevels.VeryActive]: 1.725,
+  [ActivityLevels.ExtraActive]: 1.9,
 };
 
 /** Minimum safe daily calories used as a floor for weight-loss goals. */
@@ -32,11 +34,11 @@ export interface CalorieTargets {
 
 export interface CalorieTargetParams {
   age: number | null;
-  sex: string | null;
+  sex: Sex | null;
   heightCm: number | null;
   weightKg: number | null;
-  activityLevel: string | null;
-  goalType: string | null; // 'weight_loss' | 'weight_gain' | 'maintain'
+  activityLevel: ActivityLevel | null;
+  goalType: GoalType | null; // 'weight_loss' | 'weight_gain' | 'maintain'
   goalWeeklyRateKg: number | null; // kg/week
   goalMinCalories: number | null;
   goalMaxCalories: number | null;
@@ -48,15 +50,15 @@ export interface CalorieTargetParams {
  */
 export function calculateBMR(
   age: number | null,
-  sex: string | null,
+  sex: Sex | null,
   heightCm: number | null,
   weightKg: number | null,
 ): number | null {
   if (!age || !sex || !heightCm || !weightKg) return null;
-  if (sex === 'male') {
+  if (sex === Sexes.Male) {
     return 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
   }
-  if (sex === 'female') {
+  if (sex === Sexes.Female) {
     return 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
   }
   return null;
@@ -89,14 +91,14 @@ export function calculateCalorieTargets(params: CalorieTargetParams): CalorieTar
     };
   }
 
-  const multiplier = activityLevel ? (ACTIVITY_MULTIPLIERS[activityLevel] ?? 1.2) : 1.2;
+  const multiplier = activityLevel ? (ActivityLevelMultipliers[activityLevel as ActivityLevel] ?? 1.2) : 1.2;
   const tdee = Math.round(bmr * multiplier);
 
   let goalCalories: number = tdee;
-  if (goalType === 'weight_loss' && goalWeeklyRateKg) {
+  if (goalType === GoalTypes.WeightLoss && goalWeeklyRateKg) {
     const dailyDeficit = Math.round((goalWeeklyRateKg * 7700) / 7);
     goalCalories = Math.max(tdee - dailyDeficit, MIN_SAFE_CALORIES);
-  } else if (goalType === 'weight_gain' && goalWeeklyRateKg) {
+  } else if (goalType === GoalTypes.WeightGain && goalWeeklyRateKg) {
     const dailySurplus = Math.round((goalWeeklyRateKg * 7700) / 7);
     goalCalories = tdee + dailySurplus;
   }

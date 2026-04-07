@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerTravelTools } from './tools/index';
-import { registerTravelResources } from './resources/index';
+import { registerTravelTools } from './tools/';
+import { registerTravelResources } from './resources/';
 
 export function createTravelServer(): McpServer {
   const server = new McpServer({

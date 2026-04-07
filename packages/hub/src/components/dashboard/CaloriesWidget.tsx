@@ -4,16 +4,8 @@ import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { dateToString, calculateMacroKcal } from '@my-hub/shared/utils';
 import { SectionCard, Button } from '@/components';
-
-const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
-type MealType = (typeof MEAL_TYPES)[number];
-
-const MEAL_LABEL: Record<MealType, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snack: 'Snack',
-};
+import { MealType, MealTypes, MealTypesValues } from '@my-hub/shared/constants';
+import { MEAL_LABEL } from '@/app/calories/constants';
 
 interface Macros {
   protein: number;
@@ -86,7 +78,7 @@ export function CaloriesWidget({
   const [form, setForm] = useState({
     description: '',
     kcal: '',
-    mealType: 'lunch' as MealType,
+    mealType: MealTypes.Lunch as MealType,
   });
 
   const totalMacroKcal = calculateMacroKcal(macros.protein, macros.carbs, macros.fat);
@@ -139,7 +131,7 @@ export function CaloriesWidget({
         }),
       });
       setShowAdd(false);
-      setForm({ description: '', kcal: '', mealType: 'lunch' });
+      setForm({ description: '', kcal: '', mealType: MealTypes.Lunch });
       onMealAdded();
     } finally {
       setSaving(false);
@@ -311,7 +303,7 @@ export function CaloriesWidget({
                 value={form.mealType}
                 onChange={(e) => setForm({ ...form, mealType: e.target.value as MealType })}
               >
-                {MEAL_TYPES.map((t) => (
+                {MealTypesValues.map((t) => (
                   <option key={t} value={t}>
                     {MEAL_LABEL[t]}
                   </option>

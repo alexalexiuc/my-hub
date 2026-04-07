@@ -3,6 +3,7 @@
 import { ComposedChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import type { TooltipContentProps, TooltipPayloadEntry } from 'recharts';
 import { SectionCard } from '@/components/SectionCard';
+import { GoalTypes } from '@my-hub/shared/constants';
 
 interface DayData {
   date: string;
@@ -49,25 +50,38 @@ function CustomTooltip({ active, payload, label }: TooltipContentProps<number, s
   );
 }
 
+/**
+ * Calculates the daily weight change needed to meet the weekly goal, based on the goal type and weekly rate.
+ * Returns null if inputs are invalid or insufficient to determine a daily delta.
+ */
 function getDailyGoalDelta(goalType: string | null, goalWeeklyRateKg: number | null): number | null {
-  if (goalType === 'maintain') return 0;
+  if (goalType === GoalTypes.Maintain) return 0;
   if (!goalWeeklyRateKg || goalWeeklyRateKg <= 0) return null;
-  if (goalType === 'weight_loss') return -(goalWeeklyRateKg / 7);
-  if (goalType === 'weight_gain') return goalWeeklyRateKg / 7;
+  if (goalType === GoalTypes.WeightLoss) return -(goalWeeklyRateKg / 7);
+  if (goalType === GoalTypes.WeightGain) return goalWeeklyRateKg / 7;
   return null;
 }
 
+/**
+ * Returns the baseline weight for the week, which is ideally the Monday weight. If Monday's weight is not available, falls back to the most recent known weight before that week. Returns null if no weight data is available at all.
+ */
 function getBaselineWeightForWeek(weightRows: WeightMeasurement[], weekStartDate: string): number | null {
-  const mondayWeight = weightRows.find((row) => row.date === weekStartDate)?.value ?? null;
-  if (mondayWeight !== null) return mondayWeight;
+  // Weights are ordered descending, so it is safe to take the first match for Monday or the most recent past weight.
+  const mondayWeightOrLast =
+    weightRows.find((row) => row.date === weekStartDate || row.date < weekStartDate)?.value ?? null;
+  if (mondayWeightOrLast !== null) return mondayWeightOrLast;
 
-  // If Monday has no measurement, fall back to the most recent known value.
+  // If Monday has no measurement, fall back to the most recent known value before that week.
   return weightRows[0]?.value ?? null;
 }
 
-function findNearestPastWeight(weightRows: WeightMeasurement[], date: string): number | null {
+/**
+ * Finds the weight for the given date. If `nearestIfNone` is true and there's no exact match, returns the most recent past weight.
+ */
+function findPastWeight(weightRows: WeightMeasurement[], date: string, nearestIfNone: boolean = false): number | null {
   for (const row of weightRows) {
-    if (row.date <= date) return row.value;
+    if (nearestIfNone && row.date <= date) return row.value;
+    if (row.date === date) return row.value;
   }
   return null;
 }
@@ -90,7 +104,8 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
 
   const chartData = displayDays.map(({ date, label }, index) => {
     const projected = baselineWeight + dailyDelta * index;
-    const actual = date <= today ? findNearestPastWeight(orderedWeights, date) : null;
+    const isFirstDay = index === 0;
+    const actual = date <= today ? findPastWeight(orderedWeights, date, isFirstDay) : null;
     return {
       date,
       label,
@@ -119,13 +134,13 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
   if (delta !== null) {
     if (Math.abs(delta) < 0.1) {
       summaryText = 'On track';
-    } else if (goalType === 'weight_loss') {
+    } else if (goalType === GoalTypes.WeightLoss) {
       const ahead = delta < 0;
       summaryColor = ahead ? 'text-green-400' : 'text-red-400';
       summaryText = ahead
         ? `${Math.abs(delta).toFixed(1)} kg ahead of loss goal`
         : `${delta.toFixed(1)} kg behind loss goal`;
-    } else if (goalType === 'weight_gain') {
+    } else if (goalType === GoalTypes.WeightGain) {
       const ahead = delta > 0;
       summaryColor = ahead ? 'text-green-400' : 'text-red-400';
       summaryText = ahead

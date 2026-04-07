@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { McpServerName, mcpServers } from '../../db/schema/mcp-servers';
-import type { McpServer } from '../../types/index';
+import type { McpServer } from '../../types';
 
 /**
  * Ensure a row exists for every known server type for the given user.

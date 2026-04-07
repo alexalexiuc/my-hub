@@ -1,4 +1,4 @@
-import { McpServerName } from '@my-hub/shared/schema';
+import { McpServerName } from '@my-hub/shared/constants';
 import { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import { cachedFindUserById, cachedIsMcpServerEnabled, cachedVerifyToken } from '../cache';
 

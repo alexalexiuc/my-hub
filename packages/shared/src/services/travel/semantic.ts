@@ -18,7 +18,7 @@ import type {
   TripDay,
   TripDocument,
   TripPlace,
-} from '../../types/index';
+} from '../../types';
 import { coordsFromIata, timezoneFromIata } from '../../server-only-utils/airports';
 import { getNextTrip, getTripByIdAccessible } from './trips';
 

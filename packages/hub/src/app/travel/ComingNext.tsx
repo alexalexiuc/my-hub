@@ -141,7 +141,7 @@ function SegmentCard({ segment }: { segment: Segment }) {
                 }
               : undefined
           }
-          className={`relative flex flex-col gap-1.5 rounded-lg border p-3 text-sm transition-all w-full ${bucketCardClasses[timeBucket]} ${
+          className={`relative flex flex-col gap-1.5 rounded-lg border p-3 text-sm transition-all w-full h-full ${bucketCardClasses[timeBucket]} ${
             isPast ? 'opacity-70 cursor-pointer hover:opacity-90' : 'hover:shadow-md hover:shadow-black/30'
           }`}
         >
