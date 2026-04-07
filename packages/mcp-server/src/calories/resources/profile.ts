@@ -2,6 +2,7 @@ import { getCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shared/
 import { rowToProfile, profileToTargets } from '../models/profile';
 import { ReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resourceResponse } from '../../shared/resourcesUtils';
+import { MeasurementTypes } from '@my-hub/shared/constants';
 
 export const getProfileResource: ReadResourceCallback = async (uri, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
@@ -12,7 +13,7 @@ export const getProfileResource: ReadResourceCallback = async (uri, extra) => {
   ]);
 
   const profile = profileRow ? rowToProfile(profileRow) : {};
-  const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
+  const weightM = latestMeasurements.find((m) => m.typeKey === MeasurementTypes.Weight);
   const targets = profileToTargets(profile, weightM?.value);
 
   return resourceResponse(uri, {

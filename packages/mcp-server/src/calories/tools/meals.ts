@@ -8,7 +8,7 @@ import {
   findUserById,
 } from '@my-hub/shared/services';
 import z from 'zod';
-import { MealType, MAX_MEAL_LIMIT, DEFAULT_MEAL_LIMIT } from '../constants';
+import { MAX_MEAL_LIMIT, DEFAULT_MEAL_LIMIT } from '../constants';
 import { rowToProfile, profileToTargets } from '../models/profile';
 import { toolResponse } from '../../shared/toolsUtils';
 import { yyyyMmDdSchema } from '../../shared/schemas';
@@ -16,6 +16,7 @@ import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { omitNullish, localDateString, localHour } from '@my-hub/shared/utils';
 import { rowToMealEntry } from '../models/meals';
 import { MealEntry } from '../types';
+import { MealTypes, MeasurementTypes } from '@my-hub/shared/constants';
 
 export const MealItemSchema = z.object({
   name: z.string().describe('Name of the food item, e.g. "grilled chicken breast"'),
@@ -45,7 +46,7 @@ export const LogMealSchema = z.object({
       'Total estimated calorie content of the meal. If analyzing a photo, estimate based on visible portion sizes and typical nutritional values. When items are provided this should equal the sum of all item calories.',
     ),
   meal_type: z
-    .nativeEnum(MealType)
+    .nativeEnum(MealTypes)
     .optional()
     .describe(
       'Type of meal: "breakfast" | "lunch" | "dinner" | "snack". If not specified, infer from the time of day or context.',
@@ -59,7 +60,7 @@ export const LogMealSchema = z.object({
 
 export const GetMealsSchema = z.object({
   date: yyyyMmDdSchema.optional().describe('Filter to a specific date (YYYY-MM-DD). Omit for all entries.'),
-  meal_type: z.nativeEnum(MealType).optional().describe('Filter by meal type'),
+  meal_type: z.nativeEnum(MealTypes).optional().describe('Filter by meal type'),
   limit: z
     .number()
     .int()
@@ -88,10 +89,10 @@ export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (inpu
   let meal_type = input.meal_type;
   if (!meal_type) {
     const hour = localHour(timezone);
-    if (hour < 10) meal_type = MealType.BREAKFAST;
-    else if (hour < 14) meal_type = MealType.LUNCH;
-    else if (hour < 19) meal_type = MealType.DINNER;
-    else meal_type = MealType.SNACK;
+    if (hour < 10) meal_type = MealTypes.Breakfast;
+    else if (hour < 14) meal_type = MealTypes.Lunch;
+    else if (hour < 19) meal_type = MealTypes.Dinner;
+    else meal_type = MealTypes.Snack;
   }
 
   // Determine items to log: individual items if provided, otherwise the whole meal as one entry
@@ -138,7 +139,7 @@ export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (inpu
   ]);
 
   const profile = profileRow ? rowToProfile(profileRow) : {};
-  const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
+  const weightM = latestMeasurements.find((m) => m.typeKey === MeasurementTypes.Weight);
   const targets = profileToTargets(profile, weightM?.value);
   const maxCal = targets.maxCalories;
   const caloriesConsumed = dayRows.reduce((s, r) => s + (r.kcal ?? 0), 0);

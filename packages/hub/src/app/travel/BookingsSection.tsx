@@ -2,28 +2,14 @@
 
 import { useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
-import type { FlightDetails, TripDocument } from '@my-hub/shared/types';
+import type { FlightDetails, TripBookingType, TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { AttachmentIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import { BookingTypeIcon, IconButton } from '@/components';
 import { TravelTimeDisplay } from './TravelTimeDisplay';
+import { tripBookingTypeValues } from '@my-hub/shared/constants';
 
-const bookingTypeOptions = [
-  'flight',
-  'accommodation',
-  'rental_car',
-  'train',
-  'bus',
-  'ferry',
-  'taxi',
-  'restaurant',
-  'tour',
-  'activity',
-  'ticket',
-  'other',
-] as const;
-
-const bookingTypeLabels: Record<(typeof bookingTypeOptions)[number], string> = {
+const bookingTypeLabels: Record<TripBookingType, string> = {
   flight: 'Flight',
   accommodation: 'Accommodation',
   rental_car: 'Rental Car',
@@ -34,7 +20,6 @@ const bookingTypeLabels: Record<(typeof bookingTypeOptions)[number], string> = {
   restaurant: 'Restaurant',
   tour: 'Tour',
   activity: 'Activity',
-  ticket: 'Ticket',
   other: 'Other',
 };
 
@@ -62,7 +47,7 @@ export function BookingsSection({
   onChanged,
 }: BookingsSectionProps) {
   const [newBookingTitle, setNewBookingTitle] = useState('');
-  const [newBookingType, setNewBookingType] = useState<(typeof bookingTypeOptions)[number]>('other');
+  const [newBookingType, setNewBookingType] = useState<TripBookingType>('other');
   const [newBookingProvider, setNewBookingProvider] = useState('');
   const [newBookingStartAt, setNewBookingStartAt] = useState('');
   const [newBookingEndAt, setNewBookingEndAt] = useState('');
@@ -75,7 +60,7 @@ export function BookingsSection({
 
   const [editingBookingId, setEditingBookingId] = useState<number | null>(null);
   const [editBookingTitle, setEditBookingTitle] = useState('');
-  const [editBookingType, setEditBookingType] = useState<(typeof bookingTypeOptions)[number]>('other');
+  const [editBookingType, setEditBookingType] = useState<TripBookingType>('other');
   const [editBookingProvider, setEditBookingProvider] = useState('');
   const [editBookingStartAt, setEditBookingStartAt] = useState('');
   const [editBookingEndAt, setEditBookingEndAt] = useState('');
@@ -135,7 +120,7 @@ export function BookingsSection({
   function startEditBooking(booking: TripBookingExtended) {
     setEditingBookingId(booking.id);
     setEditBookingTitle(booking.title);
-    setEditBookingType(booking.bookingType as (typeof bookingTypeOptions)[number]);
+    setEditBookingType(booking.bookingType as TripBookingType);
     setEditBookingProvider(booking.provider ?? '');
     setEditBookingStartAt(toDateTimeLocalValue(booking.startAt));
     setEditBookingEndAt(toDateTimeLocalValue(booking.endAt));
@@ -211,10 +196,10 @@ export function BookingsSection({
             </span>
             <select
               value={newBookingType}
-              onChange={(e) => setNewBookingType(e.target.value as (typeof bookingTypeOptions)[number])}
+              onChange={(e) => setNewBookingType(e.target.value as TripBookingType)}
               className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
             >
-              {bookingTypeOptions.map((type) => (
+              {tripBookingTypeValues.map((type) => (
                 <option key={type} value={type}>
                   {bookingTypeLabels[type]}
                 </option>
@@ -313,10 +298,10 @@ export function BookingsSection({
                     </span>
                     <select
                       value={editBookingType}
-                      onChange={(e) => setEditBookingType(e.target.value as (typeof bookingTypeOptions)[number])}
+                      onChange={(e) => setEditBookingType(e.target.value as TripBookingType)}
                       className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                     >
-                      {bookingTypeOptions.map((type) => (
+                      {tripBookingTypeValues.map((type) => (
                         <option key={type} value={type}>
                           {bookingTypeLabels[type]}
                         </option>

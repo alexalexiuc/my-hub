@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import { getLogs } from '@my-hub/shared/services';
-import { McpServerName } from '@my-hub/shared/schema';
+import { McpServerName } from '@my-hub/shared/constants';
 
 const VALID_SERVERS = new Set<string>(Object.values(McpServerName));
 

@@ -1,5 +1,5 @@
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
-import type { MeasurementTypeKey } from '../db/schema/measurements';
+import type { MeasurementTypeKey } from '../constants/measurements';
 import type {
   users,
   oauthClients,
@@ -25,15 +25,15 @@ import type {
   tripShares,
   tripDays,
   flightData,
-} from '../db/schema/index';
+} from '../db/schema/';
 import type {
   TripStatus,
   TripBookingType,
   TripPlacePriority,
   TripDocumentType,
   TripSharePermission,
-} from '../db/schema/travel';
-export { deriveTripStatus } from '../db/schema/travel';
+} from '../constants/travel';
+export { deriveTripStatus } from '../utils';
 
 // Identity & Auth
 export type User = InferSelectModel<typeof users>;

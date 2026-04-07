@@ -13,10 +13,11 @@ import {
   suggestChecklistTemplate,
   updateTripCompanion,
 } from '@my-hub/shared/services';
+import { TripDocumentTypes, tripDocumentTypeValues } from '@my-hub/shared/constants';
 import type { TripDocumentType } from '@my-hub/shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
 
-const DocumentTypeSchema = z.enum(['passport', 'visa', 'boarding_pass', 'voucher', 'ticket', 'other']);
+const DocumentTypeSchema = z.enum(tripDocumentTypeValues as [TripDocumentType, ...TripDocumentType[]]);
 
 export const TravelPlanTripSchema = z.object({
   name: z.string().min(1).describe('Trip name, for example: "Spring in Rome"'),
@@ -61,7 +62,7 @@ export const TravelGetTripBriefSchema = z.object({
 export const TravelAttachDocumentLinkSchema = z.object({
   trip_id: z.number().int().positive().describe('Trip ID for the document.'),
   title: z.string().min(1).describe('Document title, for example "Boarding pass".'),
-  type: DocumentTypeSchema.default('other').optional().describe('Document category.'),
+  type: DocumentTypeSchema.default(TripDocumentTypes.Other).optional().describe('Document category.'),
   source_url: z.string().url().describe('Link to the document (cloud drive, booking site, etc).'),
   notes: z.string().optional().describe('Optional notes about this document.'),
 });
@@ -195,7 +196,7 @@ export const travelAttachDocumentLinkTool: ToolCallback<typeof TravelAttachDocum
   const userId = extra.authInfo?.extra?.['userId'] as string;
 
   const document = await addTripDocument(userId, input.trip_id, {
-    type: (input.type ?? 'other') as TripDocumentType,
+    type: (input.type ?? TripDocumentTypes.Other) as TripDocumentType,
     title: input.title,
     notes: input.notes ?? null,
     sourceUrl: input.source_url,

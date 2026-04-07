@@ -1,11 +1,12 @@
 import { and, between, eq, isNotNull } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { mealLogs } from '../../db/schema/calories';
-import type { MealLog, NewMealLog } from '../../types/index';
+import type { MealLog, NewMealLog } from '../../types';
+import { MealType } from '../../constants';
 
 export interface GetMealsFilter {
   date?: string;
-  mealType?: string;
+  mealType?: MealType;
   limit?: number;
   /** Number of meal logs to skip for pagination. Defaults to 0 if not provided. */
   offset?: number;

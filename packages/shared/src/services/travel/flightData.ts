@@ -1,7 +1,7 @@
 import { and, asc, eq, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { flightData, tripBookings } from '../../db/schema/travel';
-import type { FlightData } from '../../types/index';
+import type { FlightData } from '../../types';
 import { omitUndefined } from '../../utils/objects';
 import { addHours, addMinutes } from '../../utils';
 

@@ -218,6 +218,7 @@ jobs:
         run: pnpm test:e2e
         env:
           E2E_MCP_BASE_URL: https://staging.mcp.alexiuc.dev
+          NEXT_PUBLIC_MCP_URL: https://staging.mcp.alexiuc.dev
           E2E_MCP_USER_EMAIL: ${{ vars.E2E_MCP_USER_EMAIL }}
 
           E2E_HUB_BASE_URL: https://staging.hub.alexiuc.dev

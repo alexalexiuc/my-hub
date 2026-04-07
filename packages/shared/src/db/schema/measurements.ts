@@ -1,23 +1,12 @@
 import { pgTable, serial, text, timestamp, real, uuid, index } from 'drizzle-orm/pg-core';
+import type { MeasurementTypeKey } from '../../constants/measurements';
+export { MeasurementTypes, measurementTypeKeys } from '../../constants/measurements';
+export type { MeasurementTypeKey } from '../../constants/measurements';
 import { users } from './users';
 
 // ---------------------------------------------------------------------------
 // Body Measurements tables
 // ---------------------------------------------------------------------------
-export const MeasurementTypes = {
-  Weight: 'weight',
-  Height: 'height',
-  Neck: 'neck',
-  Waist: 'waist',
-  Hips: 'hips',
-  Chest: 'chest',
-  Bicep: 'bicep',
-  BodyFat: 'body_fat',
-} as const;
-
-export type MeasurementTypeKey = (typeof MeasurementTypes)[keyof typeof MeasurementTypes];
-export const measurementTypeKeys = Object.values(MeasurementTypes) as MeasurementTypeKey[];
-
 /** Lookup table for measurement types (weight, height, neck, etc.) */
 export const measurementTypes = pgTable('measurement_types', {
   key: text('key').$type<MeasurementTypeKey>().primaryKey(), // e.g. 'weight', 'height', 'neck'

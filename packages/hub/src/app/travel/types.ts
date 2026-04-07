@@ -6,6 +6,7 @@ import type {
   TripDay,
   TripDocument,
   TripPlace,
+  TripSharePermission,
   TripWithStatus,
 } from '@my-hub/shared/types';
 import type { TripMapData } from '@my-hub/shared/services';
@@ -35,13 +36,13 @@ export interface ApiTrip extends TripWithStatus {
   owner_email: string;
   access_role: 'owner' | 'viewer';
   can_edit: boolean;
-  permission: 'view';
+  permission: TripSharePermission;
 }
 
 export interface TripShareView {
   id: number;
   user_id: string;
-  permission: 'view';
+  permission: TripSharePermission;
   name: string | null;
   email: string;
 }

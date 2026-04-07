@@ -1,8 +1,8 @@
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
-import { hashSecret, verifySecret } from '../../crypto/index';
-import type { User } from '../../types/index';
+import { hashSecret, verifySecret } from '../../crypto/';
+import type { User } from '../../types';
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
   return db.query.users.findFirst({

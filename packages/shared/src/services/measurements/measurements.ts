@@ -2,7 +2,7 @@ import { and, desc, eq, between } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { bodyMeasurements, measurementTypes } from '../../db/schema/measurements';
 import type { MeasurementTypeKey } from '../../db/schema/measurements';
-import type { BodyMeasurement, NewBodyMeasurement } from '../../types/index';
+import type { BodyMeasurement, NewBodyMeasurement } from '../../types';
 
 export interface GetMeasurementsFilter {
   typeKey?: MeasurementTypeKey;

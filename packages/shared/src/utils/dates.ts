@@ -63,7 +63,7 @@ export function localDateString(timezone?: string | null): string {
 }
 
 /**
- * Returns the current hour (0–23) in the resolved timezone.
+ * Returns the current hour (0-23) in the resolved timezone.
  *
  * Timezone resolution order:
  * 1. UTC offset string ("+2", "-5", "+5:30").

@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { apiaryHives } from '../../db/schema/apiary';
-import type { ApiaryHive } from '../../types/index';
+import type { ApiaryHive } from '../../types';
 
 export type HiveInsert = Omit<typeof apiaryHives.$inferInsert, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
 export type HiveUpdate = Partial<Omit<typeof apiaryHives.$inferInsert, 'id' | 'userId' | 'createdAt'>>;

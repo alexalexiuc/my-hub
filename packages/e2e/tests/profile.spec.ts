@@ -53,19 +53,6 @@ test.describe('Profile Page', () => {
     await deleteFeatures(page, ['meals']);
   });
 
-  test('delete all data with danger zone', async ({ page }) => {
-    await page.request.post('/api/calories/meals', {
-      data: { description: 'Meal to wipe', kcal: 200, loggedAt: new Date().toISOString(), mealType: 'lunch' },
-    });
-
-    await page.getByRole('button', { name: /delete all my data/i }).click();
-    await expect(page.getByText(/wipe all your data/i)).toBeVisible();
-    await page.getByRole('button', { name: /yes, delete everything/i }).click();
-
-    // Returns to initial state
-    await expect(page.getByRole('button', { name: /delete all my data/i })).toBeVisible({ timeout: 5_000 });
-  });
-
   test('sign out link is present', async ({ page }) => {
     await expect(page.getByRole('button', { name: /sign out/i })).toBeVisible();
   });

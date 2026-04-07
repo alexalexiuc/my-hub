@@ -1,8 +1,8 @@
 import { eq, and, gt, lt } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { oauthRefreshTokens } from '../../db/schema/oauth-refresh-tokens';
-import { hashSecret, verifySecret } from '../../crypto/index';
-import type { OAuthRefreshToken } from '../../types/index';
+import { hashSecret, verifySecret } from '../../crypto/';
+import type { OAuthRefreshToken } from '../../types';
 
 /** 30-day refresh token lifetime in milliseconds. */
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;

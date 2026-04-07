@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { tripBookings } from '../../db/schema/travel';
-import type { NewTripBooking, TripBooking, TripBookingType } from '../../types/index';
+import type { NewTripBooking, TripBooking, TripBookingType } from '../../types';
 import { verifyTripOwnership } from './trips';
 import { validateCoords } from '../../utils';
 

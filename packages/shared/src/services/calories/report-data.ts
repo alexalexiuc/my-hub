@@ -10,6 +10,7 @@ import type {
   MeasurementSnapshot,
   MonthlyWeightPoint,
 } from '../email/templates/monthly-report/types.js';
+import { MeasurementTypes } from '../../constants/index.js';
 
 // ─── Weekly report data ──────────────────────────────────────────────────────
 
@@ -34,9 +35,19 @@ export async function fetchWeeklyReportCaloriesData(
     findUserById(userId),
     getCalorieProfile(userId),
     getMealsForDateRange(userId, weekStartStr, weekEndStr),
-    getMeasurements(userId, { typeKey: 'weight', dateFrom: weekStartStr, dateTo: weekEndStr, limit: 20 }),
+    getMeasurements(userId, {
+      typeKey: MeasurementTypes.Weight,
+      dateFrom: weekStartStr,
+      dateTo: weekEndStr,
+      limit: 20,
+    }),
     getLatestMeasurementsPerType(userId),
-    getMeasurements(userId, { typeKey: 'weight', dateFrom: priorWeekStartStr, dateTo: priorWeekEndStr, limit: 7 }),
+    getMeasurements(userId, {
+      typeKey: MeasurementTypes.Weight,
+      dateFrom: priorWeekStartStr,
+      dateTo: priorWeekEndStr,
+      limit: 7,
+    }),
   ]);
 
   if (!user) return null;
@@ -84,7 +95,7 @@ export async function fetchWeeklyReportCaloriesData(
       : null;
 
   // BMR / TDEE — use latest weight measurement
-  const latestWeight = latestMeasurements['weight'] ?? null;
+  const latestWeight = latestMeasurements[MeasurementTypes.Weight] ?? null;
   const bmr = calculateBMR(profile?.age ?? null, profile?.sex ?? null, profile?.heightCm ?? null, latestWeight);
   const targets = calculateCalorieTargets({
     age: profile?.age ?? null,
@@ -163,7 +174,12 @@ export async function fetchMonthlyReportCaloriesData(
     findUserById(userId),
     getCalorieProfile(userId),
     getMealsForDateRange(userId, monthStartStr, monthEndStr),
-    getMeasurements(userId, { typeKey: 'weight', dateFrom: monthStartStr, dateTo: monthEndStr, limit: 62 }),
+    getMeasurements(userId, {
+      typeKey: MeasurementTypes.Weight,
+      dateFrom: monthStartStr,
+      dateTo: monthEndStr,
+      limit: 62,
+    }),
     getMeasurements(userId, { dateFrom: monthStartStr, dateTo: monthEndStr, limit: 500 }),
   ]);
 
@@ -282,11 +298,11 @@ export async function fetchMonthlyReportCaloriesData(
       }
     }
     return {
-      weight: byType.get('weight')?.value ?? null,
-      bodyFat: byType.get('body_fat')?.value ?? null,
-      waist: byType.get('waist')?.value ?? null,
-      chest: byType.get('chest')?.value ?? null,
-      neck: byType.get('neck')?.value ?? null,
+      weight: byType.get(MeasurementTypes.Weight)?.value ?? null,
+      bodyFat: byType.get(MeasurementTypes.BodyFat)?.value ?? null,
+      waist: byType.get(MeasurementTypes.Waist)?.value ?? null,
+      chest: byType.get(MeasurementTypes.Chest)?.value ?? null,
+      neck: byType.get(MeasurementTypes.Neck)?.value ?? null,
     };
   }
 

@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { MessageExtraInfo } from '@modelcontextprotocol/sdk/types.js';
 import { putLog } from '@my-hub/shared/services';
-import type { McpServerName } from '@my-hub/shared/schema';
+import type { McpServerName } from '@my-hub/shared/constants';
 import { envConfig } from '../config/env.js';
 import { mcpSubServers } from '../mcp/registry.js';
 import { capPayload, redactSensitiveFields } from './payload-logging.js';

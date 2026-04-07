@@ -3,26 +3,26 @@ import { upsertCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shar
 import { omitNullish } from '@my-hub/shared/utils';
 import z from 'zod';
 import { toolResponse } from '../../shared/toolsUtils';
-import { Sex, ActivityLevel, GoalType } from '../constants';
 import { rowToProfile, profileToTargets } from '../models/profile';
+import { ActivityLevels, GoalTypes, MeasurementTypes, Sexes } from '@my-hub/shared/constants';
 
 export const UpdateProfileSchema = z.object({
   name: z.string().optional().describe('Your name'),
   age: z.number().int().positive().optional().describe('Age in years'),
-  sex: z.nativeEnum(Sex).optional().describe('Biological sex for BMR calculation: "male" | "female"'),
+  sex: z.nativeEnum(Sexes).optional().describe('Biological sex for BMR calculation: "male" | "female"'),
   height_cm: z
     .number()
     .positive()
     .optional()
     .describe('Height in centimetres (e.g. 175). Stored on profile — only needs to be set once.'),
   activity_level: z
-    .nativeEnum(ActivityLevel)
+    .nativeEnum(ActivityLevels)
     .optional()
     .describe(
       'Activity level for TDEE: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active"',
     ),
   goal_type: z
-    .nativeEnum(GoalType)
+    .nativeEnum(GoalTypes)
     .optional()
     .describe(
       'Calorie goal: "weight_loss" | "weight_gain" | "maintain". Ask the user which goal they want before saving.',
@@ -72,7 +72,7 @@ export const updateProfileTool: ToolCallback<typeof UpdateProfileSchema.shape> =
 
   const profile = rowToProfile(row);
   const latestMeasurements = await getLatestMeasurementsPerType(userId);
-  const weightMeasurement = latestMeasurements.find((m) => m.typeKey === 'weight');
+  const weightMeasurement = latestMeasurements.find((m) => m.typeKey === MeasurementTypes.Weight);
   const targets = profileToTargets(profile, weightMeasurement?.value);
 
   return toolResponse({

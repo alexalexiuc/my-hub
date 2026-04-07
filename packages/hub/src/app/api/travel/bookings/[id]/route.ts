@@ -3,21 +3,7 @@ import { withAuth } from '@/lib/api/with-auth';
 import { deleteTripBooking, updateTripBooking } from '@my-hub/shared/services';
 import type { FlightDetails, TripBookingType } from '@my-hub/shared/types';
 import { parseAndValidateDateForPatch } from '@/lib/api/date-validation';
-
-const bookingTypes: TripBookingType[] = [
-  'flight',
-  'accommodation',
-  'rental_car',
-  'train',
-  'bus',
-  'ferry',
-  'taxi',
-  'restaurant',
-  'tour',
-  'activity',
-  'ticket',
-  'other',
-];
+import { tripBookingTypeValues } from '@my-hub/shared/constants';
 
 export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
   const { id } = await params;
@@ -51,7 +37,7 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
   const booking = await updateTripBooking(user.id, bookingId, {
     title: typeof body.title === 'string' ? body.title.trim() : undefined,
     bookingType:
-      typeof body.booking_type === 'string' && bookingTypes.includes(body.booking_type as TripBookingType)
+      typeof body.booking_type === 'string' && tripBookingTypeValues.includes(body.booking_type as TripBookingType)
         ? (body.booking_type as TripBookingType)
         : undefined,
     provider: typeof body.provider === 'string' ? body.provider.trim() || null : undefined,

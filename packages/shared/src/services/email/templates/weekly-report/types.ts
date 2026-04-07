@@ -29,7 +29,7 @@ export interface WeeklyReportData {
   bmr: number;
   /** Total daily energy expenditure */
   tdee: number;
-  /** 7 entries Mon–Sun; hasData=false for days with no meals */
+  /** 7 entries Mon-Sun; hasData=false for days with no meals */
   days: DayData[];
   weightPoints: WeightPoint[];
   /** Latest logged values by measurement typeKey */

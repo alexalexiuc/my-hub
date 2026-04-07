@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import { deleteMeal, updateMeal } from '@my-hub/shared/services';
+import type { MealType } from '@my-hub/shared/constants';
 
 type MealUpdateBody = {
   description?: string;
@@ -8,7 +9,7 @@ type MealUpdateBody = {
   protein?: number;
   carbs?: number;
   fat?: number;
-  mealType?: string;
+  mealType?: MealType;
   notes?: string;
 };
 

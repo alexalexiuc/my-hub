@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { pgTable, serial, text, uuid, timestamp, jsonb, boolean } from 'drizzle-orm/pg-core';
 import { users } from './users';
-import type { EncryptedString } from '../../crypto/index';
+import type { EncryptedString } from '../../crypto/';
 
 export const oauthClients = pgTable('oauth_clients', {
   id: serial('id').primaryKey(),
