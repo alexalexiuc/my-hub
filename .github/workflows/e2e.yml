@@ -225,6 +225,14 @@ jobs:
           E2E_HUB_USER_EMAIL: ${{ vars.E2E_HUB_USER_EMAIL }}
           E2E_HUB_USER_PASSWORD: ${{ secrets.E2E_HUB_USER_PASSWORD }}
 
+      - name: Upload E2E test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-results
+          path: packages/e2e/playwright-report
+          retention-days: 7
+
       - name: Cleanup staging stack
         if: always()
         uses: appleboy/ssh-action@v1.0.3
