@@ -6,10 +6,9 @@ import { withAuth } from '@/lib/api/with-auth';
 import { getTravelFileMaxBytes, travelFilesConfig } from '@/lib/travel-files-config';
 import { addTripDocument } from '@my-hub/shared/services';
 import type { TripDocumentType } from '@my-hub/shared/types';
+import { TripDocumentTypes, tripDocumentTypeValues } from '@my-hub/shared/constants';
 
 export const runtime = 'nodejs';
-
-const documentTypes: TripDocumentType[] = ['passport', 'visa', 'boarding_pass', 'voucher', 'ticket', 'other'];
 
 export const POST = withAuth(async ({ req, user }) => {
   const form = await req.formData();
@@ -19,7 +18,7 @@ export const POST = withAuth(async ({ req, user }) => {
   const bookingId =
     bookingIdRaw === null || bookingIdRaw === undefined || String(bookingIdRaw) === '' ? null : Number(bookingIdRaw);
   const title = String(form.get('title') ?? '').trim();
-  const typeRaw = String(form.get('type') ?? 'other');
+  const typeRaw = String(form.get('type') ?? TripDocumentTypes.Other);
   const notes = String(form.get('notes') ?? '').trim();
 
   if (!Number.isInteger(tripId) || tripId <= 0) {
@@ -43,7 +42,9 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: `MIME type ${file.type} is not allowed` }, { status: 400 });
   }
 
-  const type = documentTypes.includes(typeRaw as TripDocumentType) ? (typeRaw as TripDocumentType) : 'other';
+  const type = tripDocumentTypeValues.includes(typeRaw as TripDocumentType)
+    ? (typeRaw as TripDocumentType)
+    : TripDocumentTypes.Other;
 
   const root = travelFilesConfig.storageRoot;
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');

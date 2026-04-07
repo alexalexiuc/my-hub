@@ -6,6 +6,8 @@ import { dateToString } from '@my-hub/shared/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { SectionCard } from '@/components/SectionCard';
 import { Button, Field } from '@/components';
+import { MealType, MealTypes, MealTypesValues } from '@my-hub/shared/constants';
+import { MEAL_LABEL } from './constants';
 
 interface Props {
   meals: MealLog[];
@@ -16,18 +18,8 @@ interface Props {
   maxCalories?: number | null;
 }
 
-const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
-type MealType = (typeof MEAL_TYPES)[number];
-
-const MEAL_LABEL: Record<MealType, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snack: 'Snack',
-};
-
-function groupByMealType(meals: MealLog[]): Record<string, MealLog[]> {
-  const groups: Record<string, MealLog[]> = {};
+function groupByMealType(meals: MealLog[]): Record<MealType, MealLog[]> {
+  const groups: Record<MealType, MealLog[]> = {} as Record<MealType, MealLog[]>;
   for (const meal of meals) {
     (groups[meal.mealType] ??= []).push(meal);
   }
@@ -72,7 +64,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
   const [form, setForm] = useState({
     description: '',
     kcal: '',
-    mealType: 'lunch' as MealType,
+    mealType: MealTypes.Lunch as MealType,
     date: selectedDate,
     protein: '',
     carbs: '',
@@ -82,7 +74,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
   const [editForm, setEditForm] = useState<EditForm>({
     description: '',
     kcal: '',
-    mealType: 'lunch',
+    mealType: MealTypes.Lunch as MealType,
     protein: '',
     carbs: '',
     fat: '',
@@ -183,7 +175,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
       setForm({
         description: '',
         kcal: '',
-        mealType: 'lunch',
+        mealType: MealTypes.Lunch,
         date: selectedDate,
         protein: '',
         carbs: '',
@@ -383,7 +375,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
               <p className="text-zinc-500 text-sm">No meals logged{selectedDate === today ? ' today' : ''}.</p>
             ) : (
               <div className="space-y-4">
-                {MEAL_TYPES.filter((t) => grouped[t]?.length).map((type) => (
+                {MealTypesValues.filter((t) => grouped[t]?.length).map((type) => (
                   <div key={type}>
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">
                       {MEAL_LABEL[type]}
@@ -407,7 +399,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
                                   value={editForm.mealType}
                                   onChange={(e) => setEditForm({ ...editForm, mealType: e.target.value as MealType })}
                                 >
-                                  {MEAL_TYPES.map((t) => (
+                                  {MealTypesValues.map((t) => (
                                     <option key={t} value={t}>
                                       {MEAL_LABEL[t]}
                                     </option>
@@ -559,7 +551,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
                 value={form.mealType}
                 onChange={(e) => setForm({ ...form, mealType: e.target.value as MealType })}
               >
-                {MEAL_TYPES.map((t) => (
+                {MealTypesValues.map((t) => (
                   <option key={t} value={t}>
                     {MEAL_LABEL[t]}
                   </option>

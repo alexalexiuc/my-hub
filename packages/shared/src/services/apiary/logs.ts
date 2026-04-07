@@ -1,7 +1,7 @@
 import { and, eq, desc } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { apiaryLogs } from '../../db/schema/apiary';
-import type { ApiaryLog } from '../../types/index';
+import type { ApiaryLog } from '../../types';
 
 export type ApiaryLogInsert = Omit<typeof apiaryLogs.$inferInsert, 'id' | 'userId' | 'createdAt'>;
 

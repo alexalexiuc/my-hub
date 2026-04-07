@@ -1,9 +1,10 @@
 import { and, asc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
-import { deriveTripStatus, tripBookings, tripShares, trips } from '../../db/schema/travel';
-import { omitNullish } from '../../utils/index';
-import type { NewTrip, Trip, TripSharePermission, TripWithStatus } from '../../types/index';
+import { tripBookings, tripShares, trips } from '../../db/schema/travel';
+import { deriveTripStatus, omitNullish } from '../../utils';
+import type { NewTrip, Trip, TripSharePermission, TripWithStatus } from '../../types';
+import { TripSharePermissions } from '../../constants';
 
 const tripColorPalette = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#84CC16'];
 
@@ -66,7 +67,7 @@ export async function getAccessibleTrips(userId: string): Promise<AccessibleTrip
       ownerName: users.name,
       ownerEmail: users.email,
       accessRole: sql<'owner' | 'viewer'>`case when ${trips.userId} = ${userId} then 'owner' else 'viewer' end`,
-      permission: sql<TripSharePermission>`coalesce(${tripShares.permission}, 'view')`,
+      permission: sql<TripSharePermission>`coalesce(${tripShares.permission}, '${TripSharePermissions.View}')`,
     })
     .from(trips)
     .leftJoin(

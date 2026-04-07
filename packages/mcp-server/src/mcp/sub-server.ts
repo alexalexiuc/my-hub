@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import FastifyMcpServer, { getMcpDecorator } from 'fastify-mcp-server';
-import type { McpServerName } from '@my-hub/shared/schema';
+import type { McpServerName } from '@my-hub/shared/constants';
 import { createHubTokenVerifier } from '../plugins/oauth-verifier.js';
 import { mcpSubServers } from './registry.js';
 

@@ -1,29 +1,9 @@
 import { pgTable, pgEnum, serial, uuid, boolean, timestamp, unique } from 'drizzle-orm/pg-core';
+import { mcpServerNameValues } from '../../constants/mcp-servers';
+export { McpServerName, mcpServerNameValues } from '../../constants/mcp-servers';
 import { users } from './users';
 
-/**
- * Enum-like const object for MCP server names.
- * Use `McpServerName.Calories` instead of the string literal `'calories'`.
- * The companion type `McpServerName` stays a plain string union so it remains
- * compatible with Drizzle column types and existing runtime code.
- */
-export const McpServerName = {
-  Apiary: 'apiary',
-  Calories: 'calories',
-  Products: 'products',
-  Travel: 'travel',
-  Todo: 'todo',
-} as const;
-
-export type McpServerName = (typeof McpServerName)[keyof typeof McpServerName];
-
-export const mcpServerEnum = pgEnum('mcp_server', [
-  McpServerName.Apiary,
-  McpServerName.Calories,
-  McpServerName.Products,
-  McpServerName.Travel,
-  McpServerName.Todo,
-]);
+export const mcpServerEnum = pgEnum('mcp_server', mcpServerNameValues);
 
 export const mcpServers = pgTable(
   'mcp_servers',

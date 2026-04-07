@@ -1,4 +1,4 @@
-import { McpServerName } from '@my-hub/shared/schema';
+import { McpServerName } from '@my-hub/shared/constants';
 import { isMcpServerEnabled } from '@my-hub/shared/services';
 import { PromiseCacheX } from 'promise-cachex';
 

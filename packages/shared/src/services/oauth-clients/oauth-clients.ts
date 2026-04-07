@@ -2,8 +2,8 @@ import { eq, and, desc, inArray } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { oauthClients } from '../../db/schema/oauth-clients';
 import { apiRequestLogs } from '../../db/schema/api-request-logs';
-import type { OAuthClient, NewOAuthClient } from '../../types/index';
-import { encrypt, decrypt, hashSecret, verifySecret } from '../../crypto/index';
+import type { OAuthClient, NewOAuthClient } from '../../types';
+import { encrypt, decrypt, hashSecret, verifySecret } from '../../crypto/';
 
 // clientSecret is a one-way scrypt hash — it is never returned after creation.
 export type DecryptedOAuthClient = Omit<OAuthClient, 'clientSecret' | 'tokenSigningSecret'> & {

@@ -3,7 +3,7 @@ import { and, eq, isNull, or, gt } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { inviteTokens } from '../../db/schema/invite-tokens';
 import { users } from '../../db/schema/users';
-import type { InviteToken, InviteTokenWithUsedByEmail } from '../../types/index';
+import type { InviteToken, InviteTokenWithUsedByEmail } from '../../types';
 
 export async function createInviteToken(createdBy: string, expiresInDays?: number): Promise<InviteToken> {
   const token = randomBytes(32).toString('hex');

@@ -1,3 +1,4 @@
+import { MeasurementTypes } from '../../../../constants';
 import type { WeeklyReportData, WeightPoint } from './types';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -586,7 +587,10 @@ function buildMeasurements(data: WeeklyReportData): string {
   const m = data.latestMeasurements;
   const fmtVal = (v: number | null | undefined, decimals = 1) => (v != null ? v.toFixed(decimals) : '—');
 
-  const weightDelta = m['weight'] != null && data.priorWeekWeight != null ? m['weight'] - data.priorWeekWeight : null;
+  const weightDelta =
+    m[MeasurementTypes.Weight] != null && data.priorWeekWeight != null
+      ? m[MeasurementTypes.Weight]! - data.priorWeekWeight
+      : null;
 
   const deltaCell =
     weightDelta !== null
@@ -604,30 +608,30 @@ function buildMeasurements(data: WeeklyReportData): string {
   <div class="measure-grid">
     <div class="measure-row">
       <span class="measure-name">Body fat</span>
-      <span class="measure-val">${fmtVal(m['body_fat'])}<span style="font-size:11px; color:#4b5a6b;"> %</span></span>
+      <span class="measure-val">${fmtVal(m[MeasurementTypes.BodyFat])}<span style="font-size:11px; color:#4b5a6b;"> %</span></span>
     </div>
     <div class="measure-row">
       <span class="measure-name">Weight</span>
-      <span class="measure-val">${fmtVal(m['weight'])}<span style="font-size:11px; color:#4b5a6b;"> kg</span></span>
+      <span class="measure-val">${fmtVal(m[MeasurementTypes.Weight])}<span style="font-size:11px; color:#4b5a6b;"> kg</span></span>
     </div>
     <div class="measure-row">
       <span class="measure-name">Waist</span>
-      <span class="measure-val">${fmtVal(m['waist'], 0)}<span style="font-size:11px; color:#4b5a6b;"> cm</span></span>
+      <span class="measure-val">${fmtVal(m[MeasurementTypes.Waist], 0)}<span style="font-size:11px; color:#4b5a6b;"> cm</span></span>
     </div>
     <div class="measure-row">
       <span class="measure-name">Chest</span>
-      <span class="measure-val">${fmtVal(m['chest'], 0)}<span style="font-size:11px; color:#4b5a6b;"> cm</span></span>
+      <span class="measure-val">${fmtVal(m[MeasurementTypes.Chest], 0)}<span style="font-size:11px; color:#4b5a6b;"> cm</span></span>
     </div>
     <div class="measure-row">
       <span class="measure-name">Neck</span>
-      <span class="measure-val">${fmtVal(m['neck'], 0)}<span style="font-size:11px; color:#4b5a6b;"> cm</span></span>
+      <span class="measure-val">${fmtVal(m[MeasurementTypes.Neck], 0)}<span style="font-size:11px; color:#4b5a6b;"> cm</span></span>
     </div>
     ${deltaCell}
   </div>`;
 }
 
 function buildOutlook(data: WeeklyReportData): string {
-  const currentWeight = data.latestMeasurements['weight'];
+  const currentWeight = data.latestMeasurements[MeasurementTypes.Weight];
   const projectedWeight = currentWeight != null ? currentWeight - data.goalWeeklyRateKg : null;
   const dailyDeficit = data.tdee - data.goalMaxCalories;
   const deficitColor = dailyDeficit >= 0 ? '#3db87a' : '#e05a5a';

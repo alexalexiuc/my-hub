@@ -218,7 +218,7 @@ const apiaryTools = [
     description:
       'Bulk-move multiple hives to a different yard in one call. ' +
       'Atomically updates yard_id on all hives and creates a relocation log entry per hive. ' +
-      'Use for seasonal moves like "I moved hives 1–40 to Pădurea 1 today".',
+      'Use for seasonal moves like "I moved hives 1-40 to Pădurea 1 today".',
     inputSchema: MoveHivesSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: moveHivesTool,

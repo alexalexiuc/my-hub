@@ -24,7 +24,6 @@ const iconMap: Record<TripBookingType, () => React.JSX.Element> = {
   restaurant: UtensilsIcon,
   tour: MapFlagIcon,
   activity: TicketIcon,
-  ticket: TicketIcon,
   other: CalendarIcon,
 };
 

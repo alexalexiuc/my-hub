@@ -1,8 +1,8 @@
 import { ReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { TripBookingTypes } from '@my-hub/shared/constants';
 import { getTrips, getUpcomingTripBookings } from '@my-hub/shared/services';
 import { resourceResponse } from '../../shared/resourcesUtils';
 import { travelFilesConfig } from '../files-config';
-import { TripBookingTypes } from '@my-hub/shared/schema';
 
 export const getTravelTripsResource: ReadResourceCallback = async (uri, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;

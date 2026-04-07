@@ -3,21 +3,7 @@ import { withAuth } from '@/lib/api/with-auth';
 import { parseAndValidateDate } from '@/lib/api/date-validation';
 import { addTripBooking } from '@my-hub/shared/services';
 import type { FlightDetails, TripBookingType } from '@my-hub/shared/types';
-
-const bookingTypes: TripBookingType[] = [
-  'flight',
-  'accommodation',
-  'rental_car',
-  'train',
-  'bus',
-  'ferry',
-  'taxi',
-  'restaurant',
-  'tour',
-  'activity',
-  'ticket',
-  'other',
-];
+import { TripBookingTypes, tripBookingTypeValues } from '@my-hub/shared/constants';
 
 export const POST = withAuth(async ({ req, user }) => {
   let body: Record<string, unknown>;
@@ -30,9 +16,9 @@ export const POST = withAuth(async ({ req, user }) => {
   const tripId = Number(body.trip_id);
   const title = typeof body.title === 'string' ? body.title.trim() : '';
   const bookingType =
-    typeof body.booking_type === 'string' && bookingTypes.includes(body.booking_type as TripBookingType)
+    typeof body.booking_type === 'string' && tripBookingTypeValues.includes(body.booking_type as TripBookingType)
       ? (body.booking_type as TripBookingType)
-      : 'other';
+      : TripBookingTypes.Other;
 
   if (!Number.isInteger(tripId) || tripId <= 0) {
     return NextResponse.json({ error: 'trip_id is required' }, { status: 400 });
@@ -52,7 +38,7 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: endAtError }, { status: 400 });
   }
   const flightDetails =
-    bookingType === 'flight' &&
+    bookingType === TripBookingTypes.Flight &&
     body.flight_details != null &&
     typeof body.flight_details === 'object' &&
     !Array.isArray(body.flight_details)

@@ -7,6 +7,7 @@ import {
 import { rowToProfile, profileToTargets } from './profile';
 import { rowToMealEntry } from './meals';
 import { sumMeals } from './summary';
+import { MeasurementTypes } from '@my-hub/shared/constants';
 
 export async function buildHistoryPeriod(userId: string, startDate: string, endDate: string) {
   const [mealRows, allMeasurements, profileRow, latestMeasurements] = await Promise.all([
@@ -16,9 +17,9 @@ export async function buildHistoryPeriod(userId: string, startDate: string, endD
     getLatestMeasurementsPerType(userId),
   ]);
 
-  const weightLogs = allMeasurements.filter((m) => m.typeKey === 'weight');
+  const weightLogs = allMeasurements.filter((m) => m.typeKey === MeasurementTypes.Weight);
   const profile = profileRow ? rowToProfile(profileRow) : {};
-  const weightM = latestMeasurements.find((m) => m.typeKey === 'weight');
+  const weightM = latestMeasurements.find((m) => m.typeKey === MeasurementTypes.Weight);
   const targets = profileToTargets(profile, weightM?.value);
 
   const days = [];

@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { todos } from '../../db/schema/todos';
-import type { Todo } from '../../types/index';
+import type { Todo } from '../../types';
 
 export async function getTodos(userId: string): Promise<Todo[]> {
   return db.select().from(todos).where(eq(todos.userId, userId)).orderBy(todos.createdAt);

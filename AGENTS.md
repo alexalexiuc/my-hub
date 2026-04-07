@@ -49,6 +49,9 @@ When a feature spans multiple layers, change in this order:
 
 - TypeScript everywhere. Follow existing ESM style.
 - Reuse shared types; do not duplicate domain models across packages.
+- Keep cross-package/domain constants (enum-like value sets) in `packages/shared/src/constants/<domain>.ts` so Hub client code can import them safely.
+- DB schema files may import and re-export those constants/types, but should not be the primary source of UI-facing constants.
+- For any DB field that is conceptually a union/enum, define an enum-like `as const` object + union type in `packages/shared/src/constants/<domain>.ts`, then use that type in schema columns via Drizzle `. $type<...>()`.
 - Keep DB schema in `packages/shared/src/db/schema`.
 - For schema changes, run `pnpm db:generate` to create migrations instead of hand-writing migration files.
 - For data-only changes (seeds, backfills, one-off SQL, extensions), generate an empty custom migration via `pnpm --filter shared drizzle-kit generate --custom --name=<description>` and fill in the SQL manually. Never hand-write schema migrations.

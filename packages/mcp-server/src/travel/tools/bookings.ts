@@ -8,23 +8,11 @@ import {
   updateTripBooking,
   upsertFlightData,
 } from '@my-hub/shared/services';
-import type { FlightDetails } from '@my-hub/shared/types';
+import type { FlightDetails, TripBookingType } from '@my-hub/shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
+import { TripBookingTypes, tripBookingTypeValues } from '@my-hub/shared/constants';
 
-const BookingTypeSchema = z.enum([
-  'flight',
-  'accommodation',
-  'rental_car',
-  'train',
-  'bus',
-  'ferry',
-  'taxi',
-  'restaurant',
-  'tour',
-  'activity',
-  'ticket',
-  'other',
-]);
+const BookingTypeSchema = z.enum(tripBookingTypeValues as [TripBookingType, ...TripBookingType[]]);
 
 // ---------------------------------------------------------------------------
 // travel_add_reservation_from_text
@@ -36,7 +24,7 @@ export const TravelAddReservationFromTextSchema = z.object({
     .string()
     .min(5)
     .describe('Raw confirmation text from chat/email/notes. The full text is stored for later extraction.'),
-  booking_type: BookingTypeSchema.exclude(['flight'])
+  booking_type: BookingTypeSchema.exclude([TripBookingTypes.Flight])
     .optional()
     .describe('Optional booking type if known. Flights are not supported here — use travel_add_flight instead.'),
   title: z.string().optional().describe('Short reservation title. If omitted, fallback title is generated.'),
@@ -61,7 +49,7 @@ export const travelAddReservationFromTextTool: ToolCallback<typeof TravelAddRese
 ) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
 
-  const bookingType = input.booking_type ?? 'other';
+  const bookingType = input.booking_type ?? TripBookingTypes.Other;
   const title = input.title ?? `Imported ${bookingType} reservation`;
 
   const booking = await addTripBooking(userId, input.trip_id, {
@@ -138,7 +126,7 @@ export const travelAddFlightTool: ToolCallback<typeof TravelAddFlightSchema.shap
   const title = input.title ?? `${flightNumber}: ${originIata} → ${destIata}`;
 
   const booking = await addTripBooking(userId, input.trip_id, {
-    bookingType: 'flight',
+    bookingType: TripBookingTypes.Flight,
     title,
     provider: input.provider ?? null,
     confirmationNumber: input.confirmation_number ?? null,
@@ -206,7 +194,8 @@ export const travelEditBookingTool: ToolCallback<typeof TravelEditBookingSchema.
 
   const existing = await getTripBookingById(userId, input.booking_id);
   if (!existing) throw new Error(`Booking ${input.booking_id} not found.`);
-  if (existing.bookingType === 'flight') throw new Error('Use travel_edit_flight to update flight bookings.');
+  if (existing.bookingType === TripBookingTypes.Flight)
+    throw new Error('Use travel_edit_flight to update flight bookings.');
 
   const updated = await updateTripBooking(userId, input.booking_id, {
     ...(input.title !== undefined && { title: input.title }),
@@ -262,7 +251,8 @@ export const travelEditFlightTool: ToolCallback<typeof TravelEditFlightSchema.sh
 
   const existing = await getTripBookingById(userId, input.booking_id);
   if (!existing) throw new Error(`Booking ${input.booking_id} not found.`);
-  if (existing.bookingType !== 'flight') throw new Error('Use travel_edit_booking to update non-flight bookings.');
+  if (existing.bookingType !== TripBookingTypes.Flight)
+    throw new Error('Use travel_edit_booking to update non-flight bookings.');
 
   // Merge flight detail fields with existing so unmentioned fields are preserved.
   const existingDetails = (existing.details as FlightDetails | null) ?? {};

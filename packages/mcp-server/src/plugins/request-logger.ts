@@ -2,7 +2,7 @@ import fp from 'fastify-plugin';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import { putLog } from '@my-hub/shared/services';
-import { McpServerName } from '@my-hub/shared/schema';
+import type { McpServerName } from '@my-hub/shared/constants';
 import { envConfig } from '../config/env.js';
 import { capPayload, redactSensitiveFields } from './payload-logging.js';
 
