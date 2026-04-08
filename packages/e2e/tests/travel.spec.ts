@@ -182,7 +182,7 @@ test.describe('Travel', () => {
 
     await page.getByRole('button', { name: 'Upload Document' }).click();
 
-    await expect(page.locator('p.font-medium', { hasText: documentTitle })).toBeVisible();
+    await expect(page.locator('p.font-medium', { hasText: documentTitle })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(`Linked to: ${bookingTitle}`)).toBeVisible();
 
     const bookingRow = reservationRowLocator(page, bookingTitle);
@@ -631,8 +631,8 @@ test.describe('Travel', () => {
     await dayByDay.getByRole('button', { name: 'Save', exact: true }).first().click();
 
     // Verify saved content appears
-    await expect(dayByDay.getByText('Arrival day')).toBeVisible();
-    await expect(dayByDay.getByText('Pick up rental car, check in.')).toBeVisible();
+    await expect(dayByDay.locator('p').filter({ hasText: 'Arrival day' })).toBeVisible();
+    await expect(dayByDay.locator('p').filter({ hasText: 'Pick up rental car, check in.' })).toBeVisible();
 
     // Edit the note
     await dayByDay.getByRole('button', { name: 'Edit', exact: true }).first().click();

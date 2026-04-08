@@ -193,6 +193,18 @@ jobs:
           IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
           DEPLOY_BRANCH: ${{ github.head_ref }}
 
+      - name: Register E2E hub user
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST https://staging.hub.alexiuc.dev/api/auth/register \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"$E2E_HUB_USER_EMAIL\",\"password\":\"$E2E_HUB_USER_PASSWORD\",\"name\":\"E2E Test\"}")
+          [ "$STATUS" = "201" ] || [ "$STATUS" = "409" ] || { echo "Registration failed: $STATUS"; exit 1; }
+          echo "Registration response: $STATUS"
+        env:
+          E2E_HUB_USER_EMAIL: ${{ vars.E2E_HUB_USER_EMAIL }}
+          E2E_HUB_USER_PASSWORD: ${{ secrets.E2E_HUB_USER_PASSWORD }}
+
       - name: Provision E2E user on server
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -230,7 +242,9 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: playwright-results
-          path: packages/e2e/playwright-report
+          path: |
+            packages/e2e/playwright-report
+            packages/e2e/test-results
           retention-days: 7
 
       - name: Cleanup staging stack

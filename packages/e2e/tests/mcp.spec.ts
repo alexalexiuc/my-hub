@@ -113,8 +113,7 @@ test.describe('MCP Service Page', () => {
     await expect(toggle).toHaveAttribute('aria-checked', 'false');
   });
 
-  // TODO: Re-enable once audit log has seeded data and is stable enough for testing
-  test.skip('audit log loads seeded rows and shows table columns', async ({ page }) => {
+  test('audit log loads seeded rows and shows table columns', async ({ page }) => {
     const auditSection = page.locator('section').filter({
       has: page.getByRole('heading', { name: 'Audit Log' }),
     });

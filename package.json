@@ -16,6 +16,7 @@
     "test": "pnpm run test:unit",
     "test:unit": "turbo test:unit",
     "test:e2e": "pnpm -r --if-present test:e2e",
+    "test:e2e:staging": "node infra/scripts/e2e-staging.mjs",
     "start:prod": "docker compose --project-name my-hub --env-file .env -f infra/docker-compose.prod.yml up -d --remove-orphans",
     "start:local": "docker compose --project-name my-hub-local --env-file .env -f infra/docker-compose.local.yml up -d --build --remove-orphans",
     "logs:server": "node infra/scripts/server-compose-logs.mjs",
