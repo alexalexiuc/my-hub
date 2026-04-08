@@ -8,9 +8,10 @@ import {
   updateTripBooking,
   upsertFlightData,
 } from '@my-hub/shared/services';
-import type { FlightDetails, TripBookingType } from '@my-hub/shared/types';
+import type { FlightDetails, TransportDetails, TransportLocation, TripBookingType } from '@my-hub/shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
-import { TripBookingTypes, tripBookingTypeValues } from '@my-hub/shared/constants';
+import { transportBookingTypes, TripBookingTypes, tripBookingTypeValues } from '@my-hub/shared/constants';
+import { isTransportBookingType } from '@my-hub/shared/utils';
 
 const BookingTypeSchema = z.enum(tripBookingTypeValues as [TripBookingType, ...TripBookingType[]]);
 
@@ -18,7 +19,7 @@ const BookingTypeSchema = z.enum(tripBookingTypeValues as [TripBookingType, ...T
 // travel_add_reservation_from_text
 // ---------------------------------------------------------------------------
 
-export const TravelAddReservationFromTextSchema = z.object({
+export const TravelAddReservationFromTextInputSchema = z.object({
   trip_id: z.number().int().positive().describe('Trip ID where the reservation should be added.'),
   booking_text: z
     .string()
@@ -41,16 +42,83 @@ export const TravelAddReservationFromTextSchema = z.object({
     ),
   lat: z.number().optional().describe('Latitude of the booking location (decimal degrees).'),
   lng: z.number().optional().describe('Longitude of the booking location (decimal degrees).'),
+  origin: z
+    .object({
+      name: z.string().min(1).describe('Departure/pickup place name extracted from the confirmation text.'),
+      address: z.string().optional(),
+      iata_code: z.string().length(3).optional(),
+      uic_code: z.string().optional(),
+      google_place_id: z.string().optional(),
+      lat: z.number().optional(),
+      lng: z.number().optional(),
+    })
+    .optional()
+    .describe(
+      'Origin location for transport bookings (train, bus, ferry, taxi, transfer, car, rental_car). Extract from text when possible.',
+    ),
+  destination: z
+    .object({
+      name: z.string().min(1).describe('Arrival/drop-off place name extracted from the confirmation text.'),
+      address: z.string().optional(),
+      iata_code: z.string().length(3).optional(),
+      uic_code: z.string().optional(),
+      google_place_id: z.string().optional(),
+      lat: z.number().optional(),
+      lng: z.number().optional(),
+    })
+    .optional()
+    .describe('Destination location for transport bookings. Extract from text when possible.'),
 });
 
-export const travelAddReservationFromTextTool: ToolCallback<typeof TravelAddReservationFromTextSchema.shape> = async (
-  input,
-  extra,
-) => {
+export const TravelAddReservationFromTextSchema = TravelAddReservationFromTextInputSchema.superRefine((input, ctx) => {
+  const bookingType = input.booking_type ?? TripBookingTypes.Other;
+  if (!isTransportBookingType(bookingType)) return;
+
+  if (!input.origin) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['origin'],
+      message: `origin is required for transport booking_type "${bookingType}".`,
+    });
+  }
+
+  if (!input.destination) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['destination'],
+      message: `destination is required for transport booking_type "${bookingType}".`,
+    });
+  }
+});
+
+export const travelAddReservationFromTextTool: ToolCallback<
+  typeof TravelAddReservationFromTextInputSchema.shape
+> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
 
   const bookingType = input.booking_type ?? TripBookingTypes.Other;
-  const title = input.title ?? `Imported ${bookingType} reservation`;
+  const isTransport = isTransportBookingType(bookingType);
+  const hasRoute = input.origin && input.destination;
+
+  const title =
+    input.title ??
+    (isTransport && hasRoute
+      ? `${input.origin!.name} → ${input.destination!.name}`
+      : `Imported ${bookingType} reservation`);
+
+  const details: TransportDetails | { source: string; raw_text: string } =
+    isTransport && hasRoute
+      ? {
+          kind: 'transport',
+          origin: input.origin as TransportLocation,
+          destination: input.destination as TransportLocation,
+          source: 'nl_import',
+          raw_text: input.booking_text,
+        }
+      : {
+          source: 'nl_import',
+          raw_text: input.booking_text,
+        };
 
   const booking = await addTripBooking(userId, input.trip_id, {
     bookingType,
@@ -62,15 +130,12 @@ export const travelAddReservationFromTextTool: ToolCallback<typeof TravelAddRese
     status: 'imported',
     costAmount: null,
     costCurrency: 'EUR',
-    location: input.location ?? null,
+    location: input.location ?? (hasRoute ? `${input.origin!.name} → ${input.destination!.name}` : null),
     notes: null,
     timezone: input.timezone ?? null,
-    lat: input.lat ?? null,
-    lng: input.lng ?? null,
-    details: {
-      source: 'nl_import',
-      raw_text: input.booking_text,
-    },
+    lat: input.lat ?? input.origin?.lat ?? null,
+    lng: input.lng ?? input.origin?.lng ?? null,
+    details,
   });
 
   return toolResponse({
@@ -141,6 +206,7 @@ export const travelAddFlightTool: ToolCallback<typeof TravelAddFlightSchema.shap
     lat: input.lat ?? null,
     lng: input.lng ?? null,
     details: {
+      kind: 'flight' as const,
       flight_number: flightNumber,
       origin_iata: originIata,
       destination_iata: destIata,
@@ -162,6 +228,97 @@ export const travelAddFlightTool: ToolCallback<typeof TravelAddFlightSchema.shap
 
   return toolResponse({
     message: 'Flight added and live tracking enabled.',
+    booking,
+  });
+};
+
+// ---------------------------------------------------------------------------
+// travel_add_transport
+// ---------------------------------------------------------------------------
+
+const TransportLocationSchema = z.object({
+  name: z.string().min(1).describe('Place name, e.g. "Paris Gare du Nord" or "Hilton Hotel lobby".'),
+  address: z.string().optional().describe('Freeform address string.'),
+  iata_code: z.string().length(3).optional().describe('3-letter IATA airport code, e.g. "CDG".'),
+  uic_code: z.string().optional().describe('UIC railway station code, e.g. "8711300".'),
+  google_place_id: z.string().optional().describe('Google Place ID, e.g. "ChIJ...".'),
+  lat: z.number().optional().describe('Latitude in decimal degrees.'),
+  lng: z.number().optional().describe('Longitude in decimal degrees.'),
+});
+
+const TransportBookingTypeSchema = z.enum(transportBookingTypes);
+
+export const TravelAddTransportSchema = z.object({
+  trip_id: z.number().int().positive().describe('Trip ID to add the booking to.'),
+  booking_type: TransportBookingTypeSchema.describe(
+    'Type of transport: train, bus, ferry, taxi, transfer, rental_car, or car.',
+  ),
+  origin: TransportLocationSchema.describe('Departure/pickup location.'),
+  destination: TransportLocationSchema.describe('Arrival/drop-off location.'),
+  departure_at: z.string().datetime().describe('Departure datetime in ISO 8601, e.g. "2026-06-15T09:30:00Z".'),
+  arrival_at: z.string().datetime().optional().describe('Estimated/scheduled arrival datetime in ISO 8601.'),
+  timezone: z
+    .string()
+    .optional()
+    .describe('IANA timezone string for the departure location, e.g. "Europe/Paris". Infer from origin when possible.'),
+  title: z
+    .string()
+    .optional()
+    .describe('Short label for the itinerary. Defaults to "Origin → Destination" if omitted.'),
+  provider: z.string().optional().describe('Operator/carrier name, e.g. "Eurostar", "Uber".'),
+  confirmation_number: z.string().optional().describe('Booking reference.'),
+  service_number: z.string().optional().describe('Train/bus/ferry service number, e.g. "TGV 6201".'),
+  seat: z.string().optional().describe('Seat, berth, or carriage assignment, e.g. "Car 4 Seat 22".'),
+  class: z.string().optional().describe('Travel class, e.g. "Business", "1st class".'),
+  vehicle_type: z.string().optional().describe('Vehicle model or type, e.g. "Mercedes E-Class", "Coach".'),
+  meeting_point: z.string().optional().describe('Where to meet the driver/transfer (for taxi/transfer).'),
+  vessel_name: z.string().optional().describe('Ship or vessel name (for ferries).'),
+  cabin: z.string().optional().describe('Cabin number or deck (for ferries).'),
+  distance_km: z.number().optional().describe('Approximate distance in kilometres (for car/rental_car).'),
+  cost_amount: z.number().optional().describe('Total cost amount.'),
+  cost_currency: z.string().length(3).optional().describe('ISO 4217 currency code, e.g. "EUR".'),
+  notes: z.string().optional().describe('Any extra notes.'),
+});
+
+export const travelAddTransportTool: ToolCallback<typeof TravelAddTransportSchema.shape> = async (input, extra) => {
+  const userId = extra.authInfo?.extra?.['userId'] as string;
+
+  const title = input.title ?? `${input.origin.name} → ${input.destination.name}`;
+
+  const details: TransportDetails = {
+    kind: 'transport',
+    origin: input.origin as TransportLocation,
+    destination: input.destination as TransportLocation,
+    ...(input.service_number && { service_number: input.service_number }),
+    ...(input.seat && { seat: input.seat }),
+    ...(input.class && { class: input.class }),
+    ...(input.vehicle_type && { vehicle_type: input.vehicle_type }),
+    ...(input.meeting_point && { meeting_point: input.meeting_point }),
+    ...(input.vessel_name && { vessel_name: input.vessel_name }),
+    ...(input.cabin && { cabin: input.cabin }),
+    ...(input.distance_km !== undefined && { distance_km: input.distance_km }),
+  };
+
+  const booking = await addTripBooking(userId, input.trip_id, {
+    bookingType: input.booking_type,
+    title,
+    provider: input.provider ?? null,
+    confirmationNumber: input.confirmation_number ?? null,
+    startAt: new Date(input.departure_at),
+    endAt: input.arrival_at ? new Date(input.arrival_at) : null,
+    status: 'confirmed',
+    costAmount: input.cost_amount ?? null,
+    costCurrency: input.cost_currency ?? 'EUR',
+    location: `${input.origin.name} → ${input.destination.name}`,
+    notes: input.notes ?? null,
+    timezone: input.timezone ?? null,
+    lat: input.origin.lat ?? null,
+    lng: input.origin.lng ?? null,
+    details,
+  });
+
+  return toolResponse({
+    message: 'Transport booking added.',
     booking,
   });
 };
@@ -255,10 +412,11 @@ export const travelEditFlightTool: ToolCallback<typeof TravelEditFlightSchema.sh
     throw new Error('Use travel_edit_booking to update non-flight bookings.');
 
   // Merge flight detail fields with existing so unmentioned fields are preserved.
-  const existingDetails = (existing.details as FlightDetails | null) ?? {};
+  const existingDetails = (existing.details as Partial<FlightDetails>) ?? {};
   const newFlightNumber = input.flight_number ? input.flight_number.toUpperCase() : undefined;
   const mergedDetails: FlightDetails = {
     ...existingDetails,
+    kind: 'flight' as const,
     ...(newFlightNumber && { flight_number: newFlightNumber }),
     ...(input.seat !== undefined && { seat: input.seat }),
     ...(input.terminal !== undefined && { terminal: input.terminal }),

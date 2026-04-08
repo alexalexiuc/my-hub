@@ -1,6 +1,7 @@
-import type { FlightData, TripBookingType, TripDocument } from '@my-hub/shared/types';
+import type { FlightData, TransportDetails, TripBookingType, TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { TripBookingTypes, TripDocumentTypes } from '@my-hub/shared/constants';
+import { isTransportBookingType } from '@my-hub/shared/utils';
 
 const SegmentActions = {
   BoardingPass: 'boarding_pass',
@@ -51,7 +52,10 @@ function endpointLabels(type: TripBookingType): { start: string; end: string } {
     case TripBookingTypes.Ferry:
       return { start: 'Departure', end: 'Arrival' };
     case TripBookingTypes.Taxi:
+    case TripBookingTypes.Transfer:
       return { start: 'Pickup', end: 'Drop-off' };
+    case TripBookingTypes.Car:
+      return { start: 'Departure', end: 'Arrival' };
     case TripBookingTypes.Tour:
     case TripBookingTypes.Activity:
     case TripBookingTypes.Restaurant:
@@ -117,6 +121,12 @@ function computeDuration(booking: TripBookingExtended, fd: FlightData | null): s
 // Labels / actions
 // ---------------------------------------------------------------------------
 
+function getTransportDetails(booking: TripBookingExtended): TransportDetails | null {
+  const d = booking.details as { kind?: string } | null;
+  if (d?.kind === 'transport') return booking.details as TransportDetails;
+  return null;
+}
+
 function deriveLabels(booking: TripBookingExtended): { primary: string; secondary: string } {
   const fd = booking.flightData;
   const d = (booking.details ?? {}) as {
@@ -144,23 +154,27 @@ function deriveLabels(booking: TripBookingExtended): { primary: string; secondar
         primary: booking.title,
         secondary: [booking.provider, booking.location].filter(Boolean).join(' · '),
       };
-    case TripBookingTypes.Taxi:
-      return {
-        primary: booking.title,
-        secondary: booking.location || booking.provider || '',
-      };
-    case TripBookingTypes.Train:
-    case TripBookingTypes.Bus:
-    case TripBookingTypes.Ferry:
-      return {
-        primary: booking.title,
-        secondary: [booking.provider, booking.confirmationNumber].filter(Boolean).join(' · '),
-      };
-    default:
+    default: {
+      if (isTransportBookingType(booking.bookingType)) {
+        const td = getTransportDetails(booking);
+        const reference = td?.service_number ?? booking.confirmationNumber;
+        const seat = td?.seat ? `Seat ${td.seat}` : null;
+        const travelClass = td?.class ?? null;
+
+        if (td) {
+          const primary = `${td.origin.name} → ${td.destination.name}`;
+          const parts = [booking.provider, reference, seat, travelClass].filter(Boolean);
+          return { primary, secondary: parts.join(' · ') || booking.provider || '' };
+        }
+
+        const parts = [booking.provider, reference].filter(Boolean);
+        return { primary: booking.title, secondary: parts.join(' · ') };
+      }
       return {
         primary: booking.title,
         secondary: [booking.provider, booking.location].filter(Boolean).join(' · '),
       };
+    }
   }
 }
 
@@ -255,6 +269,14 @@ function endpointLocationQuery(booking: TripBookingExtended, endpoint: 'start' |
     const destination = fd?.destinationIata ?? details.destination_iata;
     const flightEndpoint = endpoint === 'start' ? origin : destination;
     if (flightEndpoint) return flightEndpoint;
+  }
+
+  if (isTransportBookingType(booking.bookingType)) {
+    const td = getTransportDetails(booking);
+    if (td) {
+      const loc = endpoint === 'start' ? td.origin : td.destination;
+      return loc.address ?? loc.name;
+    }
   }
 
   const rawLocation = booking.location?.trim();

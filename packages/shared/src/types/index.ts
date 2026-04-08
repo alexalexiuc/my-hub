@@ -82,6 +82,7 @@ export type NewApiaryTask = InferInsertModel<typeof apiaryTasks>;
 
 // Travel — flight metadata stored in trip_bookings.details (user-provided / AI-extracted fallback)
 export interface FlightDetails {
+  readonly kind: 'flight';
   flight_number?: string;
   seat?: string;
   origin_iata?: string;
@@ -89,6 +90,34 @@ export interface FlightDetails {
   terminal?: string;
   gate?: string;
   aircraft_type?: string;
+  source?: string;
+  raw_text?: string;
+}
+
+// Travel — location for transport bookings (train, bus, ferry, taxi, transfer, car, rental_car)
+export interface TransportLocation {
+  name: string;
+  address?: string;
+  iata_code?: string;
+  uic_code?: string;
+  google_place_id?: string;
+  lat?: number;
+  lng?: number;
+}
+
+// Travel — transport booking details stored in trip_bookings.details
+export interface TransportDetails {
+  readonly kind: 'transport';
+  origin: TransportLocation;
+  destination: TransportLocation;
+  service_number?: string;
+  seat?: string;
+  class?: string;
+  vehicle_type?: string;
+  meeting_point?: string;
+  vessel_name?: string;
+  cabin?: string;
+  distance_km?: number;
   source?: string;
   raw_text?: string;
 }

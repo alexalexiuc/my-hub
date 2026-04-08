@@ -1,4 +1,4 @@
-import { TripStatuses, type TripStatus } from '../constants';
+import { TripStatuses, type TripStatus, transportBookingTypes } from '../constants';
 
 /**
  * Derive a trip status from timeline fields. Status is computed, not persisted.
@@ -14,3 +14,8 @@ export function deriveTripStatus(
   if (!endAt || endAt >= now) return TripStatuses.Active;
   return TripStatuses.Completed;
 }
+
+export const isTransportBookingType = (bookingType: string): boolean => {
+  // @ts-expect-error - TypeScript doesn't understand the const assertion here, but we know it's correct
+  return transportBookingTypes.includes(bookingType);
+};
