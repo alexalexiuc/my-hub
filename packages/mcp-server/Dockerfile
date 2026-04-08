@@ -29,6 +29,7 @@ ENV MCP_HOST=0.0.0.0
 COPY --from=builder /prod/mcp-server/dist ./dist
 COPY --from=builder /prod/mcp-server/node_modules ./node_modules
 COPY --from=builder /prod/mcp-server/package.json ./package.json
+COPY --from=builder /app/packages/mcp-server/scripts ./scripts
 
 
 
