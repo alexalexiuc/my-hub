@@ -10,7 +10,8 @@
     "lint": "pnpm exec eslint .",
     "typecheck": "tsc --noEmit",
     "test": "pnpm run test:unit",
-    "test:unit": "vitest run --passWithNoTests"
+    "test:unit": "vitest run --passWithNoTests",
+    "healthcheck": "node scripts/healthcheck.mjs"
   },
   "dependencies": {
     "@my-hub/shared": "workspace:*",

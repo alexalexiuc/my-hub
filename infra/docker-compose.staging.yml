@@ -94,7 +94,7 @@ services:
     image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-mcp-server:staging-latest
     restart: unless-stopped
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://localhost:3001/health || exit 1']
+      test: ['CMD-SHELL', 'npm run healthcheck']
       interval: 10s
       timeout: 5s
       retries: 6
@@ -143,7 +143,7 @@ services:
     image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-hub:staging-latest
     restart: unless-stopped
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/api/auth/providers || exit 1']
+      test: ['CMD-SHELL', 'npm run healthcheck']
       interval: 10s
       timeout: 5s
       retries: 12
