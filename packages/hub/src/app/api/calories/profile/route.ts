@@ -29,6 +29,9 @@ export const PUT = withAuth(async ({ req, user }) => {
     'goalWeeklyRateKg',
     'goalMinCalories',
     'goalMaxCalories',
+    'goalProtein',
+    'goalCarbs',
+    'goalFat',
     'notes',
   ] as const;
   const updates: Record<string, unknown> = {};

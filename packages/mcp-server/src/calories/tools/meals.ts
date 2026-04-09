@@ -145,6 +145,14 @@ export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (inpu
   const caloriesConsumed = dayRows.reduce((s, r) => s + (r.kcal ?? 0), 0);
   const remainingCalories = maxCal !== null ? maxCal - caloriesConsumed : null;
 
+  const proteinConsumed = dayRows.reduce((s, r) => s + (r.protein ?? 0), 0);
+  const carbsConsumed = dayRows.reduce((s, r) => s + (r.carbs ?? 0), 0);
+  const fatConsumed = dayRows.reduce((s, r) => s + (r.fat ?? 0), 0);
+
+  const goalProtein = profileRow?.goalProtein ?? null;
+  const goalCarbs = profileRow?.goalCarbs ?? null;
+  const goalFat = profileRow?.goalFat ?? null;
+
   const remaining = {
     calories_consumed: caloriesConsumed,
     goal_calories: targets.goalCalories,
@@ -152,6 +160,20 @@ export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (inpu
     max_calories: maxCal,
     remaining_calories: remainingCalories,
     over_budget: remainingCalories !== null ? remainingCalories < 0 : null,
+    macros: {
+      protein_g: proteinConsumed,
+      carbs_g: carbsConsumed,
+      fat_g: fatConsumed,
+      goal_protein_g: goalProtein,
+      goal_carbs_g: goalCarbs,
+      goal_fat_g: goalFat,
+      remaining_protein_g: goalProtein !== null ? goalProtein - proteinConsumed : null,
+      remaining_carbs_g: goalCarbs !== null ? goalCarbs - carbsConsumed : null,
+      remaining_fat_g: goalFat !== null ? goalFat - fatConsumed : null,
+      over_protein: goalProtein !== null ? proteinConsumed > goalProtein : null,
+      over_carbs: goalCarbs !== null ? carbsConsumed > goalCarbs : null,
+      over_fat: goalFat !== null ? fatConsumed > goalFat : null,
+    },
   };
 
   return toolResponse({

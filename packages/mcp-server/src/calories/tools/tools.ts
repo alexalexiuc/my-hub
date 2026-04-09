@@ -43,11 +43,12 @@ const caloriesTools = [
   defineTool({
     name: 'calories_update_profile',
     description:
-      'Save or update health profile (age, sex, height, activity level, and goal). ' +
+      'Save or update health profile (age, sex, height, activity level, goal) and daily targets (calorie bounds, macro targets). ' +
       'Computes BMR and TDEE via the Mifflin-St Jeor equation. ' +
       'IMPORTANT: Always ask the user what their goal is (weight_loss, weight_gain, or maintain) before calling this tool. ' +
       'For weight_loss or weight_gain, also ask for the weekly rate in kg. ' +
       'Height (height_cm) is stored on the profile and only needs to be set once. ' +
+      'If the user specifies macros as percentages, convert them to grams using goal_max_calories as the reference (protein & carbs = 4 kcal/g, fat = 9 kcal/g). ' +
       'Weight and other changing body measurements are logged separately via calories_log_measurement.',
     inputSchema: UpdateProfileSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
