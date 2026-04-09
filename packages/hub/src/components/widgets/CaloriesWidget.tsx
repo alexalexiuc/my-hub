@@ -1,28 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { dateToString, calculateMacroKcal } from '@my-hub/shared/utils';
+import { dateToString, calculateMacroKcal, calculateCalorieTargets } from '@my-hub/shared/utils';
 import { SectionCard, Button } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons';
 import { MealType, MealTypes, MealTypesValues } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from '@/app/calories/constants';
+import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
+import type { MeasurementWithType } from '@my-hub/shared/services';
 
 interface Macros {
   protein: number;
   carbs: number;
   fat: number;
-}
-
-interface CaloriesWidgetProps {
-  todayKcal: number;
-  todayTarget: number | null;
-  minCalories: number | null;
-  maxCalories: number | null;
-  macros: Macros;
-  macroGoals: Macros | null;
-  loading: boolean;
-  onMealAdded: () => void;
 }
 
 function MacroBar({
@@ -64,16 +55,14 @@ function MacroBar({
   );
 }
 
-export function CaloriesWidget({
-  todayKcal,
-  todayTarget,
-  minCalories,
-  maxCalories,
-  macros,
-  macroGoals,
-  loading,
-  onMealAdded,
-}: CaloriesWidgetProps) {
+export function CaloriesWidget() {
+  const [loading, setLoading] = useState(true);
+  const [todayKcal, setTodayKcal] = useState(0);
+  const [todayTarget, setTodayTarget] = useState<number | null>(null);
+  const [minCalories, setMinCalories] = useState<number | null>(null);
+  const [maxCalories, setMaxCalories] = useState<number | null>(null);
+  const [macros, setMacros] = useState<Macros>({ protein: 0, carbs: 0, fat: 0 });
+  const [macroGoals, setMacroGoals] = useState<Macros | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -81,6 +70,88 @@ export function CaloriesWidget({
     kcal: '',
     mealType: MealTypes.Lunch as MealType,
   });
+
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const today = dateToString(new Date());
+      const [profileRes, mealsRes] = await Promise.all([
+        fetch('/api/calories/profile'),
+        fetch(`/api/calories/meals?date=${today}&limit=200`),
+      ]);
+
+      const [profileData, mealsData] = await Promise.all([
+        profileRes.ok
+          ? (profileRes.json() as Promise<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>)
+          : Promise.resolve(null),
+        mealsRes.ok ? (mealsRes.json() as Promise<{ meals: MealLog[] }>) : Promise.resolve(null),
+      ]);
+
+      const profile: CalorieProfile | null = profileData?.profile ?? null;
+      const measurements: MeasurementWithType[] = profileData?.measurements ?? [];
+      const meals: MealLog[] = mealsData?.meals ?? [];
+
+      const kcal = meals.reduce((sum, m) => sum + (m.kcal ?? 0), 0);
+      const newMacros: Macros = {
+        protein: Math.round(meals.reduce((sum, m) => sum + (m.protein ?? 0), 0)),
+        carbs: Math.round(meals.reduce((sum, m) => sum + (m.carbs ?? 0), 0)),
+        fat: Math.round(meals.reduce((sum, m) => sum + (m.fat ?? 0), 0)),
+      };
+
+      const latestWeight = measurements.find((m) => m.typeKey === 'weight');
+      const targets = calculateCalorieTargets({
+        age: profile?.age ?? null,
+        sex: profile?.sex ?? null,
+        heightCm: profile?.heightCm ?? null,
+        weightKg: latestWeight?.value ?? null,
+        activityLevel: profile?.activityLevel ?? null,
+        goalType: profile?.goalType ?? null,
+        goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? null,
+        goalMinCalories: profile?.goalMinCalories ?? null,
+        goalMaxCalories: profile?.goalMaxCalories ?? null,
+      });
+
+      setTodayKcal(kcal);
+      setTodayTarget(targets.maxCalories ?? targets.goalCalories ?? targets.tdee ?? null);
+      setMinCalories(targets.minCalories ?? null);
+      setMaxCalories(targets.maxCalories ?? null);
+      setMacros(newMacros);
+      setMacroGoals(
+        profile?.goalProtein != null || profile?.goalCarbs != null || profile?.goalFat != null
+          ? { protein: profile?.goalProtein ?? 0, carbs: profile?.goalCarbs ?? 0, fat: profile?.goalFat ?? 0 }
+          : null,
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function addMeal() {
+    if (!form.description) return;
+    setSaving(true);
+    try {
+      const today = dateToString(new Date());
+      await fetch('/api/calories/meals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: form.description,
+          kcal: form.kcal ? Math.round(Number(form.kcal)) : undefined,
+          mealType: form.mealType,
+          date: today,
+        }),
+      });
+      setShowAdd(false);
+      setForm({ description: '', kcal: '', mealType: MealTypes.Lunch });
+      await load(true);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const totalMacroKcal = calculateMacroKcal(macros.protein, macros.carbs, macros.fat);
   const sharePct = (kcal: number) => (totalMacroKcal > 0 ? Math.round((kcal / totalMacroKcal) * 100) : 0);
@@ -103,7 +174,6 @@ export function CaloriesWidget({
 
   const arcColor = cap !== null ? (isOver ? '#ef4444' : isUnder ? '#facc15' : '#4ade80') : '#3f3f46';
 
-  // When over, show how much the overflow wraps around (capped at one full revolution)
   const overflowAmount = isOver && cap !== null ? Math.min(todayKcal - cap, cap) : 0;
   const overflowData =
     isOver && cap !== null
@@ -115,29 +185,6 @@ export function CaloriesWidget({
           { value: 0, key: 'overflow' },
           { value: 0, key: 'overflow-empty' },
         ];
-
-  async function addMeal() {
-    if (!form.description) return;
-    setSaving(true);
-    try {
-      const today = dateToString(new Date());
-      await fetch('/api/calories/meals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          description: form.description,
-          kcal: form.kcal ? Math.round(Number(form.kcal)) : undefined,
-          mealType: form.mealType,
-          date: today,
-        }),
-      });
-      setShowAdd(false);
-      setForm({ description: '', kcal: '', mealType: MealTypes.Lunch });
-      onMealAdded();
-    } finally {
-      setSaving(false);
-    }
-  }
 
   return (
     <SectionCard
@@ -156,7 +203,15 @@ export function CaloriesWidget({
       }
     >
       {loading ? (
-        <div className="text-sm text-zinc-500 animate-pulse">Loading...</div>
+        <div className="space-y-3 animate-pulse">
+          <div className="mx-auto w-[140px] h-[140px] rounded-full bg-zinc-800" />
+          <div className="h-4 w-24 mx-auto bg-zinc-800 rounded" />
+          <div className="flex gap-4 pt-3 border-t border-zinc-800">
+            <div className="flex-1 h-8 bg-zinc-800 rounded" />
+            <div className="flex-1 h-8 bg-zinc-800 rounded" />
+            <div className="flex-1 h-8 bg-zinc-800 rounded" />
+          </div>
+        </div>
       ) : (
         <div className="flex flex-col items-center">
           {/* Donut chart */}
@@ -165,7 +220,6 @@ export function CaloriesWidget({
               <PieChart>
                 {isOver ? (
                   <>
-                    {/* Full red background ring — represents hitting the cap */}
                     <Pie
                       data={[{ value: 1, key: 'bg' }]}
                       cx="50%"
@@ -180,7 +234,6 @@ export function CaloriesWidget({
                     >
                       <Cell fill="#ef4444" />
                     </Pie>
-                    {/* Lighter overlay arc showing how far over the cap we are */}
                     <Pie
                       data={overflowData}
                       cx="50%"
@@ -217,7 +270,6 @@ export function CaloriesWidget({
                 )}
               </PieChart>
             </ResponsiveContainer>
-            {/* Center text */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className={`text-xl font-bold ${isOver ? 'text-red-400' : isUnder ? 'text-yellow-400' : ''}`}>
                 {cap !== null ? (isOver ? `+${todayKcal - cap}` : remaining) : eaten}
@@ -227,6 +279,7 @@ export function CaloriesWidget({
               </span>
             </div>
           </div>
+
           {/* Eaten / Target line */}
           <p className="text-sm text-zinc-400">
             <span className="font-semibold text-zinc-200">{eaten}</span>

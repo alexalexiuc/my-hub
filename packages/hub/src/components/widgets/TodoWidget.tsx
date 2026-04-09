@@ -1,26 +1,33 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import type { Todo } from '@my-hub/shared/types';
 import { SectionCard } from '@/components/SectionCard';
 import { PlusOutlineIcon, CheckOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 
-interface TodoWidgetProps {
-  todos: Todo[];
-  loading: boolean;
-  onAdd: (title: string) => Promise<number | undefined>;
-  onMarkDone: (id: number) => Promise<void>;
-  onDelete: (id: number) => Promise<void>;
-}
-
-export function TodoWidget({ todos, loading, onAdd, onMarkDone, onDelete }: TodoWidgetProps) {
+export function TodoWidget() {
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState<Set<number>>(new Set());
   const [newlyAdded, setNewlyAdded] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const load = useCallback(async () => {
+    const res = await fetch('/api/todo');
+    if (res.ok) {
+      const data = (await res.json()) as { todos: Todo[] };
+      setTodos(data.todos);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const open = todos.filter((t) => !t.done);
 
@@ -37,11 +44,17 @@ export function TodoWidget({ todos, loading, onAdd, onMarkDone, onDelete }: Todo
     }
     setSaving(true);
     try {
-      const id = await onAdd(title.trim());
-      setTitle('');
-      setAdding(false);
-      if (id !== undefined) {
-        setNewlyAdded(id);
+      const res = await fetch('/api/todo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title.trim() }),
+      });
+      if (res.ok) {
+        const { todo } = (await res.json()) as { todo: Todo };
+        setTodos((prev) => [todo, ...prev]);
+        setTitle('');
+        setAdding(false);
+        setNewlyAdded(todo.id);
         setTimeout(() => setNewlyAdded(null), 50);
       }
     } finally {
@@ -53,7 +66,8 @@ export function TodoWidget({ todos, loading, onAdd, onMarkDone, onDelete }: Todo
     setCompleting((prev) => new Set(prev).add(id));
     setTimeout(async () => {
       try {
-        await onMarkDone(id);
+        await fetch(`/api/todo/${id}`, { method: 'PATCH' });
+        setTodos((prev) => prev.filter((t) => t.id !== id));
       } finally {
         setCompleting((prev) => {
           const next = new Set(prev);
@@ -62,6 +76,11 @@ export function TodoWidget({ todos, loading, onAdd, onMarkDone, onDelete }: Todo
         });
       }
     }, 700);
+  }
+
+  async function handleDelete(id: number) {
+    await fetch(`/api/todo/${id}`, { method: 'DELETE' });
+    setTodos((prev) => prev.filter((t) => t.id !== id));
   }
 
   return (
@@ -82,12 +101,14 @@ export function TodoWidget({ todos, loading, onAdd, onMarkDone, onDelete }: Todo
         </div>
       }
     >
-      {/* Todo list */}
       {loading ? (
-        <div className="text-sm text-zinc-500 animate-pulse">Loading...</div>
+        <div className="space-y-2 mt-2 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-9 rounded-lg bg-zinc-800" />
+          ))}
+        </div>
       ) : (
         <div className="space-y-2 mt-2">
-          {/* Inline add row */}
           {adding && (
             <div className="flex items-center gap-3 px-3 py-2">
               <div className="flex-shrink-0 w-5 h-5 rounded-full border-2 border-zinc-700" />
@@ -155,7 +176,7 @@ export function TodoWidget({ todos, loading, onAdd, onMarkDone, onDelete }: Todo
                     {todo.title}
                   </span>
                   <button
-                    onClick={() => onDelete(todo.id)}
+                    onClick={() => handleDelete(todo.id)}
                     className="flex-shrink-0 opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all duration-200"
                     title="Delete"
                   >

@@ -41,16 +41,32 @@ export function TripsSidebar({
   const [filterMode, setFilterMode] = useState<'upcoming' | 'all'>('upcoming');
 
   const filteredTrips = useMemo(() => {
+    const now = Date.now();
     const base =
       filterMode === 'upcoming' ? trips.filter((t) => t.status !== 'cancelled' && t.status !== 'completed') : trips;
-    return [...base].sort((a, b) => {
-      const aDate = a.startAt ? new Date(a.startAt).getTime() : null;
-      const bDate = b.startAt ? new Date(b.startAt).getTime() : null;
-      if (aDate === null && bDate === null) return 0;
-      if (aDate === null) return 1;
-      if (bDate === null) return -1;
-      return bDate - aDate;
-    });
+
+    const upcoming: ApiTrip[] = [];
+    const past: ApiTrip[] = [];
+    const noDate: ApiTrip[] = [];
+
+    for (const trip of base) {
+      if (!trip.startAt) {
+        noDate.push(trip);
+      } else {
+        const t = new Date(trip.startAt as unknown as string).getTime();
+        if (t >= now) upcoming.push(trip);
+        else past.push(trip);
+      }
+    }
+
+    upcoming.sort(
+      (a, b) => new Date(a.startAt as unknown as string).getTime() - new Date(b.startAt as unknown as string).getTime(),
+    );
+    past.sort(
+      (a, b) => new Date(b.startAt as unknown as string).getTime() - new Date(a.startAt as unknown as string).getTime(),
+    );
+
+    return [...upcoming, ...past, ...noDate];
   }, [trips, filterMode]);
 
   async function createTrip() {
