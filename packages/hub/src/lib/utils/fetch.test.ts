@@ -29,7 +29,7 @@ describe('apiFetch — success cases', () => {
   it('appends query params, omitting null/undefined', async () => {
     global.fetch = makeFetch(200, {});
     await apiFetch('/api/meals', { query: { date: '2026-01-01', limit: 100, type: undefined, extra: null } });
-    const url = (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+    const url = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as string;
     expect(url).toBe('/api/meals?date=2026-01-01&limit=100');
   });
 
