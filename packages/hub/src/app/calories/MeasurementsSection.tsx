@@ -6,6 +6,7 @@ import type { MeasurementWithType } from '@my-hub/shared/services';
 import { SectionCard } from '@/components/SectionCard';
 import { Field, Button } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons';
+import { apiFetch } from '@/lib/utils';
 
 interface Props {
   latestMeasurements: MeasurementWithType[];
@@ -28,15 +29,14 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
     if (!form.typeKey || !form.value) return;
     setSaving(true);
     try {
-      await fetch('/api/calories/measurements', {
+      await apiFetch('/api/calories/measurements', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           typeKey: form.typeKey,
           value: Number(form.value),
           date: form.date,
           notes: form.notes || undefined,
-        }),
+        },
       });
       setShowAdd(false);
       setForm({ typeKey: '', value: '', date: new Date().toISOString().split('T')[0]!, notes: '' });
@@ -49,7 +49,7 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
   async function deleteMeasurementEntry(id: number) {
     setDeleting(id);
     try {
-      await fetch(`/api/calories/measurements/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/calories/measurements/${id}`, { method: 'DELETE' });
       onChanged();
     } finally {
       setDeleting(null);

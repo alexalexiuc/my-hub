@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { Todo } from '@my-hub/shared/types';
 import { PageHeader } from '@/components/PageHeader';
+import { apiFetch, ApiError } from '@/lib/utils';
 import { SectionCard } from '@/components/SectionCard';
 import { PlusOutlineIcon, CheckOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 
@@ -20,15 +21,10 @@ export default function TodoPage() {
 
   const loadTodos = useCallback(async () => {
     try {
-      const res = await fetch('/api/todo');
-      if (res.status === 401) {
-        setError('Not signed in');
-        return;
-      }
-      const data = (await res.json()) as { todos: Todo[] };
+      const data = await apiFetch<{ todos: Todo[] }>('/api/todo');
       setTodos(data.todos);
     } catch (e) {
-      setError(String(e));
+      setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
     } finally {
       setLoading(false);
     }
@@ -51,11 +47,7 @@ export default function TodoPage() {
     }
     setSaving(true);
     try {
-      await fetch('/api/todo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim() }),
-      });
+      await apiFetch('/api/todo', { method: 'POST', body: { title: title.trim() } });
       setTitle('');
       setAdding(false);
       await loadTodos();
@@ -67,7 +59,7 @@ export default function TodoPage() {
   async function markDone(id: number) {
     setMarking(id);
     try {
-      await fetch(`/api/todo/${id}`, { method: 'PATCH' });
+      await apiFetch(`/api/todo/${id}`, { method: 'PATCH' });
       await loadTodos();
     } finally {
       setMarking(null);
@@ -77,7 +69,7 @@ export default function TodoPage() {
   async function deleteTodo(id: number) {
     setDeleting(id);
     try {
-      await fetch(`/api/todo/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/todo/${id}`, { method: 'DELETE' });
       await loadTodos();
     } finally {
       setDeleting(null);

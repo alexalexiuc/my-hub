@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { dateToString, calculateMacroKcal } from '@my-hub/shared/utils';
 import { SectionCard, Button } from '@/components';
+import { apiFetch } from '@/lib/utils';
 import { PlusOutlineIcon } from '@/components/icons';
 import { MealType, MealTypes, MealTypesValues } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from '@/app/calories/constants';
@@ -121,15 +122,14 @@ export function CaloriesWidget({
     setSaving(true);
     try {
       const today = dateToString(new Date());
-      await fetch('/api/calories/meals', {
+      await apiFetch('/api/calories/meals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           description: form.description,
           kcal: form.kcal ? Math.round(Number(form.kcal)) : undefined,
           mealType: form.mealType,
           date: today,
-        }),
+        },
       });
       setShowAdd(false);
       setForm({ description: '', kcal: '', mealType: MealTypes.Lunch });

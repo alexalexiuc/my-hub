@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import type { ApiaryLog, ApiaryHive } from '@my-hub/shared/types';
 import { SectionCard } from '@/components/SectionCard';
 import { Button } from '@/components';
+import { apiFetch } from '@/lib/utils';
 
 const LOG_TYPES = ['inspection', 'treatment', 'feeding', 'harvest', 'relocation', 'queen_event', 'note'] as const;
 
@@ -32,24 +33,20 @@ export function LogTab() {
   const [formDate, setFormDate] = useState('');
 
   const loadData = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (filterHive) params.set('hive_id', filterHive);
-    if (filterType) params.set('type', filterType);
-
-    const [logsRes, hivesRes] = await Promise.all([
-      fetch(`/api/apiary/logs?${params.toString()}`),
-      fetch('/api/apiary/hives'),
-    ]);
-
-    if (logsRes.ok) {
-      const data = (await logsRes.json()) as { logs: ApiaryLog[] };
-      setLogs(data.logs);
+    try {
+      const [logsData, hivesData] = await Promise.all([
+        apiFetch<{ logs: ApiaryLog[] }>('/api/apiary/logs', {
+          query: { hive_id: filterHive || undefined, type: filterType || undefined },
+        }),
+        apiFetch<{ hives: ApiaryHive[] }>('/api/apiary/hives'),
+      ]);
+      setLogs(logsData.logs);
+      setHives(hivesData.hives);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
     }
-    if (hivesRes.ok) {
-      const data = (await hivesRes.json()) as { hives: ApiaryHive[] };
-      setHives(data.hives);
-    }
-    setLoading(false);
   }, [filterHive, filterType]);
 
   useEffect(() => {
@@ -63,11 +60,7 @@ export function LogTab() {
     if (formNotes) body.notes = formNotes;
     if (formDate) body.logged_at = formDate;
 
-    await fetch('/api/apiary/logs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    await apiFetch('/api/apiary/logs', { method: 'POST', body });
     setFormType('inspection');
     setFormHiveId('');
     setFormNotes('');
@@ -77,7 +70,7 @@ export function LogTab() {
   }
 
   async function handleDelete(id: number) {
-    await fetch(`/api/apiary/logs/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/apiary/logs/${id}`, { method: 'DELETE' });
     loadData();
   }
 

@@ -6,6 +6,7 @@ import { dateToString, calculateMacroKcal, calculateCalorieTargets } from '@my-h
 import { SectionCard, Button } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons';
 import { MealType, MealTypes, MealTypesValues } from '@my-hub/shared/constants';
+import { apiFetch } from '@/lib/utils';
 import { MEAL_LABEL } from '@/app/calories/constants';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
@@ -75,16 +76,11 @@ export function CaloriesWidget() {
     if (!silent) setLoading(true);
     try {
       const today = dateToString(new Date());
-      const [profileRes, mealsRes] = await Promise.all([
-        fetch('/api/calories/profile'),
-        fetch(`/api/calories/meals?date=${today}&limit=200`),
-      ]);
-
       const [profileData, mealsData] = await Promise.all([
-        profileRes.ok
-          ? (profileRes.json() as Promise<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>)
-          : Promise.resolve(null),
-        mealsRes.ok ? (mealsRes.json() as Promise<{ meals: MealLog[] }>) : Promise.resolve(null),
+        apiFetch<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>(
+          '/api/calories/profile',
+        ).catch(() => null),
+        apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date: today, limit: 200 } }).catch(() => null),
       ]);
 
       const profile: CalorieProfile | null = profileData?.profile ?? null;
@@ -135,15 +131,14 @@ export function CaloriesWidget() {
     setSaving(true);
     try {
       const today = dateToString(new Date());
-      await fetch('/api/calories/meals', {
+      await apiFetch('/api/calories/meals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           description: form.description,
           kcal: form.kcal ? Math.round(Number(form.kcal)) : undefined,
           mealType: form.mealType,
           date: today,
-        }),
+        },
       });
       setShowAdd(false);
       setForm({ description: '', kcal: '', mealType: MealTypes.Lunch });

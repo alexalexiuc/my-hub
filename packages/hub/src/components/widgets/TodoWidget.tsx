@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Todo } from '@my-hub/shared/types';
 import { SectionCard } from '@/components/SectionCard';
 import { PlusOutlineIcon, CheckOutlineIcon, TrashOutlineIcon } from '@/components/icons';
+import { apiFetch } from '@/lib/utils';
 
 export function TodoWidget() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -17,12 +18,14 @@ export function TodoWidget() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch('/api/todo');
-    if (res.ok) {
-      const data = (await res.json()) as { todos: Todo[] };
+    try {
+      const data = await apiFetch<{ todos: Todo[] }>('/api/todo');
       setTodos(data.todos);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -44,19 +47,17 @@ export function TodoWidget() {
     }
     setSaving(true);
     try {
-      const res = await fetch('/api/todo', {
+      const { todo } = await apiFetch<{ todo: Todo }>('/api/todo', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim() }),
+        body: { title: title.trim() },
       });
-      if (res.ok) {
-        const { todo } = (await res.json()) as { todo: Todo };
-        setTodos((prev) => [todo, ...prev]);
-        setTitle('');
-        setAdding(false);
-        setNewlyAdded(todo.id);
-        setTimeout(() => setNewlyAdded(null), 50);
-      }
+      setTodos((prev) => [todo, ...prev]);
+      setTitle('');
+      setAdding(false);
+      setNewlyAdded(todo.id);
+      setTimeout(() => setNewlyAdded(null), 50);
+    } catch {
+      // ignore
     } finally {
       setSaving(false);
     }
@@ -66,7 +67,7 @@ export function TodoWidget() {
     setCompleting((prev) => new Set(prev).add(id));
     setTimeout(async () => {
       try {
-        await fetch(`/api/todo/${id}`, { method: 'PATCH' });
+        await apiFetch(`/api/todo/${id}`, { method: 'PATCH' });
         setTodos((prev) => prev.filter((t) => t.id !== id));
       } finally {
         setCompleting((prev) => {
@@ -79,7 +80,7 @@ export function TodoWidget() {
   }
 
   async function handleDelete(id: number) {
-    await fetch(`/api/todo/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/todo/${id}`, { method: 'DELETE' });
     setTodos((prev) => prev.filter((t) => t.id !== id));
   }
 

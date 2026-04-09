@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { apiFetch } from '@/lib/utils';
 
 interface BookingRange {
   tripId: number;
@@ -114,27 +115,19 @@ export function TravelWidget() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/travel/trips')
-      .then((res) =>
-        res.ok
-          ? (res.json() as Promise<{
-              trips: Array<{
-                id: number;
-                name: string;
-                destination: string | null;
-                color?: string | null;
-                startAt?: string | null;
-                endAt?: string | null;
-              }>;
-              booking_ranges?: BookingRange[];
-            }>)
-          : null,
-      )
-      .then((data) => {
-        if (data) {
-          setTravelFocus(pickTravelFocus(data.trips ?? [], data.booking_ranges ?? []));
-        }
-      })
+    apiFetch<{
+      trips: Array<{
+        id: number;
+        name: string;
+        destination: string | null;
+        color?: string | null;
+        startAt?: string | null;
+        endAt?: string | null;
+      }>;
+      booking_ranges?: BookingRange[];
+    }>('/api/travel/trips')
+      .then((data) => setTravelFocus(pickTravelFocus(data.trips ?? [], data.booking_ranges ?? [])))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { MealLog } from '@my-hub/shared/types';
+import { apiFetch } from '@/lib/utils';
 import { dateToString } from '@my-hub/shared/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { SectionCard } from '@/components/SectionCard';
@@ -116,10 +117,9 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
     if (!editingMealId || !editForm.description) return;
     setEditSaving(true);
     try {
-      await fetch(`/api/calories/meals/${editingMealId}`, {
+      await apiFetch(`/api/calories/meals/${editingMealId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           description: editForm.description,
           kcal: editForm.kcal ? Math.round(Number(editForm.kcal)) : undefined,
           mealType: editForm.mealType,
@@ -127,7 +127,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
           carbs: editForm.carbs ? Number(editForm.carbs) : undefined,
           fat: editForm.fat ? Number(editForm.fat) : undefined,
           notes: editForm.notes || undefined,
-        }),
+        },
       });
       setEditingMealId(null);
       onChanged();
@@ -140,10 +140,9 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
     if (!form.description) return;
     setSaving(true);
     try {
-      await fetch('/api/calories/meals', {
+      await apiFetch('/api/calories/meals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           description: form.description,
           kcal: form.kcal ? Math.round(Number(form.kcal)) : undefined,
           mealType: form.mealType,
@@ -152,7 +151,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
           carbs: form.carbs ? Number(form.carbs) : undefined,
           fat: form.fat ? Number(form.fat) : undefined,
           notes: form.notes || undefined,
-        }),
+        },
       });
       setShowAdd(false);
       setForm({
@@ -174,7 +173,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
   async function deleteMealEntry(mealId: string) {
     setDeleting(mealId);
     try {
-      await fetch(`/api/calories/meals/${mealId}`, { method: 'DELETE' });
+      await apiFetch(`/api/calories/meals/${mealId}`, { method: 'DELETE' });
       onChanged();
     } finally {
       setDeleting(null);

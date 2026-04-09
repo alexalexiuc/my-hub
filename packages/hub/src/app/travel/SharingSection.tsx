@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components';
 import { SectionCard } from '@/components/SectionCard';
 import type { ApiTrip, TripShareSuggestion, TripShareView } from './types';
+import { apiFetch } from '@/lib/utils';
 
 type SharingSectionProps = {
   activeTrip: ApiTrip | null;
@@ -16,15 +17,16 @@ export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
   const [shareEmail, setShareEmail] = useState('');
 
   const loadShares = useCallback(async (tripId: number) => {
-    const res = await fetch(`/api/travel/trips/${tripId}/shares`);
-    if (!res.ok) {
+    try {
+      const data = await apiFetch<{ shares: TripShareView[]; suggestions: TripShareSuggestion[] }>(
+        `/api/travel/trips/${tripId}/shares`,
+      );
+      setTripShares(data.shares);
+      setShareSuggestions(data.suggestions);
+    } catch {
       setTripShares([]);
       setShareSuggestions([]);
-      return;
     }
-    const data = (await res.json()) as { shares: TripShareView[]; suggestions: TripShareSuggestion[] };
-    setTripShares(data.shares);
-    setShareSuggestions(data.suggestions);
   }, []);
 
   useEffect(() => {
@@ -38,32 +40,39 @@ export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
 
   async function shareTripByEmail() {
     if (!activeTrip || !canEdit || !shareEmail.trim()) return;
-    const res = await fetch(`/api/travel/trips/${activeTrip.id}/shares`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: shareEmail.trim() }),
-    });
-    if (!res.ok) return;
-    setShareEmail('');
-    await loadShares(activeTrip.id);
+    try {
+      await apiFetch(`/api/travel/trips/${activeTrip.id}/shares`, {
+        method: 'POST',
+        body: { email: shareEmail.trim() },
+      });
+      setShareEmail('');
+      await loadShares(activeTrip.id);
+    } catch {
+      // ignore
+    }
   }
 
   async function shareTripWithUser(userId: string) {
     if (!activeTrip || !canEdit) return;
-    const res = await fetch(`/api/travel/trips/${activeTrip.id}/shares`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId }),
-    });
-    if (!res.ok) return;
-    await loadShares(activeTrip.id);
+    try {
+      await apiFetch(`/api/travel/trips/${activeTrip.id}/shares`, {
+        method: 'POST',
+        body: { user_id: userId },
+      });
+      await loadShares(activeTrip.id);
+    } catch {
+      // ignore
+    }
   }
 
   async function revokeTripShare(shareId: number) {
     if (!activeTrip || !canEdit) return;
-    const res = await fetch(`/api/travel/trips/${activeTrip.id}/shares/${shareId}`, { method: 'DELETE' });
-    if (!res.ok) return;
-    await loadShares(activeTrip.id);
+    try {
+      await apiFetch(`/api/travel/trips/${activeTrip.id}/shares/${shareId}`, { method: 'DELETE' });
+      await loadShares(activeTrip.id);
+    } catch {
+      // ignore
+    }
   }
 
   return (

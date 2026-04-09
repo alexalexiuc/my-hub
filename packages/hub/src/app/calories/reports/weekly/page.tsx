@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useCallback } from 'react';
+import { apiFetch, ApiError } from '@/lib/utils';
 import { useSearchParams } from 'next/navigation';
 import { addDays, getLastMonday, toUTCDateStr, weekLabel } from '@my-hub/shared/utils';
 import { IconButton } from '@/components/IconButton';
@@ -27,19 +28,16 @@ function WeeklyReportContent() {
     setNoData(false);
     setError(null);
     try {
-      const res = await fetch(`/api/calories/reports/weekly-preview?weekStart=${toUTCDateStr(date)}`);
-      if (res.status === 401) {
-        setError('Not signed in');
-        return;
-      }
-      const json = (await res.json()) as { html?: string; skipped?: string };
+      const json = await apiFetch<{ html?: string; skipped?: string }>('/api/calories/reports/weekly-preview', {
+        query: { weekStart: toUTCDateStr(date) },
+      });
       if (json.skipped === 'no_data') {
         setNoData(true);
         return;
       }
       setHtml(json.html ?? null);
     } catch (e) {
-      setError(String(e));
+      setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
     } finally {
       setLoading(false);
     }

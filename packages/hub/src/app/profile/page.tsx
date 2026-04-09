@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { SectionCard } from '@/components/SectionCard';
 import { Button, Field } from '@/components';
 import { NotificationsSection } from './NotificationsSection';
+import { apiFetch } from '@/lib/utils';
 
 interface UserProfile {
   id: string;
@@ -59,14 +60,12 @@ export default function ProfilePage() {
   const [deletingAll, setDeletingAll] = useState(false);
 
   useEffect(() => {
-    fetch('/api/user/profile')
-      .then((r) => (r.ok ? r.json() : null))
+    apiFetch<UserProfile>('/api/user/profile')
       .then((data) => {
-        if (data) {
-          setUser(data);
-          setNameForm(data.name ?? '');
-        }
+        setUser(data);
+        setNameForm(data.name ?? '');
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -75,17 +74,15 @@ export default function ProfilePage() {
     setNameSaving(true);
     setNameSuccess(false);
     try {
-      const res = await fetch('/api/user/profile', {
+      const data = await apiFetch<{ name: string }>('/api/user/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: nameForm.trim() }),
+        body: { name: nameForm.trim() },
       });
-      if (res.ok) {
-        const data = await res.json();
-        setUser((u) => (u ? { ...u, name: data.name } : u));
-        setNameSuccess(true);
-        setTimeout(() => setNameSuccess(false), 3000);
-      }
+      setUser((u) => (u ? { ...u, name: data.name } : u));
+      setNameSuccess(true);
+      setTimeout(() => setNameSuccess(false), 3000);
+    } catch {
+      // ignore
     } finally {
       setNameSaving(false);
     }
@@ -107,17 +104,15 @@ export default function ProfilePage() {
     setDeleting(true);
     setDeleteResults(null);
     try {
-      const res = await fetch('/api/user/delete-data', {
+      const data = await apiFetch<{ results: Record<string, { deleted: number | boolean }> }>('/api/user/delete-data', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ features: Array.from(selectedFeatures) }),
+        body: { features: Array.from(selectedFeatures) },
       });
-      if (res.ok) {
-        const data = await res.json();
-        setDeleteResults(data.results);
-        setSelectedFeatures(new Set());
-        setDeleteConfirm(false);
-      }
+      setDeleteResults(data.results);
+      setSelectedFeatures(new Set());
+      setDeleteConfirm(false);
+    } catch {
+      // ignore
     } finally {
       setDeleting(false);
     }
@@ -126,7 +121,7 @@ export default function ProfilePage() {
   async function deleteAll() {
     setDeletingAll(true);
     try {
-      await fetch('/api/user/delete-all', { method: 'POST' });
+      await apiFetch('/api/user/delete-all', { method: 'POST' });
       setDeleteAllConfirm(false);
       setDeleteResults(null);
       setSelectedFeatures(new Set());

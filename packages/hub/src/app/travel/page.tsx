@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { apiFetch } from '@/lib/utils';
 import { PageHeader } from '@/components/PageHeader';
 import { SectionCard } from '@/components/SectionCard';
 import type { TripDocument } from '@my-hub/shared/types';
@@ -44,9 +45,7 @@ export default function TravelPage() {
   const loadTrips = useCallback(async () => {
     setLoadingTrips(true);
     try {
-      const res = await fetch('/api/travel/trips');
-      if (!res.ok) throw new Error(`Failed to load trips (${res.status})`);
-      const data = (await res.json()) as { trips: ApiTrip[]; booking_ranges?: BookingRange[] };
+      const data = await apiFetch<{ trips: ApiTrip[]; booking_ranges?: BookingRange[] }>('/api/travel/trips');
       setTrips(data.trips);
       setTripBookingRanges(
         Object.fromEntries((data.booking_ranges ?? []).map((range) => [range.tripId, range])) as Record<
@@ -75,9 +74,7 @@ export default function TravelPage() {
   const loadOverview = useCallback(async (tripId: number) => {
     setLoadingOverview(true);
     try {
-      const res = await fetch(`/api/travel/trips/${tripId}/overview`);
-      if (!res.ok) throw new Error(`Failed to load trip overview (${res.status})`);
-      const data = (await res.json()) as TripOverviewResponse;
+      const data = await apiFetch<TripOverviewResponse>(`/api/travel/trips/${tripId}/overview`);
       setOverview(data);
     } finally {
       setLoadingOverview(false);
