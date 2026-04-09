@@ -110,6 +110,7 @@ export const tripBookings = pgTable(
     costAmount: real('cost_amount'),
     costCurrency: text('cost_currency').notNull().default('EUR'),
     location: text('location'),
+    referenceLink: text('reference_link'),
     notes: text('notes'),
     details: jsonb('details'),
     flightDataId: integer('flight_data_id').references(() => flightData.id, { onDelete: 'set null' }),

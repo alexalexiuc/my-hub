@@ -53,6 +53,7 @@ function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLa
     action.type === 'copy_ref'
       ? `Copy reference ${action.value} for ${segmentLabel}`
       : `${action.label} for ${segmentLabel}`;
+  const chipTitle = action.type === 'copy_ref' ? `${action.label}: ${action.value}` : action.value || action.label;
 
   return (
     <Button
@@ -61,14 +62,15 @@ function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLa
       size="xs"
       onClick={handleClick}
       aria-label={ariaLabel}
-      className={`inline-flex items-center gap-1 rounded-full border py-0.5 ${
+      title={chipTitle}
+      className={`inline-flex min-w-0 max-w-full items-center gap-1 rounded-full border py-0.5 ${
         action.type === 'boarding_pass'
           ? 'border-sky-600 bg-sky-900/40 text-sky-300 hover:bg-sky-800/50 hover:text-sky-300'
           : 'border-zinc-600 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-300'
       }`}
     >
       <Icon />
-      {copied ? 'Copied!' : action.label}
+      <span className="max-w-[8rem] truncate sm:max-w-[12rem]">{copied ? 'Copied!' : action.label}</span>
     </Button>
   );
 }

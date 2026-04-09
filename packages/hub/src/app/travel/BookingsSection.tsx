@@ -45,6 +45,7 @@ export function BookingsSection({
   const [newBookingTitle, setNewBookingTitle] = useState('');
   const [newBookingType, setNewBookingType] = useState<TripBookingType>(TripBookingTypes.Other);
   const [newBookingProvider, setNewBookingProvider] = useState('');
+  const [newBookingReferenceLink, setNewBookingReferenceLink] = useState('');
   const [newBookingStartAt, setNewBookingStartAt] = useState('');
   const [newBookingEndAt, setNewBookingEndAt] = useState('');
   const [newFlightNumber, setNewFlightNumber] = useState('');
@@ -61,6 +62,7 @@ export function BookingsSection({
   const [editBookingTitle, setEditBookingTitle] = useState('');
   const [editBookingType, setEditBookingType] = useState<TripBookingType>(TripBookingTypes.Other);
   const [editBookingProvider, setEditBookingProvider] = useState('');
+  const [editBookingReferenceLink, setEditBookingReferenceLink] = useState('');
   const [editBookingStartAt, setEditBookingStartAt] = useState('');
   const [editBookingEndAt, setEditBookingEndAt] = useState('');
   const [editFlightNumber, setEditFlightNumber] = useState('');
@@ -82,6 +84,7 @@ export function BookingsSection({
       title: newBookingTitle.trim(),
       booking_type: newBookingType,
       provider: newBookingProvider.trim() || undefined,
+      reference_link: newBookingReferenceLink.trim() || undefined,
       start_at: newBookingStartAt ? new Date(newBookingStartAt).toISOString() : undefined,
       end_at: newBookingEndAt ? new Date(newBookingEndAt).toISOString() : undefined,
     };
@@ -109,6 +112,7 @@ export function BookingsSection({
     await apiFetch('/api/travel/bookings', { method: 'POST', body });
     setNewBookingTitle('');
     setNewBookingProvider('');
+    setNewBookingReferenceLink('');
     setNewBookingStartAt('');
     setNewBookingEndAt('');
     setNewFlightNumber('');
@@ -134,6 +138,7 @@ export function BookingsSection({
     setEditBookingTitle(booking.title);
     setEditBookingType(booking.bookingType as TripBookingType);
     setEditBookingProvider(booking.provider ?? '');
+    setEditBookingReferenceLink(booking.referenceLink ?? '');
     setEditBookingStartAt(toDateTimeLocalValue(booking.startAt));
     setEditBookingEndAt(toDateTimeLocalValue(booking.endAt));
     const d = (booking.details ?? {}) as { kind?: string };
@@ -158,6 +163,7 @@ export function BookingsSection({
     setEditBookingTitle('');
     setEditBookingType('other');
     setEditBookingProvider('');
+    setEditBookingReferenceLink('');
     setEditBookingStartAt('');
     setEditBookingEndAt('');
     setEditFlightNumber('');
@@ -177,6 +183,7 @@ export function BookingsSection({
       title: editBookingTitle.trim(),
       booking_type: editBookingType,
       provider: editBookingProvider.trim() || null,
+      reference_link: editBookingReferenceLink.trim() || null,
       start_at: editBookingStartAt ? new Date(editBookingStartAt).toISOString() : null,
       end_at: editBookingEndAt ? new Date(editBookingEndAt).toISOString() : null,
     };
@@ -240,6 +247,13 @@ export function BookingsSection({
             className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
           />
         </div>
+        <input
+          type="url"
+          value={newBookingReferenceLink}
+          onChange={(e) => setNewBookingReferenceLink(e.target.value)}
+          placeholder="Reference link (e.g. https://booking.com/...)"
+          className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+        />
         <input
           type="datetime-local"
           value={newBookingStartAt}
@@ -360,6 +374,13 @@ export function BookingsSection({
                     className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                   />
                 </div>
+                <input
+                  type="url"
+                  value={editBookingReferenceLink}
+                  onChange={(e) => setEditBookingReferenceLink(e.target.value)}
+                  placeholder="Reference link (e.g. https://booking.com/...)"
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
+                />
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="datetime-local"
@@ -583,6 +604,21 @@ export function BookingsSection({
                         <>
                           <dt className="text-zinc-500">Status</dt>
                           <dd className="text-zinc-300">{booking.status}</dd>
+                        </>
+                      )}
+                      {booking.referenceLink && (
+                        <>
+                          <dt className="text-zinc-500">Reference link</dt>
+                          <dd className="text-zinc-300 truncate">
+                            <a
+                              href={booking.referenceLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-amber-300 hover:underline"
+                            >
+                              Open link
+                            </a>
+                          </dd>
                         </>
                       )}
                       {booking.startAt && (

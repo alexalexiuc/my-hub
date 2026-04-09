@@ -25,6 +25,7 @@ function makeBooking(overrides: Partial<TripBookingExtended> & { id: number }): 
     costAmount: null,
     costCurrency: 'EUR',
     location: null,
+    referenceLink: null,
     notes: null,
     details: null,
     flightDataId: null,
@@ -188,6 +189,21 @@ describe('mapBookingsToSegments', () => {
     const copyAction = segments[0]!.actions.find((a) => a.type === 'copy_ref');
     expect(copyAction).toBeDefined();
     expect(copyAction!.value).toBe('ABC123');
+  });
+
+  it('derives open-link action from booking referenceLink', () => {
+    const bookings = [
+      makeBooking({
+        id: 1,
+        startAt: new Date('2026-03-31T12:00:00Z'),
+        referenceLink: 'https://booking.com/reservation/abc123',
+      }),
+    ];
+    const segments = mapBookingsToSegments(bookings, [], now);
+    const openLinkAction = segments[0]!.actions.find((a) => a.type === 'view_booking');
+    expect(openLinkAction).toBeDefined();
+    expect(openLinkAction!.label).toBe('Open link');
+    expect(openLinkAction!.value).toBe('https://booking.com/reservation/abc123');
   });
 
   it('derives navigate action from location', () => {

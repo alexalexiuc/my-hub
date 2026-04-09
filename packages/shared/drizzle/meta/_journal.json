@@ -148,6 +148,13 @@
       "when": 1775738825819,
       "tag": "0021_nappy_stellaris",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1775745221926,
+      "tag": "0022_strong_pandemic",
+      "breakpoints": true
     }
   ]
 }

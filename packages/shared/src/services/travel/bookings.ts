@@ -30,6 +30,7 @@ export type TripBookingUpdate = Partial<
     | 'costAmount'
     | 'costCurrency'
     | 'location'
+    | 'referenceLink'
     | 'notes'
     | 'details'
     | 'timezone'

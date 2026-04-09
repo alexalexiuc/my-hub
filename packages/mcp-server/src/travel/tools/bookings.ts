@@ -34,6 +34,13 @@ export const TravelAddReservationFromTextInputSchema = z.object({
   start_at: z.string().datetime().optional().describe('Start datetime in ISO 8601 if known.'),
   end_at: z.string().datetime().optional().describe('End datetime in ISO 8601 if known.'),
   confirmation_number: z.string().optional().describe('Confirmation reference if available.'),
+  reference_link: z
+    .string()
+    .url()
+    .optional()
+    .describe(
+      'Direct URL for this booking/reservation if present in source text (for example booking.com, airline manage booking, ticket portal). Provide when available.',
+    ),
   timezone: z
     .string()
     .optional()
@@ -131,6 +138,7 @@ export const travelAddReservationFromTextTool: ToolCallback<
     costAmount: null,
     costCurrency: 'EUR',
     location: input.location ?? (hasRoute ? `${input.origin!.name} → ${input.destination!.name}` : null),
+    referenceLink: input.reference_link ?? null,
     notes: null,
     timezone: input.timezone ?? null,
     lat: input.lat ?? input.origin?.lat ?? null,
@@ -167,6 +175,11 @@ export const TravelAddFlightSchema = z.object({
   aircraft_type: z.string().optional().describe('Aircraft model, e.g. "A320".'),
   provider: z.string().optional().describe('Airline name, e.g. "British Airways".'),
   confirmation_number: z.string().optional().describe('Booking reference or PNR.'),
+  reference_link: z
+    .string()
+    .url()
+    .optional()
+    .describe('Direct booking URL (airline/OTA portal) if available. Provide when you have one.'),
   title: z
     .string()
     .optional()
@@ -201,6 +214,7 @@ export const travelAddFlightTool: ToolCallback<typeof TravelAddFlightSchema.shap
     costAmount: null,
     costCurrency: 'EUR',
     location: `${originIata} → ${destIata}`,
+    referenceLink: input.reference_link ?? null,
     notes: input.notes ?? null,
     timezone: input.timezone ?? null,
     lat: input.lat ?? null,
@@ -267,6 +281,11 @@ export const TravelAddTransportSchema = z.object({
     .describe('Short label for the itinerary. Defaults to "Origin → Destination" if omitted.'),
   provider: z.string().optional().describe('Operator/carrier name, e.g. "Eurostar", "Uber".'),
   confirmation_number: z.string().optional().describe('Booking reference.'),
+  reference_link: z
+    .string()
+    .url()
+    .optional()
+    .describe('Direct booking URL (carrier/agency/ride portal) if available. Provide when you have one.'),
   service_number: z.string().optional().describe('Train/bus/ferry service number, e.g. "TGV 6201".'),
   seat: z.string().optional().describe('Seat, berth, or carriage assignment, e.g. "Car 4 Seat 22".'),
   class: z.string().optional().describe('Travel class, e.g. "Business", "1st class".'),
@@ -310,6 +329,7 @@ export const travelAddTransportTool: ToolCallback<typeof TravelAddTransportSchem
     costAmount: input.cost_amount ?? null,
     costCurrency: input.cost_currency ?? 'EUR',
     location: `${input.origin.name} → ${input.destination.name}`,
+    referenceLink: input.reference_link ?? null,
     notes: input.notes ?? null,
     timezone: input.timezone ?? null,
     lat: input.origin.lat ?? null,
@@ -339,6 +359,7 @@ export const TravelEditBookingSchema = z.object({
   start_at: z.string().datetime().optional().describe('Updated start datetime in ISO 8601.'),
   end_at: z.string().datetime().optional().describe('Updated end datetime in ISO 8601.'),
   confirmation_number: z.string().optional().describe('Updated booking reference.'),
+  reference_link: z.string().url().optional().describe('Updated direct booking URL.'),
   notes: z.string().optional().describe('Updated notes.'),
   status: z.string().optional().describe('Updated booking status, e.g. "confirmed", "cancelled", "planned".'),
   timezone: z.string().optional().describe('Updated IANA timezone string for the booking location.'),
@@ -361,6 +382,7 @@ export const travelEditBookingTool: ToolCallback<typeof TravelEditBookingSchema.
     ...(input.start_at !== undefined && { startAt: new Date(input.start_at) }),
     ...(input.end_at !== undefined && { endAt: new Date(input.end_at) }),
     ...(input.confirmation_number !== undefined && { confirmationNumber: input.confirmation_number }),
+    ...(input.reference_link !== undefined && { referenceLink: input.reference_link }),
     ...(input.notes !== undefined && { notes: input.notes }),
     ...(input.status !== undefined && { status: input.status }),
     ...(input.timezone !== undefined && { timezone: input.timezone }),
@@ -396,6 +418,7 @@ export const TravelEditFlightSchema = z.object({
   gate: z.string().optional().describe('Updated departure gate, e.g. "B42".'),
   provider: z.string().optional().describe('Updated airline name.'),
   confirmation_number: z.string().optional().describe('Updated booking reference or PNR.'),
+  reference_link: z.string().url().optional().describe('Updated direct booking URL.'),
   notes: z.string().optional().describe('Updated notes.'),
   title: z.string().optional().describe('Updated itinerary label.'),
   timezone: z.string().optional().describe('Updated IANA timezone override for this flight booking.'),
@@ -429,6 +452,7 @@ export const travelEditFlightTool: ToolCallback<typeof TravelEditFlightSchema.sh
     ...(input.departure_at !== undefined && { startAt: new Date(input.departure_at) }),
     ...(input.arrival_at !== undefined && { endAt: new Date(input.arrival_at) }),
     ...(input.confirmation_number !== undefined && { confirmationNumber: input.confirmation_number }),
+    ...(input.reference_link !== undefined && { referenceLink: input.reference_link }),
     ...(input.notes !== undefined && { notes: input.notes }),
     ...(input.timezone !== undefined && { timezone: input.timezone }),
     ...(input.lat !== undefined && { lat: input.lat }),

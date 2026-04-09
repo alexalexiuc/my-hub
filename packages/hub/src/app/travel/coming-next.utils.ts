@@ -299,6 +299,10 @@ function deriveActions(
   const actions: SegmentAction[] = [];
 
   if (endpoint === 'start') {
+    if (booking.referenceLink) {
+      actions.push({ type: SegmentActions.ViewBooking, label: 'Open link', value: booking.referenceLink });
+    }
+
     for (const doc of bookingDocs) {
       const url = doc.storagePath ? `/api/travel/documents/${doc.id}/download` : doc.sourceUrl;
       if (!url) continue;

@@ -56,6 +56,7 @@ export const POST = withAuth(async ({ req, user }) => {
     costAmount: typeof body.cost_amount === 'number' ? body.cost_amount : null,
     costCurrency: typeof body.cost_currency === 'string' ? body.cost_currency : 'EUR',
     location: typeof body.location === 'string' ? body.location : null,
+    referenceLink: typeof body.reference_link === 'string' ? body.reference_link.trim() || null : null,
     notes: typeof body.notes === 'string' ? body.notes : null,
     details: flightDetails,
     lat: typeof body.lat === 'number' ? body.lat : null,

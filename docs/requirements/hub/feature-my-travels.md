@@ -41,6 +41,7 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 | FR-23 | Itinerary time rendering includes timezone metadata badge for each segment, with optional UTC offset text and a hover tooltip showing full date (including year and timezone name).        |
 | FR-24 | Itinerary Navigate actions should prioritize precise coordinates (`lat`/`lng`) and support common map input formats (Google share links, plus codes, `geo:` URIs, and coordinate strings). |
 | FR-27 | Navigate actions are endpoint-aware per chip: start segments route to origin/start location, end segments route to destination/end location (for example flight departure vs arrival).     |
+| FR-28 | Reservations can store an optional reference link (for example booking portal URLs), editable in Hub and exposed as an itinerary action in Coming Next.                                    |
 | FR-25 | While trip overview data is loading, the right-side travel content should render structured skeleton placeholders to avoid abrupt section pop-in.                                          |
 | FR-26 | Trip map section is collapsible and defaults to collapsed; users can expand it on demand per selected trip.                                                                                |
 | FR-22 | When the travel page opens, it automatically selects the nearest upcoming trip (by start date); falls back to the first trip if none have a future start date.                             |
@@ -81,6 +82,7 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 | TR-27 | `TravelTimeDisplay` in `packages/hub/src/app/travel/TravelTimeDisplay.tsx` centralizes timezone-aware itinerary time rendering, optional offset badge output, and full-date hover tooltips.                                                                                                         |
 | TR-28 | `coming-next-utils.ts` resolves Navigate action URLs by priority: valid booking `lat`/`lng`, then direct map links, then structured location strings (plus code, `geo:` URI, coordinate pair), then plain-text fallback query.                                                                      |
 | TR-31 | `coming-next-utils.ts` derives endpoint-specific Navigate actions (`start` vs `end`), using flight origin/destination IATA when present and directional location strings when available.                                                                                                            |
+| TR-32 | `trip_bookings` includes nullable `reference_link`; Hub booking POST/PATCH APIs persist it; `BookingsSection` add/edit forms expose it; `coming-next-utils.ts` emits an "Open link" action when present.                                                                                            |
 | TR-29 | `TravelOverviewSkeleton` in `packages/hub/src/app/travel/TravelOverviewSkeleton.tsx` provides a placeholder layout shown when `loadingOverview` is true and no overview payload is yet available for the selected trip.                                                                             |
 | TR-30 | `packages/hub/src/app/travel/TripMap.tsx` owns map collapse/expand behavior (including header toggle UI) and resets to collapsed when its `tripId` prop changes.                                                                                                                                    |
 
@@ -126,6 +128,7 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 - [x] Itinerary time labels show timezone badge metadata and hover full-date tooltip with timezone name.
 - [x] Navigate action uses coordinates when available and supports common map location formats (share links, plus codes, geo URI, coordinate strings).
 - [x] Navigate action is endpoint-aware across chips (start vs end), including flight departure/arrival routing.
+- [x] Reservations support optional reference links editable in Hub and surfaced as an itinerary action.
 - [x] Travel page shows skeleton placeholders while selected-trip overview data is initially loading.
 - [x] Trip map is collapsible and starts collapsed for each selected trip.
 - [x] Travel page opens to the nearest upcoming trip automatically.

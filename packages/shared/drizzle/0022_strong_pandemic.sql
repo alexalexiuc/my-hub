@@ -1,0 +1,1 @@
+ALTER TABLE "trip_bookings" ADD COLUMN "reference_link" text;

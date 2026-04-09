@@ -24,21 +24,23 @@ Travel Management adds a Google Trips-inspired domain where users can organize t
 | FR-04 | MCP exposes read-only resources for quick travel context snapshots.                                                                                                                    |
 | FR-05 | All travel data is scoped to the authenticated user.                                                                                                                                   |
 | FR-06 | Hub provides the primary full CRUD experience for detailed travel editing.                                                                                                             |
+| FR-07 | MCP travel booking tools should capture and persist a direct reservation reference link when one is available in user-provided context.                                                |
 
 ---
 
 ## Technical Requirements
 
-| ID    | Requirement                                                                                                                                   |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| TR-01 | Schema: travel tables are defined in `packages/shared/src/db/schema/travel.ts` with FK user scoping and indexes.                              |
-| TR-02 | Services: travel domain services exist in `packages/shared/src/services/travel/` and are exported from shared service index.                  |
-| TR-03 | MCP server: travel sub-server is registered in `packages/mcp-server/src/server.ts` at `/api/travel/mcp` using `McpServerName.Travel`.         |
-| TR-04 | MCP design follows task-oriented semantics per `.claude/skills/mcp-task-tools/SKILL.md`.                                                      |
-| TR-05 | `McpServerName` enum and DB enum include `travel`.                                                                                            |
-| TR-06 | Hub travel page and APIs provide clear visual UX and complete CRUD controls for reservations/checklist/companions/documents.                  |
-| TR-07 | Document upload/linking uses server-backed storage volume with DB metadata in V1.                                                             |
-| TR-08 | Travel file constraints (`TRAVEL_FILES_MAX_MB`, `TRAVEL_FILES_ALLOWED_MIME`) are parsed centrally in app config and exposed via MCP resource. |
+| ID    | Requirement                                                                                                                                                                                             |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TR-01 | Schema: travel tables are defined in `packages/shared/src/db/schema/travel.ts` with FK user scoping and indexes.                                                                                        |
+| TR-02 | Services: travel domain services exist in `packages/shared/src/services/travel/` and are exported from shared service index.                                                                            |
+| TR-03 | MCP server: travel sub-server is registered in `packages/mcp-server/src/server.ts` at `/api/travel/mcp` using `McpServerName.Travel`.                                                                   |
+| TR-04 | MCP design follows task-oriented semantics per `.claude/skills/mcp-task-tools/SKILL.md`.                                                                                                                |
+| TR-05 | `McpServerName` enum and DB enum include `travel`.                                                                                                                                                      |
+| TR-06 | Hub travel page and APIs provide clear visual UX and complete CRUD controls for reservations/checklist/companions/documents.                                                                            |
+| TR-07 | Document upload/linking uses server-backed storage volume with DB metadata in V1.                                                                                                                       |
+| TR-08 | Travel file constraints (`TRAVEL_FILES_MAX_MB`, `TRAVEL_FILES_ALLOWED_MIME`) are parsed centrally in app config and exposed via MCP resource.                                                           |
+| TR-09 | Travel booking MCP tools (`travel_add_reservation_from_text`, `travel_add_flight`, `travel_add_transport`, and edit tools) accept `reference_link` URL inputs and pass them to shared booking services. |
 
 ---
 
@@ -60,6 +62,7 @@ Travel Management adds a Google Trips-inspired domain where users can organize t
 - [x] MCP travel task-oriented tools implemented.
 - [x] MCP travel resources implemented.
 - [x] MCP exposes travel upload policy resource derived from centralized file config.
+- [x] MCP travel booking tools capture optional reservation reference links when available.
 - [x] Hub `/travel` polished UI implemented.
 - [x] Server file upload API + storage volume wiring implemented.
 - [ ] E2E coverage for travel flows implemented.

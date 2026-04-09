@@ -41,6 +41,7 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
         ? (body.booking_type as TripBookingType)
         : undefined,
     provider: typeof body.provider === 'string' ? body.provider.trim() || null : undefined,
+    referenceLink: typeof body.reference_link === 'string' ? body.reference_link.trim() || null : undefined,
     startAt: startAt,
     endAt: endAt,
     ...(flightDetails !== undefined && { details: flightDetails }),
