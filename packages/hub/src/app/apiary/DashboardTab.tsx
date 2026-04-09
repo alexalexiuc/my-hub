@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { SectionCard } from '@/components';
+import { apiFetch } from '@/lib/utils';
 
 interface Summary {
   yardCount: number;
@@ -26,9 +27,9 @@ export function DashboardTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/apiary/summary')
-      .then((r) => (r.ok ? r.json() : null))
+    apiFetch<Summary>('/api/apiary/summary')
       .then((data) => setSummary(data))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

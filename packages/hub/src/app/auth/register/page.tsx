@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
+import { apiFetch, ApiError } from '@/lib/utils';
 
 function RegisterForm() {
   const searchParams = useSearchParams();
@@ -27,16 +28,13 @@ function RegisterForm() {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name: name || undefined, inviteToken: inviteToken || undefined }),
-      });
-
-      const data = (await res.json()) as { ok?: boolean; error?: string };
-
-      if (!res.ok) {
-        setError(data.error ?? 'Registration failed.');
+      try {
+        await apiFetch('/api/auth/register', {
+          method: 'POST',
+          body: { email, password, name: name || undefined, inviteToken: inviteToken || undefined },
+        });
+      } catch (e) {
+        setError(e instanceof ApiError ? e.message : 'Registration failed.');
         return;
       }
 

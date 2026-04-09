@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { PageHeader } from '@/components/PageHeader';
+import { apiFetch, ApiError } from '@/lib/utils';
 import { McpServerName } from '@my-hub/shared/constants';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -181,17 +182,13 @@ function NewClientForm({ onCreated }: { onCreated: (c: CreatedClient) => void })
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch('/api/mcp/clients', {
+      const data = await apiFetch<CreatedClient>('/api/mcp/clients', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim() || null }),
+        body: { name: name.trim() || null },
       });
-      const data = (await res.json()) as CreatedClient & { error?: string };
-      if (!res.ok) {
-        setError(data.error ?? 'Failed to create client');
-        return;
-      }
       onCreated(data);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Failed to create client');
     } finally {
       setLoading(false);
     }
@@ -243,11 +240,7 @@ function ClientCard({
   async function handleToggle(v: boolean) {
     setToggling(true);
     try {
-      await fetch(`/api/mcp/clients/${client.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: v }),
-      });
+      await apiFetch(`/api/mcp/clients/${client.id}`, { method: 'PATCH', body: { enabled: v } });
       onToggle(client.id, v);
     } finally {
       setToggling(false);
@@ -261,7 +254,7 @@ function ClientCard({
     }
     setDeleting(true);
     try {
-      await fetch(`/api/mcp/clients/${client.id}`, { method: 'DELETE' });
+      await apiFetch(`/api/mcp/clients/${client.id}`, { method: 'DELETE' });
       onDelete(client.id);
     } finally {
       setDeleting(false);
@@ -357,11 +350,7 @@ function ServerCard({
     if (!isActive) return;
     setToggling(true);
     try {
-      await fetch(`/api/mcp/servers/${server.serverName}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: v }),
-      });
+      await apiFetch(`/api/mcp/servers/${server.serverName}`, { method: 'PATCH', body: { enabled: v } });
       onToggle(server.serverName, v);
     } finally {
       setToggling(false);
@@ -453,17 +442,10 @@ function AuditLogSection() {
   async function loadLogs() {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (server) params.set('server', server);
-      if (dateFrom) params.set('from', dateFrom);
-      if (dateTo) params.set('to', dateTo);
-      params.set('limit', String(limit));
-
-      const res = await fetch(`/api/mcp/logs?${params}`);
-      if (res.ok) {
-        const data = (await res.json()) as { logs: LogEntry[] };
-        setLogs(data.logs);
-      }
+      const data = await apiFetch<{ logs: LogEntry[] }>('/api/mcp/logs', {
+        query: { server: server || undefined, from: dateFrom || undefined, to: dateTo || undefined, limit },
+      });
+      setLogs(data.logs);
       setLoaded(true);
     } finally {
       setLoading(false);
@@ -613,8 +595,10 @@ export default function McpControlPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [sRes, cRes] = await Promise.all([fetch('/api/mcp/servers'), fetch('/api/mcp/clients')]);
-      const [sData, cData] = (await Promise.all([sRes.json(), cRes.json()])) as [McpServerRow[], OAuthClientRow[]];
+      const [sData, cData] = await Promise.all([
+        apiFetch<McpServerRow[]>('/api/mcp/servers'),
+        apiFetch<OAuthClientRow[]>('/api/mcp/clients'),
+      ]);
       setServers(sData);
       setClients(cData);
     } finally {

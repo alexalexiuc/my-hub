@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { apiFetch, ApiError } from '@/lib/utils';
 import Link from 'next/link';
 import type { CalorieProfile, MealLog, MeasurementType, User } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
@@ -33,42 +34,29 @@ export default function CaloriesDashboardPage() {
   const weekStart = weekDays[0]!.date;
 
   const loadMeals = useCallback(async (date: string) => {
-    const res = await fetch(`/api/calories/meals?date=${date}&limit=100`);
-    if (res.ok) {
-      const data = (await res.json()) as { meals: MealLog[] };
+    try {
+      const data = await apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date, limit: 100 } });
       // Only apply if this is still the selected date (avoid race)
       if (selectedDateRef.current === date) {
         setMeals(data.meals);
       }
+    } catch {
+      // ignore
     }
   }, []);
 
   const loadData = useCallback(async () => {
     try {
       const date = selectedDateRef.current;
-      const [profileRes, mealsRes, typesRes, weeklyRes, weightRes, userProfileRes] = await Promise.all([
-        fetch('/api/calories/profile'),
-        fetch(`/api/calories/meals?date=${date}&limit=100`),
-        fetch('/api/calories/measurement-types'),
-        fetch(`/api/calories/meals?dateFrom=${weekStart}&dateTo=${today}`),
-        fetch('/api/calories/measurements?type=weight&limit=30'),
-        fetch('/api/users/profile'),
-      ]);
-
-      if (profileRes.status === 401 || mealsRes.status === 401) {
-        setError('Not signed in');
-        return;
-      }
-
       const [profileData, mealsData, typesData, weeklyData, weightData, userProfileData] = await Promise.all([
-        profileRes.json() as Promise<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>,
-        mealsRes.json() as Promise<{ meals: MealLog[] }>,
-        typesRes.json() as Promise<{ types: MeasurementType[] }>,
-        weeklyRes.json() as Promise<{ meals: MealLog[] }>,
-        weightRes.json() as Promise<{ measurements: MeasurementWithType[] }>,
-        userProfileRes.ok
-          ? (userProfileRes.json() as Promise<{ user: Pick<User, 'country' | 'timezone'> }>)
-          : Promise.resolve({ user: null }),
+        apiFetch<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>('/api/calories/profile'),
+        apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date, limit: 100 } }),
+        apiFetch<{ types: MeasurementType[] }>('/api/calories/measurement-types'),
+        apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { dateFrom: weekStart, dateTo: today } }),
+        apiFetch<{ measurements: MeasurementWithType[] }>('/api/calories/measurements', {
+          query: { type: 'weight', limit: 30 },
+        }),
+        apiFetch<{ user: Pick<User, 'country' | 'timezone'> }>('/api/users/profile').catch(() => ({ user: null })),
       ]);
 
       setProfile(profileData.profile);
@@ -81,7 +69,7 @@ export default function CaloriesDashboardPage() {
       setWeeklyMeals(weeklyData.meals);
       setWeightHistory(weightData.measurements);
     } catch (e) {
-      setError(String(e));
+      setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
     } finally {
       setLoading(false);
     }

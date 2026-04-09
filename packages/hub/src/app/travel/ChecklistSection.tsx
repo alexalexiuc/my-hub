@@ -5,6 +5,7 @@ import { SectionCard } from '@/components/SectionCard';
 import type { TripChecklistItem } from '@my-hub/shared/types';
 import { Button, IconButton } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
+import { apiFetch } from '@/lib/utils';
 
 type ChecklistSectionProps = {
   activeTripId: number | null;
@@ -20,10 +21,9 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
 
   async function addItem() {
     if (!activeTripId || !canEdit || !newItem.trim()) return;
-    await fetch('/api/travel/checklist', {
+    await apiFetch('/api/travel/checklist', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ trip_id: activeTripId, title: newItem.trim() }),
+      body: { trip_id: activeTripId, title: newItem.trim() },
     });
     setNewItem('');
     onChanged();
@@ -31,17 +31,16 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
 
   async function toggleItem(item: TripChecklistItem) {
     if (!activeTripId || !canEdit) return;
-    await fetch(`/api/travel/checklist/${item.id}`, {
+    await apiFetch(`/api/travel/checklist/${item.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ done: !item.done }),
+      body: { done: !item.done },
     });
     onChanged();
   }
 
   async function removeItem(itemId: number) {
     if (!activeTripId || !canEdit) return;
-    await fetch(`/api/travel/checklist/${itemId}`, { method: 'DELETE' });
+    await apiFetch(`/api/travel/checklist/${itemId}`, { method: 'DELETE' });
     onChanged();
   }
 
@@ -57,10 +56,9 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
 
   async function saveEdit(itemId: number) {
     if (!activeTripId || !canEdit || !editTitle.trim()) return;
-    await fetch(`/api/travel/checklist/${itemId}`, {
+    await apiFetch(`/api/travel/checklist/${itemId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: editTitle.trim() }),
+      body: { title: editTitle.trim() },
     });
     cancelEdit();
     onChanged();

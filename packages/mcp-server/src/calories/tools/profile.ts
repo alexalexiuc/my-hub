@@ -7,7 +7,6 @@ import { rowToProfile, profileToTargets } from '../models/profile';
 import { ActivityLevels, GoalTypes, MeasurementTypes, Sexes } from '@my-hub/shared/constants';
 
 export const UpdateProfileSchema = z.object({
-  name: z.string().optional().describe('Your name'),
   age: z.number().int().positive().optional().describe('Age in years'),
   sex: z.nativeEnum(Sexes).optional().describe('Biological sex for BMR calculation: "male" | "female"'),
   height_cm: z
@@ -80,7 +79,6 @@ export const updateProfileTool: ToolCallback<typeof UpdateProfileSchema.shape> =
   if (!userId) throw new Error('Authentication required');
 
   const updates: Record<string, unknown> = omitNullish({
-    name: input.name,
     age: input.age,
     sex: input.sex,
     heightCm: input.height_cm,

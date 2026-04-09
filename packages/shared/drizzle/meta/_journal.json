@@ -141,6 +141,13 @@
       "when": 1775406488158,
       "tag": "0020_bored_wendell_vaughn",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1775738825819,
+      "tag": "0021_nappy_stellaris",
+      "breakpoints": true
     }
   ]
 }

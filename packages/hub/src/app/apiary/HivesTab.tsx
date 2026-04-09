@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import type { ApiaryHive, ApiaryYard } from '@my-hub/shared/types';
 import { SectionCard } from '@/components/SectionCard';
 import { Button } from '@/components';
+import { apiFetch } from '@/lib/utils';
 
 export function HivesTab() {
   const [hives, setHives] = useState<ApiaryHive[]>([]);
@@ -17,16 +18,18 @@ export function HivesTab() {
   const [formNotes, setFormNotes] = useState('');
 
   const loadData = useCallback(async () => {
-    const [hivesRes, yardsRes] = await Promise.all([fetch('/api/apiary/hives'), fetch('/api/apiary/yards')]);
-    if (hivesRes.ok) {
-      const data = (await hivesRes.json()) as { hives: ApiaryHive[] };
-      setHives(data.hives);
+    try {
+      const [hivesData, yardsData] = await Promise.all([
+        apiFetch<{ hives: ApiaryHive[] }>('/api/apiary/hives'),
+        apiFetch<{ yards: ApiaryYard[] }>('/api/apiary/yards'),
+      ]);
+      setHives(hivesData.hives);
+      setYards(yardsData.yards);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
     }
-    if (yardsRes.ok) {
-      const data = (await yardsRes.json()) as { yards: ApiaryYard[] };
-      setYards(data.yards);
-    }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -41,11 +44,7 @@ export function HivesTab() {
     if (formBoxes) body.boxes = Number(formBoxes);
     if (formNotes) body.notes = formNotes;
 
-    await fetch('/api/apiary/hives', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    await apiFetch('/api/apiary/hives', { method: 'POST', body });
     setFormName('');
     setFormYardId('');
     setFormQueenStatus('');

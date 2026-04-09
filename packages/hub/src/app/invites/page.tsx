@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { SectionCard } from '@/components/SectionCard';
 import { Button } from '@/components';
 import type { InviteTokenWithUsedByEmail } from '@my-hub/shared/types';
+import { apiFetch } from '@/lib/utils';
 
 type ExpiryOption = '7' | '30' | 'none';
 
@@ -31,11 +32,9 @@ export default function InvitesPage() {
   const [revoking, setRevoking] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/invites')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data) setInvites(data.invites);
-      })
+    apiFetch<{ invites: InviteTokenWithUsedByEmail[] }>('/api/invites')
+      .then((data) => setInvites(data.invites))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -45,17 +44,16 @@ export default function InvitesPage() {
     setNewLinkInviteId(null);
     try {
       const body = expiry !== 'none' ? { expiresInDays: Number(expiry) } : {};
-      const res = await fetch('/api/invites', {
+      const data = await apiFetch<{ invite: InviteTokenWithUsedByEmail }>('/api/invites', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body,
       });
-      if (!res.ok) return;
-      const data = (await res.json()) as { invite: InviteTokenWithUsedByEmail };
       setInvites((prev) => [data.invite, ...prev]);
       const link = `${window.location.origin}/auth/register?invite=${data.invite.token}`;
       setNewLink(link);
       setNewLinkInviteId(data.invite.id);
+    } catch {
+      // ignore
     } finally {
       setCreating(false);
     }
@@ -70,7 +68,7 @@ export default function InvitesPage() {
   async function revoke(id: string) {
     setRevoking(id);
     try {
-      await fetch(`/api/invites/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/invites/${id}`, { method: 'DELETE' });
       setInvites((prev) => prev.filter((i) => i.id !== id));
       if (newLinkInviteId === id) {
         setNewLink(null);

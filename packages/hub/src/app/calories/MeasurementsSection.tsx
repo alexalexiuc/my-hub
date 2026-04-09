@@ -5,6 +5,8 @@ import type { MeasurementType } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { SectionCard } from '@/components/SectionCard';
 import { Field, Button } from '@/components';
+import { PlusOutlineIcon } from '@/components/icons';
+import { apiFetch } from '@/lib/utils';
 
 interface Props {
   latestMeasurements: MeasurementWithType[];
@@ -27,15 +29,14 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
     if (!form.typeKey || !form.value) return;
     setSaving(true);
     try {
-      await fetch('/api/calories/measurements', {
+      await apiFetch('/api/calories/measurements', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           typeKey: form.typeKey,
           value: Number(form.value),
           date: form.date,
           notes: form.notes || undefined,
-        }),
+        },
       });
       setShowAdd(false);
       setForm({ typeKey: '', value: '', date: new Date().toISOString().split('T')[0]!, notes: '' });
@@ -48,7 +49,7 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
   async function deleteMeasurementEntry(id: number) {
     setDeleting(id);
     try {
-      await fetch(`/api/calories/measurements/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/calories/measurements/${id}`, { method: 'DELETE' });
       onChanged();
     } finally {
       setDeleting(null);
@@ -69,18 +70,7 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
           aria-label="Log measurement"
           className="flex items-center gap-1.5 px-2.5 rounded-md border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60"
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
+          <PlusOutlineIcon className="size-3" />
           Add
         </Button>
       }

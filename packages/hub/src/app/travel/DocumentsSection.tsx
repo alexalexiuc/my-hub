@@ -6,6 +6,7 @@ import type { TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended, UploadConfig } from './types';
 import { Button, IconButton } from '@/components';
 import { DownloadIcon, TrashIcon } from '@/components/icons';
+import { apiFetch } from '@/lib/utils';
 
 type DocumentsSectionProps = {
   activeTripId: number | null;
@@ -25,13 +26,9 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
   const [documentBookingId, setDocumentBookingId] = useState<number | null>(null);
 
   useEffect(() => {
-    async function loadConfig() {
-      const res = await fetch('/api/travel/documents/config');
-      if (!res.ok) return;
-      const data = (await res.json()) as UploadConfig;
-      setUploadConfig(data);
-    }
-    loadConfig();
+    apiFetch<UploadConfig>('/api/travel/documents/config')
+      .then((data) => setUploadConfig(data))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -57,8 +54,11 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
     form.append('title', documentTitle.trim() || documentFile.name);
     form.append('type', 'other');
     form.append('file', documentFile);
-    const res = await fetch('/api/travel/documents/upload', { method: 'POST', body: form });
-    if (!res.ok) return;
+    try {
+      await apiFetch('/api/travel/documents/upload', { method: 'POST', body: form });
+    } catch {
+      return;
+    }
     setDocumentTitle('');
     setDocumentFile(null);
     setDocumentBookingId(null);
@@ -67,7 +67,7 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
 
   async function removeDocument(documentId: number) {
     if (!activeTripId || !canEdit) return;
-    await fetch(`/api/travel/documents/${documentId}`, { method: 'DELETE' });
+    await apiFetch(`/api/travel/documents/${documentId}`, { method: 'DELETE' });
     onChanged();
   }
 

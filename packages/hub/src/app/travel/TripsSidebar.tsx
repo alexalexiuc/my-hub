@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Button, IconButton, MultiButtonGroup, SectionCard } from '@/components';
+import { apiFetch } from '@/lib/utils';
 import { PencilIcon, TrashIcon } from '@/components/icons';
 import type { Trip } from '@my-hub/shared/types';
 import type { ApiTrip, BookingRange } from './types';
@@ -41,32 +42,50 @@ export function TripsSidebar({
   const [filterMode, setFilterMode] = useState<'upcoming' | 'all'>('upcoming');
 
   const filteredTrips = useMemo(() => {
+    const now = Date.now();
     const base =
       filterMode === 'upcoming' ? trips.filter((t) => t.status !== 'cancelled' && t.status !== 'completed') : trips;
-    return [...base].sort((a, b) => {
-      const aDate = a.startAt ? new Date(a.startAt).getTime() : null;
-      const bDate = b.startAt ? new Date(b.startAt).getTime() : null;
-      if (aDate === null && bDate === null) return 0;
-      if (aDate === null) return 1;
-      if (bDate === null) return -1;
-      return bDate - aDate;
-    });
+
+    const upcoming: ApiTrip[] = [];
+    const past: ApiTrip[] = [];
+    const noDate: ApiTrip[] = [];
+
+    for (const trip of base) {
+      if (!trip.startAt) {
+        noDate.push(trip);
+      } else {
+        const t = new Date(trip.startAt as unknown as string).getTime();
+        if (t >= now) upcoming.push(trip);
+        else past.push(trip);
+      }
+    }
+
+    upcoming.sort(
+      (a, b) => new Date(a.startAt as unknown as string).getTime() - new Date(b.startAt as unknown as string).getTime(),
+    );
+    past.sort(
+      (a, b) => new Date(b.startAt as unknown as string).getTime() - new Date(a.startAt as unknown as string).getTime(),
+    );
+
+    return [...upcoming, ...past, ...noDate];
   }, [trips, filterMode]);
 
   async function createTrip() {
     if (!newTripName.trim()) return;
-    const res = await fetch('/api/travel/trips', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: newTripName.trim(),
-        color: newTripColor,
-        destination: newTripDestination.trim() || null,
-        start_at: newTripStartAt ? `${newTripStartAt}T00:00:00.000Z` : undefined,
-        end_at: newTripEndAt ? `${newTripEndAt}T00:00:00.000Z` : undefined,
-      }),
-    });
-    if (!res.ok) return;
+    try {
+      await apiFetch('/api/travel/trips', {
+        method: 'POST',
+        body: {
+          name: newTripName.trim(),
+          color: newTripColor,
+          destination: newTripDestination.trim() || null,
+          start_at: newTripStartAt ? `${newTripStartAt}T00:00:00.000Z` : undefined,
+          end_at: newTripEndAt ? `${newTripEndAt}T00:00:00.000Z` : undefined,
+        },
+      });
+    } catch {
+      return;
+    }
     setNewTripName('');
     setNewTripColor(randomTripColor());
     setNewTripDestination('');
@@ -96,16 +115,15 @@ export function TripsSidebar({
   async function saveTripEdits(tripId: number) {
     const trimmedName = editTripName.trim();
     if (!trimmedName) return;
-    await fetch(`/api/travel/trips/${tripId}`, {
+    await apiFetch(`/api/travel/trips/${tripId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body: {
         name: trimmedName,
         destination: editTripDestination.trim() || null,
         color: editTripColor,
         start_at: editTripStartAt ? `${editTripStartAt}T00:00:00.000Z` : null,
         end_at: editTripEndAt ? `${editTripEndAt}T00:00:00.000Z` : null,
-      }),
+      },
     });
     cancelEditTrip();
     onTripsChanged();
@@ -113,7 +131,7 @@ export function TripsSidebar({
   }
 
   async function removeTrip(tripId: number) {
-    await fetch(`/api/travel/trips/${tripId}`, { method: 'DELETE' });
+    await apiFetch(`/api/travel/trips/${tripId}`, { method: 'DELETE' });
     onTripsChanged();
   }
 

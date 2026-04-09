@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import type { ApiaryTask, ApiaryHive } from '@my-hub/shared/types';
 import { SectionCard } from '@/components/SectionCard';
 import { Button } from '@/components';
+import { apiFetch } from '@/lib/utils';
 
 type FilterMode = 'pending' | 'completed' | 'all';
 
@@ -20,24 +21,19 @@ export function TasksTab() {
   const [formDueAt, setFormDueAt] = useState('');
 
   const loadData = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (filter === 'pending') params.set('completed', 'false');
-    if (filter === 'completed') params.set('completed', 'true');
-
-    const [tasksRes, hivesRes] = await Promise.all([
-      fetch(`/api/apiary/tasks?${params.toString()}`),
-      fetch('/api/apiary/hives'),
-    ]);
-
-    if (tasksRes.ok) {
-      const data = (await tasksRes.json()) as { tasks: ApiaryTask[] };
-      setTasks(data.tasks);
+    try {
+      const completed = filter === 'pending' ? 'false' : filter === 'completed' ? 'true' : undefined;
+      const [tasksData, hivesData] = await Promise.all([
+        apiFetch<{ tasks: ApiaryTask[] }>('/api/apiary/tasks', { query: { completed } }),
+        apiFetch<{ hives: ApiaryHive[] }>('/api/apiary/hives'),
+      ]);
+      setTasks(tasksData.tasks);
+      setHives(hivesData.hives);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
     }
-    if (hivesRes.ok) {
-      const data = (await hivesRes.json()) as { hives: ApiaryHive[] };
-      setHives(data.hives);
-    }
-    setLoading(false);
   }, [filter]);
 
   useEffect(() => {
@@ -50,11 +46,7 @@ export function TasksTab() {
     if (formHiveId) body.hive_id = Number(formHiveId);
     if (formDueAt) body.due_at = formDueAt;
 
-    await fetch('/api/apiary/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    await apiFetch('/api/apiary/tasks', { method: 'POST', body });
     setFormTitle('');
     setFormHiveId('');
     setFormDueAt('');
@@ -63,16 +55,12 @@ export function TasksTab() {
   }
 
   async function handleToggle(taskId: number, completed: boolean) {
-    await fetch(`/api/apiary/tasks/${taskId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ completed: !completed }),
-    });
+    await apiFetch(`/api/apiary/tasks/${taskId}`, { method: 'PATCH', body: { completed: !completed } });
     loadData();
   }
 
   async function handleDelete(taskId: number) {
-    await fetch(`/api/apiary/tasks/${taskId}`, { method: 'DELETE' });
+    await apiFetch(`/api/apiary/tasks/${taskId}`, { method: 'DELETE' });
     loadData();
   }
 

@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { Todo } from '@my-hub/shared/types';
 import { PageHeader } from '@/components/PageHeader';
+import { apiFetch, ApiError } from '@/lib/utils';
 import { SectionCard } from '@/components/SectionCard';
+import { PlusOutlineIcon, CheckOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 
 export default function TodoPage() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -19,15 +21,10 @@ export default function TodoPage() {
 
   const loadTodos = useCallback(async () => {
     try {
-      const res = await fetch('/api/todo');
-      if (res.status === 401) {
-        setError('Not signed in');
-        return;
-      }
-      const data = (await res.json()) as { todos: Todo[] };
+      const data = await apiFetch<{ todos: Todo[] }>('/api/todo');
       setTodos(data.todos);
     } catch (e) {
-      setError(String(e));
+      setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
     } finally {
       setLoading(false);
     }
@@ -50,11 +47,7 @@ export default function TodoPage() {
     }
     setSaving(true);
     try {
-      await fetch('/api/todo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim() }),
-      });
+      await apiFetch('/api/todo', { method: 'POST', body: { title: title.trim() } });
       setTitle('');
       setAdding(false);
       await loadTodos();
@@ -66,7 +59,7 @@ export default function TodoPage() {
   async function markDone(id: number) {
     setMarking(id);
     try {
-      await fetch(`/api/todo/${id}`, { method: 'PATCH' });
+      await apiFetch(`/api/todo/${id}`, { method: 'PATCH' });
       await loadTodos();
     } finally {
       setMarking(null);
@@ -76,7 +69,7 @@ export default function TodoPage() {
   async function deleteTodo(id: number) {
     setDeleting(id);
     try {
-      await fetch(`/api/todo/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/todo/${id}`, { method: 'DELETE' });
       await loadTodos();
     } finally {
       setDeleting(null);
@@ -122,18 +115,7 @@ export default function TodoPage() {
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
             title="Add task"
           >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
+            <PlusOutlineIcon className="size-3" />
             Add
           </button>
         }
@@ -168,18 +150,7 @@ export default function TodoPage() {
                   className="flex-shrink-0 text-indigo-400 hover:text-indigo-300 transition"
                   title="Save"
                 >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <CheckOutlineIcon />
                 </button>
               )}
             </div>
@@ -220,19 +191,7 @@ export default function TodoPage() {
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm group opacity-50 hover:opacity-80 transition-opacity"
               >
                 <div className="flex-shrink-0 w-5 h-5 rounded-full border-2 border-zinc-600 bg-zinc-700 flex items-center justify-center">
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-zinc-400"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <CheckOutlineIcon className="size-2.5 text-zinc-400" />
                 </div>
                 <span className="flex-1 min-w-0 line-through text-zinc-500">{todo.title}</span>
                 <span className="text-xs text-zinc-600 whitespace-nowrap">
@@ -247,21 +206,7 @@ export default function TodoPage() {
                   {deleting === todo.id ? (
                     <span className="text-xs">...</span>
                   ) : (
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                      <path d="M10 11v6M14 11v6" />
-                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                    </svg>
+                    <TrashOutlineIcon className="size-3.5" />
                   )}
                 </button>
               </div>

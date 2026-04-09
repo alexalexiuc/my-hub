@@ -1,0 +1,1 @@
+ALTER TABLE "calorie_profiles" DROP COLUMN IF EXISTS "name";

@@ -7,7 +7,6 @@ export function rowToProfile(row: CalorieProfile): BodyProfile {
   return {
     updated_at: row.updatedAt.toISOString(),
     ...omitNullish({
-      name: row.name,
       age: row.age,
       sex: row.sex,
       height_cm: row.heightCm,

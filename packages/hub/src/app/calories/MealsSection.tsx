@@ -2,11 +2,18 @@
 
 import { useState } from 'react';
 import type { MealLog } from '@my-hub/shared/types';
+import { apiFetch } from '@/lib/utils';
 import { dateToString } from '@my-hub/shared/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { SectionCard } from '@/components/SectionCard';
 import { Button, Field } from '@/components';
-import { PencilIcon } from '@/components/icons';
+import {
+  PencilIcon,
+  PlusOutlineIcon,
+  ChevronLeftOutlineIcon,
+  ChevronRightOutlineIcon,
+  ChevronDownOutlineIcon,
+} from '@/components/icons';
 import { MealType, MealTypes, MealTypesValues } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from './constants';
 import { groupByMealType, formatDateLabel, shiftDate } from './calories.utils';
@@ -110,10 +117,9 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
     if (!editingMealId || !editForm.description) return;
     setEditSaving(true);
     try {
-      await fetch(`/api/calories/meals/${editingMealId}`, {
+      await apiFetch(`/api/calories/meals/${editingMealId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           description: editForm.description,
           kcal: editForm.kcal ? Math.round(Number(editForm.kcal)) : undefined,
           mealType: editForm.mealType,
@@ -121,7 +127,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
           carbs: editForm.carbs ? Number(editForm.carbs) : undefined,
           fat: editForm.fat ? Number(editForm.fat) : undefined,
           notes: editForm.notes || undefined,
-        }),
+        },
       });
       setEditingMealId(null);
       onChanged();
@@ -134,10 +140,9 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
     if (!form.description) return;
     setSaving(true);
     try {
-      await fetch('/api/calories/meals', {
+      await apiFetch('/api/calories/meals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           description: form.description,
           kcal: form.kcal ? Math.round(Number(form.kcal)) : undefined,
           mealType: form.mealType,
@@ -146,7 +151,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
           carbs: form.carbs ? Number(form.carbs) : undefined,
           fat: form.fat ? Number(form.fat) : undefined,
           notes: form.notes || undefined,
-        }),
+        },
       });
       setShowAdd(false);
       setForm({
@@ -168,7 +173,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
   async function deleteMealEntry(mealId: string) {
     setDeleting(mealId);
     try {
-      await fetch(`/api/calories/meals/${mealId}`, { method: 'DELETE' });
+      await apiFetch(`/api/calories/meals/${mealId}`, { method: 'DELETE' });
       onChanged();
     } finally {
       setDeleting(null);
@@ -187,18 +192,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
           aria-label="Add meal"
           className="flex items-center gap-1.5 px-2.5 rounded-md border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60"
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
+          <PlusOutlineIcon className="size-3" />
           Add
         </Button>
       }
@@ -212,18 +206,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
           aria-label="Previous day"
           className="w-8 h-8 rounded-md flex items-center justify-center p-0 hover:text-zinc-100 hover:bg-zinc-700"
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+          <ChevronLeftOutlineIcon />
         </Button>
         <span className="text-sm font-medium">{formatDateLabel(selectedDate)}</span>
         <Button
@@ -234,18 +217,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
           aria-label="Next day"
           className="w-8 h-8 rounded-md flex items-center justify-center p-0 hover:text-zinc-100 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <ChevronRightOutlineIcon />
         </Button>
       </div>
 
@@ -338,19 +310,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
           aria-expanded={showMeals}
           className="flex items-center gap-2 text-sm px-0 py-0 mb-3 hover:bg-transparent"
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={`transition-transform ${showMeals ? 'rotate-180' : ''}`}
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
+          <ChevronDownOutlineIcon className={`size-3.5 transition-transform ${showMeals ? 'rotate-180' : ''}`} />
           <span>{showMeals ? 'Hide meals' : `Show meals${total > 0 ? ` · ${total} kcal` : ''}`}</span>
         </Button>
 

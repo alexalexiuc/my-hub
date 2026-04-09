@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import { NOTIFICATION_SUBSCRIPTIONS } from '@my-hub/shared/constants';
 import type { SubscriptionKey } from '@my-hub/shared/constants';
+import { apiFetch } from '@/lib/utils';
 
 interface SubscriptionState {
   key: SubscriptionKey;
@@ -16,25 +17,22 @@ export function NotificationsSection() {
   const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/user/notification-preferences')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.subscriptions) setSubscriptions(data.subscriptions);
-      })
+    apiFetch<{ subscriptions: SubscriptionState[] }>('/api/user/notification-preferences')
+      .then((data) => setSubscriptions(data.subscriptions))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   async function toggle(key: SubscriptionKey, subscribed: boolean) {
     setSaving(key);
     try {
-      const res = await fetch('/api/user/notification-preferences', {
+      await apiFetch('/api/user/notification-preferences', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, subscribed }),
+        body: { key, subscribed },
       });
-      if (res.ok) {
-        setSubscriptions((prev) => prev.map((s) => (s.key === key ? { ...s, subscribed } : s)));
-      }
+      setSubscriptions((prev) => prev.map((s) => (s.key === key ? { ...s, subscribed } : s)));
+    } catch {
+      // ignore
     } finally {
       setSaving(null);
     }

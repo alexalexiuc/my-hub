@@ -14,7 +14,6 @@ export const calorieProfiles = pgTable('calorie_profiles', {
     .references(() => users.id),
   // Demographic & goal info for BMR/TDEE calculation (Mifflin-St Jeor)
   // Height is stored here (stable); weight and other changing measurements are in body_measurements table
-  name: text('name'),
   age: integer('age'),
   sex: text('sex').$type<Sex>(), // 'male' | 'female'
   heightCm: real('height_cm'), // cm — stable, stored directly on profile

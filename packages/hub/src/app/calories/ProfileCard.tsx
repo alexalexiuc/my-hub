@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { CalorieProfile, User } from '@my-hub/shared/types';
+import { apiFetch } from '@/lib/utils';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { calculateCalorieTargets, calculateBMR } from '@my-hub/shared/utils';
 import {
@@ -101,10 +102,9 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
     setSaving(true);
     try {
       await Promise.all([
-        fetch('/api/calories/profile', {
+        apiFetch('/api/calories/profile', {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          body: {
             age: form.age ? Number(form.age) : undefined,
             sex: form.sex || undefined,
             heightCm: form.heightCm ? Number(form.heightCm) : undefined,
@@ -123,15 +123,14 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
               ? Number(macroMode === '%' ? pctToGrams(form.goalFat, 9, maxCalNum ?? 0) : form.goalFat)
               : null,
             notes: form.notes || undefined,
-          }),
+          },
         }),
-        fetch('/api/users/profile', {
+        apiFetch('/api/users/profile', {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          body: {
             country: form.country || null,
             timezone: form.timezone || null,
-          }),
+          },
         }),
       ]);
       setEditing(false);

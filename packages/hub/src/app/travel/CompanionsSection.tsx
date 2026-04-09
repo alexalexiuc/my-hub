@@ -5,6 +5,7 @@ import { SectionCard } from '@/components/SectionCard';
 import type { TripCompanion } from '@my-hub/shared/types';
 import { Button, IconButton } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
+import { apiFetch } from '@/lib/utils';
 
 type CompanionsSectionProps = {
   activeTripId: number | null;
@@ -24,15 +25,14 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
 
   async function addCompanion() {
     if (!activeTripId || !canEdit || !newName.trim()) return;
-    await fetch('/api/travel/companions', {
+    await apiFetch('/api/travel/companions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body: {
         trip_id: activeTripId,
         name: newName.trim(),
         email: newEmail.trim() || undefined,
         phone: newPhone.trim() || undefined,
-      }),
+      },
     });
     setNewName('');
     setNewEmail('');
@@ -42,7 +42,7 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
 
   async function removeCompanion(companionId: number) {
     if (!activeTripId || !canEdit) return;
-    await fetch(`/api/travel/companions/${companionId}`, { method: 'DELETE' });
+    await apiFetch(`/api/travel/companions/${companionId}`, { method: 'DELETE' });
     if (editingId === companionId) cancelEdit();
     onChanged();
   }
@@ -65,10 +65,9 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
     if (!activeTripId || !canEdit) return;
     const name = editName.trim();
     if (!name) return;
-    await fetch(`/api/travel/companions/${companionId}`, {
+    await apiFetch(`/api/travel/companions/${companionId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email: editEmail.trim() || null, phone: editPhone.trim() || null }),
+      body: { name, email: editEmail.trim() || null, phone: editPhone.trim() || null },
     });
     cancelEdit();
     onChanged();

@@ -20,7 +20,6 @@ export const PUT = withAuth(async ({ req, user }) => {
   }
 
   const allowed = [
-    'name',
     'age',
     'sex',
     'heightCm',

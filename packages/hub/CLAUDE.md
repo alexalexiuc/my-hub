@@ -41,6 +41,38 @@ Each section component should:
 - If specific to one feature and not reusable → `[feature].utils.ts` in the same folder.
 - If general purpose → it goes in `packages/shared/src/utils/`. Check the shared CLAUDE.md first.
 
+## API fetch rule
+
+**Always use `apiFetch` from `@/lib/utils` — never call the global `fetch` directly in hub client code.**
+
+```ts
+import { apiFetch, ApiError } from '@/lib/utils';
+
+// GET with typed response
+const data = await apiFetch<{ todos: Todo[] }>('/api/todo');
+
+// GET with query params (null/undefined values are omitted automatically)
+const data = await apiFetch<{ meals: Meal[] }>('/api/calories/meals', {
+  query: { date: today, limit: 100, type: undefined }, // type omitted
+});
+
+// POST/PATCH — body auto-JSON-stringified, Content-Type set automatically
+await apiFetch('/api/todo', { method: 'POST', body: { title } });
+
+// DELETE — no body needed
+await apiFetch(`/api/todo/${id}`, { method: 'DELETE' });
+
+// FormData — no Content-Type injected (browser sets multipart boundary)
+await apiFetch('/api/upload', { method: 'POST', body: formData });
+
+// Handling auth errors
+} catch (e) {
+  setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
+}
+```
+
+`apiFetch` throws `ApiError` (with `.status`) on non-2xx. Empty responses (204 / no body) return `undefined`.
+
 ## Barrel exports
 
 Each grouping under `src/components/` has a barrel `index.ts`:

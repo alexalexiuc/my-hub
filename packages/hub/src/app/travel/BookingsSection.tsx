@@ -9,6 +9,7 @@ import { BookingTypeIcon, Button, IconButton } from '@/components';
 import { TravelTimeDisplay } from './TravelTimeDisplay';
 import { TripBookingTypes, tripBookingTypeValues } from '@my-hub/shared/constants';
 import { isTransportBookingType, toDateTimeLocalValue } from '@my-hub/shared/utils';
+import { apiFetch } from '@/lib/utils';
 
 const bookingTypeLabels: Record<TripBookingType, string> = {
   [TripBookingTypes.Flight]: 'Flight',
@@ -105,11 +106,7 @@ export function BookingsSection({
         body.location = `${newTransportOrigin.trim()} → ${newTransportDest.trim()}`;
       }
     }
-    await fetch('/api/travel/bookings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    await apiFetch('/api/travel/bookings', { method: 'POST', body });
     setNewBookingTitle('');
     setNewBookingProvider('');
     setNewBookingStartAt('');
@@ -128,7 +125,7 @@ export function BookingsSection({
 
   async function removeBooking(bookingId: number) {
     if (!activeTripId || !canEdit) return;
-    await fetch(`/api/travel/bookings/${bookingId}`, { method: 'DELETE' });
+    await apiFetch(`/api/travel/bookings/${bookingId}`, { method: 'DELETE' });
     onChanged();
   }
 
@@ -201,11 +198,7 @@ export function BookingsSection({
         ...(editTransportServiceNumber.trim() && { service_number: editTransportServiceNumber.trim() }),
       };
     }
-    await fetch(`/api/travel/bookings/${bookingId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    await apiFetch(`/api/travel/bookings/${bookingId}`, { method: 'PATCH', body });
     cancelEditBooking();
     onChanged();
   }
