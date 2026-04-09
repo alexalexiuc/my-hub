@@ -82,14 +82,14 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
           <div className="flex-1 space-y-3">
             {data.map((entry) => {
               const exceeded = entry.goal !== null && entry.grams > entry.goal;
-              const barColor = exceeded ? '#f87171' : entry.color; // red-400 when over
+              const barColor = exceeded ? '#b91c1c' : entry.color; // red-700 when over
               return (
                 <div key={entry.name} className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: barColor }} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between">
                       <span className="text-xs text-zinc-400">{entry.name}</span>
-                      <span className={`text-xs ${exceeded ? 'text-red-400 font-medium' : 'text-zinc-500'}`}>
+                      <span className={`text-xs ${exceeded ? 'text-red-700 font-medium' : 'text-zinc-500'}`}>
                         {entry.goal !== null ? `${entry.grams}g / ${entry.goal}g` : `${pct(entry.value)}%`}
                       </span>
                     </div>

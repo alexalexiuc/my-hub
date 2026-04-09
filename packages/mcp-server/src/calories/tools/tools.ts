@@ -3,7 +3,6 @@ import { getMeasurementTypes } from '@my-hub/shared/services';
 import { DeleteMealSchema, deleteMealTool, GetMealsSchema, getMealsTool, LogMealSchema, logMealTool } from './meals';
 import { defineTool, toolResponse, withUserIdCheck } from '../../shared/toolsUtils';
 import { UpdateProfileSchema, updateProfileTool } from './profile';
-import { UpdateMacrosSchema, updateMacrosTool } from './macros';
 import { GetDailySummarySchema, getDailySummaryTool } from './summary';
 import { GetHistorySchema, getHistoryTool } from './history';
 import {
@@ -44,27 +43,16 @@ const caloriesTools = [
   defineTool({
     name: 'calories_update_profile',
     description:
-      'Save or update health profile (age, sex, height, activity level, and goal). ' +
+      'Save or update health profile (age, sex, height, activity level, goal) and daily targets (calorie bounds, macro targets). ' +
       'Computes BMR and TDEE via the Mifflin-St Jeor equation. ' +
       'IMPORTANT: Always ask the user what their goal is (weight_loss, weight_gain, or maintain) before calling this tool. ' +
       'For weight_loss or weight_gain, also ask for the weekly rate in kg. ' +
       'Height (height_cm) is stored on the profile and only needs to be set once. ' +
+      'If the user specifies macros as percentages, convert them to grams using goal_max_calories as the reference (protein & carbs = 4 kcal/g, fat = 9 kcal/g). ' +
       'Weight and other changing body measurements are logged separately via calories_log_measurement.',
     inputSchema: UpdateProfileSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: updateProfileTool,
-  }),
-  defineTool({
-    name: 'calories_update_macros',
-    description:
-      'Set or update daily macro targets (protein, carbs, fat) and calorie bounds (min/max). ' +
-      'All values are in grams. If the user specifies macros as percentages, convert them to grams ' +
-      'using the max calorie target as the reference (protein & carbs = 4 kcal/g, fat = 9 kcal/g). ' +
-      'Always ask for goal_max_calories first if not already set — it is required to interpret percentages. ' +
-      'Pass null for any field to clear it. Use calories_update_profile to change health profile or goal type.',
-    inputSchema: UpdateMacrosSchema.shape,
-    annotations: { idempotentHint: false, destructiveHint: false },
-    callback: updateMacrosTool,
   }),
   // ---- Summary tools ----
   defineTool({

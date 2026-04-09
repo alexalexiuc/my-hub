@@ -40,13 +40,38 @@ export const UpdateProfileSchema = z.object({
     .int()
     .positive()
     .optional()
-    .describe('Override: explicit minimum daily calories floor (optional).'),
+    .nullable()
+    .describe('Override: explicit minimum daily calories floor (optional). Pass null to clear.'),
   goal_max_calories: z
     .number()
     .int()
     .positive()
     .optional()
-    .describe('Override: explicit maximum daily calories ceiling (optional). Overrides the TDEE-derived target.'),
+    .nullable()
+    .describe(
+      'Override: explicit maximum daily calories ceiling (optional). Overrides the TDEE-derived target. Required as a reference when setting macros by percentage. Pass null to clear.',
+    ),
+  goal_protein_g: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .nullable()
+    .describe('Daily protein target in grams (e.g. 150). Pass null to clear.'),
+  goal_carbs_g: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .nullable()
+    .describe('Daily carbohydrate target in grams (e.g. 250). Pass null to clear.'),
+  goal_fat_g: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .nullable()
+    .describe('Daily fat target in grams (e.g. 80). Pass null to clear.'),
   notes: z.string().optional().describe('Additional notes about your health goals'),
 });
 
@@ -54,21 +79,25 @@ export const updateProfileTool: ToolCallback<typeof UpdateProfileSchema.shape> =
   const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
   if (!userId) throw new Error('Authentication required');
 
-  const row = await upsertCalorieProfile(
-    userId,
-    omitNullish({
-      name: input.name,
-      age: input.age,
-      sex: input.sex,
-      heightCm: input.height_cm,
-      activityLevel: input.activity_level,
-      goalType: input.goal_type,
-      goalWeeklyRateKg: input.goal_weekly_rate_kg,
-      goalMinCalories: input.goal_min_calories,
-      goalMaxCalories: input.goal_max_calories,
-      notes: input.notes,
-    }),
-  );
+  const updates: Record<string, unknown> = omitNullish({
+    name: input.name,
+    age: input.age,
+    sex: input.sex,
+    heightCm: input.height_cm,
+    activityLevel: input.activity_level,
+    goalType: input.goal_type,
+    goalWeeklyRateKg: input.goal_weekly_rate_kg,
+    notes: input.notes,
+  });
+
+  // Nullable fields: pass null explicitly to allow clearing stored values
+  if (input.goal_min_calories !== undefined) updates['goalMinCalories'] = input.goal_min_calories;
+  if (input.goal_max_calories !== undefined) updates['goalMaxCalories'] = input.goal_max_calories;
+  if (input.goal_protein_g !== undefined) updates['goalProtein'] = input.goal_protein_g;
+  if (input.goal_carbs_g !== undefined) updates['goalCarbs'] = input.goal_carbs_g;
+  if (input.goal_fat_g !== undefined) updates['goalFat'] = input.goal_fat_g;
+
+  const row = await upsertCalorieProfile(userId, updates);
 
   const profile = rowToProfile(row);
   const latestMeasurements = await getLatestMeasurementsPerType(userId);

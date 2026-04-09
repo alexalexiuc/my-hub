@@ -14,6 +14,7 @@ import {
   TIMEZONES,
 } from '@my-hub/shared/constants';
 import { SectionCard, Field, Button } from '@/components';
+import { pctToGrams, gramsToPct, computeMacroSummary } from './CaloriesUtils';
 
 interface Props {
   profile: CalorieProfile | null;
@@ -113,12 +114,14 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
             goalMinCalories: form.goalMinCalories ? Math.round(Number(form.goalMinCalories)) : null,
             goalMaxCalories: form.goalMaxCalories ? Math.round(Number(form.goalMaxCalories)) : null,
             goalProtein: form.goalProtein
-              ? Number(macroMode === '%' ? pctToGrams(form.goalProtein, 4) : form.goalProtein)
+              ? Number(macroMode === '%' ? pctToGrams(form.goalProtein, 4, maxCalNum ?? 0) : form.goalProtein)
               : null,
             goalCarbs: form.goalCarbs
-              ? Number(macroMode === '%' ? pctToGrams(form.goalCarbs, 4) : form.goalCarbs)
+              ? Number(macroMode === '%' ? pctToGrams(form.goalCarbs, 4, maxCalNum ?? 0) : form.goalCarbs)
               : null,
-            goalFat: form.goalFat ? Number(macroMode === '%' ? pctToGrams(form.goalFat, 9) : form.goalFat) : null,
+            goalFat: form.goalFat
+              ? Number(macroMode === '%' ? pctToGrams(form.goalFat, 9, maxCalNum ?? 0) : form.goalFat)
+              : null,
             notes: form.notes || undefined,
           }),
         }),
@@ -148,31 +151,23 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
 
   const maxCalNum = form.goalMaxCalories ? Math.round(Number(form.goalMaxCalories)) : null;
 
-  function pctToGrams(pct: string, kcalPerG: number): string {
-    if (!pct || !maxCalNum) return '';
-    return String(Math.round(((Number(pct) / 100) * maxCalNum) / kcalPerG));
-  }
-
-  function gramsToPct(g: string, kcalPerG: number): string {
-    if (!g || !maxCalNum) return '';
-    return String(Math.round(((Number(g) * kcalPerG) / maxCalNum) * 100));
-  }
+  const macroSummary = computeMacroSummary(macroMode, form.goalProtein, form.goalCarbs, form.goalFat, maxCalNum);
 
   function switchMacroMode(next: 'g' | '%') {
     if (next === macroMode) return;
     if (next === '%') {
       setForm({
         ...form,
-        goalProtein: gramsToPct(form.goalProtein, 4),
-        goalCarbs: gramsToPct(form.goalCarbs, 4),
-        goalFat: gramsToPct(form.goalFat, 9),
+        goalProtein: gramsToPct(form.goalProtein, 4, maxCalNum ?? 0),
+        goalCarbs: gramsToPct(form.goalCarbs, 4, maxCalNum ?? 0),
+        goalFat: gramsToPct(form.goalFat, 9, maxCalNum ?? 0),
       });
     } else {
       setForm({
         ...form,
-        goalProtein: pctToGrams(form.goalProtein, 4),
-        goalCarbs: pctToGrams(form.goalCarbs, 4),
-        goalFat: pctToGrams(form.goalFat, 9),
+        goalProtein: pctToGrams(form.goalProtein, 4, maxCalNum ?? 0),
+        goalCarbs: pctToGrams(form.goalCarbs, 4, maxCalNum ?? 0),
+        goalFat: pctToGrams(form.goalFat, 9, maxCalNum ?? 0),
       });
     }
     setMacroMode(next);
@@ -185,9 +180,9 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
     }
     if (macroMode === 'g' && maxCalNum) {
       const usedPct =
-        (Number(gramsToPct(form.goalProtein, 4)) || 0) +
-        (Number(gramsToPct(form.goalCarbs, 4)) || 0) +
-        (Number(gramsToPct(form.goalFat, 9)) || 0);
+        (Number(gramsToPct(form.goalProtein, 4, maxCalNum)) || 0) +
+        (Number(gramsToPct(form.goalCarbs, 4, maxCalNum)) || 0) +
+        (Number(gramsToPct(form.goalFat, 9, maxCalNum)) || 0);
       return usedPct > 100 ? true : null;
     }
     return null;
@@ -390,31 +385,11 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
               </button>
             </div>
           </div>
-          {(() => {
-            if (macroMode === '%') {
-              const used =
-                (Number(form.goalProtein) || 0) + (Number(form.goalCarbs) || 0) + (Number(form.goalFat) || 0);
-              const remaining = 100 - used;
-              return (
-                <p className={`col-span-2 text-xs px-1 ${used > 100 ? 'text-amber-400' : 'text-zinc-500'}`}>
-                  Used: {used}% · Remaining: {remaining}%
-                </p>
-              );
-            }
-            if (macroMode === 'g' && maxCalNum) {
-              const usedPct =
-                (Number(gramsToPct(form.goalProtein, 4)) || 0) +
-                (Number(gramsToPct(form.goalCarbs, 4)) || 0) +
-                (Number(gramsToPct(form.goalFat, 9)) || 0);
-              const remainingPct = 100 - usedPct;
-              return (
-                <p className={`col-span-2 text-xs px-1 ${usedPct > 100 ? 'text-amber-400' : 'text-zinc-500'}`}>
-                  Used: {usedPct}% · Remaining: {remainingPct}%
-                </p>
-              );
-            }
-            return null;
-          })()}
+          {macroSummary && (
+            <p className={`col-span-2 text-xs px-1 ${macroSummary.isOver ? 'text-amber-400' : 'text-zinc-500'}`}>
+              Used: {macroSummary.used}% · Remaining: {macroSummary.remaining}%
+            </p>
+          )}
           <Field label={macroMode === 'g' ? 'Protein (g/day)' : 'Protein (%)'}>
             <input
               className="input"
@@ -428,12 +403,13 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
             />
             {macroMode === '%' && form.goalProtein && maxCalNum && (
               <p className="text-xs text-zinc-500 mt-0.5">
-                ≈ {pctToGrams(form.goalProtein, 4)}g · {Math.round(Number(pctToGrams(form.goalProtein, 4)) * 4)} kcal
+                ≈ {pctToGrams(form.goalProtein, 4, maxCalNum)}g ·{' '}
+                {Math.round(Number(pctToGrams(form.goalProtein, 4, maxCalNum)) * 4)} kcal
               </p>
             )}
             {macroMode === 'g' && form.goalProtein && maxCalNum && (
               <p className="text-xs text-zinc-500 mt-0.5">
-                ≈ {gramsToPct(form.goalProtein, 4)}% · {Math.round(Number(form.goalProtein) * 4)} kcal
+                ≈ {gramsToPct(form.goalProtein, 4, maxCalNum)}% · {Math.round(Number(form.goalProtein) * 4)} kcal
               </p>
             )}
           </Field>
@@ -450,12 +426,13 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
             />
             {macroMode === '%' && form.goalCarbs && maxCalNum && (
               <p className="text-xs text-zinc-500 mt-0.5">
-                ≈ {pctToGrams(form.goalCarbs, 4)}g · {Math.round(Number(pctToGrams(form.goalCarbs, 4)) * 4)} kcal
+                ≈ {pctToGrams(form.goalCarbs, 4, maxCalNum)}g ·{' '}
+                {Math.round(Number(pctToGrams(form.goalCarbs, 4, maxCalNum)) * 4)} kcal
               </p>
             )}
             {macroMode === 'g' && form.goalCarbs && maxCalNum && (
               <p className="text-xs text-zinc-500 mt-0.5">
-                ≈ {gramsToPct(form.goalCarbs, 4)}% · {Math.round(Number(form.goalCarbs) * 4)} kcal
+                ≈ {gramsToPct(form.goalCarbs, 4, maxCalNum)}% · {Math.round(Number(form.goalCarbs) * 4)} kcal
               </p>
             )}
           </Field>
@@ -472,12 +449,13 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
             />
             {macroMode === '%' && form.goalFat && maxCalNum && (
               <p className="text-xs text-zinc-500 mt-0.5">
-                ≈ {pctToGrams(form.goalFat, 9)}g · {Math.round(Number(pctToGrams(form.goalFat, 9)) * 9)} kcal
+                ≈ {pctToGrams(form.goalFat, 9, maxCalNum)}g ·{' '}
+                {Math.round(Number(pctToGrams(form.goalFat, 9, maxCalNum)) * 9)} kcal
               </p>
             )}
             {macroMode === 'g' && form.goalFat && maxCalNum && (
               <p className="text-xs text-zinc-500 mt-0.5">
-                ≈ {gramsToPct(form.goalFat, 9)}% · {Math.round(Number(form.goalFat) * 9)} kcal
+                ≈ {gramsToPct(form.goalFat, 9, maxCalNum)}% · {Math.round(Number(form.goalFat) * 9)} kcal
               </p>
             )}
           </Field>
