@@ -2,32 +2,27 @@
 
 import { useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
-import { BookingTypeIcon } from '@/components';
+import { BookingTypeIcon, Button } from '@/components';
 import type { TripWithStatus } from '@my-hub/shared/types';
 import type { TripBookingExtended, TripDay } from './types';
-import { calendarDays, toUTCDateStr } from '@my-hub/shared/utils';
+import { calendarDays, formatDayHeading, toUTCDateStr } from '@my-hub/shared/utils';
 
-interface DayByDayProps {
+type DayByDayProps = {
   trip: TripWithStatus;
   bookings: TripBookingExtended[];
   dayNotes: TripDay[];
   canEdit: boolean;
   onChanged: () => void;
-}
+};
 
-function formatDayHeading(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00');
-  return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-}
-
-interface DayCardProps {
+type DayCardProps = {
   dateStr: string;
   note: TripDay | undefined;
   bookings: TripBookingExtended[];
   canEdit: boolean;
   onSaved: (date: string, title: string, notes: string) => Promise<void>;
   onDeleted: (id: number) => Promise<void>;
-}
+};
 
 function DayCard({ dateStr, note, bookings, canEdit, onSaved, onDeleted }: DayCardProps) {
   const [editing, setEditing] = useState(false);
@@ -65,17 +60,19 @@ function DayCard({ dateStr, note, bookings, canEdit, onSaved, onDeleted }: DayCa
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-zinc-200">{formatDayHeading(dateStr)}</h3>
         {canEdit && !editing && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="xs"
             onClick={() => {
               setTitle(note?.title ?? '');
               setNotes(note?.notes ?? '');
               setEditing(true);
             }}
-            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="px-0 text-zinc-500 hover:text-zinc-300 hover:bg-transparent"
           >
             {note ? 'Edit' : '+ Add notes'}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -112,31 +109,29 @@ function DayCard({ dateStr, note, bookings, canEdit, onSaved, onDeleted }: DayCa
             className="w-full rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
           />
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
+              size="xs"
               onClick={handleSave}
               disabled={saving}
-              className="rounded bg-sky-700 px-3 py-1 text-xs font-medium text-white hover:bg-sky-600 disabled:opacity-50"
+              className="bg-sky-700 hover:bg-sky-600"
             >
               {saving ? 'Saving…' : 'Save'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              disabled={saving}
-              className="rounded border border-zinc-700 px-3 py-1 text-xs text-zinc-400 hover:text-zinc-200 disabled:opacity-50"
-            >
+            </Button>
+            <Button type="button" variant="secondary" size="xs" onClick={() => setEditing(false)} disabled={saving}>
               Cancel
-            </button>
+            </Button>
             {note && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="xs"
                 onClick={handleDelete}
                 disabled={saving}
-                className="ml-auto text-xs text-red-500 hover:text-red-400 disabled:opacity-50"
+                className="ml-auto px-0 text-red-500 hover:text-red-400 hover:bg-transparent"
               >
                 Delete
-              </button>
+              </Button>
             )}
           </div>
         </div>

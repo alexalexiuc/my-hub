@@ -1,3 +1,9 @@
+/**
+ * Travel domain utilities
+ * - deriveTripStatus(cancelledAt, startAt, endAt, now?) — computes Cancelled/Planned/Active/Completed from timeline fields
+ * - isTransportBookingType(bookingType) — true if bookingType is in the transport booking types list
+ */
+
 import { TripStatuses, type TripStatus, transportBookingTypes } from '../constants';
 
 /**

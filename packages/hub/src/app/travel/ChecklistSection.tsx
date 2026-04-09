@@ -3,15 +3,15 @@
 import { useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import type { TripChecklistItem } from '@my-hub/shared/types';
-import { IconButton } from '@/components';
+import { Button, IconButton } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
 
-interface ChecklistSectionProps {
+type ChecklistSectionProps = {
   activeTripId: number | null;
   canEdit: boolean;
   checklist: TripChecklistItem[];
   onChanged: () => void;
-}
+};
 
 export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }: ChecklistSectionProps) {
   const [newItem, setNewItem] = useState('');
@@ -75,13 +75,9 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
           placeholder="Add checklist item"
           className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
         />
-        <button
-          onClick={addItem}
-          disabled={!activeTripId || !canEdit}
-          className="rounded-md bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50"
-        >
+        <Button onClick={addItem} disabled={!activeTripId || !canEdit} className="bg-teal-600 hover:bg-teal-500">
           Add
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-2 max-h-64 overflow-auto">
@@ -100,28 +96,23 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
                     onChange={(e) => setEditTitle(e.target.value)}
                     className="min-w-0 flex-1 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm"
                   />
-                  <button
-                    onClick={() => saveEdit(item.id)}
-                    className="rounded-md bg-teal-600 px-2 py-1 text-xs font-medium text-white hover:bg-teal-500"
-                  >
+                  <Button size="xs" onClick={() => saveEdit(item.id)} className="bg-teal-600 hover:bg-teal-500">
                     Save
-                  </button>
-                  <button
-                    onClick={cancelEdit}
-                    className="rounded-md bg-zinc-800 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-700"
-                  >
+                  </Button>
+                  <Button variant="secondary" size="xs" onClick={cancelEdit}>
                     Cancel
-                  </button>
+                  </Button>
                 </>
               ) : (
                 <>
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={() => toggleItem(item)}
                     disabled={!canEdit}
-                    className={`min-w-0 flex-1 text-left ${item.done ? 'line-through' : ''} disabled:cursor-default`}
+                    className={`min-w-0 flex-1 text-left px-0 py-0 font-normal hover:bg-transparent ${item.done ? 'line-through' : ''} disabled:cursor-default`}
                   >
                     {item.title}
-                  </button>
+                  </Button>
                   {canEdit && (
                     <div className="flex items-center gap-1">
                       <IconButton label="Edit checklist item" onClick={() => startEdit(item)} icon={<PencilIcon />} />

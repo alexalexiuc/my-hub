@@ -1,3 +1,11 @@
+/**
+ * Calorie / TDEE calculation utilities
+ * - calculateBMR(age, sex, heightCm, weightKg) — Basal Metabolic Rate via Mifflin-St Jeor; returns null if inputs missing
+ * - calculateCalorieTargets(params) — derives tdee, goalCalories, minCalories, maxCalories from profile + goal settings
+ * - ActivityLevelMultipliers — Record<ActivityLevel, number> mapping activity levels to TDEE multipliers
+ * Types: CalorieTargets, CalorieTargetParams
+ */
+
 // ---------------------------------------------------------------------------
 // Calorie / TDEE calculation utilities
 // ---------------------------------------------------------------------------

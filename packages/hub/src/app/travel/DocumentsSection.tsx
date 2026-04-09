@@ -4,16 +4,16 @@ import { useEffect, useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import type { TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended, UploadConfig } from './types';
-import { IconButton } from '@/components';
+import { Button, IconButton } from '@/components';
 import { DownloadIcon, TrashIcon } from '@/components/icons';
 
-interface DocumentsSectionProps {
+type DocumentsSectionProps = {
   activeTripId: number | null;
   canEdit: boolean;
   documents: TripDocument[];
   bookings: TripBookingExtended[];
   onChanged: () => void;
-}
+};
 
 export function DocumentsSection({ activeTripId, canEdit, documents, bookings, onChanged }: DocumentsSectionProps) {
   const [uploadConfig, setUploadConfig] = useState<UploadConfig>({
@@ -101,13 +101,13 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
         <p className="text-xs text-zinc-500">
           Max {uploadConfig.max_mb} MB. Allowed: {uploadConfig.allowed_mime.join(', ')}
         </p>
-        <button
+        <Button
           onClick={uploadDocument}
           disabled={!activeTripId || !documentFile || !canEdit}
-          className="w-full rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50"
+          className="w-full bg-amber-600 hover:bg-amber-500"
         >
           Upload Document
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-2 max-h-64 overflow-auto">

@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
-import { BookingTypeIcon } from '@/components';
+import { BookingTypeIcon, Button } from '@/components';
 import { TicketIcon, DocumentIcon, ClipboardIcon, PinIcon } from '@/components/icons';
 import type { TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
-import { mapBookingsToSegments } from './coming-next-utils';
-import type { Segment, SegmentAction, TimeBucket } from './coming-next-utils';
+import { mapBookingsToSegments } from './coming-next.utils';
+import type { Segment, SegmentAction, TimeBucket } from './coming-next.utils';
 import { TravelTimeDisplay } from './TravelTimeDisplay';
 
 const actionIcons: Record<SegmentAction['type'], () => React.JSX.Element> = {
@@ -55,19 +55,21 @@ function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLa
       : `${action.label} for ${segmentLabel}`;
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="xs"
       onClick={handleClick}
       aria-label={ariaLabel}
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors ${
+      className={`inline-flex items-center gap-1 rounded-full border py-0.5 ${
         action.type === 'boarding_pass'
-          ? 'border-sky-600 bg-sky-900/40 text-sky-300 hover:bg-sky-800/50'
-          : 'border-zinc-600 bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+          ? 'border-sky-600 bg-sky-900/40 text-sky-300 hover:bg-sky-800/50 hover:text-sky-300'
+          : 'border-zinc-600 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-300'
       }`}
     >
       <Icon />
       {copied ? 'Copied!' : action.label}
-    </button>
+    </Button>
   );
 }
 
@@ -105,12 +107,13 @@ function SegmentCard({ segment }: { segment: Segment }) {
   return (
     <div ref={isActive ? containerRef : undefined} className="flex items-center md:w-[210px] md:flex-none">
       {showCollapsed ? (
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => setExpanded(true)}
           aria-label={`Expand past segment: ${segment.primaryLabel}`}
           title="Click to expand"
-          className="relative flex items-center gap-2 h-fit w-full rounded-lg border border-dashed border-zinc-700/40 bg-zinc-900/30 px-3 py-2 text-sm opacity-55 transition-all hover:opacity-80 hover:border-zinc-600/60 hover:bg-zinc-900/50 cursor-pointer"
+          className="relative flex items-center gap-2 h-fit w-full rounded-lg border border-dashed border-zinc-700/40 bg-zinc-900/30 px-3 py-2 text-sm opacity-55 hover:opacity-80 hover:border-zinc-600/60 hover:bg-zinc-900/50 hover:text-inherit cursor-pointer"
         >
           <span className="shrink-0 text-zinc-500">
             <BookingTypeIcon type={segment.bookingType} />
@@ -124,7 +127,7 @@ function SegmentCard({ segment }: { segment: Segment }) {
             timeClassName={bucketTimeClasses.past}
           />
           <span className="text-xs text-zinc-400 truncate flex-1 text-left">{segment.primaryLabel}</span>
-        </button>
+        </Button>
       ) : (
         <div
           aria-current={isActive ? 'true' : undefined}
@@ -221,10 +224,10 @@ function Connector({ dim, durationBadge }: { dim?: boolean; durationBadge?: stri
   );
 }
 
-interface ComingNextProps {
+type ComingNextProps = {
   bookings: TripBookingExtended[];
   documents: TripDocument[];
-}
+};
 
 export function ComingNext({ bookings, documents }: ComingNextProps) {
   const segments = useMemo(() => mapBookingsToSegments(bookings, documents), [bookings, documents]);

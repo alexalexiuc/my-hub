@@ -1,33 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { IconButton, MultiButtonGroup, SectionCard } from '@/components';
+import { Button, IconButton, MultiButtonGroup, SectionCard } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
 import type { Trip } from '@my-hub/shared/types';
 import type { ApiTrip, BookingRange } from './types';
+import { toDateInputValue } from '@my-hub/shared/utils';
+import { randomTripColor, formatShortDate } from './trips-sidebar.utils';
 
-const tripColorPalette = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#84CC16'];
-
-function randomTripColor(): string {
-  return tripColorPalette[Math.floor(Math.random() * tripColorPalette.length)] ?? '#3B82F6';
-}
-
-function toDateInputValue(value: Date | string | null | undefined): string {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const timezoneOffsetMs = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
-}
-
-function formatShortDate(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString();
-}
-
-interface TripsSidebarProps {
+type TripsSidebarProps = {
   trips: ApiTrip[];
   activeTripId: number | null;
   onSelectTrip: (id: number) => void;
@@ -35,7 +16,7 @@ interface TripsSidebarProps {
   loadingTrips: boolean;
   onTripsChanged: () => void;
   onOverviewChanged: (tripId: number) => void;
-}
+};
 
 export function TripsSidebar({
   trips,
@@ -178,12 +159,9 @@ export function TripsSidebar({
               className="h-8 w-8 cursor-pointer rounded-full border-none bg-transparent p-0"
             />
           </div>
-          <button
-            onClick={createTrip}
-            className="w-full rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-          >
+          <Button onClick={createTrip} className="w-full bg-emerald-600 hover:bg-emerald-500">
             Create Trip
-          </button>
+          </Button>
         </div>
 
         <div className="flex items-center justify-between">
@@ -254,25 +232,27 @@ export function TripsSidebar({
                       title="Trip color"
                     />
                     <div className="flex items-center gap-2">
-                      <button
+                      <Button
+                        size="xs"
                         onClick={() => saveTripEdits(trip.id)}
-                        className="rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-500"
+                        className="bg-emerald-600 hover:bg-emerald-500"
                       >
                         Save
-                      </button>
-                      <button
-                        onClick={cancelEditTrip}
-                        className="rounded-md bg-zinc-800 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-700"
-                      >
+                      </Button>
+                      <Button variant="secondary" size="xs" onClick={cancelEditTrip}>
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-1">
                   <div className="flex items-start justify-between gap-2">
-                    <button onClick={() => onSelectTrip(trip.id)} className="min-w-0 flex-1 text-left">
+                    <Button
+                      variant="ghost"
+                      onClick={() => onSelectTrip(trip.id)}
+                      className="min-w-0 flex-1 text-left px-0 py-0 font-normal hover:bg-transparent"
+                    >
                       <p className="font-medium flex items-center gap-2">
                         <span
                           className="inline-block h-2.5 w-2.5 rounded-full"
@@ -284,7 +264,7 @@ export function TripsSidebar({
                       <p className="text-xs text-zinc-500 mt-0.5">
                         Owner: {trip.access_role === 'owner' ? 'You' : (trip.owner_name ?? trip.owner_email)}
                       </p>
-                    </button>
+                    </Button>
                     {trip.can_edit && (
                       <div className="flex items-center gap-1">
                         <IconButton label="Edit trip" onClick={() => startEditTrip(trip)} icon={<PencilIcon />} />

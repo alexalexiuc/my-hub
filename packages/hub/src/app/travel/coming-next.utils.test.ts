@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mapBookingsToSegments, formatSegmentTime } from './coming-next-utils';
+import { mapBookingsToSegments, formatSegmentTime } from './coming-next.utils';
 import type { TripBookingExtended } from './types';
 import type { TripDocument } from '@my-hub/shared/types';
 

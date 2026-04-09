@@ -1,90 +1,17 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { Trip, TripBooking, TripBookingType } from '@my-hub/shared/types';
-import { TripBookingTypes } from '@my-hub/shared/constants';
+import type { Trip, TripBooking } from '@my-hub/shared/types';
+import { getMonthStart, getMonthEnd, startOfWeekMonday, isSameDay, toDate, startOfDay } from '@my-hub/shared/utils';
+import { Button } from '@/components';
+import { withAlpha, bookingDotClass, getMinBookingDate } from './bookings-calendar.utils';
+import { dayNamesShort } from '@my-hub/shared/constants';
 
-interface BookingsCalendarProps {
+type BookingsCalendarProps = {
   trip: Trip;
   bookings: TripBooking[];
   tripColor?: string | null;
-}
-
-const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-function getMonthStart(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function getMonthEnd(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
-}
-
-function startOfWeekMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
-function toDate(value: unknown): Date | null {
-  if (!value) return null;
-  const date = new Date(String(value));
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function startOfDay(date: Date): Date {
-  const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
-  return next;
-}
-
-function withAlpha(hex: string, alpha: number): string {
-  const valid = /^#([0-9a-fA-F]{6})$/.exec(hex);
-  const raw = valid?.[1];
-  if (!raw) return `rgba(59,130,246,${alpha})`;
-
-  const r = Number.parseInt(raw.slice(0, 2), 16);
-  const g = Number.parseInt(raw.slice(2, 4), 16);
-  const b = Number.parseInt(raw.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function bookingDotClass(bookingType: TripBookingType): string {
-  switch (bookingType) {
-    case TripBookingTypes.Flight:
-      return 'bg-sky-400';
-    case TripBookingTypes.Accommodation:
-      return 'bg-emerald-400';
-    case TripBookingTypes.RentalCar:
-      return 'bg-amber-400';
-    case TripBookingTypes.Train:
-    case TripBookingTypes.Bus:
-    case TripBookingTypes.Ferry:
-    case TripBookingTypes.Taxi:
-    case TripBookingTypes.Transfer:
-    case TripBookingTypes.Car:
-      return 'bg-indigo-400';
-    default:
-      return 'bg-zinc-400';
-  }
-}
-
-function getMinBookingDate(bookings: TripBooking[], trip: Trip): Date {
-  const dates = bookings
-    .map((b) => toDate(b.startAt))
-    .concat(toDate(trip.startAt || Date.now()))
-    .filter((d): d is Date => d !== null);
-
-  if (dates.length === 0) return new Date();
-  return new Date(Math.min(...dates.map((d) => d.getTime())));
-}
+};
 
 export function BookingsCalendar({ bookings, tripColor, trip }: BookingsCalendarProps) {
   const [monthCursor, setMonthCursor] = useState(() => getMonthStart(getMinBookingDate(bookings, trip)));
@@ -151,23 +78,17 @@ export function BookingsCalendar({ bookings, tripColor, trip }: BookingsCalendar
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <button
-          onClick={() => moveMonth(-1)}
-          className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm hover:bg-zinc-800"
-        >
+        <Button variant="secondary" size="xs" onClick={() => moveMonth(-1)}>
           Prev
-        </button>
+        </Button>
         <p className="text-sm font-semibold text-zinc-200">{monthLabel}</p>
-        <button
-          onClick={() => moveMonth(1)}
-          className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-sm hover:bg-zinc-800"
-        >
+        <Button variant="secondary" size="xs" onClick={() => moveMonth(1)}>
           Next
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-7 gap-1 text-center text-xs uppercase tracking-wide text-zinc-500">
-        {dayNames.map((name) => (
+        {dayNamesShort.map((name) => (
           <div key={name} className="py-1">
             {name}
           </div>

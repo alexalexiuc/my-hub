@@ -10,11 +10,11 @@ function StatRow({ label, value }: { label: string; value: number }) {
   );
 }
 
-interface TripOverviewCardsProps {
+type TripOverviewCardsProps = {
   activeTrip: ApiTrip | null;
   overview: TripOverviewResponse | null;
   loadingOverview: boolean;
-}
+};
 
 export function TripOverviewCards({ activeTrip, overview, loadingOverview }: TripOverviewCardsProps) {
   return (

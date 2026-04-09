@@ -1,4 +1,4 @@
-# AI Working Rules
+# Project Guidelines
 
 This repository is a pnpm TypeScript monorepo. Keep changes small, explicit, and package-scoped.
 

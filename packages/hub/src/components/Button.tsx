@@ -1,11 +1,12 @@
 import type { ButtonHTMLAttributes } from 'react';
+import { cn } from '@/lib/utils';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   loading?: boolean;
-  size?: 'sm' | 'md';
+  size?: 'xs' | 'sm' | 'md';
 }
 
 const variants: Record<Variant, string> = {
@@ -16,6 +17,7 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes = {
+  xs: 'px-2 py-1 text-xs',
   sm: 'px-3 py-1.5 text-sm',
   md: 'px-4 py-2 text-sm',
 };
@@ -26,13 +28,13 @@ export function Button({
   size = 'md',
   disabled,
   children,
-  className = '',
+  className,
   ...props
 }: Props) {
   return (
     <button
       disabled={disabled || loading}
-      className={`rounded-lg font-medium transition disabled:opacity-50 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={cn('rounded-lg font-medium transition disabled:opacity-50', variants[variant], sizes[size], className)}
       {...props}
     >
       {loading ? <span className="opacity-70">{children}</span> : children}

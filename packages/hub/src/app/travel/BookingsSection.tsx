@@ -5,10 +5,10 @@ import { SectionCard } from '@/components/SectionCard';
 import type { FlightDetails, TransportDetails, TripBookingType, TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { AttachmentIcon, PencilIcon, TrashIcon } from '@/components/icons';
-import { BookingTypeIcon, IconButton } from '@/components';
+import { BookingTypeIcon, Button, IconButton } from '@/components';
 import { TravelTimeDisplay } from './TravelTimeDisplay';
 import { TripBookingTypes, tripBookingTypeValues } from '@my-hub/shared/constants';
-import { isTransportBookingType } from '@my-hub/shared/utils';
+import { isTransportBookingType, toDateTimeLocalValue } from '@my-hub/shared/utils';
 
 const bookingTypeLabels: Record<TripBookingType, string> = {
   [TripBookingTypes.Flight]: 'Flight',
@@ -26,21 +26,13 @@ const bookingTypeLabels: Record<TripBookingType, string> = {
   [TripBookingTypes.Other]: 'Other',
 };
 
-function toDateTimeLocalValue(value: Date | string | null | undefined): string {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const timezoneOffsetMs = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 16);
-}
-
-interface BookingsSectionProps {
+type BookingsSectionProps = {
   activeTripId: number | null;
   canEdit: boolean;
   bookings: TripBookingExtended[];
   documentsByBookingId: Map<number, TripDocument[]>;
   onChanged: () => void;
-}
+};
 
 export function BookingsSection({
   activeTripId,
@@ -331,13 +323,9 @@ export function BookingsSection({
             />
           </div>
         )}
-        <button
-          onClick={addBooking}
-          disabled={!activeTripId || !canEdit}
-          className="w-full rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
-        >
+        <Button onClick={addBooking} disabled={!activeTripId || !canEdit} className="w-full">
           Add Reservation
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-2 max-h-[28rem] overflow-auto">
@@ -458,18 +446,12 @@ export function BookingsSection({
                   </div>
                 )}
                 <div className="flex items-center justify-end gap-2">
-                  <button
-                    onClick={() => saveBookingEdits(booking.id)}
-                    className="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-500"
-                  >
+                  <Button size="xs" onClick={() => saveBookingEdits(booking.id)}>
                     Save
-                  </button>
-                  <button
-                    onClick={cancelEditBooking}
-                    className="rounded-md bg-zinc-800 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-700"
-                  >
+                  </Button>
+                  <Button variant="secondary" size="xs" onClick={cancelEditBooking}>
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (

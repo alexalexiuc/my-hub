@@ -1,4 +1,4 @@
-import { MeasurementTypes } from '../../../../constants';
+import { dayNamesShort, MeasurementTypes } from '../../../../constants';
 import type { WeeklyReportData, WeightPoint } from './types';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -491,7 +491,6 @@ function buildWeightSparkline(data: WeeklyReportData): string {
 }
 
 function buildSparklineSvg(points: WeightPoint[], data: WeeklyReportData): string {
-  const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   // Map weekStart dates to x positions
   const xPositions = [42, 125, 208, 290, 373, 456, 518];
 
@@ -548,10 +547,12 @@ function buildSparklineSvg(points: WeightPoint[], data: WeeklyReportData): strin
     .join('\n      ');
 
   // X axis labels
-  const xLabels = DAY_LABELS.map(
-    (label, i) =>
-      `<text x="${xPositions[i]}" y="88" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#2e3d50">${label}</text>`,
-  ).join('\n      ');
+  const xLabels = dayNamesShort
+    .map(
+      (label, i) =>
+        `<text x="${xPositions[i]}" y="88" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#2e3d50">${label}</text>`,
+    )
+    .join('\n      ');
 
   // Grid lines at yMin, yMid, yMax positions
   const gridY1 = toY(yMax).toFixed(1);

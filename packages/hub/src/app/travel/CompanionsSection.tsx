@@ -3,15 +3,15 @@
 import { useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import type { TripCompanion } from '@my-hub/shared/types';
-import { IconButton } from '@/components';
+import { Button, IconButton } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
 
-interface CompanionsSectionProps {
+type CompanionsSectionProps = {
   activeTripId: number | null;
   canEdit: boolean;
   companions: TripCompanion[];
   onChanged: () => void;
-}
+};
 
 export function CompanionsSection({ activeTripId, canEdit, companions, onChanged }: CompanionsSectionProps) {
   const [newName, setNewName] = useState('');
@@ -97,13 +97,13 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
             className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
           />
         </div>
-        <button
+        <Button
           onClick={addCompanion}
           disabled={!activeTripId || !canEdit}
-          className="w-full rounded-md bg-fuchsia-600 px-3 py-2 text-sm font-medium text-white hover:bg-fuchsia-500 disabled:opacity-50"
+          className="w-full bg-fuchsia-600 hover:bg-fuchsia-500"
         >
           Add Companion
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-2 max-h-64 overflow-auto">
@@ -132,18 +132,16 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
                   />
                 </div>
                 <div className="flex items-center justify-end gap-2">
-                  <button
+                  <Button
+                    size="xs"
                     onClick={() => saveEdit(companion.id)}
-                    className="rounded-md bg-fuchsia-600 px-2 py-1 text-xs font-medium text-white hover:bg-fuchsia-500"
+                    className="bg-fuchsia-600 hover:bg-fuchsia-500"
                   >
                     Save
-                  </button>
-                  <button
-                    onClick={cancelEdit}
-                    className="rounded-md bg-zinc-800 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-700"
-                  >
+                  </Button>
+                  <Button variant="secondary" size="xs" onClick={cancelEdit}>
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (

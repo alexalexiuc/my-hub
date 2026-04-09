@@ -1,7 +1,14 @@
 import type { FlightData, TransportDetails, TripBookingType, TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { TripBookingTypes, TripDocumentTypes } from '@my-hub/shared/constants';
-import { isTransportBookingType } from '@my-hub/shared/utils';
+import {
+  isTransportBookingType,
+  fmtDuration,
+  hasValidLatLng,
+  parseCoordinatePair,
+  parseGeoUri,
+  containsPlusCode,
+} from '@my-hub/shared/utils';
 
 const SegmentActions = {
   BoardingPass: 'boarding_pass',
@@ -10,15 +17,15 @@ const SegmentActions = {
   Navigate: 'navigate',
 } as const;
 
-export interface SegmentAction {
+export type SegmentAction = {
   type: (typeof SegmentActions)[keyof typeof SegmentActions];
   label: string;
   value: string;
-}
+};
 
 export type TimeBucket = 'past' | 'now' | 'imminent' | 'soon' | 'future';
 
-export interface Segment {
+export type Segment = {
   segmentId: string; // e.g. '42-start' or '42-end'
   bookingId: number;
   bookingType: TripBookingType;
@@ -33,7 +40,7 @@ export interface Segment {
   secondaryLabel: string;
   durationBadge: string | null; // only on end segment
   actions: SegmentAction[];
-}
+};
 
 // ---------------------------------------------------------------------------
 // Endpoint labels per booking type
@@ -70,13 +77,6 @@ function endpointLabels(type: TripBookingType): { start: string; end: string } {
 // Duration badge
 // ---------------------------------------------------------------------------
 
-function fmtHm(ms: number): string {
-  const totalMinutes = Math.round(ms / 60000);
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  return h === 0 ? `${m} min` : m === 0 ? `${h}h` : `${h}h ${m}m`;
-}
-
 function computeDuration(booking: TripBookingExtended, fd: FlightData | null): string | null {
   if (!booking.endAt) return null;
 
@@ -98,7 +98,7 @@ function computeDuration(booking: TripBookingExtended, fd: FlightData | null): s
         ? new Date(fd.scheduledArrivalAt).getTime()
         : endMs;
     const flightMs = arrMs - depMs;
-    return flightMs > 0 ? fmtHm(flightMs) : fmtHm(diffMs);
+    return flightMs > 0 ? fmtDuration(flightMs) : fmtDuration(diffMs);
   }
 
   if (booking.bookingType === TripBookingTypes.Accommodation) {
@@ -112,7 +112,7 @@ function computeDuration(booking: TripBookingExtended, fd: FlightData | null): s
   }
 
   const DAY = 24 * 60 * 60 * 1000;
-  if (diffMs < DAY) return fmtHm(diffMs);
+  if (diffMs < DAY) return fmtDuration(diffMs);
   const days = Math.round(diffMs / DAY);
   return days === 1 ? '1 day' : `${days} days`;
 }
@@ -178,38 +178,8 @@ function deriveLabels(booking: TripBookingExtended): { primary: string; secondar
   }
 }
 
-function isFiniteCoordinate(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
-}
-
-function hasValidLatLng(lat: unknown, lng: unknown): lat is number {
-  return isFiniteCoordinate(lat) && isFiniteCoordinate(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
-}
-
 function buildGoogleMapsSearchUrl(query: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-}
-
-function parseCoordinatePair(value: string): { lat: number; lng: number } | null {
-  // Accept formats like "47.0105, 28.8638"
-  const match = value.match(/^\s*([-+]?\d+(?:\.\d+)?)\s*,\s*([-+]?\d+(?:\.\d+)?)\s*$/);
-  if (!match) return null;
-
-  const lat = Number(match[1]);
-  const lng = Number(match[2]);
-  if (!hasValidLatLng(lat, lng)) return null;
-  return { lat, lng };
-}
-
-function parseGeoUri(value: string): { lat: number; lng: number } | null {
-  // geo:47.0105,28.8638 or geo:47.0105,28.8638?q=...
-  const match = value.match(/^geo:([-+]?\d+(?:\.\d+)?),([-+]?\d+(?:\.\d+)?)(?:[;?].*)?$/i);
-  if (!match) return null;
-
-  const lat = Number(match[1]);
-  const lng = Number(match[2]);
-  if (!hasValidLatLng(lat, lng)) return null;
-  return { lat, lng };
 }
 
 function isDirectMapUrl(value: string): boolean {
@@ -232,11 +202,6 @@ function isDirectMapUrl(value: string): boolean {
   } catch {
     return false;
   }
-}
-
-function containsPlusCode(value: string): boolean {
-  // Open Location Code / Plus Code, e.g. "8FVC9G8F+5W" or "2RFP+WM Chisinau"
-  return /\b[23456789CFGHJMPQRVWX]{2,8}\+[23456789CFGHJMPQRVWX]{2,3}\b/i.test(value);
 }
 
 function parseDirectionalLocation(location: string): { start: string; end: string } | null {
@@ -460,58 +425,4 @@ export function mapBookingsToSegments(
   return segments;
 }
 
-// ---------------------------------------------------------------------------
-// formatSegmentTime — timezone-aware
-// ---------------------------------------------------------------------------
-
-export function formatSegmentTime(
-  datetime: string,
-  timezone: string | null,
-  now: Date = new Date(),
-): { text: string; isSoon: boolean } {
-  const target = new Date(datetime);
-  const diffMs = target.getTime() - now.getTime();
-  const THREE_HOURS = 3 * 60 * 60 * 1000;
-  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
-  const isSoon = diffMs > 0 && diffMs <= THREE_HOURS;
-
-  // Format HH:MM in the endpoint's local timezone; fall back to UTC when unset
-  const tz = timezone ?? 'UTC';
-  const timeFormatter = new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: tz,
-  });
-  const dateFormatter = new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    timeZone: tz,
-  });
-
-  const timeStr = timeFormatter.format(target);
-
-  if (diffMs < 0) {
-    return { text: `${dateFormatter.format(target)} · ${timeStr}`, isSoon: false };
-  }
-
-  // Check if target is tomorrow in tz (not the runtime's local timezone)
-  const isoInTz = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
-  const nowDateStr = isoInTz(now);
-  const [y, m, day] = nowDateStr.split('-').map(Number) as [number, number, number];
-  const tomorrowDateStr = isoInTz(new Date(Date.UTC(y, m - 1, day + 1)));
-
-  if (isoInTz(target) === tomorrowDateStr) {
-    return { text: `Tomorrow · ${timeStr}`, isSoon: false };
-  }
-
-  if (diffMs <= TWENTY_FOUR_HOURS) {
-    const totalMinutes = Math.round(diffMs / 60000);
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
-    if (h === 0) return { text: `In ${m} min`, isSoon };
-    return { text: `In ${h} h ${m} min`, isSoon };
-  }
-
-  return { text: `${dateFormatter.format(target)} · ${timeStr}`, isSoon: false };
-}
+export { formatSegmentTime } from '@my-hub/shared/utils';

@@ -1,3 +1,11 @@
+/**
+ * Trip day notes CRUD
+ * - upsertTripDay(userId, tripId, date, data) — creates or updates notes for a calendar day
+ * - getTripDays(userId, tripId) — lists all day records for a trip, sorted by date
+ * - deleteTripDay(userId, dayId) — hard delete
+ * - deleteAllUserTripDays(userId) — bulk delete for account removal
+ * Types: TripDayUpsert
+ */
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { tripDays } from '../../db/schema/travel';

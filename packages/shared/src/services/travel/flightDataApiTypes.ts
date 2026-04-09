@@ -1,4 +1,12 @@
 /**
+ * AeroDataBox API response types
+ * - AeroDataBoxFlight — full flight record from the AeroDataBox API (departure, arrival, status, aircraft, airline)
+ * - FlightStatus — union of possible flight statuses (Unknown | Expected | EnRoute | CheckIn | Boarding | GateClosed | Departed | Delayed | Approaching | Arrived | Canceled | Diverted | CanceledUncertain)
+ * - CodeshareStatus — Unknown | IsOperator | IsCodeshared
+ * - FlightAirportMovementQualityEnum — Basic | Live | Approximate
+ */
+
+/**
  * Flight's airport reference contract.
  */
 type ListingAirportContract = {

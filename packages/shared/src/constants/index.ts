@@ -1,4 +1,5 @@
 export * from './travel-files';
+export * from './calendar';
 export * from './countries';
 export * from './timezones';
 export * from './notifications';

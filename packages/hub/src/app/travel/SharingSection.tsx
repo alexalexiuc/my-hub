@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Button } from '@/components';
 import { SectionCard } from '@/components/SectionCard';
 import type { ApiTrip, TripShareSuggestion, TripShareView } from './types';
 
-interface SharingSectionProps {
+type SharingSectionProps = {
   activeTrip: ApiTrip | null;
   canEdit: boolean;
-}
+};
 
 export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
   const [tripShares, setTripShares] = useState<TripShareView[]>([]);
@@ -82,12 +83,9 @@ export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
               placeholder="Share with user email"
               className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
             />
-            <button
-              onClick={shareTripByEmail}
-              className="rounded-md bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500"
-            >
+            <Button onClick={shareTripByEmail} className="bg-violet-600 hover:bg-violet-500">
               Share
-            </button>
+            </Button>
           </div>
 
           {shareSuggestions.length > 0 && (
@@ -100,12 +98,13 @@ export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
                     className="flex items-center justify-between rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs"
                   >
                     <span className="text-zinc-300">{suggestion.name ?? suggestion.email}</span>
-                    <button
+                    <Button
+                      size="xs"
                       onClick={() => shareTripWithUser(suggestion.user_id)}
-                      className="rounded bg-violet-700 px-2 py-1 text-[11px] text-white hover:bg-violet-600"
+                      className="bg-violet-600 hover:bg-violet-500"
                     >
                       Share
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -121,12 +120,9 @@ export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
                 className="flex items-center justify-between rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs"
               >
                 <span className="text-zinc-300">{share.name ?? share.email}</span>
-                <button
-                  onClick={() => revokeTripShare(share.id)}
-                  className="rounded bg-zinc-800 px-2 py-1 text-[11px] text-zinc-300 hover:bg-zinc-700"
-                >
+                <Button variant="secondary" size="xs" onClick={() => revokeTripShare(share.id)}>
                   Remove
-                </button>
+                </Button>
               </div>
             ))}
           </div>

@@ -1,3 +1,13 @@
+/**
+ * Trip checklist item CRUD
+ * - addChecklistItem(userId, tripId, data) — creates a checklist item
+ * - getChecklistItems(userId, tripId) — lists all items for a trip (ordered by creation)
+ * - updateChecklistItem(userId, itemId, data) — partial update (title, done)
+ * - toggleChecklistItem(userId, itemId, done) — marks item done or undone
+ * - deleteChecklistItem(userId, itemId) — hard delete
+ * - deleteAllUserTripChecklistItems(userId) — bulk delete for account removal
+ * Types: TripChecklistItemInsert, TripChecklistItemUpdate
+ */
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { tripChecklistItems } from '../../db/schema/travel';

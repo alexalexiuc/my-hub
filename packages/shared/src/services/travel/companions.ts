@@ -1,3 +1,12 @@
+/**
+ * Travel companion CRUD
+ * - addTripCompanion(userId, tripId, data) — creates a companion record
+ * - getTripCompanions(userId, tripId) — lists companions for a trip
+ * - updateTripCompanion(userId, companionId, data) — partial update (name, email, phone, notes)
+ * - deleteTripCompanion(userId, companionId) — hard delete
+ * - deleteAllUserTripCompanions(userId) — bulk delete for account removal
+ * Types: TripCompanionInsert, TripCompanionUpdate
+ */
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { tripCompanions } from '../../db/schema/travel';

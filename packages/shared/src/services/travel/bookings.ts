@@ -1,3 +1,14 @@
+/**
+ * Trip booking CRUD and query helpers
+ * - addTripBooking(userId, tripId, data) — creates a booking; validates coordinates on insert
+ * - getTripBookings(userId, tripId, opts?) — lists bookings, optionally filtered by bookingType
+ * - getUpcomingTripBookings(userId, hoursAhead?, bookingType?) — bookings starting within the given window (default 48 h)
+ * - getTripBookingById(userId, bookingId) — single booking with ownership check
+ * - updateTripBooking(userId, bookingId, data) — partial update; re-validates coordinates if changed
+ * - deleteTripBooking(userId, bookingId) — hard delete
+ * - deleteAllUserTripBookings(userId) — bulk delete for account removal
+ * Types: TripBookingInsert, TripBookingUpdate, GetTripBookingsOpts
+ */
 import { and, asc, eq, gte, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { tripBookings } from '../../db/schema/travel';

@@ -4,11 +4,11 @@ import { useEffect, useRef } from 'react';
 import type { Map as LeafletMap, LatLngTuple } from 'leaflet';
 import type { TripMapData } from '@my-hub/shared/services';
 
-interface Props {
+type TripMapInnerProps = {
   mapData: TripMapData;
-}
+};
 
-export default function TripMapInner({ mapData }: Props) {
+export function TripMapInner({ mapData }: TripMapInnerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
 

@@ -1,12 +1,84 @@
 # hub package — Agent Guidelines
 
+@import ../../shared/CLAUDE.md
+
+## Component location
+
+- **`src/components/`** — global, reusable atom/molecule components only (e.g. `SectionCard`, `PageHeader`, `Button`, `Field`, `IconButton`). Must be completely page-agnostic.
+- **`src/components/icons/`** — SVG icon components (e.g. `PencilIcon`, `TrashIcon`). Must be completely page-agnostic.
+- **`src/components/dashboard/`** — dashboard widgets (e.g. `CaloriesWidget`, `TodoWidget`).
+- **`src/app/<page>/`** — page-specific section components live **co-located with their page**. Never add page-specific logic to `src/components/`.
+
+## Component rules
+
+- One component per file. Small co-located helpers allowed (max 2–3) only if not independently useful.
+- Props typed in the same file as a `type` named `[ComponentName]Props`.
+- Reusable components go to `src/components/` — never duplicate inline.
+- Named exports only, no default exports for components.
+
+## Page size rule
+
+**Pages must not exceed ~300 lines.** When a page grows beyond this, split it into co-located section components in the same directory.
+
+Each section component should:
+
+- **Own its own local UI state** (form inputs, edit mode toggles)
+- **Receive a minimal prop surface**: relevant data slice, `canEdit` flag, and `onChanged()` refresh callback
+- **Make its own API calls** — do not hoist fetch logic into the page to pass it down
+- **Shared micro-components** used across sections within the same page → `ui.tsx` in that page's directory
+- **Shared TypeScript interfaces** needed by multiple section files → `types.ts` in that page's directory
+
+## Naming conventions
+
+- **Component files**: PascalCase matching the exported component name (e.g. `BookingsSection.tsx`, `TripsSidebar.tsx`).
+- **Icon components**: PascalCase with `Icon` suffix (e.g. `PencilIcon.tsx`, `TrashIcon.tsx`).
+- **Shared page helpers**: lowercase `ui.tsx` and `types.ts` in that page's directory.
+- **Feature-scoped utility files**: `[feature].utils.ts` in the same folder (e.g. `coming-next.utils.ts`).
+
+## Utility rules
+
+- Util functions live in a separate file, never inline in a component file.
+- If specific to one feature and not reusable → `[feature].utils.ts` in the same folder.
+- If general purpose → it goes in `packages/shared/src/utils/`. Check the shared CLAUDE.md first.
+
+## Barrel exports
+
+Each grouping under `src/components/` has a barrel `index.ts`:
+
+- `src/components/index.ts` — re-exports all global components
+- `src/components/icons/index.ts` — re-exports all icon components
+- `src/components/dashboard/index.ts` — re-exports all dashboard widgets
+
+When adding a new component, also add it to the relevant barrel file.
+
+## JSDoc inventory comments
+
+File-level JSDoc inventory comments (listing exports with one-liners) are written **only** in:
+
+- `packages/shared/src/utils/` and `packages/shared/src/services/`
+- `packages/hub/src/components/`
+
+Do **not** add them to feature folders (`src/app/…`).
+
+## Reference implementations
+
+- `src/app/travel/` — section components + `types.ts` + `coming-next.utils.ts`
+- `src/app/calories/` — section components co-located with page
+- `src/app/profile/NotificationsSection.tsx` — pattern for rendering grouped notification checkboxes from `NOTIFICATION_SUBSCRIPTIONS` config; fetches and persists subscription state via `/api/user/notification-preferences`
+
+## Hub E2E notes
+
+- Hub UI Playwright fixtures live in `packages/e2e`, not in `packages/hub` or `packages/mcp-server`.
+- CI seeds Hub E2E data by executing the compiled `packages/e2e/scripts/setup-e2e-db.ts` bundle inside the `hub` container.
+- Local Hub E2E runs seed via `packages/e2e/global.setup.ts` only when `IS_LOCAL=true`; keep that flow process-based rather than directly importing the seed module into Playwright setup.
+
 ## Travel booking display: two separate paths
 
 There are two independent rendering paths for bookings. When changing how a booking type is displayed, **both need updating**:
 
 | File                                  | What it drives                                                                            |
 | ------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `src/app/travel/coming-next-utils.ts` | "Coming Next" timeline — `primaryLabel`, `secondaryLabel`, endpoint labels, navigate URLs |
+| `src/app/travel/coming-next.utils.ts` | "Coming Next" timeline — `primaryLabel`, `secondaryLabel`, endpoint labels, navigate URLs |
 | `src/app/travel/BookingsSection.tsx`  | Reservations list + add/edit form UI                                                      |
 
 ## API field naming: `flight_details` → `details` column

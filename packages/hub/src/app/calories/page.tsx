@@ -15,11 +15,11 @@ import { MeasurementsSection } from './MeasurementsSection';
 import { ProfileCard } from './ProfileCard';
 import { WeeklyChart } from './WeeklyChart';
 import { WeightChart } from './WeightChart';
+import { dayNamesShort } from '@my-hub/shared/constants';
 
 // TODO: Move to shared/utils/dates
 function getCurrentWeekDays(): { date: string; label: string }[] {
   const days: { date: string; label: string }[] = [];
-  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const today = new Date();
   const todayDay = today.getDay(); // Sun=0 ... Sat=6
@@ -32,7 +32,7 @@ function getCurrentWeekDays(): { date: string; label: string }[] {
     const d = new Date(cursor);
     days.push({
       date: dateToString(d),
-      label: d.toDateString() === today.toDateString() ? 'Today' : dayNames[(d.getDay() + 6) % 7]!,
+      label: d.toDateString() === today.toDateString() ? 'Today' : dayNamesShort[(d.getDay() + 6) % 7]!,
     });
     cursor.setDate(cursor.getDate() + 1);
   }

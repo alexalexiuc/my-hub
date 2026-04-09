@@ -1,3 +1,20 @@
+/**
+ * Trip CRUD and access-control queries
+ * - createTrip(userId, data) — creates a trip with a random colour
+ * - getTrips(userId) — lists owned trips with computed status
+ * - getAccessibleTrips(userId) — owned + shared trips with access role and permission info
+ * - getTripById(userId, tripId) — owned trip with status, throws if not found
+ * - getTripByIdAccessible(userId, tripId) — owned or shared trip with status
+ * - updateTrip(userId, tripId, data) — partial update
+ * - deleteTrip(userId, tripId) — hard delete
+ * - deleteAllUserTrips(userId) — bulk delete for account removal
+ * - getNextTrip(userId, now?) — soonest upcoming non-cancelled trip
+ * - getTripBookingRanges(userId) — min/max booking dates per trip (owned)
+ * - getTripBookingRangesByTripIds(tripIds) — same, for a specific set of trip IDs
+ * - verifyTripOwnership(userId, tripId) — throws if user does not own the trip
+ * - verifyTripAccess(userId, tripId) — throws if user has neither ownership nor a share
+ * Types: TripInsert, TripUpdate, TripBookingRange, AccessibleTrip
+ */
 import { and, asc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';

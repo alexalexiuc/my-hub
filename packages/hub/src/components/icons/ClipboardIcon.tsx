@@ -1,6 +1,9 @@
-export function ClipboardIcon() {
+import { cn } from '@/lib/utils';
+import { IconProps } from './types';
+
+export function ClipboardIcon({ className }: IconProps = {}) {
   return (
-    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+    <svg viewBox="0 0 20 20" fill="currentColor" className={cn('size-4', className)} aria-hidden="true">
       <path fillRule="evenodd" d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clipRule="evenodd" />
       <path
         fillRule="evenodd"

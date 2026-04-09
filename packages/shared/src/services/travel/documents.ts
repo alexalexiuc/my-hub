@@ -1,3 +1,13 @@
+/**
+ * Trip document record CRUD
+ * - addTripDocument(userId, tripId, data) — creates a document record (supports file metadata and booking links)
+ * - getTripDocuments(userId, tripId) — lists all documents for a trip
+ * - getTripDocumentById(userId, documentId) — single document with ownership check
+ * - updateTripDocument(userId, documentId, data) — partial update
+ * - deleteTripDocument(userId, documentId) — hard delete
+ * - deleteAllUserTripDocuments(userId) — bulk delete for account removal
+ * Types: TripDocumentInsert, TripDocumentUpdate
+ */
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { tripBookings, tripDocuments } from '../../db/schema/travel';

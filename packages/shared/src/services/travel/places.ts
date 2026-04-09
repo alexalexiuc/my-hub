@@ -1,3 +1,12 @@
+/**
+ * Trip place (point of interest) CRUD
+ * - addTripPlace(userId, tripId, data) — creates a place record
+ * - getTripPlaces(userId, tripId, opts?) — lists places, optionally filtered by visited status or priority
+ * - updateTripPlace(userId, placeId, data) — partial update (name, location, notes, visited, priority)
+ * - deleteTripPlace(userId, placeId) — hard delete
+ * - deleteAllUserTripPlaces(userId) — bulk delete for account removal
+ * Types: TripPlaceInsert, TripPlaceUpdate, GetTripPlacesOpts
+ */
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { tripPlaces } from '../../db/schema/travel';

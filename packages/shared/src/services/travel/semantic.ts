@@ -1,3 +1,12 @@
+/**
+ * Aggregated trip read queries (semantic layer)
+ * - getTripOverview(userId, tripId) — full trip snapshot: bookings, places, checklist, companions, documents, day notes, map data
+ * - getTripBrief(userId, tripId?) — overview for a specified trip or the next upcoming trip
+ * - getTripTimeline(userId, tripId) — bookings in chronological order
+ * - getUpcomingBookings(userId, hoursAhead?) — flight bookings starting within a time window (default 48 h)
+ * - suggestChecklistTemplate(destination?) — pre-filled checklist suggestions based on destination
+ * Types: TripBookingExtended, TripMapPoint, TripFlightArc, TripMapData, TripOverview
+ */
 import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
 import {

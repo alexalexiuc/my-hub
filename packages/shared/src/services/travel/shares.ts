@@ -1,3 +1,11 @@
+/**
+ * Trip sharing CRUD
+ * - listTripShares(ownerUserId, tripId) — lists shares with sharedWith user name and email
+ * - createTripShare(ownerUserId, tripId, sharedWithUserId) — creates a share, or returns the existing one
+ * - deleteTripShare(ownerUserId, tripId, shareId) — removes a share (owner only)
+ * - deleteAllUserTripShares(userId) — removes all shares where user is owner or recipient (account removal)
+ * Types: TripShareWithUser
+ */
 import { and, asc, eq, or } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';

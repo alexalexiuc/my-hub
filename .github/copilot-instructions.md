@@ -1,11 +1,11 @@
 # Copilot Instructions
 
-Use [AGENTS.md](../AGENTS.md) as the canonical project guidance.
+Read `CLAUDE.md` files for project guidance — the root [`CLAUDE.md`](../CLAUDE.md) covers project-wide rules, and each package has its own `CLAUDE.md` (e.g. `packages/hub/CLAUDE.md`, `packages/shared/CLAUDE.md`, `packages/mcp-server/CLAUDE.md`) with package-specific conventions. Follow them for all code changes.
 
-## Copilot-specific notes
+## Key guidelines
 
 - Prefer small, package-scoped changes.
-- Follow the package boundaries and change order defined in `AGENTS.md`.
+- Follow the package boundaries and change order defined in the root `CLAUDE.md`.
 - For MCP server work, design task-oriented tools first (natural-language user intents) and avoid exposing redundant CRUD-only tools when Hub already provides full CRUD flows.
 - Start MCP tool design with `.claude/skills/mcp-task-tools/SKILL.md`, then implement with `.claude/skills/mcp-add-tool/SKILL.md` or `.claude/skills/mcp-add-resource/SKILL.md`.
 - Before working on a feature, read the corresponding `docs/requirements/<area>/feature-<name>.md` file for requirements and constraints.

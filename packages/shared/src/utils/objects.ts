@@ -1,4 +1,10 @@
 /**
+ * Object utilities
+ * - omitUndefined(obj) — shallow copy with `undefined` properties removed (null kept)
+ * - omitNullish(obj) — shallow copy with `null` and `undefined` properties removed
+ */
+
+/**
  * Return a shallow copy of `obj` with every property whose value is `undefined` removed.
  * `null` values are kept.
  */

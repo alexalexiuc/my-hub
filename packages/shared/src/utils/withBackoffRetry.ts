@@ -1,3 +1,9 @@
+/**
+ * Async retry utility
+ * - withBackoffRetry(fn, options?) — retry a promise-returning function with exponential backoff
+ *     options: retries (default 5), delay in ms (default 500), shouldRetry(result, error) callback
+ */
+
 /** Options for configuring the backoff retry behavior */
 type BackoffRetryOptions<T> = {
   /** The maximum number of retry attempts (default: 5) */
