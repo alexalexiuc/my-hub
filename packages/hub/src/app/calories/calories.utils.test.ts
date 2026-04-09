@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pctToGrams, gramsToPct, computeMacroSummary } from './CaloriesUtils';
+import { pctToGrams, gramsToPct, computeMacroSummary } from './calories.utils';
 
 describe('pctToGrams', () => {
   it('converts percentage to grams for protein/carbs (4 kcal/g)', () => {

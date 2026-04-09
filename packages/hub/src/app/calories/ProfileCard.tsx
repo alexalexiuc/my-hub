@@ -14,7 +14,7 @@ import {
   TIMEZONES,
 } from '@my-hub/shared/constants';
 import { SectionCard, Field, Button } from '@/components';
-import { pctToGrams, gramsToPct, computeMacroSummary } from './CaloriesUtils';
+import { pctToGrams, gramsToPct, computeMacroSummary } from './calories.utils';
 
 interface Props {
   profile: CalorieProfile | null;
