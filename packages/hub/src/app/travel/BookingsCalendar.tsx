@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { Trip, TripBooking } from '@my-hub/shared/types';
+import type { Trip, TripBooking, TripBookingType } from '@my-hub/shared/types';
+import { TripBookingTypes } from '@my-hub/shared/constants';
 
 interface BookingsCalendarProps {
   trip: Trip;
@@ -55,18 +56,20 @@ function withAlpha(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function bookingDotClass(bookingType: string): string {
+function bookingDotClass(bookingType: TripBookingType): string {
   switch (bookingType) {
-    case 'flight':
+    case TripBookingTypes.Flight:
       return 'bg-sky-400';
-    case 'accommodation':
+    case TripBookingTypes.Accommodation:
       return 'bg-emerald-400';
-    case 'rental_car':
+    case TripBookingTypes.RentalCar:
       return 'bg-amber-400';
-    case 'train':
-    case 'bus':
-    case 'ferry':
-    case 'taxi':
+    case TripBookingTypes.Train:
+    case TripBookingTypes.Bus:
+    case TripBookingTypes.Ferry:
+    case TripBookingTypes.Taxi:
+    case TripBookingTypes.Transfer:
+    case TripBookingTypes.Car:
       return 'bg-indigo-400';
     default:
       return 'bg-zinc-400';

@@ -1,13 +1,15 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { defineTool, withUserIdCheck } from '../../shared/toolsUtils';
 import {
-  TravelAddReservationFromTextSchema,
+  TravelAddReservationFromTextInputSchema,
   TravelAddFlightSchema,
+  TravelAddTransportSchema,
   TravelEditBookingSchema,
   TravelEditFlightSchema,
   TravelRemoveBookingSchema,
   travelAddReservationFromTextTool,
   travelAddFlightTool,
+  travelAddTransportTool,
   travelEditBookingTool,
   travelEditFlightTool,
   travelRemoveBookingTool,
@@ -48,7 +50,7 @@ const travelTools = [
       'Capture a booking/reservation from raw text (email/snippet/chat) and attach it to an existing trip. ' +
       'Use this when the user pastes a confirmation email or snippet. ' +
       'For structured flight data where all details are already known, prefer travel_add_flight.',
-    inputSchema: TravelAddReservationFromTextSchema.shape,
+    inputSchema: TravelAddReservationFromTextInputSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: travelAddReservationFromTextTool,
   }),
@@ -61,6 +63,16 @@ const travelTools = [
     inputSchema: TravelAddFlightSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: travelAddFlightTool,
+  }),
+  defineTool({
+    name: 'travel_add_transport',
+    description:
+      'Add a transport booking (train, bus, ferry, taxi, transfer, rental car, or car) to a trip with structured ' +
+      'origin and destination details. Use this instead of travel_add_reservation_from_text when you already have ' +
+      'structured route data — it stores origin/destination as structured data for rich display.',
+    inputSchema: TravelAddTransportSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: travelAddTransportTool,
   }),
   defineTool({
     name: 'travel_edit_booking',

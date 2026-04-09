@@ -2,25 +2,28 @@
 
 import { useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
-import type { FlightDetails, TripBookingType, TripDocument } from '@my-hub/shared/types';
+import type { FlightDetails, TransportDetails, TripBookingType, TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { AttachmentIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import { BookingTypeIcon, IconButton } from '@/components';
 import { TravelTimeDisplay } from './TravelTimeDisplay';
-import { tripBookingTypeValues } from '@my-hub/shared/constants';
+import { TripBookingTypes, tripBookingTypeValues } from '@my-hub/shared/constants';
+import { isTransportBookingType } from '@my-hub/shared/utils';
 
 const bookingTypeLabels: Record<TripBookingType, string> = {
-  flight: 'Flight',
-  accommodation: 'Accommodation',
-  rental_car: 'Rental Car',
-  train: 'Train',
-  bus: 'Bus',
-  ferry: 'Ferry',
-  taxi: 'Taxi / Transfer',
-  restaurant: 'Restaurant',
-  tour: 'Tour',
-  activity: 'Activity',
-  other: 'Other',
+  [TripBookingTypes.Flight]: 'Flight',
+  [TripBookingTypes.Accommodation]: 'Accommodation',
+  [TripBookingTypes.RentalCar]: 'Rental Car',
+  [TripBookingTypes.Train]: 'Train',
+  [TripBookingTypes.Bus]: 'Bus',
+  [TripBookingTypes.Ferry]: 'Ferry',
+  [TripBookingTypes.Taxi]: 'Taxi',
+  [TripBookingTypes.Transfer]: 'Transfer',
+  [TripBookingTypes.Car]: 'Car',
+  [TripBookingTypes.Restaurant]: 'Restaurant',
+  [TripBookingTypes.Tour]: 'Tour',
+  [TripBookingTypes.Activity]: 'Activity',
+  [TripBookingTypes.Other]: 'Other',
 };
 
 function toDateTimeLocalValue(value: Date | string | null | undefined): string {
@@ -47,7 +50,7 @@ export function BookingsSection({
   onChanged,
 }: BookingsSectionProps) {
   const [newBookingTitle, setNewBookingTitle] = useState('');
-  const [newBookingType, setNewBookingType] = useState<TripBookingType>('other');
+  const [newBookingType, setNewBookingType] = useState<TripBookingType>(TripBookingTypes.Other);
   const [newBookingProvider, setNewBookingProvider] = useState('');
   const [newBookingStartAt, setNewBookingStartAt] = useState('');
   const [newBookingEndAt, setNewBookingEndAt] = useState('');
@@ -57,10 +60,13 @@ export function BookingsSection({
   const [newFlightDestIata, setNewFlightDestIata] = useState('');
   const [newFlightTerminal, setNewFlightTerminal] = useState('');
   const [newFlightGate, setNewFlightGate] = useState('');
+  const [newTransportOrigin, setNewTransportOrigin] = useState('');
+  const [newTransportDest, setNewTransportDest] = useState('');
+  const [newTransportServiceNumber, setNewTransportServiceNumber] = useState('');
 
   const [editingBookingId, setEditingBookingId] = useState<number | null>(null);
   const [editBookingTitle, setEditBookingTitle] = useState('');
-  const [editBookingType, setEditBookingType] = useState<TripBookingType>('other');
+  const [editBookingType, setEditBookingType] = useState<TripBookingType>(TripBookingTypes.Other);
   const [editBookingProvider, setEditBookingProvider] = useState('');
   const [editBookingStartAt, setEditBookingStartAt] = useState('');
   const [editBookingEndAt, setEditBookingEndAt] = useState('');
@@ -70,6 +76,9 @@ export function BookingsSection({
   const [editFlightDestIata, setEditFlightDestIata] = useState('');
   const [editFlightTerminal, setEditFlightTerminal] = useState('');
   const [editFlightGate, setEditFlightGate] = useState('');
+  const [editTransportOrigin, setEditTransportOrigin] = useState('');
+  const [editTransportDest, setEditTransportDest] = useState('');
+  const [editTransportServiceNumber, setEditTransportServiceNumber] = useState('');
 
   const [expandedBookingId, setExpandedBookingId] = useState<number | null>(null);
 
@@ -83,8 +92,9 @@ export function BookingsSection({
       start_at: newBookingStartAt ? new Date(newBookingStartAt).toISOString() : undefined,
       end_at: newBookingEndAt ? new Date(newBookingEndAt).toISOString() : undefined,
     };
-    if (newBookingType === 'flight') {
+    if (newBookingType === TripBookingTypes.Flight) {
       body.flight_details = {
+        kind: 'flight',
         ...(newFlightNumber.trim() && { flight_number: newFlightNumber.trim() }),
         ...(newFlightSeat.trim() && { seat: newFlightSeat.trim() }),
         ...(newFlightOriginIata.trim() && { origin_iata: newFlightOriginIata.trim().toUpperCase() }),
@@ -92,6 +102,16 @@ export function BookingsSection({
         ...(newFlightTerminal.trim() && { terminal: newFlightTerminal.trim() }),
         ...(newFlightGate.trim() && { gate: newFlightGate.trim() }),
       };
+    } else if (isTransportBookingType(newBookingType) && (newTransportOrigin.trim() || newTransportDest.trim())) {
+      body.flight_details = {
+        kind: 'transport',
+        origin: { name: newTransportOrigin.trim() || '' },
+        destination: { name: newTransportDest.trim() || '' },
+        ...(newTransportServiceNumber.trim() && { service_number: newTransportServiceNumber.trim() }),
+      };
+      if (!body.location && newTransportOrigin.trim() && newTransportDest.trim()) {
+        body.location = `${newTransportOrigin.trim()} → ${newTransportDest.trim()}`;
+      }
     }
     await fetch('/api/travel/bookings', {
       method: 'POST',
@@ -108,6 +128,9 @@ export function BookingsSection({
     setNewFlightDestIata('');
     setNewFlightTerminal('');
     setNewFlightGate('');
+    setNewTransportOrigin('');
+    setNewTransportDest('');
+    setNewTransportServiceNumber('');
     onChanged();
   }
 
@@ -124,13 +147,21 @@ export function BookingsSection({
     setEditBookingProvider(booking.provider ?? '');
     setEditBookingStartAt(toDateTimeLocalValue(booking.startAt));
     setEditBookingEndAt(toDateTimeLocalValue(booking.endAt));
-    const fd = (booking.details ?? {}) as FlightDetails;
-    setEditFlightNumber(fd.flight_number ?? '');
-    setEditFlightSeat(fd.seat ?? '');
-    setEditFlightOriginIata(fd.origin_iata ?? '');
-    setEditFlightDestIata(fd.destination_iata ?? '');
-    setEditFlightTerminal(fd.terminal ?? '');
-    setEditFlightGate(fd.gate ?? '');
+    const d = (booking.details ?? {}) as { kind?: string };
+    if (d.kind === 'flight' || booking.bookingType === TripBookingTypes.Flight) {
+      const fd = booking.details as FlightDetails;
+      setEditFlightNumber(fd.flight_number ?? '');
+      setEditFlightSeat(fd.seat ?? '');
+      setEditFlightOriginIata(fd.origin_iata ?? '');
+      setEditFlightDestIata(fd.destination_iata ?? '');
+      setEditFlightTerminal(fd.terminal ?? '');
+      setEditFlightGate(fd.gate ?? '');
+    } else if (d.kind === 'transport') {
+      const td = booking.details as TransportDetails;
+      setEditTransportOrigin(td.origin.name);
+      setEditTransportDest(td.destination.name);
+      setEditTransportServiceNumber(td.service_number ?? '');
+    }
   }
 
   function cancelEditBooking() {
@@ -146,6 +177,9 @@ export function BookingsSection({
     setEditFlightDestIata('');
     setEditFlightTerminal('');
     setEditFlightGate('');
+    setEditTransportOrigin('');
+    setEditTransportDest('');
+    setEditTransportServiceNumber('');
   }
 
   async function saveBookingEdits(bookingId: number) {
@@ -157,14 +191,22 @@ export function BookingsSection({
       start_at: editBookingStartAt ? new Date(editBookingStartAt).toISOString() : null,
       end_at: editBookingEndAt ? new Date(editBookingEndAt).toISOString() : null,
     };
-    if (editBookingType === 'flight') {
+    if (editBookingType === TripBookingTypes.Flight) {
       body.flight_details = {
+        kind: 'flight',
         ...(editFlightNumber.trim() && { flight_number: editFlightNumber.trim() }),
         ...(editFlightSeat.trim() && { seat: editFlightSeat.trim() }),
         ...(editFlightOriginIata.trim() && { origin_iata: editFlightOriginIata.trim().toUpperCase() }),
         ...(editFlightDestIata.trim() && { destination_iata: editFlightDestIata.trim().toUpperCase() }),
         ...(editFlightTerminal.trim() && { terminal: editFlightTerminal.trim() }),
         ...(editFlightGate.trim() && { gate: editFlightGate.trim() }),
+      };
+    } else if (isTransportBookingType(editBookingType) && (editTransportOrigin.trim() || editTransportDest.trim())) {
+      body.flight_details = {
+        kind: 'transport',
+        origin: { name: editTransportOrigin.trim() },
+        destination: { name: editTransportDest.trim() },
+        ...(editTransportServiceNumber.trim() && { service_number: editTransportServiceNumber.trim() }),
       };
     }
     await fetch(`/api/travel/bookings/${bookingId}`, {
@@ -264,6 +306,28 @@ export function BookingsSection({
               onChange={(e) => setNewFlightGate(e.target.value)}
               placeholder="Gate"
               className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+            />
+          </div>
+        )}
+        {isTransportBookingType(newBookingType) && (
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={newTransportOrigin}
+              onChange={(e) => setNewTransportOrigin(e.target.value)}
+              placeholder="From (e.g. Paris Gare du Nord)"
+              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+            />
+            <input
+              value={newTransportDest}
+              onChange={(e) => setNewTransportDest(e.target.value)}
+              placeholder="To (e.g. London St Pancras)"
+              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+            />
+            <input
+              value={newTransportServiceNumber}
+              onChange={(e) => setNewTransportServiceNumber(e.target.value)}
+              placeholder="Service no. (e.g. TGV 6201)"
+              className="col-span-2 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
             />
           </div>
         )}
@@ -368,6 +432,28 @@ export function BookingsSection({
                       onChange={(e) => setEditFlightGate(e.target.value)}
                       placeholder="Gate"
                       className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
+                    />
+                  </div>
+                )}
+                {isTransportBookingType(editBookingType) && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      value={editTransportOrigin}
+                      onChange={(e) => setEditTransportOrigin(e.target.value)}
+                      placeholder="From (e.g. Paris Gare du Nord)"
+                      className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
+                    />
+                    <input
+                      value={editTransportDest}
+                      onChange={(e) => setEditTransportDest(e.target.value)}
+                      placeholder="To (e.g. London St Pancras)"
+                      className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
+                    />
+                    <input
+                      value={editTransportServiceNumber}
+                      onChange={(e) => setEditTransportServiceNumber(e.target.value)}
+                      placeholder="Service no. (e.g. TGV 6201)"
+                      className="col-span-2 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                     />
                   </div>
                 )}
@@ -485,6 +571,23 @@ export function BookingsSection({
                         ].filter(Boolean);
                         if (parts.length === 0) return null;
                         return <p className="text-xs text-sky-400">{parts.join(' · ')}</p>;
+                      })()}
+
+                    {/* Transport info line */}
+                    {isTransportBookingType(booking.bookingType) &&
+                      (() => {
+                        const d = booking.details as { kind?: string } | null;
+                        if (d?.kind !== 'transport') return null;
+                        const td = booking.details as TransportDetails;
+                        const parts = [
+                          `${td.origin.name} → ${td.destination.name}`,
+                          td.service_number,
+                          td.seat && `Seat ${td.seat}`,
+                          td.class,
+                          td.vehicle_type,
+                          td.meeting_point && `Meet: ${td.meeting_point}`,
+                        ].filter(Boolean);
+                        return <p className="text-xs text-emerald-400">{parts.join(' · ')}</p>;
                       })()}
 
                     {/* Extra metadata grid */}

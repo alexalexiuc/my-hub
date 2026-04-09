@@ -19,6 +19,8 @@ export const TripBookingTypes = {
   Bus: 'bus',
   Ferry: 'ferry',
   Taxi: 'taxi',
+  Transfer: 'transfer',
+  Car: 'car',
   Restaurant: 'restaurant',
   Tour: 'tour',
   Activity: 'activity',
@@ -55,3 +57,13 @@ export const TripSharePermissions = {
 
 export type TripSharePermission = (typeof TripSharePermissions)[keyof typeof TripSharePermissions];
 export const tripSharePermissionValues: TripSharePermission[] = Object.values(TripSharePermissions);
+
+export const transportBookingTypes = [
+  TripBookingTypes.Train,
+  TripBookingTypes.Bus,
+  TripBookingTypes.Ferry,
+  TripBookingTypes.Taxi,
+  TripBookingTypes.Transfer,
+  TripBookingTypes.RentalCar,
+  TripBookingTypes.Car,
+] as const;
