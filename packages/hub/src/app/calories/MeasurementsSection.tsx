@@ -61,11 +61,13 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
     <SectionCard
       title="Body Measurements"
       action={
-        <button
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
           title="Log measurement"
           aria-label="Log measurement"
+          className="flex items-center gap-1.5 px-2.5 rounded-md border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60"
         >
           <svg
             width="12"
@@ -80,7 +82,7 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
           Add
-        </button>
+        </Button>
       }
     >
       {latestMeasurements.length === 0 ? (
@@ -95,13 +97,15 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
                 <span className="text-sm font-normal text-zinc-400 ml-1">{m.typeUnit}</span>
               </p>
               <p className="text-xs text-zinc-500 mt-0.5">{m.date}</p>
-              <button
+              <Button
+                variant="ghost"
+                size="xs"
                 onClick={() => deleteMeasurementEntry(m.id)}
                 disabled={deleting === m.id}
-                className="absolute top-2 right-2 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 text-xs"
+                className="absolute top-2 right-2 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity px-0 py-0 hover:bg-transparent"
               >
                 {deleting === m.id ? '…' : '✕'}
-              </button>
+              </Button>
             </div>
           ))}
         </div>

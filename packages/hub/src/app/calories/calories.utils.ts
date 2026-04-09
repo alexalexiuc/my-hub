@@ -1,3 +1,45 @@
+import type { MealLog } from '@my-hub/shared/types';
+import type { MealType } from '@my-hub/shared/constants';
+import { dateToString } from '@my-hub/shared/utils';
+
+/**
+ * Groups an array of meal logs by their meal type.
+ * @param meals - Array of meal log entries to group
+ */
+export function groupByMealType(meals: MealLog[]): Record<MealType, MealLog[]> {
+  const groups: Record<MealType, MealLog[]> = {} as Record<MealType, MealLog[]>;
+  for (const meal of meals) {
+    (groups[meal.mealType as MealType] ??= []).push(meal);
+  }
+  return groups;
+}
+
+/**
+ * Formats a date string as a human-readable label ("Today", "Yesterday", or short date).
+ * @param date - ISO date string (YYYY-MM-DD)
+ */
+export function formatDateLabel(date: string): string {
+  const now = new Date();
+  const today = dateToString(now);
+  now.setDate(now.getDate() - 1);
+  const yesterday = dateToString(now);
+  if (date === today) return 'Today';
+  if (date === yesterday) return 'Yesterday';
+  const d = new Date(date + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+/**
+ * Shifts a date string by a given number of days and returns the new date string.
+ * @param date - ISO date string (YYYY-MM-DD)
+ * @param days - Number of days to shift (positive = forward, negative = backward)
+ */
+export function shiftDate(date: string, days: number): string {
+  const d = new Date(date + 'T12:00:00');
+  d.setDate(d.getDate() + days);
+  return dateToString(d);
+}
+
 /**
  * Converts a percentage of total calories to grams for a given macro.
  * @param pct - The percentage string (e.g. "30")

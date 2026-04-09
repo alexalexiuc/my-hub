@@ -31,7 +31,10 @@
  * - normalizeOffset(offsetLabel) — parse GMT/UTC offset label → ±HH:MM or null
  * - getTimezoneBadge(date, timezone) — { short, offset } display badge for a timezone
  * - getFullDateTooltip(date, timezone) — full locale date+time+timezone string for a tooltip
+ * - getCurrentWeekDays() — returns the 7 days of the current ISO week (Mon–Sun) with YYYY-MM-DD strings and short labels
  */
+import { dayNamesShort } from '../constants/calendar';
+
 /** Checks if the given value is a valid Date object or null */
 export function isValidDate(d: unknown): d is Date {
   return d instanceof Date && !isNaN(d.getTime());
@@ -423,6 +426,28 @@ export function getTimezoneBadge(date: Date, timezone: string | null): { short: 
   const offsetRaw = getTimezoneNamePart(date, timezone, 'shortOffset');
   const offset = normalizeOffset(offsetRaw);
   return { short: shortName || timezone, offset };
+}
+
+/**
+ * Returns the 7 days of the current ISO week (Mon–Sun) as YYYY-MM-DD strings with short labels.
+ * The current day is labelled "Today"; all other days use short weekday names (Mon, Tue…).
+ */
+export function getCurrentWeekDays(): { date: string; label: string }[] {
+  const days: { date: string; label: string }[] = [];
+  const today = new Date();
+  const daysSinceMonday = (today.getDay() + 6) % 7;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - daysSinceMonday);
+  const cursor = new Date(monday);
+  for (let i = 0; i < 7; i += 1) {
+    const d = new Date(cursor);
+    days.push({
+      date: dateToString(d),
+      label: d.toDateString() === today.toDateString() ? 'Today' : dayNamesShort[(d.getDay() + 6) % 7]!,
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days;
 }
 
 /**

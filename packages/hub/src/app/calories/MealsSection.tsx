@@ -6,8 +6,10 @@ import { dateToString } from '@my-hub/shared/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { SectionCard } from '@/components/SectionCard';
 import { Button, Field } from '@/components';
+import { PencilIcon } from '@/components/icons';
 import { MealType, MealTypes, MealTypesValues } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from './constants';
+import { groupByMealType, formatDateLabel, shiftDate } from './calories.utils';
 
 interface Props {
   meals: MealLog[];
@@ -16,31 +18,6 @@ interface Props {
   onChanged: () => void;
   goalCalories?: number | null;
   maxCalories?: number | null;
-}
-
-function groupByMealType(meals: MealLog[]): Record<MealType, MealLog[]> {
-  const groups: Record<MealType, MealLog[]> = {} as Record<MealType, MealLog[]>;
-  for (const meal of meals) {
-    (groups[meal.mealType] ??= []).push(meal);
-  }
-  return groups;
-}
-
-function formatDateLabel(date: string): string {
-  const now = new Date();
-  const today = dateToString(now);
-  now.setDate(now.getDate() - 1);
-  const yesterday = dateToString(now);
-  if (date === today) return 'Today';
-  if (date === yesterday) return 'Yesterday';
-  const d = new Date(date + 'T12:00:00');
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-}
-
-function shiftDate(date: string, days: number): string {
-  const d = new Date(date + 'T12:00:00');
-  d.setDate(d.getDate() + days);
-  return dateToString(d);
 }
 
 interface EditForm {
@@ -202,11 +179,13 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
     <SectionCard
       title="Meals"
       action={
-        <button
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
           title="Add meal"
           aria-label="Add meal"
+          className="flex items-center gap-1.5 px-2.5 rounded-md border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60"
         >
           <svg
             width="12"
@@ -221,15 +200,17 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
           Add
-        </button>
+        </Button>
       }
     >
       {/* Date navigation */}
       <div className="flex items-center justify-between mb-5">
-        <button
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => onDateChange(shiftDate(selectedDate, -1))}
           aria-label="Previous day"
-          className="w-8 h-8 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition"
+          className="w-8 h-8 rounded-md flex items-center justify-center p-0 hover:text-zinc-100 hover:bg-zinc-700"
         >
           <svg
             width="16"
@@ -243,13 +224,15 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
           >
             <polyline points="15 18 9 12 15 6" />
           </svg>
-        </button>
+        </Button>
         <span className="text-sm font-medium">{formatDateLabel(selectedDate)}</span>
-        <button
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => onDateChange(shiftDate(selectedDate, 1))}
           disabled={selectedDate >= today}
           aria-label="Next day"
-          className="w-8 h-8 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition disabled:opacity-30 disabled:cursor-not-allowed"
+          className="w-8 h-8 rounded-md flex items-center justify-center p-0 hover:text-zinc-100 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <svg
             width="16"
@@ -263,7 +246,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
           >
             <polyline points="9 18 15 12 9 6" />
           </svg>
-        </button>
+        </Button>
       </div>
 
       {/* Calorie consumption summary */}
@@ -348,10 +331,12 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
 
       {/* Expandable meals list */}
       <div className="border-t border-zinc-700/50 pt-4">
-        <button
+        <Button
+          variant="ghost"
+          size="xs"
           onClick={() => setShowMeals((v) => !v)}
-          className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition mb-3"
           aria-expanded={showMeals}
+          className="flex items-center gap-2 text-sm px-0 py-0 mb-3 hover:bg-transparent"
         >
           <svg
             width="14"
@@ -367,7 +352,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
             <polyline points="6 9 12 15 18 9" />
           </svg>
           <span>{showMeals ? 'Hide meals' : `Show meals${total > 0 ? ` · ${total} kcal` : ''}`}</span>
-        </button>
+        </Button>
 
         {showMeals && (
           <>
@@ -479,31 +464,19 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
                               )}
                             </div>
                             <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition">
-                              {/* Pencil icon */}
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="text-zinc-500"
-                              >
-                                <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                                <path d="m15 5 4 4" />
-                              </svg>
-                              <button
+                              <PencilIcon className="text-zinc-500" />
+                              <Button
+                                variant="ghost"
+                                size="xs"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   meal.mealId && deleteMealEntry(meal.mealId);
                                 }}
                                 disabled={deleting === meal.mealId}
-                                className="text-zinc-500 hover:text-red-400 disabled:opacity-50 text-xs"
+                                className="text-zinc-500 hover:text-red-400 px-0 py-0 hover:bg-transparent"
                               >
                                 {deleting === meal.mealId ? '…' : '✕'}
-                              </button>
+                              </Button>
                             </div>
                           </div>
                         ),

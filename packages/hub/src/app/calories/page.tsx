@@ -4,9 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import type { CalorieProfile, MealLog, MeasurementType, User } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { calculateCalorieTargets, dateToString } from '@my-hub/shared/utils';
-import { IconButton } from '@/components/IconButton';
-import { PageHeader } from '@/components/PageHeader';
+import { calculateCalorieTargets, dateToString, getCurrentWeekDays } from '@my-hub/shared/utils';
+import { IconButton, PageHeader } from '@/components';
 import { BarChartIcon, CalendarIcon } from '@/components/icons';
 import { GoalProgressCard } from './GoalProgressCard';
 import { MacroChart } from './MacroChart';
@@ -15,30 +14,6 @@ import { MeasurementsSection } from './MeasurementsSection';
 import { ProfileCard } from './ProfileCard';
 import { WeeklyChart } from './WeeklyChart';
 import { WeightChart } from './WeightChart';
-import { dayNamesShort } from '@my-hub/shared/constants';
-
-// TODO: Move to shared/utils/dates
-function getCurrentWeekDays(): { date: string; label: string }[] {
-  const days: { date: string; label: string }[] = [];
-
-  const today = new Date();
-  const todayDay = today.getDay(); // Sun=0 ... Sat=6
-  const daysSinceMonday = (todayDay + 6) % 7;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - daysSinceMonday);
-
-  const cursor = new Date(monday);
-  for (let i = 0; i < 7; i += 1) {
-    const d = new Date(cursor);
-    days.push({
-      date: dateToString(d),
-      label: d.toDateString() === today.toDateString() ? 'Today' : dayNamesShort[(d.getDay() + 6) % 7]!,
-    });
-    cursor.setDate(cursor.getDate() + 1);
-  }
-
-  return days;
-}
 
 export default function CaloriesDashboardPage() {
   const [profile, setProfile] = useState<CalorieProfile | null>(null);
