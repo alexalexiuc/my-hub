@@ -193,27 +193,6 @@ jobs:
           IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
           DEPLOY_BRANCH: ${{ github.head_ref }}
 
-      - name: Run E2E hub seeds
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          envs: E2E_HUB_USER_EMAIL,E2E_HUB_USER_PASSWORD,IMAGE_OWNER
-          script: |
-            cd /opt/my-hub
-            docker compose --project-name my-hub-staging --env-file .env.staging \
-              --profile seed \
-              -f infra/docker-compose.staging.yml \
-              run --rm \
-              -e E2E_HUB_USER_EMAIL="$E2E_HUB_USER_EMAIL" \
-              -e E2E_HUB_USER_PASSWORD="$E2E_HUB_USER_PASSWORD" \
-              e2e-seeds
-        env:
-          E2E_HUB_USER_EMAIL: ${{ vars.E2E_HUB_USER_EMAIL }}
-          E2E_HUB_USER_PASSWORD: ${{ secrets.E2E_HUB_USER_PASSWORD }}
-          IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
-
       - name: Provision E2E user on server
         uses: appleboy/ssh-action@v1.0.3
         with:
