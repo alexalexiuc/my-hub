@@ -193,7 +193,7 @@ jobs:
           IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
           DEPLOY_BRANCH: ${{ github.head_ref }}
 
-      - name: Register E2E hub user
+      - name: Run E2E hub seeds
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -202,22 +202,13 @@ jobs:
           envs: E2E_HUB_USER_EMAIL,E2E_HUB_USER_PASSWORD,IMAGE_OWNER
           script: |
             cd /opt/my-hub
-            docker compose --project-name my-hub-staging \
-              -f infra/docker-compose.staging.yml exec -T \
-              -e HUB_EMAIL="$E2E_HUB_USER_EMAIL" \
-              -e HUB_PASS="$E2E_HUB_USER_PASSWORD" \
-              hub node -e "(async()=>{
-                const r = await fetch('http://localhost:3000/api/auth/register', {
-                  method: 'POST',
-                  headers: {'Content-Type': 'application/json'},
-                  body: JSON.stringify({email: process.env.HUB_EMAIL, password: process.env.HUB_PASS, name: 'E2E Test'})
-                });
-                if (r.status !== 201 && r.status !== 409) {
-                  process.stderr.write('Registration failed: ' + r.status + '\n');
-                  process.exit(1);
-                }
-                console.log('Registration response: ' + r.status);
-              })()"
+            docker compose --project-name my-hub-staging --env-file .env.staging \
+              --profile seed \
+              -f infra/docker-compose.staging.yml \
+              run --rm \
+              -e E2E_HUB_USER_EMAIL="$E2E_HUB_USER_EMAIL" \
+              -e E2E_HUB_USER_PASSWORD="$E2E_HUB_USER_PASSWORD" \
+              e2e-seeds
         env:
           E2E_HUB_USER_EMAIL: ${{ vars.E2E_HUB_USER_EMAIL }}
           E2E_HUB_USER_PASSWORD: ${{ secrets.E2E_HUB_USER_PASSWORD }}

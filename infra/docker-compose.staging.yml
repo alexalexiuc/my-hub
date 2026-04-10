@@ -51,6 +51,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
       E2E_HUB_USER_EMAIL: ${E2E_HUB_USER_EMAIL:?E2E_HUB_USER_EMAIL is required}
+      E2E_HUB_USER_PASSWORD: ${E2E_HUB_USER_PASSWORD:?E2E_HUB_USER_PASSWORD is required}
     depends_on:
       db:
         condition: service_healthy
