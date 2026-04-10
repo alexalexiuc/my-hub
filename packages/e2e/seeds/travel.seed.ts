@@ -16,14 +16,12 @@ export interface SharedTripFixture {
 }
 
 export async function seedSharedTripFixture(viewerEmail: string): Promise<SharedTripFixture> {
-  const ownerName = SHARED_TRIP_FIXTURE.ownerName;
-  const tripName = SHARED_TRIP_FIXTURE.tripName;
-  const bookingTitle = SHARED_TRIP_FIXTURE.bookingTitle;
-
   const viewer = await findUserByEmail(viewerEmail);
   if (!viewer) {
     throw new Error(`Unable to find viewer user by email: ${viewerEmail}`);
   }
+
+  const { tripName, ownerName, bookingTitle } = SHARED_TRIP_FIXTURE;
 
   const owner = await findOrCreateUser(SHARED_OWNER_EMAIL, ownerName);
 
