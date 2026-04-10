@@ -194,16 +194,34 @@ jobs:
           DEPLOY_BRANCH: ${{ github.head_ref }}
 
       - name: Register E2E hub user
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST https://staging.hub.alexiuc.dev/api/auth/register \
-            -H "Content-Type: application/json" \
-            -d "{\"email\":\"$E2E_HUB_USER_EMAIL\",\"password\":\"$E2E_HUB_USER_PASSWORD\",\"name\":\"E2E Test\"}")
-          [ "$STATUS" = "201" ] || [ "$STATUS" = "409" ] || { echo "Registration failed: $STATUS"; exit 1; }
-          echo "Registration response: $STATUS"
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: E2E_HUB_USER_EMAIL,E2E_HUB_USER_PASSWORD,IMAGE_OWNER
+          script: |
+            cd /opt/my-hub
+            docker compose --project-name my-hub-staging \
+              -f infra/docker-compose.staging.yml exec -T \
+              -e HUB_EMAIL="$E2E_HUB_USER_EMAIL" \
+              -e HUB_PASS="$E2E_HUB_USER_PASSWORD" \
+              hub node -e "(async()=>{
+                const r = await fetch('http://localhost:3000/api/auth/register', {
+                  method: 'POST',
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({email: process.env.HUB_EMAIL, password: process.env.HUB_PASS, name: 'E2E Test'})
+                });
+                if (r.status !== 201 && r.status !== 409) {
+                  process.stderr.write('Registration failed: ' + r.status + '\n');
+                  process.exit(1);
+                }
+                console.log('Registration response: ' + r.status);
+              })()"
         env:
           E2E_HUB_USER_EMAIL: ${{ vars.E2E_HUB_USER_EMAIL }}
           E2E_HUB_USER_PASSWORD: ${{ secrets.E2E_HUB_USER_PASSWORD }}
+          IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
 
       - name: Provision E2E user on server
         uses: appleboy/ssh-action@v1.0.3
