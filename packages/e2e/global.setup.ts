@@ -40,7 +40,7 @@ setup('write seeds, create test user and authenticate', async ({ request, page }
   // Seed Hub E2E fixtures when running locally (CI seeds via docker compose run e2e-seeds)
   if (process.env['IS_LOCAL'] === 'true') {
     const seedEnv = { ...process.env, E2E_HUB_USER_EMAIL: TEST_USER.email };
-    execSync('node ../../node_modules/.bin/tsx scripts/setup-e2e-db.ts', {
+    execSync('npx tsx scripts/setup-e2e-db.ts', {
       cwd: __dirname,
       stdio: 'inherit',
       env: seedEnv,

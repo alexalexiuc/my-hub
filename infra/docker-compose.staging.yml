@@ -18,7 +18,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-myhub_staging}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
-      - db_staging_data:/var/lib/postgresql/data
+      - /var/lib/postgresql/data
     networks:
       - internal-staging
     healthcheck:
@@ -120,7 +120,7 @@ services:
       migrate:
         condition: service_completed_successfully
     volumes:
-      - travel_docs_staging_data:/app/data/travel-documents
+      - /app/data/travel-documents
     networks:
       - internal-staging
       - proxy
@@ -168,7 +168,7 @@ services:
       migrate:
         condition: service_completed_successfully
     volumes:
-      - travel_docs_staging_data:/app/data/travel-documents
+      - /app/data/travel-documents
     networks:
       - internal-staging
       - proxy
@@ -178,10 +178,6 @@ services:
       - 'traefik.http.routers.hub-staging.entrypoints=websecure'
       - 'traefik.http.routers.hub-staging.tls.certresolver=letsencrypt'
       - 'traefik.http.services.hub-staging.loadbalancer.server.port=3000'
-
-volumes:
-  db_staging_data:
-  travel_docs_staging_data:
 
 networks:
   internal-staging:

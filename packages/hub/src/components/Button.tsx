@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
+import { SpinnerIcon } from './icons';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 
@@ -37,7 +38,14 @@ export function Button({
       className={cn('rounded-lg font-medium transition disabled:opacity-50', variants[variant], sizes[size], className)}
       {...props}
     >
-      {loading ? <span className="opacity-70">{children}</span> : children}
+      {loading ? (
+        <>
+          <SpinnerIcon className="mr-1.5 inline-block" />
+          <span className="opacity-70">{children}</span>
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }

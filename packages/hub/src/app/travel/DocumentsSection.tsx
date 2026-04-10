@@ -24,6 +24,7 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
   const [documentTitle, setDocumentTitle] = useState('');
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentBookingId, setDocumentBookingId] = useState<number | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     apiFetch<UploadConfig>('/api/travel/documents/config')
@@ -54,10 +55,13 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
     form.append('title', documentTitle.trim() || documentFile.name);
     form.append('type', 'other');
     form.append('file', documentFile);
+    setIsUploading(true);
     try {
       await apiFetch('/api/travel/documents/upload', { method: 'POST', body: form });
     } catch {
       return;
+    } finally {
+      setIsUploading(false);
     }
     setDocumentTitle('');
     setDocumentFile(null);
@@ -104,6 +108,7 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
         <Button
           onClick={uploadDocument}
           disabled={!activeTripId || !documentFile || !canEdit}
+          loading={isUploading}
           className="w-full bg-amber-600 hover:bg-amber-500"
         >
           Upload Document

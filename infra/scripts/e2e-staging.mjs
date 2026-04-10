@@ -143,27 +143,7 @@ docker compose --project-name ${PROJECT_NAME} --env-file ${ENV_FILE} -f ${COMPOS
     console.log('\n⏭  Skipping deploy (--skip-deploy)');
   }
 
-  // 2. Register E2E hub user (idempotent — 409 = already exists)
-  console.log('\n▶ Registering E2E hub user');
-  ssh(
-    `STATUS=$(curl -s -o /dev/null -w "%{http_code}" \\
-      -X POST ${STAGING_HUB_URL}/api/auth/register \\
-      -H "Content-Type: application/json" \\
-      -d '{"email":"${hubUserEmail}","password":"${hubUserPassword}","name":"E2E Test"}')
-[ "$STATUS" = "201" ] || [ "$STATUS" = "409" ] || { echo "Registration failed: $STATUS"; exit 1; }
-echo "Registration response: $STATUS"`,
-  );
-
-  // 3. Run E2E seeds
-  ssh(
-    `docker compose --project-name ${PROJECT_NAME} --env-file ${ENV_FILE} \\
-  -f ${COMPOSE_FILE} run --rm \\
-  -e E2E_HUB_USER_EMAIL=${JSON.stringify(hubUserEmail)} \\
-  e2e-seeds`,
-    { label: 'Running E2E seeds' },
-  );
-
-  // 4. Provision MCP OAuth credentials
+  // 2. Provision MCP OAuth credentials
   ssh(
     `docker compose --project-name ${PROJECT_NAME} --env-file ${ENV_FILE} \\
   -f ${COMPOSE_FILE} exec -T \\
@@ -174,7 +154,7 @@ echo "Registration response: $STATUS"`,
     { label: 'Provisioning MCP OAuth credentials' },
   );
 
-  // 5. Run tests locally pointing at staging
+  // 3. Run tests locally pointing at staging
   console.log('\n▶ Running E2E tests against staging');
   console.log(`   Hub:  ${STAGING_HUB_URL}`);
   console.log(`   MCP:  ${STAGING_MCP_URL}`);
@@ -193,7 +173,7 @@ echo "Registration response: $STATUS"`,
     },
   });
 } finally {
-  // 6. Tear down staging
+  // 4. Tear down staging
   if (!keepAlive) {
     ssh(
       `docker compose --project-name ${PROJECT_NAME} --env-file ${ENV_FILE} \\
