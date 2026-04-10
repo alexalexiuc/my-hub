@@ -37,10 +37,13 @@ setup('write seeds, create test user and authenticate', async ({ request, page }
   // Persist auth state (cookies / localStorage) for reuse across tests
   await page.context().storageState({ path: AUTH_FILE });
 
-  // Seed Hub E2E fixtures when running locally (CI seeds via docker compose exec hub)
+  // Seed Hub E2E fixtures when running locally (CI seeds via docker compose run e2e-seeds)
   if (process.env['IS_LOCAL'] === 'true') {
     const seedEnv = { ...process.env, E2E_HUB_USER_EMAIL: TEST_USER.email };
-    execSync('npm run build:seed', { cwd: __dirname, stdio: 'inherit', env: seedEnv });
-    execSync('node ./dist/setup-e2e-db.mjs', { cwd: __dirname, stdio: 'inherit', env: seedEnv });
+    execSync('node ../../node_modules/.bin/tsx scripts/setup-e2e-db.ts', {
+      cwd: __dirname,
+      stdio: 'inherit',
+      env: seedEnv,
+    });
   }
 });

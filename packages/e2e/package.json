@@ -7,18 +7,17 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:report": "playwright show-report",
-    "build:seed": "tsup"
+    "seed": "tsx scripts/setup-e2e-db.ts"
   },
   "dependencies": {
     "@my-hub/shared": "workspace:*",
     "dotenv-mono": "^1.5.1",
-    "drizzle-orm": "^0.30.10",
-    "postgres": "^3.4.4"
+    "drizzle-orm": "^0.30.10"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
     "@types/node": "^22.13.14",
-    "tsup": "^8.4.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.4.5"
   }
 }
