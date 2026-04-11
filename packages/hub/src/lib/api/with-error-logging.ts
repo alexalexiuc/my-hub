@@ -78,7 +78,9 @@ export function withErrorLogging<TRequest extends Request = Request, TParams ext
         ? await (handler as (req: TRequest, context: RouteContext<TParams>) => MaybePromise<Response>)(req, context)
         : await (handler as (req: TRequest) => MaybePromise<Response>)(req);
 
-      await writeApiLog(req, response.status, Date.now() - start, undefined, options);
+      writeApiLog(req, response.status, Date.now() - start, undefined, options).catch((logErr) => {
+        console.error('[api-log] failed to persist request log', logErr);
+      });
       return response;
     } catch (err) {
       const errorMessage = toErrorMessage(err);

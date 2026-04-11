@@ -2,7 +2,6 @@ import NextAuth, { type AuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { verifyUserPassword, findOrCreateUser } from '@my-hub/shared/services';
-import { withErrorLogging } from '@/lib/api/with-error-logging';
 
 const ALLOWED_EMAILS = (process.env['ALLOWED_EMAILS'] ?? '')
   .split(',')
@@ -115,5 +114,4 @@ export const authOptions: AuthOptions = {
 };
 
 const handler = NextAuth(authOptions);
-export const GET = withErrorLogging(handler);
-export const POST = withErrorLogging(handler);
+export { handler as GET, handler as POST };
