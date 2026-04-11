@@ -120,7 +120,7 @@ services:
       migrate:
         condition: service_completed_successfully
     volumes:
-      - /app/data/travel-documents
+      - travel_docs_data:/app/data/travel-documents
     networks:
       - internal-staging
       - proxy
@@ -168,7 +168,7 @@ services:
       migrate:
         condition: service_completed_successfully
     volumes:
-      - /app/data/travel-documents
+      - travel_docs_data:/app/data/travel-documents
     networks:
       - internal-staging
       - proxy
@@ -178,6 +178,9 @@ services:
       - 'traefik.http.routers.hub-staging.entrypoints=websecure'
       - 'traefik.http.routers.hub-staging.tls.certresolver=letsencrypt'
       - 'traefik.http.services.hub-staging.loadbalancer.server.port=3000'
+
+volumes:
+  travel_docs_data:
 
 networks:
   internal-staging:
