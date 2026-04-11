@@ -31,15 +31,18 @@ test.describe('OAuth Refresh Token Flow', () => {
   let createdClientId: number | null = null;
 
   test.afterEach(async ({ page }) => {
-    // Clean up the OAuth client created during the test
     if (createdClientId !== null) {
       await page.request.delete(`/api/mcp/clients/${createdClientId}`);
       createdClientId = null;
     }
   });
 
-  test('client_credentials grant returns a refresh_token alongside access_token', async ({ page, request }) => {
-    // Create a client pre-bound to the e2e test user via the Hub API
+  /**
+   * Full refresh token lifecycle on a single client:
+   * issue tokens → rotate → reject replayed token → reject invalid token.
+   */
+  test('full refresh token lifecycle: issue, rotate, reject replay, reject invalid', async ({ page, request }) => {
+    // ── Setup: create one OAuth client for all steps ──────────────────────────
     const createRes = await page.request.post('/api/mcp/clients', {
       data: { name: 'E2E Refresh Token Test' },
     });
@@ -47,140 +50,54 @@ test.describe('OAuth Refresh Token Flow', () => {
     const client = (await createRes.json()) as CreatedClient;
     createdClientId = client.id;
 
-    // Exchange client credentials for tokens at the MCP server
-    const tokenRes = await request.post(`${MCP_BASE_URL}/api/token`, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      data: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: client.clientId,
-        client_secret: client.plainClientSecret,
-      }).toString(),
+    const tokenRequest = (params: Record<string, string>) =>
+      request.post(`${MCP_BASE_URL}/api/token`, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        data: new URLSearchParams({
+          client_id: client.clientId,
+          client_secret: client.plainClientSecret,
+          ...params,
+        }).toString(),
+      });
+
+    // ── 1. client_credentials grant issues access_token + refresh_token ───────
+    const initialRes = await tokenRequest({ grant_type: 'client_credentials' });
+    expect(initialRes.status()).toBe(200);
+    const initialTokens = (await initialRes.json()) as TokenResponse;
+    expect(initialTokens.access_token).toBeTruthy();
+    expect(initialTokens.refresh_token).toBeTruthy();
+    expect(initialTokens.token_type).toBe('bearer');
+    expect(initialTokens.expires_in).toBe(86400);
+
+    // ── 2. refresh_token grant rotates both tokens ─────────────────────────────
+    const rotateRes = await tokenRequest({
+      grant_type: 'refresh_token',
+      refresh_token: initialTokens.refresh_token,
     });
+    expect(rotateRes.status()).toBe(200);
+    const rotatedTokens = (await rotateRes.json()) as TokenResponse;
+    expect(rotatedTokens.access_token).toBeTruthy();
+    expect(rotatedTokens.refresh_token).toBeTruthy();
+    expect(rotatedTokens.token_type).toBe('bearer');
+    expect(rotatedTokens.expires_in).toBe(86400);
+    // Both tokens must differ from the originals
+    expect(rotatedTokens.access_token).not.toBe(initialTokens.access_token);
+    expect(rotatedTokens.refresh_token).not.toBe(initialTokens.refresh_token);
 
-    expect(tokenRes.status()).toBe(200);
-    const tokens = (await tokenRes.json()) as TokenResponse;
-    expect(tokens.access_token).toBeTruthy();
-    expect(tokens.refresh_token).toBeTruthy();
-    expect(tokens.token_type).toBe('bearer');
-    expect(tokens.expires_in).toBe(86400);
-  });
-
-  test('refresh_token grant returns a new access_token and rotated refresh_token', async ({ page, request }) => {
-    // Create a client pre-bound to the e2e test user
-    const createRes = await page.request.post('/api/mcp/clients', {
-      data: { name: 'E2E Token Rotation Test' },
+    // ── 3. Replaying the already-rotated refresh_token is rejected ─────────────
+    const replayRes = await tokenRequest({
+      grant_type: 'refresh_token',
+      refresh_token: initialTokens.refresh_token,
     });
-    expect(createRes.status()).toBe(201);
-    const client = (await createRes.json()) as CreatedClient;
-    createdClientId = client.id;
-
-    // First: get an initial access + refresh token pair via client_credentials
-    const initialTokenRes = await request.post(`${MCP_BASE_URL}/api/token`, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      data: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: client.clientId,
-        client_secret: client.plainClientSecret,
-      }).toString(),
-    });
-    expect(initialTokenRes.status()).toBe(200);
-    const initialTokens = (await initialTokenRes.json()) as TokenResponse;
-    const initialRefreshToken = initialTokens.refresh_token;
-    const initialAccessToken = initialTokens.access_token;
-    expect(initialRefreshToken).toBeTruthy();
-
-    // Second: use the refresh token to get a new token pair
-    const refreshRes = await request.post(`${MCP_BASE_URL}/api/token`, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      data: new URLSearchParams({
-        grant_type: 'refresh_token',
-        client_id: client.clientId,
-        client_secret: client.plainClientSecret,
-        refresh_token: initialRefreshToken,
-      }).toString(),
-    });
-
-    expect(refreshRes.status()).toBe(200);
-    const refreshedTokens = (await refreshRes.json()) as TokenResponse;
-    expect(refreshedTokens.access_token).toBeTruthy();
-    expect(refreshedTokens.refresh_token).toBeTruthy();
-    expect(refreshedTokens.token_type).toBe('bearer');
-    expect(refreshedTokens.expires_in).toBe(86400);
-
-    // The new tokens must be different from the originals (rotation)
-    expect(refreshedTokens.access_token).not.toBe(initialAccessToken);
-    expect(refreshedTokens.refresh_token).not.toBe(initialRefreshToken);
-  });
-
-  test('refresh_token grant rejects an already-rotated (old) refresh_token', async ({ page, request }) => {
-    // Create a client
-    const createRes = await page.request.post('/api/mcp/clients', {
-      data: { name: 'E2E Rotation Rejection Test' },
-    });
-    expect(createRes.status()).toBe(201);
-    const client = (await createRes.json()) as CreatedClient;
-    createdClientId = client.id;
-
-    // Get initial tokens
-    const initialTokenRes = await request.post(`${MCP_BASE_URL}/api/token`, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      data: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: client.clientId,
-        client_secret: client.plainClientSecret,
-      }).toString(),
-    });
-    const { refresh_token: firstRefreshToken } = (await initialTokenRes.json()) as TokenResponse;
-
-    // Rotate: consume the first refresh token
-    const firstRotationRes = await request.post(`${MCP_BASE_URL}/api/token`, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      data: new URLSearchParams({
-        grant_type: 'refresh_token',
-        client_id: client.clientId,
-        client_secret: client.plainClientSecret,
-        refresh_token: firstRefreshToken,
-      }).toString(),
-    });
-    expect(firstRotationRes.status()).toBe(200);
-
-    // Attempting to reuse the now-invalidated first refresh token must fail
-    const replayRes = await request.post(`${MCP_BASE_URL}/api/token`, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      data: new URLSearchParams({
-        grant_type: 'refresh_token',
-        client_id: client.clientId,
-        client_secret: client.plainClientSecret,
-        refresh_token: firstRefreshToken,
-      }).toString(),
-    });
-
     expect(replayRes.status()).toBe(400);
-    const body = (await replayRes.json()) as { error: string };
-    expect(body.error).toBe('invalid_grant');
-  });
+    expect(((await replayRes.json()) as { error: string }).error).toBe('invalid_grant');
 
-  test('refresh_token grant rejects an invalid refresh_token', async ({ page, request }) => {
-    // Create a client
-    const createRes = await page.request.post('/api/mcp/clients', {
-      data: { name: 'E2E Invalid Refresh Token Test' },
+    // ── 4. A completely invalid refresh_token is rejected ─────────────────────
+    const invalidRes = await tokenRequest({
+      grant_type: 'refresh_token',
+      refresh_token: 'completely-invalid-token',
     });
-    expect(createRes.status()).toBe(201);
-    const client = (await createRes.json()) as CreatedClient;
-    createdClientId = client.id;
-
-    const res = await request.post(`${MCP_BASE_URL}/api/token`, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      data: new URLSearchParams({
-        grant_type: 'refresh_token',
-        client_id: client.clientId,
-        client_secret: client.plainClientSecret,
-        refresh_token: 'completely-invalid-token',
-      }).toString(),
-    });
-
-    expect(res.status()).toBe(400);
-    const body = (await res.json()) as { error: string };
-    expect(body.error).toBe('invalid_grant');
+    expect(invalidRes.status()).toBe(400);
+    expect(((await invalidRes.json()) as { error: string }).error).toBe('invalid_grant');
   });
 });

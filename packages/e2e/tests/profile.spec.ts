@@ -8,23 +8,32 @@ test.describe('Profile Page', () => {
     await page.waitForLoadState('networkidle');
   });
 
-  test('shows account info (email and member since)', async ({ page }) => {
-    // Use the span inside the Account section
+  /**
+   * Profile page layout and non-destructive actions: account info, display name edit,
+   * and sign-out button — all verifiable in a single session without side effects.
+   */
+  test('displays account info, allows name edit, and shows sign-out', async ({ page }) => {
+    // ── 1. Account info ───────────────────────────────────────────────────────
     await expect(page.locator('.font-medium', { hasText: TEST_USER.email })).toBeVisible();
     await expect(page.getByText(/member since/i)).toBeVisible();
-  });
 
-  test('edit and save display name', async ({ page }) => {
+    // ── 2. Edit display name ──────────────────────────────────────────────────
     const nameInput = page.getByPlaceholder(/enter your name/i);
     await nameInput.clear();
     await nameInput.fill('E2E Tester');
     await page.getByRole('button', { name: /^save$/i }).click();
-
     await expect(page.getByText(/name updated/i)).toBeVisible({ timeout: 5_000 });
+
+    // ── 3. Sign-out button present ────────────────────────────────────────────
+    await expect(page.getByRole('button', { name: /sign out/i })).toBeVisible();
   });
 
+  /**
+   * Kept separate: seeds a meal via API, performs a destructive two-step delete
+   * confirmation, then tears down. The teardown resets shared data, so this must
+   * not share state with the main flow test.
+   */
   test('delete specific data with two-step confirmation', async ({ page }) => {
-    // Seed a meal
     await page.request.post('/api/calories/meals', {
       data: {
         description: 'Test meal for deletion',
@@ -34,26 +43,15 @@ test.describe('Profile Page', () => {
       },
     });
 
-    // Check meals checkbox
     await page.getByLabel(/meal logs/i).check();
-
-    // "Delete selected data…" button appears
     await page.getByRole('button', { name: /delete selected data/i }).click();
 
-    // Confirmation dialog
     await expect(page.getByText(/are you sure/i)).toBeVisible();
-    // The list in the confirmation shows "Meal logs"
     await expect(page.locator('ul li', { hasText: 'Meal logs' })).toBeVisible();
 
     await page.getByRole('button', { name: /yes, delete permanently/i }).click();
-
     await expect(page.getByText(/deleted successfully/i)).toBeVisible({ timeout: 5_000 });
 
-    // Clean up
     await deleteFeatures(page, ['meals']);
-  });
-
-  test('sign out link is present', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /sign out/i })).toBeVisible();
   });
 });
