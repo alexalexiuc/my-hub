@@ -23,8 +23,9 @@
 - [ ] Travel mobile UX: design and implement a touch-friendly replacement for hover-only date/time details (timezone tooltip) without layout shift or duplicate browser/native tooltips.
 - [ ] Travel - Navigation does not take lat/lng from flights info, to be fixed
 - [ ]Add contact info for reservations. Update mpc server & UI to be able to set & review
-  Also add a new action in the Comming Next chips to be able to contact property(do not show for flights)
+  Also add a new action in the Coming Next chips to be able to contact property(do not show for flights)
 - [ ]Create a new CompactButton and replace all Add & Edit small button components.
 - [ ]Add props to icons to be able to resize and change color, so they can be used in more places across the app, not only in travel. Update existing icons to use the new props. (GoogleIcon is an example)
 - [ ]See how to fix graphs not being displayed in email for calories reporting.
 - [ ]Consider if moving all Labels objects in hub UI to a single file.
+- [ ] If profile is not fully setup, meals chart pear without max color. Maybe we should either add a tooltip to explain or not show the chart at all until profile is complete.
