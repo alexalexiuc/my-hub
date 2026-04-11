@@ -28,3 +28,4 @@
 - [ ]Add props to icons to be able to resize and change color, so they can be used in more places across the app, not only in travel. Update existing icons to use the new props. (GoogleIcon is an example)
 - [ ]See how to fix graphs not being displayed in email for calories reporting.
 - [ ]Consider if moving all Labels objects in hub UI to a single file.
+- [ ] If profile is not fully setup, meals chart pear without max color. Maybe we should either add a tooltip to explain or not show the chart at all until profile is complete.
