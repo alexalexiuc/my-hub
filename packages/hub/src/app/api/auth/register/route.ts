@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createUserWithPassword, claimInviteToken, bindInviteTokenToUser } from '@my-hub/shared/services';
+import { withErrorLogging } from '@/lib/api/with-error-logging';
 
 const ALLOWED_EMAILS = (process.env['ALLOWED_EMAILS'] ?? '')
   .split(',')
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
-export async function POST(req: Request) {
+async function registerHandler(req: Request) {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -62,3 +63,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+export const POST = withErrorLogging(registerHandler);

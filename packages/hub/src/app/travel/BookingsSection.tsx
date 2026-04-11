@@ -5,7 +5,7 @@ import { SectionCard } from '@/components/SectionCard';
 import type { FlightDetails, TransportDetails, TripBookingType, TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { AttachmentIcon, PencilIcon, TrashIcon } from '@/components/icons';
-import { BookingTypeIcon, Button, IconButton } from '@/components';
+import { BookingTypeIcon, Button, IconButton, Input, Select } from '@/components';
 import { TravelTimeDisplay } from './TravelTimeDisplay';
 import { TripBookingTypes, tripBookingTypeValues } from '@my-hub/shared/constants';
 import { isTransportBookingType, toDateTimeLocalValue } from '@my-hub/shared/utils';
@@ -217,116 +217,87 @@ export function BookingsSection({
   return (
     <SectionCard title="Reservations" className="bg-indigo-950/20 border-indigo-800/50">
       <div className="space-y-2 mb-3">
-        <input
+        <Input
           value={newBookingTitle}
           onChange={(e) => setNewBookingTitle(e.target.value)}
           placeholder="Reservation title"
-          className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
         />
         <div className="grid grid-cols-2 gap-2">
           <div className="flex items-center gap-1.5">
             <span className="text-zinc-400">
               <BookingTypeIcon type={newBookingType} />
             </span>
-            <select
+            <Select
+              options={tripBookingTypeValues.map((type) => ({ value: type, label: bookingTypeLabels[type] }))}
               value={newBookingType}
               onChange={(e) => setNewBookingType(e.target.value as TripBookingType)}
-              className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-            >
-              {tripBookingTypeValues.map((type) => (
-                <option key={type} value={type}>
-                  {bookingTypeLabels[type]}
-                </option>
-              ))}
-            </select>
+            />
           </div>
-          <input
+          <Input
             value={newBookingProvider}
             onChange={(e) => setNewBookingProvider(e.target.value)}
             placeholder="Provider"
-            className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
           />
         </div>
-        <input
+        <Input
           type="url"
           value={newBookingReferenceLink}
           onChange={(e) => setNewBookingReferenceLink(e.target.value)}
           placeholder="Reference link (e.g. https://booking.com/...)"
-          className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
         />
-        <input
-          type="datetime-local"
-          value={newBookingStartAt}
-          onChange={(e) => setNewBookingStartAt(e.target.value)}
-          className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-        />
-        <input
-          type="datetime-local"
-          value={newBookingEndAt}
-          onChange={(e) => setNewBookingEndAt(e.target.value)}
-          className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-        />
+        <Input type="datetime-local" value={newBookingStartAt} onChange={(e) => setNewBookingStartAt(e.target.value)} />
+        <Input type="datetime-local" value={newBookingEndAt} onChange={(e) => setNewBookingEndAt(e.target.value)} />
         {newBookingType === 'flight' && (
           <div className="grid grid-cols-2 gap-2">
-            <input
+            <Input
               value={newFlightNumber}
               onChange={(e) => setNewFlightNumber(e.target.value)}
               placeholder="Flight no. (e.g. BA2490)"
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
             />
-            <input
+            <Input
               value={newFlightSeat}
               onChange={(e) => setNewFlightSeat(e.target.value)}
               placeholder="Seat (e.g. 14A)"
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
             />
-            <input
+            <Input
               value={newFlightOriginIata}
               onChange={(e) => setNewFlightOriginIata(e.target.value)}
               placeholder="From IATA (e.g. LHR)"
               maxLength={3}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm uppercase"
+              className="uppercase"
             />
-            <input
+            <Input
               value={newFlightDestIata}
               onChange={(e) => setNewFlightDestIata(e.target.value)}
               placeholder="To IATA (e.g. CDG)"
               maxLength={3}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm uppercase"
+              className="uppercase"
             />
-            <input
+            <Input
               value={newFlightTerminal}
               onChange={(e) => setNewFlightTerminal(e.target.value)}
               placeholder="Terminal"
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
             />
-            <input
-              value={newFlightGate}
-              onChange={(e) => setNewFlightGate(e.target.value)}
-              placeholder="Gate"
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-            />
+            <Input value={newFlightGate} onChange={(e) => setNewFlightGate(e.target.value)} placeholder="Gate" />
           </div>
         )}
         {isTransportBookingType(newBookingType) && (
           <div className="grid grid-cols-2 gap-2">
-            <input
+            <Input
               value={newTransportOrigin}
               onChange={(e) => setNewTransportOrigin(e.target.value)}
               placeholder="From (e.g. Paris Gare du Nord)"
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
             />
-            <input
+            <Input
               value={newTransportDest}
               onChange={(e) => setNewTransportDest(e.target.value)}
               placeholder="To (e.g. London St Pancras)"
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
             />
-            <input
+            <Input
               value={newTransportServiceNumber}
               onChange={(e) => setNewTransportServiceNumber(e.target.value)}
               placeholder="Service no. (e.g. TGV 6201)"
-              className="col-span-2 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+              className="col-span-2"
             />
           </div>
         )}
@@ -344,118 +315,101 @@ export function BookingsSection({
           >
             {editingBookingId === booking.id ? (
               <div className="space-y-2 px-3 py-2">
-                <input
+                <Input
                   value={editBookingTitle}
                   onChange={(e) => setEditBookingTitle(e.target.value)}
                   placeholder="Reservation title"
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex items-center gap-1.5">
                     <span className="text-zinc-400">
                       <BookingTypeIcon type={editBookingType} />
                     </span>
-                    <select
+                    <Select
+                      options={tripBookingTypeValues.map((type) => ({ value: type, label: bookingTypeLabels[type] }))}
                       value={editBookingType}
                       onChange={(e) => setEditBookingType(e.target.value as TripBookingType)}
-                      className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
-                    >
-                      {tripBookingTypeValues.map((type) => (
-                        <option key={type} value={type}>
-                          {bookingTypeLabels[type]}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
-                  <input
+                  <Input
                     value={editBookingProvider}
                     onChange={(e) => setEditBookingProvider(e.target.value)}
                     placeholder="Provider"
-                    className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                   />
                 </div>
-                <input
+                <Input
                   type="url"
                   value={editBookingReferenceLink}
                   onChange={(e) => setEditBookingReferenceLink(e.target.value)}
                   placeholder="Reference link (e.g. https://booking.com/...)"
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                 />
                 <div className="grid grid-cols-2 gap-2">
-                  <input
+                  <Input
                     type="datetime-local"
                     value={editBookingStartAt}
                     onChange={(e) => setEditBookingStartAt(e.target.value)}
-                    className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                   />
-                  <input
+                  <Input
                     type="datetime-local"
                     value={editBookingEndAt}
                     onChange={(e) => setEditBookingEndAt(e.target.value)}
-                    className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                   />
                 </div>
                 {editBookingType === 'flight' && (
                   <div className="grid grid-cols-2 gap-2">
-                    <input
+                    <Input
                       value={editFlightNumber}
                       onChange={(e) => setEditFlightNumber(e.target.value)}
                       placeholder="Flight no. (e.g. BA2490)"
-                      className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                     />
-                    <input
+                    <Input
                       value={editFlightSeat}
                       onChange={(e) => setEditFlightSeat(e.target.value)}
                       placeholder="Seat (e.g. 14A)"
-                      className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                     />
-                    <input
+                    <Input
                       value={editFlightOriginIata}
                       onChange={(e) => setEditFlightOriginIata(e.target.value)}
                       placeholder="From IATA (e.g. LHR)"
                       maxLength={3}
-                      className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm uppercase"
+                      className="uppercase"
                     />
-                    <input
+                    <Input
                       value={editFlightDestIata}
                       onChange={(e) => setEditFlightDestIata(e.target.value)}
                       placeholder="To IATA (e.g. CDG)"
                       maxLength={3}
-                      className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm uppercase"
+                      className="uppercase"
                     />
-                    <input
+                    <Input
                       value={editFlightTerminal}
                       onChange={(e) => setEditFlightTerminal(e.target.value)}
                       placeholder="Terminal"
-                      className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                     />
-                    <input
+                    <Input
                       value={editFlightGate}
                       onChange={(e) => setEditFlightGate(e.target.value)}
                       placeholder="Gate"
-                      className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                     />
                   </div>
                 )}
                 {isTransportBookingType(editBookingType) && (
                   <div className="grid grid-cols-2 gap-2">
-                    <input
+                    <Input
                       value={editTransportOrigin}
                       onChange={(e) => setEditTransportOrigin(e.target.value)}
                       placeholder="From (e.g. Paris Gare du Nord)"
-                      className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                     />
-                    <input
+                    <Input
                       value={editTransportDest}
                       onChange={(e) => setEditTransportDest(e.target.value)}
                       placeholder="To (e.g. London St Pancras)"
-                      className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                     />
-                    <input
+                    <Input
                       value={editTransportServiceNumber}
                       onChange={(e) => setEditTransportServiceNumber(e.target.value)}
                       placeholder="Service no. (e.g. TGV 6201)"
-                      className="col-span-2 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
+                      className="col-span-2"
                     />
                   </div>
                 )}

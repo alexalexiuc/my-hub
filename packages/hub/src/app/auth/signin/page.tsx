@@ -5,6 +5,7 @@ import { signIn, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { GoogleIcon } from '@/components/icons';
+import { Input } from '@/components';
 
 export default function SignInPage() {
   return (
@@ -72,10 +73,9 @@ function SignInContent() {
             <label htmlFor="email" className="text-xs text-zinc-400 block mb-1">
               Email
             </label>
-            <input
+            <Input
               id="email"
               type="email"
-              className="input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
@@ -87,10 +87,9 @@ function SignInContent() {
             <label htmlFor="password" className="text-xs text-zinc-400 block mb-1">
               Password
             </label>
-            <input
+            <Input
               id="password"
               type="password"
-              className="input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"

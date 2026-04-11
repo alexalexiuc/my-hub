@@ -65,13 +65,64 @@ await apiFetch(`/api/todo/${id}`, { method: 'DELETE' });
 // FormData — no Content-Type injected (browser sets multipart boundary)
 await apiFetch('/api/upload', { method: 'POST', body: formData });
 
-// Handling auth errors
+// Optional: local status-specific handling (global toasts still apply)
+try {
+  await apiFetch('/api/user/profile', { method: 'PUT', body: profilePayload });
 } catch (e) {
-  setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
+  if (e instanceof ApiError && e.status === 401) {
+    setError('Not signed in');
+    return;
+  }
+  throw e;
 }
 ```
 
 `apiFetch` throws `ApiError` (with `.status`) on non-2xx. Empty responses (204 / no body) return `undefined`.
+
+By default, `apiFetch` now shows global toasts:
+
+- Error toast for non-2xx responses.
+- Success toast for `POST`/`PUT`/`PATCH` (`Saved successfully`) and `DELETE` (`Deleted successfully`).
+- `GET` remains silent by default.
+- Use `silentToast: true` to suppress toasts for a specific request.
+
+Only add a local `try/catch` when the component needs status-specific behavior (for example, custom `401` UI state).
+
+## Utility: `cn`
+
+Use `cn` from `@/lib/utils` (wraps `clsx` + `twMerge`) for joining Tailwind class names:
+
+```ts
+import { cn } from '@/lib/utils';
+cn('base-class', condition && 'conditional-class', className);
+```
+
+## Input components
+
+Use these components from `@/components` instead of bare HTML elements:
+
+| Component     | Replaces                  | Notes                                                                                                             |
+| ------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `Input`       | `<input>`                 | Applies `.input` CSS class; supports `variant="ghost"` for transparent border-bottom style (todo rows)            |
+| `Select`      | `<select>`                | Applies `.input`; accepts `options` prop for data-driven option lists; blank/placeholder options go as `children` |
+| `Textarea`    | `<textarea>`              | Applies `.input`                                                                                                  |
+| `ColorPicker` | `<input type="color">`    | Circular swatch, `h-8 w-8`                                                                                        |
+| `Checkbox`    | `<input type="checkbox">` | `accent-blue-500`; override accent color via `className`                                                          |
+| `FilePicker`  | `<input type="file">`     | Separate component — will gain drag-and-drop in future                                                            |
+
+```tsx
+import { Input, Select, Textarea, ColorPicker, Checkbox, FilePicker } from '@/components';
+
+<Input type="number" value={val} onChange={...} />
+<Input variant="ghost" placeholder="New task..." ref={inputRef} />
+<Select value={val} onChange={...} options={DATA_OPTIONS}><option value="">Pick one</option></Select>
+<Textarea rows={3} className="resize-none" value={val} onChange={...} />
+<ColorPicker value={color} onChange={(e) => setColor(e.target.value)} />
+<Checkbox checked={val} onChange={(e) => toggle(e.target.checked)} />
+<FilePicker accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+```
+
+For filter controls in flex rows that must not be `w-full`, override with `className="w-auto"`.
 
 ## Barrel exports
 

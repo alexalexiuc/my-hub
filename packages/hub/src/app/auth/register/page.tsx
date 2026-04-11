@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { apiFetch, ApiError } from '@/lib/utils';
+import { Input } from '@/components';
 
 function RegisterForm() {
   const searchParams = useSearchParams();
@@ -32,6 +33,7 @@ function RegisterForm() {
         await apiFetch('/api/auth/register', {
           method: 'POST',
           body: { email, password, name: name || undefined, inviteToken: inviteToken || undefined },
+          silentToast: true, // Error is being shown in the form, so suppress the default toast from apiFetch
         });
       } catch (e) {
         setError(e instanceof ApiError ? e.message : 'Registration failed.');
@@ -78,10 +80,9 @@ function RegisterForm() {
             <label htmlFor="email" className="text-xs text-zinc-400 block mb-1">
               Email
             </label>
-            <input
+            <Input
               id="email"
               type="email"
-              className="input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
@@ -93,10 +94,9 @@ function RegisterForm() {
             <label htmlFor="name" className="text-xs text-zinc-400 block mb-1">
               Name <span className="text-zinc-500">(optional)</span>
             </label>
-            <input
+            <Input
               id="name"
               type="text"
-              className="input"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
@@ -106,10 +106,9 @@ function RegisterForm() {
             <label htmlFor="password" className="text-xs text-zinc-400 block mb-1">
               Password
             </label>
-            <input
+            <Input
               id="password"
               type="password"
-              className="input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -121,10 +120,9 @@ function RegisterForm() {
             <label htmlFor="confirm" className="text-xs text-zinc-400 block mb-1">
               Confirm password
             </label>
-            <input
+            <Input
               id="confirm"
               type="password"
-              className="input"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="••••••••"

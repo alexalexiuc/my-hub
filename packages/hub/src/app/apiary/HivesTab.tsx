@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { ApiaryHive, ApiaryYard } from '@my-hub/shared/types';
 import { SectionCard } from '@/components/SectionCard';
-import { Button } from '@/components';
+import { Button, Input, Select, Textarea } from '@/components';
 import { apiFetch } from '@/lib/utils';
 
 export function HivesTab() {
@@ -83,39 +83,22 @@ export function HivesTab() {
       {showForm && (
         <SectionCard title="New Hive">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input
-              className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm"
-              placeholder="Hive name *"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-            />
-            <select
-              className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm"
+            <Input placeholder="Hive name *" value={formName} onChange={(e) => setFormName(e.target.value)} />
+            <Select
+              options={yards.map((y) => ({ value: y.id, label: y.name }))}
               value={formYardId}
               onChange={(e) => setFormYardId(e.target.value)}
             >
               <option value="">No yard</option>
-              {yards.map((y) => (
-                <option key={y.id} value={y.id}>
-                  {y.name}
-                </option>
-              ))}
-            </select>
-            <input
-              className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm"
+            </Select>
+            <Input
               placeholder="Queen status"
               value={formQueenStatus}
               onChange={(e) => setFormQueenStatus(e.target.value)}
             />
-            <input
-              className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm"
-              placeholder="Boxes"
-              type="number"
-              value={formBoxes}
-              onChange={(e) => setFormBoxes(e.target.value)}
-            />
-            <textarea
-              className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm sm:col-span-2"
+            <Input placeholder="Boxes" type="number" value={formBoxes} onChange={(e) => setFormBoxes(e.target.value)} />
+            <Textarea
+              className="sm:col-span-2"
               placeholder="Notes"
               value={formNotes}
               onChange={(e) => setFormNotes(e.target.value)}

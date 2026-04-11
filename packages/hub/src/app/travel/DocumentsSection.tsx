@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import type { TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended, UploadConfig } from './types';
-import { Button, IconButton } from '@/components';
+import { Button, FilePicker, IconButton, Input, Select } from '@/components';
 import { DownloadIcon, TrashIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
 
@@ -78,30 +78,18 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
   return (
     <SectionCard title="Documents" className="bg-amber-950/20 border-amber-800/50">
       <div className="space-y-2 mb-3">
-        <input
-          value={documentTitle}
-          onChange={(e) => setDocumentTitle(e.target.value)}
-          placeholder="Document title"
-          className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-        />
-        <input
-          type="file"
+        <Input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} placeholder="Document title" />
+        <FilePicker
           accept={uploadConfig.allowed_mime.join(',')}
           onChange={(e) => setDocumentFile(e.target.files?.[0] ?? null)}
-          className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
         />
-        <select
+        <Select
+          options={bookings.map((b) => ({ value: b.id, label: b.title }))}
           value={documentBookingId ?? ''}
           onChange={(e) => setDocumentBookingId(e.target.value ? Number(e.target.value) : null)}
-          className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
         >
           <option value="">Link to reservation (optional)</option>
-          {bookings.map((booking) => (
-            <option key={booking.id} value={booking.id}>
-              {booking.title}
-            </option>
-          ))}
-        </select>
+        </Select>
         <p className="text-xs text-zinc-500">
           Max {uploadConfig.max_mb} MB. Allowed: {uploadConfig.allowed_mime.join(', ')}
         </p>

@@ -6,6 +6,7 @@ import type { Todo } from '@my-hub/shared/types';
 import { PageHeader } from '@/components/PageHeader';
 import { apiFetch, ApiError } from '@/lib/utils';
 import { SectionCard } from '@/components/SectionCard';
+import { Input } from '@/components';
 import { PlusOutlineIcon, CheckOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 
 export default function TodoPage() {
@@ -125,9 +126,9 @@ export default function TodoPage() {
           {adding && (
             <div className="flex items-center gap-3 px-3 py-2">
               <div className="flex-shrink-0 w-5 h-5 rounded-full border-2 border-zinc-700" />
-              <input
+              <Input
                 ref={inputRef}
-                className="flex-1 min-w-0 bg-transparent border-b border-zinc-600 focus:border-indigo-400 outline-none text-sm py-0.5 placeholder:text-zinc-600 transition-colors"
+                variant="ghost"
                 placeholder="New task..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}

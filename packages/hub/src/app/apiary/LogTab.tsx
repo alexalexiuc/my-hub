@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { ApiaryLog, ApiaryHive } from '@my-hub/shared/types';
 import { SectionCard } from '@/components/SectionCard';
-import { Button } from '@/components';
+import { Button, Input, Select, Textarea } from '@/components';
 import { apiFetch } from '@/lib/utils';
 
 const LOG_TYPES = ['inspection', 'treatment', 'feeding', 'harvest', 'relocation', 'queen_event', 'note'] as const;
@@ -88,30 +88,22 @@ export function LogTab() {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
-        <select
-          className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-1.5 text-sm"
+        <Select
+          className="w-auto"
+          options={hives.map((h) => ({ value: h.id, label: h.name }))}
           value={filterHive}
           onChange={(e) => setFilterHive(e.target.value)}
         >
           <option value="">All hives</option>
-          {hives.map((h) => (
-            <option key={h.id} value={h.id}>
-              {h.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-1.5 text-sm"
+        </Select>
+        <Select
+          className="w-auto"
+          options={LOG_TYPES.map((t) => ({ value: t, label: t }))}
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
         >
           <option value="">All types</option>
-          {LOG_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
+        </Select>
         <div className="ml-auto">
           <Button size="sm" onClick={() => setShowForm(!showForm)}>
             {showForm ? 'Cancel' : '+ Add Entry'}
@@ -122,37 +114,21 @@ export function LogTab() {
       {showForm && (
         <SectionCard title="New Log Entry">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <select
-              className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm"
+            <Select
+              options={LOG_TYPES.map((t) => ({ value: t, label: t }))}
               value={formType}
               onChange={(e) => setFormType(e.target.value)}
-            >
-              {LOG_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <select
-              className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm"
+            />
+            <Select
+              options={hives.map((h) => ({ value: h.id, label: h.name }))}
               value={formHiveId}
               onChange={(e) => setFormHiveId(e.target.value)}
             >
               <option value="">No hive</option>
-              {hives.map((h) => (
-                <option key={h.id} value={h.id}>
-                  {h.name}
-                </option>
-              ))}
-            </select>
-            <input
-              className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm"
-              type="date"
-              value={formDate}
-              onChange={(e) => setFormDate(e.target.value)}
-            />
-            <textarea
-              className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm sm:col-span-2"
+            </Select>
+            <Input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} />
+            <Textarea
+              className="sm:col-span-2"
               placeholder="Notes"
               value={formNotes}
               onChange={(e) => setFormNotes(e.target.value)}

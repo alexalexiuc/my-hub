@@ -1,6 +1,7 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
+import { Toaster } from 'sonner';
 import { AutoSignOut } from './AutoSignOut';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -8,6 +9,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <SessionProvider>
       <AutoSignOut />
       {children}
+      <Toaster richColors theme="dark" position="top-right" />
     </SessionProvider>
   );
 }

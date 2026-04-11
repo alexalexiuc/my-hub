@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
-import { BookingTypeIcon, Button } from '@/components';
+import { BookingTypeIcon, Button, Input, Textarea } from '@/components';
 import type { TripWithStatus } from '@my-hub/shared/types';
 import type { TripBookingExtended, TripDay } from './types';
 import { calendarDays, formatDayHeading, toUTCDateStr } from '@my-hub/shared/utils';
@@ -95,19 +95,18 @@ function DayCard({ dateStr, note, bookings, canEdit, onSaved, onDeleted }: DayCa
       {/* Notes display or edit */}
       {editing ? (
         <div className="space-y-2">
-          <input
+          <Input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Day title (optional)"
-            className="w-full rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
           />
-          <textarea
+          <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Notes for this day…"
             rows={3}
-            className="w-full rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 resize-none"
+            className="resize-none"
           />
           <div className="flex items-center gap-2">
             <Button

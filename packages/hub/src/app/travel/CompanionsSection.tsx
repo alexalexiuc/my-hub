@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import type { TripCompanion } from '@my-hub/shared/types';
-import { Button, IconButton } from '@/components';
+import { Button, IconButton, Input } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
 
@@ -76,25 +76,10 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
   return (
     <SectionCard title="Companions" className="bg-fuchsia-950/20 border-fuchsia-800/50">
       <div className="space-y-2 mb-3">
-        <input
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          placeholder="Name"
-          className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-        />
+        <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Name" />
         <div className="grid grid-cols-2 gap-2">
-          <input
-            value={newEmail}
-            onChange={(e) => setNewEmail(e.target.value)}
-            placeholder="Email"
-            className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-          />
-          <input
-            value={newPhone}
-            onChange={(e) => setNewPhone(e.target.value)}
-            placeholder="Phone"
-            className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-          />
+          <Input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="Email" />
+          <Input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="Phone" />
         </div>
         <Button
           onClick={addCompanion}
@@ -110,25 +95,10 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
           <div key={companion.id} className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm">
             {editingId === companion.id ? (
               <div className="space-y-2">
-                <input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Name"
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
-                />
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Name" />
                 <div className="grid grid-cols-2 gap-2">
-                  <input
-                    value={editEmail}
-                    onChange={(e) => setEditEmail(e.target.value)}
-                    placeholder="Email"
-                    className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
-                  />
-                  <input
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                    placeholder="Phone"
-                    className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
-                  />
+                  <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="Email" />
+                  <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Phone" />
                 </div>
                 <div className="flex items-center justify-end gap-2">
                   <Button

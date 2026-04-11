@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { dateToString, calculateMacroKcal } from '@my-hub/shared/utils';
-import { SectionCard, Button } from '@/components';
+import { SectionCard, Button, Input, Select } from '@/components';
 import { apiFetch } from '@/lib/utils';
 import { PlusOutlineIcon } from '@/components/icons';
 import { MealType, MealTypes, MealTypesValues } from '@my-hub/shared/constants';
@@ -279,8 +279,7 @@ export function CaloriesWidget({
       {showAdd && (
         <div className="mt-4 border-t border-zinc-700 pt-4 space-y-3">
           <div className="space-y-2">
-            <input
-              className="input"
+            <Input
               placeholder="What did you eat?"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -288,19 +287,12 @@ export function CaloriesWidget({
               autoFocus
             />
             <div className="grid grid-cols-2 gap-2">
-              <select
-                className="input"
+              <Select
+                options={MealTypesValues.map((t) => ({ value: t, label: MEAL_LABEL[t] }))}
                 value={form.mealType}
                 onChange={(e) => setForm({ ...form, mealType: e.target.value as MealType })}
-              >
-                {MealTypesValues.map((t) => (
-                  <option key={t} value={t}>
-                    {MEAL_LABEL[t]}
-                  </option>
-                ))}
-              </select>
-              <input
-                className="input"
+              />
+              <Input
                 type="number"
                 step="1"
                 min="0"

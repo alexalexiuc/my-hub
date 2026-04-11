@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Button, IconButton, MultiButtonGroup, SectionCard } from '@/components';
+import { Button, ColorPicker, IconButton, Input, MultiButtonGroup, SectionCard } from '@/components';
 import { apiFetch } from '@/lib/utils';
 import { PencilIcon, TrashIcon } from '@/components/icons';
 import type { Trip } from '@my-hub/shared/types';
@@ -139,43 +139,21 @@ export function TripsSidebar({
     <SectionCard title="Trips" className="bg-emerald-950/20 border-emerald-800/50">
       <div className="space-y-3">
         <div className="space-y-2">
-          <input
-            value={newTripName}
-            onChange={(e) => setNewTripName(e.target.value)}
-            placeholder="Trip name"
-            className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-          />
-          <input
+          <Input value={newTripName} onChange={(e) => setNewTripName(e.target.value)} placeholder="Trip name" />
+          <Input
             value={newTripDestination}
             onChange={(e) => setNewTripDestination(e.target.value)}
             placeholder="Destination"
-            className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
           />
           <div className="grid grid-cols-2 gap-2">
-            <input
-              type="date"
-              value={newTripStartAt}
-              onChange={(e) => setNewTripStartAt(e.target.value)}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-            />
-            <input
-              type="date"
-              value={newTripEndAt}
-              onChange={(e) => setNewTripEndAt(e.target.value)}
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
-            />
+            <Input type="date" value={newTripStartAt} onChange={(e) => setNewTripStartAt(e.target.value)} />
+            <Input type="date" value={newTripEndAt} onChange={(e) => setNewTripEndAt(e.target.value)} />
           </div>
           <div className="flex items-center gap-2 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm">
             <label htmlFor="trip-color" className="text-zinc-300">
               Color
             </label>
-            <input
-              id="trip-color"
-              type="color"
-              value={newTripColor}
-              onChange={(e) => setNewTripColor(e.target.value)}
-              className="h-8 w-8 cursor-pointer rounded-full border-none bg-transparent p-0"
-            />
+            <ColorPicker id="trip-color" value={newTripColor} onChange={(e) => setNewTripColor(e.target.value)} />
           </div>
           <Button onClick={createTrip} className="w-full bg-emerald-600 hover:bg-emerald-500">
             Create Trip
@@ -214,38 +192,24 @@ export function TripsSidebar({
             >
               {editingTripId === trip.id ? (
                 <div className="space-y-2">
-                  <input
+                  <Input
                     value={editTripName}
                     onChange={(e) => setEditTripName(e.target.value)}
                     placeholder="Trip name"
-                    className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                   />
-                  <input
+                  <Input
                     value={editTripDestination}
                     onChange={(e) => setEditTripDestination(e.target.value)}
                     placeholder="Destination"
-                    className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
                   />
                   <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="date"
-                      value={editTripStartAt}
-                      onChange={(e) => setEditTripStartAt(e.target.value)}
-                      className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
-                    />
-                    <input
-                      type="date"
-                      value={editTripEndAt}
-                      onChange={(e) => setEditTripEndAt(e.target.value)}
-                      className="rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
-                    />
+                    <Input type="date" value={editTripStartAt} onChange={(e) => setEditTripStartAt(e.target.value)} />
+                    <Input type="date" value={editTripEndAt} onChange={(e) => setEditTripEndAt(e.target.value)} />
                   </div>
                   <div className="flex items-center justify-between">
-                    <input
-                      type="color"
+                    <ColorPicker
                       value={editTripColor}
                       onChange={(e) => setEditTripColor(e.target.value)}
-                      className="h-8 w-8 cursor-pointer rounded-full border-none bg-transparent p-0"
                       aria-label="Trip color"
                       title="Trip color"
                     />

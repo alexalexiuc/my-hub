@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import type { TripChecklistItem } from '@my-hub/shared/types';
-import { Button, IconButton } from '@/components';
+import { Button, IconButton, Input } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
 
@@ -67,11 +67,11 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
   return (
     <SectionCard title="Checklist" className="bg-teal-950/20 border-teal-800/50">
       <div className="flex gap-2 mb-3">
-        <input
+        <Input
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
           placeholder="Add checklist item"
-          className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+          className="flex-1"
         />
         <Button onClick={addItem} disabled={!activeTripId || !canEdit} className="bg-teal-600 hover:bg-teal-500">
           Add
@@ -89,11 +89,7 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
             <div className="flex items-center justify-between gap-2">
               {editingId === item.id ? (
                 <>
-                  <input
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    className="min-w-0 flex-1 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm"
-                  />
+                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="min-w-0 flex-1" />
                   <Button size="xs" onClick={() => saveEdit(item.id)} className="bg-teal-600 hover:bg-teal-500">
                     Save
                   </Button>

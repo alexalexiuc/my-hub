@@ -10,5 +10,6 @@ export default defineConfig({
     poolOptions: { forks: { singleFork: true } },
     sequence: { concurrent: false },
     setupFiles: ['e2e/helpers/load-env.ts'],
+    globalSetup: 'e2e/global.setup.ts',
   },
 });

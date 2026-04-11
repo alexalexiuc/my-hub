@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-user';
+import { withErrorLogging } from './with-error-logging';
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -34,7 +35,7 @@ export function withAuth<TParams extends ParamsRecord = ParamsRecord>(
     | ((ctx: AuthContext) => MaybePromise<Response>)
     | ((ctx: AuthContextWithParams<TParams>) => MaybePromise<Response>),
 ): (req: Request, context?: RouteContext<TParams>) => Promise<Response> {
-  return async (req: Request, context?: RouteContext<TParams>) => {
+  return withErrorLogging(async (req: Request, context?: RouteContext<TParams>) => {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -49,5 +50,5 @@ export function withAuth<TParams extends ParamsRecord = ParamsRecord>(
     }
 
     return (handler as (ctx: AuthContext) => MaybePromise<Response>)({ req, user: userContext });
-  };
+  });
 }

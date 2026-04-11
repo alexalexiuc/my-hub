@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { ApiaryTask, ApiaryHive } from '@my-hub/shared/types';
 import { SectionCard } from '@/components/SectionCard';
-import { Button } from '@/components';
+import { Button, Input, Select } from '@/components';
 import { apiFetch } from '@/lib/utils';
 
 type FilterMode = 'pending' | 'completed' | 'all';
@@ -100,26 +100,20 @@ export function TasksTab() {
       {showForm && (
         <SectionCard title="New Task">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input
-              className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm sm:col-span-3"
+            <Input
+              className="sm:col-span-3"
               placeholder="Task title *"
               value={formTitle}
               onChange={(e) => setFormTitle(e.target.value)}
             />
-            <select
-              className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm"
+            <Select
+              options={hives.map((h) => ({ value: h.id, label: h.name }))}
               value={formHiveId}
               onChange={(e) => setFormHiveId(e.target.value)}
             >
               <option value="">No hive</option>
-              {hives.map((h) => (
-                <option key={h.id} value={h.id}>
-                  {h.name}
-                </option>
-              ))}
-            </select>
-            <input
-              className="rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 text-sm"
+            </Select>
+            <Input
               type="date"
               value={formDueAt}
               onChange={(e) => setFormDueAt(e.target.value)}

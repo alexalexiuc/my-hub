@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Button } from '@/components';
+import { Button, Input } from '@/components';
 import { SectionCard } from '@/components/SectionCard';
 import type { ApiTrip, TripShareSuggestion, TripShareView } from './types';
 import { apiFetch } from '@/lib/utils';
@@ -86,11 +86,11 @@ export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
       {activeTrip && canEdit && (
         <div className="space-y-3">
           <div className="flex gap-2">
-            <input
+            <Input
               value={shareEmail}
               onChange={(e) => setShareEmail(e.target.value)}
               placeholder="Share with user email"
-              className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm"
+              className="flex-1"
             />
             <Button onClick={shareTripByEmail} className="bg-violet-600 hover:bg-violet-500">
               Share

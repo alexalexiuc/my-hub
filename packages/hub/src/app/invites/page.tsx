@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { SectionCard } from '@/components/SectionCard';
-import { Button } from '@/components';
+import { Button, Select } from '@/components';
 import type { InviteTokenWithUsedByEmail } from '@my-hub/shared/types';
 import { apiFetch } from '@/lib/utils';
 
@@ -98,15 +98,16 @@ export default function InvitesPage() {
           </p>
           <div className="flex items-center gap-3">
             <span className="text-sm text-zinc-400">Expires in</span>
-            <select
+            <Select
+              options={[
+                { value: '7', label: '7 days' },
+                { value: '30', label: '30 days' },
+                { value: 'none', label: 'Never' },
+              ]}
               value={expiry}
               onChange={(e) => setExpiry(e.target.value as ExpiryOption)}
-              className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-200"
-            >
-              <option value="7">7 days</option>
-              <option value="30">30 days</option>
-              <option value="none">Never</option>
-            </select>
+              className="w-auto"
+            />
             <Button onClick={generateInvite} loading={creating}>
               {creating ? 'Generating…' : 'Generate invite link'}
             </Button>

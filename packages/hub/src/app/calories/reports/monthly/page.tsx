@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useCallback } from 'react';
-import { apiFetch, ApiError } from '@/lib/utils';
+import { apiFetch } from '@/lib/utils';
 import { useSearchParams } from 'next/navigation';
 import { addMonths, getLastMonthStart, monthLabel, toUTCDateStr } from '@my-hub/shared/utils';
 import { IconButton } from '@/components/IconButton';
@@ -20,13 +20,11 @@ function MonthlyReportContent() {
   const [html, setHtml] = useState<string | null>(null);
   const [noData, setNoData] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (date: Date) => {
     setLoading(true);
     setHtml(null);
     setNoData(false);
-    setError(null);
     try {
       const json = await apiFetch<{ html?: string; skipped?: string }>('/api/calories/reports/monthly-preview', {
         query: { monthStart: toUTCDateStr(date) },
@@ -36,8 +34,6 @@ function MonthlyReportContent() {
         return;
       }
       setHtml(json.html ?? null);
-    } catch (e) {
-      setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
     } finally {
       setLoading(false);
     }
@@ -77,7 +73,6 @@ function MonthlyReportContent() {
       </div>
 
       {loading && <p className="text-[#8ca0b5] text-sm">Loading…</p>}
-      {error && <p className="text-red-400 text-sm">{error}</p>}
       {noData && <p className="text-[#8ca0b5] text-sm">No meals logged for this month.</p>}
       {html && (
         <iframe

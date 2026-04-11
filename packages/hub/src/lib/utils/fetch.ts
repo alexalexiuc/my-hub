@@ -5,6 +5,22 @@ interface ApiFetchOptions {
   query?: QueryParams;
   body?: unknown;
   headers?: Record<string, string>;
+  silentToast?: boolean;
+}
+
+const SUCCESS_TOAST_METHODS = new Set<ApiFetchOptions['method']>(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+function showToast(kind: 'success' | 'error', message: string) {
+  if (typeof window === 'undefined') return;
+
+  // Load Sonner only in the browser at toast time to avoid coupling this shared helper to server bundles.
+  void import('sonner').then(({ toast }) => {
+    if (kind === 'error') {
+      toast.error(message);
+      return;
+    }
+    toast.success(message);
+  });
 }
 
 class ApiError extends Error {
@@ -23,11 +39,15 @@ class ApiError extends Error {
  * - Appends `query` params as a URL search string, omitting null/undefined values.
  * - Serialises plain-object `body` as JSON and sets `Content-Type: application/json`
  *   automatically. Pass a `FormData` instance to skip that behaviour.
+ * - Shows a toast on request errors.
+ * - Shows a success toast for `POST`/`PUT`/`PATCH`/`DELETE` requests.
+ * - `GET` requests stay silent by default.
+ * - Set `silentToast: true` to suppress all toasts for a specific request.
  * - Throws `ApiError` (with `.status`) on non-2xx responses.
  * - Returns `undefined` for empty responses (e.g. 204 No Content).
  */
 export async function apiFetch<T = undefined>(path: string, options?: ApiFetchOptions): Promise<T> {
-  const { method = 'GET', query, body, headers: extraHeaders = {} } = options ?? {};
+  const { method = 'GET', query, body, headers: extraHeaders = {}, silentToast = false } = options ?? {};
 
   let url = path;
   if (query) {
@@ -63,9 +83,18 @@ export async function apiFetch<T = undefined>(path: string, options?: ApiFetchOp
       const err = (await res.json()) as { error?: string; message?: string };
       message = err.error ?? err.message ?? message;
     } catch {
-      // ignore parse failures
+      console.warn('Failed to parse error response as JSON');
     }
+
+    if (!silentToast) {
+      showToast('error', message || 'Request failed');
+    }
+
     throw new ApiError(res.status, message);
+  }
+
+  if (!silentToast && SUCCESS_TOAST_METHODS.has(method)) {
+    showToast('success', method === 'DELETE' ? 'Deleted successfully' : 'Saved successfully');
   }
 
   const text = await res.text();

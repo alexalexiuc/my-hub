@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import { dateToString } from '@my-hub/shared/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { SectionCard } from '@/components/SectionCard';
-import { Button, Field } from '@/components';
+import { Button, Field, Input, Select } from '@/components';
 import {
   PencilIcon,
   PlusOutlineIcon,
@@ -331,29 +331,21 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
                           <div key={meal.id} className="rounded-lg bg-zinc-800 border border-zinc-600 p-3 space-y-3">
                             <div className="grid grid-cols-2 gap-3">
                               <Field label="Description *" className="col-span-2">
-                                <input
-                                  className="input"
+                                <Input
                                   value={editForm.description}
                                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                                   autoFocus
                                 />
                               </Field>
                               <Field label="Meal type">
-                                <select
-                                  className="input"
+                                <Select
+                                  options={MealTypesValues.map((t) => ({ value: t, label: MEAL_LABEL[t] }))}
                                   value={editForm.mealType}
                                   onChange={(e) => setEditForm({ ...editForm, mealType: e.target.value as MealType })}
-                                >
-                                  {MealTypesValues.map((t) => (
-                                    <option key={t} value={t}>
-                                      {MEAL_LABEL[t]}
-                                    </option>
-                                  ))}
-                                </select>
+                                />
                               </Field>
                               <Field label="Calories (kcal)">
-                                <input
-                                  className="input"
+                                <Input
                                   type="number"
                                   step="1"
                                   min="0"
@@ -362,32 +354,28 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
                                 />
                               </Field>
                               <Field label="Protein (g)">
-                                <input
-                                  className="input"
+                                <Input
                                   type="number"
                                   value={editForm.protein}
                                   onChange={(e) => setEditForm({ ...editForm, protein: e.target.value })}
                                 />
                               </Field>
                               <Field label="Carbs (g)">
-                                <input
-                                  className="input"
+                                <Input
                                   type="number"
                                   value={editForm.carbs}
                                   onChange={(e) => setEditForm({ ...editForm, carbs: e.target.value })}
                                 />
                               </Field>
                               <Field label="Fat (g)">
-                                <input
-                                  className="input"
+                                <Input
                                   type="number"
                                   value={editForm.fat}
                                   onChange={(e) => setEditForm({ ...editForm, fat: e.target.value })}
                                 />
                               </Field>
                               <Field label="Notes">
-                                <input
-                                  className="input"
+                                <Input
                                   value={editForm.notes}
                                   onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                                 />
@@ -470,8 +458,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
           <h3 className="text-sm font-semibold">Add meal</h3>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Description *" className="col-span-2">
-              <input
-                className="input"
+              <Input
                 placeholder="e.g. grilled chicken with rice"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -479,21 +466,14 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
               />
             </Field>
             <Field label="Meal type *">
-              <select
-                className="input"
+              <Select
+                options={MealTypesValues.map((t) => ({ value: t, label: MEAL_LABEL[t] }))}
                 value={form.mealType}
                 onChange={(e) => setForm({ ...form, mealType: e.target.value as MealType })}
-              >
-                {MealTypesValues.map((t) => (
-                  <option key={t} value={t}>
-                    {MEAL_LABEL[t]}
-                  </option>
-                ))}
-              </select>
+              />
             </Field>
             <Field label="Calories (kcal)">
-              <input
-                className="input"
+              <Input
                 type="number"
                 step="1"
                 min="0"
@@ -502,35 +482,20 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
               />
             </Field>
             <Field label="Protein (g)">
-              <input
-                className="input"
+              <Input
                 type="number"
                 value={form.protein}
                 onChange={(e) => setForm({ ...form, protein: e.target.value })}
               />
             </Field>
             <Field label="Carbs (g)">
-              <input
-                className="input"
-                type="number"
-                value={form.carbs}
-                onChange={(e) => setForm({ ...form, carbs: e.target.value })}
-              />
+              <Input type="number" value={form.carbs} onChange={(e) => setForm({ ...form, carbs: e.target.value })} />
             </Field>
             <Field label="Fat (g)">
-              <input
-                className="input"
-                type="number"
-                value={form.fat}
-                onChange={(e) => setForm({ ...form, fat: e.target.value })}
-              />
+              <Input type="number" value={form.fat} onChange={(e) => setForm({ ...form, fat: e.target.value })} />
             </Field>
             <Field label="Notes">
-              <input
-                className="input"
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              />
+              <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Field>
           </div>
           <div className="flex gap-2">

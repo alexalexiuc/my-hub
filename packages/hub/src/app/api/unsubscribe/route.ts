@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { verifyUnsubscribeToken, setSubscription } from '@my-hub/shared/services';
 import { NOTIFICATION_SUBSCRIPTIONS, type SubscriptionKey } from '@my-hub/shared/constants';
+import { withErrorLogging } from '@/lib/api/with-error-logging';
 
 const validKeys = new Set<string>(NOTIFICATION_SUBSCRIPTIONS.map((s) => s.key));
 
@@ -15,7 +16,7 @@ h1{margin:0 0 12px;font-size:20px}p{margin:0;color:#8ca0b5;font-size:14px}a{colo
   );
 }
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
+async function unsubscribeHandler(req: NextRequest): Promise<NextResponse> {
   const token = req.nextUrl.searchParams.get('token') ?? '';
   const result = verifyUnsubscribeToken(token);
 
@@ -36,3 +37,5 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     200,
   );
 }
+
+export const GET = withErrorLogging(unsubscribeHandler);

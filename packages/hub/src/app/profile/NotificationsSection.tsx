@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import { NOTIFICATION_SUBSCRIPTIONS } from '@my-hub/shared/constants';
 import type { SubscriptionKey } from '@my-hub/shared/constants';
+import { Checkbox } from '@/components';
 import { apiFetch } from '@/lib/utils';
 
 interface SubscriptionState {
@@ -63,12 +64,10 @@ export function NotificationsSection() {
                         className="flex items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 cursor-pointer hover:border-zinc-600 transition"
                       >
                         <span className="text-sm">{label}</span>
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={isSubscribed}
                           disabled={isSaving}
                           onChange={(e) => toggle(key, e.target.checked)}
-                          className="accent-blue-500 w-4 h-4"
                         />
                       </label>
                     );

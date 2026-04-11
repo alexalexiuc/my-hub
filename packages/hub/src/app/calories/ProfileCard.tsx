@@ -14,7 +14,7 @@ import {
   Sexes,
   TIMEZONES,
 } from '@my-hub/shared/constants';
-import { SectionCard, Field, Button } from '@/components';
+import { SectionCard, Field, Button, Input, Select, Textarea } from '@/components';
 import { pctToGrams, gramsToPct, computeMacroSummary } from './calories.utils';
 
 interface Props {
@@ -264,23 +264,22 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <Field label="Age">
-            <input
-              className="input"
-              type="number"
-              value={form.age}
-              onChange={(e) => setForm({ ...form, age: e.target.value })}
-            />
+            <Input type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} />
           </Field>
           <Field label="Sex">
-            <select className="input" value={form.sex} onChange={(e) => setForm({ ...form, sex: e.target.value })}>
+            <Select
+              options={[
+                { value: Sexes.Male, label: 'Male' },
+                { value: Sexes.Female, label: 'Female' },
+              ]}
+              value={form.sex}
+              onChange={(e) => setForm({ ...form, sex: e.target.value })}
+            >
               <option value="">—</option>
-              <option value={Sexes.Male}>Male</option>
-              <option value={Sexes.Female}>Female</option>
-            </select>
+            </Select>
           </Field>
           <Field label="Height (cm)">
-            <input
-              className="input"
+            <Input
               type="number"
               placeholder="e.g. 175"
               value={form.heightCm}
@@ -288,18 +287,13 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
             />
           </Field>
           <Field label="Activity level">
-            <select
-              className="input"
+            <Select
+              options={ACTIVITY_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
               value={form.activityLevel}
               onChange={(e) => setForm({ ...form, activityLevel: e.target.value })}
             >
               <option value="">—</option>
-              {ACTIVITY_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            </Select>
           </Field>
         </div>
         {form.activityLevel && (
@@ -310,21 +304,21 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
         <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide pt-1">Goal</p>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Goal type" className={showRate ? '' : 'col-span-2'}>
-            <select
-              className="input"
+            <Select
+              options={[
+                { value: GoalTypes.WeightLoss, label: 'Lose weight' },
+                { value: GoalTypes.Maintain, label: 'Maintain' },
+                { value: GoalTypes.WeightGain, label: 'Gain weight' },
+              ]}
               value={form.goalType}
               onChange={(e) => setForm({ ...form, goalType: e.target.value, goalWeeklyRateKg: '' })}
             >
               <option value="">— no goal —</option>
-              <option value={GoalTypes.WeightLoss}>Lose weight</option>
-              <option value={GoalTypes.Maintain}>Maintain</option>
-              <option value={GoalTypes.WeightGain}>Gain weight</option>
-            </select>
+            </Select>
           </Field>
           {showRate && (
             <Field label="Rate (kg/week)">
-              <input
-                className="input"
+              <Input
                 type="number"
                 step="0.1"
                 min="0.1"
@@ -336,8 +330,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
             </Field>
           )}
           <Field label="Min calories/day">
-            <input
-              className="input"
+            <Input
               type="number"
               step="1"
               min="0"
@@ -347,8 +340,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
             />
           </Field>
           <Field label="Max calories/day">
-            <input
-              className="input"
+            <Input
               type="number"
               step="1"
               min="0"
@@ -392,8 +384,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
             </p>
           )}
           <Field label={macroMode === 'g' ? 'Protein (g/day)' : 'Protein (%)'}>
-            <input
-              className="input"
+            <Input
               type="number"
               step="1"
               min="0"
@@ -415,8 +406,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
             )}
           </Field>
           <Field label={macroMode === 'g' ? 'Carbs (g/day)' : 'Carbs (%)'}>
-            <input
-              className="input"
+            <Input
               type="number"
               step="1"
               min="0"
@@ -438,8 +428,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
             )}
           </Field>
           <Field label={macroMode === 'g' ? 'Fat (g/day)' : 'Fat (%)'}>
-            <input
-              className="input"
+            <Input
               type="number"
               step="1"
               min="0"
@@ -463,44 +452,29 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
         </div>
 
         <Field label="Notes" className="col-span-2">
-          <textarea
-            className="input"
-            rows={2}
-            value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })}
-          />
+          <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         </Field>
 
         {/* Location section */}
         <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide pt-1">Location</p>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Country">
-            <select
-              className="input"
+            <Select
+              options={COUNTRIES}
               value={form.country}
               onChange={(e) => setForm({ ...form, country: e.target.value })}
             >
               <option value="">— not set —</option>
-              {COUNTRIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+            </Select>
           </Field>
           <Field label="Timezone">
-            <select
-              className="input"
+            <Select
+              options={TIMEZONES}
               value={form.timezone}
               onChange={(e) => setForm({ ...form, timezone: e.target.value })}
             >
               <option value="">— not set —</option>
-              {TIMEZONES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+            </Select>
           </Field>
         </div>
 

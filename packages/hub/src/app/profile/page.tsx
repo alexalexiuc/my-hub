@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 import { PageHeader } from '@/components/PageHeader';
 import { SectionCard } from '@/components/SectionCard';
-import { Button, Field } from '@/components';
+import { Button, Checkbox, Field, Input } from '@/components';
 import { NotificationsSection } from './NotificationsSection';
 import { apiFetch } from '@/lib/utils';
 
@@ -164,8 +164,7 @@ export default function ProfilePage() {
           </p>
           <div className="flex gap-2 items-end">
             <Field label="Name" className="flex-1">
-              <input
-                className="input"
+              <Input
                 value={nameForm}
                 placeholder="Enter your name"
                 onChange={(e) => {
@@ -200,8 +199,7 @@ export default function ProfilePage() {
                     : 'border-zinc-700 bg-zinc-800 hover:border-zinc-600'
                 }`}
               >
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={selectedFeatures.has(key)}
                   onChange={() => toggleFeature(key)}
                   className="mt-0.5 accent-red-600"

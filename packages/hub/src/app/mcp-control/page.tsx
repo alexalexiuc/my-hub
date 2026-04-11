@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { PageHeader } from '@/components/PageHeader';
+import { PageHeader, Input, Select } from '@/components';
 import { apiFetch, ApiError } from '@/lib/utils';
 import { McpServerName } from '@my-hub/shared/constants';
 
@@ -201,9 +201,8 @@ function NewClientForm({ onCreated }: { onCreated: (c: CreatedClient) => void })
     >
       <div className="flex-1">
         <label className="text-xs text-zinc-400 block mb-1">Connection name</label>
-        <input
+        <Input
           type="text"
-          className="input"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Claude Desktop"
@@ -475,30 +474,29 @@ function AuditLogSection() {
       <div className="flex flex-wrap items-end gap-3">
         <div>
           <label className="text-xs text-zinc-500 block mb-1">Server</label>
-          <select className="input text-sm" value={server} onChange={(e) => setServer(e.target.value)}>
-            {SERVER_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          <Select
+            className="text-sm"
+            options={SERVER_OPTIONS}
+            value={server}
+            onChange={(e) => setServer(e.target.value)}
+          />
         </div>
         <div>
           <label className="text-xs text-zinc-500 block mb-1">From</label>
-          <input type="date" className="input text-sm" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          <Input type="date" className="text-sm" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
         </div>
         <div>
           <label className="text-xs text-zinc-500 block mb-1">To</label>
-          <input type="date" className="input text-sm" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          <Input type="date" className="text-sm" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
         </div>
         <div>
           <label className="text-xs text-zinc-500 block mb-1">Limit</label>
-          <select className="input text-sm" value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-            <option value={200}>200</option>
-          </select>
+          <Select
+            className="text-sm"
+            options={[25, 50, 100, 200].map((n) => ({ value: n, label: String(n) }))}
+            value={limit}
+            onChange={(e) => setLimit(Number(e.target.value))}
+          />
         </div>
         <button
           onClick={loadLogs}

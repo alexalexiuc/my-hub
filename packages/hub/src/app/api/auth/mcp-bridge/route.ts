@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { createHmac } from 'node:crypto';
 import { authOptions } from '../[...nextauth]/route';
+import { withErrorLogging } from '@/lib/api/with-error-logging';
 
 const NEXTAUTH_SECRET = process.env['NEXTAUTH_SECRET'] ?? '';
 const MCP_SERVER_URL = process.env['NEXT_PUBLIC_MCP_URL'] ?? '';
@@ -41,7 +42,7 @@ function createBridgeToken(email: string): string {
  * domain), creates a simple HMAC-signed bridge cookie on the shared parent
  * domain, then redirects back to the MCP server's authorize endpoint.
  */
-export async function GET(req: NextRequest) {
+async function mcpBridgeHandler(req: NextRequest) {
   const redirect = req.nextUrl.searchParams.get('redirect');
 
   // Validate redirect target: must be the MCP server origin (or any HTTPS for now)
@@ -96,3 +97,5 @@ export async function GET(req: NextRequest) {
   });
   return response;
 }
+
+export const GET = withErrorLogging(mcpBridgeHandler);

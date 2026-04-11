@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { MeasurementType } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { SectionCard } from '@/components/SectionCard';
-import { Field, Button } from '@/components';
+import { Field, Button, Input, Select } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
 
@@ -106,22 +106,16 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
           <h3 className="text-sm font-semibold">Log measurement</h3>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Type *">
-              <select
-                className="input"
+              <Select
+                options={measurementTypes.map((t) => ({ value: t.key, label: `${t.label} (${t.unit})` }))}
                 value={form.typeKey}
                 onChange={(e) => setForm({ ...form, typeKey: e.target.value })}
               >
                 <option value="">— select —</option>
-                {measurementTypes.map((t) => (
-                  <option key={t.key} value={t.key}>
-                    {t.label} ({t.unit})
-                  </option>
-                ))}
-              </select>
+              </Select>
             </Field>
             <Field label={`Value${selectedType ? ` (${selectedType.unit})` : ''} *`}>
-              <input
-                className="input"
+              <Input
                 type="number"
                 step="0.1"
                 value={form.value}
@@ -129,19 +123,10 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
               />
             </Field>
             <Field label="Date">
-              <input
-                className="input"
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
-              />
+              <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
             </Field>
             <Field label="Notes">
-              <input
-                className="input"
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              />
+              <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Field>
           </div>
           <div className="flex gap-2">
