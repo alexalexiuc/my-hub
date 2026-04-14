@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test.describe('MCP Service Page', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate first to establish session context, then clean up OAuth clients
     await page.goto('/mcp-control');
     await page.waitForLoadState('networkidle');
     const res = await page.request.get('/api/mcp/clients');
@@ -18,12 +17,16 @@ test.describe('MCP Service Page', () => {
     }
   });
 
-  test('page shows Connections and MCP Service headings', async ({ page }) => {
+  /**
+   * Page layout and server controls: headings, server cards, Coming soon label,
+   * and toggling an active server on/off and back.
+   */
+  test('page layout and server controls', async ({ page }) => {
+    // ── 1. Headings ───────────────────────────────────────────────────────────
     await expect(page.getByRole('heading', { name: 'Connections' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'MCP Service' })).toBeVisible();
-  });
 
-  test('shows four MCP server cards', async ({ page }) => {
+    // ── 2. Server cards ───────────────────────────────────────────────────────
     // Scope to the MCP Servers section — the Audit Log filter dropdown also
     // has options with these exact names, which causes strict mode violations.
     const serversSection = page.locator('section').filter({
@@ -33,86 +36,63 @@ test.describe('MCP Service Page', () => {
     await expect(serversSection.getByText('Todo', { exact: true })).toBeVisible();
     await expect(serversSection.getByText('Apiary', { exact: true })).toBeVisible();
     await expect(serversSection.getByText('Products', { exact: true })).toBeVisible();
-  });
 
-  test('inactive servers show Coming soon label', async ({ page }) => {
+    // ── 3. Inactive server shows Coming soon ──────────────────────────────────
     const productsCard = page.locator('[class*="rounded-xl"]', { hasText: 'Products' });
     await expect(productsCard.getByText('Coming soon')).toBeVisible();
-  });
 
-  test('toggle an active MCP server on/off and back', async ({ page }) => {
-    // Target the Calories server card (active) — inactive servers have disabled toggles
+    // ── 4. Toggle active server on/off and back ───────────────────────────────
     const caloriesCard = page.locator('[class*="rounded-xl"]', { hasText: 'Meal logging' });
     const toggle = caloriesCard.getByRole('switch');
-
     const initialState = await toggle.getAttribute('aria-checked');
     const expectedFlipped = initialState === 'true' ? 'false' : 'true';
 
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-checked', expectedFlipped, { timeout: 5_000 });
-
-    // Restore
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-checked', initialState!, { timeout: 5_000 });
   });
 
-  test('create a new connection shows one-time secret', async ({ page }) => {
+  /**
+   * Connection lifecycle: create via UI (verify one-time secret), inspect the
+   * resulting card (Client ID prefix, MCP URL), toggle it disabled, then revoke it.
+   */
+  test('connection lifecycle: create, inspect, toggle, revoke', async ({ page }) => {
+    // ── 1. Create connection via UI ───────────────────────────────────────────
     await page.getByRole('button', { name: /new connection/i }).click();
-
     await page.getByPlaceholder(/claude desktop/i).fill('My Test Client');
     await page.getByRole('button', { name: 'Create', exact: true }).click();
 
-    // Secret reveal card with amber warning
     await expect(page.getByText(/save these credentials now/i)).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText('Client ID', { exact: true })).toBeVisible();
     await expect(page.getByText('Client secret', { exact: true })).toBeVisible();
     await expect(page.getByText('MCP URL', { exact: true })).toBeVisible();
 
-    // Dismiss
     await page.getByRole('button', { name: /done/i }).click();
     await expect(page.getByText(/save these credentials now/i)).not.toBeVisible();
 
-    // Client card appears with the correct name
+    // ── 2. Client card shows name, ID prefix, MCP URL ─────────────────────────
     await expect(page.getByText('My Test Client')).toBeVisible();
-  });
-
-  test('client card shows client ID prefix and MCP URL', async ({ page }) => {
-    await page.request.post('/api/mcp/clients', { data: { name: 'API Client' } });
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-
-    await expect(page.getByText('API Client')).toBeVisible();
     await expect(page.locator('code', { hasText: 'hub_' }).first()).toBeVisible();
-  });
 
-  test('revoke a connection with two-step confirmation', async ({ page }) => {
-    await page.request.post('/api/mcp/clients', { data: { name: 'To Be Revoked' } });
-    await page.reload();
-    await page.waitForLoadState('networkidle');
+    // ── 3. Toggle client disabled ─────────────────────────────────────────────
+    const clientCard = page.locator('[class*="rounded-xl"]', { hasText: 'My Test Client' });
+    const clientToggle = clientCard.getByRole('switch');
+    await expect(clientToggle).toHaveAttribute('aria-checked', 'true');
+    await clientToggle.click();
+    await expect(clientToggle).toHaveAttribute('aria-checked', 'false');
 
-    await expect(page.getByText('To Be Revoked')).toBeVisible();
-
+    // ── 4. Revoke with two-step confirmation ──────────────────────────────────
     await page.getByRole('button', { name: /^revoke$/i }).click();
     await expect(page.getByRole('button', { name: /confirm revoke/i })).toBeVisible();
     await page.getByRole('button', { name: /confirm revoke/i }).click();
-
-    await expect(page.getByText('To Be Revoked')).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('My Test Client')).not.toBeVisible({ timeout: 5_000 });
   });
 
-  test('toggle client enabled/disabled', async ({ page }) => {
-    await page.request.post('/api/mcp/clients', { data: { name: 'Toggle Me' } });
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-
-    // The client card toggle is the last switch on the page (server toggles come after)
-    const clientCard = page.locator('[class*="rounded-xl"]', { hasText: 'Toggle Me' });
-    const toggle = clientCard.getByRole('switch');
-
-    await expect(toggle).toHaveAttribute('aria-checked', 'true');
-    await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-checked', 'false');
-  });
-
+  /**
+   * Kept separate: audit log uses seeded rows from e2e setup and is independent
+   * of connection lifecycle state.
+   */
   test('audit log loads seeded rows and shows table columns', async ({ page }) => {
     const auditSection = page.locator('section').filter({
       has: page.getByRole('heading', { name: 'Audit Log' }),
