@@ -31,7 +31,7 @@ COPY --from=builder /prod/mcp-server/node_modules ./node_modules
 COPY --from=builder /prod/mcp-server/package.json ./package.json
 COPY --from=builder /app/packages/mcp-server/scripts ./scripts
 
-
+RUN mkdir -p /app/data/travel-documents && chown node:node /app/data/travel-documents
 
 EXPOSE 3001
 USER node

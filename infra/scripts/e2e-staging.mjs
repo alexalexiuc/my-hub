@@ -120,7 +120,7 @@ function runLocal(cmd, args, { label, env: extraEnv = {} } = {}) {
 
 console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  WARNING: tests run against the last PUSHED image on GHCR,      ║
+║  WARNING: tests run against the last PUSHED image on GHCR,       ║
 ║  not your local code. Uncommitted or unpushed changes will NOT   ║
 ║  be reflected. Push your branch and wait for the build job to    ║
 ║  finish before running this script.                              ║

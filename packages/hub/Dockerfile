@@ -33,6 +33,8 @@ COPY --from=builder /app/packages/hub/.next/static ./packages/hub/.next/static
 COPY --from=builder /app/packages/hub/public ./packages/hub/public
 COPY --from=builder /app/packages/hub/scripts ./packages/hub/scripts
 
+RUN mkdir -p /app/data/travel-documents && chown nextjs:nodejs /app/data/travel-documents
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
