@@ -14,6 +14,7 @@ import {
   deleteRefreshToken,
 } from '@my-hub/shared/services';
 import { signToken, verifyToken, verifyPkceS256, type AuthCodePayload } from '@my-hub/shared/auth';
+import { renderConsentPage } from './consent.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -37,46 +38,6 @@ function validateRedirectUri(redirectUri: string): URL | null {
 
   const allowed = allowlist.some((entry) => redirectUri === entry || redirectUri.startsWith(entry));
   return allowed ? parsed : null;
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function renderConsentPage(params: URLSearchParams, email: string): string {
-  const clientId = escapeHtml(params.get('client_id') ?? '');
-  const clientName = escapeHtml(params.get('client_name') ?? clientId);
-  const hiddenFields = [...params.entries()]
-    .map(([k, v]) => `<input type="hidden" name="${escapeHtml(k)}" value="${escapeHtml(v)}">`)
-    .join('\n    ');
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Authorize — Hub MCP Server</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 80px auto; padding: 0 16px; }
-    h1 { font-size: 1.4rem; }
-    .user { background: #f3f4f6; border-radius: 6px; padding: 8px 12px; margin: 16px 0; font-size: 0.9rem; }
-    .actions { display: flex; gap: 12px; margin-top: 24px; }
-    button { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: 1rem; }
-    button[value="allow"] { background: #2563eb; color: #fff; }
-    button[value="deny"]  { background: #e5e7eb; color: #111; }
-  </style>
-</head>
-<body>
-  <h1>Authorize Hub MCP Server</h1>
-  <p>The application <strong>${clientName}</strong> is requesting access to your hub data.</p>
-  <div class="user">Signed in as <strong>${escapeHtml(email)}</strong></div>
-  <form method="POST" action="/api/authorize">
-    ${hiddenFields}
-    <div class="actions">
-      <button type="submit" name="action" value="allow">Allow</button>
-      <button type="submit" name="action" value="deny">Deny</button>
-    </div>
-  </form>
-</body>
-</html>`;
 }
 
 function tokenError(error: string): { status: number; body: string } {
