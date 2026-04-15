@@ -33,7 +33,7 @@ function md5Hex(buf: Buffer): string {
   return `"${createHash('md5').update(buf).digest('hex')}"`;
 }
 
-export async function backupLogsToS3(): Promise<void> {
+export async function backupDockerLogsToS3(): Promise<void> {
   const bucketName = workerEnvConfig.S3_LOGS_BUCKET;
 
   if (!bucketName) {
@@ -45,7 +45,7 @@ export async function backupLogsToS3(): Promise<void> {
   try {
     containerIds = readdirSync(workerEnvConfig.DOCKER_LOGS_DIR);
   } catch (err) {
-    logger.error('[log-backup] Cannot read Docker log directory:', err);
+    logger.error('[docker-log-backup] Cannot read Docker log directory:', err);
     return;
   }
 
@@ -94,22 +94,22 @@ export async function backupLogsToS3(): Promise<void> {
         if (isRotated) {
           const existingETag = await getObjectETag({ bucket: bucketName, key });
           if (existingETag && existingETag === md5Hex(body)) {
-            logger.info(`[log-backup] Skipped ${key} (unchanged)`);
+            logger.info(`[docker-log-backup] Skipped ${key} (unchanged)`);
             skipped++;
             continue;
           }
         }
 
         await putObject({ bucket: bucketName, key, body, contentType: 'application/gzip' });
-        logger.info(`[log-backup] Uploaded ${key} (${body.length} bytes)`);
+        logger.info(`[docker-log-backup] Uploaded ${key} (${body.length} bytes)`);
         uploaded++;
       } catch (err) {
-        logger.error(`[log-backup] Failed for ${containerName}:`, err);
+        logger.error(`[docker-log-backup] Failed for ${containerName}:`, err);
       }
     }
   }
 
-  logger.info(`[log-backup] Done — uploaded: ${uploaded}, skipped: ${skipped}`);
+  logger.info(`[docker-log-backup] Done — uploaded: ${uploaded}, skipped: ${skipped}`);
 }
 
 function compress(filePath: string): Promise<Buffer> {
