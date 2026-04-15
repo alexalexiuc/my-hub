@@ -21,7 +21,7 @@ export async function sendCaloriesWeeklyReports(): Promise<void> {
 
   for (const userId of userIds) {
     try {
-      console.log(`[calories-weekly-report] Processing user ${userId}...`);
+      logger.info(`[calories-weekly-report] Processing user ${userId}...`);
       const weekStartStr = toUTCDateStr(weekStart);
       const urls = {
         unsubscribeUrl: `${workerEnvConfig.HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(userId, 'calories_weekly_report')}`,

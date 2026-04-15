@@ -43,7 +43,11 @@ services:
   worker:
     image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-worker:latest
     restart: unless-stopped
-    user: root # required to read Docker json-file logs from the mounted host directory
+    user: root # required to read Docker json-file logs from the mounted host directory (root:root 600)
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub}
       RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
