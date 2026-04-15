@@ -1,5 +1,6 @@
 import { webcrypto, scrypt, randomBytes, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
+import { sharedEnvConfig } from '../config/env';
 
 const scryptAsync = promisify(scrypt);
 const SCRYPT_KEYLEN = 64;
@@ -26,8 +27,7 @@ export interface EncryptedString {
 }
 
 async function getAesKey(): Promise<webcrypto.CryptoKey> {
-  const raw = process.env['ENCRYPTION_KEY'];
-  if (!raw) throw new Error('ENCRYPTION_KEY env var is not set');
+  const raw = sharedEnvConfig.ENCRYPTION_KEY;
   const keyMaterial = await webcrypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
   return webcrypto.subtle.importKey('raw', keyMaterial, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }

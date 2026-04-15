@@ -4,9 +4,10 @@ import {
   getFlightDataDueForFetch,
   updateFlightData,
 } from '@my-hub/shared/services';
+import { workerEnvConfig } from './config/env';
 
 export async function syncDueFlights(): Promise<void> {
-  const apiKey = process.env['RAPIDAPI_KEY'];
+  const apiKey = workerEnvConfig.RAPIDAPI_KEY;
   if (!apiKey) {
     // Worker is functional but won't fetch until RAPIDAPI_KEY is provided.
     return;

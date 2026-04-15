@@ -15,7 +15,7 @@ import {
 } from '@my-hub/shared/services';
 import { signToken, verifyToken, verifyPkceS256, type AuthCodePayload } from '@my-hub/shared/auth';
 
-const NEXTAUTH_SECRET = process.env['NEXTAUTH_SECRET'] ?? '';
+const NEXTAUTH_SECRET = envConfig.NEXTAUTH_SECRET;
 
 // ---------------------------------------------------------------------------
 // Helpers

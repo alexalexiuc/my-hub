@@ -5,8 +5,7 @@ import {
   buildMonthlyReportHtml,
   generateUnsubscribeToken,
 } from '@my-hub/shared/services';
-
-const HUB_URL = process.env.HUB_URL ?? 'https://hub.alexiuc.dev';
+import { hubEnvConfig } from '@/config/env';
 
 /**
  * GET /api/calories/reports/monthly-preview?monthStart=YYYY-MM-DD
@@ -27,8 +26,8 @@ export const GET = withAuth(async ({ req, user }) => {
 
   const monthStartStr = monthStart.toISOString().slice(0, 10);
   const urls = {
-    unsubscribeUrl: `${HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(user.id, 'calories_monthly_report')}`,
-    viewInAppUrl: `${HUB_URL}/calories/reports/monthly?monthStart=${monthStartStr}`,
+    unsubscribeUrl: `${hubEnvConfig.HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(user.id, 'calories_monthly_report')}`,
+    viewInAppUrl: `${hubEnvConfig.HUB_URL}/calories/reports/monthly?monthStart=${monthStartStr}`,
   };
 
   const data = await fetchMonthlyReportCaloriesData(user.id, monthStart, urls);

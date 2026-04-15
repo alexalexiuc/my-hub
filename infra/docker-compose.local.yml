@@ -23,6 +23,8 @@ services:
       TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
       TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
+      SES_FROM_EMAIL: ${SES_FROM_EMAIL:?SES_FROM_EMAIL is required}
+      UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     volumes:
@@ -45,6 +47,7 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_REGION: ${AWS_REGION:-}
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
+      SES_FROM_EMAIL: ${SES_FROM_EMAIL:-}
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:-}
     extra_hosts:
       - 'host.docker.internal:host-gateway'
@@ -71,6 +74,7 @@ services:
       TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
       TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
+      SES_FROM_EMAIL: ${SES_FROM_EMAIL:-}
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:-}
     extra_hosts:
       - 'host.docker.internal:host-gateway'

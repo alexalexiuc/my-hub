@@ -37,6 +37,8 @@ export const envConfig = {
   TRAVEL_FILES_ROOT: process.env['TRAVEL_FILES_ROOT'] ?? TRAVEL_FILES_ROOT_DEFAULT,
   TRAVEL_FILES_MAX_MB: parseNum(process.env['TRAVEL_FILES_MAX_MB'], TRAVEL_FILES_MAX_MB_DEFAULT),
   TRAVEL_FILES_ALLOWED_MIME: parseCsv(process.env['TRAVEL_FILES_ALLOWED_MIME'], [...TRAVEL_FILES_ALLOWED_MIME_DEFAULT]),
+  /** Shared secret for verifying the cross-subdomain bridge cookie set by the Hub. */
+  NEXTAUTH_SECRET: process.env['NEXTAUTH_SECRET'] ?? '',
 } as const;
 
 console.log('Loaded environment configuration:', JSON.stringify(envConfig, null, 2));

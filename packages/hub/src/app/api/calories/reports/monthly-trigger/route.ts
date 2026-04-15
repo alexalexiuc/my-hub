@@ -7,8 +7,7 @@ import {
   generateUnsubscribeToken,
 } from '@my-hub/shared/services';
 import { getLastMonthStart, toUTCDateStr } from '@my-hub/shared/utils';
-
-const HUB_URL = process.env.HUB_URL ?? 'https://hub.alexiuc.dev';
+import { hubEnvConfig } from '@/config/env';
 
 /**
  * POST /api/calories/reports/monthly-trigger
@@ -18,8 +17,8 @@ export const POST = withAuth(async ({ user }) => {
   const monthStart = getLastMonthStart();
   const monthStartStr = toUTCDateStr(monthStart);
   const urls = {
-    unsubscribeUrl: `${HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(user.id, 'calories_monthly_report')}`,
-    viewInAppUrl: `${HUB_URL}/calories/reports/monthly?monthStart=${monthStartStr}`,
+    unsubscribeUrl: `${hubEnvConfig.HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(user.id, 'calories_monthly_report')}`,
+    viewInAppUrl: `${hubEnvConfig.HUB_URL}/calories/reports/monthly?monthStart=${monthStartStr}`,
   };
 
   const data = await fetchMonthlyReportCaloriesData(user.id, monthStart, urls);

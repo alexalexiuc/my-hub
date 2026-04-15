@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createUserWithPassword, claimInviteToken, bindInviteTokenToUser } from '@my-hub/shared/services';
 import { withErrorLogging } from '@/lib/api/with-error-logging';
-
-const ALLOWED_EMAILS = (process.env['ALLOWED_EMAILS'] ?? '')
-  .split(',')
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
+import { hubEnvConfig } from '@/config/env';
 
 async function registerHandler(req: Request) {
   let body: Record<string, unknown>;
@@ -34,7 +30,7 @@ async function registerHandler(req: Request) {
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  const emailAllowed = ALLOWED_EMAILS.length > 0 && ALLOWED_EMAILS.includes(normalizedEmail);
+  const emailAllowed = hubEnvConfig.ALLOWED_EMAILS.length > 0 && hubEnvConfig.ALLOWED_EMAILS.includes(normalizedEmail);
   const needsToken = !emailAllowed;
 
   // Atomically claim the token before creating the user — eliminates the TOCTOU race

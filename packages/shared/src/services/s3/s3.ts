@@ -1,9 +1,8 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { sharedEnvConfig } from '../../config/env';
 
 function createS3Client(): S3Client {
-  const region = process.env['AWS_REGION'];
-  if (!region) throw new Error('AWS_REGION environment variable is required');
-  return new S3Client({ region });
+  return new S3Client({ region: sharedEnvConfig.AWS_REGION });
 }
 
 let s3Instance: S3Client | undefined;

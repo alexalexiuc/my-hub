@@ -1,9 +1,10 @@
 import { createHmac, timingSafeEqual } from 'crypto';
+import { sharedEnvConfig } from '../../config/env';
 
 const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 function getSecret(): string {
-  const s = process.env.UNSUBSCRIBE_SECRET ?? process.env.NEXTAUTH_SECRET;
+  const s = sharedEnvConfig.UNSUBSCRIBE_SECRET;
   if (!s) throw new Error('UNSUBSCRIBE_SECRET (or NEXTAUTH_SECRET as fallback) env var is not set');
   return s;
 }

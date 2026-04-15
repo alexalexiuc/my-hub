@@ -1,6 +1,7 @@
 import { SendEmailCommand } from '@aws-sdk/client-ses';
 import juice from 'juice';
 import { getSesClient } from './ses-client';
+import { sharedEnvConfig } from '../../config/env';
 
 export interface SendEmailParams {
   to: string;
@@ -9,8 +10,7 @@ export interface SendEmailParams {
 }
 
 export async function sendEmail({ to, subject, html }: SendEmailParams): Promise<void> {
-  const fromEmail = process.env['SES_FROM_EMAIL'];
-  if (!fromEmail) throw new Error('SES_FROM_EMAIL environment variable is required');
+  const fromEmail = sharedEnvConfig.SES_FROM_EMAIL;
 
   const inlinedHtml = juice(html);
 

@@ -6,8 +6,7 @@ import {
   generateUnsubscribeToken,
 } from '@my-hub/shared/services';
 import { getLastMonday, toUTCDateStr } from '@my-hub/shared/utils';
-
-const HUB_URL = process.env.HUB_URL ?? 'https://hub.alexiuc.dev';
+import { workerEnvConfig } from './config/env';
 
 export async function sendCaloriesWeeklyReports(): Promise<void> {
   const weekStart = getLastMonday();
@@ -22,10 +21,11 @@ export async function sendCaloriesWeeklyReports(): Promise<void> {
 
   for (const userId of userIds) {
     try {
+      console.log(`[calories-weekly-report] Processing user ${userId}...`);
       const weekStartStr = toUTCDateStr(weekStart);
       const urls = {
-        unsubscribeUrl: `${HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(userId, 'calories_weekly_report')}`,
-        viewInAppUrl: `${HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
+        unsubscribeUrl: `${workerEnvConfig.HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(userId, 'calories_weekly_report')}`,
+        viewInAppUrl: `${workerEnvConfig.HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
       };
       const data = await fetchWeeklyReportCaloriesData(userId, weekStart, urls);
       if (!data) {

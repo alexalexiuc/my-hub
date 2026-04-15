@@ -5,8 +5,7 @@ import {
   buildWeeklyReportHtml,
   generateUnsubscribeToken,
 } from '@my-hub/shared/services';
-
-const HUB_URL = process.env.HUB_URL ?? 'https://hub.alexiuc.dev';
+import { hubEnvConfig } from '@/config/env';
 
 /**
  * GET /api/calories/reports/weekly-preview?weekStart=YYYY-MM-DD
@@ -31,8 +30,8 @@ export const GET = withAuth(async ({ req, user }) => {
 
   const weekStartStr = weekStart.toISOString().slice(0, 10);
   const urls = {
-    unsubscribeUrl: `${HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(user.id, 'calories_weekly_report')}`,
-    viewInAppUrl: `${HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
+    unsubscribeUrl: `${hubEnvConfig.HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(user.id, 'calories_weekly_report')}`,
+    viewInAppUrl: `${hubEnvConfig.HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
   };
 
   const data = await fetchWeeklyReportCaloriesData(user.id, weekStart, urls);
