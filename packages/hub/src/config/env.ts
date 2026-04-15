@@ -26,23 +26,41 @@ function getSharedCookieDomain(nextAuthUrl: string): string | undefined {
  * This file is marked `server-only` — any accidental import from a Client
  * Component will cause a build-time error, preventing secrets from leaking
  * to the browser bundle.
+ *
+ * Uses lazy property getters so that importing this module at Next.js build
+ * time (when env vars are not yet set) does not throw. Values are read on
+ * first access, which always happens at request/runtime.
  */
-const NEXTAUTH_URL = getEnvVar('NEXTAUTH_URL');
-
 export const hubEnvConfig = {
-  NEXTAUTH_SECRET: getEnvVar('NEXTAUTH_SECRET'),
-  NEXTAUTH_URL,
+  get NEXTAUTH_SECRET() {
+    return getEnvVar('NEXTAUTH_SECRET');
+  },
+  get NEXTAUTH_URL() {
+    return getEnvVar('NEXTAUTH_URL');
+  },
   /** Parsed list of lowercase email addresses allowed to sign in via Google OAuth. */
-  ALLOWED_EMAILS: parseEmails(getEnvVar('ALLOWED_EMAILS', '')),
-  GOOGLE_CLIENT_ID: getEnvVar('GOOGLE_CLIENT_ID'),
-  GOOGLE_CLIENT_SECRET: getEnvVar('GOOGLE_CLIENT_SECRET'),
+  get ALLOWED_EMAILS() {
+    return parseEmails(getEnvVar('ALLOWED_EMAILS', ''));
+  },
+  get GOOGLE_CLIENT_ID() {
+    return getEnvVar('GOOGLE_CLIENT_ID');
+  },
+  get GOOGLE_CLIENT_SECRET() {
+    return getEnvVar('GOOGLE_CLIENT_SECRET');
+  },
   /** MCP server origin, used to validate redirect targets in the OAuth bridge. */
-  MCP_SERVER_URL: getEnvVar('NEXT_PUBLIC_MCP_URL'),
+  get MCP_SERVER_URL() {
+    return getEnvVar('NEXT_PUBLIC_MCP_URL');
+  },
   /** Public Hub URL, used for building report links and unsubscribe URLs. */
-  HUB_URL: getEnvVar('HUB_URL'),
+  get HUB_URL() {
+    return getEnvVar('HUB_URL');
+  },
   /**
    * Shared cookie domain derived from NEXTAUTH_URL so that the session JWT
    * set by hub.alexiuc.dev is readable by sibling subdomains (e.g. mcp.alexiuc.dev).
    */
-  SHARED_COOKIE_DOMAIN: getSharedCookieDomain(NEXTAUTH_URL),
-} as const;
+  get SHARED_COOKIE_DOMAIN() {
+    return getSharedCookieDomain(getEnvVar('NEXTAUTH_URL'));
+  },
+};
