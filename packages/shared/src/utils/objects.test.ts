@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { omitNullish, omitUndefined, extractEnvVars, getEnvVar } from './objects';
 
 describe('omitNullish', () => {
@@ -74,6 +74,16 @@ describe('omitUndefined', () => {
 });
 
 describe('extractEnvVars', () => {
+  let originalEnv: NodeJS.ProcessEnv;
+
+  beforeAll(() => {
+    originalEnv = process.env;
+    process.env = { ...originalEnv }; // Create a shallow copy to avoid mutating the original
+  });
+  afterAll(() => {
+    process.env = originalEnv; // Restore the original environment
+  });
+
   it('extracts specified environment variables', () => {
     process.env.TEST_VAR1 = 'value1';
     process.env.TEST_VAR2 = 'value2';
@@ -106,6 +116,15 @@ describe('extractEnvVars', () => {
 });
 
 describe('getEnvVar', () => {
+  let originalEnv: NodeJS.ProcessEnv;
+
+  beforeAll(() => {
+    originalEnv = process.env;
+    process.env = { ...originalEnv }; // Create a shallow copy to avoid mutating the original
+  });
+  afterAll(() => {
+    process.env = originalEnv; // Restore the original environment
+  });
   it('returns the value of an existing environment variable', () => {
     process.env.TEST_VAR7 = 'value7';
     expect(getEnvVar('TEST_VAR7')).toBe('value7');

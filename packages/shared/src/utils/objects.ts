@@ -2,6 +2,8 @@
  * Object utilities
  * - omitUndefined(obj) — shallow copy with `undefined` properties removed (null kept)
  * - omitNullish(obj) — shallow copy with `null` and `undefined` properties removed
+ * - extractEnvVars(keys, ignoreMissing) — extract specified env vars into an object, with optional missing key handling
+ * - getEnvVar(key, defaultValue) — get an env var with optional default and error handling
  */
 
 /**
@@ -33,7 +35,7 @@ export function omitNullish<T extends Record<string, unknown>>(obj: T): Partial<
 /**
  * Extract specified environment variables into an object.
  * - `keys` is an array of environment variable names to extract.
- * - If a variable is not set, it will be ignored or cause an error based on `ignoreMissing`.
+ * - If a variable is not set, it will be defaulted to an empty string or cause an error based on `ignoreMissing`.
  */
 export function extractEnvVars<const K extends readonly string[] = readonly string[]>(
   keys: K,
@@ -64,7 +66,7 @@ export function extractEnvVars<const K extends readonly string[] = readonly stri
  */
 export function getEnvVar(key: string, defaultValue?: string): string {
   const value = process.env[key];
-  if (value === undefined) {
+  if (value === undefined || value === '') {
     if (defaultValue !== undefined) {
       return defaultValue;
     }

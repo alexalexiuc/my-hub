@@ -51,6 +51,7 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_REGION: ${AWS_REGION:-}
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
+      HUB_URL: ${HUB_URL:?HUB_URL is required}
       SES_FROM_EMAIL: ${SES_FROM_EMAIL:?SES_FROM_EMAIL is required}
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
     depends_on:
@@ -79,7 +80,8 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_PAYLOADS: ${LOG_PAYLOADS:-false}
       PRINT_PAYLOADS: ${PRINT_PAYLOADS:-false}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://hub.alexiuc.dev}
+      HUB_URL: ${HUB_URL:?HUB_URL is required}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:?NEXTAUTH_URL is required}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:?ALLOWED_EMAILS is required}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
@@ -120,7 +122,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://hub.alexiuc.dev}
+      HUB_URL: ${HUB_URL:?HUB_URL is required}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:?NEXTAUTH_URL is required}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is required}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET is required}

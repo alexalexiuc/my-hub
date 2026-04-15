@@ -73,4 +73,7 @@ export const envConfig = {
   },
 };
 
-console.log('Loaded environment configuration:', JSON.stringify(envConfig, null, 2));
+console.log(
+  'Loaded environment configuration:',
+  JSON.stringify({ ...envConfig, NEXTAUTH_SECRET: envConfig.NEXTAUTH_SECRET ? '***' : '' }, null, 2),
+);
