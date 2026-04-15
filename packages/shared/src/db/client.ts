@@ -1,12 +1,10 @@
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import * as schema from './schema/';
+import { sharedEnvConfig } from '../config/env';
 
 function createDb() {
-  const connectionString = process.env['DATABASE_URL'];
-  if (!connectionString) {
-    throw new Error('DATABASE_URL environment variable is required');
-  }
+  const connectionString = sharedEnvConfig.DATABASE_URL;
 
   const client = postgres(connectionString);
   return drizzle(client, { schema });

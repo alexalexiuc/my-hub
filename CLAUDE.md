@@ -62,6 +62,36 @@ When a feature spans multiple layers, change in this order:
 - Keep hub-only UI logic out of `shared`.
 - Keep Fastify/MCP transport code out of `hub`.
 - Document every new runtime variable in the relevant `.env.example` and in the root `.env.example` if Docker uses it.
+
+## Environment variable rules
+
+Every package centralises its env vars in a single `src/config/env.ts` file that exports a typed config object. Use `getEnvVar` from `@my-hub/shared/utils` — never read `process.env` directly outside of that file.
+
+```ts
+import { getEnvVar } from '@my-hub/shared/utils';
+
+export const myEnvConfig = {
+  get MY_SECRET() {
+    return getEnvVar('MY_SECRET');
+  }, // required — throws if missing
+  get MY_OPTIONAL() {
+    return getEnvVar('MY_OPTIONAL', '');
+  }, // optional — falls back to ''
+};
+```
+
+**Lazy getters are mandatory for hub.** Next.js loads route modules during `next build` for static analysis. If env vars are read eagerly (plain object properties or `const x = process.env.X`), the build fails in Docker where secrets are not present. Lazy `get` properties defer the read to first access, which always happens at request time.
+
+**Lazy getters are still preferred for mcp-server and worker** for consistency, even though their `tsc`-only builds never execute code.
+
+**Default vs required:**
+
+- Use `getEnvVar('KEY')` (no default) for secrets and values that have no safe fallback. The process crashes on startup if missing — this is the desired fail-fast behaviour.
+- Use `getEnvVar('KEY', '')` for optional integrations (e.g. `RAPIDAPI_KEY` — empty string disables the feature).
+- Never default required secrets to empty string; silent empty-string usage in prod is harder to diagnose than a startup crash.
+
+**Docker build-time placeholders (hub only):** `packages/hub/Dockerfile` declares `ARG`/`ENV` blocks with placeholder values before `RUN pnpm ... hub build`. This lets `next build` succeed without real secrets. Real values are injected at container runtime via `docker-compose` env files and override the placeholders. When adding a new required env var to hub, add a matching `ARG`/`ENV` placeholder line to `packages/hub/Dockerfile`.
+
 - If you add a new package, also update root workspace config, Docker, and CI.
 - For Hub Playwright E2E setup, do not import local seed TS modules directly from `global.setup.ts`. Playwright setup runs through a CommonJS loader and will fail on the ESM seed graph. Invoke `packages/e2e/scripts/setup-e2e-db.ts` as a child process for local seeding instead.
 

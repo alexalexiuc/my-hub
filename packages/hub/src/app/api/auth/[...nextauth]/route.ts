@@ -2,37 +2,13 @@ import NextAuth, { type AuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { verifyUserPassword, findOrCreateUser } from '@my-hub/shared/services';
-
-const ALLOWED_EMAILS = (process.env['ALLOWED_EMAILS'] ?? '')
-  .split(',')
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
-
-// Derive shared cookie domain from NEXTAUTH_URL so the session JWT is
-// readable by sibling subdomains (e.g. mcp.alexiuc.dev reads a cookie
-// set by hub.alexiuc.dev).  Only kicks in when the hub runs on a
-// subdomain with at least two labels before the TLD.
-function getSharedCookieDomain(): string | undefined {
-  try {
-    const host = new URL(process.env['NEXTAUTH_URL'] ?? '').hostname;
-    // localhost / 127.0.0.1 — no shared domain needed
-    if (host === 'localhost' || host.startsWith('127.') || host === '[::1]') return undefined;
-    const parts = host.split('.');
-    // e.g. hub.alexiuc.dev → .alexiuc.dev
-    if (parts.length >= 3) return '.' + parts.slice(-2).join('.');
-    return undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-const SHARED_COOKIE_DOMAIN = getSharedCookieDomain();
+import { hubEnvConfig } from '@/config/env';
 
 export const authOptions: AuthOptions = {
   providers: [
     GoogleProvider({
-      clientId: process.env['GOOGLE_CLIENT_ID'] ?? '',
-      clientSecret: process.env['GOOGLE_CLIENT_SECRET'] ?? '',
+      clientId: hubEnvConfig.GOOGLE_CLIENT_ID,
+      clientSecret: hubEnvConfig.GOOGLE_CLIENT_SECRET,
     }),
     CredentialsProvider({
       name: 'Email & Password',
@@ -54,10 +30,10 @@ export const authOptions: AuthOptions = {
       if (account?.provider === 'credentials') return true;
 
       // Google OAuth: apply the email whitelist and provision user in DB.
-      if (ALLOWED_EMAILS.length === 0) return false;
+      if (hubEnvConfig.ALLOWED_EMAILS.length === 0) return false;
       const email = user.email?.trim().toLowerCase();
       if (!email) return false;
-      if (!ALLOWED_EMAILS.includes(email)) return false;
+      if (!hubEnvConfig.ALLOWED_EMAILS.includes(email)) return false;
 
       // Create user in database if they don't exist yet (first-time Google OAuth login).
       // user.id from the Google provider is the Google account ID (sub claim).
@@ -95,7 +71,7 @@ export const authOptions: AuthOptions = {
   },
   // Share session cookie across subdomains so the MCP server (mcp.alexiuc.dev)
   // can read the JWT set by the hub (hub.alexiuc.dev).
-  ...(SHARED_COOKIE_DOMAIN
+  ...(hubEnvConfig.SHARED_COOKIE_DOMAIN
     ? {
         cookies: {
           sessionToken: {
@@ -105,7 +81,7 @@ export const authOptions: AuthOptions = {
               sameSite: 'lax' as const,
               path: '/',
               secure: true,
-              domain: SHARED_COOKIE_DOMAIN,
+              domain: hubEnvConfig.SHARED_COOKIE_DOMAIN,
             },
           },
         },

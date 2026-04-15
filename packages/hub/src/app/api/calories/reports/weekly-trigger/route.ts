@@ -7,8 +7,7 @@ import {
   generateUnsubscribeToken,
 } from '@my-hub/shared/services';
 import { getLastMonday, toUTCDateStr } from '@my-hub/shared/utils';
-
-const HUB_URL = process.env.HUB_URL ?? 'https://hub.alexiuc.dev';
+import { hubEnvConfig } from '@/config/env';
 
 /**
  * POST /api/calories/reports/weekly-trigger
@@ -18,8 +17,8 @@ export const POST = withAuth(async ({ user }) => {
   const weekStart = getLastMonday();
   const weekStartStr = toUTCDateStr(weekStart);
   const urls = {
-    unsubscribeUrl: `${HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(user.id, 'calories_weekly_report')}`,
-    viewInAppUrl: `${HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
+    unsubscribeUrl: `${hubEnvConfig.HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(user.id, 'calories_weekly_report')}`,
+    viewInAppUrl: `${hubEnvConfig.HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
   };
 
   const data = await fetchWeeklyReportCaloriesData(user.id, weekStart, urls);

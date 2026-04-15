@@ -1,11 +1,10 @@
 import { spawn } from 'child_process';
 import { createGzip } from 'zlib';
 import { putObject } from '@my-hub/shared/services';
+import { workerEnvConfig } from './config/env';
 
 export async function backupDbToS3(): Promise<void> {
-  const databaseUrl = process.env['DATABASE_URL'];
-  const bucketName = process.env['S3_BACKUP_BUCKET'];
-  const awsRegion = process.env['AWS_REGION'];
+  const { DATABASE_URL: databaseUrl, S3_BACKUP_BUCKET: bucketName, AWS_REGION: awsRegion } = workerEnvConfig;
 
   if (!databaseUrl || !bucketName || !awsRegion) {
     // Worker is functional but won't back up until all three vars are provided.

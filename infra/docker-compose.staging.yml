@@ -73,6 +73,8 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_REGION: ${AWS_REGION:-}
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
+      HUB_URL: ${HUB_URL:?HUB_URL is required}
+      SES_FROM_EMAIL: ${SES_FROM_EMAIL:?SES_FROM_EMAIL is required}
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
     depends_on:
       db:
@@ -102,11 +104,13 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
+      MCP_HOST: 0.0.0.0
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_PAYLOADS: ${LOG_PAYLOADS:-false}
       PRINT_PAYLOADS: ${PRINT_PAYLOADS:-false}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://staging.hub.alexiuc.dev}
+      HUB_URL: ${HUB_URL:?HUB_URL is required}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:?NEXTAUTH_URL is required}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:?ALLOWED_EMAILS is required}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
@@ -114,6 +118,8 @@ services:
       TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
       TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
+      SES_FROM_EMAIL: ${SES_FROM_EMAIL:?SES_FROM_EMAIL is required}
+      UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
     depends_on:
       db:
         condition: service_healthy
@@ -151,16 +157,19 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://staging.hub.alexiuc.dev}
+      HUB_URL: ${HUB_URL:?HUB_URL is required}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:?NEXTAUTH_URL is required}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is required}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET is required}
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:?ALLOWED_EMAILS is required}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
+      NEXT_PUBLIC_MCP_URL: ${NEXT_PUBLIC_MCP_URL:?NEXT_PUBLIC_MCP_URL is required}
       TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
       TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
+      SES_FROM_EMAIL: ${SES_FROM_EMAIL:?SES_FROM_EMAIL is required}
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
     depends_on:
       db:

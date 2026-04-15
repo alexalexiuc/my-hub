@@ -15,8 +15,6 @@ import {
 } from '@my-hub/shared/services';
 import { signToken, verifyToken, verifyPkceS256, type AuthCodePayload } from '@my-hub/shared/auth';
 
-const NEXTAUTH_SECRET = process.env['NEXTAUTH_SECRET'] ?? '';
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -98,8 +96,6 @@ const BRIDGE_COOKIE_NAME = '__Hub-mcp-bridge';
 
 /** Verify the bridge cookie and return the email, or null if invalid/missing. */
 function getSessionEmail(req: FastifyRequest): string | null {
-  if (!NEXTAUTH_SECRET) return null;
-
   const rawCookieHeader = req.headers.cookie ?? '';
   const match = rawCookieHeader.match(new RegExp(`(?:^|;\\s*)${BRIDGE_COOKIE_NAME}=([^;]*)`));
   if (!match?.[1]) return null;
@@ -120,7 +116,7 @@ function getSessionEmail(req: FastifyRequest): string | null {
 
   // Verify HMAC signature
   const payload = `${email}|${expiryStr}`;
-  const expectedSig = createHmac('sha256', NEXTAUTH_SECRET).update(payload).digest('base64url');
+  const expectedSig = createHmac('sha256', envConfig.NEXTAUTH_SECRET).update(payload).digest('base64url');
   if (sig !== expectedSig) {
     req.log.warn('[oauth] Bridge cookie signature mismatch');
     return null;

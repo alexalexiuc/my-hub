@@ -1,12 +1,11 @@
 import { SESClient } from '@aws-sdk/client-ses';
+import { sharedEnvConfig } from '../../config/env';
 
 let sesInstance: SESClient | undefined;
 
 export function getSesClient(): SESClient {
   if (!sesInstance) {
-    const region = process.env['AWS_REGION'];
-    if (!region) throw new Error('AWS_REGION environment variable is required');
-    sesInstance = new SESClient({ region });
+    sesInstance = new SESClient({ region: sharedEnvConfig.AWS_REGION });
   }
   return sesInstance;
 }

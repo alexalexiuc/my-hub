@@ -16,6 +16,22 @@ COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
   pnpm install -r --offline
 
+# Build-time placeholder values for required env vars.
+# Next.js static analysis loads route modules during `next build`, which triggers
+# lazy getters for secrets like GOOGLE_CLIENT_ID. These hard-coded placeholders
+# satisfy the validation so the build succeeds; real values must only be injected
+# at container runtime via docker-compose / .env files, which will override these.
+ENV NEXTAUTH_SECRET=build-placeholder
+ENV NEXTAUTH_URL=http://localhost:3000
+ENV GOOGLE_CLIENT_ID=build-placeholder
+ENV GOOGLE_CLIENT_SECRET=build-placeholder
+ENV DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder
+ENV ENCRYPTION_KEY=build-placeholder-32-chars-min____
+ENV AWS_REGION=us-east-1
+ENV UNSUBSCRIBE_SECRET=build-placeholder
+ENV SES_FROM_EMAIL=noreply@placeholder.dev
+ENV HUB_URL=http://localhost:3000
+
 RUN pnpm --filter @my-hub/shared build
 RUN pnpm --filter @my-hub/hub build
 RUN mkdir -p /app/packages/hub/public

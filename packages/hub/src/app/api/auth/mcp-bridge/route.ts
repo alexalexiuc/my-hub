@@ -3,9 +3,7 @@ import { getServerSession } from 'next-auth';
 import { createHmac } from 'node:crypto';
 import { authOptions } from '../[...nextauth]/route';
 import { withErrorLogging } from '@/lib/api/with-error-logging';
-
-const NEXTAUTH_SECRET = process.env['NEXTAUTH_SECRET'] ?? '';
-const MCP_SERVER_URL = process.env['NEXT_PUBLIC_MCP_URL'] ?? '';
+import { hubEnvConfig } from '@/config/env';
 
 /**
  * Cookie name for the simple cross-subdomain session bridge.
@@ -15,23 +13,11 @@ const MCP_SERVER_URL = process.env['NEXT_PUBLIC_MCP_URL'] ?? '';
 const BRIDGE_COOKIE_NAME = '__Hub-mcp-bridge';
 const BRIDGE_COOKIE_MAX_AGE = 5 * 60; // 5 minutes — just enough for the OAuth flow
 
-function getSharedCookieDomain(): string | undefined {
-  try {
-    const host = new URL(process.env['NEXTAUTH_URL'] ?? '').hostname;
-    if (host === 'localhost' || host.startsWith('127.') || host === '[::1]') return undefined;
-    const parts = host.split('.');
-    if (parts.length >= 3) return '.' + parts.slice(-2).join('.');
-    return undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 /** Create an HMAC-signed bridge token: email|expiry|signature */
 function createBridgeToken(email: string): string {
   const expiry = Date.now() + BRIDGE_COOKIE_MAX_AGE * 1000;
   const payload = `${email}|${expiry}`;
-  const sig = createHmac('sha256', NEXTAUTH_SECRET).update(payload).digest('base64url');
+  const sig = createHmac('sha256', hubEnvConfig.NEXTAUTH_SECRET).update(payload).digest('base64url');
   return `${payload}|${sig}`;
 }
 
@@ -58,9 +44,9 @@ async function mcpBridgeHandler(req: NextRequest) {
   }
 
   // Safety: only redirect to the MCP server or HTTPS origins
-  if (MCP_SERVER_URL) {
+  if (hubEnvConfig.MCP_SERVER_URL) {
     try {
-      if (redirectUrl.origin !== new URL(MCP_SERVER_URL).origin) {
+      if (redirectUrl.origin !== new URL(hubEnvConfig.MCP_SERVER_URL).origin) {
         return NextResponse.json({ error: 'Redirect origin not allowed' }, { status: 403 });
       }
     } catch {
@@ -83,7 +69,7 @@ async function mcpBridgeHandler(req: NextRequest) {
 
   // Create bridge token and set it as a cookie on the shared domain
   const token = createBridgeToken(session.user.email);
-  const domain = getSharedCookieDomain();
+  const domain = hubEnvConfig.SHARED_COOKIE_DOMAIN;
   const isSecure = req.nextUrl.protocol === 'https:';
 
   const response = NextResponse.redirect(redirect);
