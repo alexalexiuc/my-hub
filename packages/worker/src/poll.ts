@@ -1,6 +1,8 @@
 import { Cron } from 'croner';
+import { logger } from '@my-hub/shared/utils';
 import { syncDueFlights } from './flight-sync.js';
 import { backupDbToS3 } from './db-backup.js';
+import { backupLogsToS3 } from './log-backup.js';
 import { cleanupOldLogs } from './log-cleanup.js';
 import { sendCaloriesWeeklyReports } from './calories-weekly-report.js';
 import { sendCaloriesMonthlyReports } from './calories-monthly-report.js';
@@ -23,6 +25,11 @@ export const tasks: Task[] = [
     fn: backupDbToS3,
   },
   {
+    name: 'log-backup',
+    cron: '0 0 3 * * *', // every day at 3:00 AM
+    fn: backupLogsToS3,
+  },
+  {
     name: 'log-cleanup',
     cron: '0 0 1 1 * *', // 1st of every month at 1:00
     fn: cleanupOldLogs,
@@ -40,17 +47,17 @@ export const tasks: Task[] = [
 ];
 
 export function startPollLoop(): void {
-  console.log('[worker] Scheduling tasks:');
+  logger.info('[worker] Scheduling tasks:');
 
   for (const task of tasks) {
     new Cron(task.cron, { protect: true, timezone: 'UTC' }, async () => {
       try {
         await task.fn();
       } catch (err) {
-        console.error(`[worker] Error in task ${task.name}:`, err);
+        logger.error(`[worker] Error in task ${task.name}:`, err);
       }
     });
 
-    console.log(`[worker]   ${task.name} → ${task.cron}`);
+    logger.info(`[worker]   ${task.name} → ${task.cron}`);
   }
 }

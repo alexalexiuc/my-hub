@@ -1,5 +1,6 @@
 import 'dotenv-mono/load';
+import { logger } from '@my-hub/shared/utils';
 import { startPollLoop } from './poll.js';
 
-console.log('[worker] Starting worker...');
+logger.info('[worker] Starting worker...');
 startPollLoop();

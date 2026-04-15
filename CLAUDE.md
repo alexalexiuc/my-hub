@@ -63,6 +63,20 @@ When a feature spans multiple layers, change in this order:
 - Keep Fastify/MCP transport code out of `hub`.
 - Document every new runtime variable in the relevant `.env.example` and in the root `.env.example` if Docker uses it.
 
+## Logging rules
+
+Never use `console.log`, `console.error`, or `console.warn` directly in `packages/worker` or `packages/mcp-server`. Use `logger` from `@my-hub/shared/utils` instead — it prefixes every line with an ISO 8601 timestamp, which is essential for reading logs from Docker or S3 archives.
+
+```ts
+import { logger } from '@my-hub/shared/utils';
+
+logger.info('[worker] Task started');
+logger.warn('[worker] Unexpected state, continuing');
+logger.error('[worker] Task failed:', err);
+```
+
+`console.log` remains acceptable in: E2E/test scripts, CLI help output in `scripts/`, and Next.js client components where no server logger is available.
+
 ## Environment variable rules
 
 Every package centralises its env vars in a single `src/config/env.ts` file that exports a typed config object. Use `getEnvVar` from `@my-hub/shared/utils` — never read `process.env` directly outside of that file.

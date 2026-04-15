@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import { createGzip } from 'zlib';
 import { putObject } from '@my-hub/shared/services';
 import { workerEnvConfig } from './config/env';
+import { logger } from '@my-hub/shared/utils';
 
 export async function backupDbToS3(): Promise<void> {
   const { DATABASE_URL: databaseUrl, S3_BACKUP_BUCKET: bucketName, AWS_REGION: awsRegion } = workerEnvConfig;
@@ -14,13 +15,13 @@ export async function backupDbToS3(): Promise<void> {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const key = `db-backup-${timestamp}.dump.gz`;
 
-  console.log(`[worker] Starting DB backup → s3://${bucketName}/${key}`);
+  logger.info(`[worker] Starting DB backup → s3://${bucketName}/${key}`);
 
   const body = await dump(databaseUrl);
 
   await putObject({ bucket: bucketName, key, body, contentType: 'application/gzip' });
 
-  console.log(`[worker] DB backup complete: s3://${bucketName}/${key} (${body.length} bytes)`);
+  logger.info(`[worker] DB backup complete: s3://${bucketName}/${key} (${body.length} bytes)`);
 }
 
 function dump(databaseUrl: string): Promise<Buffer> {
@@ -30,7 +31,7 @@ function dump(databaseUrl: string): Promise<Buffer> {
     const chunks: Buffer[] = [];
 
     pgDump.stderr.on('data', (data: Buffer) => {
-      console.error('[worker] pg_dump:', data.toString().trim());
+      logger.error('[worker] pg_dump:', data.toString().trim());
     });
     pgDump.on('error', reject);
 

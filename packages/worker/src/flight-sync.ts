@@ -5,6 +5,7 @@ import {
   updateFlightData,
 } from '@my-hub/shared/services';
 import { workerEnvConfig } from './config/env';
+import { logger } from '@my-hub/shared/utils';
 
 export async function syncDueFlights(): Promise<void> {
   const apiKey = workerEnvConfig.RAPIDAPI_KEY;
@@ -16,7 +17,7 @@ export async function syncDueFlights(): Promise<void> {
   const due = await getFlightDataDueForFetch();
   if (due.length === 0) return;
 
-  console.log(`[worker] Syncing ${due.length} flight(s)...`);
+  logger.info(`[worker] Syncing ${due.length} flight(s)...`);
 
   for (const fd of due) {
     // wait 1 second to not hit rate limits
@@ -42,16 +43,16 @@ export async function syncDueFlights(): Promise<void> {
           airlineName: result.airlineName,
           rawResponse: result.rawResponse,
         });
-        console.log(
+        logger.info(
           `[worker] Updated ${fd.flightNumber}/${fd.flightDate}: status=${result.status ?? 'n/a'}, gate=${result.departureGate ?? '-'}`,
         );
       } else {
         // Flight not found — back off but keep auto-updating (may appear closer to date)
         await backOffFlightData(fd.id, fd.scheduledDepartureAt, fd.actualArrivalAt);
-        console.log(`[worker] No data for ${fd.flightNumber}/${fd.flightDate}, backing off`);
+        logger.info(`[worker] No data for ${fd.flightNumber}/${fd.flightDate}, backing off`);
       }
     } catch (err) {
-      console.error(`[worker] Error syncing ${fd.flightNumber}/${fd.flightDate}:`, err);
+      logger.error(`[worker] Error syncing ${fd.flightNumber}/${fd.flightDate}:`, err);
       await backOffFlightData(fd.id, fd.scheduledDepartureAt, fd.actualArrivalAt).catch(() => {});
     }
   }

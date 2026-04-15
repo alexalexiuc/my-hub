@@ -5,7 +5,7 @@ import {
   fetchMonthlyReportCaloriesData,
   generateUnsubscribeToken,
 } from '@my-hub/shared/services';
-import { getLastMonthStart, monthLabel, toUTCDateStr } from '@my-hub/shared/utils';
+import { getLastMonthStart, monthLabel, toUTCDateStr, logger } from '@my-hub/shared/utils';
 import { workerEnvConfig } from './config/env';
 
 export async function sendCaloriesMonthlyReports(): Promise<void> {
@@ -13,7 +13,7 @@ export async function sendCaloriesMonthlyReports(): Promise<void> {
   const userIds = await getSubscribedUserIds('calories_monthly_report');
 
   const currentMonthLabel = monthLabel(monthStart);
-  console.log(`[calories-monthly-report] Sending to ${userIds.length} user(s) for ${currentMonthLabel}`);
+  logger.info(`[calories-monthly-report] Sending to ${userIds.length} user(s) for ${currentMonthLabel}`);
 
   let sent = 0;
   let skipped = 0;
@@ -39,9 +39,9 @@ export async function sendCaloriesMonthlyReports(): Promise<void> {
       });
       sent++;
     } catch (err) {
-      console.error(`[calories-monthly-report] Failed for user ${userId}:`, err);
+      logger.error(`[calories-monthly-report] Failed for user ${userId}:`, err);
     }
   }
 
-  console.log(`[calories-monthly-report] Done — sent: ${sent}, skipped (no data): ${skipped}`);
+  logger.info(`[calories-monthly-report] Done — sent: ${sent}, skipped (no data): ${skipped}`);
 }
