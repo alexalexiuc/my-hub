@@ -43,6 +43,7 @@ services:
   worker:
     image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-worker:latest
     restart: unless-stopped
+    user: root # required to read Docker json-file logs from the mounted host directory
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub}
       RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
@@ -53,12 +54,16 @@ services:
       S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
       HUB_URL: ${HUB_URL:?HUB_URL is required}
       SES_FROM_EMAIL: ${SES_FROM_EMAIL:?SES_FROM_EMAIL is required}
+      S3_LOGS_BUCKET: ${S3_LOGS_BUCKET:-}
+      DOCKER_LOGS_DIR: /host/containers
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
     depends_on:
       db:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+    volumes:
+      - /var/lib/docker/containers:/host/containers:ro
     networks:
       - internal
     logging:
@@ -105,7 +110,7 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: '10m'
+        max-size: '20m'
         max-file: '5'
     labels:
       - 'traefik.enable=true'
@@ -147,6 +152,11 @@ services:
     networks:
       - internal
       - proxy
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
     labels:
       - 'traefik.enable=true'
       - 'traefik.http.routers.hub.rule=Host(`hub.alexiuc.dev`)'

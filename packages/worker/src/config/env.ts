@@ -41,4 +41,11 @@ export const workerEnvConfig = {
   get AWS_REGION() {
     return getEnvVar('AWS_REGION', '');
   },
+  get S3_LOGS_BUCKET() {
+    return getEnvVar('S3_LOGS_BUCKET', '');
+  },
+  /** Directory where Docker container log subdirectories are mounted. */
+  get DOCKER_LOGS_DIR() {
+    return getEnvVar('DOCKER_LOGS_DIR', '/host/containers');
+  },
 };

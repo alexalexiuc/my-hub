@@ -2,6 +2,7 @@ import { Cron } from 'croner';
 import { logger } from '@my-hub/shared/utils';
 import { syncDueFlights } from './flight-sync.js';
 import { backupDbToS3 } from './db-backup.js';
+import { backupLogsToS3 } from './log-backup.js';
 import { cleanupOldLogs } from './log-cleanup.js';
 import { sendCaloriesWeeklyReports } from './calories-weekly-report.js';
 import { sendCaloriesMonthlyReports } from './calories-monthly-report.js';
@@ -22,6 +23,11 @@ export const tasks: Task[] = [
     name: 'db-backup',
     cron: '0 0 1 * * *', // every day at 1:00 AM
     fn: backupDbToS3,
+  },
+  {
+    name: 'log-backup',
+    cron: '0 0 3 * * *', // every day at 3:00 AM
+    fn: backupLogsToS3,
   },
   {
     name: 'log-cleanup',
