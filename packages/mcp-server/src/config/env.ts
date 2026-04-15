@@ -65,8 +65,3 @@ export const envConfig = {
     return getEnvVar('NEXTAUTH_SECRET');
   },
 };
-
-console.log(
-  'Loaded environment configuration:',
-  JSON.stringify({ ...envConfig, NEXTAUTH_SECRET: envConfig.NEXTAUTH_SECRET ? '***' : '' }, null, 2),
-);
