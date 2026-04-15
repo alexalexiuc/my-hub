@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import { putLog } from '@my-hub/shared/services';
 import type { McpServerName } from '@my-hub/shared/constants';
+import { logger } from '@my-hub/shared/utils';
 import { envConfig } from '../config/env.js';
 import { capPayload, redactSensitiveFields } from './payload-logging.js';
 
@@ -44,9 +45,9 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     // logLevel:'silent' set on known routes; empty url means no route matched (setNotFoundHandler)
     if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
 
-    console.log(`--> ${req.method} ${req.url}`);
+    logger.info(`--> ${req.method} ${req.url}`);
     if (envConfig.PRINT_PAYLOADS) {
-      console.log(`\tRequest: ${JSON.stringify(capPayload(buildRequestPayload(req)), null, 2)}`);
+      logger.info(`\tRequest: ${JSON.stringify(capPayload(buildRequestPayload(req)), null, 2)}`);
     }
   });
 
@@ -73,7 +74,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     const bodySize = Number(reply.getHeader('content-length') ?? 0);
     const status = reply.statusCode;
 
-    console.log(`<-- ${req.method} ${req.url} ${status} ${durationMs}ms ${bodySize}b`);
+    logger.info(`<-- ${req.method} ${req.url} ${status} ${durationMs}ms ${bodySize}b`);
 
     // Read userId from verified auth (set by fastify-mcp-server's bearer middleware).
     // Falls back to null for unauthenticated or non-MCP routes — never uses unverified token data.
@@ -103,7 +104,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     }
 
     if (envConfig.PRINT_PAYLOADS) {
-      console.log(`\tResponse: ${JSON.stringify(capPayload(redactedResponsePayload), null, 2)}`);
+      logger.info(`\tResponse: ${JSON.stringify(capPayload(redactedResponsePayload), null, 2)}`);
     }
 
     putLog(logData).catch((err) => {

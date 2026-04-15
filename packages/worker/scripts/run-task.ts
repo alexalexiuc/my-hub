@@ -1,4 +1,5 @@
 import 'dotenv-mono/load';
+import { logger } from '@my-hub/shared/utils';
 import { tasks } from '../src/poll.js';
 
 const taskName = process.argv[2];
@@ -20,14 +21,14 @@ if (!task) {
   process.exit(1);
 }
 
-console.log(`[run-task] Running: ${task.name}`);
+logger.info(`[run-task] Running: ${task.name}`);
 task
   .fn()
   .then(() => {
-    console.log(`[run-task] Done: ${task.name}`);
+    logger.info(`[run-task] Done: ${task.name}`);
     process.exit(0);
   })
   .catch((err) => {
-    console.error(`[run-task] Failed: ${task.name}`, err);
+    logger.error(`[run-task] Failed: ${task.name}`, err);
     process.exit(1);
   });

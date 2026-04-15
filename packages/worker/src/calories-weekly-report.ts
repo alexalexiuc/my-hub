@@ -5,14 +5,14 @@ import {
   fetchWeeklyReportCaloriesData,
   generateUnsubscribeToken,
 } from '@my-hub/shared/services';
-import { getLastMonday, toUTCDateStr } from '@my-hub/shared/utils';
+import { getLastMonday, toUTCDateStr, logger } from '@my-hub/shared/utils';
 import { workerEnvConfig } from './config/env';
 
 export async function sendCaloriesWeeklyReports(): Promise<void> {
   const weekStart = getLastMonday();
   const userIds = await getSubscribedUserIds('calories_weekly_report');
 
-  console.log(
+  logger.info(
     `[calories-weekly-report] Sending to ${userIds.length} user(s) for week starting ${toUTCDateStr(weekStart)}`,
   );
 
@@ -41,9 +41,9 @@ export async function sendCaloriesWeeklyReports(): Promise<void> {
       });
       sent++;
     } catch (err) {
-      console.error(`[calories-weekly-report] Failed for user ${userId}:`, err);
+      logger.error(`[calories-weekly-report] Failed for user ${userId}:`, err);
     }
   }
 
-  console.log(`[calories-weekly-report] Done — sent: ${sent}, skipped (no data): ${skipped}`);
+  logger.info(`[calories-weekly-report] Done — sent: ${sent}, skipped (no data): ${skipped}`);
 }

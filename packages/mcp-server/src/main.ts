@@ -1,3 +1,4 @@
+import { logger } from '@my-hub/shared/utils';
 import { buildServer } from './server.js';
 import { envConfig } from './config/env.js';
 import closeWithGrace from 'close-with-grace';
@@ -22,6 +23,6 @@ async function main() {
 }
 
 main().catch((err: unknown) => {
-  console.error('Fatal startup error:', err);
+  logger.error('Fatal startup error:', err);
   process.exit(1);
 });

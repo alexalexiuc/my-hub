@@ -4,6 +4,7 @@ import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { MessageExtraInfo } from '@modelcontextprotocol/sdk/types.js';
 import { putLog } from '@my-hub/shared/services';
 import type { McpServerName } from '@my-hub/shared/constants';
+import { logger } from '@my-hub/shared/utils';
 import { envConfig } from '../config/env.js';
 import { mcpSubServers } from '../mcp/registry.js';
 import { capPayload, redactSensitiveFields } from './payload-logging.js';
@@ -35,9 +36,9 @@ function logSessionMessage(
   const serverName = (authInfo?.extra?.['serverName'] as McpServerName | undefined) ?? null;
   const redactedMessage = redactSensitiveFields(message);
 
-  console.log(`--> MCP ${method}${toolName ? ` (${toolName})` : ''} [session:${sessionId.slice(0, 8)}]`);
+  logger.info(`--> MCP ${method}${toolName ? ` (${toolName})` : ''} [session:${sessionId.slice(0, 8)}]`);
   if (envConfig.PRINT_PAYLOADS) {
-    console.log(`\tMCP Message: ${JSON.stringify(capPayload(redactedMessage), null, 2)}`);
+    logger.info(`\tMCP Message: ${JSON.stringify(capPayload(redactedMessage), null, 2)}`);
   }
 
   const path = toolName ? `${endpoint}#${toolName}` : endpoint;

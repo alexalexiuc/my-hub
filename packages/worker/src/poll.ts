@@ -1,4 +1,5 @@
 import { Cron } from 'croner';
+import { logger } from '@my-hub/shared/utils';
 import { syncDueFlights } from './flight-sync.js';
 import { backupDbToS3 } from './db-backup.js';
 import { cleanupOldLogs } from './log-cleanup.js';
@@ -40,17 +41,17 @@ export const tasks: Task[] = [
 ];
 
 export function startPollLoop(): void {
-  console.log('[worker] Scheduling tasks:');
+  logger.info('[worker] Scheduling tasks:');
 
   for (const task of tasks) {
     new Cron(task.cron, { protect: true, timezone: 'UTC' }, async () => {
       try {
         await task.fn();
       } catch (err) {
-        console.error(`[worker] Error in task ${task.name}:`, err);
+        logger.error(`[worker] Error in task ${task.name}:`, err);
       }
     });
 
-    console.log(`[worker]   ${task.name} → ${task.cron}`);
+    logger.info(`[worker]   ${task.name} → ${task.cron}`);
   }
 }
