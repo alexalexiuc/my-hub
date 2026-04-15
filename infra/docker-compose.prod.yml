@@ -76,6 +76,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
+      MCP_HOST: 0.0.0.0
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_PAYLOADS: ${LOG_PAYLOADS:-false}
@@ -130,6 +131,7 @@ services:
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:?ALLOWED_EMAILS is required}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub}
+      NEXT_PUBLIC_MCP_URL: ${NEXT_PUBLIC_MCP_URL:?NEXT_PUBLIC_MCP_URL is required}
       TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
       TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}

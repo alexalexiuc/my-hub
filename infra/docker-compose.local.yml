@@ -15,6 +15,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_PAYLOADS: ${LOG_PAYLOADS:-false}
       PRINT_PAYLOADS: ${PRINT_PAYLOADS:-false}
+      HUB_URL: ${HUB_URL:-http://localhost:3000}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:?ALLOWED_EMAILS is required}
@@ -43,6 +44,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@host.docker.internal:5432/${POSTGRES_DB:-myhub}}
       RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_REGION: ${AWS_REGION:-}
@@ -62,6 +64,7 @@ services:
       dockerfile: packages/hub/Dockerfile
       args:
         DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@host.docker.internal:5432/${POSTGRES_DB:-myhub}}
+        NEXT_PUBLIC_MCP_URL: ${NEXT_PUBLIC_MCP_URL:-http://localhost:3001}
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -74,6 +77,7 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
       DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@host.docker.internal:5432/${POSTGRES_DB:-myhub}}
       HUB_URL: ${HUB_URL:-http://localhost:3000}
+      NEXT_PUBLIC_MCP_URL: ${NEXT_PUBLIC_MCP_URL:-http://localhost:3001}
       TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
       TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}

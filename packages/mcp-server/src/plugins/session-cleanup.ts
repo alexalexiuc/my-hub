@@ -1,6 +1,6 @@
 import fp from 'fastify-plugin';
 import { mcpSubServers } from '../mcp/registry.js';
-import { envConfig } from '../config/env.js';
+import { SESSION_CLEANUP_INTERVAL_MS, SESSION_MAX_IDLE_MS } from '../config/constants.js';
 
 export const sessionCleanupPlugin = fp(async (app) => {
   const sessionActivity = new Map<string, number>();
@@ -25,8 +25,8 @@ export const sessionCleanupPlugin = fp(async (app) => {
     attachListeners();
   });
 
-  const cleanupIntervalMs = envConfig.SESSION_CLEANUP_INTERVAL_MS;
-  const maxIdleMs = envConfig.SESSION_MAX_IDLE_MS;
+  const cleanupIntervalMs = SESSION_CLEANUP_INTERVAL_MS;
+  const maxIdleMs = SESSION_MAX_IDLE_MS;
 
   const timer = setInterval(() => {
     const now = Date.now();

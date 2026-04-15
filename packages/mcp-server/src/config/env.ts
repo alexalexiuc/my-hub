@@ -33,12 +33,6 @@ export const envConfig = {
   get LOG_LEVEL() {
     return getEnvVar('LOG_LEVEL', 'info');
   },
-  get SESSION_CLEANUP_INTERVAL_MS() {
-    return parseNum(getEnvVar('SESSION_CLEANUP_INTERVAL_MS', ''), 300_000);
-  },
-  get SESSION_MAX_IDLE_MS() {
-    return parseNum(getEnvVar('SESSION_MAX_IDLE_MS', ''), 1_800_000);
-  },
   get CORS_ORIGIN() {
     return getEnvVar('CORS_ORIGIN', '*');
   },
@@ -47,7 +41,7 @@ export const envConfig = {
   },
   /** Falls back to NEXTAUTH_URL (set by the hub) when HUB_URL is not explicitly provided. */
   get HUB_URL() {
-    return getEnvVar('NEXTAUTH_URL', '') || getEnvVar('HUB_URL', 'http://localhost:3000');
+    return getEnvVar('HUB_URL', '') || getEnvVar('NEXTAUTH_URL', 'http://localhost:3000');
   },
   get LOG_PAYLOADS() {
     return getEnvVar('LOG_PAYLOADS', '') === 'true';
@@ -67,9 +61,8 @@ export const envConfig = {
   get TRAVEL_FILES_ALLOWED_MIME() {
     return parseCsv(getEnvVar('TRAVEL_FILES_ALLOWED_MIME', ''), [...TRAVEL_FILES_ALLOWED_MIME_DEFAULT]);
   },
-  /** Shared secret for verifying the cross-subdomain bridge cookie set by the Hub. */
   get NEXTAUTH_SECRET() {
-    return getEnvVar('NEXTAUTH_SECRET', '');
+    return getEnvVar('NEXTAUTH_SECRET');
   },
 };
 
