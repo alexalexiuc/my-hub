@@ -29,3 +29,4 @@
 - [x]Consider if moving all Labels objects in hub UI to a single file.
 - [x] If profile is not fully setup, meals chart appear without max color. Maybe we should either add a tooltip to explain or not show the chart at all until profile is complete.
 - [x] Add timestamp to logs or use a different tool instead of console.log for better log management and analysis.
+- [ ] Consider using some form libraries instead of handling form state manually, to simplify code and improve maintainability (e.g. React Hook Form, Formik, etc.)
