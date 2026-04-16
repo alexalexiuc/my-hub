@@ -1,3 +1,3 @@
 export { CaloriesWidget } from '@/app/calories/CaloriesWidget';
-export { TodoWidget } from './TodoWidget';
-export { TravelWidget } from './TravelWidget';
+export { TodoWidget } from '@/app/todo/TodoWidget';
+export { TravelWidget } from '@/app/travel/TravelWidget';
