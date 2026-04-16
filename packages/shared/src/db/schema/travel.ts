@@ -117,6 +117,9 @@ export const tripBookings = pgTable(
     timezone: text('timezone'), // IANA timezone string, e.g. 'Europe/Chisinau'
     lat: real('lat'),
     lng: real('lng'),
+    contactName: text('contact_name'),
+    contactEmail: text('contact_email'),
+    contactPhone: text('contact_phone'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },

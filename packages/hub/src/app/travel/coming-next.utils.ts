@@ -15,6 +15,8 @@ const SegmentActions = {
   ViewBooking: 'view_booking',
   CopyRef: 'copy_ref',
   Navigate: 'navigate',
+  ContactPhone: 'contact_phone',
+  ContactEmail: 'contact_email',
 } as const;
 
 export type SegmentAction = {
@@ -316,6 +318,22 @@ function deriveActions(
 
     if (booking.confirmationNumber) {
       actions.push({ type: SegmentActions.CopyRef, label: 'Copy ref', value: booking.confirmationNumber });
+    }
+
+    if (booking.contactPhone) {
+      actions.push({
+        type: SegmentActions.ContactPhone,
+        label: booking.contactPhone,
+        value: `tel:${booking.contactPhone}`,
+      });
+    }
+
+    if (booking.contactEmail) {
+      actions.push({
+        type: SegmentActions.ContactEmail,
+        label: booking.contactEmail,
+        value: `mailto:${booking.contactEmail}`,
+      });
     }
   }
 

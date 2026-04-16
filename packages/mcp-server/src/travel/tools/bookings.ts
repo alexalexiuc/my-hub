@@ -34,6 +34,16 @@ export const TravelAddReservationFromTextInputSchema = z.object({
   start_at: z.string().datetime().optional().describe('Start datetime in ISO 8601 if known.'),
   end_at: z.string().datetime().optional().describe('End datetime in ISO 8601 if known.'),
   confirmation_number: z.string().optional().describe('Confirmation reference if available.'),
+  contact_name: z.string().optional().describe('Name of the property/provider contact person if present in the text.'),
+  contact_email: z
+    .string()
+    .email()
+    .optional()
+    .describe('Contact email for the property/provider if present in the text.'),
+  contact_phone: z
+    .string()
+    .optional()
+    .describe('Contact phone number for the property/provider if present in the text.'),
   reference_link: z
     .string()
     .url()
@@ -144,6 +154,9 @@ export const travelAddReservationFromTextTool: ToolCallback<
     lat: input.lat ?? input.origin?.lat ?? null,
     lng: input.lng ?? input.origin?.lng ?? null,
     details,
+    contactName: input.contact_name ?? null,
+    contactEmail: input.contact_email ?? null,
+    contactPhone: input.contact_phone ?? null,
   });
 
   return toolResponse({
@@ -365,6 +378,22 @@ export const TravelEditBookingSchema = z.object({
   timezone: z.string().optional().describe('Updated IANA timezone string for the booking location.'),
   lat: z.number().optional().describe('Updated latitude of the booking location.'),
   lng: z.number().optional().describe('Updated longitude of the booking location.'),
+  contact_name: z
+    .string()
+    .nullable()
+    .optional()
+    .describe('Name of the contact person for this booking. Pass null to clear.'),
+  contact_email: z
+    .string()
+    .email()
+    .nullable()
+    .optional()
+    .describe('Contact email for the property/provider. Pass null to clear.'),
+  contact_phone: z
+    .string()
+    .nullable()
+    .optional()
+    .describe('Contact phone number for the property/provider. Pass null to clear.'),
 });
 
 export const travelEditBookingTool: ToolCallback<typeof TravelEditBookingSchema.shape> = async (input, extra) => {
@@ -388,6 +417,9 @@ export const travelEditBookingTool: ToolCallback<typeof TravelEditBookingSchema.
     ...(input.timezone !== undefined && { timezone: input.timezone }),
     ...(input.lat !== undefined && { lat: input.lat }),
     ...(input.lng !== undefined && { lng: input.lng }),
+    ...(input.contact_name !== undefined && { contactName: input.contact_name }),
+    ...(input.contact_email !== undefined && { contactEmail: input.contact_email }),
+    ...(input.contact_phone !== undefined && { contactPhone: input.contact_phone }),
   });
 
   if (!updated) throw new Error(`Failed to update booking ${input.booking_id}.`);

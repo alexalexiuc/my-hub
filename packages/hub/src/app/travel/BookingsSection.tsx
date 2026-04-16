@@ -57,6 +57,9 @@ export function BookingsSection({
   const [newTransportOrigin, setNewTransportOrigin] = useState('');
   const [newTransportDest, setNewTransportDest] = useState('');
   const [newTransportServiceNumber, setNewTransportServiceNumber] = useState('');
+  const [newContactName, setNewContactName] = useState('');
+  const [newContactEmail, setNewContactEmail] = useState('');
+  const [newContactPhone, setNewContactPhone] = useState('');
 
   const [editingBookingId, setEditingBookingId] = useState<number | null>(null);
   const [editBookingTitle, setEditBookingTitle] = useState('');
@@ -74,6 +77,9 @@ export function BookingsSection({
   const [editTransportOrigin, setEditTransportOrigin] = useState('');
   const [editTransportDest, setEditTransportDest] = useState('');
   const [editTransportServiceNumber, setEditTransportServiceNumber] = useState('');
+  const [editContactName, setEditContactName] = useState('');
+  const [editContactEmail, setEditContactEmail] = useState('');
+  const [editContactPhone, setEditContactPhone] = useState('');
 
   const [expandedBookingId, setExpandedBookingId] = useState<number | null>(null);
 
@@ -109,6 +115,9 @@ export function BookingsSection({
         body.location = `${newTransportOrigin.trim()} → ${newTransportDest.trim()}`;
       }
     }
+    if (newContactName.trim()) body.contact_name = newContactName.trim();
+    if (newContactEmail.trim()) body.contact_email = newContactEmail.trim();
+    if (newContactPhone.trim()) body.contact_phone = newContactPhone.trim();
     await apiFetch('/api/travel/bookings', { method: 'POST', body });
     setNewBookingTitle('');
     setNewBookingProvider('');
@@ -124,6 +133,9 @@ export function BookingsSection({
     setNewTransportOrigin('');
     setNewTransportDest('');
     setNewTransportServiceNumber('');
+    setNewContactName('');
+    setNewContactEmail('');
+    setNewContactPhone('');
     onChanged();
   }
 
@@ -156,6 +168,9 @@ export function BookingsSection({
       setEditTransportDest(td.destination.name);
       setEditTransportServiceNumber(td.service_number ?? '');
     }
+    setEditContactName(booking.contactName ?? '');
+    setEditContactEmail(booking.contactEmail ?? '');
+    setEditContactPhone(booking.contactPhone ?? '');
   }
 
   function cancelEditBooking() {
@@ -175,6 +190,9 @@ export function BookingsSection({
     setEditTransportOrigin('');
     setEditTransportDest('');
     setEditTransportServiceNumber('');
+    setEditContactName('');
+    setEditContactEmail('');
+    setEditContactPhone('');
   }
 
   async function saveBookingEdits(bookingId: number) {
@@ -205,6 +223,9 @@ export function BookingsSection({
         ...(editTransportServiceNumber.trim() && { service_number: editTransportServiceNumber.trim() }),
       };
     }
+    body.contact_name = editContactName.trim() || null;
+    body.contact_email = editContactEmail.trim() || null;
+    body.contact_phone = editContactPhone.trim() || null;
     await apiFetch(`/api/travel/bookings/${bookingId}`, { method: 'PATCH', body });
     cancelEditBooking();
     onChanged();
@@ -301,6 +322,25 @@ export function BookingsSection({
             />
           </div>
         )}
+        <div className="grid grid-cols-3 gap-2">
+          <Input
+            value={newContactName}
+            onChange={(e) => setNewContactName(e.target.value)}
+            placeholder="Contact name"
+          />
+          <Input
+            type="email"
+            value={newContactEmail}
+            onChange={(e) => setNewContactEmail(e.target.value)}
+            placeholder="Contact email"
+          />
+          <Input
+            type="tel"
+            value={newContactPhone}
+            onChange={(e) => setNewContactPhone(e.target.value)}
+            placeholder="Contact phone"
+          />
+        </div>
         <Button onClick={addBooking} disabled={!activeTripId || !canEdit} className="w-full">
           Add Reservation
         </Button>
@@ -413,6 +453,25 @@ export function BookingsSection({
                     />
                   </div>
                 )}
+                <div className="grid grid-cols-3 gap-2">
+                  <Input
+                    value={editContactName}
+                    onChange={(e) => setEditContactName(e.target.value)}
+                    placeholder="Contact name"
+                  />
+                  <Input
+                    type="email"
+                    value={editContactEmail}
+                    onChange={(e) => setEditContactEmail(e.target.value)}
+                    placeholder="Contact email"
+                  />
+                  <Input
+                    type="tel"
+                    value={editContactPhone}
+                    onChange={(e) => setEditContactPhone(e.target.value)}
+                    placeholder="Contact phone"
+                  />
+                </div>
                 <div className="flex items-center justify-end gap-2">
                   <Button size="xs" onClick={() => saveBookingEdits(booking.id)}>
                     Save
@@ -610,6 +669,40 @@ export function BookingsSection({
                         </>
                       )}
                     </dl>
+
+                    {(booking.contactName || booking.contactEmail || booking.contactPhone) && (
+                      <div className="border-t border-zinc-700/40 pt-2">
+                        <p className="text-[11px] uppercase tracking-wide text-zinc-500 mb-1">Contact</p>
+                        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                          {booking.contactName && (
+                            <>
+                              <dt className="text-zinc-500">Name</dt>
+                              <dd className="text-zinc-300">{booking.contactName}</dd>
+                            </>
+                          )}
+                          {booking.contactPhone && (
+                            <>
+                              <dt className="text-zinc-500">Phone</dt>
+                              <dd className="text-zinc-300">
+                                <a href={`tel:${booking.contactPhone}`} className="text-amber-300 hover:underline">
+                                  {booking.contactPhone}
+                                </a>
+                              </dd>
+                            </>
+                          )}
+                          {booking.contactEmail && (
+                            <>
+                              <dt className="text-zinc-500">Email</dt>
+                              <dd className="text-zinc-300">
+                                <a href={`mailto:${booking.contactEmail}`} className="text-amber-300 hover:underline">
+                                  {booking.contactEmail}
+                                </a>
+                              </dd>
+                            </>
+                          )}
+                        </dl>
+                      </div>
+                    )}
 
                     {booking.notes && (
                       <p className="text-xs text-zinc-400 italic border-t border-zinc-700/40 pt-2">{booking.notes}</p>

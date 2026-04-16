@@ -45,6 +45,15 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
     startAt: startAt,
     endAt: endAt,
     ...(flightDetails !== undefined && { details: flightDetails }),
+    ...('contact_name' in body && {
+      contactName: typeof body.contact_name === 'string' ? body.contact_name.trim() || null : null,
+    }),
+    ...('contact_email' in body && {
+      contactEmail: typeof body.contact_email === 'string' ? body.contact_email.trim() || null : null,
+    }),
+    ...('contact_phone' in body && {
+      contactPhone: typeof body.contact_phone === 'string' ? body.contact_phone.trim() || null : null,
+    }),
   });
 
   if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
