@@ -6,8 +6,10 @@
 
 - **`src/components/`** — global, reusable atom/molecule components only (e.g. `SectionCard`, `PageHeader`, `Button`, `Field`, `IconButton`). Must be completely page-agnostic.
 - **`src/components/icons/`** — SVG icon components (e.g. `PencilIcon`, `TrashIcon`). Must be completely page-agnostic.
-- **`src/components/dashboard/`** — dashboard widgets (e.g. `CaloriesWidget`, `TodoWidget`).
-- **`src/app/<page>/`** — page-specific section components live **co-located with their page**. Never add page-specific logic to `src/components/`.
+- **`src/components/dashboard/`** — dashboard-level layout only (e.g. `DashboardHeader`, `DashboardFooter`). Do **not** put feature widgets here.
+- **`src/components/widgets/`** — barrel re-exports for dashboard widgets; the widget implementations live co-located with their feature (see below).
+- **`src/app/<page>/`** — page-specific section components and their dashboard widget live **co-located with their page**. When a widget shares significant logic or subcomponents with its feature page, implement it here and re-export from `src/components/widgets/index.ts`. Never add page-specific logic to `src/components/`.
+  - Example: `src/app/calories/CaloriesWidget.tsx` and `src/app/calories/CaloriesDonut.tsx` are co-located with the calories feature and re-exported via `src/components/widgets/index.ts`.
 
 ## Component rules
 

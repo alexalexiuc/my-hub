@@ -2,6 +2,52 @@ import type { MealLog } from '@my-hub/shared/types';
 import type { MealType } from '@my-hub/shared/constants';
 import { dateToString } from '@my-hub/shared/utils';
 
+export interface CalorieDonutState {
+  isOver: boolean;
+  isUnder: boolean;
+  remaining: number | null;
+  arcColor: string;
+  chartData: { value: number; key: string }[];
+  overflowData: { value: number; key: string }[];
+}
+
+/**
+ * Derives all display state needed to render a calorie donut chart.
+ * @param eaten - Total calories consumed
+ * @param cap - Daily calorie cap (max target), or null if no goal set
+ * @param min - Daily minimum target, or null if none
+ */
+export function calcCalorieDonutState(eaten: number, cap: number | null, min: number | null = null): CalorieDonutState {
+  const isOver = cap !== null && eaten > cap;
+  const isUnder = min !== null && eaten < min;
+  const remaining = cap !== null ? Math.max(cap - eaten, 0) : null;
+  const arcColor = cap !== null ? (isOver ? '#ef4444' : isUnder ? '#facc15' : '#4ade80') : '#3f3f46';
+
+  const chartData =
+    cap !== null
+      ? isOver
+        ? [{ value: cap, key: 'eaten' }]
+        : [
+            { value: eaten, key: 'eaten' },
+            { value: remaining!, key: 'remaining' },
+          ]
+      : [{ value: 1, key: 'empty' }];
+
+  const overflowAmount = isOver && cap !== null ? Math.min(eaten - cap, cap) : 0;
+  const overflowData =
+    isOver && cap !== null
+      ? [
+          { value: overflowAmount, key: 'overflow' },
+          { value: cap - overflowAmount, key: 'overflow-empty' },
+        ]
+      : [
+          { value: 0, key: 'overflow' },
+          { value: 0, key: 'overflow-empty' },
+        ];
+
+  return { isOver, isUnder, remaining, arcColor, chartData, overflowData };
+}
+
 /**
  * Groups an array of meal logs by their meal type.
  * @param meals - Array of meal log entries to group

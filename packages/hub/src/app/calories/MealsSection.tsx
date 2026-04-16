@@ -4,7 +4,6 @@ import { useState } from 'react';
 import type { MealLog } from '@my-hub/shared/types';
 import { apiFetch } from '@/lib/utils';
 import { dateToString } from '@my-hub/shared/utils';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { SectionCard } from '@/components/SectionCard';
 import { Button, Field, Input, Select } from '@/components';
 import {
@@ -17,6 +16,7 @@ import {
 import { MealType, MealTypes, MealTypesValues } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from './constants';
 import { groupByMealType, formatDateLabel, shiftDate } from './calories.utils';
+import { CaloriesDonut } from './CaloriesDonut';
 
 interface Props {
   meals: MealLog[];
@@ -72,33 +72,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
   const totalFat = Math.round(meals.reduce((sum, m) => sum + (m.fat ?? 0), 0));
   const hasMacros = totalProtein > 0 || totalCarbs > 0 || totalFat > 0;
 
-  // Calorie consumption donut
   const cap = (maxCalories ?? goalCalories) || null;
-  const isOver = cap !== null && total > cap;
-  const remaining = cap !== null ? Math.max(cap - total, 0) : null;
-  const arcColor = cap !== null ? (isOver ? '#ef4444' : '#4ade80') : '#3f3f46';
-
-  const donutData =
-    cap !== null
-      ? isOver
-        ? [{ value: cap, key: 'eaten' }]
-        : [
-            { value: total, key: 'eaten' },
-            { value: remaining!, key: 'remaining' },
-          ]
-      : [{ value: 1, key: 'empty' }];
-
-  const overflowAmount = cap !== null && isOver ? Math.min(total - cap, cap) : 0;
-  const overflowData =
-    cap !== null
-      ? [
-          { value: overflowAmount, key: 'overflow' },
-          { value: cap - overflowAmount, key: 'overflow-empty' },
-        ]
-      : [
-          { value: 0, key: 'overflow' },
-          { value: 0, key: 'overflow-empty' },
-        ];
 
   function startEdit(meal: MealLog) {
     setEditingMealId(meal.mealId);
@@ -224,68 +198,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
       {/* Calorie consumption summary */}
       <div className="flex flex-col md:flex-row items-center gap-6 mb-5">
         {/* Donut */}
-        <div className="relative w-[140px] h-[140px] flex-shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              {isOver ? (
-                <>
-                  <Pie
-                    data={[{ value: 1, key: 'bg' }]}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={44}
-                    outerRadius={62}
-                    startAngle={90}
-                    endAngle={-270}
-                    dataKey="value"
-                    strokeWidth={0}
-                    isAnimationActive={false}
-                  >
-                    <Cell fill="#ef4444" />
-                  </Pie>
-                  <Pie
-                    data={overflowData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={44}
-                    outerRadius={62}
-                    startAngle={90}
-                    endAngle={-270}
-                    dataKey="value"
-                    strokeWidth={0}
-                    animationDuration={800}
-                  >
-                    <Cell key="overflow" fill="#fecaca" />
-                    <Cell key="overflow-empty" fill="transparent" />
-                  </Pie>
-                </>
-              ) : (
-                <Pie
-                  data={donutData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={44}
-                  outerRadius={62}
-                  startAngle={90}
-                  endAngle={-270}
-                  dataKey="value"
-                  strokeWidth={0}
-                  animationDuration={800}
-                >
-                  {donutData.map((entry, i) => (
-                    <Cell key={entry.key} fill={i === 0 ? arcColor : '#27272a'} />
-                  ))}
-                </Pie>
-              )}
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-2xl font-bold ${isOver ? 'text-red-400' : ''}`}>
-              {cap !== null ? (isOver ? `+${total - cap}` : remaining) : total}
-            </span>
-            <span className="text-[11px] text-zinc-500">{cap !== null ? (isOver ? 'Over' : 'Remaining') : 'kcal'}</span>
-          </div>
-        </div>
+        <CaloriesDonut eaten={total} cap={cap} textSize="text-2xl" />
 
         {/* Stats */}
         <div className="flex-1 w-full">
@@ -298,6 +211,15 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
             <MacroPill label="Protein" value={totalProtein} unit="g" color="bg-sky-400" />
             <MacroPill label="Fat" value={totalFat} unit="g" color="bg-rose-400" />
           </div>
+          {cap === null && (
+            <p className="text-xs text-zinc-500 mt-3">
+              No calorie goal set.{' '}
+              <a href="/profile" className="text-zinc-400 underline underline-offset-2 hover:text-zinc-200">
+                Complete your profile
+              </a>{' '}
+              to see targets.
+            </p>
+          )}
         </div>
       </div>
 
