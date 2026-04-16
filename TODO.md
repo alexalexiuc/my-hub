@@ -25,7 +25,7 @@
 - [ ]Add contact info for reservations. Update mpc server & UI to be able to set & review
   Also add a new action in the Coming Next chips to be able to contact property(do not show for flights)
 - [x]Add props to icons to be able to resize and change color, so they can be used in more places across the app, not only in travel. Update existing icons to use the new props. (GoogleIcon is an example)
-- [ ]See how to fix graphs not being displayed in email for calories reporting.
-- [ ]Consider if moving all Labels objects in hub UI to a single file.
-- [ ] If profile is not fully setup, meals chart appear without max color. Maybe we should either add a tooltip to explain or not show the chart at all until profile is complete.
+- [x]See how to fix graphs not being displayed in email for calories reporting.
+- [x]Consider if moving all Labels objects in hub UI to a single file.
+- [x] If profile is not fully setup, meals chart appear without max color. Maybe we should either add a tooltip to explain or not show the chart at all until profile is complete.
 - [x] Add timestamp to logs or use a different tool instead of console.log for better log management and analysis.

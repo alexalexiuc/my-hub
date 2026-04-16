@@ -1,4 +1,4 @@
-import { dayNamesShort, MeasurementTypes } from '../../../../constants';
+import { MeasurementTypes } from '../../../../constants';
 import type { WeeklyReportData, WeightPoint } from './types';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -23,10 +23,10 @@ function barColor(delta: number): string {
   return '#3a1d1d';
 }
 
-function deltaClass(delta: number): string {
-  if (delta <= 0) return 'c-green';
-  if (delta <= 200) return 'c-amber';
-  return 'c-red';
+function deltaColorHex(delta: number): string {
+  if (delta <= 0) return '#3db87a';
+  if (delta <= 200) return '#d4924a';
+  return '#e05a5a';
 }
 
 function weekRange(start: Date, end: Date): string {
@@ -337,73 +337,94 @@ function buildSummary(data: WeeklyReportData): string {
 
   const deficitSectionLabel = weeklyDeficit >= 0 ? 'Weekly deficit' : 'Weekly surplus';
 
+  const CARD = 'background:#0d1219;border:1px solid #1a2230;border-radius:8px;padding:14px 16px;';
+
   return `
   <div class="section-label">Summary</div>
-  <div class="stat-row">
-    <div class="stat-card">
-      <div class="stat-label">Avg daily intake</div>
-      <div class="stat-value">${fmt(avgDailyKcal)}<span class="stat-unit">kcal</span></div>
-      <div class="stat-sub">Goal: ${fmt(data.goalMaxCalories)} kcal</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Days on target</div>
-      <div class="stat-value">${daysOnTarget}<span class="stat-unit">/ ${daysWithData.length}</span></div>
-      <div class="stat-sub">of 7 days</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">${deficitSectionLabel}</div>
-      <div class="stat-value">${deficitLabel}<span class="stat-unit">kcal</span></div>
-      <div class="stat-sub">${kgLabel}</div>
-    </div>
-  </div>`;
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+    <tr>
+      <td style="padding-right:5px;vertical-align:top;width:33%;">
+        <div style="${CARD}">
+          <div class="stat-label">Avg daily intake</div>
+          <div class="stat-value">${fmt(avgDailyKcal)}<span class="stat-unit">kcal</span></div>
+          <div class="stat-sub">Goal: ${fmt(data.goalMaxCalories)} kcal</div>
+        </div>
+      </td>
+      <td style="padding:0 3px;vertical-align:top;width:33%;">
+        <div style="${CARD}">
+          <div class="stat-label">Days on target</div>
+          <div class="stat-value">${daysOnTarget}<span class="stat-unit">/ ${daysWithData.length}</span></div>
+          <div class="stat-sub">of 7 days</div>
+        </div>
+      </td>
+      <td style="padding-left:5px;vertical-align:top;width:33%;">
+        <div style="${CARD}">
+          <div class="stat-label">${deficitSectionLabel}</div>
+          <div class="stat-value">${deficitLabel}<span class="stat-unit">kcal</span></div>
+          <div class="stat-sub">${kgLabel}</div>
+        </div>
+      </td>
+    </tr>
+  </table>`;
 }
 
 function buildBarChart(data: WeeklyReportData): string {
   const BAR_SCALE = 4500;
   const goalLinePct = ((data.goalMaxCalories / BAR_SCALE) * 100).toFixed(1);
 
+  const DAY_TD = `font-family:'IBM Plex Mono','Courier New',monospace;font-size:11px;color:#4b5a6b;white-space:nowrap;width:30px;padding-right:10px;padding-bottom:8px;vertical-align:middle;`;
+  const KCAL_TD = `font-family:'IBM Plex Mono','Courier New',monospace;font-size:11px;color:#4b5a6b;text-align:right;white-space:nowrap;width:50px;padding-right:10px;padding-bottom:8px;vertical-align:middle;`;
+  const DELTA_TD_BASE = `font-family:'IBM Plex Mono','Courier New',monospace;font-size:10px;text-align:right;white-space:nowrap;width:50px;padding-bottom:8px;vertical-align:middle;`;
+  const TRACK = `height:22px;background:#111820;border-radius:3px;position:relative;overflow:visible;`;
+
   const bars = data.days
     .map((day) => {
       const dayLabel = getWeekDayLabel(day.date);
       if (!day.hasData) {
         return `
-    <div class="bar-row">
-      <div class="bar-day">${dayLabel}</div>
-      <div class="bar-track">
-        <div class="bar-goal-line" style="left:${goalLinePct}%;"></div>
-      </div>
-      <div class="bar-kcal">&mdash;</div>
-      <div class="bar-delta" style="color:#4b5a6b;">&mdash;</div>
-    </div>`;
+    <tr>
+      <td style="${DAY_TD}">${dayLabel}</td>
+      <td style="padding-right:10px;padding-bottom:8px;vertical-align:middle;">
+        <div style="${TRACK}">
+          <div style="position:absolute;top:-4px;bottom:-4px;width:1px;background:#2e4a62;left:${goalLinePct}%;"></div>
+        </div>
+      </td>
+      <td style="${KCAL_TD}">&mdash;</td>
+      <td style="${DELTA_TD_BASE}color:#4b5a6b;">&mdash;</td>
+    </tr>`;
       }
 
       const delta = day.kcal - data.goalMaxCalories;
       const widthPct = Math.min((day.kcal / BAR_SCALE) * 100, 100).toFixed(1);
-      const bg = barColor(delta);
-      const cls = deltaClass(delta);
       const deltaStr = signedKcal(delta);
 
       return `
-    <div class="bar-row">
-      <div class="bar-day">${dayLabel}</div>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:${widthPct}%; background:${bg};"></div>
-        <div class="bar-goal-line" style="left:${goalLinePct}%;"></div>
-      </div>
-      <div class="bar-kcal">${fmt(day.kcal)}</div>
-      <div class="bar-delta ${cls}">${deltaStr}</div>
-    </div>`;
+    <tr>
+      <td style="${DAY_TD}">${dayLabel}</td>
+      <td style="padding-right:10px;padding-bottom:8px;vertical-align:middle;">
+        <div style="${TRACK}">
+          <div style="width:${widthPct}%;height:22px;background:${barColor(delta)};border-radius:3px;"></div>
+          <div style="position:absolute;top:-4px;bottom:-4px;width:1px;background:#2e4a62;left:${goalLinePct}%;"></div>
+        </div>
+      </td>
+      <td style="${KCAL_TD}">${fmt(day.kcal)}</td>
+      <td style="${DELTA_TD_BASE}color:${deltaColorHex(delta)};">${deltaStr}</td>
+    </tr>`;
     })
     .join('');
 
   return `
   <div class="section-label">Daily calories</div>
   <div class="chart-block">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-      <span style="font-size:12px; color:#4b5a6b;">Goal: ${fmt(data.goalMaxCalories)} kcal/day</span>
-      <span style="font-size:11px; color:#2e4a62;">&verbar; = goal</span>
-    </div>
-    ${bars}
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
+      <tr>
+        <td style="font-size:12px;color:#4b5a6b;">Goal: ${fmt(data.goalMaxCalories)} kcal/day</td>
+        <td style="text-align:right;font-size:11px;color:#2e4a62;">&verbar;&nbsp;=&nbsp;goal</td>
+      </tr>
+    </table>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      ${bars}
+    </table>
   </div>`;
 }
 
@@ -419,28 +440,38 @@ function buildMacros(data: WeeklyReportData): string {
   const proteinPct = Math.round(((avgProtein * 4) / avgKcal) * 100);
   const fatPct = Math.round(((avgFat * 9) / avgKcal) * 100);
 
+  const CARD = 'background:#0d1219;border:1px solid #1a2230;border-radius:8px;padding:14px 16px;';
+
   return `
   <div class="section-label">Average macro split</div>
-  <div class="macro-row">
-    <div class="macro-card">
-      <div class="macro-name"><span class="macro-dot" style="background:#d4924a;"></span>Carbs</div>
-      <div class="macro-g">${avgCarbs}<span style="font-size:13px; color:#4b5a6b;"> g</span></div>
-      <div class="macro-pct">${carbsPct}% of calories</div>
-      <div class="macro-bar-track"><div class="macro-bar-fill" style="width:${carbsPct}%; background:#d4924a;"></div></div>
-    </div>
-    <div class="macro-card">
-      <div class="macro-name"><span class="macro-dot" style="background:#4a7fa5;"></span>Protein</div>
-      <div class="macro-g">${avgProtein}<span style="font-size:13px; color:#4b5a6b;"> g</span></div>
-      <div class="macro-pct">${proteinPct}% of calories</div>
-      <div class="macro-bar-track"><div class="macro-bar-fill" style="width:${proteinPct}%; background:#4a7fa5;"></div></div>
-    </div>
-    <div class="macro-card">
-      <div class="macro-name"><span class="macro-dot" style="background:#c05a6e;"></span>Fat</div>
-      <div class="macro-g">${avgFat}<span style="font-size:13px; color:#4b5a6b;"> g</span></div>
-      <div class="macro-pct">${fatPct}% of calories</div>
-      <div class="macro-bar-track"><div class="macro-bar-fill" style="width:${fatPct}%; background:#c05a6e;"></div></div>
-    </div>
-  </div>`;
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+    <tr>
+      <td style="padding-right:5px;vertical-align:top;width:33%;">
+        <div style="${CARD}">
+          <div class="macro-name"><span class="macro-dot" style="background:#d4924a;"></span>Carbs</div>
+          <div class="macro-g">${avgCarbs}<span style="font-size:13px;color:#4b5a6b;"> g</span></div>
+          <div class="macro-pct">${carbsPct}% of calories</div>
+          <div style="height:3px;background:#111820;border-radius:2px;margin-top:10px;"><div style="width:${carbsPct}%;height:3px;background:#d4924a;border-radius:2px;"></div></div>
+        </div>
+      </td>
+      <td style="padding:0 3px;vertical-align:top;width:33%;">
+        <div style="${CARD}">
+          <div class="macro-name"><span class="macro-dot" style="background:#4a7fa5;"></span>Protein</div>
+          <div class="macro-g">${avgProtein}<span style="font-size:13px;color:#4b5a6b;"> g</span></div>
+          <div class="macro-pct">${proteinPct}% of calories</div>
+          <div style="height:3px;background:#111820;border-radius:2px;margin-top:10px;"><div style="width:${proteinPct}%;height:3px;background:#4a7fa5;border-radius:2px;"></div></div>
+        </div>
+      </td>
+      <td style="padding-left:5px;vertical-align:top;width:33%;">
+        <div style="${CARD}">
+          <div class="macro-name"><span class="macro-dot" style="background:#c05a6e;"></span>Fat</div>
+          <div class="macro-g">${avgFat}<span style="font-size:13px;color:#4b5a6b;"> g</span></div>
+          <div class="macro-pct">${fatPct}% of calories</div>
+          <div style="height:3px;background:#111820;border-radius:2px;margin-top:10px;"><div style="width:${fatPct}%;height:3px;background:#c05a6e;border-radius:2px;"></div></div>
+        </div>
+      </td>
+    </tr>
+  </table>`;
 }
 
 function buildWeightSparkline(data: WeeklyReportData): string {
@@ -461,127 +492,106 @@ function buildWeightSparkline(data: WeeklyReportData): string {
       : '';
 
   const headerHtml = `
-    <div class="weight-header">
-      <div>
-        <div style="font-size:11px; color:#4b5a6b; margin-bottom:4px;">Current weight</div>
-        <div class="weight-main">${currentWeight !== null ? fmtWeight(currentWeight) : '—'} <span style="font-size:16px; color:#4b5a6b; font-weight:400;">kg</span></div>
-        ${deltaTagHtml}
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:11px; color:#4b5a6b; margin-bottom:4px;">Projected end-of-week</div>
-        <div style="font-family:'IBM Plex Mono','Courier New',monospace; font-size:18px; color:#e4eaf2;">${projectedEndWeight !== null ? fmtWeight(projectedEndWeight) : '—'} kg</div>
-        <div style="font-size:11px; color:#4b5a6b; margin-top:4px;">Weekly target: ${MINUS}${fmtWeight(data.goalWeeklyRateKg)} kg</div>
-      </div>
-    </div>`;
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+      <tr>
+        <td style="vertical-align:top;">
+          <div style="font-size:11px;color:#4b5a6b;margin-bottom:4px;">Current weight</div>
+          <div class="weight-main">${currentWeight !== null ? fmtWeight(currentWeight) : '—'} <span style="font-size:16px;color:#4b5a6b;font-weight:400;">kg</span></div>
+          ${deltaTagHtml}
+        </td>
+        <td style="text-align:right;vertical-align:top;">
+          <div style="font-size:11px;color:#4b5a6b;margin-bottom:4px;">Projected end-of-week</div>
+          <div style="font-family:'IBM Plex Mono','Courier New',monospace;font-size:18px;color:#e4eaf2;">${projectedEndWeight !== null ? fmtWeight(projectedEndWeight) : '—'} kg</div>
+          <div style="font-size:11px;color:#4b5a6b;margin-top:4px;">Weekly target: ${MINUS}${fmtWeight(data.goalWeeklyRateKg)} kg</div>
+        </td>
+      </tr>
+    </table>`;
 
-  // Sparkline SVG (only if ≥ 2 measurements)
-  let svgHtml: string;
+  // Weight chart (only if ≥ 2 measurements)
+  let chartHtml: string;
   if (points.length < 2) {
-    svgHtml = `<p style="font-size:12px; color:#4b5a6b;">No weight measurements logged this week.</p>`;
+    chartHtml = `<p style="font-size:12px; color:#4b5a6b;">No weight measurements logged this week.</p>`;
   } else {
-    svgHtml = buildSparklineSvg(points, data);
+    chartHtml = buildWeightChartImg(points, data);
   }
 
   return `
   <div class="section-label">Weight progress</div>
   <div class="weight-block">
     ${headerHtml}
-    ${svgHtml}
+    ${chartHtml}
   </div>`;
 }
 
-function buildSparklineSvg(points: WeightPoint[], data: WeeklyReportData): string {
-  // Map weekStart dates to x positions
-  const xPositions = [42, 125, 208, 290, 373, 456, 518];
-
-  const values = points.map((p) => p.value);
-  const rawMin = Math.min(...values);
-  const rawMax = Math.max(...values);
-  const yMin = parseFloat((rawMin - 0.3).toFixed(1));
-  const yMax = parseFloat((rawMax + 0.3).toFixed(1));
-  const yMid = parseFloat(((yMin + yMax) / 2).toFixed(1));
-  const yRange = yMax - yMin || 1;
-
-  function toY(v: number): number {
-    return 80 - ((v - yMin) / yRange) * 58;
-  }
-
-  // Build a map of day index → weight value
-  const dayValues = new Map<number, number>();
+function buildWeightChartImg(points: WeightPoint[], data: WeeklyReportData): string {
+  const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dayValues: (number | null)[] = new Array(7).fill(null);
   const weekStartMs = new Date(data.weekStart.toISOString().slice(0, 10) + 'T00:00:00Z').getTime();
   for (const pt of points) {
     const d = new Date(pt.date + 'T00:00:00Z');
-    const dayIndex = Math.floor((d.getTime() - weekStartMs) / 86400000);
-    if (dayIndex >= 0 && dayIndex < 7) {
-      dayValues.set(dayIndex, pt.value);
-    }
+    const idx = Math.floor((d.getTime() - weekStartMs) / 86400000);
+    if (idx >= 0 && idx < 7) dayValues[idx] = pt.value;
   }
 
-  // Build polyline points for actual data
-  const actualPoints: Array<[number, number]> = [];
-  for (const [idx, val] of dayValues.entries()) {
-    actualPoints.push([xPositions[idx]!, toY(val)]);
+  const lastDataIndex = dayValues.reduce<number>((last, v, i) => (v !== null ? i : last), -1);
+
+  // Projected line: Monday weight → Sunday projected weight (span over all 7 days)
+  const mondayWeight = dayValues[0] ?? dayValues.find((v) => v !== null) ?? null;
+  const projectedData: (number | null)[] = new Array(7).fill(null);
+  if (mondayWeight !== null) {
+    projectedData[0] = mondayWeight;
+    projectedData[6] = parseFloat((mondayWeight - data.goalWeeklyRateKg).toFixed(2));
   }
-  actualPoints.sort((a, b) => a[0] - b[0]);
 
-  const polylineCoords = actualPoints.map(([x, y]) => `${x},${y.toFixed(1)}`).join(' ');
+  const chartConfig = {
+    type: 'line',
+    data: {
+      labels: dayLabels,
+      datasets: [
+        {
+          label: '',
+          data: dayValues,
+          borderColor: '#4a7fa5',
+          backgroundColor: 'rgba(74,127,165,0.15)',
+          pointBackgroundColor: '#4a7fa5',
+          pointRadius: dayValues.map((v, i) => (v === null ? 0 : i === lastDataIndex ? 4 : 3)),
+          fill: true,
+          tension: 0.3,
+          spanGaps: false,
+        },
+        {
+          label: '',
+          data: projectedData,
+          borderColor: '#2e4a62',
+          borderDash: [4, 3],
+          pointRadius: 0,
+          fill: false,
+          tension: 0,
+          spanGaps: true,
+        },
+      ],
+    },
+    options: {
+      legend: { display: false },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          ticks: { color: '#4b5a6b', font: { size: 8 } },
+          grid: { color: '#1a2230' },
+          border: { color: '#1a2230' },
+        },
+        y: {
+          ticks: { color: '#4b5a6b', font: { size: 8 } },
+          grid: { color: '#1a2230' },
+          border: { color: '#1a2230' },
+        },
+      },
+    },
+  };
 
-  // Area fill path
-  const firstPt = actualPoints[0]!;
-  const lastPt = actualPoints[actualPoints.length - 1]!;
-
-  // Projected line: from Monday to Sunday
-  const mondayWeight = dayValues.get(0) ?? values[0]!;
-  const projectedSundayWeight = mondayWeight - data.goalWeeklyRateKg;
-  const projStartY = toY(mondayWeight).toFixed(1);
-  const projEndY = toY(projectedSundayWeight).toFixed(1);
-
-  // Data point circles
-  const circles = actualPoints
-    .map(([x, y], i) => {
-      const isLast = i === actualPoints.length - 1;
-      return isLast
-        ? `<circle cx="${x}" cy="${y.toFixed(1)}" r="4" fill="#4a7fa5" stroke="#4a7fa5" stroke-width="1.5"/>`
-        : `<circle cx="${x}" cy="${y.toFixed(1)}" r="3.5" fill="#0d1219" stroke="#4a7fa5" stroke-width="1.5"/>`;
-    })
-    .join('\n      ');
-
-  // X axis labels
-  const xLabels = dayNamesShort
-    .map(
-      (label, i) =>
-        `<text x="${xPositions[i]}" y="88" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="#2e3d50">${label}</text>`,
-    )
-    .join('\n      ');
-
-  // Grid lines at yMin, yMid, yMax positions
-  const gridY1 = toY(yMax).toFixed(1);
-  const gridY2 = toY(yMid).toFixed(1);
-  const gridY3 = toY(yMin).toFixed(1);
-
-  return `<svg class="weight-svg" viewBox="0 0 560 90" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
-      <defs>
-        <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#4a7fa5" stop-opacity="0.15"/>
-          <stop offset="100%" stop-color="#4a7fa5" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <line x1="0" y1="${gridY1}" x2="560" y2="${gridY1}" stroke="#1a2230" stroke-width="1"/>
-      <line x1="0" y1="${gridY2}" x2="560" y2="${gridY2}" stroke="#1a2230" stroke-width="1"/>
-      <line x1="0" y1="${gridY3}" x2="560" y2="${gridY3}" stroke="#1a2230" stroke-width="1"/>
-      <text x="0" y="${(parseFloat(gridY1) - 2).toFixed(1)}" font-family="IBM Plex Mono, monospace" font-size="9" fill="#2e3d50">${fmtWeight(yMax)}</text>
-      <text x="0" y="${(parseFloat(gridY2) - 2).toFixed(1)}" font-family="IBM Plex Mono, monospace" font-size="9" fill="#2e3d50">${fmtWeight(yMid)}</text>
-      <text x="0" y="${(parseFloat(gridY3) - 2).toFixed(1)}" font-family="IBM Plex Mono, monospace" font-size="9" fill="#2e3d50">${fmtWeight(yMin)}</text>
-      <line x1="42" y1="${projStartY}" x2="518" y2="${projEndY}" stroke="#2e4a62" stroke-width="1.5" stroke-dasharray="4,3"/>
-      <path d="M${polylineCoords.split(' ').join(' L')} L${lastPt[0]},90 L${firstPt[0]},90 Z" fill="url(#wg)"/>
-      <polyline points="${polylineCoords}" fill="none" stroke="#4a7fa5" stroke-width="2"/>
-      ${circles}
-      ${xLabels}
-      <line x1="350" y1="8" x2="370" y2="8" stroke="#4a7fa5" stroke-width="2"/>
-      <text x="374" y="11" font-family="IBM Plex Mono, monospace" font-size="9" fill="#4b5a6b">Actual</text>
-      <line x1="420" y1="8" x2="440" y2="8" stroke="#2e4a62" stroke-width="1.5" stroke-dasharray="4,3"/>
-      <text x="444" y="11" font-family="IBM Plex Mono, monospace" font-size="9" fill="#4b5a6b">Projected</text>
-    </svg>`;
+  const encoded = encodeURIComponent(JSON.stringify(chartConfig));
+  const chartUrl = `https://quickchart.io/chart?v=3&c=${encoded}&w=520&h=130&backgroundColor=%230d1219`;
+  return `<img src="${chartUrl}" width="520" style="width:100%;display:block;" alt="Weight chart" />`;
 }
 
 function buildMeasurements(data: WeeklyReportData): string {
@@ -593,42 +603,48 @@ function buildMeasurements(data: WeeklyReportData): string {
       ? m[MeasurementTypes.Weight]! - data.priorWeekWeight
       : null;
 
-  const deltaCell =
+  const ROW_STYLE =
+    'background:#0d1219;border:1px solid #1a2230;border-radius:6px;padding:10px 14px;margin-bottom:8px;';
+  const NAME_STYLE = 'font-size:12px;color:#4b5a6b;display:block;margin-bottom:2px;white-space:nowrap;';
+  const VAL_STYLE = "font-family:'IBM Plex Mono','Courier New',monospace;font-size:14px;color:#e4eaf2;";
+
+  function measureCell(label: string, value: string, side: 'left' | 'right' = 'left') {
+    const pad = side === 'left' ? 'padding-right:4px;' : 'padding-left:4px;';
+    return `<td style="${pad}padding-bottom:8px;vertical-align:top;width:50%;">
+        <div style="${ROW_STYLE}">
+          <span style="${NAME_STYLE}">${label}</span>
+          <span style="${VAL_STYLE}">${value}</span>
+        </div>
+      </td>`;
+  }
+
+  const deltaRowHtml =
     weightDelta !== null
-      ? `<div class="measure-row" style="border-color:#1e3028;">
-          <span class="measure-name" style="color:#3db87a;">Week delta</span>
-          <span class="measure-val" style="color:#3db87a; font-size:13px;">${weightDelta <= 0 ? MINUS : '+'}${Math.abs(weightDelta).toFixed(2)} kg</span>
+      ? `<div style="${ROW_STYLE}border-color:#1e3028;">
+          <span style="${NAME_STYLE}color:#3db87a;">Week delta</span>
+          <span style="${VAL_STYLE}color:#3db87a;font-size:13px;">${weightDelta <= 0 ? MINUS : '+'}${Math.abs(weightDelta).toFixed(2)} kg</span>
         </div>`
-      : `<div class="measure-row">
-          <span class="measure-name">Week delta</span>
-          <span class="measure-val" style="font-size:12px; color:#4b5a6b;">No prior data</span>
+      : `<div style="${ROW_STYLE}">
+          <span style="${NAME_STYLE}">Week delta</span>
+          <span style="${VAL_STYLE}font-size:12px;color:#4b5a6b;">No prior data</span>
         </div>`;
 
   return `
   <div class="section-label">Body measurements</div>
-  <div class="measure-grid">
-    <div class="measure-row">
-      <span class="measure-name">Body fat</span>
-      <span class="measure-val">${fmtVal(m[MeasurementTypes.BodyFat])}<span style="font-size:11px; color:#4b5a6b;"> %</span></span>
-    </div>
-    <div class="measure-row">
-      <span class="measure-name">Weight</span>
-      <span class="measure-val">${fmtVal(m[MeasurementTypes.Weight])}<span style="font-size:11px; color:#4b5a6b;"> kg</span></span>
-    </div>
-    <div class="measure-row">
-      <span class="measure-name">Waist</span>
-      <span class="measure-val">${fmtVal(m[MeasurementTypes.Waist], 0)}<span style="font-size:11px; color:#4b5a6b;"> cm</span></span>
-    </div>
-    <div class="measure-row">
-      <span class="measure-name">Chest</span>
-      <span class="measure-val">${fmtVal(m[MeasurementTypes.Chest], 0)}<span style="font-size:11px; color:#4b5a6b;"> cm</span></span>
-    </div>
-    <div class="measure-row">
-      <span class="measure-name">Neck</span>
-      <span class="measure-val">${fmtVal(m[MeasurementTypes.Neck], 0)}<span style="font-size:11px; color:#4b5a6b;"> cm</span></span>
-    </div>
-    ${deltaCell}
-  </div>`;
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;table-layout:fixed;">
+    <tr>
+      ${measureCell('Body fat', `${fmtVal(m[MeasurementTypes.BodyFat])}<span style="font-size:11px;color:#4b5a6b;"> %</span>`)}
+      ${measureCell('Weight', `${fmtVal(m[MeasurementTypes.Weight])}<span style="font-size:11px;color:#4b5a6b;"> kg</span>`, 'right')}
+    </tr>
+    <tr>
+      ${measureCell('Waist', `${fmtVal(m[MeasurementTypes.Waist], 0)}<span style="font-size:11px;color:#4b5a6b;"> cm</span>`)}
+      ${measureCell('Chest', `${fmtVal(m[MeasurementTypes.Chest], 0)}<span style="font-size:11px;color:#4b5a6b;"> cm</span>`, 'right')}
+    </tr>
+    <tr>
+      ${measureCell('Neck', `${fmtVal(m[MeasurementTypes.Neck], 0)}<span style="font-size:11px;color:#4b5a6b;"> cm</span>`)}
+      <td style="padding-left:4px;padding-bottom:8px;vertical-align:top;width:50%;">${deltaRowHtml}</td>
+    </tr>
+  </table>`;
 }
 
 function buildOutlook(data: WeeklyReportData): string {
@@ -643,24 +659,28 @@ function buildOutlook(data: WeeklyReportData): string {
   return `
   <div class="section-label">Next week outlook</div>
   <div class="chart-block" style="margin-bottom:28px;">
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-      <div>
-        <div style="font-size:11px; color:#4b5a6b; margin-bottom:4px;">TDEE</div>
-        <div style="font-family:'IBM Plex Mono','Courier New',monospace; font-size:16px; color:#e4eaf2;">${fmt(data.tdee)} <span style="font-size:11px; color:#4b5a6b;">kcal/day</span></div>
-      </div>
-      <div>
-        <div style="font-size:11px; color:#4b5a6b; margin-bottom:4px;">Target intake</div>
-        <div style="font-family:'IBM Plex Mono','Courier New',monospace; font-size:16px; color:#e4eaf2;">${fmt(data.goalMaxCalories)} <span style="font-size:11px; color:#4b5a6b;">kcal/day</span></div>
-      </div>
-      <div>
-        <div style="font-size:11px; color:#4b5a6b; margin-bottom:4px;">Daily deficit</div>
-        <div style="font-family:'IBM Plex Mono','Courier New',monospace; font-size:16px; color:${deficitColor};">${deficitStr} <span style="font-size:11px;">kcal</span></div>
-      </div>
-      <div>
-        <div style="font-size:11px; color:#4b5a6b; margin-bottom:4px;">Projected weight</div>
-        <div style="font-family:'IBM Plex Mono','Courier New',monospace; font-size:16px; color:#e4eaf2;">${projectedWeight != null ? fmtWeight(projectedWeight) : '—'} <span style="font-size:11px; color:#4b5a6b;">kg</span></div>
-      </div>
-    </div>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="width:50%;padding-right:8px;padding-bottom:16px;vertical-align:top;">
+          <div style="font-size:11px;color:#4b5a6b;margin-bottom:4px;">TDEE</div>
+          <div style="font-family:'IBM Plex Mono','Courier New',monospace;font-size:16px;color:#e4eaf2;">${fmt(data.tdee)} <span style="font-size:11px;color:#4b5a6b;">kcal/day</span></div>
+        </td>
+        <td style="width:50%;padding-bottom:16px;vertical-align:top;">
+          <div style="font-size:11px;color:#4b5a6b;margin-bottom:4px;">Target intake</div>
+          <div style="font-family:'IBM Plex Mono','Courier New',monospace;font-size:16px;color:#e4eaf2;">${fmt(data.goalMaxCalories)} <span style="font-size:11px;color:#4b5a6b;">kcal/day</span></div>
+        </td>
+      </tr>
+      <tr>
+        <td style="width:50%;padding-right:8px;vertical-align:top;">
+          <div style="font-size:11px;color:#4b5a6b;margin-bottom:4px;">Daily deficit</div>
+          <div style="font-family:'IBM Plex Mono','Courier New',monospace;font-size:16px;color:${deficitColor};">${deficitStr} <span style="font-size:11px;">kcal</span></div>
+        </td>
+        <td style="width:50%;vertical-align:top;">
+          <div style="font-size:11px;color:#4b5a6b;margin-bottom:4px;">Projected weight</div>
+          <div style="font-family:'IBM Plex Mono','Courier New',monospace;font-size:16px;color:#e4eaf2;">${projectedWeight != null ? fmtWeight(projectedWeight) : '—'} <span style="font-size:11px;color:#4b5a6b;">kg</span></div>
+        </td>
+      </tr>
+    </table>
     <div style="margin-top:14px; padding-top:14px; border-top:1px solid #1a2230; font-size:12px; color:#4b5a6b; line-height:1.7;">
       BMR ${fmt(data.bmr)} kcal &middot; Active ${fmt(activeKcal)} kcal &middot; Goal rate ${MINUS}${fmtWeight(data.goalWeeklyRateKg)} kg/week
     </div>
