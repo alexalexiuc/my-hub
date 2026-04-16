@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { dateToString, calculateMacroKcal, calculateCalorieTargets } from '@my-hub/shared/utils';
 import { SectionCard, Button, Input, Select } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons';
 import { MealType, MealTypes, MealTypesValues } from '@my-hub/shared/constants';
 import { apiFetch } from '@/lib/utils';
-import { MEAL_LABEL } from '@/app/calories/constants';
+import { MEAL_LABEL } from './constants';
+import { CaloriesDonut } from './CaloriesDonut';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 
@@ -152,34 +152,6 @@ export function CaloriesWidget() {
   const sharePct = (kcal: number) => (totalMacroKcal > 0 ? Math.round((kcal / totalMacroKcal) * 100) : 0);
 
   const cap = maxCalories ?? todayTarget;
-  const isOver = cap !== null && todayKcal > cap;
-  const isUnder = minCalories !== null && todayKcal < minCalories;
-  const remaining = cap !== null ? Math.max(cap - todayKcal, 0) : null;
-
-  const eaten = todayKcal;
-  const chartData =
-    cap !== null
-      ? isOver
-        ? [{ value: cap, key: 'eaten' }]
-        : [
-            { value: eaten, key: 'eaten' },
-            { value: remaining!, key: 'remaining' },
-          ]
-      : [{ value: 1, key: 'empty' }];
-
-  const arcColor = cap !== null ? (isOver ? '#ef4444' : isUnder ? '#facc15' : '#4ade80') : '#3f3f46';
-
-  const overflowAmount = isOver && cap !== null ? Math.min(todayKcal - cap, cap) : 0;
-  const overflowData =
-    isOver && cap !== null
-      ? [
-          { value: overflowAmount, key: 'overflow' },
-          { value: cap - overflowAmount, key: 'overflow-empty' },
-        ]
-      : [
-          { value: 0, key: 'overflow' },
-          { value: 0, key: 'overflow-empty' },
-        ];
 
   return (
     <SectionCard
@@ -209,75 +181,11 @@ export function CaloriesWidget() {
         </div>
       ) : (
         <div className="flex flex-col items-center">
-          {/* Donut chart */}
-          <div className="relative w-[140px] h-[140px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                {isOver ? (
-                  <>
-                    <Pie
-                      data={[{ value: 1, key: 'bg' }]}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={45}
-                      outerRadius={62}
-                      startAngle={90}
-                      endAngle={-270}
-                      dataKey="value"
-                      strokeWidth={0}
-                      isAnimationActive={false}
-                    >
-                      <Cell fill="#ef4444" />
-                    </Pie>
-                    <Pie
-                      data={overflowData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={45}
-                      outerRadius={62}
-                      startAngle={90}
-                      endAngle={-270}
-                      dataKey="value"
-                      strokeWidth={0}
-                      animationDuration={800}
-                    >
-                      <Cell key="overflow" fill="#fecaca" />
-                      <Cell key="overflow-empty" fill="transparent" />
-                    </Pie>
-                  </>
-                ) : (
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={45}
-                    outerRadius={62}
-                    startAngle={90}
-                    endAngle={-270}
-                    dataKey="value"
-                    strokeWidth={0}
-                    animationDuration={800}
-                  >
-                    {chartData.map((entry, i) => (
-                      <Cell key={entry.key} fill={i === 0 ? arcColor : '#27272a'} />
-                    ))}
-                  </Pie>
-                )}
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={`text-xl font-bold ${isOver ? 'text-red-400' : isUnder ? 'text-yellow-400' : ''}`}>
-                {cap !== null ? (isOver ? `+${todayKcal - cap}` : remaining) : eaten}
-              </span>
-              <span className="text-[10px] text-zinc-500">
-                {cap !== null ? (isOver ? 'Over' : 'Remaining') : 'kcal'}
-              </span>
-            </div>
-          </div>
+          <CaloriesDonut eaten={todayKcal} cap={cap} min={minCalories} innerRadius={45} />
 
           {/* Eaten / Target line */}
           <p className="text-sm text-zinc-400">
-            <span className="font-semibold text-zinc-200">{eaten}</span>
+            <span className="font-semibold text-zinc-200">{todayKcal}</span>
             {cap !== null && (
               <>
                 {' '}
@@ -287,12 +195,29 @@ export function CaloriesWidget() {
             kcal
           </p>
           {(minCalories !== null || cap !== null) && (
-            <p className={`text-xs mt-1 ${isOver ? 'text-red-400' : isUnder ? 'text-yellow-400' : 'text-zinc-500'}`}>
+            <p
+              className={`text-xs mt-1 ${
+                cap !== null && todayKcal > cap
+                  ? 'text-red-400'
+                  : minCalories !== null && todayKcal < minCalories
+                    ? 'text-yellow-400'
+                    : 'text-zinc-500'
+              }`}
+            >
               {minCalories !== null && cap !== null
                 ? `Target range: ${minCalories}-${cap} kcal`
                 : minCalories !== null
                   ? `Minimum target: ${minCalories} kcal`
                   : `Target: ${cap} kcal`}
+            </p>
+          )}
+          {cap === null && (
+            <p className="text-xs text-zinc-500 mt-1">
+              No goal set.{' '}
+              <a href="/profile" className="text-zinc-400 underline underline-offset-2 hover:text-zinc-200">
+                Complete your profile
+              </a>
+              .
             </p>
           )}
 
