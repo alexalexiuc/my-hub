@@ -7,7 +7,7 @@
  * - updateTripBooking(userId, bookingId, data) — partial update; re-validates coordinates if changed
  * - deleteTripBooking(userId, bookingId) — hard delete
  * - deleteAllUserTripBookings(userId) — bulk delete for account removal
- * Types: TripBookingInsert, TripBookingUpdate, GetTripBookingsOpts
+ * Types: TripBookingInsert, TripBookingUpdate (includes contactName/contactEmail/contactPhone), GetTripBookingsOpts
  */
 import { and, asc, eq, gte, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -36,6 +36,9 @@ export type TripBookingUpdate = Partial<
     | 'timezone'
     | 'lat'
     | 'lng'
+    | 'contactName'
+    | 'contactEmail'
+    | 'contactPhone'
   >
 >;
 

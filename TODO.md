@@ -22,8 +22,8 @@
 - [ ] Merge e2e tests to seem more natural user flow rather than CRUD-ish test for each separate component.
 - [ ] Travel mobile UX: design and implement a touch-friendly replacement for hover-only date/time details (timezone tooltip) without layout shift or duplicate browser/native tooltips.
 - [ ] Travel - Navigation does not take lat/lng from flights info, to be fixed
-- [ ]Add contact info for reservations. Update mpc server & UI to be able to set & review
-  Also add a new action in the Coming Next chips to be able to contact property(do not show for flights)
+- [x]Add contact info for reservations. Update mpc server & UI to be able to set & review
+  Also add a new action in the Coming Next chips to be able to contact property
 - [x]Add props to icons to be able to resize and change color, so they can be used in more places across the app, not only in travel. Update existing icons to use the new props. (GoogleIcon is an example)
 - [x]See how to fix graphs not being displayed in email for calories reporting.
 - [x]Consider if moving all Labels objects in hub UI to a single file.

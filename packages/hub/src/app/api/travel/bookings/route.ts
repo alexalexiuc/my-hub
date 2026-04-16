@@ -61,6 +61,9 @@ export const POST = withAuth(async ({ req, user }) => {
     details: flightDetails,
     lat: typeof body.lat === 'number' ? body.lat : null,
     lng: typeof body.lng === 'number' ? body.lng : null,
+    contactName: typeof body.contact_name === 'string' ? body.contact_name.trim() || null : null,
+    contactEmail: typeof body.contact_email === 'string' ? body.contact_email.trim() || null : null,
+    contactPhone: typeof body.contact_phone === 'string' ? body.contact_phone.trim() || null : null,
   });
 
   return NextResponse.json({ booking }, { status: 201 });

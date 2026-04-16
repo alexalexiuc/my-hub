@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import { BookingTypeIcon, Button } from '@/components';
-import { TicketIcon, DocumentIcon, ClipboardIcon, PinIcon } from '@/components/icons';
+import { TicketIcon, DocumentIcon, ClipboardIcon, PinIcon, PhoneIcon, MailOutlineIcon } from '@/components/icons';
 import type { TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { mapBookingsToSegments } from './coming-next.utils';
@@ -15,6 +15,8 @@ const actionIcons: Record<SegmentAction['type'], () => React.JSX.Element> = {
   view_booking: DocumentIcon,
   copy_ref: ClipboardIcon,
   navigate: PinIcon,
+  contact_phone: PhoneIcon,
+  contact_email: MailOutlineIcon,
 };
 
 function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLabel: string }) {
@@ -42,6 +44,10 @@ function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLa
       }
       return;
     }
+    if (action.type === 'contact_phone' || action.type === 'contact_email') {
+      window.location.href = action.value;
+      return;
+    }
     // boarding_pass, view_booking
     const newWindow = window.open(action.value, '_blank', 'noopener,noreferrer');
     if (newWindow) {
@@ -55,6 +61,13 @@ function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLa
       : `${action.label} for ${segmentLabel}`;
   const chipTitle = action.type === 'copy_ref' ? `${action.label}: ${action.value}` : action.value || action.label;
 
+  const chipColorClass =
+    action.type === 'boarding_pass'
+      ? 'border-sky-600 bg-sky-900/40 text-sky-300 hover:bg-sky-800/50 hover:text-sky-300'
+      : action.type === 'contact_phone' || action.type === 'contact_email'
+        ? 'border-emerald-700 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50 hover:text-emerald-300'
+        : 'border-zinc-600 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-300';
+
   return (
     <Button
       type="button"
@@ -63,11 +76,7 @@ function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLa
       onClick={handleClick}
       aria-label={ariaLabel}
       title={chipTitle}
-      className={`inline-flex min-w-0 max-w-full items-center gap-1 rounded-full border py-0.5 ${
-        action.type === 'boarding_pass'
-          ? 'border-sky-600 bg-sky-900/40 text-sky-300 hover:bg-sky-800/50 hover:text-sky-300'
-          : 'border-zinc-600 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-300'
-      }`}
+      className={`inline-flex min-w-0 max-w-full items-center gap-1 rounded-full border py-0.5 ${chipColorClass}`}
     >
       <Icon />
       <span className="max-w-[8rem] truncate sm:max-w-[12rem]">{copied ? 'Copied!' : action.label}</span>
