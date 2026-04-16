@@ -205,18 +205,22 @@ test.describe('Travel', () => {
     await updatedTripButton.click();
 
     // ── 11. Document upload linked to hotel booking ───────────────────────────
-    await page.getByPlaceholder('Document title').fill(documentTitle);
-    await page.locator('input[type="file"]').setInputFiles({
+    const documentsSection = page.getByRole('heading', { name: 'Documents' }).locator('xpath=ancestor::section[1]');
+
+    await documentsSection.getByPlaceholder('Document title').fill(documentTitle);
+    await documentsSection.locator('input[type="file"]').setInputFiles({
       name: 'travel-doc.png',
       mimeType: 'image/png',
       buffer: Buffer.from('89504E470D0A1A0A', 'hex'),
     });
-    const bookingLinkSelect = page
+    const bookingLinkSelect = documentsSection
       .locator('select')
       .filter({ has: page.locator('option', { hasText: 'Link to reservation (optional)' }) })
       .first();
     await bookingLinkSelect.selectOption({ label: hotelBookingTitle });
-    await page.getByRole('button', { name: 'Upload Document' }).click();
+    const uploadButton = documentsSection.getByRole('button', { name: 'Upload Document' });
+    await expect(uploadButton).toBeEnabled();
+    await uploadButton.click();
 
     await expect(page.locator('p.font-medium', { hasText: documentTitle })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(`Linked to: ${hotelBookingTitle}`)).toBeVisible();
