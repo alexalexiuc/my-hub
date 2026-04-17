@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
+import { formatZodError } from '@/lib/api/with-error-logging';
 import { deleteTrip, updateTrip } from '@my-hub/shared/services';
 import { parseAndValidateDateForPatch } from '@/lib/api/date-validation';
 import { TripUpdateSchema } from '@my-hub/shared/schemas';
@@ -21,7 +22,7 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
 
   const parsed = TripUpdateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
   }
 
   const { data } = parsed;

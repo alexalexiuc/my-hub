@@ -7,7 +7,7 @@ import {
   deleteMeal,
   findUserById,
 } from '@my-hub/shared/services';
-import z from 'zod';
+import { z } from 'zod';
 import { MAX_MEAL_LIMIT, DEFAULT_MEAL_LIMIT } from '../constants';
 import { rowToProfile, profileToTargets } from '../models/profile';
 import { toolResponse } from '../../shared/toolsUtils';

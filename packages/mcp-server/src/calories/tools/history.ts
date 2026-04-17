@@ -1,5 +1,5 @@
 import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
-import z from 'zod';
+import { z } from 'zod';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import { today } from '../../shared/dateUtils';
 import { toolResponse } from '../../shared/toolsUtils';

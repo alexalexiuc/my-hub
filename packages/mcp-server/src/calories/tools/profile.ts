@@ -1,7 +1,7 @@
 import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { upsertCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shared/services';
 import { omitNullish } from '@my-hub/shared/utils';
-import z from 'zod';
+import { z } from 'zod';
 import { toolResponse } from '../../shared/toolsUtils';
 import { rowToProfile, profileToTargets } from '../models/profile';
 import { ActivityLevels, GoalTypes, MeasurementTypes, Sexes } from '@my-hub/shared/constants';

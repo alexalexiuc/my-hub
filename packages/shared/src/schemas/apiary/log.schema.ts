@@ -20,7 +20,7 @@ export const LogCreateSchema = z.object({
   hiveId: z.number().int().positive().optional(),
   loggedAt: z.string().optional(),
   notes: z.string().optional(),
-  data: z.record(z.unknown()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type LogCreateInput = z.infer<typeof LogCreateSchema>;

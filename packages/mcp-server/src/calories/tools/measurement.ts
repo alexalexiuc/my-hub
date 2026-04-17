@@ -7,7 +7,7 @@ import {
   logMeasurement,
 } from '@my-hub/shared/services';
 import { MeasurementTypeKey } from '@my-hub/shared/types';
-import z from 'zod';
+import { z } from 'zod';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import { toolResponse } from '../../shared/toolsUtils';
 import { rowToMeasurementEntry } from '../models/measurements';

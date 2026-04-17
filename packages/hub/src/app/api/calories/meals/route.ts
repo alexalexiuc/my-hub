@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
+import { formatZodError } from '@/lib/api/with-error-logging';
 import { getMeals, getMealsForDateRange, logMeal } from '@my-hub/shared/services';
 import type { MealType } from '@my-hub/shared/constants';
 import { MealTypesValues } from '@my-hub/shared/constants';
@@ -37,7 +38,7 @@ export const POST = withAuth(async ({ req, user }) => {
 
   const parsed = MealCreateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
   }
 
   const { data } = parsed;

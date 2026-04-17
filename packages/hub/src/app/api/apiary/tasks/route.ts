@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
+import { formatZodError } from '@/lib/api/with-error-logging';
 import { getApiaryTasks, createApiaryTask } from '@my-hub/shared/services';
 import { omitNullish } from '@my-hub/shared/utils';
 import { TaskCreateSchema } from '@my-hub/shared/schemas';
@@ -25,7 +26,7 @@ export const POST = withAuth(async ({ req, user }) => {
 
   const parsed = TaskCreateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
   }
 
   const { data } = parsed;

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
+import { formatZodError } from '@/lib/api/with-error-logging';
 import { getApiaryHives, createApiaryHive } from '@my-hub/shared/services';
 import { omitNullish } from '@my-hub/shared/utils';
 import { HiveCreateSchema } from '@my-hub/shared/schemas';
@@ -23,7 +24,7 @@ export const POST = withAuth(async ({ req, user }) => {
 
   const parsed = HiveCreateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
   }
 
   const { data } = parsed;
