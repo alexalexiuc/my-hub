@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { MealTypesValues } from '../../constants/calories.js';
 
 export const MealCreateSchema = z.object({
-  description: z.string().min(1, 'description is required'),
+  description: z.string().trim().min(1, 'description is required'),
   mealType: z.enum(MealTypesValues as [string, ...string[]]),
   date: z.string().optional(),
   kcal: z.number().optional(),
@@ -18,7 +18,7 @@ export const MealCreateSchema = z.object({
 export type MealCreateInput = z.infer<typeof MealCreateSchema>;
 
 export const MealUpdateSchema = z.object({
-  description: z.string().min(1).optional(),
+  description: z.string().trim().min(1).optional(),
   mealType: z.enum(MealTypesValues as [string, ...string[]]).optional(),
   kcal: z.number().optional(),
   protein: z.number().optional(),

@@ -5,7 +5,7 @@ import { toolResponse } from '../../shared/toolsUtils';
 import { omitNullish } from '@my-hub/shared/utils';
 
 export const CreateYardSchema = z.object({
-  name: z.string().min(1).describe('Name of the yard (e.g. "Home Yard", "Mountain Apiary")'),
+  name: z.string().trim().min(1).describe('Name of the yard (e.g. "Home Yard", "Mountain Apiary")'),
   location: z.string().optional().describe('Address or GPS coordinates'),
   notes: z.string().optional().describe('Optional notes about this yard'),
 });
@@ -14,7 +14,7 @@ export const ListYardsSchema = z.object({});
 
 export const UpdateYardSchema = z.object({
   yardId: z.number().int().positive().describe('ID of the yard to update'),
-  name: z.string().min(1).optional().describe('New name for the yard'),
+  name: z.string().trim().min(1).optional().describe('New name for the yard'),
   location: z.string().optional().describe('New location'),
   notes: z.string().optional().describe('Updated notes'),
   isActive: z.boolean().optional().describe('Whether the yard is active'),

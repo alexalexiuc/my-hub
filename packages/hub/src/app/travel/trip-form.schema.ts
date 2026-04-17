@@ -3,7 +3,7 @@ import { toDateInputValue } from '@my-hub/shared/utils';
 import type { Trip } from '@my-hub/shared/types';
 
 export const TripFormSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().trim().min(1, 'Name is required'),
   destination: z.string(),
   color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color'),
   startAt: z.string(),

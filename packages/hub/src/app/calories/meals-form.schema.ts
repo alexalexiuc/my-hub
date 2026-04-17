@@ -4,7 +4,7 @@ import { MealTypes, MealTypesValues } from '@my-hub/shared/constants';
 import type { MealType } from '@my-hub/shared/constants';
 
 export const MealFormSchema = z.object({
-  description: z.string().min(1, 'Description is required'),
+  description: z.string().trim().min(1, 'Description is required'),
   mealType: z.enum(MealTypesValues as [MealType, ...MealType[]]),
   kcal: z.string(),
   protein: z.string(),

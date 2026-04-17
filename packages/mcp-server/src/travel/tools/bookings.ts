@@ -61,7 +61,7 @@ export const TravelAddReservationFromTextInputSchema = z.object({
   lng: z.number().optional().describe('Longitude of the booking location (decimal degrees).'),
   origin: z
     .object({
-      name: z.string().min(1).describe('Departure/pickup place name extracted from the confirmation text.'),
+      name: z.string().trim().min(1).describe('Departure/pickup place name extracted from the confirmation text.'),
       address: z.string().optional(),
       iataCode: z.string().length(3).optional(),
       uicCode: z.string().optional(),
@@ -75,7 +75,7 @@ export const TravelAddReservationFromTextInputSchema = z.object({
     ),
   destination: z
     .object({
-      name: z.string().min(1).describe('Arrival/drop-off place name extracted from the confirmation text.'),
+      name: z.string().trim().min(1).describe('Arrival/drop-off place name extracted from the confirmation text.'),
       address: z.string().optional(),
       iataCode: z.string().length(3).optional(),
       uicCode: z.string().optional(),
@@ -261,7 +261,7 @@ export const travelAddFlightTool: ToolCallback<typeof TravelAddFlightSchema.shap
 // ---------------------------------------------------------------------------
 
 const TransportLocationSchema = z.object({
-  name: z.string().min(1).describe('Place name, e.g. "Paris Gare du Nord" or "Hilton Hotel lobby".'),
+  name: z.string().trim().min(1).describe('Place name, e.g. "Paris Gare du Nord" or "Hilton Hotel lobby".'),
   address: z.string().optional().describe('Freeform address string.'),
   iataCode: z.string().length(3).optional().describe('3-letter IATA airport code, e.g. "CDG".'),
   uicCode: z.string().optional().describe('UIC railway station code, e.g. "8711300".'),

@@ -5,7 +5,7 @@ import { toolResponse } from '../../shared/toolsUtils';
 import { omitNullish } from '@my-hub/shared/utils';
 
 export const CreateHiveSchema = z.object({
-  name: z.string().min(1).describe('Name of the hive (e.g. "Hive #3", "Blue Hive")'),
+  name: z.string().trim().min(1).describe('Name of the hive (e.g. "Hive #3", "Blue Hive")'),
   yardId: z.number().int().positive().optional().describe('ID of the yard this hive belongs to'),
   queenStatus: z.string().optional().describe('Queen status (e.g. "queenright", "queenless", "requeened")'),
   queenMarked: z.boolean().optional().describe('Whether the queen is marked'),
@@ -21,7 +21,7 @@ export const ListHivesSchema = z.object({
 
 export const UpdateHiveSchema = z.object({
   hiveId: z.number().int().positive().describe('ID of the hive to update'),
-  name: z.string().min(1).optional().describe('New name for the hive'),
+  name: z.string().trim().min(1).optional().describe('New name for the hive'),
   yardId: z.number().int().positive().optional().describe('New yard assignment'),
   queenStatus: z.string().optional().describe('Updated queen status'),
   queenMarked: z.boolean().optional().describe('Whether the queen is marked'),

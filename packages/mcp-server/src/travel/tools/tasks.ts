@@ -20,8 +20,8 @@ import { toolResponse } from '../../shared/toolsUtils';
 const DocumentTypeSchema = z.enum(tripDocumentTypeValues as [TripDocumentType, ...TripDocumentType[]]);
 
 export const TravelPlanTripSchema = z.object({
-  name: z.string().min(1).describe('Trip name, for example: "Spring in Rome"'),
-  destination: z.string().min(1).describe('Main destination city or region'),
+  name: z.string().trim().min(1).describe('Trip name, for example: "Spring in Rome"'),
+  destination: z.string().trim().min(1).describe('Main destination city or region'),
   startAt: z.string().datetime().optional().describe('Trip start datetime in ISO 8601. Optional.'),
   endAt: z.string().datetime().optional().describe('Trip end datetime in ISO 8601. Optional.'),
   notes: z.string().optional().describe('Optional travel notes or constraints.'),
@@ -39,7 +39,7 @@ export const TravelPrepareTripChecklistSchema = z.object({
 
 const CompanionInputSchema = z.object({
   id: z.number().int().positive().optional().describe('Existing companion id for update actions.'),
-  name: z.string().min(1).describe('Companion name'),
+  name: z.string().trim().min(1).describe('Companion name'),
   email: z.string().email().optional().describe('Companion email, optional'),
   phone: z.string().optional().describe('Companion phone number, optional'),
   notes: z.string().optional().describe('Extra notes, optional'),
@@ -61,7 +61,7 @@ export const TravelGetTripBriefSchema = z.object({
 
 export const TravelAttachDocumentLinkSchema = z.object({
   tripId: z.number().int().positive().describe('Trip ID for the document.'),
-  title: z.string().min(1).describe('Document title, for example "Boarding pass".'),
+  title: z.string().trim().min(1).describe('Document title, for example "Boarding pass".'),
   type: DocumentTypeSchema.default(TripDocumentTypes.Other).optional().describe('Document category.'),
   sourceUrl: z.string().url().describe('Link to the document (cloud drive, booking site, etc).'),
   notes: z.string().optional().describe('Optional notes about this document.'),

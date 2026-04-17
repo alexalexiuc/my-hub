@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { ApiaryLogTypes } from '@my-hub/shared/schemas';
 
 export const HiveFormSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().trim().min(1, 'Name is required'),
   yardId: z.string(),
   queenStatus: z.string(),
   boxes: z.string(),
@@ -55,7 +55,7 @@ export function formToLogBody(values: LogFormValues): Record<string, unknown> {
 }
 
 export const TaskFormSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
+  title: z.string().trim().min(1, 'Title is required'),
   hiveId: z.string(),
   dueAt: z.string(),
 });

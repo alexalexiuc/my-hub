@@ -24,7 +24,7 @@ export const ListTasksSchema = z.object({
 });
 
 export const CreateTaskSchema = z.object({
-  title: z.string().min(1).describe('Task description'),
+  title: z.string().trim().min(1).describe('Task description'),
   hiveId: z
     .number()
     .int()

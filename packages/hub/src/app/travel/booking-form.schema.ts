@@ -5,7 +5,7 @@ import { isTransportBookingType, toDateTimeLocalValue } from '@my-hub/shared/uti
 import type { TripBookingExtended } from './types';
 
 export const BookingFormSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
+  title: z.string().trim().min(1, 'Title is required'),
   bookingType: z.enum(tripBookingTypeValues as [TripBookingType, ...TripBookingType[]]),
   provider: z.string(),
   referenceLink: z.string(),
