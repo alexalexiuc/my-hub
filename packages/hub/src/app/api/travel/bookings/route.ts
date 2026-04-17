@@ -2,68 +2,57 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import { parseAndValidateDate } from '@/lib/api/date-validation';
 import { addTripBooking } from '@my-hub/shared/services';
-import type { FlightDetails, TripBookingType } from '@my-hub/shared/types';
-import { TripBookingTypes, tripBookingTypeValues } from '@my-hub/shared/constants';
+import type { FlightDetails } from '@my-hub/shared/types';
+import { TripBookingTypes } from '@my-hub/shared/constants';
+import { BookingCreateSchema } from '@my-hub/shared/schemas';
 
 export const POST = withAuth(async ({ req, user }) => {
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const tripId = Number(body.trip_id);
-  const title = typeof body.title === 'string' ? body.title.trim() : '';
-  const bookingType =
-    typeof body.booking_type === 'string' && tripBookingTypeValues.includes(body.booking_type as TripBookingType)
-      ? (body.booking_type as TripBookingType)
-      : TripBookingTypes.Other;
-
-  if (!Number.isInteger(tripId) || tripId <= 0) {
-    return NextResponse.json({ error: 'trip_id is required' }, { status: 400 });
+  const parsed = BookingCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  if (!title) {
-    return NextResponse.json({ error: 'title is required' }, { status: 400 });
-  }
+  const data = parsed.data;
 
-  const { date: startAt, error: startAtError } = parseAndValidateDate(body.start_at, 'start_at');
-  if (startAtError) {
-    return NextResponse.json({ error: startAtError }, { status: 400 });
-  }
+  const { date: startAt, error: startAtError } = parseAndValidateDate(data.start_at, 'start_at');
+  if (startAtError) return NextResponse.json({ error: startAtError }, { status: 400 });
 
-  const { date: endAt, error: endAtError } = parseAndValidateDate(body.end_at, 'end_at');
-  if (endAtError) {
-    return NextResponse.json({ error: endAtError }, { status: 400 });
-  }
+  const { date: endAt, error: endAtError } = parseAndValidateDate(data.end_at, 'end_at');
+  if (endAtError) return NextResponse.json({ error: endAtError }, { status: 400 });
+
+  const bookingType = data.booking_type ?? TripBookingTypes.Other;
+
   const flightDetails =
-    bookingType === TripBookingTypes.Flight &&
-    body.flight_details != null &&
-    typeof body.flight_details === 'object' &&
-    !Array.isArray(body.flight_details)
-      ? (body.flight_details as Partial<FlightDetails>)
+    bookingType === TripBookingTypes.Flight && data.flight_details != null
+      ? (data.flight_details as Partial<FlightDetails>)
       : null;
 
-  const booking = await addTripBooking(user.id, tripId, {
+  const booking = await addTripBooking(user.id, data.trip_id, {
     bookingType,
-    title,
-    provider: typeof body.provider === 'string' ? body.provider : null,
-    confirmationNumber: typeof body.confirmation_number === 'string' ? body.confirmation_number : null,
+    title: data.title,
+    provider: data.provider ?? null,
+    confirmationNumber: data.confirmation_number ?? null,
     startAt,
     endAt,
-    status: typeof body.status === 'string' ? body.status : 'scheduled',
-    costAmount: typeof body.cost_amount === 'number' ? body.cost_amount : null,
-    costCurrency: typeof body.cost_currency === 'string' ? body.cost_currency : 'EUR',
-    location: typeof body.location === 'string' ? body.location : null,
-    referenceLink: typeof body.reference_link === 'string' ? body.reference_link.trim() || null : null,
-    notes: typeof body.notes === 'string' ? body.notes : null,
+    status: data.status ?? 'scheduled',
+    costAmount: data.cost_amount ?? null,
+    costCurrency: data.cost_currency ?? 'EUR',
+    location: data.location ?? null,
+    referenceLink: data.reference_link?.trim() || null,
+    notes: data.notes ?? null,
     details: flightDetails,
-    lat: typeof body.lat === 'number' ? body.lat : null,
-    lng: typeof body.lng === 'number' ? body.lng : null,
-    contactName: typeof body.contact_name === 'string' ? body.contact_name.trim() || null : null,
-    contactEmail: typeof body.contact_email === 'string' ? body.contact_email.trim() || null : null,
-    contactPhone: typeof body.contact_phone === 'string' ? body.contact_phone.trim() || null : null,
+    lat: data.lat ?? null,
+    lng: data.lng ?? null,
+    contactName: data.contact_name?.trim() || null,
+    contactEmail: data.contact_email?.trim() || null,
+    contactPhone: data.contact_phone?.trim() || null,
   });
 
   return NextResponse.json({ booking }, { status: 201 });

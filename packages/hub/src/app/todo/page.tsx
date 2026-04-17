@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import Link from 'next/link';
 import type { Todo } from '@my-hub/shared/types';
 import { PageHeader } from '@/components/PageHeader';
@@ -9,16 +12,32 @@ import { SectionCard } from '@/components/SectionCard';
 import { Input } from '@/components';
 import { PlusOutlineIcon, CheckOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 
+const AddTodoSchema = z.object({ title: z.string().min(1) });
+type AddTodoValues = z.infer<typeof AddTodoSchema>;
+
 export default function TodoPage() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [title, setTitle] = useState('');
-  const [saving, setSaving] = useState(false);
   const [marking, setMarking] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    getValues,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<AddTodoValues>({
+    resolver: zodResolver(AddTodoSchema),
+    defaultValues: { title: '' },
+  });
+
+  const { ref: rhfRef, ...titleProps } = register('title');
+  const titleValue = watch('title');
 
   const loadTodos = useCallback(async () => {
     try {
@@ -40,21 +59,24 @@ export default function TodoPage() {
     setTimeout(() => inputRef.current?.focus(), 0);
   }
 
-  async function handleSave() {
-    if (!title.trim()) {
-      setAdding(false);
-      setTitle('');
+  function cancelAdding() {
+    setAdding(false);
+    reset();
+  }
+
+  async function saveTitle(values: AddTodoValues) {
+    await apiFetch('/api/todo', { method: 'POST', body: { title: values.title.trim() } });
+    reset();
+    setAdding(false);
+    await loadTodos();
+  }
+
+  function handleBlur() {
+    if (!getValues('title').trim()) {
+      cancelAdding();
       return;
     }
-    setSaving(true);
-    try {
-      await apiFetch('/api/todo', { method: 'POST', body: { title: title.trim() } });
-      setTitle('');
-      setAdding(false);
-      await loadTodos();
-    } finally {
-      setSaving(false);
-    }
+    handleSubmit(saveTitle)();
   }
 
   async function markDone(id: number) {
@@ -127,26 +149,28 @@ export default function TodoPage() {
             <div className="flex items-center gap-3 px-3 py-2">
               <div className="flex-shrink-0 w-5 h-5 rounded-full border-2 border-zinc-700" />
               <Input
-                ref={inputRef}
+                ref={(el) => {
+                  rhfRef(el);
+                  (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = el;
+                }}
                 variant="ghost"
                 placeholder="New task..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                {...titleProps}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSave();
-                  if (e.key === 'Escape') {
-                    setAdding(false);
-                    setTitle('');
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSubmit(saveTitle)();
                   }
+                  if (e.key === 'Escape') cancelAdding();
                 }}
-                onBlur={handleSave}
-                disabled={saving}
+                onBlur={handleBlur}
+                disabled={isSubmitting}
               />
-              {title.trim() && (
+              {titleValue.trim() && (
                 <button
                   onMouseDown={(e) => {
                     e.preventDefault();
-                    handleSave();
+                    handleSubmit(saveTitle)();
                   }}
                   className="flex-shrink-0 text-indigo-400 hover:text-indigo-300 transition"
                   title="Save"

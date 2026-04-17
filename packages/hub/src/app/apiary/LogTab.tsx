@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import type { ApiaryLog, ApiaryHive } from '@my-hub/shared/types';
+import { ApiaryLogTypes } from '@my-hub/shared/schemas';
 import { SectionCard } from '@/components/SectionCard';
 import { Button, Input, Select, Textarea } from '@/components';
 import { apiFetch } from '@/lib/utils';
-
-const LOG_TYPES = ['inspection', 'treatment', 'feeding', 'harvest', 'relocation', 'queen_event', 'note'] as const;
+import { LogFormSchema, type LogFormValues, defaultLogFormValues, formToLogBody } from './apiary-form.schema';
 
 const typeBadgeColors: Record<string, string> = {
   inspection: 'bg-blue-900/50 text-blue-300',
@@ -26,11 +28,15 @@ export function LogTab() {
   const [filterHive, setFilterHive] = useState('');
   const [filterType, setFilterType] = useState('');
 
-  // Form state
-  const [formType, setFormType] = useState<string>('inspection');
-  const [formHiveId, setFormHiveId] = useState('');
-  const [formNotes, setFormNotes] = useState('');
-  const [formDate, setFormDate] = useState('');
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { isSubmitting },
+  } = useForm<LogFormValues>({
+    resolver: zodResolver(LogFormSchema),
+    defaultValues: defaultLogFormValues,
+  });
 
   const loadData = useCallback(async () => {
     try {
@@ -53,18 +59,9 @@ export function LogTab() {
     loadData();
   }, [loadData]);
 
-  async function handleAdd() {
-    if (!formType) return;
-    const body: Record<string, unknown> = { type: formType };
-    if (formHiveId) body.hive_id = Number(formHiveId);
-    if (formNotes) body.notes = formNotes;
-    if (formDate) body.logged_at = formDate;
-
-    await apiFetch('/api/apiary/logs', { method: 'POST', body });
-    setFormType('inspection');
-    setFormHiveId('');
-    setFormNotes('');
-    setFormDate('');
+  async function handleAdd(values: LogFormValues) {
+    await apiFetch('/api/apiary/logs', { method: 'POST', body: formToLogBody(values) });
+    reset(defaultLogFormValues);
     setShowForm(false);
     loadData();
   }
@@ -98,7 +95,7 @@ export function LogTab() {
         </Select>
         <Select
           className="w-auto"
-          options={LOG_TYPES.map((t) => ({ value: t, label: t }))}
+          options={ApiaryLogTypes.map((t: string) => ({ value: t, label: t }))}
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
         >
@@ -113,33 +110,21 @@ export function LogTab() {
 
       {showForm && (
         <SectionCard title="New Log Entry">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Select
-              options={LOG_TYPES.map((t) => ({ value: t, label: t }))}
-              value={formType}
-              onChange={(e) => setFormType(e.target.value)}
-            />
-            <Select
-              options={hives.map((h) => ({ value: h.id, label: h.name }))}
-              value={formHiveId}
-              onChange={(e) => setFormHiveId(e.target.value)}
-            >
-              <option value="">No hive</option>
-            </Select>
-            <Input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} />
-            <Textarea
-              className="sm:col-span-2"
-              placeholder="Notes"
-              value={formNotes}
-              onChange={(e) => setFormNotes(e.target.value)}
-              rows={2}
-            />
-          </div>
-          <div className="mt-3 flex justify-end">
-            <Button size="sm" onClick={handleAdd}>
-              Add
-            </Button>
-          </div>
+          <form onSubmit={handleSubmit(handleAdd)}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Select {...register('type')} options={ApiaryLogTypes.map((t: string) => ({ value: t, label: t }))} />
+              <Select {...register('hiveId')} options={hives.map((h) => ({ value: h.id, label: h.name }))}>
+                <option value="">No hive</option>
+              </Select>
+              <Input {...register('loggedAt')} type="date" />
+              <Textarea {...register('notes')} className="sm:col-span-2" placeholder="Notes" rows={2} />
+            </div>
+            <div className="mt-3 flex justify-end">
+              <Button type="submit" size="sm" loading={isSubmitting}>
+                Add
+              </Button>
+            </div>
+          </form>
         </SectionCard>
       )}
 

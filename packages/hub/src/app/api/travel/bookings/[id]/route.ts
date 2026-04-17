@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import { deleteTripBooking, updateTripBooking } from '@my-hub/shared/services';
-import type { FlightDetails, TripBookingType } from '@my-hub/shared/types';
+import type { FlightDetails } from '@my-hub/shared/types';
 import { parseAndValidateDateForPatch } from '@/lib/api/date-validation';
-import { tripBookingTypeValues } from '@my-hub/shared/constants';
+import { BookingUpdateSchema } from '@my-hub/shared/schemas';
 
 export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
   const { id } = await params;
@@ -12,48 +12,39 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
     return NextResponse.json({ error: 'Invalid booking id' }, { status: 400 });
   }
 
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { date: startAt, error: startAtError } = parseAndValidateDateForPatch(body.start_at, 'start_at');
-  if (startAtError) {
-    return NextResponse.json({ error: startAtError }, { status: 400 });
+  const parsed = BookingUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { date: endAt, error: endAtError } = parseAndValidateDateForPatch(body.end_at, 'end_at');
-  if (endAtError) {
-    return NextResponse.json({ error: endAtError }, { status: 400 });
-  }
+  const data = parsed.data;
 
-  const flightDetails =
-    body.flight_details != null && typeof body.flight_details === 'object' && !Array.isArray(body.flight_details)
-      ? (body.flight_details as Partial<FlightDetails>)
-      : undefined;
+  const { date: startAt, error: startAtError } = parseAndValidateDateForPatch(data.start_at, 'start_at');
+  if (startAtError) return NextResponse.json({ error: startAtError }, { status: 400 });
+
+  const { date: endAt, error: endAtError } = parseAndValidateDateForPatch(data.end_at, 'end_at');
+  if (endAtError) return NextResponse.json({ error: endAtError }, { status: 400 });
+
+  const flightDetails = data.flight_details != null ? (data.flight_details as Partial<FlightDetails>) : undefined;
 
   const booking = await updateTripBooking(user.id, bookingId, {
-    title: typeof body.title === 'string' ? body.title.trim() : undefined,
-    bookingType:
-      typeof body.booking_type === 'string' && tripBookingTypeValues.includes(body.booking_type as TripBookingType)
-        ? (body.booking_type as TripBookingType)
-        : undefined,
-    provider: typeof body.provider === 'string' ? body.provider.trim() || null : undefined,
-    referenceLink: typeof body.reference_link === 'string' ? body.reference_link.trim() || null : undefined,
-    startAt: startAt,
-    endAt: endAt,
+    title: data.title,
+    bookingType: data.booking_type as Parameters<typeof updateTripBooking>[2]['bookingType'],
+    provider: data.provider !== undefined ? data.provider.trim() || null : undefined,
+    referenceLink: data.reference_link !== undefined ? data.reference_link.trim() || null : undefined,
+    startAt,
+    endAt,
     ...(flightDetails !== undefined && { details: flightDetails }),
-    ...('contact_name' in body && {
-      contactName: typeof body.contact_name === 'string' ? body.contact_name.trim() || null : null,
-    }),
-    ...('contact_email' in body && {
-      contactEmail: typeof body.contact_email === 'string' ? body.contact_email.trim() || null : null,
-    }),
-    ...('contact_phone' in body && {
-      contactPhone: typeof body.contact_phone === 'string' ? body.contact_phone.trim() || null : null,
-    }),
+    ...(data.contact_name !== undefined && { contactName: data.contact_name.trim() || null }),
+    ...(data.contact_email !== undefined && { contactEmail: data.contact_email.trim() || null }),
+    ...(data.contact_phone !== undefined && { contactPhone: data.contact_phone.trim() || null }),
   });
 
   if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });

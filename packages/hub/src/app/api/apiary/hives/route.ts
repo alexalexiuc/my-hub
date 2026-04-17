@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import { getApiaryHives, createApiaryHive } from '@my-hub/shared/services';
 import { omitNullish } from '@my-hub/shared/utils';
+import { HiveCreateSchema } from '@my-hub/shared/schemas';
 
 export const GET = withAuth(async ({ req, user }) => {
   const { searchParams } = new URL(req.url);
@@ -13,27 +14,29 @@ export const GET = withAuth(async ({ req, user }) => {
 });
 
 export const POST = withAuth(async ({ req, user }) => {
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { name } = body as { name?: string };
-  if (!name?.trim()) {
-    return NextResponse.json({ error: 'name is required' }, { status: 400 });
+  const parsed = HiveCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  const data = parsed.data;
+
   const hive = await createApiaryHive(user.id, {
-    name: name.trim(),
+    name: data.name,
     ...omitNullish({
-      yardId: body.yard_id as number | undefined,
-      queenStatus: body.queen_status as string | undefined,
-      queenMarked: body.queen_marked as boolean | undefined,
-      queenYear: body.queen_year as number | undefined,
-      boxes: body.boxes as number | undefined,
-      notes: body.notes as string | undefined,
+      yardId: data.yard_id,
+      queenStatus: data.queen_status,
+      queenMarked: data.queen_marked,
+      queenYear: data.queen_year,
+      boxes: data.boxes,
+      notes: data.notes,
     }),
   });
   return NextResponse.json({ hive }, { status: 201 });

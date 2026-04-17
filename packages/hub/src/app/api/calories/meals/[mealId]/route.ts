@@ -2,30 +2,31 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import { deleteMeal, updateMeal } from '@my-hub/shared/services';
 import type { MealType } from '@my-hub/shared/constants';
-
-type MealUpdateBody = {
-  description?: string;
-  kcal?: number;
-  protein?: number;
-  carbs?: number;
-  fat?: number;
-  mealType?: MealType;
-  notes?: string;
-};
+import { MealUpdateSchema } from '@my-hub/shared/schemas';
 
 export const PATCH = withAuth<{ mealId: string }>(async ({ req, user, params }) => {
   const { mealId } = await params;
 
-  let body: MealUpdateBody;
+  let body: unknown;
   try {
-    body = (await req.json()) as MealUpdateBody;
+    body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const data = { ...body, ...(body.kcal != null ? { kcal: Math.round(body.kcal) } : {}) };
+  const parsed = MealUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
 
-  const updated = await updateMeal(user.id, mealId, data);
+  const data = parsed.data;
+  const update = {
+    ...data,
+    mealType: data.mealType as MealType | undefined,
+    ...(data.kcal != null ? { kcal: Math.round(data.kcal) } : {}),
+  };
+
+  const updated = await updateMeal(user.id, mealId, update);
   if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   return NextResponse.json({ meal: updated });

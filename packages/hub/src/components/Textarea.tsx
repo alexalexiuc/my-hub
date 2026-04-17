@@ -1,7 +1,8 @@
+import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
 type TextareaProps = React.ComponentPropsWithoutRef<'textarea'>;
 
-export function Textarea({ className, ...props }: TextareaProps) {
-  return <textarea className={cn('input', className)} {...props} />;
-}
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea({ className, ...props }, ref) {
+  return <textarea ref={ref} className={cn('input', className)} {...props} />;
+});

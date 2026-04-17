@@ -1,21 +1,29 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import type { ApiaryHive, ApiaryYard } from '@my-hub/shared/types';
 import { SectionCard } from '@/components/SectionCard';
 import { Button, Input, Select, Textarea } from '@/components';
 import { apiFetch } from '@/lib/utils';
+import { HiveFormSchema, type HiveFormValues, defaultHiveFormValues, formToHiveBody } from './apiary-form.schema';
 
 export function HivesTab() {
   const [hives, setHives] = useState<ApiaryHive[]>([]);
   const [yards, setYards] = useState<ApiaryYard[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [formName, setFormName] = useState('');
-  const [formYardId, setFormYardId] = useState('');
-  const [formQueenStatus, setFormQueenStatus] = useState('');
-  const [formBoxes, setFormBoxes] = useState('');
-  const [formNotes, setFormNotes] = useState('');
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { isSubmitting },
+  } = useForm<HiveFormValues>({
+    resolver: zodResolver(HiveFormSchema),
+    defaultValues: defaultHiveFormValues,
+  });
 
   const loadData = useCallback(async () => {
     try {
@@ -36,27 +44,15 @@ export function HivesTab() {
     loadData();
   }, [loadData]);
 
-  async function handleAdd() {
-    if (!formName.trim()) return;
-    const body: Record<string, unknown> = { name: formName.trim() };
-    if (formYardId) body.yard_id = Number(formYardId);
-    if (formQueenStatus) body.queen_status = formQueenStatus;
-    if (formBoxes) body.boxes = Number(formBoxes);
-    if (formNotes) body.notes = formNotes;
-
-    await apiFetch('/api/apiary/hives', { method: 'POST', body });
-    setFormName('');
-    setFormYardId('');
-    setFormQueenStatus('');
-    setFormBoxes('');
-    setFormNotes('');
+  async function handleAdd(values: HiveFormValues) {
+    await apiFetch('/api/apiary/hives', { method: 'POST', body: formToHiveBody(values) });
+    reset(defaultHiveFormValues);
     setShowForm(false);
     loadData();
   }
 
   const yardMap = new Map(yards.map((y) => [y.id, y.name]));
 
-  // Group hives by yard
   const grouped = new Map<string, ApiaryHive[]>();
   for (const hive of hives) {
     const key = hive.yardId ? (yardMap.get(hive.yardId) ?? 'Unknown Yard') : 'Unassigned';
@@ -82,34 +78,22 @@ export function HivesTab() {
 
       {showForm && (
         <SectionCard title="New Hive">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input placeholder="Hive name *" value={formName} onChange={(e) => setFormName(e.target.value)} />
-            <Select
-              options={yards.map((y) => ({ value: y.id, label: y.name }))}
-              value={formYardId}
-              onChange={(e) => setFormYardId(e.target.value)}
-            >
-              <option value="">No yard</option>
-            </Select>
-            <Input
-              placeholder="Queen status"
-              value={formQueenStatus}
-              onChange={(e) => setFormQueenStatus(e.target.value)}
-            />
-            <Input placeholder="Boxes" type="number" value={formBoxes} onChange={(e) => setFormBoxes(e.target.value)} />
-            <Textarea
-              className="sm:col-span-2"
-              placeholder="Notes"
-              value={formNotes}
-              onChange={(e) => setFormNotes(e.target.value)}
-              rows={2}
-            />
-          </div>
-          <div className="mt-3 flex justify-end">
-            <Button size="sm" onClick={handleAdd} disabled={!formName.trim()}>
-              Add
-            </Button>
-          </div>
+          <form onSubmit={handleSubmit(handleAdd)}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input {...register('name')} placeholder="Hive name *" autoFocus />
+              <Select {...register('yardId')} options={yards.map((y) => ({ value: y.id, label: y.name }))}>
+                <option value="">No yard</option>
+              </Select>
+              <Input {...register('queenStatus')} placeholder="Queen status" />
+              <Input {...register('boxes')} placeholder="Boxes" type="number" />
+              <Textarea {...register('notes')} className="sm:col-span-2" placeholder="Notes" rows={2} />
+            </div>
+            <div className="mt-3 flex justify-end">
+              <Button type="submit" size="sm" loading={isSubmitting}>
+                Add
+              </Button>
+            </div>
+          </form>
         </SectionCard>
       )}
 

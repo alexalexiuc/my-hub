@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import type { MealLog } from '@my-hub/shared/types';
 import { apiFetch } from '@/lib/utils';
 import { dateToString } from '@my-hub/shared/utils';
@@ -13,10 +15,18 @@ import {
   ChevronRightOutlineIcon,
   ChevronDownOutlineIcon,
 } from '@/components/icons';
-import { MealType, MealTypes, MealTypesValues } from '@my-hub/shared/constants';
+import { MealTypesValues } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from './constants';
 import { groupByMealType, formatDateLabel, shiftDate } from './calories.utils';
 import { CaloriesDonut } from './CaloriesDonut';
+import {
+  MealFormSchema,
+  type MealFormValues,
+  defaultMealFormValues,
+  mealToFormValues,
+  formToAddBody,
+  formToUpdateBody,
+} from './meals-form.schema';
 
 interface Props {
   meals: MealLog[];
@@ -27,42 +37,21 @@ interface Props {
   maxCalories?: number | null;
 }
 
-interface EditForm {
-  description: string;
-  kcal: string;
-  mealType: MealType;
-  protein: string;
-  carbs: string;
-  fat: string;
-  notes: string;
-}
-
 export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goalCalories, maxCalories }: Props) {
   const today = dateToString(new Date());
   const [showAdd, setShowAdd] = useState(false);
   const [showMeals, setShowMeals] = useState(false);
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [editSaving, setEditSaving] = useState(false);
-  const [form, setForm] = useState({
-    description: '',
-    kcal: '',
-    mealType: MealTypes.Lunch as MealType,
-    date: selectedDate,
-    protein: '',
-    carbs: '',
-    fat: '',
-    notes: '',
+
+  const addForm = useForm<MealFormValues>({
+    resolver: zodResolver(MealFormSchema),
+    defaultValues: defaultMealFormValues,
   });
-  const [editForm, setEditForm] = useState<EditForm>({
-    description: '',
-    kcal: '',
-    mealType: MealTypes.Lunch as MealType,
-    protein: '',
-    carbs: '',
-    fat: '',
-    notes: '',
+
+  const editForm = useForm<MealFormValues>({
+    resolver: zodResolver(MealFormSchema),
+    defaultValues: defaultMealFormValues,
   });
 
   const grouped = groupByMealType(meals);
@@ -71,77 +60,31 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
   const totalCarbs = Math.round(meals.reduce((sum, m) => sum + (m.carbs ?? 0), 0));
   const totalFat = Math.round(meals.reduce((sum, m) => sum + (m.fat ?? 0), 0));
   const hasMacros = totalProtein > 0 || totalCarbs > 0 || totalFat > 0;
-
   const cap = (maxCalories ?? goalCalories) || null;
 
   function startEdit(meal: MealLog) {
     setEditingMealId(meal.mealId);
-    setEditForm({
-      description: meal.description,
-      kcal: meal.kcal?.toString() ?? '',
-      mealType: meal.mealType as MealType,
-      protein: meal.protein?.toString() ?? '',
-      carbs: meal.carbs?.toString() ?? '',
-      fat: meal.fat?.toString() ?? '',
-      notes: meal.notes ?? '',
+    editForm.reset(mealToFormValues(meal));
+  }
+
+  async function saveEdit(values: MealFormValues) {
+    if (!editingMealId) return;
+    await apiFetch(`/api/calories/meals/${editingMealId}`, {
+      method: 'PATCH',
+      body: formToUpdateBody(values),
     });
+    setEditingMealId(null);
+    onChanged();
   }
 
-  async function saveEdit() {
-    if (!editingMealId || !editForm.description) return;
-    setEditSaving(true);
-    try {
-      await apiFetch(`/api/calories/meals/${editingMealId}`, {
-        method: 'PATCH',
-        body: {
-          description: editForm.description,
-          kcal: editForm.kcal ? Math.round(Number(editForm.kcal)) : undefined,
-          mealType: editForm.mealType,
-          protein: editForm.protein ? Number(editForm.protein) : undefined,
-          carbs: editForm.carbs ? Number(editForm.carbs) : undefined,
-          fat: editForm.fat ? Number(editForm.fat) : undefined,
-          notes: editForm.notes || undefined,
-        },
-      });
-      setEditingMealId(null);
-      onChanged();
-    } finally {
-      setEditSaving(false);
-    }
-  }
-
-  async function addMeal() {
-    if (!form.description) return;
-    setSaving(true);
-    try {
-      await apiFetch('/api/calories/meals', {
-        method: 'POST',
-        body: {
-          description: form.description,
-          kcal: form.kcal ? Math.round(Number(form.kcal)) : undefined,
-          mealType: form.mealType,
-          date: selectedDate,
-          protein: form.protein ? Number(form.protein) : undefined,
-          carbs: form.carbs ? Number(form.carbs) : undefined,
-          fat: form.fat ? Number(form.fat) : undefined,
-          notes: form.notes || undefined,
-        },
-      });
-      setShowAdd(false);
-      setForm({
-        description: '',
-        kcal: '',
-        mealType: MealTypes.Lunch,
-        date: selectedDate,
-        protein: '',
-        carbs: '',
-        fat: '',
-        notes: '',
-      });
-      onChanged();
-    } finally {
-      setSaving(false);
-    }
+  async function addMeal(values: MealFormValues) {
+    await apiFetch('/api/calories/meals', {
+      method: 'POST',
+      body: formToAddBody(values, selectedDate),
+    });
+    setShowAdd(false);
+    addForm.reset(defaultMealFormValues);
+    onChanged();
   }
 
   async function deleteMealEntry(mealId: string) {
@@ -197,10 +140,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
 
       {/* Calorie consumption summary */}
       <div className="flex flex-col md:flex-row items-center gap-6 mb-5">
-        {/* Donut */}
         <CaloriesDonut eaten={total} cap={cap} textSize="text-2xl" />
-
-        {/* Stats */}
         <div className="flex-1 w-full">
           <p className="text-sm text-zinc-400 mb-3">
             <span className="font-semibold text-zinc-200 text-lg">{total}</span>
@@ -250,68 +190,46 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
                     <div className="space-y-1">
                       {grouped[type]!.map((meal) =>
                         editingMealId === meal.mealId ? (
-                          <div key={meal.id} className="rounded-lg bg-zinc-800 border border-zinc-600 p-3 space-y-3">
+                          <form
+                            key={meal.id}
+                            onSubmit={editForm.handleSubmit(saveEdit)}
+                            className="rounded-lg bg-zinc-800 border border-zinc-600 p-3 space-y-3"
+                          >
                             <div className="grid grid-cols-2 gap-3">
                               <Field label="Description *" className="col-span-2">
-                                <Input
-                                  value={editForm.description}
-                                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                                  autoFocus
-                                />
+                                <Input {...editForm.register('description')} autoFocus />
                               </Field>
                               <Field label="Meal type">
                                 <Select
+                                  {...editForm.register('mealType')}
                                   options={MealTypesValues.map((t) => ({ value: t, label: MEAL_LABEL[t] }))}
-                                  value={editForm.mealType}
-                                  onChange={(e) => setEditForm({ ...editForm, mealType: e.target.value as MealType })}
                                 />
                               </Field>
                               <Field label="Calories (kcal)">
-                                <Input
-                                  type="number"
-                                  step="1"
-                                  min="0"
-                                  value={editForm.kcal}
-                                  onChange={(e) => setEditForm({ ...editForm, kcal: e.target.value })}
-                                />
+                                <Input type="number" step="1" min="0" {...editForm.register('kcal')} />
                               </Field>
                               <Field label="Protein (g)">
-                                <Input
-                                  type="number"
-                                  value={editForm.protein}
-                                  onChange={(e) => setEditForm({ ...editForm, protein: e.target.value })}
-                                />
+                                <Input type="number" {...editForm.register('protein')} />
                               </Field>
                               <Field label="Carbs (g)">
-                                <Input
-                                  type="number"
-                                  value={editForm.carbs}
-                                  onChange={(e) => setEditForm({ ...editForm, carbs: e.target.value })}
-                                />
+                                <Input type="number" {...editForm.register('carbs')} />
                               </Field>
                               <Field label="Fat (g)">
-                                <Input
-                                  type="number"
-                                  value={editForm.fat}
-                                  onChange={(e) => setEditForm({ ...editForm, fat: e.target.value })}
-                                />
+                                <Input type="number" {...editForm.register('fat')} />
                               </Field>
                               <Field label="Notes">
-                                <Input
-                                  value={editForm.notes}
-                                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                                />
+                                <Input {...editForm.register('notes')} />
                               </Field>
                             </div>
                             <div className="flex gap-2">
-                              <Button onClick={saveEdit} loading={editSaving} disabled={!editForm.description}>
-                                {editSaving ? 'Saving…' : 'Save'}
+                              <Button type="submit" loading={editForm.formState.isSubmitting}>
+                                {editForm.formState.isSubmitting ? 'Saving…' : 'Save'}
                               </Button>
-                              <Button variant="secondary" onClick={() => setEditingMealId(null)}>
+                              <Button type="button" variant="secondary" onClick={() => setEditingMealId(null)}>
                                 Cancel
                               </Button>
                             </div>
-                          </div>
+                          </form>
                         ) : (
                           <div
                             key={meal.id}
@@ -336,6 +254,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
                             <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition">
                               <PencilIcon className="text-zinc-500" />
                               <Button
+                                type="button"
                                 variant="ghost"
                                 size="xs"
                                 onClick={(e) => {
@@ -355,7 +274,6 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
                   </div>
                 ))}
 
-                {/* Totals summary */}
                 <div className="flex items-center justify-between rounded-lg bg-zinc-800/60 border border-zinc-700/50 px-3 py-2 text-xs mt-2">
                   <span className="font-medium text-zinc-300">Total</span>
                   <div className="flex gap-3 text-zinc-400">
@@ -376,59 +294,43 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
       </div>
 
       {showAdd && (
-        <div className="mt-4 border-t border-zinc-700 pt-4 space-y-3">
+        <form onSubmit={addForm.handleSubmit(addMeal)} className="mt-4 border-t border-zinc-700 pt-4 space-y-3">
           <h3 className="text-sm font-semibold">Add meal</h3>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Description *" className="col-span-2">
-              <Input
-                placeholder="e.g. grilled chicken with rice"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                autoFocus
-              />
+              <Input {...addForm.register('description')} placeholder="e.g. grilled chicken with rice" autoFocus />
             </Field>
             <Field label="Meal type *">
               <Select
+                {...addForm.register('mealType')}
                 options={MealTypesValues.map((t) => ({ value: t, label: MEAL_LABEL[t] }))}
-                value={form.mealType}
-                onChange={(e) => setForm({ ...form, mealType: e.target.value as MealType })}
               />
             </Field>
             <Field label="Calories (kcal)">
-              <Input
-                type="number"
-                step="1"
-                min="0"
-                value={form.kcal}
-                onChange={(e) => setForm({ ...form, kcal: e.target.value })}
-              />
+              <Input type="number" step="1" min="0" {...addForm.register('kcal')} />
             </Field>
             <Field label="Protein (g)">
-              <Input
-                type="number"
-                value={form.protein}
-                onChange={(e) => setForm({ ...form, protein: e.target.value })}
-              />
+              <Input type="number" {...addForm.register('protein')} />
             </Field>
             <Field label="Carbs (g)">
-              <Input type="number" value={form.carbs} onChange={(e) => setForm({ ...form, carbs: e.target.value })} />
+              <Input type="number" {...addForm.register('carbs')} />
             </Field>
             <Field label="Fat (g)">
-              <Input type="number" value={form.fat} onChange={(e) => setForm({ ...form, fat: e.target.value })} />
+              <Input type="number" {...addForm.register('fat')} />
             </Field>
             <Field label="Notes">
-              <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              <Input {...addForm.register('notes')} />
             </Field>
           </div>
           <div className="flex gap-2">
-            <Button onClick={addMeal} loading={saving} disabled={!form.description}>
-              {saving ? 'Adding…' : 'Add'}
+            <Button type="submit" loading={addForm.formState.isSubmitting}>
+              {addForm.formState.isSubmitting ? 'Adding…' : 'Add'}
             </Button>
-            <Button variant="secondary" onClick={() => setShowAdd(false)}>
+            <Button type="button" variant="secondary" onClick={() => setShowAdd(false)}>
               Cancel
             </Button>
           </div>
-        </div>
+        </form>
       )}
     </SectionCard>
   );

@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
 import { createTrip, getAccessibleTrips, getTripBookingRangesByTripIds } from '@my-hub/shared/services';
 import { parseAndValidateDate } from '@/lib/api/date-validation';
-
-const hexColorRe = /^#[0-9A-F]{6}$/i;
+import { TripCreateSchema } from '@my-hub/shared/schemas';
 
 export const GET = withAuth(async ({ user }) => {
   const accessibleTrips = await getAccessibleTrips(user.id);
@@ -24,36 +23,33 @@ export const GET = withAuth(async ({ user }) => {
 });
 
 export const POST = withAuth(async ({ req, user }) => {
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const name = typeof body.name === 'string' ? body.name.trim() : '';
-  if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 });
-
-  const destination = typeof body.destination === 'string' ? body.destination.trim() : null;
-  const notes = typeof body.notes === 'string' ? body.notes : null;
-  const { date: startAt, error: startAtError } = parseAndValidateDate(body.start_at, 'start_at');
-  if (startAtError) {
-    return NextResponse.json({ error: startAtError }, { status: 400 });
+  const parsed = TripCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { date: endAt, error: endAtError } = parseAndValidateDate(body.end_at, 'end_at');
-  if (endAtError) {
-    return NextResponse.json({ error: endAtError }, { status: 400 });
-  }
-  const color = typeof body.color === 'string' && hexColorRe.test(body.color) ? body.color : undefined;
+  const data = parsed.data;
+
+  const { date: startAt, error: startAtError } = parseAndValidateDate(data.start_at, 'start_at');
+  if (startAtError) return NextResponse.json({ error: startAtError }, { status: 400 });
+
+  const { date: endAt, error: endAtError } = parseAndValidateDate(data.end_at, 'end_at');
+  if (endAtError) return NextResponse.json({ error: endAtError }, { status: 400 });
 
   const trip = await createTrip(user.id, {
-    name,
-    color,
-    destination,
+    name: data.name,
+    color: data.color,
+    destination: data.destination?.trim() || null,
     startAt,
     endAt,
-    notes,
+    notes: data.notes ?? null,
     coverImageUrl: null,
   });
 
