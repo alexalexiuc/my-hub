@@ -13,7 +13,7 @@ export const TripCreateSchema = z.object({
     .string()
     .min(1, 'name is required')
     .transform(s => s.trim()),
-  destination: z.string().optional(),
+  destination: z.string().nullable().optional(),
   color: hexColorSchema,
   startAt: z.string().optional(),
   endAt: z.string().optional(),
