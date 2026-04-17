@@ -11,7 +11,7 @@ import {
 import type { FlightDetails, TransportDetails, TransportLocation, TripBookingType } from '@my-hub/shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
 import { transportBookingTypes, TripBookingTypes, tripBookingTypeValues } from '@my-hub/shared/constants';
-import { isTransportBookingType } from '@my-hub/shared/utils';
+import { isTransportBookingType, omitUndefined } from '@my-hub/shared/utils';
 
 const BookingTypeSchema = z.enum(tripBookingTypeValues as [TripBookingType, ...TripBookingType[]]);
 
@@ -401,23 +401,27 @@ export const travelEditBookingTool: ToolCallback<typeof TravelEditBookingSchema.
   if (existing.bookingType === TripBookingTypes.Flight)
     throw new Error('Use travel_edit_flight to update flight bookings.');
 
-  const updated = await updateTripBooking(userId, input.bookingId, {
-    ...(input.title !== undefined && { title: input.title }),
-    ...(input.provider !== undefined && { provider: input.provider }),
-    ...(input.location !== undefined && { location: input.location }),
-    ...(input.startAt !== undefined && { startAt: new Date(input.startAt) }),
-    ...(input.endAt !== undefined && { endAt: new Date(input.endAt) }),
-    ...(input.confirmationNumber !== undefined && { confirmationNumber: input.confirmationNumber }),
-    ...(input.referenceLink !== undefined && { referenceLink: input.referenceLink }),
-    ...(input.notes !== undefined && { notes: input.notes }),
-    ...(input.status !== undefined && { status: input.status }),
-    ...(input.timezone !== undefined && { timezone: input.timezone }),
-    ...(input.lat !== undefined && { lat: input.lat }),
-    ...(input.lng !== undefined && { lng: input.lng }),
-    ...(input.contactName !== undefined && { contactName: input.contactName }),
-    ...(input.contactEmail !== undefined && { contactEmail: input.contactEmail }),
-    ...(input.contactPhone !== undefined && { contactPhone: input.contactPhone }),
-  });
+  const updated = await updateTripBooking(
+    userId,
+    input.bookingId,
+    omitUndefined({
+      title: input.title,
+      provider: input.provider,
+      location: input.location,
+      startAt: input.startAt ? new Date(input.startAt) : undefined,
+      endAt: input.endAt ? new Date(input.endAt) : undefined,
+      confirmationNumber: input.confirmationNumber,
+      referenceLink: input.referenceLink,
+      notes: input.notes,
+      status: input.status,
+      timezone: input.timezone,
+      lat: input.lat,
+      lng: input.lng,
+      contactName: input.contactName,
+      contactEmail: input.contactEmail,
+      contactPhone: input.contactPhone,
+    }),
+  );
 
   if (!updated) throw new Error(`Failed to update booking ${input.bookingId}.`);
 
@@ -469,23 +473,27 @@ export const travelEditFlightTool: ToolCallback<typeof TravelEditFlightSchema.sh
   const mergedDetails: FlightDetails = {
     ...existingDetails,
     kind: 'flight' as const,
-    ...(newFlightNumber && { flightNumber: newFlightNumber }),
-    ...(input.seat !== undefined && { seat: input.seat }),
-    ...(input.terminal !== undefined && { terminal: input.terminal }),
-    ...(input.gate !== undefined && { gate: input.gate }),
+    ...omitUndefined({
+      flightNumber: newFlightNumber,
+      seat: input.seat,
+      terminal: input.terminal,
+      gate: input.gate,
+    }),
   };
 
   const updated = await updateTripBooking(userId, input.bookingId, {
-    ...(input.title !== undefined && { title: input.title }),
-    ...(input.provider !== undefined && { provider: input.provider }),
-    ...(input.departureAt !== undefined && { startAt: new Date(input.departureAt) }),
-    ...(input.arrivalAt !== undefined && { endAt: new Date(input.arrivalAt) }),
-    ...(input.confirmationNumber !== undefined && { confirmationNumber: input.confirmationNumber }),
-    ...(input.referenceLink !== undefined && { referenceLink: input.referenceLink }),
-    ...(input.notes !== undefined && { notes: input.notes }),
-    ...(input.timezone !== undefined && { timezone: input.timezone }),
-    ...(input.lat !== undefined && { lat: input.lat }),
-    ...(input.lng !== undefined && { lng: input.lng }),
+    ...omitUndefined({
+      title: input.title,
+      provider: input.provider,
+      startAt: input.departureAt ? new Date(input.departureAt) : undefined,
+      endAt: input.arrivalAt ? new Date(input.arrivalAt) : undefined,
+      confirmationNumber: input.confirmationNumber,
+      referenceLink: input.referenceLink,
+      notes: input.notes,
+      timezone: input.timezone,
+      lat: input.lat,
+      lng: input.lng,
+    }),
     details: mergedDetails,
   });
 

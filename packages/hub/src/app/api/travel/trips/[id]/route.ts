@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/api/with-auth';
 import { deleteTrip, updateTrip } from '@my-hub/shared/services';
 import { parseAndValidateDateForPatch } from '@/lib/api/date-validation';
 import { TripUpdateSchema } from '@my-hub/shared/schemas';
+import { omitUndefined, trimOrNull } from '@my-hub/shared/utils';
 
 export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
   const { id } = await params;
@@ -34,16 +35,20 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
   const { date: cancelledAt, error: cancelledAtError } = parseAndValidateDateForPatch(data.cancelledAt, 'cancelledAt');
   if (cancelledAtError) return NextResponse.json({ error: cancelledAtError }, { status: 400 });
 
-  const trip = await updateTrip(user.id, tripId, {
-    name: data.name,
-    destination: data.destination !== undefined ? data.destination.trim() || null : undefined,
-    color: data.color,
-    startAt,
-    endAt,
-    cancelledAt,
-    notes: data.notes,
-    coverImageUrl: data.coverImageUrl,
-  });
+  const trip = await updateTrip(
+    user.id,
+    tripId,
+    omitUndefined({
+      name: data.name,
+      destination: trimOrNull(data.destination),
+      color: data.color,
+      startAt,
+      endAt,
+      cancelledAt,
+      notes: data.notes,
+      coverImageUrl: data.coverImageUrl,
+    }),
+  );
 
   if (!trip) return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
   return NextResponse.json({ trip });

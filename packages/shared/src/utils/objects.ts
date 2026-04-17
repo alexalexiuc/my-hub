@@ -2,6 +2,7 @@
  * Object utilities
  * - omitUndefined(obj) — shallow copy with `undefined` properties removed (null kept)
  * - omitNullish(obj) — shallow copy with `null` and `undefined` properties removed
+ * - trimOrNull(val) — trim a string and return null for empty; pass-through undefined as undefined
  * - extractEnvVars(keys, ignoreMissing) — extract specified env vars into an object, with optional missing key handling
  * - getEnvVar(key, defaultValue) — get an env var with optional default and error handling
  */
@@ -17,6 +18,16 @@ export function omitUndefined<T extends Record<string, unknown>>(obj: T): Partia
     if (val !== undefined) result[key] = val;
   }
   return result as Partial<{ [K in keyof T]: T[K] }>;
+}
+
+/**
+ * Trim a string value and return null when the result is empty.
+ * Returns undefined unchanged so the result is safe to pass to omitUndefined.
+ */
+export function trimOrNull(val: string | null | undefined): string | null | undefined {
+  if (val === undefined) return undefined;
+  if (val === null) return null;
+  return val.trim() || null;
 }
 
 /**

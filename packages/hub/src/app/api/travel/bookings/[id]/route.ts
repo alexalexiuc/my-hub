@@ -4,6 +4,7 @@ import { deleteTripBooking, updateTripBooking } from '@my-hub/shared/services';
 import type { FlightDetails } from '@my-hub/shared/types';
 import { parseAndValidateDateForPatch } from '@/lib/api/date-validation';
 import { BookingUpdateSchema } from '@my-hub/shared/schemas';
+import { omitUndefined, trimOrNull } from '@my-hub/shared/utils';
 
 export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
   const { id } = await params;
@@ -34,18 +35,22 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
 
   const flightDetails = data.flightDetails != null ? (data.flightDetails as Partial<FlightDetails>) : undefined;
 
-  const booking = await updateTripBooking(user.id, bookingId, {
-    title: data.title,
-    bookingType: data.bookingType as Parameters<typeof updateTripBooking>[2]['bookingType'],
-    provider: data.provider !== undefined ? data.provider.trim() || null : undefined,
-    referenceLink: data.referenceLink !== undefined ? data.referenceLink.trim() || null : undefined,
-    startAt,
-    endAt,
-    ...(flightDetails !== undefined && { details: flightDetails }),
-    ...(data.contactName !== undefined && { contactName: data.contactName.trim() || null }),
-    ...(data.contactEmail !== undefined && { contactEmail: data.contactEmail.trim() || null }),
-    ...(data.contactPhone !== undefined && { contactPhone: data.contactPhone.trim() || null }),
-  });
+  const booking = await updateTripBooking(
+    user.id,
+    bookingId,
+    omitUndefined({
+      title: data.title,
+      bookingType: data.bookingType as Parameters<typeof updateTripBooking>[2]['bookingType'],
+      provider: trimOrNull(data.provider),
+      referenceLink: trimOrNull(data.referenceLink),
+      startAt,
+      endAt,
+      details: flightDetails,
+      contactName: trimOrNull(data.contactName),
+      contactEmail: trimOrNull(data.contactEmail),
+      contactPhone: trimOrNull(data.contactPhone),
+    }),
+  );
 
   if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
 

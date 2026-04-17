@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { omitNullish, omitUndefined, extractEnvVars, getEnvVar } from './objects';
+import { omitNullish, omitUndefined, trimOrNull, extractEnvVars, getEnvVar } from './objects';
 
 describe('omitNullish', () => {
   it('removes null values', () => {
@@ -70,6 +70,32 @@ describe('omitUndefined', () => {
     const nested = { x: 1 };
     const result = omitUndefined({ a: nested });
     expect(result.a).toBe(nested);
+  });
+});
+
+describe('trimOrNull', () => {
+  it('trims whitespace from a string', () => {
+    expect(trimOrNull('  hello  ')).toBe('hello');
+  });
+
+  it('returns null for an empty string', () => {
+    expect(trimOrNull('')).toBeNull();
+  });
+
+  it('returns null for a whitespace-only string', () => {
+    expect(trimOrNull('   ')).toBeNull();
+  });
+
+  it('passes undefined through as undefined', () => {
+    expect(trimOrNull(undefined)).toBeUndefined();
+  });
+
+  it('passes null through as null', () => {
+    expect(trimOrNull(null)).toBeNull();
+  });
+
+  it('returns the trimmed value unchanged when no surrounding whitespace', () => {
+    expect(trimOrNull('hello')).toBe('hello');
   });
 });
 
