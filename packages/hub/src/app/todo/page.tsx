@@ -9,7 +9,7 @@ import type { Todo } from '@my-hub/shared/types';
 import { PageHeader } from '@/components/PageHeader';
 import { apiFetch, ApiError } from '@/lib/utils';
 import { SectionCard } from '@/components/SectionCard';
-import { Input } from '@/components';
+import { Button, IconButton, Input } from '@/components';
 import { PlusOutlineIcon, CheckOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 
 const AddTodoSchema = z.object({ title: z.string().min(1) });
@@ -41,7 +41,7 @@ export default function TodoPage() {
 
   const loadTodos = useCallback(async () => {
     try {
-      const data = await apiFetch<{ todos: Todo[] }>('/api/todo');
+      const data = await apiFetch<{ todos: Todo[] }>('/api/todo', { silentToast: true });
       setTodos(data.todos);
     } catch (e) {
       setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
@@ -127,24 +127,17 @@ export default function TodoPage() {
     <main className="mx-auto max-w-3xl p-8 space-y-6">
       <PageHeader title="Todo" backHref="/" backLabel="← Home" />
 
-      {/* Open todos */}
       <SectionCard
         title={`Open (${open.length})`}
         className="border-blue-800/50 bg-blue-950/20"
         action={
-          <button
-            onClick={startAdding}
-            aria-label="Add task"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
-            title="Add task"
-          >
+          <Button variant="secondary" size="xs" onClick={startAdding} className="flex items-center gap-1.5">
             <PlusOutlineIcon className="size-3" />
             Add
-          </button>
+          </Button>
         }
       >
         <div className="space-y-1">
-          {/* Inline add row */}
           {adding && (
             <div className="flex items-center gap-3 px-3 py-2">
               <div className="flex-shrink-0 w-5 h-5 rounded-full border-2 border-zinc-700" />
@@ -206,7 +199,6 @@ export default function TodoPage() {
         </div>
       </SectionCard>
 
-      {/* Done todos */}
       {done.length > 0 && (
         <SectionCard title={`Done (${done.length})`}>
           <div className="space-y-1">
@@ -222,18 +214,13 @@ export default function TodoPage() {
                 <span className="text-xs text-zinc-600 whitespace-nowrap">
                   {new Date(todo.createdAt).toLocaleDateString()}
                 </span>
-                <button
+                <IconButton
+                  label="Delete"
+                  icon={<TrashOutlineIcon className="size-3.5" />}
                   onClick={() => deleteTodo(todo.id)}
-                  disabled={deleting === todo.id}
-                  className="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-400/10 transition disabled:opacity-50"
-                  title="Delete"
-                >
-                  {deleting === todo.id ? (
-                    <span className="text-xs">...</span>
-                  ) : (
-                    <TrashOutlineIcon className="size-3.5" />
-                  )}
-                </button>
+                  loading={deleting === todo.id}
+                  className="w-6 h-6 p-0 bg-transparent text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-400/10"
+                />
               </div>
             ))}
           </div>
