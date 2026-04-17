@@ -39,9 +39,9 @@ const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; description: stri
   { value: ActivityLevels.ExtraActive, label: 'Extra active', description: 'Very hard exercise, physical job' },
 ];
 
-const ACTIVITY_LABELS: Record<string, string> = Object.fromEntries(ACTIVITY_OPTIONS.map((o) => [o.value, o.label]));
+const ACTIVITY_LABELS: Record<string, string> = Object.fromEntries(ACTIVITY_OPTIONS.map(o => [o.value, o.label]));
 const ACTIVITY_DESCRIPTIONS: Record<string, string> = Object.fromEntries(
-  ACTIVITY_OPTIONS.map((o) => [o.value, o.description]),
+  ACTIVITY_OPTIONS.map(o => [o.value, o.description]),
 );
 
 const GOAL_LABELS: Record<GoalType, string> = {
@@ -50,8 +50,8 @@ const GOAL_LABELS: Record<GoalType, string> = {
   [GoalTypes.WeightGain]: 'Gain weight',
 };
 
-const TIMEZONE_LABELS: Record<string, string> = Object.fromEntries(TIMEZONES.map((t) => [t.value, t.label]));
-const COUNTRY_LABELS: Record<string, string> = Object.fromEntries(COUNTRIES.map((c) => [c.value, c.label]));
+const TIMEZONE_LABELS: Record<string, string> = Object.fromEntries(TIMEZONES.map(t => [t.value, t.label]));
+const COUNTRY_LABELS: Record<string, string> = Object.fromEntries(COUNTRIES.map(c => [c.value, c.label]));
 
 const ProfileFormSchema = z.object({
   age: z.string(),
@@ -115,7 +115,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
   const goalCarbs = watch('goalCarbs');
   const goalFat = watch('goalFat');
 
-  const weightMeasure = latestMeasurements.find((m) => m.typeKey === 'weight');
+  const weightMeasure = latestMeasurements.find(m => m.typeKey === 'weight');
 
   const targets = calculateCalorieTargets({
     age: profile?.age ?? null,
@@ -307,7 +307,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
           <Field label="Activity level">
             <Select
               {...register('activityLevel')}
-              options={ACTIVITY_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              options={ACTIVITY_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
             >
               <option value="">—</option>
             </Select>
@@ -329,7 +329,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
                     { value: GoalTypes.Maintain, label: 'Maintain' },
                     { value: GoalTypes.WeightGain, label: 'Gain weight' },
                   ]}
-                  onChange={(e) => {
+                  onChange={e => {
                     field.onChange(e);
                     setValue('goalWeeklyRateKg', '');
                   }}
@@ -365,7 +365,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
                   min="0"
                   placeholder="Optional ceiling"
                   value={field.value}
-                  onChange={(e) => {
+                  onChange={e => {
                     const val = e.target.value;
                     field.onChange(val);
                     if (!val && macroMode === '%') {

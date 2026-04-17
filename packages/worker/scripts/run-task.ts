@@ -13,11 +13,11 @@ if (!taskName) {
   process.exit(0);
 }
 
-const task = tasks.find((t) => t.name === taskName);
+const task = tasks.find(t => t.name === taskName);
 
 if (!task) {
   console.error(`Unknown task: "${taskName}"`);
-  console.error(`Available: ${tasks.map((t) => t.name).join(', ')}`);
+  console.error(`Available: ${tasks.map(t => t.name).join(', ')}`);
   process.exit(1);
 }
 
@@ -28,7 +28,7 @@ task
     logger.info(`[run-task] Done: ${task.name}`);
     process.exit(0);
   })
-  .catch((err) => {
+  .catch(err => {
     logger.error(`[run-task] Failed: ${task.name}`, err);
     process.exit(1);
   });

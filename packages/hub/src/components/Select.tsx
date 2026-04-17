@@ -14,7 +14,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   return (
     <select ref={ref} className={cn('input', className)} {...props}>
       {children}
-      {options?.map((o) => (
+      {options?.map(o => (
         <option key={o.value} value={o.value}>
           {o.label}
         </option>

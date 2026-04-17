@@ -23,7 +23,7 @@ teardown('cleanup user data via Profile danger zone', async ({ page }) => {
 
   await Promise.all([
     page.waitForResponse(
-      (response) =>
+      response =>
         response.url().includes('/api/user/delete-all') && response.request().method() === 'POST' && response.ok(),
       { timeout: 20_000 },
     ),

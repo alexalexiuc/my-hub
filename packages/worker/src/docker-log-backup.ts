@@ -61,7 +61,7 @@ export async function backupDockerLogsToS3(): Promise<void> {
     let logFiles: string[];
     try {
       logFiles = readdirSync(containerDir)
-        .filter((f) => f.startsWith(`${containerId}-json.log`))
+        .filter(f => f.startsWith(`${containerId}-json.log`))
         .sort(); // lexicographic: .log < .log.1 < .log.2 (active file sorts first)
     } catch {
       skipped++;

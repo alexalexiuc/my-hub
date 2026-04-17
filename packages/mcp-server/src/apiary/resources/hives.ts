@@ -6,8 +6,8 @@ export const getHivesResource: ReadResourceCallback = async (uri, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
   const [hives, yards] = await Promise.all([getApiaryHives(userId, { active: true }), getApiaryYards(userId)]);
 
-  const yardMap = new Map(yards.map((y) => [y.id, y.name]));
-  const enriched = hives.map((h) => ({
+  const yardMap = new Map(yards.map(y => [y.id, y.name]));
+  const enriched = hives.map(h => ({
     ...h,
     yardName: h.yardId ? (yardMap.get(h.yardId) ?? null) : null,
   }));

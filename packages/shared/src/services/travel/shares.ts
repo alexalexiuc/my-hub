@@ -32,7 +32,7 @@ export async function listTripShares(ownerUserId: string, tripId: number): Promi
     .where(and(eq(tripShares.ownerUserId, ownerUserId), eq(tripShares.tripId, tripId)))
     .orderBy(asc(users.email));
 
-  return rows.map((row) => ({
+  return rows.map(row => ({
     share: row.share,
     userName: row.userName,
     userEmail: row.userEmail,

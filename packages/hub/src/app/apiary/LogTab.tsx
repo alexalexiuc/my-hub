@@ -71,7 +71,7 @@ export function LogTab() {
     loadData();
   }
 
-  const hiveMap = new Map(hives.map((h) => [h.id, h.name]));
+  const hiveMap = new Map(hives.map(h => [h.id, h.name]));
 
   if (loading) {
     return (
@@ -87,9 +87,9 @@ export function LogTab() {
       <div className="flex flex-wrap gap-3 items-center">
         <Select
           className="w-auto"
-          options={hives.map((h) => ({ value: h.id, label: h.name }))}
+          options={hives.map(h => ({ value: h.id, label: h.name }))}
           value={filterHive}
-          onChange={(e) => setFilterHive(e.target.value)}
+          onChange={e => setFilterHive(e.target.value)}
         >
           <option value="">All hives</option>
         </Select>
@@ -97,7 +97,7 @@ export function LogTab() {
           className="w-auto"
           options={ApiaryLogTypes.map((t: string) => ({ value: t, label: t }))}
           value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
+          onChange={e => setFilterType(e.target.value)}
         >
           <option value="">All types</option>
         </Select>
@@ -113,7 +113,7 @@ export function LogTab() {
           <form onSubmit={handleSubmit(handleAdd)}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Select {...register('type')} options={ApiaryLogTypes.map((t: string) => ({ value: t, label: t }))} />
-              <Select {...register('hiveId')} options={hives.map((h) => ({ value: h.id, label: h.name }))}>
+              <Select {...register('hiveId')} options={hives.map(h => ({ value: h.id, label: h.name }))}>
                 <option value="">No hive</option>
               </Select>
               <Input {...register('loggedAt')} type="date" />
@@ -132,7 +132,7 @@ export function LogTab() {
         <p className="text-sm text-zinc-500">No log entries yet.</p>
       ) : (
         <div className="space-y-2">
-          {logs.map((log) => (
+          {logs.map(log => (
             <div
               key={log.id}
               className="flex items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3"

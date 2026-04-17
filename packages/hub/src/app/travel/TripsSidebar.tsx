@@ -35,7 +35,7 @@ export function TripsSidebar({
   const filteredTrips = useMemo(() => {
     const now = Date.now();
     const base =
-      filterMode === 'upcoming' ? trips.filter((t) => t.status !== 'cancelled' && t.status !== 'completed') : trips;
+      filterMode === 'upcoming' ? trips.filter(t => t.status !== 'cancelled' && t.status !== 'completed') : trips;
 
     const upcoming: ApiTrip[] = [];
     const past: ApiTrip[] = [];
@@ -110,7 +110,7 @@ export function TripsSidebar({
               {filterMode === 'upcoming' ? 'No upcoming trips.' : 'No trips yet.'}
             </p>
           )}
-          {filteredTrips.map((trip) => (
+          {filteredTrips.map(trip => (
             <div
               key={trip.id}
               className={`w-full rounded-lg border px-3 py-2 text-left transition ${
@@ -121,7 +121,7 @@ export function TripsSidebar({
               {editingTripId === trip.id ? (
                 <TripForm
                   defaultValues={tripToFormValues(trip as unknown as Trip)}
-                  onSubmit={(values) => saveTripEdits(trip.id, values)}
+                  onSubmit={values => saveTripEdits(trip.id, values)}
                   onCancel={() => setEditingTripId(null)}
                   submitLabel="Save"
                   submitClassName="bg-emerald-600 hover:bg-emerald-500"
@@ -143,10 +143,10 @@ export function TripsSidebar({
                       </p>
                       <p className="text-xs text-zinc-400">{trip.destination ?? 'No destination set'}</p>
                       <p className="text-xs text-zinc-500 mt-0.5">
-                        Owner: {trip.access_role === 'owner' ? 'You' : (trip.owner_name ?? trip.owner_email)}
+                        Owner: {trip.accessRole === 'owner' ? 'You' : (trip.ownerName ?? trip.ownerEmail)}
                       </p>
                     </Button>
-                    {trip.can_edit && (
+                    {trip.canEdit && (
                       <div className="flex items-center gap-1">
                         <IconButton label="Edit trip" onClick={() => setEditingTripId(trip.id)} icon={<PencilIcon />} />
                         <IconButton label="Remove trip" onClick={() => removeTrip(trip.id)} icon={<TrashIcon />} />

@@ -40,7 +40,7 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = parsed.data;
+  const { data } = parsed;
   const today = new Date().toISOString().split('T')[0]!;
 
   const meal = await logMeal({

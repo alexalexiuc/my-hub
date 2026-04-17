@@ -370,7 +370,7 @@ describe('fetchMonthlyReportCaloriesData', () => {
     const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
     expect(result!.weeks.length).toBeGreaterThan(0);
     // Every week with data should have avgDailyKcal > 0
-    const withData = result!.weeks.filter((w) => w.hasData);
+    const withData = result!.weeks.filter(w => w.hasData);
     expect(withData.length).toBe(2);
     for (const w of withData) {
       expect(w.avgDailyKcal).toBeGreaterThan(0);
@@ -380,7 +380,7 @@ describe('fetchMonthlyReportCaloriesData', () => {
   it('week without meals has hasData=false and avgDailyKcal=0', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-02', 1800)] as any);
     const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
-    const emptyWeeks = result!.weeks.filter((w) => !w.hasData);
+    const emptyWeeks = result!.weeks.filter(w => !w.hasData);
     for (const w of emptyWeeks) {
       expect(w.avgDailyKcal).toBe(0);
     }

@@ -169,7 +169,7 @@ function buildWeeklyBreakdown(data: MonthlyReportData): string {
   const TRACK = `height:22px;background:#111820;border-radius:3px;position:relative;overflow:visible;`;
 
   const bars = data.weeks
-    .map((week) => {
+    .map(week => {
       if (!week.hasData) {
         return `
     <tr>
@@ -258,8 +258,8 @@ function buildMonthlyWeightChartImg(
   startWeight: number,
   goalEndWeight: number,
 ): string {
-  const values = points.map((p) => p.value);
-  const labels = points.map((p) =>
+  const values = points.map(p => p.value);
+  const labels = points.map(p =>
     new Date(p.date + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
   );
   const lastIndex = values.length - 1;
@@ -329,7 +329,7 @@ function buildWeightTrendChart(data: MonthlyReportData): string {
   </div>`;
   }
 
-  const values = points.map((p) => p.value);
+  const values = points.map(p => p.value);
   const startWeight = values[0]!;
   const endWeight = values[values.length - 1]!;
   const totalDelta = endWeight - startWeight;
@@ -375,7 +375,7 @@ function buildCompositionProgress(data: MonthlyReportData): string {
   ];
 
   const tableRows = rows
-    .map((row) => {
+    .map(row => {
       const startStr = row.start != null ? `${row.start.toFixed(row.decimals)} ${row.unit}` : '—';
       const endStr = row.end != null ? `${row.end.toFixed(row.decimals)} ${row.unit}` : '—';
       let deltaStr = '—';

@@ -12,7 +12,7 @@ import { capPayload, redactSensitiveFields } from './payload-logging.js';
 function extractMessageInfo(message: JSONRPCMessage): { method: string; toolName?: string } | null {
   if (!('method' in message)) return null; // skip responses
 
-  const method = message.method;
+  const { method } = message;
   const params = 'params' in message ? (message.params as Record<string, unknown> | undefined) : undefined;
   const toolName = method === 'tools/call' ? (params?.['name'] as string | undefined) : undefined;
 

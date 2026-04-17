@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { verifyUnsubscribeToken, setSubscription } from '@my-hub/shared/services';
 import { NOTIFICATION_SUBSCRIPTIONS, type SubscriptionKey } from '@my-hub/shared/constants';
 
-const validKeys = new Set<string>(NOTIFICATION_SUBSCRIPTIONS.map((s) => s.key));
+const validKeys = new Set<string>(NOTIFICATION_SUBSCRIPTIONS.map(s => s.key));
 
 function htmlResponse(body: string, status: number): NextResponse {
   return new NextResponse(
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   await setSubscription(result.userId, result.subscriptionKey as SubscriptionKey, false);
 
-  const sub = NOTIFICATION_SUBSCRIPTIONS.find((s) => s.key === result.subscriptionKey);
+  const sub = NOTIFICATION_SUBSCRIPTIONS.find(s => s.key === result.subscriptionKey);
   const label = sub ? `${sub.section} — ${sub.label}` : result.subscriptionKey;
 
   return htmlResponse(

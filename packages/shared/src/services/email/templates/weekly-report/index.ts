@@ -297,7 +297,7 @@ body {
 // ─── Section builders ────────────────────────────────────────────────────────
 
 function buildHeader(data: WeeklyReportData): string {
-  const daysWithData = data.days.filter((d) => d.hasData);
+  const daysWithData = data.days.filter(d => d.hasData);
   const avgDailyKcal = daysWithData.length > 0 ? daysWithData.reduce((s, d) => s + d.kcal, 0) / daysWithData.length : 0;
   const onTrack = avgDailyKcal <= data.goalMaxCalories;
   const verdictClass = onTrack ? 'verdict-on-track' : 'verdict-over';
@@ -318,11 +318,11 @@ function buildHeader(data: WeeklyReportData): string {
 }
 
 function buildSummary(data: WeeklyReportData): string {
-  const daysWithData = data.days.filter((d) => d.hasData);
+  const daysWithData = data.days.filter(d => d.hasData);
   const totalKcal = daysWithData.reduce((s, d) => s + d.kcal, 0);
   const avgDailyKcal = daysWithData.length > 0 ? Math.round(totalKcal / daysWithData.length) : 0;
 
-  const daysOnTarget = data.days.filter((d) => d.hasData && d.kcal <= data.goalMaxCalories).length;
+  const daysOnTarget = data.days.filter(d => d.hasData && d.kcal <= data.goalMaxCalories).length;
 
   // Deficit: positive = deficit (ate less than goal), negative = surplus
   const weeklyDeficit = data.goalMaxCalories * 7 - data.days.reduce((s, d) => s + (d.hasData ? d.kcal : 0), 0);
@@ -378,7 +378,7 @@ function buildBarChart(data: WeeklyReportData): string {
   const TRACK = `height:22px;background:#111820;border-radius:3px;position:relative;overflow:visible;`;
 
   const bars = data.days
-    .map((day) => {
+    .map(day => {
       const dayLabel = getWeekDayLabel(day.date);
       if (!day.hasData) {
         return `
@@ -429,7 +429,7 @@ function buildBarChart(data: WeeklyReportData): string {
 }
 
 function buildMacros(data: WeeklyReportData): string {
-  const daysWithData = data.days.filter((d) => d.hasData);
+  const daysWithData = data.days.filter(d => d.hasData);
   const count = daysWithData.length || 1;
   const avgKcal = daysWithData.reduce((s, d) => s + d.kcal, 0) / count || 1;
   const avgCarbs = Math.round(daysWithData.reduce((s, d) => s + d.carbs, 0) / count);
@@ -536,7 +536,7 @@ function buildWeightChartImg(points: WeightPoint[], data: WeeklyReportData): str
   const lastDataIndex = dayValues.reduce<number>((last, v, i) => (v !== null ? i : last), -1);
 
   // Projected line: Monday weight → Sunday projected weight (span over all 7 days)
-  const mondayWeight = dayValues[0] ?? dayValues.find((v) => v !== null) ?? null;
+  const mondayWeight = dayValues[0] ?? dayValues.find(v => v !== null) ?? null;
   const projectedData: (number | null)[] = new Array(7).fill(null);
   if (mondayWeight !== null) {
     projectedData[0] = mondayWeight;

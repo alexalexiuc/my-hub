@@ -63,7 +63,7 @@ export function BookingForm({ defaultValues, onSubmit, onCancel, submitLabel, di
           </span>
           <Select
             {...register('bookingType')}
-            options={tripBookingTypeValues.map((type) => ({ value: type, label: bookingTypeLabels[type] }))}
+            options={tripBookingTypeValues.map(type => ({ value: type, label: bookingTypeLabels[type] }))}
           />
         </div>
         <Input {...register('provider')} placeholder="Provider" />

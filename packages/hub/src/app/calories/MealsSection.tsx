@@ -168,7 +168,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
         <Button
           variant="ghost"
           size="xs"
-          onClick={() => setShowMeals((v) => !v)}
+          onClick={() => setShowMeals(v => !v)}
           aria-expanded={showMeals}
           className="flex items-center gap-2 text-sm px-0 py-0 mb-3 hover:bg-transparent"
         >
@@ -182,13 +182,13 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
               <p className="text-zinc-500 text-sm">No meals logged{selectedDate === today ? ' today' : ''}.</p>
             ) : (
               <div className="space-y-4">
-                {MealTypesValues.filter((t) => grouped[t]?.length).map((type) => (
+                {MealTypesValues.filter(t => grouped[t]?.length).map(type => (
                   <div key={type}>
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-2">
                       {MEAL_LABEL[type]}
                     </h3>
                     <div className="space-y-1">
-                      {grouped[type]!.map((meal) =>
+                      {grouped[type]!.map(meal =>
                         editingMealId === meal.mealId ? (
                           <form
                             key={meal.id}
@@ -202,7 +202,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
                               <Field label="Meal type">
                                 <Select
                                   {...editForm.register('mealType')}
-                                  options={MealTypesValues.map((t) => ({ value: t, label: MEAL_LABEL[t] }))}
+                                  options={MealTypesValues.map(t => ({ value: t, label: MEAL_LABEL[t] }))}
                                 />
                               </Field>
                               <Field label="Calories (kcal)">
@@ -257,7 +257,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
                                 type="button"
                                 variant="ghost"
                                 size="xs"
-                                onClick={(e) => {
+                                onClick={e => {
                                   e.stopPropagation();
                                   meal.mealId && deleteMealEntry(meal.mealId);
                                 }}
@@ -303,7 +303,7 @@ export function MealsSection({ meals, selectedDate, onDateChange, onChanged, goa
             <Field label="Meal type *">
               <Select
                 {...addForm.register('mealType')}
-                options={MealTypesValues.map((t) => ({ value: t, label: MEAL_LABEL[t] }))}
+                options={MealTypesValues.map(t => ({ value: t, label: MEAL_LABEL[t] }))}
               />
             </Field>
             <Field label="Calories (kcal)">

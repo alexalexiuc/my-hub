@@ -25,7 +25,7 @@ export const PUT = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = parsed.data;
+  const { data } = parsed;
   const updates: Record<string, unknown> = { ...data };
 
   for (const key of ['goalMinCalories', 'goalMaxCalories'] as const) {

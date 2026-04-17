@@ -16,7 +16,7 @@ interface Props {
 export function WeightChart({ data }: Props) {
   if (data.length < 2) return null;
 
-  const values = data.map((d) => d.value);
+  const values = data.map(d => d.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const padding = Math.max((max - min) * 0.2, 0.5);
@@ -41,11 +41,11 @@ export function WeightChart({ data }: Props) {
                 borderRadius: 8,
                 fontSize: 13,
               }}
-              labelFormatter={(label) => {
-                const item = data.find((d) => d.label === label);
+              labelFormatter={label => {
+                const item = data.find(d => d.label === label);
                 return item?.date ?? label;
               }}
-              formatter={(value) => [`${value} kg`, 'Weight']}
+              formatter={value => [`${value} kg`, 'Weight']}
             />
             <Line
               type="monotone"

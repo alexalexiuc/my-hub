@@ -21,7 +21,7 @@ export async function syncDueFlights(): Promise<void> {
 
   for (const fd of due) {
     // wait 1 second to not hit rate limits
-    await new Promise((res) => setTimeout(res, 1000));
+    await new Promise(res => setTimeout(res, 1000));
     try {
       const result = await fetchFlightFromApi(fd.flightNumber, fd.flightDate, apiKey);
 

@@ -19,7 +19,7 @@ export const PATCH = withAuth<{ mealId: string }>(async ({ req, user, params }) 
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = parsed.data;
+  const { data } = parsed;
   const update = {
     ...data,
     mealType: data.mealType as MealType | undefined,

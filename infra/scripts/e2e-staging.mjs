@@ -74,7 +74,7 @@ if (!hubUserPassword) missing.push('E2E_HUB_USER_PASSWORD');
 if (!mcpClientId) missing.push('E2E_MCP_CLIENT_ID');
 if (!mcpClientSecret) missing.push('E2E_MCP_CLIENT_SECRET');
 if (missing.length) {
-  console.error('Missing required config:\n' + missing.map((m) => `  - ${m}`).join('\n'));
+  console.error('Missing required config:\n' + missing.map(m => `  - ${m}`).join('\n'));
   process.exit(1);
 }
 

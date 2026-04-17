@@ -51,7 +51,7 @@ export function HivesTab() {
     loadData();
   }
 
-  const yardMap = new Map(yards.map((y) => [y.id, y.name]));
+  const yardMap = new Map(yards.map(y => [y.id, y.name]));
 
   const grouped = new Map<string, ApiaryHive[]>();
   for (const hive of hives) {
@@ -81,7 +81,7 @@ export function HivesTab() {
           <form onSubmit={handleSubmit(handleAdd)}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input {...register('name')} placeholder="Hive name *" autoFocus />
-              <Select {...register('yardId')} options={yards.map((y) => ({ value: y.id, label: y.name }))}>
+              <Select {...register('yardId')} options={yards.map(y => ({ value: y.id, label: y.name }))}>
                 <option value="">No yard</option>
               </Select>
               <Input {...register('queenStatus')} placeholder="Queen status" />
@@ -103,7 +103,7 @@ export function HivesTab() {
         Array.from(grouped.entries()).map(([yardName, yardHives]) => (
           <SectionCard key={yardName} title={yardName}>
             <div className="space-y-2">
-              {yardHives.map((hive) => (
+              {yardHives.map(hive => (
                 <div key={hive.id} className="flex items-center justify-between rounded-lg bg-zinc-800/50 px-4 py-3">
                   <div>
                     <p className="text-sm font-medium text-zinc-200">{hive.name}</p>

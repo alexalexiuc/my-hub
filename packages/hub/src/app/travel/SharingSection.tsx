@@ -88,7 +88,7 @@ export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
           <div className="flex gap-2">
             <Input
               value={shareEmail}
-              onChange={(e) => setShareEmail(e.target.value)}
+              onChange={e => setShareEmail(e.target.value)}
               placeholder="Share with user email"
               className="flex-1"
             />
@@ -101,15 +101,15 @@ export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-wide text-zinc-500">Suggestions from companions in Hub</p>
               <div className="space-y-1">
-                {shareSuggestions.map((suggestion) => (
+                {shareSuggestions.map(suggestion => (
                   <div
-                    key={suggestion.user_id}
+                    key={suggestion.userId}
                     className="flex items-center justify-between rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs"
                   >
                     <span className="text-zinc-300">{suggestion.name ?? suggestion.email}</span>
                     <Button
                       size="xs"
-                      onClick={() => shareTripWithUser(suggestion.user_id)}
+                      onClick={() => shareTripWithUser(suggestion.userId)}
                       className="bg-violet-600 hover:bg-violet-500"
                     >
                       Share
@@ -123,7 +123,7 @@ export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-wide text-zinc-500">Shared with</p>
             {tripShares.length === 0 && <p className="text-sm text-zinc-500">No shared users yet.</p>}
-            {tripShares.map((share) => (
+            {tripShares.map(share => (
               <div
                 key={share.id}
                 className="flex items-center justify-between rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs"

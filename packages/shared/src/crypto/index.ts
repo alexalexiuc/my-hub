@@ -46,7 +46,7 @@ export async function encrypt(es: EncryptedString): Promise<EncryptedString> {
 export async function decrypt(es: EncryptedString): Promise<EncryptedString> {
   if (!es.encrypted) return es;
   const key = await getAesKey();
-  const combined = Uint8Array.from(atob(es.value), (c) => c.charCodeAt(0));
+  const combined = Uint8Array.from(atob(es.value), c => c.charCodeAt(0));
   const plaintext = await webcrypto.subtle.decrypt(
     { name: 'AES-GCM', iv: combined.slice(0, 12) },
     key,

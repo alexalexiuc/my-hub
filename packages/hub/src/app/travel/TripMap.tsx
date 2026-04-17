@@ -12,7 +12,7 @@ export type TripMapProps = {
 };
 
 // Inner component loaded only on the client to avoid Leaflet SSR crash
-const TripMapInner = dynamic(() => import('./TripMapInner').then((m) => ({ default: m.TripMapInner })), {
+const TripMapInner = dynamic(() => import('./TripMapInner').then(m => ({ default: m.TripMapInner })), {
   ssr: false,
   loading: () => null,
 });
@@ -34,7 +34,7 @@ export function TripMap({ mapData, tripId }: TripMapProps) {
           type="button"
           variant="ghost"
           size="xs"
-          onClick={() => setIsExpanded((prev) => !prev)}
+          onClick={() => setIsExpanded(prev => !prev)}
           aria-expanded={isExpanded}
           className="border border-teal-700 bg-teal-900/30 px-2.5 text-teal-300 hover:bg-teal-800/40 hover:text-teal-300"
         >

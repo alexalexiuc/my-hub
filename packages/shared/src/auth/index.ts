@@ -35,7 +35,7 @@ function base64urlEncode(buffer: ArrayBuffer): string {
 function base64urlDecode(str: string): Uint8Array {
   const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
   const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-  return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+  return Uint8Array.from(atob(padded), c => c.charCodeAt(0));
 }
 
 function base64urlEncodeStr(str: string): string {

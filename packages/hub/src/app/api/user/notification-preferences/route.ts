@@ -3,7 +3,7 @@ import { withAuth } from '@/lib/api/with-auth';
 import { getUserSubscriptions, setSubscription, NOTIFICATION_SUBSCRIPTIONS } from '@my-hub/shared/services';
 import type { SubscriptionKey } from '@my-hub/shared/services';
 
-const validKeys = new Set<string>(NOTIFICATION_SUBSCRIPTIONS.map((s) => s.key));
+const validKeys = new Set<string>(NOTIFICATION_SUBSCRIPTIONS.map(s => s.key));
 
 export const GET = withAuth(async ({ user }) => {
   const subscriptions = await getUserSubscriptions(user.id);

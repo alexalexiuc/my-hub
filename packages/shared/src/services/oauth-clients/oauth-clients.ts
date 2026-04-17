@@ -78,7 +78,7 @@ export async function listUserOAuthClients(userId: string): Promise<PublicOAuthC
   });
 
   const clients = rows.map(toPublic);
-  const clientIds = clients.map((client) => client.clientId);
+  const clientIds = clients.map(client => client.clientId);
   if (clientIds.length === 0) return clients;
 
   const latestLogs = await db
@@ -100,7 +100,7 @@ export async function listUserOAuthClients(userId: string): Promise<PublicOAuthC
     });
   }
 
-  return clients.map((client) => ({
+  return clients.map(client => ({
     ...client,
     lastUsedAt: usageByClientId.get(client.clientId)?.lastUsedAt ?? null,
     lastUsedPath: usageByClientId.get(client.clientId)?.lastUsedPath ?? null,

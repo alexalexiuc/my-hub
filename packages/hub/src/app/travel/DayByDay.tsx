@@ -31,7 +31,7 @@ function DayCard({ dateStr, note, bookings, canEdit, onSaved, onDeleted }: DayCa
   const [notes, setNotes] = useState(note?.notes ?? '');
   const [saving, setSaving] = useState(false);
 
-  const dayBookings = bookings.filter((b) => b.startAt && toUTCDateStr(new Date(b.startAt)) === dateStr);
+  const dayBookings = bookings.filter(b => b.startAt && toUTCDateStr(new Date(b.startAt)) === dateStr);
 
   async function handleSave() {
     setSaving(true);
@@ -80,7 +80,7 @@ function DayCard({ dateStr, note, bookings, canEdit, onSaved, onDeleted }: DayCa
       {/* Bookings on this day */}
       {dayBookings.length > 0 && (
         <ul className="space-y-1">
-          {dayBookings.map((b) => (
+          {dayBookings.map(b => (
             <li key={b.id} className="flex items-center gap-2 text-xs text-zinc-400">
               <span className="text-zinc-500 shrink-0">
                 <BookingTypeIcon type={b.bookingType} />
@@ -98,12 +98,12 @@ function DayCard({ dateStr, note, bookings, canEdit, onSaved, onDeleted }: DayCa
           <Input
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={e => setTitle(e.target.value)}
             placeholder="Day title (optional)"
           />
           <Textarea
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={e => setNotes(e.target.value)}
             placeholder="Notes for this day…"
             rows={3}
             className="resize-none"
@@ -153,7 +153,7 @@ export function DayByDay({ trip, bookings, dayNotes, canEdit, onChanged }: DayBy
   const days = calendarDays(new Date(trip.startAt), new Date(trip.endAt));
   if (days.length === 0) return null;
 
-  const noteByDate = new Map<string, TripDay>(dayNotes.map((n) => [n.date, n]));
+  const noteByDate = new Map<string, TripDay>(dayNotes.map(n => [n.date, n]));
 
   async function handleSaved(tripId: number, date: string, title: string, notes: string) {
     await apiFetch(`/api/travel/trips/${tripId}/days`, {
@@ -171,7 +171,7 @@ export function DayByDay({ trip, bookings, dayNotes, canEdit, onChanged }: DayBy
   return (
     <SectionCard title="Day by Day" className="bg-zinc-950/40 border-zinc-800/60">
       <div className="space-y-3">
-        {days.map((dateStr) => (
+        {days.map(dateStr => (
           <DayCard
             key={dateStr}
             dateStr={dateStr}

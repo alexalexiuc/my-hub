@@ -19,7 +19,7 @@ const user = await findOrCreateUser(E2E_MCP_USER_EMAIL, 'E2E Test User');
 
 // Always delete existing e2e client to get a fresh plainClientSecret
 const existing = await listUserOAuthClients(user.id);
-for (const c of existing.filter((c) => c.clientName === E2E_MCP_CLIENT_NAME)) {
+for (const c of existing.filter(c => c.clientName === E2E_MCP_CLIENT_NAME)) {
   await deleteUserOAuthClient(c.id, user.id);
   console.error('Deleted old e2e client:', c.clientId);
 }

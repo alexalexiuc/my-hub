@@ -4,7 +4,7 @@ import { getEnvVar } from '@my-hub/shared/utils';
 function parseEmails(raw: string): string[] {
   return raw
     .split(',')
-    .map((e) => e.trim().toLowerCase())
+    .map(e => e.trim().toLowerCase())
     .filter(Boolean);
 }
 

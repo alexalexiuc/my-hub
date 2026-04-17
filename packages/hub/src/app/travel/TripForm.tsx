@@ -60,7 +60,7 @@ export function TripForm({ defaultValues, onSubmit, onCancel, submitLabel, submi
           control={control}
           name="color"
           render={({ field }) => (
-            <ColorPicker id={colorId} value={field.value} onChange={(e) => field.onChange(e.target.value)} />
+            <ColorPicker id={colorId} value={field.value} onChange={e => field.onChange(e.target.value)} />
           )}
         />
       </div>

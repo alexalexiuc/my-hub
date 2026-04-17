@@ -114,7 +114,7 @@ export default function CaloriesDashboardPage() {
     age: profile?.age ?? null,
     sex: profile?.sex ?? null,
     heightCm: profile?.heightCm ?? null,
-    weightKg: latestMeasurements.find((m) => m.typeKey === 'weight')?.value ?? null,
+    weightKg: latestMeasurements.find(m => m.typeKey === 'weight')?.value ?? null,
     activityLevel: profile?.activityLevel ?? null,
     goalType: profile?.goalType ?? null,
     goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? null,
@@ -128,16 +128,16 @@ export default function CaloriesDashboardPage() {
 
   // Weekly chart data
   const weeklyData = weekDays.map(({ date, label }) => {
-    const dayMeals = weeklyMeals.filter((m) => m.date === date);
+    const dayMeals = weeklyMeals.filter(m => m.date === date);
     return { date, label, kcal: dayMeals.reduce((sum, m) => sum + (m.kcal ?? 0), 0) };
   });
 
   // Weight chart data
   const weightChartData = weightHistory
-    .filter((m) => m.typeKey === 'weight')
+    .filter(m => m.typeKey === 'weight')
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(-20)
-    .map((m) => ({
+    .map(m => ({
       date: m.date,
       label: m.date.slice(5), // MM-DD
       value: m.value,

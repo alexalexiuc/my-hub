@@ -7,11 +7,11 @@ async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   await app.register(relaxedJsonBodyPlugin);
 
-  app.delete('/mcp', async (req) => {
+  app.delete('/mcp', async req => {
     return { body: req.body ?? null };
   });
 
-  app.post('/mcp', async (req) => {
+  app.post('/mcp', async req => {
     return { body: req.body ?? null };
   });
 

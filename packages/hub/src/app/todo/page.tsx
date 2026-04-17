@@ -120,8 +120,8 @@ export default function TodoPage() {
     );
   }
 
-  const open = todos.filter((t) => !t.done);
-  const done = todos.filter((t) => t.done);
+  const open = todos.filter(t => !t.done);
+  const done = todos.filter(t => t.done);
 
   return (
     <main className="mx-auto max-w-3xl p-8 space-y-6">
@@ -149,14 +149,14 @@ export default function TodoPage() {
             <div className="flex items-center gap-3 px-3 py-2">
               <div className="flex-shrink-0 w-5 h-5 rounded-full border-2 border-zinc-700" />
               <Input
-                ref={(el) => {
+                ref={el => {
                   rhfRef(el);
                   (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = el;
                 }}
                 variant="ghost"
                 placeholder="New task..."
                 {...titleProps}
-                onKeyDown={(e) => {
+                onKeyDown={e => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     handleSubmit(saveTitle)();
@@ -168,7 +168,7 @@ export default function TodoPage() {
               />
               {titleValue.trim() && (
                 <button
-                  onMouseDown={(e) => {
+                  onMouseDown={e => {
                     e.preventDefault();
                     handleSubmit(saveTitle)();
                   }}
@@ -184,7 +184,7 @@ export default function TodoPage() {
           {open.length === 0 && !adding ? (
             <p className="text-zinc-500 text-sm px-1">All caught up!</p>
           ) : (
-            open.map((todo) => (
+            open.map(todo => (
               <div
                 key={todo.id}
                 className="flex items-center gap-3 rounded-lg bg-zinc-800/50 px-3 py-2.5 text-sm group"
@@ -210,7 +210,7 @@ export default function TodoPage() {
       {done.length > 0 && (
         <SectionCard title={`Done (${done.length})`}>
           <div className="space-y-1">
-            {done.map((todo) => (
+            {done.map(todo => (
               <div
                 key={todo.id}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm group opacity-50 hover:opacity-80 transition-opacity"

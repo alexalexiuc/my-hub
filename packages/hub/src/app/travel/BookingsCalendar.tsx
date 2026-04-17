@@ -70,7 +70,7 @@ export function BookingsCalendar({ bookings, tripColor, trip }: BookingsCalendar
   }
 
   function moveMonth(delta: number) {
-    setMonthCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+    setMonthCursor(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
   }
 
   const today = new Date();
@@ -88,7 +88,7 @@ export function BookingsCalendar({ bookings, tripColor, trip }: BookingsCalendar
       </div>
 
       <div className="grid grid-cols-7 gap-1 text-center text-xs uppercase tracking-wide text-zinc-500">
-        {dayNamesShort.map((name) => (
+        {dayNamesShort.map(name => (
           <div key={name} className="py-1">
             {name}
           </div>
@@ -96,7 +96,7 @@ export function BookingsCalendar({ bookings, tripColor, trip }: BookingsCalendar
       </div>
 
       <div className="grid grid-cols-7 gap-1">
-        {days.map((day) => {
+        {days.map(day => {
           const inMonth = day.getMonth() === monthCursor.getMonth();
           const dayBookings = bookingsByDay.get(keyForDay(day)) ?? [];
           const hasBookings = dayBookings.length > 0;
@@ -120,7 +120,7 @@ export function BookingsCalendar({ bookings, tripColor, trip }: BookingsCalendar
             >
               <p className="mb-1 text-xs font-medium">{day.getDate()}</p>
               <div className="space-y-1">
-                {dayBookings.slice(0, 3).map((booking) => (
+                {dayBookings.slice(0, 3).map(booking => (
                   <div
                     key={booking.id}
                     className="flex items-center gap-1 rounded bg-zinc-800/80 px-1 py-0.5 text-[10px] leading-tight text-zinc-200"

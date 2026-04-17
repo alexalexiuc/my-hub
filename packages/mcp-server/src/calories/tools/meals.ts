@@ -86,7 +86,7 @@ export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (inpu
 
   const date = input.date ?? localDateString(timezone);
 
-  let meal_type = input.meal_type;
+  let { meal_type } = input;
   if (!meal_type) {
     const hour = localHour(timezone);
     if (hour < 10) meal_type = MealTypes.Breakfast;

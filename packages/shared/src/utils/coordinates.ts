@@ -15,7 +15,7 @@ const CoordsSchema = z
     lat: z.number().min(-90).max(90).nullish(),
     lng: z.number().min(-180).max(180).nullish(),
   })
-  .refine((data) => (data.lat == null) === (data.lng == null), {
+  .refine(data => (data.lat == null) === (data.lng == null), {
     message: 'lat and lng must both be provided or both be absent',
   });
 

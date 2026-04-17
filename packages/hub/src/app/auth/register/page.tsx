@@ -84,7 +84,7 @@ function RegisterForm() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
               autoFocus
@@ -94,13 +94,7 @@ function RegisterForm() {
             <label htmlFor="name" className="text-xs text-zinc-400 block mb-1">
               Name <span className="text-zinc-500">(optional)</span>
             </label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-            />
+            <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your name" />
           </div>
           <div>
             <label htmlFor="password" className="text-xs text-zinc-400 block mb-1">
@@ -110,7 +104,7 @@ function RegisterForm() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
               required
               minLength={8}
@@ -124,7 +118,7 @@ function RegisterForm() {
               id="confirm"
               type="password"
               value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
+              onChange={e => setConfirm(e.target.value)}
               placeholder="••••••••"
               required
             />

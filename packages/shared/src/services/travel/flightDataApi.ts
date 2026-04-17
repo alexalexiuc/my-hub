@@ -83,7 +83,7 @@ const fetchApi = (flightNumber: string, flightDate: string, apiKey: string) => {
         }),
       {
         // we have 1 attempt per second on the free tier, so we want to retry on rate limit errors
-        shouldRetry: (result) => result?.status === 429, // Retry on rate limit errors,
+        shouldRetry: result => result?.status === 429, // Retry on rate limit errors,
       },
     );
 

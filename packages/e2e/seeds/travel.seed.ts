@@ -27,7 +27,7 @@ export async function seedSharedTripFixture(viewerEmail: string): Promise<Shared
 
   // Idempotent: delete any previously seeded trips with the same name
   const existingTrips = await getTrips(owner.id);
-  for (const trip of existingTrips.filter((t) => t.name === tripName)) {
+  for (const trip of existingTrips.filter(t => t.name === tripName)) {
     await deleteTrip(owner.id, trip.id);
   }
 

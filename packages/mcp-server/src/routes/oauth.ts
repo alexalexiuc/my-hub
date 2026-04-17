@@ -36,7 +36,7 @@ function validateRedirectUri(redirectUri: string): URL | null {
 
   const allowlist = [...DEFAULT_ALLOWED_REDIRECT_URIS, ...envConfig.ALLOWED_REDIRECT_URIS];
 
-  const allowed = allowlist.some((entry) => redirectUri === entry || redirectUri.startsWith(entry));
+  const allowed = allowlist.some(entry => redirectUri === entry || redirectUri.startsWith(entry));
   return allowed ? parsed : null;
 }
 
@@ -97,7 +97,7 @@ export async function oauthRoutes(app: FastifyInstance) {
     const body = req.body as Record<string, unknown>;
     const clientName = typeof body['client_name'] === 'string' ? body['client_name'] : null;
     const redirectUris: string[] = Array.isArray(body['redirect_uris'])
-      ? (body['redirect_uris'] as string[]).filter((u) => typeof u === 'string' && validateRedirectUri(u) !== null)
+      ? (body['redirect_uris'] as string[]).filter(u => typeof u === 'string' && validateRedirectUri(u) !== null)
       : [];
 
     // hub_<8 hex chars> — short prefix makes it identifiable at a glance
@@ -332,7 +332,7 @@ export async function oauthRoutes(app: FastifyInstance) {
       return sendTokenError('invalid_client', 401);
     }
 
-    const code = body['code'];
+    const { code } = body;
     if (!code) return sendTokenError('invalid_request');
 
     const authCodePayload = await verifyToken<AuthCodePayload>(code, client.tokenSigningSecret);

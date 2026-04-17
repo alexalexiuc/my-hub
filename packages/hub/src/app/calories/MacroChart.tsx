@@ -54,7 +54,7 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
                   strokeWidth={0}
                   animationDuration={800}
                 >
-                  {data.map((entry) => (
+                  {data.map(entry => (
                     <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
@@ -66,7 +66,7 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
                     fontSize: 13,
                   }}
                   formatter={(value, name) => {
-                    const item = data.find((d) => d.name === name);
+                    const item = data.find(d => d.name === name);
                     return [`${item?.grams ?? 0}g (${value} kcal)`, name];
                   }}
                 />
@@ -80,7 +80,7 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
 
           {/* Legend */}
           <div className="flex-1 space-y-3">
-            {data.map((entry) => {
+            {data.map(entry => {
               const exceeded = entry.goal !== null && entry.grams > entry.goal;
               const barColor = exceeded ? '#b91c1c' : entry.color; // red-700 when over
               return (

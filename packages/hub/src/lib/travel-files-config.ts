@@ -17,7 +17,7 @@ function parseAllowedMime(raw: string | undefined): string[] {
 
   const values = raw
     .split(',')
-    .map((value) => value.trim())
+    .map(value => value.trim())
     .filter(Boolean);
 
   return values.length > 0 ? values : DEFAULT_ALLOWED_MIME;

@@ -65,7 +65,7 @@ export function TasksTab() {
     loadData();
   }
 
-  const hiveMap = new Map(hives.map((h) => [h.id, h.name]));
+  const hiveMap = new Map(hives.map(h => [h.id, h.name]));
   const now = new Date();
 
   if (loading) {
@@ -80,7 +80,7 @@ export function TasksTab() {
     <div className="space-y-4">
       {/* Filter + add */}
       <div className="flex flex-wrap gap-2 items-center">
-        {(['pending', 'completed', 'all'] as const).map((mode) => (
+        {(['pending', 'completed', 'all'] as const).map(mode => (
           <button
             key={mode}
             onClick={() => setFilter(mode)}
@@ -103,7 +103,7 @@ export function TasksTab() {
           <form onSubmit={handleSubmit(handleAdd)}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Input {...register('title')} className="sm:col-span-3" placeholder="Task title *" autoFocus />
-              <Select {...register('hiveId')} options={hives.map((h) => ({ value: h.id, label: h.name }))}>
+              <Select {...register('hiveId')} options={hives.map(h => ({ value: h.id, label: h.name }))}>
                 <option value="">No hive</option>
               </Select>
               <Input {...register('dueAt')} type="date" placeholder="Due date" />
@@ -127,7 +127,7 @@ export function TasksTab() {
         </p>
       ) : (
         <div className="space-y-2">
-          {tasks.map((task) => {
+          {tasks.map(task => {
             const isOverdue = !task.completed && task.dueAt && new Date(task.dueAt) < now;
             return (
               <div

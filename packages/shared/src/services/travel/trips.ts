@@ -70,7 +70,7 @@ export async function createTrip(userId: string, data: TripInsert): Promise<Trip
 export async function getTrips(userId: string): Promise<TripWithStatus[]> {
   const now = new Date();
   const rows = await db.select().from(trips).where(eq(trips.userId, userId)).orderBy(asc(trips.startAt), asc(trips.id));
-  return rows.map((r) => withStatus(r, now));
+  return rows.map(r => withStatus(r, now));
 }
 
 export async function getAccessibleTrips(userId: string): Promise<AccessibleTrip[]> {
@@ -99,7 +99,7 @@ export async function getAccessibleTrips(userId: string): Promise<AccessibleTrip
     .where(baseWhere)
     .orderBy(asc(trips.startAt), asc(trips.id));
 
-  return rows.map((row) => ({
+  return rows.map(row => ({
     trip: withStatus(row.trip, now),
     ownerUserId: row.ownerUserId,
     ownerName: row.ownerName,

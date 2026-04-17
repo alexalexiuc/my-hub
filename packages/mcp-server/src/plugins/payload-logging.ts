@@ -14,7 +14,7 @@ export function redactSensitiveFields(value: unknown): unknown {
   if (value === null || value === undefined) return value;
 
   if (Array.isArray(value)) {
-    return value.map((item) => redactSensitiveFields(item));
+    return value.map(item => redactSensitiveFields(item));
   }
 
   if (typeof value === 'object') {

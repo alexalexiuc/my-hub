@@ -69,7 +69,7 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
       <div className="flex gap-2 mb-3">
         <Input
           value={newItem}
-          onChange={(e) => setNewItem(e.target.value)}
+          onChange={e => setNewItem(e.target.value)}
           placeholder="Add checklist item"
           className="flex-1"
         />
@@ -79,7 +79,7 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
       </div>
 
       <div className="space-y-2 max-h-64 overflow-auto">
-        {checklist.map((item) => (
+        {checklist.map(item => (
           <div
             key={item.id}
             className={`w-full rounded-md border px-3 py-2 text-left text-sm ${
@@ -89,7 +89,7 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
             <div className="flex items-center justify-between gap-2">
               {editingId === item.id ? (
                 <>
-                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="min-w-0 flex-1" />
+                  <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="min-w-0 flex-1" />
                   <Button size="xs" onClick={() => saveEdit(item.id)} className="bg-teal-600 hover:bg-teal-500">
                     Save
                   </Button>

@@ -24,7 +24,7 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = parsed.data;
+  const { data } = parsed;
 
   const { date: startAt, error: startAtError } = parseAndValidateDateForPatch(data.start_at, 'start_at');
   if (startAtError) return NextResponse.json({ error: startAtError }, { status: 400 });

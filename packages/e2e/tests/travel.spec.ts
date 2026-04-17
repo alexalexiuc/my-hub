@@ -37,7 +37,7 @@ async function getTripIdByName(page: Page, tripName: string): Promise<number> {
   const res = await page.request.get('/api/travel/trips');
   expect(res.ok()).toBeTruthy();
   const data = (await res.json()) as { trips: Array<{ id: number; name: string }> };
-  const trip = data.trips.find((t) => t.name === tripName);
+  const trip = data.trips.find(t => t.name === tripName);
   expect(trip).toBeTruthy();
   return trip!.id;
 }
@@ -90,7 +90,7 @@ test.describe('Travel', () => {
 
     await sharingSection.getByPlaceholder('Share with user email').fill(sharedEmail);
     const shareResponsePromise = page.waitForResponse(
-      (res) =>
+      res =>
         res.url().includes('/api/travel/trips/') && res.url().includes('/shares') && res.request().method() === 'POST',
     );
     await sharingSection.getByRole('button', { name: 'Share', exact: true }).click();
@@ -99,7 +99,7 @@ test.describe('Travel', () => {
     await expect(removeButtons).toHaveCount(beforeCount + 1);
 
     const revokeResponsePromise = page.waitForResponse(
-      (res) =>
+      res =>
         res.url().includes('/api/travel/trips/') &&
         res.url().includes('/shares/') &&
         res.request().method() === 'DELETE',
@@ -238,14 +238,14 @@ test.describe('Travel', () => {
     // ── 12. Map: geo bookings via API ─────────────────────────────────────────
     const tripId = await getTripIdByName(page, editedTripName);
     const geoRes1 = await page.request.post('/api/travel/bookings', {
-      data: { trip_id: tripId, title: 'Paris Hotel', booking_type: 'accommodation', lat: 48.8566, lng: 2.3522 },
+      data: { tripId, title: 'Paris Hotel', bookingType: 'accommodation', lat: 48.8566, lng: 2.3522 },
     });
     expect(geoRes1.status()).toBe(201);
     const b1 = (await geoRes1.json()) as { booking: { lat: number | null } };
     expect(b1.booking.lat).toBe(48.8566);
 
     const geoRes2 = await page.request.post('/api/travel/bookings', {
-      data: { trip_id: tripId, title: 'Rome Hotel', booking_type: 'accommodation', lat: 41.9028, lng: 12.4964 },
+      data: { tripId, title: 'Rome Hotel', bookingType: 'accommodation', lat: 41.9028, lng: 12.4964 },
     });
     expect(geoRes2.status()).toBe(201);
 
@@ -253,7 +253,7 @@ test.describe('Travel', () => {
     await page.waitForLoadState('networkidle');
 
     const overviewResponsePromise = page.waitForResponse(
-      (res) => res.url().includes(`/api/travel/trips/${tripId}/overview`) && res.status() === 200,
+      res => res.url().includes(`/api/travel/trips/${tripId}/overview`) && res.status() === 200,
     );
     await page.getByRole('button', { name: new RegExp(editedTripName) }).click();
     await overviewResponsePromise;
@@ -326,7 +326,7 @@ test.describe('Travel', () => {
     const tripStartAt = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000 + 1000 * 60);
     const tripEndAt = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000 + 1000 * 60);
     await page.request.patch(`/api/travel/trips/${tripId}`, {
-      data: { start_at: tripStartAt.toISOString(), end_at: tripEndAt.toISOString() },
+      data: { startAt: tripStartAt.toISOString(), endAt: tripEndAt.toISOString() },
     });
 
     await page.reload();
@@ -430,7 +430,7 @@ test.describe('Travel', () => {
 
     const tripId = await getTripIdByName(page, tripName);
     const cancelRes = await page.request.patch(`/api/travel/trips/${tripId}`, {
-      data: { cancelled_at: new Date().toISOString() },
+      data: { cancelledAt: new Date().toISOString() },
     });
     expect(cancelRes.status()).toBe(200);
 
