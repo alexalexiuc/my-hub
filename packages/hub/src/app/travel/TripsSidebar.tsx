@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { Button, IconButton, MultiButtonGroup, SectionCard } from '@/components';
+import { PencilIcon, PlusOutlineIcon, TrashIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
-import { PencilIcon, TrashIcon } from '@/components/icons';
 import type { Trip } from '@my-hub/shared/types';
 import type { ApiTrip, BookingRange } from './types';
 import { TripForm } from './TripForm';
@@ -30,6 +30,7 @@ export function TripsSidebar({
   onOverviewChanged,
 }: TripsSidebarProps) {
   const [editingTripId, setEditingTripId] = useState<number | null>(null);
+  const [showingCreateForm, setShowingCreateForm] = useState(false);
   const [filterMode, setFilterMode] = useState<'upcoming' | 'all'>('upcoming');
 
   const filteredTrips = useMemo(() => {
@@ -63,6 +64,7 @@ export function TripsSidebar({
 
   async function createTrip(values: TripFormValues) {
     await apiFetch('/api/travel/trips', { method: 'POST', body: formToCreateBody(values) });
+    setShowingCreateForm(false);
     onTripsChanged();
   }
 
@@ -81,12 +83,18 @@ export function TripsSidebar({
   return (
     <SectionCard title="Trips" className="bg-emerald-950/20 border-emerald-800/50">
       <div className="space-y-3">
-        <TripForm
-          onSubmit={createTrip}
-          onCancel={() => {}}
-          submitLabel="Create Trip"
-          submitClassName="w-full bg-emerald-600 hover:bg-emerald-500"
-        />
+        {showingCreateForm ? (
+          <TripForm
+            onSubmit={createTrip}
+            onCancel={() => setShowingCreateForm(false)}
+            submitLabel="Create Trip"
+            submitClassName="bg-emerald-600 hover:bg-emerald-500"
+          />
+        ) : (
+          <Button variant="secondary" className="w-full" onClick={() => setShowingCreateForm(true)}>
+            <PlusOutlineIcon /> New Trip
+          </Button>
+        )}
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-zinc-500">
