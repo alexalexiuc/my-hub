@@ -6,7 +6,7 @@ import { LogCreateSchema } from '@my-hub/shared/schemas';
 
 export const GET = withAuth(async ({ req, user }) => {
   const { searchParams } = new URL(req.url);
-  const hiveId = searchParams.get('hive_id') ? Number(searchParams.get('hive_id')) : undefined;
+  const hiveId = searchParams.get('hiveId') ? Number(searchParams.get('hiveId')) : undefined;
   const type = searchParams.get('type') ?? undefined;
   const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined;
   const offset = searchParams.get('offset') ? Number(searchParams.get('offset')) : undefined;
@@ -28,14 +28,14 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = parsed.data;
-  const loggedAt = data.logged_at ? new Date(data.logged_at) : new Date();
+  const { data } = parsed;
+  const loggedAt = data.loggedAt ? new Date(data.loggedAt) : new Date();
 
   const log = await createApiaryLog(user.id, {
     type: data.type,
     loggedAt,
     ...omitNullish({
-      hiveId: data.hive_id,
+      hiveId: data.hiveId,
       notes: data.notes,
       data: data.data,
     }),

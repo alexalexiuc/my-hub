@@ -25,8 +25,8 @@ export const LogMeasurementSchema = z.object({
 
 export const GetMeasurementsSchema = z.object({
   type: z.string().optional().describe('Filter by measurement type key (e.g. "weight")'),
-  date_from: yyyyMmDdSchema.optional().describe('Start date filter (YYYY-MM-DD)'),
-  date_to: yyyyMmDdSchema.optional().describe('End date filter (YYYY-MM-DD)'),
+  dateFrom: yyyyMmDdSchema.optional().describe('Start date filter (YYYY-MM-DD)'),
+  dateTo: yyyyMmDdSchema.optional().describe('End date filter (YYYY-MM-DD)'),
   limit: z.number().int().positive().max(500).default(100).optional().describe('Max entries to return (default: 100)'),
 });
 
@@ -41,7 +41,7 @@ export const logMeasurementTool: ToolCallback<typeof LogMeasurementSchema.shape>
   const measurementType = await getMeasurementTypeByKey(input.type as MeasurementTypeKey);
   if (!measurementType) {
     const types = await getMeasurementTypes();
-    throw new Error(`Unknown measurement type "${input.type}". Available types: ${types.map((t) => t.key).join(', ')}`);
+    throw new Error(`Unknown measurement type "${input.type}". Available types: ${types.map(t => t.key).join(', ')}`);
   }
 
   const today = new Date().toISOString().split('T')[0]!;
@@ -76,8 +76,8 @@ export const getMeasurementsTool: ToolCallback<typeof GetMeasurementsSchema.shap
 
   const rows = await getMeasurements(userId, {
     typeKey,
-    dateFrom: input.date_from,
-    dateTo: input.date_to,
+    dateFrom: input.dateFrom,
+    dateTo: input.dateTo,
     limit: input.limit ?? 100,
   });
 

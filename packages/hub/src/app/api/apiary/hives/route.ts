@@ -6,7 +6,7 @@ import { HiveCreateSchema } from '@my-hub/shared/schemas';
 
 export const GET = withAuth(async ({ req, user }) => {
   const { searchParams } = new URL(req.url);
-  const yardId = searchParams.get('yard_id') ? Number(searchParams.get('yard_id')) : undefined;
+  const yardId = searchParams.get('yardId') ? Number(searchParams.get('yardId')) : undefined;
   const active = searchParams.get('active') !== null ? searchParams.get('active') === 'true' : undefined;
 
   const hives = await getApiaryHives(user.id, omitNullish({ yardId, active }));
@@ -26,15 +26,15 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = parsed.data;
+  const { data } = parsed;
 
   const hive = await createApiaryHive(user.id, {
     name: data.name,
     ...omitNullish({
-      yardId: data.yard_id,
-      queenStatus: data.queen_status,
-      queenMarked: data.queen_marked,
-      queenYear: data.queen_year,
+      yardId: data.yardId,
+      queenStatus: data.queenStatus,
+      queenMarked: data.queenMarked,
+      queenYear: data.queenYear,
       boxes: data.boxes,
       notes: data.notes,
     }),

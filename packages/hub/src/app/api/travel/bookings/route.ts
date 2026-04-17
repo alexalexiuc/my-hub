@@ -19,40 +19,40 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = parsed.data;
+  const { data } = parsed;
 
-  const { date: startAt, error: startAtError } = parseAndValidateDate(data.start_at, 'start_at');
+  const { date: startAt, error: startAtError } = parseAndValidateDate(data.startAt, 'startAt');
   if (startAtError) return NextResponse.json({ error: startAtError }, { status: 400 });
 
-  const { date: endAt, error: endAtError } = parseAndValidateDate(data.end_at, 'end_at');
+  const { date: endAt, error: endAtError } = parseAndValidateDate(data.endAt, 'endAt');
   if (endAtError) return NextResponse.json({ error: endAtError }, { status: 400 });
 
-  const bookingType = data.booking_type ?? TripBookingTypes.Other;
+  const bookingType = data.bookingType ?? TripBookingTypes.Other;
 
   const flightDetails =
-    bookingType === TripBookingTypes.Flight && data.flight_details != null
-      ? (data.flight_details as Partial<FlightDetails>)
+    bookingType === TripBookingTypes.Flight && data.flightDetails != null
+      ? (data.flightDetails as Partial<FlightDetails>)
       : null;
 
-  const booking = await addTripBooking(user.id, data.trip_id, {
+  const booking = await addTripBooking(user.id, data.tripId, {
     bookingType,
     title: data.title,
     provider: data.provider ?? null,
-    confirmationNumber: data.confirmation_number ?? null,
+    confirmationNumber: data.confirmationNumber ?? null,
     startAt,
     endAt,
     status: data.status ?? 'scheduled',
-    costAmount: data.cost_amount ?? null,
-    costCurrency: data.cost_currency ?? 'EUR',
+    costAmount: data.costAmount ?? null,
+    costCurrency: data.costCurrency ?? 'EUR',
     location: data.location ?? null,
-    referenceLink: data.reference_link?.trim() || null,
+    referenceLink: data.referenceLink?.trim() || null,
     notes: data.notes ?? null,
     details: flightDetails,
     lat: data.lat ?? null,
     lng: data.lng ?? null,
-    contactName: data.contact_name?.trim() || null,
-    contactEmail: data.contact_email?.trim() || null,
-    contactPhone: data.contact_phone?.trim() || null,
+    contactName: data.contactName?.trim() || null,
+    contactEmail: data.contactEmail?.trim() || null,
+    contactPhone: data.contactPhone?.trim() || null,
   });
 
   return NextResponse.json({ booking }, { status: 201 });

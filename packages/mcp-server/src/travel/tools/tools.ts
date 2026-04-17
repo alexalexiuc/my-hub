@@ -48,7 +48,7 @@ const travelTools = [
     name: 'travel_add_reservation_from_text',
     description:
       'Capture a booking/reservation from raw text (email/snippet/chat) and attach it to an existing trip. ' +
-      'Extract and pass a direct reservation URL in reference_link whenever one exists in the source text. ' +
+      'Extract and pass a direct reservation URL in referenceLink whenever one exists in the source text. ' +
       'Use this when the user pastes a confirmation email or snippet. ' +
       'For structured flight data where all details are already known, prefer travel_add_flight.',
     inputSchema: TravelAddReservationFromTextInputSchema.shape,
@@ -59,7 +59,7 @@ const travelTools = [
     name: 'travel_add_flight',
     description:
       'Add a flight booking to a trip with all required flight details (flight number, route, departure time). ' +
-      'Include reference_link when available (airline/OTA manage-booking URL). ' +
+      'Include referenceLink when available (airline/OTA manage-booking URL). ' +
       'Prefer this over travel_add_reservation_from_text when the model already has structured flight data. ' +
       'Automatically registers the flight for live tracking and status updates.',
     inputSchema: TravelAddFlightSchema.shape,
@@ -70,7 +70,7 @@ const travelTools = [
     name: 'travel_add_transport',
     description:
       'Add a transport booking (train, bus, ferry, taxi, transfer, rental car, or car) to a trip with structured ' +
-      'origin and destination details. Include reference_link when available. Use this instead of travel_add_reservation_from_text when you already have ' +
+      'origin and destination details. Include referenceLink when available. Use this instead of travel_add_reservation_from_text when you already have ' +
       'structured route data — it stores origin/destination as structured data for rich display.',
     inputSchema: TravelAddTransportSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
@@ -120,7 +120,7 @@ const travelTools = [
   defineTool({
     name: 'travel_get_trip_brief',
     description:
-      'Get a concise trip brief with itinerary counts, checklist, and companions. Defaults to next upcoming trip if trip_id is omitted.',
+      'Get a concise trip brief with itinerary counts, checklist, and companions. Defaults to next upcoming trip if tripId is omitted.',
     inputSchema: TravelGetTripBriefSchema.shape,
     annotations: { readOnlyHint: true },
     callback: travelGetTripBriefTool,

@@ -51,10 +51,10 @@ function pickTravelFocus(
   bookingRanges: BookingRange[],
 ): TravelFocus | null {
   const now = new Date();
-  const rangeByTripId = new Map<number, BookingRange>(bookingRanges.map((range) => [range.tripId, range]));
+  const rangeByTripId = new Map<number, BookingRange>(bookingRanges.map(range => [range.tripId, range]));
 
   const candidates = trips
-    .map((trip) => {
+    .map(trip => {
       const range = rangeByTripId.get(trip.id);
       const from = parseDate(range?.fromAt ?? trip.startAt ?? null);
       const to = parseDate(range?.toAt ?? trip.endAt ?? null);
@@ -124,9 +124,9 @@ export function TravelWidget() {
         startAt?: string | null;
         endAt?: string | null;
       }>;
-      booking_ranges?: BookingRange[];
+      bookingRanges?: BookingRange[];
     }>('/api/travel/trips')
-      .then((data) => setTravelFocus(pickTravelFocus(data.trips ?? [], data.booking_ranges ?? [])))
+      .then(data => setTravelFocus(pickTravelFocus(data.trips ?? [], data.bookingRanges ?? [])))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

@@ -22,8 +22,8 @@ export const defaultHiveFormValues: HiveFormValues = {
 export function formToHiveBody(values: HiveFormValues): Record<string, unknown> {
   return {
     name: values.name.trim(),
-    ...(values.yardId ? { yard_id: Number(values.yardId) } : {}),
-    ...(values.queenStatus ? { queen_status: values.queenStatus } : {}),
+    ...(values.yardId ? { yardId: Number(values.yardId) } : {}),
+    ...(values.queenStatus ? { queenStatus: values.queenStatus } : {}),
     ...(values.boxes ? { boxes: Number(values.boxes) } : {}),
     ...(values.notes ? { notes: values.notes } : {}),
   };
@@ -48,9 +48,9 @@ export const defaultLogFormValues: LogFormValues = {
 export function formToLogBody(values: LogFormValues): Record<string, unknown> {
   return {
     type: values.type,
-    ...(values.hiveId ? { hive_id: Number(values.hiveId) } : {}),
+    ...(values.hiveId ? { hiveId: Number(values.hiveId) } : {}),
     ...(values.notes ? { notes: values.notes } : {}),
-    ...(values.loggedAt ? { logged_at: values.loggedAt } : {}),
+    ...(values.loggedAt ? { loggedAt: values.loggedAt } : {}),
   };
 }
 
@@ -71,7 +71,7 @@ export const defaultTaskFormValues: TaskFormValues = {
 export function formToTaskBody(values: TaskFormValues): Record<string, unknown> {
   return {
     title: values.title.trim(),
-    ...(values.hiveId ? { hive_id: Number(values.hiveId) } : {}),
-    ...(values.dueAt ? { due_at: values.dueAt } : {}),
+    ...(values.hiveId ? { hiveId: Number(values.hiveId) } : {}),
+    ...(values.dueAt ? { dueAt: values.dueAt } : {}),
   };
 }

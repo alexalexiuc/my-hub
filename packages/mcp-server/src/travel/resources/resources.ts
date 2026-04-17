@@ -20,7 +20,7 @@ export const getTravelUpcomingResource: ReadResourceCallback = async (uri, extra
 
   const nextTrip =
     trips
-      .filter((trip) => (trip.startAt ? trip.startAt.getTime() >= Date.now() : true))
+      .filter(trip => (trip.startAt ? trip.startAt.getTime() >= Date.now() : true))
       .sort((a, b) => {
         const aTime = a.startAt ? a.startAt.getTime() : Number.MAX_SAFE_INTEGER;
         const bTime = b.startAt ? b.startAt.getTime() : Number.MAX_SAFE_INTEGER;
@@ -30,14 +30,14 @@ export const getTravelUpcomingResource: ReadResourceCallback = async (uri, extra
   const upcomingFlights = await getUpcomingTripBookings(userId, 48, TripBookingTypes.Flight);
 
   return resourceResponse(uri, {
-    next_trip: nextTrip,
-    upcoming_departures_48h: upcomingFlights,
+    nextTrip,
+    upcomingDepartures48h: upcomingFlights,
   });
 };
 
-export const getTravelUploadPolicyResource: ReadResourceCallback = async (uri) => {
+export const getTravelUploadPolicyResource: ReadResourceCallback = async uri => {
   return resourceResponse(uri, {
-    max_mb: travelFilesConfig.maxMb,
-    allowed_mime: travelFilesConfig.allowedMime,
+    maxMb: travelFilesConfig.maxMb,
+    allowedMime: travelFilesConfig.allowedMime,
   });
 };

@@ -62,17 +62,17 @@ export function bookingToFormValues(booking: TripBookingExtended): BookingFormVa
 
   if (d.kind === 'flight' || booking.bookingType === TripBookingTypes.Flight) {
     const fd = booking.details as FlightDetails;
-    flightNumber = fd.flight_number ?? '';
+    flightNumber = fd.flightNumber ?? '';
     flightSeat = fd.seat ?? '';
-    flightOriginIata = fd.origin_iata ?? '';
-    flightDestIata = fd.destination_iata ?? '';
+    flightOriginIata = fd.originIata ?? '';
+    flightDestIata = fd.destinationIata ?? '';
     flightTerminal = fd.terminal ?? '';
     flightGate = fd.gate ?? '';
   } else if (d.kind === 'transport') {
     const td = booking.details as TransportDetails;
     transportOrigin = td.origin.name;
     transportDest = td.destination.name;
-    transportServiceNumber = td.service_number ?? '';
+    transportServiceNumber = td.serviceNumber ?? '';
   }
 
   return {
@@ -99,32 +99,32 @@ export function bookingToFormValues(booking: TripBookingExtended): BookingFormVa
 
 export function formToCreateBody(values: BookingFormValues, tripId: number): Record<string, unknown> {
   const body: Record<string, unknown> = {
-    trip_id: tripId,
+    tripId,
     title: values.title,
-    booking_type: values.bookingType,
+    bookingType: values.bookingType,
     provider: values.provider.trim() || undefined,
-    reference_link: values.referenceLink.trim() || undefined,
-    start_at: values.startAt ? new Date(values.startAt).toISOString() : undefined,
-    end_at: values.endAt ? new Date(values.endAt).toISOString() : undefined,
+    referenceLink: values.referenceLink.trim() || undefined,
+    startAt: values.startAt ? new Date(values.startAt).toISOString() : undefined,
+    endAt: values.endAt ? new Date(values.endAt).toISOString() : undefined,
   };
   _appendDetailsFields(body, values);
-  if (values.contactName.trim()) body.contact_name = values.contactName.trim();
-  if (values.contactEmail.trim()) body.contact_email = values.contactEmail.trim();
-  if (values.contactPhone.trim()) body.contact_phone = values.contactPhone.trim();
+  if (values.contactName.trim()) body.contactName = values.contactName.trim();
+  if (values.contactEmail.trim()) body.contactEmail = values.contactEmail.trim();
+  if (values.contactPhone.trim()) body.contactPhone = values.contactPhone.trim();
   return body;
 }
 
 export function formToUpdateBody(values: BookingFormValues): Record<string, unknown> {
   const body: Record<string, unknown> = {
     title: values.title,
-    booking_type: values.bookingType,
+    bookingType: values.bookingType,
     provider: values.provider.trim() || null,
-    reference_link: values.referenceLink.trim() || null,
-    start_at: values.startAt ? new Date(values.startAt).toISOString() : null,
-    end_at: values.endAt ? new Date(values.endAt).toISOString() : null,
-    contact_name: values.contactName.trim() || null,
-    contact_email: values.contactEmail.trim() || null,
-    contact_phone: values.contactPhone.trim() || null,
+    referenceLink: values.referenceLink.trim() || null,
+    startAt: values.startAt ? new Date(values.startAt).toISOString() : null,
+    endAt: values.endAt ? new Date(values.endAt).toISOString() : null,
+    contactName: values.contactName.trim() || null,
+    contactEmail: values.contactEmail.trim() || null,
+    contactPhone: values.contactPhone.trim() || null,
   };
   _appendDetailsFields(body, values);
   return body;
@@ -132,12 +132,12 @@ export function formToUpdateBody(values: BookingFormValues): Record<string, unkn
 
 function _appendDetailsFields(body: Record<string, unknown>, values: BookingFormValues): void {
   if (values.bookingType === TripBookingTypes.Flight) {
-    body.flight_details = {
+    body.flightDetails = {
       kind: 'flight',
-      ...(values.flightNumber.trim() && { flight_number: values.flightNumber.trim() }),
+      ...(values.flightNumber.trim() && { flightNumber: values.flightNumber.trim() }),
       ...(values.flightSeat.trim() && { seat: values.flightSeat.trim() }),
-      ...(values.flightOriginIata.trim() && { origin_iata: values.flightOriginIata.trim().toUpperCase() }),
-      ...(values.flightDestIata.trim() && { destination_iata: values.flightDestIata.trim().toUpperCase() }),
+      ...(values.flightOriginIata.trim() && { originIata: values.flightOriginIata.trim().toUpperCase() }),
+      ...(values.flightDestIata.trim() && { destinationIata: values.flightDestIata.trim().toUpperCase() }),
       ...(values.flightTerminal.trim() && { terminal: values.flightTerminal.trim() }),
       ...(values.flightGate.trim() && { gate: values.flightGate.trim() }),
     };
@@ -145,11 +145,11 @@ function _appendDetailsFields(body: Record<string, unknown>, values: BookingForm
     isTransportBookingType(values.bookingType) &&
     (values.transportOrigin.trim() || values.transportDest.trim())
   ) {
-    body.flight_details = {
+    body.flightDetails = {
       kind: 'transport',
       origin: { name: values.transportOrigin.trim() || '' },
       destination: { name: values.transportDest.trim() || '' },
-      ...(values.transportServiceNumber.trim() && { service_number: values.transportServiceNumber.trim() }),
+      ...(values.transportServiceNumber.trim() && { serviceNumber: values.transportServiceNumber.trim() }),
     };
     if (!body.location && values.transportOrigin.trim() && values.transportDest.trim()) {
       body.location = `${values.transportOrigin.trim()} → ${values.transportDest.trim()}`;

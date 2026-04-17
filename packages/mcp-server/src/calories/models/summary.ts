@@ -15,15 +15,15 @@ export function getWeekBounds(dateStr: string): { start: string; end: string } {
 export function sumMeals(
   meals: {
     calories: number;
-    protein_g: number | null;
-    carbs_g: number | null;
-    fat_g: number | null;
+    proteinG: number | null;
+    carbsG: number | null;
+    fatG: number | null;
   }[],
 ) {
   return {
     calories: meals.reduce((s, m) => s + m.calories, 0),
-    protein_g: meals.reduce((s, m) => s + (m.protein_g ?? 0), 0),
-    carbs_g: meals.reduce((s, m) => s + (m.carbs_g ?? 0), 0),
-    fat_g: meals.reduce((s, m) => s + (m.fat_g ?? 0), 0),
+    proteinG: meals.reduce((s, m) => s + (m.proteinG ?? 0), 0),
+    carbsG: meals.reduce((s, m) => s + (m.carbsG ?? 0), 0),
+    fatG: meals.reduce((s, m) => s + (m.fatG ?? 0), 0),
   };
 }

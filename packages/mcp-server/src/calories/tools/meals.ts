@@ -21,9 +21,9 @@ import { MealTypes, MeasurementTypes } from '@my-hub/shared/constants';
 export const MealItemSchema = z.object({
   name: z.string().describe('Name of the food item, e.g. "grilled chicken breast"'),
   calories: z.number().int().positive().describe('Estimated calories for this item'),
-  protein_g: z.number().positive().optional().describe('Estimated protein in grams'),
-  carbs_g: z.number().positive().optional().describe('Estimated carbs in grams'),
-  fat_g: z.number().positive().optional().describe('Estimated fat in grams'),
+  proteinG: z.number().positive().optional().describe('Estimated protein in grams'),
+  carbsG: z.number().positive().optional().describe('Estimated carbs in grams'),
+  fatG: z.number().positive().optional().describe('Estimated fat in grams'),
 });
 
 export const LogMealSchema = z.object({
@@ -45,22 +45,22 @@ export const LogMealSchema = z.object({
     .describe(
       'Total estimated calorie content of the meal. If analyzing a photo, estimate based on visible portion sizes and typical nutritional values. When items are provided this should equal the sum of all item calories.',
     ),
-  meal_type: z
+  mealType: z
     .nativeEnum(MealTypes)
     .optional()
     .describe(
       'Type of meal: "breakfast" | "lunch" | "dinner" | "snack". If not specified, infer from the time of day or context.',
     ),
   date: yyyyMmDdSchema.optional().describe('Date of the meal (YYYY-MM-DD). Defaults to today.'),
-  protein_g: z.number().positive().optional().describe('Estimated protein content in grams'),
-  carbs_g: z.number().positive().optional().describe('Estimated carbohydrate content in grams'),
-  fat_g: z.number().positive().optional().describe('Estimated fat content in grams'),
+  proteinG: z.number().positive().optional().describe('Estimated protein content in grams'),
+  carbsG: z.number().positive().optional().describe('Estimated carbohydrate content in grams'),
+  fatG: z.number().positive().optional().describe('Estimated fat content in grams'),
   notes: z.string().optional().describe('Any additional notes, e.g. "restaurant portion, may be larger than typical"'),
 });
 
 export const GetMealsSchema = z.object({
   date: yyyyMmDdSchema.optional().describe('Filter to a specific date (YYYY-MM-DD). Omit for all entries.'),
-  meal_type: z.nativeEnum(MealTypes).optional().describe('Filter by meal type'),
+  mealType: z.nativeEnum(MealTypes).optional().describe('Filter by meal type'),
   limit: z
     .number()
     .int()
@@ -73,55 +73,55 @@ export const GetMealsSchema = z.object({
 });
 
 export const DeleteMealSchema = z.object({
-  meal_id: z.string().describe('The meal_id of the entry to delete'),
+  mealId: z.string().describe('The mealId of the entry to delete'),
 });
 
 export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
   if (!userId) throw new Error('Authentication required');
 
-  // Fetch user record first to resolve timezone for date/meal_type inference
+  // Fetch user record first to resolve timezone for date/mealType inference
   const [profileRow, userRecord] = await Promise.all([getCalorieProfile(userId), findUserById(userId)]);
   const timezone = userRecord?.timezone ?? null;
 
   const date = input.date ?? localDateString(timezone);
 
-  let { meal_type } = input;
-  if (!meal_type) {
+  let { mealType } = input;
+  if (!mealType) {
     const hour = localHour(timezone);
-    if (hour < 10) meal_type = MealTypes.Breakfast;
-    else if (hour < 14) meal_type = MealTypes.Lunch;
-    else if (hour < 19) meal_type = MealTypes.Dinner;
-    else meal_type = MealTypes.Snack;
+    if (hour < 10) mealType = MealTypes.Breakfast;
+    else if (hour < 14) mealType = MealTypes.Lunch;
+    else if (hour < 19) mealType = MealTypes.Dinner;
+    else mealType = MealTypes.Snack;
   }
 
   // Determine items to log: individual items if provided, otherwise the whole meal as one entry
   const itemsToLog =
     input.items && input.items.length > 0
-      ? input.items.map((item) => ({
+      ? input.items.map(item => ({
           description: item.name,
           kcal: item.calories,
-          protein: item.protein_g ?? null,
-          carbs: item.carbs_g ?? null,
-          fat: item.fat_g ?? null,
+          protein: item.proteinG ?? null,
+          carbs: item.carbsG ?? null,
+          fat: item.fatG ?? null,
         }))
       : [
           {
             description: input.description,
             kcal: input.calories,
-            protein: input.protein_g ?? null,
-            carbs: input.carbs_g ?? null,
-            fat: input.fat_g ?? null,
+            protein: input.proteinG ?? null,
+            carbs: input.carbsG ?? null,
+            fat: input.fatG ?? null,
           },
         ];
 
   const rows = await Promise.all(
-    itemsToLog.map((item) =>
+    itemsToLog.map(item =>
       logMeal({
         mealId: crypto.randomUUID(),
         userId,
         date,
-        mealType: meal_type,
+        mealType,
         description: item.description,
         kcal: item.kcal,
         protein: item.protein,
@@ -139,7 +139,7 @@ export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (inpu
   ]);
 
   const profile = profileRow ? rowToProfile(profileRow) : {};
-  const weightM = latestMeasurements.find((m) => m.typeKey === MeasurementTypes.Weight);
+  const weightM = latestMeasurements.find(m => m.typeKey === MeasurementTypes.Weight);
   const targets = profileToTargets(profile, weightM?.value);
   const maxCal = targets.maxCalories;
   const caloriesConsumed = dayRows.reduce((s, r) => s + (r.kcal ?? 0), 0);
@@ -154,38 +154,38 @@ export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (inpu
   const goalFat = profileRow?.goalFat ?? null;
 
   const remaining = {
-    calories_consumed: caloriesConsumed,
-    goal_calories: targets.goalCalories,
-    min_calories: targets.minCalories,
-    max_calories: maxCal,
-    remaining_calories: remainingCalories,
-    over_budget: remainingCalories !== null ? remainingCalories < 0 : null,
+    caloriesConsumed,
+    goalCalories: targets.goalCalories,
+    minCalories: targets.minCalories,
+    maxCalories: maxCal,
+    remainingCalories,
+    overBudget: remainingCalories !== null ? remainingCalories < 0 : null,
     macros: {
-      protein_g: proteinConsumed,
-      carbs_g: carbsConsumed,
-      fat_g: fatConsumed,
-      goal_protein_g: goalProtein,
-      goal_carbs_g: goalCarbs,
-      goal_fat_g: goalFat,
-      remaining_protein_g: goalProtein !== null ? goalProtein - proteinConsumed : null,
-      remaining_carbs_g: goalCarbs !== null ? goalCarbs - carbsConsumed : null,
-      remaining_fat_g: goalFat !== null ? goalFat - fatConsumed : null,
-      over_protein: goalProtein !== null ? proteinConsumed > goalProtein : null,
-      over_carbs: goalCarbs !== null ? carbsConsumed > goalCarbs : null,
-      over_fat: goalFat !== null ? fatConsumed > goalFat : null,
+      proteinG: proteinConsumed,
+      carbsG: carbsConsumed,
+      fatG: fatConsumed,
+      goalProteinG: goalProtein,
+      goalCarbsG: goalCarbs,
+      goalFatG: goalFat,
+      remainingProteinG: goalProtein !== null ? goalProtein - proteinConsumed : null,
+      remainingCarbsG: goalCarbs !== null ? goalCarbs - carbsConsumed : null,
+      remainingFatG: goalFat !== null ? goalFat - fatConsumed : null,
+      overProtein: goalProtein !== null ? proteinConsumed > goalProtein : null,
+      overCarbs: goalCarbs !== null ? carbsConsumed > goalCarbs : null,
+      overFat: goalFat !== null ? fatConsumed > goalFat : null,
     },
   };
 
   return toolResponse({
-    meals: rows.map((row) => ({
-      meal_id: row.mealId,
+    meals: rows.map(row => ({
+      mealId: row.mealId,
       date,
-      meal_type,
+      mealType,
       description: row.description,
       calories: row.kcal,
-      protein_g: row.protein ?? null,
-      carbs_g: row.carbs ?? null,
-      fat_g: row.fat ?? null,
+      proteinG: row.protein ?? null,
+      carbsG: row.carbs ?? null,
+      fatG: row.fat ?? null,
     })),
     remaining,
   });
@@ -197,28 +197,28 @@ export const getMealsTool: ToolCallback<typeof GetMealsSchema.shape> = async (in
   const limit = input.limit ?? DEFAULT_MEAL_LIMIT;
   const offset = input.offset ?? 0;
 
-  const allRows = await getMeals(userId, omitNullish({ date: input.date, mealType: input.meal_type }));
+  const allRows = await getMeals(userId, omitNullish({ date: input.date, mealType: input.mealType }));
 
   // TODO: Implement count & pagination at query level to avoid fetching all rows into memory
-  const total_count = allRows.length;
+  const totalCount = allRows.length;
   const page = allRows.slice(offset, offset + limit);
   const entries: MealEntry[] = page.map(rowToMealEntry);
-  const has_more = offset + limit < total_count;
+  const hasMore = offset + limit < totalCount;
 
   return toolResponse({
     entries,
-    total_count,
-    has_more,
-    next_offset: has_more ? offset + limit : null,
+    totalCount,
+    hasMore,
+    nextOffset: hasMore ? offset + limit : null,
   });
 };
 
 export const deleteMealTool: ToolCallback<typeof DeleteMealSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
   if (!userId) throw new Error('Authentication required');
-  const deleted = await deleteMeal(userId, input.meal_id);
+  const deleted = await deleteMeal(userId, input.mealId);
   if (!deleted) {
-    throw new Error(`Meal with id "${input.meal_id}" not found.`);
+    throw new Error(`Meal with id "${input.mealId}" not found.`);
   }
-  return toolResponse({ deleted: true, meal_id: input.meal_id });
+  return toolResponse({ deleted: true, mealId: input.mealId });
 };

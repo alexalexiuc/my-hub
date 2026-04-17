@@ -6,19 +6,19 @@ import { TripCreateSchema } from '@my-hub/shared/schemas';
 
 export const GET = withAuth(async ({ user }) => {
   const accessibleTrips = await getAccessibleTrips(user.id);
-  const ranges = await getTripBookingRangesByTripIds(accessibleTrips.map((item) => item.trip.id));
+  const ranges = await getTripBookingRangesByTripIds(accessibleTrips.map(item => item.trip.id));
 
   return NextResponse.json({
-    trips: accessibleTrips.map((item) => ({
+    trips: accessibleTrips.map(item => ({
       ...item.trip,
-      owner_user_id: item.ownerUserId,
-      owner_name: item.ownerName,
-      owner_email: item.ownerEmail,
-      access_role: item.accessRole,
-      can_edit: item.accessRole === 'owner',
+      ownerUserId: item.ownerUserId,
+      ownerName: item.ownerName,
+      ownerEmail: item.ownerEmail,
+      accessRole: item.accessRole,
+      canEdit: item.accessRole === 'owner',
       permission: item.permission,
     })),
-    booking_ranges: ranges,
+    bookingRanges: ranges,
   });
 });
 
@@ -35,12 +35,12 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = parsed.data;
+  const { data } = parsed;
 
-  const { date: startAt, error: startAtError } = parseAndValidateDate(data.start_at, 'start_at');
+  const { date: startAt, error: startAtError } = parseAndValidateDate(data.startAt, 'startAt');
   if (startAtError) return NextResponse.json({ error: startAtError }, { status: 400 });
 
-  const { date: endAt, error: endAtError } = parseAndValidateDate(data.end_at, 'end_at');
+  const { date: endAt, error: endAtError } = parseAndValidateDate(data.endAt, 'endAt');
   if (endAtError) return NextResponse.json({ error: endAtError }, { status: 400 });
 
   const trip = await createTrip(user.id, {

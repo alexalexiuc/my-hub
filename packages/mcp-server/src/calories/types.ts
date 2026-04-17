@@ -6,27 +6,27 @@ export interface BodyProfile {
   name?: string;
   age?: number;
   sex?: Sex;
-  height_cm?: number; // cm — stored directly on profile
-  activity_level?: ActivityLevel;
-  goal_type?: GoalType;
-  goal_weekly_rate_kg?: number; // kg/week for loss or gain
-  goal_min_calories?: number; // explicit daily minimum floor
-  goal_max_calories?: number; // explicit daily maximum ceiling
+  heightCm?: number; // cm — stored directly on profile
+  activityLevel?: ActivityLevel;
+  goalType?: GoalType;
+  goalWeeklyRateKg?: number; // kg/week for loss or gain
+  goalMinCalories?: number; // explicit daily minimum floor
+  goalMaxCalories?: number; // explicit daily maximum ceiling
   notes?: string;
-  updated_at?: string;
+  updatedAt?: string;
 }
 
 export interface MealEntry {
-  meal_id: string;
+  mealId: string;
   date: string;
-  meal_type: MealType;
+  mealType: MealType;
   description: string;
   calories: number;
-  protein_g: number | null;
-  carbs_g: number | null;
-  fat_g: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
   notes: string | null;
-  created_at: string;
+  createdAt: string;
 }
 
 export interface MeasurementEntry {

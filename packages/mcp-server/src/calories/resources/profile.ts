@@ -13,18 +13,18 @@ export const getProfileResource: ReadResourceCallback = async (uri, extra) => {
   ]);
 
   const profile = profileRow ? rowToProfile(profileRow) : {};
-  const weightM = latestMeasurements.find((m) => m.typeKey === MeasurementTypes.Weight);
+  const weightM = latestMeasurements.find(m => m.typeKey === MeasurementTypes.Weight);
   const targets = profileToTargets(profile, weightM?.value);
 
   return resourceResponse(uri, {
     profile,
     calculated: {
       tdee: targets.tdee,
-      goal_calories: targets.goalCalories,
-      min_calories: targets.minCalories,
-      max_calories: targets.maxCalories,
+      goalCalories: targets.goalCalories,
+      minCalories: targets.minCalories,
+      maxCalories: targets.maxCalories,
     },
-    latest_measurements: latestMeasurements.map((m) => ({
+    latestMeasurements: latestMeasurements.map(m => ({
       type: m.typeKey,
       label: m.typeLabel,
       value: m.value,

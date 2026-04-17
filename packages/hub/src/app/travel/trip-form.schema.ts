@@ -27,8 +27,8 @@ export function formToCreateBody(values: TripFormValues): Record<string, unknown
     name: values.name,
     color: values.color,
     destination: values.destination.trim() || null,
-    start_at: values.startAt ? `${values.startAt}T00:00:00.000Z` : undefined,
-    end_at: values.endAt ? `${values.endAt}T00:00:00.000Z` : undefined,
+    startAt: values.startAt ? `${values.startAt}T00:00:00.000Z` : undefined,
+    endAt: values.endAt ? `${values.endAt}T00:00:00.000Z` : undefined,
   };
 }
 
@@ -37,7 +37,7 @@ export function formToUpdateBody(values: TripFormValues): Record<string, unknown
     name: values.name,
     destination: values.destination.trim() || null,
     color: values.color,
-    start_at: values.startAt ? `${values.startAt}T00:00:00.000Z` : null,
-    end_at: values.endAt ? `${values.endAt}T00:00:00.000Z` : null,
+    startAt: values.startAt ? `${values.startAt}T00:00:00.000Z` : null,
+    endAt: values.endAt ? `${values.endAt}T00:00:00.000Z` : null,
   };
 }

@@ -13,11 +13,11 @@ export const CreateYardSchema = z.object({
 export const ListYardsSchema = z.object({});
 
 export const UpdateYardSchema = z.object({
-  yard_id: z.number().int().positive().describe('ID of the yard to update'),
+  yardId: z.number().int().positive().describe('ID of the yard to update'),
   name: z.string().min(1).optional().describe('New name for the yard'),
   location: z.string().optional().describe('New location'),
   notes: z.string().optional().describe('Updated notes'),
-  is_active: z.boolean().optional().describe('Whether the yard is active'),
+  isActive: z.boolean().optional().describe('Whether the yard is active'),
 });
 
 export const createYardTool: ToolCallback<typeof CreateYardSchema.shape> = async (input, extra) => {
@@ -39,9 +39,9 @@ export const updateYardTool: ToolCallback<typeof UpdateYardSchema.shape> = async
   const userId = extra.authInfo?.extra?.['userId'] as string;
   const yard = await updateApiaryYard(
     userId,
-    input.yard_id,
-    omitNullish({ name: input.name, location: input.location, notes: input.notes, isActive: input.is_active }),
+    input.yardId,
+    omitNullish({ name: input.name, location: input.location, notes: input.notes, isActive: input.isActive }),
   );
-  if (!yard) throw new Error(`Yard with id ${input.yard_id} not found`);
+  if (!yard) throw new Error(`Yard with id ${input.yardId} not found`);
   return toolResponse(yard);
 };

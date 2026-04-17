@@ -27,14 +27,14 @@ const caloriesTools = [
   defineTool({
     name: 'calories_get_meals',
     description:
-      'Retrieve individual meal entries with their meal_ids, descriptions, calories, and macros. Use when you need to inspect or delete specific entries (meal_id is required for deletion). For calorie summaries and trends, use calories_get_history or calories://today instead.',
+      'Retrieve individual meal entries with their mealIds, descriptions, calories, and macros. Use when you need to inspect or delete specific entries (mealId is required for deletion). For calorie summaries and trends, use calories_get_history or calories://today instead.',
     inputSchema: GetMealsSchema.shape,
     annotations: { readOnlyHint: true },
     callback: getMealsTool,
   }),
   defineTool({
     name: 'calories_delete_meal',
-    description: 'Delete a meal entry by its meal_id. Use this to correct a logging mistake.',
+    description: 'Delete a meal entry by its mealId. Use this to correct a logging mistake.',
     inputSchema: DeleteMealSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: true },
     callback: deleteMealTool,
@@ -47,8 +47,8 @@ const caloriesTools = [
       'Computes BMR and TDEE via the Mifflin-St Jeor equation. ' +
       'IMPORTANT: Always ask the user what their goal is (weight_loss, weight_gain, or maintain) before calling this tool. ' +
       'For weight_loss or weight_gain, also ask for the weekly rate in kg. ' +
-      'Height (height_cm) is stored on the profile and only needs to be set once. ' +
-      'If the user specifies macros as percentages, convert them to grams using goal_max_calories as the reference (protein & carbs = 4 kcal/g, fat = 9 kcal/g). ' +
+      'Height (heightCm) is stored on the profile and only needs to be set once. ' +
+      'If the user specifies macros as percentages, convert them to grams using goalMaxCalories as the reference (protein & carbs = 4 kcal/g, fat = 9 kcal/g). ' +
       'Weight and other changing body measurements are logged separately via calories_log_measurement.',
     inputSchema: UpdateProfileSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
@@ -70,7 +70,7 @@ const caloriesTools = [
     description:
       'Get a calorie and weight history for a date range. Returns per-day calorie and macro totals, ' +
       'weight logs, period totals and averages vs goal. ' +
-      'start_date and end_date both default to today when omitted. ' +
+      'startDate and endDate both default to today when omitted. ' +
       'Use instead of the calories://history-7days and calories://history-30days resources when ' +
       'a custom date range is needed or when resources are not supported.',
     inputSchema: GetHistorySchema.shape,
@@ -101,7 +101,7 @@ const caloriesTools = [
     skipUserIdCheck: true,
     callback: async () => {
       const types = await getMeasurementTypes();
-      return toolResponse(types.map((t) => ({ key: t.key, label: t.label, unit: t.unit })));
+      return toolResponse(types.map(t => ({ key: t.key, label: t.label, unit: t.unit })));
     },
   }),
   defineTool({

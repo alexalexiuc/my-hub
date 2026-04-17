@@ -13,8 +13,8 @@ export const runtime = 'nodejs';
 export const POST = withAuth(async ({ req, user }) => {
   const form = await req.formData();
   const file = form.get('file');
-  const tripId = Number(form.get('trip_id'));
-  const bookingIdRaw = form.get('booking_id');
+  const tripId = Number(form.get('tripId'));
+  const bookingIdRaw = form.get('bookingId');
   const bookingId =
     bookingIdRaw === null || bookingIdRaw === undefined || String(bookingIdRaw) === '' ? null : Number(bookingIdRaw);
   const title = String(form.get('title') ?? '').trim();
@@ -22,10 +22,10 @@ export const POST = withAuth(async ({ req, user }) => {
   const notes = String(form.get('notes') ?? '').trim();
 
   if (!Number.isInteger(tripId) || tripId <= 0) {
-    return NextResponse.json({ error: 'trip_id is required' }, { status: 400 });
+    return NextResponse.json({ error: 'tripId is required' }, { status: 400 });
   }
   if (bookingId !== null && (!Number.isInteger(bookingId) || bookingId <= 0)) {
-    return NextResponse.json({ error: 'booking_id must be a positive integer' }, { status: 400 });
+    return NextResponse.json({ error: 'bookingId must be a positive integer' }, { status: 400 });
   }
 
   if (!(file instanceof File)) {
@@ -37,7 +37,7 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: `File exceeds max size of ${maxBytes} bytes` }, { status: 400 });
   }
 
-  const allowedMime = travelFilesConfig.allowedMime;
+  const { allowedMime } = travelFilesConfig;
   if (!allowedMime.includes(file.type)) {
     return NextResponse.json({ error: `MIME type ${file.type} is not allowed` }, { status: 400 });
   }
@@ -75,7 +75,7 @@ export const POST = withAuth(async ({ req, user }) => {
     if (message === 'Trip not found') {
       return NextResponse.json({ error: message }, { status: 404 });
     }
-    if (message === 'booking_id does not belong to this trip') {
+    if (message === 'bookingId does not belong to this trip') {
       return NextResponse.json({ error: message }, { status: 400 });
     }
     throw error;

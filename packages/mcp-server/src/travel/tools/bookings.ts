@@ -20,31 +20,31 @@ const BookingTypeSchema = z.enum(tripBookingTypeValues as [TripBookingType, ...T
 // ---------------------------------------------------------------------------
 
 export const TravelAddReservationFromTextInputSchema = z.object({
-  trip_id: z.number().int().positive().describe('Trip ID where the reservation should be added.'),
-  booking_text: z
+  tripId: z.number().int().positive().describe('Trip ID where the reservation should be added.'),
+  bookingText: z
     .string()
     .min(5)
     .describe('Raw confirmation text from chat/email/notes. The full text is stored for later extraction.'),
-  booking_type: BookingTypeSchema.exclude([TripBookingTypes.Flight])
+  bookingType: BookingTypeSchema.exclude([TripBookingTypes.Flight])
     .optional()
     .describe('Optional booking type if known. Flights are not supported here — use travel_add_flight instead.'),
   title: z.string().optional().describe('Short reservation title. If omitted, fallback title is generated.'),
   provider: z.string().optional().describe('Airline/hotel/provider name if already known.'),
   location: z.string().optional().describe('Location or route summary for this reservation.'),
-  start_at: z.string().datetime().optional().describe('Start datetime in ISO 8601 if known.'),
-  end_at: z.string().datetime().optional().describe('End datetime in ISO 8601 if known.'),
-  confirmation_number: z.string().optional().describe('Confirmation reference if available.'),
-  contact_name: z.string().optional().describe('Name of the property/provider contact person if present in the text.'),
-  contact_email: z
+  startAt: z.string().datetime().optional().describe('Start datetime in ISO 8601 if known.'),
+  endAt: z.string().datetime().optional().describe('End datetime in ISO 8601 if known.'),
+  confirmationNumber: z.string().optional().describe('Confirmation reference if available.'),
+  contactName: z.string().optional().describe('Name of the property/provider contact person if present in the text.'),
+  contactEmail: z
     .string()
     .email()
     .optional()
     .describe('Contact email for the property/provider if present in the text.'),
-  contact_phone: z
+  contactPhone: z
     .string()
     .optional()
     .describe('Contact phone number for the property/provider if present in the text.'),
-  reference_link: z
+  referenceLink: z
     .string()
     .url()
     .optional()
@@ -63,9 +63,9 @@ export const TravelAddReservationFromTextInputSchema = z.object({
     .object({
       name: z.string().min(1).describe('Departure/pickup place name extracted from the confirmation text.'),
       address: z.string().optional(),
-      iata_code: z.string().length(3).optional(),
-      uic_code: z.string().optional(),
-      google_place_id: z.string().optional(),
+      iataCode: z.string().length(3).optional(),
+      uicCode: z.string().optional(),
+      googlePlaceId: z.string().optional(),
       lat: z.number().optional(),
       lng: z.number().optional(),
     })
@@ -77,9 +77,9 @@ export const TravelAddReservationFromTextInputSchema = z.object({
     .object({
       name: z.string().min(1).describe('Arrival/drop-off place name extracted from the confirmation text.'),
       address: z.string().optional(),
-      iata_code: z.string().length(3).optional(),
-      uic_code: z.string().optional(),
-      google_place_id: z.string().optional(),
+      iataCode: z.string().length(3).optional(),
+      uicCode: z.string().optional(),
+      googlePlaceId: z.string().optional(),
       lat: z.number().optional(),
       lng: z.number().optional(),
     })
@@ -88,14 +88,14 @@ export const TravelAddReservationFromTextInputSchema = z.object({
 });
 
 export const TravelAddReservationFromTextSchema = TravelAddReservationFromTextInputSchema.superRefine((input, ctx) => {
-  const bookingType = input.booking_type ?? TripBookingTypes.Other;
+  const bookingType = input.bookingType ?? TripBookingTypes.Other;
   if (!isTransportBookingType(bookingType)) return;
 
   if (!input.origin) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['origin'],
-      message: `origin is required for transport booking_type "${bookingType}".`,
+      message: `origin is required for transport bookingType "${bookingType}".`,
     });
   }
 
@@ -103,7 +103,7 @@ export const TravelAddReservationFromTextSchema = TravelAddReservationFromTextIn
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['destination'],
-      message: `destination is required for transport booking_type "${bookingType}".`,
+      message: `destination is required for transport bookingType "${bookingType}".`,
     });
   }
 });
@@ -113,7 +113,7 @@ export const travelAddReservationFromTextTool: ToolCallback<
 > = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
 
-  const bookingType = input.booking_type ?? TripBookingTypes.Other;
+  const bookingType = input.bookingType ?? TripBookingTypes.Other;
   const isTransport = isTransportBookingType(bookingType);
   const hasRoute = input.origin && input.destination;
 
@@ -123,40 +123,40 @@ export const travelAddReservationFromTextTool: ToolCallback<
       ? `${input.origin!.name} → ${input.destination!.name}`
       : `Imported ${bookingType} reservation`);
 
-  const details: TransportDetails | { source: string; raw_text: string } =
+  const details: TransportDetails | { source: string; rawText: string } =
     isTransport && hasRoute
       ? {
           kind: 'transport',
           origin: input.origin as TransportLocation,
           destination: input.destination as TransportLocation,
           source: 'nl_import',
-          raw_text: input.booking_text,
+          rawText: input.bookingText,
         }
       : {
           source: 'nl_import',
-          raw_text: input.booking_text,
+          rawText: input.bookingText,
         };
 
-  const booking = await addTripBooking(userId, input.trip_id, {
+  const booking = await addTripBooking(userId, input.tripId, {
     bookingType,
     title,
     provider: input.provider ?? null,
-    confirmationNumber: input.confirmation_number ?? null,
-    startAt: input.start_at ? new Date(input.start_at) : null,
-    endAt: input.end_at ? new Date(input.end_at) : null,
+    confirmationNumber: input.confirmationNumber ?? null,
+    startAt: input.startAt ? new Date(input.startAt) : null,
+    endAt: input.endAt ? new Date(input.endAt) : null,
     status: 'imported',
     costAmount: null,
     costCurrency: 'EUR',
     location: input.location ?? (hasRoute ? `${input.origin!.name} → ${input.destination!.name}` : null),
-    referenceLink: input.reference_link ?? null,
+    referenceLink: input.referenceLink ?? null,
     notes: null,
     timezone: input.timezone ?? null,
     lat: input.lat ?? input.origin?.lat ?? null,
     lng: input.lng ?? input.origin?.lng ?? null,
     details,
-    contactName: input.contact_name ?? null,
-    contactEmail: input.contact_email ?? null,
-    contactPhone: input.contact_phone ?? null,
+    contactName: input.contactName ?? null,
+    contactEmail: input.contactEmail ?? null,
+    contactPhone: input.contactPhone ?? null,
   });
 
   return toolResponse({
@@ -170,25 +170,22 @@ export const travelAddReservationFromTextTool: ToolCallback<
 // ---------------------------------------------------------------------------
 
 export const TravelAddFlightSchema = z.object({
-  trip_id: z.number().int().positive().describe('Trip ID to add the flight to.'),
-  flight_number: z
+  tripId: z.number().int().positive().describe('Trip ID to add the flight to.'),
+  flightNumber: z
     .string()
     .min(2)
     .describe('IATA flight number, e.g. "BA2490". Required — used for live tracking and status updates.'),
-  origin_iata: z.string().length(3).describe('3-letter IATA code of the departure airport, e.g. "LHR".'),
-  destination_iata: z.string().length(3).describe('3-letter IATA code of the arrival airport, e.g. "CDG".'),
-  departure_at: z
-    .string()
-    .datetime()
-    .describe('Scheduled departure datetime in ISO 8601, e.g. "2026-06-15T09:30:00Z".'),
-  arrival_at: z.string().datetime().optional().describe('Scheduled arrival datetime in ISO 8601.'),
+  originIata: z.string().length(3).describe('3-letter IATA code of the departure airport, e.g. "LHR".'),
+  destinationIata: z.string().length(3).describe('3-letter IATA code of the arrival airport, e.g. "CDG".'),
+  departureAt: z.string().datetime().describe('Scheduled departure datetime in ISO 8601, e.g. "2026-06-15T09:30:00Z".'),
+  arrivalAt: z.string().datetime().optional().describe('Scheduled arrival datetime in ISO 8601.'),
   seat: z.string().optional().describe('Seat assignment, e.g. "14A".'),
   terminal: z.string().optional().describe('Departure terminal, e.g. "T5".'),
   gate: z.string().optional().describe('Departure gate, e.g. "B42".'),
-  aircraft_type: z.string().optional().describe('Aircraft model, e.g. "A320".'),
+  aircraftType: z.string().optional().describe('Aircraft model, e.g. "A320".'),
   provider: z.string().optional().describe('Airline name, e.g. "British Airways".'),
-  confirmation_number: z.string().optional().describe('Booking reference or PNR.'),
-  reference_link: z
+  confirmationNumber: z.string().optional().describe('Booking reference or PNR.'),
+  referenceLink: z
     .string()
     .url()
     .optional()
@@ -197,7 +194,7 @@ export const TravelAddFlightSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Short label shown in the itinerary. Defaults to "{flight_number}: {origin_iata} → {destination_iata}" if omitted.',
+      'Short label shown in the itinerary. Defaults to "{flightNumber}: {originIata} → {destinationIata}" if omitted.',
     ),
   notes: z.string().optional().describe('Any extra notes about this flight.'),
   timezone: z
@@ -211,42 +208,42 @@ export const TravelAddFlightSchema = z.object({
 export const travelAddFlightTool: ToolCallback<typeof TravelAddFlightSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
 
-  const flightNumber = input.flight_number.toUpperCase();
-  const originIata = input.origin_iata.toUpperCase();
-  const destIata = input.destination_iata.toUpperCase();
+  const flightNumber = input.flightNumber.toUpperCase();
+  const originIata = input.originIata.toUpperCase();
+  const destIata = input.destinationIata.toUpperCase();
   const title = input.title ?? `${flightNumber}: ${originIata} → ${destIata}`;
 
-  const booking = await addTripBooking(userId, input.trip_id, {
+  const booking = await addTripBooking(userId, input.tripId, {
     bookingType: TripBookingTypes.Flight,
     title,
     provider: input.provider ?? null,
-    confirmationNumber: input.confirmation_number ?? null,
-    startAt: new Date(input.departure_at),
-    endAt: input.arrival_at ? new Date(input.arrival_at) : null,
+    confirmationNumber: input.confirmationNumber ?? null,
+    startAt: new Date(input.departureAt),
+    endAt: input.arrivalAt ? new Date(input.arrivalAt) : null,
     status: 'confirmed',
     costAmount: null,
     costCurrency: 'EUR',
     location: `${originIata} → ${destIata}`,
-    referenceLink: input.reference_link ?? null,
+    referenceLink: input.referenceLink ?? null,
     notes: input.notes ?? null,
     timezone: input.timezone ?? null,
     lat: input.lat ?? null,
     lng: input.lng ?? null,
     details: {
       kind: 'flight' as const,
-      flight_number: flightNumber,
-      origin_iata: originIata,
-      destination_iata: destIata,
+      flightNumber,
+      originIata,
+      destinationIata: destIata,
       ...(input.seat && { seat: input.seat }),
       ...(input.terminal && { terminal: input.terminal }),
       ...(input.gate && { gate: input.gate }),
-      ...(input.aircraft_type && { aircraft_type: input.aircraft_type }),
+      ...(input.aircraftType && { aircraftType: input.aircraftType }),
     },
   });
 
   // Register with flight tracker so the worker starts polling immediately.
   try {
-    const flightDate = input.departure_at.slice(0, 10);
+    const flightDate = input.departureAt.slice(0, 10);
     const fd = await upsertFlightData(flightNumber, flightDate);
     await linkBookingToFlightData(booking.id, fd.id);
   } catch {
@@ -266,9 +263,9 @@ export const travelAddFlightTool: ToolCallback<typeof TravelAddFlightSchema.shap
 const TransportLocationSchema = z.object({
   name: z.string().min(1).describe('Place name, e.g. "Paris Gare du Nord" or "Hilton Hotel lobby".'),
   address: z.string().optional().describe('Freeform address string.'),
-  iata_code: z.string().length(3).optional().describe('3-letter IATA airport code, e.g. "CDG".'),
-  uic_code: z.string().optional().describe('UIC railway station code, e.g. "8711300".'),
-  google_place_id: z.string().optional().describe('Google Place ID, e.g. "ChIJ...".'),
+  iataCode: z.string().length(3).optional().describe('3-letter IATA airport code, e.g. "CDG".'),
+  uicCode: z.string().optional().describe('UIC railway station code, e.g. "8711300".'),
+  googlePlaceId: z.string().optional().describe('Google Place ID, e.g. "ChIJ...".'),
   lat: z.number().optional().describe('Latitude in decimal degrees.'),
   lng: z.number().optional().describe('Longitude in decimal degrees.'),
 });
@@ -276,14 +273,14 @@ const TransportLocationSchema = z.object({
 const TransportBookingTypeSchema = z.enum(transportBookingTypes);
 
 export const TravelAddTransportSchema = z.object({
-  trip_id: z.number().int().positive().describe('Trip ID to add the booking to.'),
-  booking_type: TransportBookingTypeSchema.describe(
+  tripId: z.number().int().positive().describe('Trip ID to add the booking to.'),
+  bookingType: TransportBookingTypeSchema.describe(
     'Type of transport: train, bus, ferry, taxi, transfer, rental_car, or car.',
   ),
   origin: TransportLocationSchema.describe('Departure/pickup location.'),
   destination: TransportLocationSchema.describe('Arrival/drop-off location.'),
-  departure_at: z.string().datetime().describe('Departure datetime in ISO 8601, e.g. "2026-06-15T09:30:00Z".'),
-  arrival_at: z.string().datetime().optional().describe('Estimated/scheduled arrival datetime in ISO 8601.'),
+  departureAt: z.string().datetime().describe('Departure datetime in ISO 8601, e.g. "2026-06-15T09:30:00Z".'),
+  arrivalAt: z.string().datetime().optional().describe('Estimated/scheduled arrival datetime in ISO 8601.'),
   timezone: z
     .string()
     .optional()
@@ -293,22 +290,22 @@ export const TravelAddTransportSchema = z.object({
     .optional()
     .describe('Short label for the itinerary. Defaults to "Origin → Destination" if omitted.'),
   provider: z.string().optional().describe('Operator/carrier name, e.g. "Eurostar", "Uber".'),
-  confirmation_number: z.string().optional().describe('Booking reference.'),
-  reference_link: z
+  confirmationNumber: z.string().optional().describe('Booking reference.'),
+  referenceLink: z
     .string()
     .url()
     .optional()
     .describe('Direct booking URL (carrier/agency/ride portal) if available. Provide when you have one.'),
-  service_number: z.string().optional().describe('Train/bus/ferry service number, e.g. "TGV 6201".'),
+  serviceNumber: z.string().optional().describe('Train/bus/ferry service number, e.g. "TGV 6201".'),
   seat: z.string().optional().describe('Seat, berth, or carriage assignment, e.g. "Car 4 Seat 22".'),
   class: z.string().optional().describe('Travel class, e.g. "Business", "1st class".'),
-  vehicle_type: z.string().optional().describe('Vehicle model or type, e.g. "Mercedes E-Class", "Coach".'),
-  meeting_point: z.string().optional().describe('Where to meet the driver/transfer (for taxi/transfer).'),
-  vessel_name: z.string().optional().describe('Ship or vessel name (for ferries).'),
+  vehicleType: z.string().optional().describe('Vehicle model or type, e.g. "Mercedes E-Class", "Coach".'),
+  meetingPoint: z.string().optional().describe('Where to meet the driver/transfer (for taxi/transfer).'),
+  vesselName: z.string().optional().describe('Ship or vessel name (for ferries).'),
   cabin: z.string().optional().describe('Cabin number or deck (for ferries).'),
-  distance_km: z.number().optional().describe('Approximate distance in kilometres (for car/rental_car).'),
-  cost_amount: z.number().optional().describe('Total cost amount.'),
-  cost_currency: z.string().length(3).optional().describe('ISO 4217 currency code, e.g. "EUR".'),
+  distanceKm: z.number().optional().describe('Approximate distance in kilometres (for car/rental_car).'),
+  costAmount: z.number().optional().describe('Total cost amount.'),
+  costCurrency: z.string().length(3).optional().describe('ISO 4217 currency code, e.g. "EUR".'),
   notes: z.string().optional().describe('Any extra notes.'),
 });
 
@@ -321,28 +318,28 @@ export const travelAddTransportTool: ToolCallback<typeof TravelAddTransportSchem
     kind: 'transport',
     origin: input.origin as TransportLocation,
     destination: input.destination as TransportLocation,
-    ...(input.service_number && { service_number: input.service_number }),
+    ...(input.serviceNumber && { serviceNumber: input.serviceNumber }),
     ...(input.seat && { seat: input.seat }),
     ...(input.class && { class: input.class }),
-    ...(input.vehicle_type && { vehicle_type: input.vehicle_type }),
-    ...(input.meeting_point && { meeting_point: input.meeting_point }),
-    ...(input.vessel_name && { vessel_name: input.vessel_name }),
+    ...(input.vehicleType && { vehicleType: input.vehicleType }),
+    ...(input.meetingPoint && { meetingPoint: input.meetingPoint }),
+    ...(input.vesselName && { vesselName: input.vesselName }),
     ...(input.cabin && { cabin: input.cabin }),
-    ...(input.distance_km !== undefined && { distance_km: input.distance_km }),
+    ...(input.distanceKm !== undefined && { distanceKm: input.distanceKm }),
   };
 
-  const booking = await addTripBooking(userId, input.trip_id, {
-    bookingType: input.booking_type,
+  const booking = await addTripBooking(userId, input.tripId, {
+    bookingType: input.bookingType,
     title,
     provider: input.provider ?? null,
-    confirmationNumber: input.confirmation_number ?? null,
-    startAt: new Date(input.departure_at),
-    endAt: input.arrival_at ? new Date(input.arrival_at) : null,
+    confirmationNumber: input.confirmationNumber ?? null,
+    startAt: new Date(input.departureAt),
+    endAt: input.arrivalAt ? new Date(input.arrivalAt) : null,
     status: 'confirmed',
-    costAmount: input.cost_amount ?? null,
-    costCurrency: input.cost_currency ?? 'EUR',
+    costAmount: input.costAmount ?? null,
+    costCurrency: input.costCurrency ?? 'EUR',
     location: `${input.origin.name} → ${input.destination.name}`,
-    referenceLink: input.reference_link ?? null,
+    referenceLink: input.referenceLink ?? null,
     notes: input.notes ?? null,
     timezone: input.timezone ?? null,
     lat: input.origin.lat ?? null,
@@ -361,7 +358,7 @@ export const travelAddTransportTool: ToolCallback<typeof TravelAddTransportSchem
 // ---------------------------------------------------------------------------
 
 export const TravelEditBookingSchema = z.object({
-  booking_id: z
+  bookingId: z
     .number()
     .int()
     .positive()
@@ -369,27 +366,27 @@ export const TravelEditBookingSchema = z.object({
   title: z.string().optional().describe('New title for the booking.'),
   provider: z.string().optional().describe('Updated provider/hotel/operator name.'),
   location: z.string().optional().describe('Updated location or route summary.'),
-  start_at: z.string().datetime().optional().describe('Updated start datetime in ISO 8601.'),
-  end_at: z.string().datetime().optional().describe('Updated end datetime in ISO 8601.'),
-  confirmation_number: z.string().optional().describe('Updated booking reference.'),
-  reference_link: z.string().url().optional().describe('Updated direct booking URL.'),
+  startAt: z.string().datetime().optional().describe('Updated start datetime in ISO 8601.'),
+  endAt: z.string().datetime().optional().describe('Updated end datetime in ISO 8601.'),
+  confirmationNumber: z.string().optional().describe('Updated booking reference.'),
+  referenceLink: z.string().url().optional().describe('Updated direct booking URL.'),
   notes: z.string().optional().describe('Updated notes.'),
   status: z.string().optional().describe('Updated booking status, e.g. "confirmed", "cancelled", "planned".'),
   timezone: z.string().optional().describe('Updated IANA timezone string for the booking location.'),
   lat: z.number().optional().describe('Updated latitude of the booking location.'),
   lng: z.number().optional().describe('Updated longitude of the booking location.'),
-  contact_name: z
+  contactName: z
     .string()
     .nullable()
     .optional()
     .describe('Name of the contact person for this booking. Pass null to clear.'),
-  contact_email: z
+  contactEmail: z
     .string()
     .email()
     .nullable()
     .optional()
     .describe('Contact email for the property/provider. Pass null to clear.'),
-  contact_phone: z
+  contactPhone: z
     .string()
     .nullable()
     .optional()
@@ -399,30 +396,30 @@ export const TravelEditBookingSchema = z.object({
 export const travelEditBookingTool: ToolCallback<typeof TravelEditBookingSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
 
-  const existing = await getTripBookingById(userId, input.booking_id);
-  if (!existing) throw new Error(`Booking ${input.booking_id} not found.`);
+  const existing = await getTripBookingById(userId, input.bookingId);
+  if (!existing) throw new Error(`Booking ${input.bookingId} not found.`);
   if (existing.bookingType === TripBookingTypes.Flight)
     throw new Error('Use travel_edit_flight to update flight bookings.');
 
-  const updated = await updateTripBooking(userId, input.booking_id, {
+  const updated = await updateTripBooking(userId, input.bookingId, {
     ...(input.title !== undefined && { title: input.title }),
     ...(input.provider !== undefined && { provider: input.provider }),
     ...(input.location !== undefined && { location: input.location }),
-    ...(input.start_at !== undefined && { startAt: new Date(input.start_at) }),
-    ...(input.end_at !== undefined && { endAt: new Date(input.end_at) }),
-    ...(input.confirmation_number !== undefined && { confirmationNumber: input.confirmation_number }),
-    ...(input.reference_link !== undefined && { referenceLink: input.reference_link }),
+    ...(input.startAt !== undefined && { startAt: new Date(input.startAt) }),
+    ...(input.endAt !== undefined && { endAt: new Date(input.endAt) }),
+    ...(input.confirmationNumber !== undefined && { confirmationNumber: input.confirmationNumber }),
+    ...(input.referenceLink !== undefined && { referenceLink: input.referenceLink }),
     ...(input.notes !== undefined && { notes: input.notes }),
     ...(input.status !== undefined && { status: input.status }),
     ...(input.timezone !== undefined && { timezone: input.timezone }),
     ...(input.lat !== undefined && { lat: input.lat }),
     ...(input.lng !== undefined && { lng: input.lng }),
-    ...(input.contact_name !== undefined && { contactName: input.contact_name }),
-    ...(input.contact_email !== undefined && { contactEmail: input.contact_email }),
-    ...(input.contact_phone !== undefined && { contactPhone: input.contact_phone }),
+    ...(input.contactName !== undefined && { contactName: input.contactName }),
+    ...(input.contactEmail !== undefined && { contactEmail: input.contactEmail }),
+    ...(input.contactPhone !== undefined && { contactPhone: input.contactPhone }),
   });
 
-  if (!updated) throw new Error(`Failed to update booking ${input.booking_id}.`);
+  if (!updated) throw new Error(`Failed to update booking ${input.bookingId}.`);
 
   return toolResponse({
     message: 'Booking updated.',
@@ -435,22 +432,22 @@ export const travelEditBookingTool: ToolCallback<typeof TravelEditBookingSchema.
 // ---------------------------------------------------------------------------
 
 export const TravelEditFlightSchema = z.object({
-  booking_id: z.number().int().positive().describe('ID of the flight booking to update.'),
-  flight_number: z
+  bookingId: z.number().int().positive().describe('ID of the flight booking to update.'),
+  flightNumber: z
     .string()
     .min(2)
     .optional()
     .describe(
       'Updated IATA flight number, e.g. "BA2491". If changed, live tracking is re-linked to the new flight automatically.',
     ),
-  departure_at: z.string().datetime().optional().describe('Updated scheduled departure datetime in ISO 8601.'),
-  arrival_at: z.string().datetime().optional().describe('Updated scheduled arrival datetime in ISO 8601.'),
+  departureAt: z.string().datetime().optional().describe('Updated scheduled departure datetime in ISO 8601.'),
+  arrivalAt: z.string().datetime().optional().describe('Updated scheduled arrival datetime in ISO 8601.'),
   seat: z.string().optional().describe('Updated seat assignment, e.g. "22C".'),
   terminal: z.string().optional().describe('Updated departure terminal, e.g. "T5".'),
   gate: z.string().optional().describe('Updated departure gate, e.g. "B42".'),
   provider: z.string().optional().describe('Updated airline name.'),
-  confirmation_number: z.string().optional().describe('Updated booking reference or PNR.'),
-  reference_link: z.string().url().optional().describe('Updated direct booking URL.'),
+  confirmationNumber: z.string().optional().describe('Updated booking reference or PNR.'),
+  referenceLink: z.string().url().optional().describe('Updated direct booking URL.'),
   notes: z.string().optional().describe('Updated notes.'),
   title: z.string().optional().describe('Updated itinerary label.'),
   timezone: z.string().optional().describe('Updated IANA timezone override for this flight booking.'),
@@ -461,30 +458,30 @@ export const TravelEditFlightSchema = z.object({
 export const travelEditFlightTool: ToolCallback<typeof TravelEditFlightSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
 
-  const existing = await getTripBookingById(userId, input.booking_id);
-  if (!existing) throw new Error(`Booking ${input.booking_id} not found.`);
+  const existing = await getTripBookingById(userId, input.bookingId);
+  if (!existing) throw new Error(`Booking ${input.bookingId} not found.`);
   if (existing.bookingType !== TripBookingTypes.Flight)
     throw new Error('Use travel_edit_booking to update non-flight bookings.');
 
   // Merge flight detail fields with existing so unmentioned fields are preserved.
   const existingDetails = (existing.details as Partial<FlightDetails>) ?? {};
-  const newFlightNumber = input.flight_number ? input.flight_number.toUpperCase() : undefined;
+  const newFlightNumber = input.flightNumber ? input.flightNumber.toUpperCase() : undefined;
   const mergedDetails: FlightDetails = {
     ...existingDetails,
     kind: 'flight' as const,
-    ...(newFlightNumber && { flight_number: newFlightNumber }),
+    ...(newFlightNumber && { flightNumber: newFlightNumber }),
     ...(input.seat !== undefined && { seat: input.seat }),
     ...(input.terminal !== undefined && { terminal: input.terminal }),
     ...(input.gate !== undefined && { gate: input.gate }),
   };
 
-  const updated = await updateTripBooking(userId, input.booking_id, {
+  const updated = await updateTripBooking(userId, input.bookingId, {
     ...(input.title !== undefined && { title: input.title }),
     ...(input.provider !== undefined && { provider: input.provider }),
-    ...(input.departure_at !== undefined && { startAt: new Date(input.departure_at) }),
-    ...(input.arrival_at !== undefined && { endAt: new Date(input.arrival_at) }),
-    ...(input.confirmation_number !== undefined && { confirmationNumber: input.confirmation_number }),
-    ...(input.reference_link !== undefined && { referenceLink: input.reference_link }),
+    ...(input.departureAt !== undefined && { startAt: new Date(input.departureAt) }),
+    ...(input.arrivalAt !== undefined && { endAt: new Date(input.arrivalAt) }),
+    ...(input.confirmationNumber !== undefined && { confirmationNumber: input.confirmationNumber }),
+    ...(input.referenceLink !== undefined && { referenceLink: input.referenceLink }),
     ...(input.notes !== undefined && { notes: input.notes }),
     ...(input.timezone !== undefined && { timezone: input.timezone }),
     ...(input.lat !== undefined && { lat: input.lat }),
@@ -492,15 +489,15 @@ export const travelEditFlightTool: ToolCallback<typeof TravelEditFlightSchema.sh
     details: mergedDetails,
   });
 
-  if (!updated) throw new Error(`Failed to update flight booking ${input.booking_id}.`);
+  if (!updated) throw new Error(`Failed to update flight booking ${input.bookingId}.`);
 
   // Re-link live tracking if the flight number changed.
   if (newFlightNumber) {
-    const departureDate = (input.departure_at ?? existing.startAt?.toISOString() ?? '').slice(0, 10);
+    const departureDate = (input.departureAt ?? existing.startAt?.toISOString() ?? '').slice(0, 10);
     if (departureDate) {
       try {
         const fd = await upsertFlightData(newFlightNumber, departureDate);
-        await linkBookingToFlightData(input.booking_id, fd.id);
+        await linkBookingToFlightData(input.bookingId, fd.id);
       } catch {
         // Non-fatal: booking is updated; tracking link can be fixed later.
       }
@@ -518,18 +515,18 @@ export const travelEditFlightTool: ToolCallback<typeof TravelEditFlightSchema.sh
 // ---------------------------------------------------------------------------
 
 export const TravelRemoveBookingSchema = z.object({
-  booking_id: z.number().int().positive().describe('ID of the booking to remove.'),
+  bookingId: z.number().int().positive().describe('ID of the booking to remove.'),
 });
 
 export const travelRemoveBookingTool: ToolCallback<typeof TravelRemoveBookingSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
 
-  const removed = await deleteTripBooking(userId, input.booking_id);
-  if (!removed) throw new Error(`Booking ${input.booking_id} not found or already removed.`);
+  const removed = await deleteTripBooking(userId, input.bookingId);
+  if (!removed) throw new Error(`Booking ${input.bookingId} not found or already removed.`);
 
   return toolResponse({
     message: 'Booking removed.',
-    booking_id: removed.id,
+    bookingId: removed.id,
     title: removed.title,
   });
 };

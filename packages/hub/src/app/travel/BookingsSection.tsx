@@ -67,7 +67,7 @@ export function BookingsSection({
   }
 
   function toggleExpand(bookingId: number) {
-    setExpandedBookingId((prev) => (prev === bookingId ? null : bookingId));
+    setExpandedBookingId(prev => (prev === bookingId ? null : bookingId));
   }
 
   return (
@@ -82,7 +82,7 @@ export function BookingsSection({
       </div>
 
       <div className="space-y-2 max-h-[28rem] overflow-auto">
-        {bookings.map((booking) => (
+        {bookings.map(booking => (
           <div
             key={booking.id}
             className="rounded-md border border-zinc-700 bg-zinc-900 text-sm"
@@ -92,7 +92,7 @@ export function BookingsSection({
               <div className="px-3 py-2">
                 <BookingForm
                   defaultValues={bookingToFormValues(booking)}
-                  onSubmit={(values) => saveBookingEdits(booking.id, values)}
+                  onSubmit={values => saveBookingEdits(booking.id, values)}
                   onCancel={() => setEditingBookingId(null)}
                   submitLabel="Save"
                 />
@@ -105,7 +105,7 @@ export function BookingsSection({
                   tabIndex={0}
                   className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left hover:bg-zinc-800/40 transition-colors rounded-md cursor-pointer"
                   onClick={() => toggleExpand(booking.id)}
-                  onKeyDown={(e) => {
+                  onKeyDown={e => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
                       toggleExpand(booking.id);
@@ -155,7 +155,7 @@ export function BookingsSection({
                     )}
                     <span className="text-zinc-500 text-xs">{expandedBookingId === booking.id ? '▲' : '▼'}</span>
                     {canEdit && (
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                         <IconButton
                           label="Edit reservation"
                           onClick={() => setEditingBookingId(booking.id)}
@@ -178,12 +178,12 @@ export function BookingsSection({
                       (() => {
                         const fd = booking.flightData;
                         const d = (booking.details ?? {}) as FlightDetails;
-                        const flightNo = fd?.flightNumber ?? d.flight_number;
-                        const origin = fd?.originIata ?? d.origin_iata;
-                        const dest = fd?.destinationIata ?? d.destination_iata;
+                        const flightNo = fd?.flightNumber ?? d.flightNumber;
+                        const origin = fd?.originIata ?? d.originIata;
+                        const dest = fd?.destinationIata ?? d.destinationIata;
                         const terminal = fd?.departureTerminal ?? d.terminal;
                         const gate = fd?.departureGate ?? d.gate;
-                        const seat = d.seat;
+                        const { seat } = d;
                         const status = fd?.status;
                         const parts = [
                           flightNo,
@@ -204,11 +204,11 @@ export function BookingsSection({
                         const td = booking.details as TransportDetails;
                         const parts = [
                           `${td.origin.name} → ${td.destination.name}`,
-                          td.service_number,
+                          td.serviceNumber,
                           td.seat && `Seat ${td.seat}`,
                           td.class,
-                          td.vehicle_type,
-                          td.meeting_point && `Meet: ${td.meeting_point}`,
+                          td.vehicleType,
+                          td.meetingPoint && `Meet: ${td.meetingPoint}`,
                         ].filter(Boolean);
                         return <p className="text-xs text-emerald-400">{parts.join(' · ')}</p>;
                       })()}
@@ -325,7 +325,7 @@ export function BookingsSection({
                       <div className="border-t border-zinc-700/40 pt-2">
                         <p className="text-[11px] uppercase tracking-wide text-zinc-500 mb-1">Attachments</p>
                         <ul className="space-y-1">
-                          {documentsByBookingId.get(booking.id)?.map((doc) => (
+                          {documentsByBookingId.get(booking.id)?.map(doc => (
                             <li key={doc.id} className="text-xs text-zinc-200">
                               {doc.storagePath ? (
                                 <a

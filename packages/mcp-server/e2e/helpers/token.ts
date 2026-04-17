@@ -16,6 +16,6 @@ export async function generateToken(): Promise<string> {
     }),
   });
   if (!res.ok) throw new Error(`POST /token failed: ${res.status} ${await res.text()}`);
-  const { access_token } = (await res.json()) as { access_token: string };
-  return access_token;
+  const data = (await res.json()) as { access_token: string };
+  return data.access_token;
 }

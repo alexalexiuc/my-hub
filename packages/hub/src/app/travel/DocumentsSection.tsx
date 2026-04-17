@@ -18,8 +18,8 @@ type DocumentsSectionProps = {
 
 export function DocumentsSection({ activeTripId, canEdit, documents, bookings, onChanged }: DocumentsSectionProps) {
   const [uploadConfig, setUploadConfig] = useState<UploadConfig>({
-    max_mb: 15,
-    allowed_mime: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
+    maxMb: 15,
+    allowedMime: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
   });
   const [documentTitle, setDocumentTitle] = useState('');
   const [documentFile, setDocumentFile] = useState<File | null>(null);
@@ -28,24 +28,24 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
 
   useEffect(() => {
     apiFetch<UploadConfig>('/api/travel/documents/config')
-      .then((data) => setUploadConfig(data))
+      .then(data => setUploadConfig(data))
       .catch(() => {});
   }, []);
 
   useEffect(() => {
     if (documentBookingId === null) return;
-    const exists = bookings.some((b) => b.id === documentBookingId);
+    const exists = bookings.some(b => b.id === documentBookingId);
     if (!exists) setDocumentBookingId(null);
   }, [documentBookingId, bookings]);
 
   async function uploadDocument() {
     if (!activeTripId || !documentFile || !canEdit) return;
-    const maxBytes = uploadConfig.max_mb * 1024 * 1024;
+    const maxBytes = uploadConfig.maxMb * 1024 * 1024;
     if (documentFile.size > maxBytes) {
-      alert(`File is too large. Max allowed is ${uploadConfig.max_mb} MB.`);
+      alert(`File is too large. Max allowed is ${uploadConfig.maxMb} MB.`);
       return;
     }
-    if (!uploadConfig.allowed_mime.includes(documentFile.type)) {
+    if (!uploadConfig.allowedMime.includes(documentFile.type)) {
       alert(`File type ${documentFile.type} is not allowed.`);
       return;
     }
@@ -78,20 +78,20 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
   return (
     <SectionCard title="Documents" className="bg-amber-950/20 border-amber-800/50">
       <div className="space-y-2 mb-3">
-        <Input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} placeholder="Document title" />
+        <Input value={documentTitle} onChange={e => setDocumentTitle(e.target.value)} placeholder="Document title" />
         <FilePicker
-          accept={uploadConfig.allowed_mime.join(',')}
-          onChange={(e) => setDocumentFile(e.target.files?.[0] ?? null)}
+          accept={uploadConfig.allowedMime.join(',')}
+          onChange={e => setDocumentFile(e.target.files?.[0] ?? null)}
         />
         <Select
-          options={bookings.map((b) => ({ value: b.id, label: b.title }))}
+          options={bookings.map(b => ({ value: b.id, label: b.title }))}
           value={documentBookingId ?? ''}
-          onChange={(e) => setDocumentBookingId(e.target.value ? Number(e.target.value) : null)}
+          onChange={e => setDocumentBookingId(e.target.value ? Number(e.target.value) : null)}
         >
           <option value="">Link to reservation (optional)</option>
         </Select>
         <p className="text-xs text-zinc-500">
-          Max {uploadConfig.max_mb} MB. Allowed: {uploadConfig.allowed_mime.join(', ')}
+          Max {uploadConfig.maxMb} MB. Allowed: {uploadConfig.allowedMime.join(', ')}
         </p>
         <Button
           onClick={uploadDocument}
@@ -104,7 +104,7 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
       </div>
 
       <div className="space-y-2 max-h-64 overflow-auto">
-        {documents.map((document) => (
+        {documents.map(document => (
           <div key={document.id} className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm">
             <div className="flex items-center justify-between gap-2">
               <div>
@@ -115,7 +115,7 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
                 {document.bookingId && (
                   <p className="text-[11px] text-zinc-500">
                     Linked to:{' '}
-                    {bookings.find((b) => b.id === document.bookingId)?.title ?? `Reservation #${document.bookingId}`}
+                    {bookings.find(b => b.id === document.bookingId)?.title ?? `Reservation #${document.bookingId}`}
                   </p>
                 )}
               </div>

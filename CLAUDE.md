@@ -48,6 +48,7 @@ When a feature spans multiple layers, change in this order:
 ## Project rules
 
 - TypeScript everywhere. Follow existing ESM style.
+- **Use camelCase everywhere in TypeScript** — Zod validation schemas, API request/response bodies, MCP tool input schemas, form schemas, and all variable/property names. snake_case must not appear in TypeScript code. Two exceptions: (1) Drizzle schema column name strings (the first argument to `text()`, `timestamp()`, etc.) remain snake_case because they map directly to PostgreSQL column names. (2) JSONB type interfaces (`FlightDetails`, `TransportDetails`, etc.) may retain existing snake_case field names when the JSON data is already persisted in the DB — these require a separate data migration to change.
 - Reuse shared types; do not duplicate domain models across packages.
 - Keep cross-package/domain constants (enum-like value sets) in `packages/shared/src/constants/<domain>.ts` so Hub client code can import them safely.
 - DB schema files may import and re-export those constants/types, but should not be the primary source of UI-facing constants.

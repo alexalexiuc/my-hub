@@ -46,7 +46,7 @@ describe('withBackoffRetry', () => {
       .mockResolvedValue('Good result');
 
     const promise = withBackoffRetry(mockFn, {
-      shouldRetry: (result) => result === 'Bad result' || result === 'Still bad', // Retry on specific bad results
+      shouldRetry: result => result === 'Bad result' || result === 'Still bad', // Retry on specific bad results
     });
     const resultExpectation = expect(promise).resolves.toBe('Good result');
     await vi.runAllTimersAsync();

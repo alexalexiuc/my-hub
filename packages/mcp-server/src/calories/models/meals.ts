@@ -3,15 +3,15 @@ import type { MealEntry } from '../types';
 
 export function rowToMealEntry(row: MealLog): MealEntry {
   return {
-    meal_id: row.mealId ?? '',
+    mealId: row.mealId ?? '',
     date: row.date,
-    meal_type: row.mealType,
+    mealType: row.mealType,
     description: row.description,
     calories: row.kcal ?? 0,
-    protein_g: row.protein,
-    carbs_g: row.carbs,
-    fat_g: row.fat,
+    proteinG: row.protein,
+    carbsG: row.carbs,
+    fatG: row.fat,
     notes: row.notes,
-    created_at: row.createdAt.toISOString(),
+    createdAt: row.createdAt.toISOString(),
   };
 }

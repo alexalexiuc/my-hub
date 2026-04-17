@@ -7,11 +7,11 @@ export const HiveCreateSchema = z.object({
   name: z
     .string()
     .min(1, 'name is required')
-    .transform((s) => s.trim()),
-  yard_id: z.number().int().positive().optional(),
-  queen_status: z.string().optional(),
-  queen_marked: z.boolean().optional(),
-  queen_year: z.number().int().optional(),
+    .transform(s => s.trim()),
+  yardId: z.number().int().positive().optional(),
+  queenStatus: z.string().optional(),
+  queenMarked: z.boolean().optional(),
+  queenYear: z.number().int().optional(),
   boxes: z.number().int().nonnegative().optional(),
   notes: z.string().optional(),
 });

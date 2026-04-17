@@ -166,8 +166,8 @@ There are two independent rendering paths for bookings. When changing how a book
 | `src/app/travel/coming-next.utils.ts` | "Coming Next" timeline — `primaryLabel`, `secondaryLabel`, endpoint labels, navigate URLs |
 | `src/app/travel/BookingsSection.tsx`  | Reservations list + add/edit form UI                                                      |
 
-## API field naming: `flight_details` → `details` column
+## API field naming: `flightDetails` → `details` column
 
-The booking POST/PATCH API accepts `body.flight_details` and stores it directly as the `details` JSONB column. The name is historical — it is used for all detail types (`FlightDetails`, `TransportDetails`, etc.), not just flights.
+The booking POST/PATCH API accepts `body.flightDetails` and stores it directly as the `details` JSONB column. The name is historical — it is used for all detail types (`FlightDetails`, `TransportDetails`, etc.), not just flights.
 
-When adding support for a new details shape in the UI, pass it as `body.flight_details` in the fetch call.
+When adding support for a new details shape in the UI, pass it as `body.flightDetails` in the fetch call.

@@ -27,12 +27,12 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const features = body['features'];
+  const { features } = body;
   if (!Array.isArray(features) || features.length === 0) {
     return NextResponse.json({ error: 'features array is required' }, { status: 400 });
   }
 
-  const invalid = features.filter((f) => !SUPPORTED_FEATURES.includes(f as Feature));
+  const invalid = features.filter(f => !SUPPORTED_FEATURES.includes(f as Feature));
   if (invalid.length > 0) {
     return NextResponse.json(
       { error: `Unsupported features: ${invalid.join(', ')}. Supported: ${SUPPORTED_FEATURES.join(', ')}` },
@@ -79,13 +79,13 @@ export const POST = withAuth(async ({ req, user }) => {
         results.my_travels = {
           deleted: shares + documents + companions + checklistItems + days + places + bookings + trips,
           breakdown: {
-            trip_shares: shares,
-            trip_documents: documents,
-            trip_companions: companions,
-            trip_checklist_items: checklistItems,
-            trip_days: days,
-            trip_places: places,
-            trip_bookings: bookings,
+            tripShares: shares,
+            tripDocuments: documents,
+            tripCompanions: companions,
+            tripChecklistItems: checklistItems,
+            tripDays: days,
+            tripPlaces: places,
+            tripBookings: bookings,
             trips,
           },
         };

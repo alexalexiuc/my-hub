@@ -25,24 +25,24 @@ export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
 
   const [shares, companions] = await Promise.all([listTripShares(user.id, tripId), getTripCompanions(user.id, tripId)]);
 
-  const companionEmails = [...new Set(companions.map((companion) => companion.email).filter(Boolean) as string[])].map(
+  const companionEmails = [...new Set(companions.map(companion => companion.email).filter(Boolean) as string[])].map(
     normalizeEmail,
   );
   const usersByCompanionEmail = await findUsersByEmails(companionEmails);
-  const alreadySharedIds = new Set(shares.map((share) => share.share.sharedWithUserId));
+  const alreadySharedIds = new Set(shares.map(share => share.share.sharedWithUserId));
 
   const suggestions = usersByCompanionEmail
-    .filter((candidate) => candidate.id !== user.id && !alreadySharedIds.has(candidate.id))
-    .map((candidate) => ({
-      user_id: candidate.id,
+    .filter(candidate => candidate.id !== user.id && !alreadySharedIds.has(candidate.id))
+    .map(candidate => ({
+      userId: candidate.id,
       name: candidate.name,
       email: candidate.email,
     }));
 
   return NextResponse.json({
-    shares: shares.map((share) => ({
+    shares: shares.map(share => ({
       id: share.share.id,
-      user_id: share.share.sharedWithUserId,
+      userId: share.share.sharedWithUserId,
       permission: share.share.permission,
       name: share.userName,
       email: share.userEmail,
@@ -69,8 +69,8 @@ export const POST = withAuth<{ id: string }>(async ({ user, params, req }) => {
   }
 
   let targetUserId: string | undefined;
-  if (typeof body.user_id === 'string' && body.user_id.trim()) {
-    targetUserId = body.user_id.trim();
+  if (typeof body.userId === 'string' && body.userId.trim()) {
+    targetUserId = body.userId.trim();
   } else if (typeof body.email === 'string' && body.email.trim()) {
     const email = normalizeEmail(body.email);
     const found = await findUserByEmail(email);
@@ -79,7 +79,7 @@ export const POST = withAuth<{ id: string }>(async ({ user, params, req }) => {
   }
 
   if (!targetUserId) {
-    return NextResponse.json({ error: 'user_id or email is required' }, { status: 400 });
+    return NextResponse.json({ error: 'userId or email is required' }, { status: 400 });
   }
 
   try {

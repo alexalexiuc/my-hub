@@ -23,18 +23,15 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const data = parsed.data;
+  const { data } = parsed;
 
-  const { date: startAt, error: startAtError } = parseAndValidateDateForPatch(data.start_at, 'start_at');
+  const { date: startAt, error: startAtError } = parseAndValidateDateForPatch(data.startAt, 'startAt');
   if (startAtError) return NextResponse.json({ error: startAtError }, { status: 400 });
 
-  const { date: endAt, error: endAtError } = parseAndValidateDateForPatch(data.end_at, 'end_at');
+  const { date: endAt, error: endAtError } = parseAndValidateDateForPatch(data.endAt, 'endAt');
   if (endAtError) return NextResponse.json({ error: endAtError }, { status: 400 });
 
-  const { date: cancelledAt, error: cancelledAtError } = parseAndValidateDateForPatch(
-    data.cancelled_at,
-    'cancelled_at',
-  );
+  const { date: cancelledAt, error: cancelledAtError } = parseAndValidateDateForPatch(data.cancelledAt, 'cancelledAt');
   if (cancelledAtError) return NextResponse.json({ error: cancelledAtError }, { status: 400 });
 
   const trip = await updateTrip(user.id, tripId, {
@@ -45,7 +42,7 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
     endAt,
     cancelledAt,
     notes: data.notes,
-    coverImageUrl: data.cover_image_url,
+    coverImageUrl: data.coverImageUrl,
   });
 
   if (!trip) return NextResponse.json({ error: 'Trip not found' }, { status: 404 });

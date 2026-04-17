@@ -26,25 +26,25 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
 
   const { data } = parsed;
 
-  const { date: startAt, error: startAtError } = parseAndValidateDateForPatch(data.start_at, 'start_at');
+  const { date: startAt, error: startAtError } = parseAndValidateDateForPatch(data.startAt, 'startAt');
   if (startAtError) return NextResponse.json({ error: startAtError }, { status: 400 });
 
-  const { date: endAt, error: endAtError } = parseAndValidateDateForPatch(data.end_at, 'end_at');
+  const { date: endAt, error: endAtError } = parseAndValidateDateForPatch(data.endAt, 'endAt');
   if (endAtError) return NextResponse.json({ error: endAtError }, { status: 400 });
 
-  const flightDetails = data.flight_details != null ? (data.flight_details as Partial<FlightDetails>) : undefined;
+  const flightDetails = data.flightDetails != null ? (data.flightDetails as Partial<FlightDetails>) : undefined;
 
   const booking = await updateTripBooking(user.id, bookingId, {
     title: data.title,
-    bookingType: data.booking_type as Parameters<typeof updateTripBooking>[2]['bookingType'],
+    bookingType: data.bookingType as Parameters<typeof updateTripBooking>[2]['bookingType'],
     provider: data.provider !== undefined ? data.provider.trim() || null : undefined,
-    referenceLink: data.reference_link !== undefined ? data.reference_link.trim() || null : undefined,
+    referenceLink: data.referenceLink !== undefined ? data.referenceLink.trim() || null : undefined,
     startAt,
     endAt,
     ...(flightDetails !== undefined && { details: flightDetails }),
-    ...(data.contact_name !== undefined && { contactName: data.contact_name.trim() || null }),
-    ...(data.contact_email !== undefined && { contactEmail: data.contact_email.trim() || null }),
-    ...(data.contact_phone !== undefined && { contactPhone: data.contact_phone.trim() || null }),
+    ...(data.contactName !== undefined && { contactName: data.contactName.trim() || null }),
+    ...(data.contactEmail !== undefined && { contactEmail: data.contactEmail.trim() || null }),
+    ...(data.contactPhone !== undefined && { contactPhone: data.contactPhone.trim() || null }),
   });
 
   if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });

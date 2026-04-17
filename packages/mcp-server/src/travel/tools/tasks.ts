@@ -22,10 +22,10 @@ const DocumentTypeSchema = z.enum(tripDocumentTypeValues as [TripDocumentType, .
 export const TravelPlanTripSchema = z.object({
   name: z.string().min(1).describe('Trip name, for example: "Spring in Rome"'),
   destination: z.string().min(1).describe('Main destination city or region'),
-  start_at: z.string().datetime().optional().describe('Trip start datetime in ISO 8601. Optional.'),
-  end_at: z.string().datetime().optional().describe('Trip end datetime in ISO 8601. Optional.'),
+  startAt: z.string().datetime().optional().describe('Trip start datetime in ISO 8601. Optional.'),
+  endAt: z.string().datetime().optional().describe('Trip end datetime in ISO 8601. Optional.'),
   notes: z.string().optional().describe('Optional travel notes or constraints.'),
-  auto_prepare_checklist: z
+  autoPrepareChecklist: z
     .boolean()
     .default(true)
     .optional()
@@ -33,8 +33,8 @@ export const TravelPlanTripSchema = z.object({
 });
 
 export const TravelPrepareTripChecklistSchema = z.object({
-  trip_id: z.number().int().positive().describe('Trip ID to prepare checklist for.'),
-  include_defaults: z.boolean().default(true).optional().describe('Include default trip-preparation checklist items.'),
+  tripId: z.number().int().positive().describe('Trip ID to prepare checklist for.'),
+  includeDefaults: z.boolean().default(true).optional().describe('Include default trip-preparation checklist items.'),
 });
 
 const CompanionInputSchema = z.object({
@@ -46,24 +46,24 @@ const CompanionInputSchema = z.object({
 });
 
 export const TravelWhoIsTravelingSchema = z.object({
-  trip_id: z.number().int().positive().describe('Trip ID to manage companions for.'),
+  tripId: z.number().int().positive().describe('Trip ID to manage companions for.'),
   add: z.array(CompanionInputSchema).optional().describe('Add one or more companions.'),
   update: z.array(CompanionInputSchema).optional().describe('Update existing companions (requires id).'),
-  remove_ids: z
+  removeIds: z
     .array(z.number().int().positive())
     .optional()
     .describe('Companion ids to remove. If omitted, no removals happen.'),
 });
 
 export const TravelGetTripBriefSchema = z.object({
-  trip_id: z.number().int().positive().optional().describe('Trip ID. If omitted, use the next upcoming trip.'),
+  tripId: z.number().int().positive().optional().describe('Trip ID. If omitted, use the next upcoming trip.'),
 });
 
 export const TravelAttachDocumentLinkSchema = z.object({
-  trip_id: z.number().int().positive().describe('Trip ID for the document.'),
+  tripId: z.number().int().positive().describe('Trip ID for the document.'),
   title: z.string().min(1).describe('Document title, for example "Boarding pass".'),
   type: DocumentTypeSchema.default(TripDocumentTypes.Other).optional().describe('Document category.'),
-  source_url: z.string().url().describe('Link to the document (cloud drive, booking site, etc).'),
+  sourceUrl: z.string().url().describe('Link to the document (cloud drive, booking site, etc).'),
   notes: z.string().optional().describe('Optional notes about this document.'),
 });
 
@@ -73,15 +73,15 @@ export const travelPlanTripTool: ToolCallback<typeof TravelPlanTripSchema.shape>
   const trip = await createTrip(userId, {
     name: input.name,
     destination: input.destination,
-    startAt: input.start_at ? new Date(input.start_at) : null,
-    endAt: input.end_at ? new Date(input.end_at) : null,
+    startAt: input.startAt ? new Date(input.startAt) : null,
+    endAt: input.endAt ? new Date(input.endAt) : null,
     notes: input.notes ?? null,
     coverImageUrl: null,
   });
 
   const seededChecklist: string[] = [];
 
-  if (input.auto_prepare_checklist ?? true) {
+  if (input.autoPrepareChecklist ?? true) {
     const template = suggestChecklistTemplate(input.destination);
     for (const title of template) {
       await addChecklistItem(userId, trip.id, {
@@ -95,7 +95,7 @@ export const travelPlanTripTool: ToolCallback<typeof TravelPlanTripSchema.shape>
   return toolResponse({
     message: 'Trip planned successfully.',
     trip,
-    seeded_checklist: seededChecklist,
+    seededChecklist,
   });
 };
 
@@ -105,12 +105,12 @@ export const travelPrepareTripChecklistTool: ToolCallback<typeof TravelPrepareTr
 ) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
   const trips = await getTrips(userId);
-  const trip = trips.find((t) => t.id === input.trip_id);
-  if (!trip) throw new Error(`Trip with id ${input.trip_id} not found`);
+  const trip = trips.find(t => t.id === input.tripId);
+  if (!trip) throw new Error(`Trip with id ${input.tripId} not found`);
 
   const added: string[] = [];
 
-  if (input.include_defaults ?? true) {
+  if (input.includeDefaults ?? true) {
     const template = suggestChecklistTemplate(trip.destination ?? undefined);
     for (const title of template) {
       await addChecklistItem(userId, trip.id, { title, done: false });
@@ -122,8 +122,8 @@ export const travelPrepareTripChecklistTool: ToolCallback<typeof TravelPrepareTr
 
   return toolResponse({
     message: 'Checklist prepared.',
-    added_count: added.length,
-    added_items: added,
+    addedCount: added.length,
+    addedItems: added,
     checklist: overview?.checklist ?? [],
   });
 };
@@ -132,7 +132,7 @@ export const travelWhoIsTravelingTool: ToolCallback<typeof TravelWhoIsTravelingS
   const userId = extra.authInfo?.extra?.['userId'] as string;
 
   for (const companion of input.add ?? []) {
-    await addTripCompanion(userId, input.trip_id, {
+    await addTripCompanion(userId, input.tripId, {
       name: companion.name,
       email: companion.email ?? null,
       phone: companion.phone ?? null,
@@ -150,11 +150,11 @@ export const travelWhoIsTravelingTool: ToolCallback<typeof TravelWhoIsTravelingS
     });
   }
 
-  for (const companionId of input.remove_ids ?? []) {
+  for (const companionId of input.removeIds ?? []) {
     await deleteTripCompanion(userId, companionId);
   }
 
-  const companions = await getTripCompanions(userId, input.trip_id);
+  const companions = await getTripCompanions(userId, input.tripId);
 
   return toolResponse({
     message: 'Companion list updated.',
@@ -164,7 +164,7 @@ export const travelWhoIsTravelingTool: ToolCallback<typeof TravelWhoIsTravelingS
 
 export const travelGetTripBriefTool: ToolCallback<typeof TravelGetTripBriefSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
-  const overview = await getTripBrief(userId, input.trip_id);
+  const overview = await getTripBrief(userId, input.tripId);
 
   if (!overview) {
     return toolResponse({
@@ -195,11 +195,11 @@ export const travelAttachDocumentLinkTool: ToolCallback<typeof TravelAttachDocum
 ) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
 
-  const document = await addTripDocument(userId, input.trip_id, {
+  const document = await addTripDocument(userId, input.tripId, {
     type: (input.type ?? TripDocumentTypes.Other) as TripDocumentType,
     title: input.title,
     notes: input.notes ?? null,
-    sourceUrl: input.source_url,
+    sourceUrl: input.sourceUrl,
     originalName: null,
     mimeType: null,
     byteSize: null,
