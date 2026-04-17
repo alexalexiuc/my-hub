@@ -12,3 +12,10 @@ export function formatShortDate(value: string | null | undefined): string | null
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString();
 }
+
+/** Derives a human-readable date range label for a trip sidebar entry. */
+export function formatTripDateRange(from: string | null, to: string | null): string {
+  if (!from && !to) return 'Reservation dates not set';
+  if (from && to && from !== to) return `${from} -> ${to}`;
+  return from ?? to ?? 'Reservation dates not set';
+}

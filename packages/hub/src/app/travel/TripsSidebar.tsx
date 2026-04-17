@@ -8,7 +8,7 @@ import type { Trip } from '@my-hub/shared/types';
 import type { ApiTrip, BookingRange } from './types';
 import { TripForm } from './TripForm';
 import { tripToFormValues, formToCreateBody, formToUpdateBody, type TripFormValues } from './trip-form.schema';
-import { formatShortDate } from './trips-sidebar.utils';
+import { formatShortDate, formatTripDateRange } from './trips-sidebar.utils';
 
 type TripsSidebarProps = {
   trips: ApiTrip[];
@@ -162,15 +162,10 @@ export function TripsSidebar({
                     )}
                   </div>
                   <p className="text-xs text-zinc-500 mt-1">
-                    {(() => {
-                      const from = formatShortDate(
-                        tripBookingRanges[trip.id]?.fromAt ?? (trip.startAt as string | null),
-                      );
-                      const to = formatShortDate(tripBookingRanges[trip.id]?.toAt ?? (trip.endAt as string | null));
-                      if (!from && !to) return 'Reservation dates not set';
-                      if (from && to && from !== to) return `${from} -> ${to}`;
-                      return from ?? to ?? 'Reservation dates not set';
-                    })()}
+                    {formatTripDateRange(
+                      formatShortDate(tripBookingRanges[trip.id]?.fromAt ?? (trip.startAt as string | null)),
+                      formatShortDate(tripBookingRanges[trip.id]?.toAt ?? (trip.endAt as string | null)),
+                    )}
                   </p>
                 </div>
               )}

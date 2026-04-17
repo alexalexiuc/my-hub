@@ -80,8 +80,19 @@ export type NewApiaryLog = InferInsertModel<typeof apiaryLogs>;
 export type ApiaryTask = InferSelectModel<typeof apiaryTasks>;
 export type NewApiaryTask = InferInsertModel<typeof apiaryTasks>;
 
+// Travel — base shape shared by all trip_bookings.details objects.
+// Use BookingDetails as the discriminated-union root; extend it for each booking type.
+// Use BaseBookingDetails for booking types that do not yet have a dedicated shape.
+export interface BookingDetails {
+  readonly kind: string;
+  source?: string;
+  rawText?: string;
+  /** Open bag — AI may add any extra fields it considers relevant. */
+  extra?: Record<string, unknown>;
+}
+
 // Travel — flight metadata stored in trip_bookings.details (user-provided / AI-extracted fallback)
-export interface FlightDetails {
+export interface FlightDetails extends BookingDetails {
   readonly kind: 'flight';
   flightNumber?: string;
   seat?: string;
@@ -90,8 +101,6 @@ export interface FlightDetails {
   terminal?: string;
   gate?: string;
   aircraftType?: string;
-  source?: string;
-  rawText?: string;
 }
 
 // Travel — location for transport bookings (train, bus, ferry, taxi, transfer, car, rental_car)
@@ -105,8 +114,8 @@ export interface TransportLocation {
   lng?: number;
 }
 
-// Travel — transport booking details stored in tripBookings.details
-export interface TransportDetails {
+// Travel — transport booking details stored in trip_bookings.details
+export interface TransportDetails extends BookingDetails {
   readonly kind: 'transport';
   origin: TransportLocation;
   destination: TransportLocation;
@@ -118,8 +127,12 @@ export interface TransportDetails {
   vesselName?: string;
   cabin?: string;
   distanceKm?: number;
-  source?: string;
-  rawText?: string;
+}
+
+// Travel — fallback shape for booking types without a dedicated details interface yet.
+// kind: 'base' signals that only the common BookingDetails fields are expected.
+export interface BaseBookingDetails extends BookingDetails {
+  readonly kind: 'base';
 }
 
 // Travel

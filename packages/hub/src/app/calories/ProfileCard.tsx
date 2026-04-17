@@ -141,20 +141,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
   const maxCalNum = goalMaxCalories ? Math.round(Number(goalMaxCalories)) : null;
   const macroSummary = computeMacroSummary(macroMode, goalProtein, goalCarbs, goalFat, maxCalNum);
 
-  const macroWarning = (() => {
-    if (macroMode === '%') {
-      const total = (Number(goalProtein) || 0) + (Number(goalCarbs) || 0) + (Number(goalFat) || 0);
-      return total > 100 ? true : null;
-    }
-    if (macroMode === 'g' && maxCalNum) {
-      const usedPct =
-        (Number(gramsToPct(goalProtein, 4, maxCalNum)) || 0) +
-        (Number(gramsToPct(goalCarbs, 4, maxCalNum)) || 0) +
-        (Number(gramsToPct(goalFat, 9, maxCalNum)) || 0);
-      return usedPct > 100 ? true : null;
-    }
-    return null;
-  })();
+  const macroWarning = macroSummary?.isOver ?? null;
 
   function switchMacroMode(next: 'g' | '%') {
     if (next === macroMode) return;

@@ -1,4 +1,4 @@
-import type { FlightData, TransportDetails, TripBookingType, TripDocument } from '@my-hub/shared/types';
+import type { BookingDetails, FlightData, TransportDetails, TripBookingType, TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { TripBookingTypes, TripDocumentTypes } from '@my-hub/shared/constants';
 import {
@@ -123,6 +123,13 @@ function computeDuration(booking: TripBookingExtended, fd: FlightData | null): s
 // Labels / actions
 // ---------------------------------------------------------------------------
 
+function rawTextExcerpt(booking: TripBookingExtended, maxLen = 80): string {
+  const d = booking.details as BookingDetails | null;
+  const text = d?.rawText;
+  if (!text) return '';
+  return text.length > maxLen ? `${text.slice(0, maxLen).trimEnd()}…` : text;
+}
+
 function getTransportDetails(booking: TripBookingExtended): TransportDetails | null {
   const d = booking.details as { kind?: string } | null;
   if (d?.kind === 'transport') return booking.details as TransportDetails;
@@ -151,11 +158,10 @@ function deriveLabels(booking: TripBookingExtended): { primary: string; secondar
       ].filter(Boolean);
       return { primary, secondary: parts.join(' · ') || booking.provider || '' };
     }
-    case TripBookingTypes.Accommodation:
-      return {
-        primary: booking.title,
-        secondary: [booking.provider, booking.location].filter(Boolean).join(' · '),
-      };
+    case TripBookingTypes.Accommodation: {
+      const secondary = [booking.provider, booking.location].filter(Boolean).join(' · ');
+      return { primary: booking.title, secondary: secondary || rawTextExcerpt(booking) };
+    }
     default: {
       if (isTransportBookingType(booking.bookingType)) {
         const td = getTransportDetails(booking);
@@ -170,12 +176,10 @@ function deriveLabels(booking: TripBookingExtended): { primary: string; secondar
         }
 
         const parts = [booking.provider, reference].filter(Boolean);
-        return { primary: booking.title, secondary: parts.join(' · ') };
+        return { primary: booking.title, secondary: parts.join(' · ') || rawTextExcerpt(booking) };
       }
-      return {
-        primary: booking.title,
-        secondary: [booking.provider, booking.location].filter(Boolean).join(' · '),
-      };
+      const secondary = [booking.provider, booking.location].filter(Boolean).join(' · ');
+      return { primary: booking.title, secondary: secondary || rawTextExcerpt(booking) };
     }
   }
 }

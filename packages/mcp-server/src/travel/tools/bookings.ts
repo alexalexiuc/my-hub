@@ -8,7 +8,13 @@ import {
   updateTripBooking,
   upsertFlightData,
 } from '@my-hub/shared/services';
-import type { FlightDetails, TransportDetails, TransportLocation, TripBookingType } from '@my-hub/shared/types';
+import type {
+  BaseBookingDetails,
+  FlightDetails,
+  TransportDetails,
+  TransportLocation,
+  TripBookingType,
+} from '@my-hub/shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
 import { transportBookingTypes, TripBookingTypes, tripBookingTypeValues } from '@my-hub/shared/constants';
 import { isTransportBookingType, omitUndefined } from '@my-hub/shared/utils';
@@ -85,6 +91,10 @@ export const TravelAddReservationFromTextInputSchema = z.object({
     })
     .optional()
     .describe('Destination location for transport bookings. Extract from text when possible.'),
+  extra: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe('Any additional fields extracted from the text that you consider relevant.'),
 });
 
 export const TravelAddReservationFromTextSchema = TravelAddReservationFromTextInputSchema.superRefine((input, ctx) => {
@@ -123,7 +133,7 @@ export const travelAddReservationFromTextTool: ToolCallback<
       ? `${input.origin!.name} → ${input.destination!.name}`
       : `Imported ${bookingType} reservation`);
 
-  const details: TransportDetails | { source: string; rawText: string } =
+  const details: TransportDetails | BaseBookingDetails =
     isTransport && hasRoute
       ? {
           kind: 'transport',
@@ -131,10 +141,13 @@ export const travelAddReservationFromTextTool: ToolCallback<
           destination: input.destination as TransportLocation,
           source: 'nl_import',
           rawText: input.bookingText,
+          ...(input.extra && { extra: input.extra }),
         }
       : {
+          kind: 'base',
           source: 'nl_import',
           rawText: input.bookingText,
+          ...(input.extra && { extra: input.extra }),
         };
 
   const booking = await addTripBooking(userId, input.tripId, {
@@ -203,6 +216,10 @@ export const TravelAddFlightSchema = z.object({
     .describe('IANA timezone override for this booking. Normally derived automatically from IATA codes.'),
   lat: z.number().optional().describe('Latitude of the departure location (decimal degrees).'),
   lng: z.number().optional().describe('Longitude of the departure location (decimal degrees).'),
+  extra: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe('Any additional fields you consider relevant (e.g. baggage allowance, meal preference).'),
 });
 
 export const travelAddFlightTool: ToolCallback<typeof TravelAddFlightSchema.shape> = async (input, extra) => {
@@ -238,6 +255,7 @@ export const travelAddFlightTool: ToolCallback<typeof TravelAddFlightSchema.shap
       ...(input.terminal && { terminal: input.terminal }),
       ...(input.gate && { gate: input.gate }),
       ...(input.aircraftType && { aircraftType: input.aircraftType }),
+      ...(input.extra && { extra: input.extra }),
     },
   });
 
@@ -307,6 +325,10 @@ export const TravelAddTransportSchema = z.object({
   costAmount: z.number().optional().describe('Total cost amount.'),
   costCurrency: z.string().length(3).optional().describe('ISO 4217 currency code, e.g. "EUR".'),
   notes: z.string().optional().describe('Any extra notes.'),
+  extra: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe('Any additional fields you consider relevant (e.g. driver contact, vehicle plate).'),
 });
 
 export const travelAddTransportTool: ToolCallback<typeof TravelAddTransportSchema.shape> = async (input, extra) => {
@@ -326,6 +348,7 @@ export const travelAddTransportTool: ToolCallback<typeof TravelAddTransportSchem
     ...(input.vesselName && { vesselName: input.vesselName }),
     ...(input.cabin && { cabin: input.cabin }),
     ...(input.distanceKm !== undefined && { distanceKm: input.distanceKm }),
+    ...(input.extra && { extra: input.extra }),
   };
 
   const booking = await addTripBooking(userId, input.tripId, {
