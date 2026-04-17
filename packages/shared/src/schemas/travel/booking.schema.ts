@@ -40,14 +40,14 @@ export const BookingUpdateSchema = z.object({
     .transform(s => s.trim())
     .optional(),
   bookingType: z.nativeEnum(TripBookingTypes).optional(),
-  provider: z.string().optional(),
-  referenceLink: z.string().optional(),
-  startAt: z.string().optional(),
-  endAt: z.string().optional(),
+  provider: z.string().nullable().optional(),
+  referenceLink: z.string().nullable().optional(),
+  startAt: z.string().nullable().optional(),
+  endAt: z.string().nullable().optional(),
   flightDetails: z.record(z.unknown()).optional(),
-  contactName: z.string().optional(),
-  contactEmail: z.string().optional(),
-  contactPhone: z.string().optional(),
+  contactName: z.string().nullable().optional(),
+  contactEmail: z.string().nullable().optional(),
+  contactPhone: z.string().nullable().optional(),
 });
 
 export type BookingUpdateInput = z.infer<typeof BookingUpdateSchema>;

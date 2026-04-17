@@ -50,8 +50,8 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
       return;
     }
     const form = new FormData();
-    form.append('trip_id', String(activeTripId));
-    if (documentBookingId) form.append('booking_id', String(documentBookingId));
+    form.append('tripId', String(activeTripId));
+    if (documentBookingId) form.append('bookingId', String(documentBookingId));
     form.append('title', documentTitle.trim() || documentFile.name);
     form.append('type', 'other');
     form.append('file', documentFile);

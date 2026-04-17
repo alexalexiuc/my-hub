@@ -11,11 +11,11 @@ export const ProfileUpdateSchema = z.object({
   activityLevel: z.enum(ActivityLevelsValues as [string, ...string[]]).optional(),
   goalType: z.enum(GoalTypesValues as [string, ...string[]]).optional(),
   goalWeeklyRateKg: z.number().optional(),
-  goalMinCalories: z.number().int().nonnegative().optional(),
-  goalMaxCalories: z.number().int().nonnegative().optional(),
-  goalProtein: z.number().nonnegative().optional(),
-  goalCarbs: z.number().nonnegative().optional(),
-  goalFat: z.number().nonnegative().optional(),
+  goalMinCalories: z.number().int().nonnegative().nullable().optional(),
+  goalMaxCalories: z.number().int().nonnegative().nullable().optional(),
+  goalProtein: z.number().nonnegative().nullable().optional(),
+  goalCarbs: z.number().nonnegative().nullable().optional(),
+  goalFat: z.number().nonnegative().nullable().optional(),
   notes: z.string().optional(),
 });
 

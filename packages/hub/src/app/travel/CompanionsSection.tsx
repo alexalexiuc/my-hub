@@ -28,7 +28,7 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
     await apiFetch('/api/travel/companions', {
       method: 'POST',
       body: {
-        trip_id: activeTripId,
+        tripId: activeTripId,
         name: newName.trim(),
         email: newEmail.trim() || undefined,
         phone: newPhone.trim() || undefined,

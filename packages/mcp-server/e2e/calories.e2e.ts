@@ -170,7 +170,7 @@ describe.sequential('calories — meal lifecycle', () => {
     expect(mealId).toBeTruthy();
 
     const result = await client.callTool({
-      name: 'caloriesGet_meals',
+      name: 'calories_get_meals',
       arguments: { date: testDate },
     });
 
@@ -193,7 +193,7 @@ describe.sequential('calories — meal lifecycle', () => {
 
   it('filters meals by mealType', async () => {
     const result = await client.callTool({
-      name: 'caloriesGet_meals',
+      name: 'calories_get_meals',
       arguments: { date: testDate, mealType: 'breakfast' },
     });
 
@@ -221,7 +221,7 @@ describe.sequential('calories — meal lifecycle', () => {
 
   it('meal is no longer present after deletion', async () => {
     const result = await client.callTool({
-      name: 'caloriesGet_meals',
+      name: 'calories_get_meals',
       arguments: { date: testDate },
     });
 

@@ -57,7 +57,7 @@ export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
     try {
       await apiFetch(`/api/travel/trips/${activeTrip.id}/shares`, {
         method: 'POST',
-        body: { user_id: userId },
+        body: { userId },
       });
       await loadShares(activeTrip.id);
     } catch {

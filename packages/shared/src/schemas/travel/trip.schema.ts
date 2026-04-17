@@ -29,11 +29,11 @@ export const TripUpdateSchema = z.object({
     .min(1)
     .transform(s => s.trim())
     .optional(),
-  destination: z.string().optional(),
+  destination: z.string().nullable().optional(),
   color: hexColorSchema,
-  startAt: z.string().optional(),
-  endAt: z.string().optional(),
-  cancelledAt: z.string().optional(),
+  startAt: z.string().nullable().optional(),
+  endAt: z.string().nullable().optional(),
+  cancelledAt: z.string().nullable().optional(),
   notes: z.string().optional(),
   coverImageUrl: z.string().optional(),
 });

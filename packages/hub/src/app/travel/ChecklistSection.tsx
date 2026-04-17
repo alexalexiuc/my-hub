@@ -23,7 +23,7 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
     if (!activeTripId || !canEdit || !newItem.trim()) return;
     await apiFetch('/api/travel/checklist', {
       method: 'POST',
-      body: { trip_id: activeTripId, title: newItem.trim() },
+      body: { tripId: activeTripId, title: newItem.trim() },
     });
     setNewItem('');
     onChanged();
