@@ -9,10 +9,7 @@ const hexColorSchema = z
   .optional();
 
 export const TripCreateSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'name is required')
-    .transform(s => s.trim()),
+  name: z.string().trim().min(1, 'name is required'),
   destination: z.string().nullable().optional(),
   color: hexColorSchema,
   startAt: z.string().optional(),
@@ -24,11 +21,7 @@ export const TripCreateSchema = z.object({
 export type TripCreateInput = z.infer<typeof TripCreateSchema>;
 
 export const TripUpdateSchema = z.object({
-  name: z
-    .string()
-    .min(1)
-    .transform(s => s.trim())
-    .optional(),
+  name: z.string().trim().min(1).optional(),
   destination: z.string().nullable().optional(),
   color: hexColorSchema,
   startAt: z.string().nullable().optional(),

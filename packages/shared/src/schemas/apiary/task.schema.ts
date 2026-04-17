@@ -5,10 +5,7 @@ import { z } from 'zod';
 
 export const TaskCreateSchema = z
   .object({
-    title: z
-      .string()
-      .min(1, 'title is required')
-      .transform(s => s.trim()),
+    title: z.string().trim().min(1, 'title is required'),
     hiveId: z.number().int().positive().optional(),
     yardId: z.number().int().positive().optional(),
     dueAt: z.string().optional(),

@@ -4,10 +4,7 @@
 import { z } from 'zod';
 
 export const HiveCreateSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'name is required')
-    .transform(s => s.trim()),
+  name: z.string().trim().min(1, 'name is required'),
   yardId: z.number().int().positive().optional(),
   queenStatus: z.string().optional(),
   queenMarked: z.boolean().optional(),

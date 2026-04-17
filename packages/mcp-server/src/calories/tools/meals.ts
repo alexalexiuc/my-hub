@@ -46,7 +46,7 @@ export const LogMealSchema = z.object({
       'Total estimated calorie content of the meal. If analyzing a photo, estimate based on visible portion sizes and typical nutritional values. When items are provided this should equal the sum of all item calories.',
     ),
   mealType: z
-    .nativeEnum(MealTypes)
+    .enum(MealTypes)
     .optional()
     .describe(
       'Type of meal: "breakfast" | "lunch" | "dinner" | "snack". If not specified, infer from the time of day or context.',
@@ -60,7 +60,7 @@ export const LogMealSchema = z.object({
 
 export const GetMealsSchema = z.object({
   date: yyyyMmDdSchema.optional().describe('Filter to a specific date (YYYY-MM-DD). Omit for all entries.'),
-  mealType: z.nativeEnum(MealTypes).optional().describe('Filter by meal type'),
+  mealType: z.enum(MealTypes).optional().describe('Filter by meal type'),
   limit: z
     .number()
     .int()

@@ -8,11 +8,8 @@ import { TripBookingTypes } from '../../constants/travel.js';
 
 export const BookingCreateSchema = z.object({
   tripId: z.number().int().positive(),
-  title: z
-    .string()
-    .min(1, 'title is required')
-    .transform(s => s.trim()),
-  bookingType: z.nativeEnum(TripBookingTypes).optional(),
+  title: z.string().trim().min(1, 'title is required'),
+  bookingType: z.enum(TripBookingTypes).optional(),
   provider: z.string().optional(),
   confirmationNumber: z.string().optional(),
   startAt: z.string().optional(),
@@ -34,12 +31,8 @@ export const BookingCreateSchema = z.object({
 export type BookingCreateInput = z.infer<typeof BookingCreateSchema>;
 
 export const BookingUpdateSchema = z.object({
-  title: z
-    .string()
-    .min(1)
-    .transform(s => s.trim())
-    .optional(),
-  bookingType: z.nativeEnum(TripBookingTypes).optional(),
+  title: z.string().trim().min(1).optional(),
+  bookingType: z.enum(TripBookingTypes).optional(),
   provider: z.string().nullable().optional(),
   referenceLink: z.string().nullable().optional(),
   startAt: z.string().nullable().optional(),

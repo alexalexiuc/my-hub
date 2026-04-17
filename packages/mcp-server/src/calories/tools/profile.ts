@@ -8,20 +8,20 @@ import { ActivityLevels, GoalTypes, MeasurementTypes, Sexes } from '@my-hub/shar
 
 export const UpdateProfileSchema = z.object({
   age: z.number().int().positive().optional().describe('Age in years'),
-  sex: z.nativeEnum(Sexes).optional().describe('Biological sex for BMR calculation: "male" | "female"'),
+  sex: z.enum(Sexes).optional().describe('Biological sex for BMR calculation: "male" | "female"'),
   heightCm: z
     .number()
     .positive()
     .optional()
     .describe('Height in centimeters (e.g. 175). Stored on profile — only needs to be set once.'),
   activityLevel: z
-    .nativeEnum(ActivityLevels)
+    .enum(ActivityLevels)
     .optional()
     .describe(
       'Activity level for TDEE: "sedentary" | "lightly_active" | "moderately_active" | "very_active" | "extra_active"',
     ),
   goalType: z
-    .nativeEnum(GoalTypes)
+    .enum(GoalTypes)
     .optional()
     .describe(
       'Calorie goal: "weight_loss" | "weight_gain" | "maintain". Ask the user which goal they want before saving.',
