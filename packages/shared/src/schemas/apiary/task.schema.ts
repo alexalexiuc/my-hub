@@ -3,14 +3,19 @@
  */
 import { z } from 'zod';
 
-export const TaskCreateSchema = z.object({
-  title: z
-    .string()
-    .min(1, 'title is required')
-    .transform(s => s.trim()),
-  hiveId: z.number().int().positive().optional(),
-  yardId: z.number().int().positive().optional(),
-  dueAt: z.string().optional(),
-});
+export const TaskCreateSchema = z
+  .object({
+    title: z
+      .string()
+      .min(1, 'title is required')
+      .transform(s => s.trim()),
+    hiveId: z.number().int().positive().optional(),
+    yardId: z.number().int().positive().optional(),
+    dueAt: z.string().optional(),
+  })
+  .refine(data => !(data.hiveId && data.yardId), {
+    message: 'Provide hiveId or yardId, not both.',
+    path: ['hiveId'],
+  });
 
 export type TaskCreateInput = z.infer<typeof TaskCreateSchema>;
