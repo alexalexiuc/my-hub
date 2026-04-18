@@ -27,6 +27,7 @@ async function ensureUserExists(page: Page, email: string, password: string, nam
 }
 
 async function createTrip(page: Page, tripName: string): Promise<void> {
+  await page.getByRole('button', { name: 'New Trip' }).click();
   await page.getByPlaceholder('Trip name').first().fill(tripName);
   await page.getByPlaceholder('Destination').first().fill('Rome');
   await page.getByRole('button', { name: 'Create Trip' }).click();
@@ -111,7 +112,7 @@ test.describe('Travel', () => {
 
     // ── 4. Edit trip name ─────────────────────────────────────────────────────
     await page.getByRole('button', { name: 'Edit trip' }).first().click();
-    await page.locator('input[placeholder="Trip name"]').nth(1).fill(editedTripName);
+    await page.locator('input[placeholder="Trip name"]').first().fill(editedTripName);
     await page.getByRole('button', { name: 'Save', exact: true }).first().click();
     await expect(page.getByRole('button', { name: new RegExp(editedTripName) })).toBeVisible();
 
@@ -120,6 +121,7 @@ test.describe('Travel', () => {
       .getByRole('heading', { name: 'Reservations' })
       .locator('xpath=ancestor::section[1]');
 
+    await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
     await reservationsSection.getByPlaceholder('Reservation title').fill(genericBookingTitle);
     await reservationsSection.getByPlaceholder('Provider').fill('Test Provider');
     await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
@@ -133,6 +135,7 @@ test.describe('Travel', () => {
     await expect(genericRow).toHaveAttribute('aria-expanded', 'false');
 
     // ── 6. Flight booking: add with full details ──────────────────────────────
+    await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
     await reservationsSection.getByPlaceholder('Reservation title').fill(flightBookingTitle);
     await reservationsSection.locator('select').first().selectOption('flight');
     await reservationsSection.getByPlaceholder('Flight no. (e.g. BA2490)').fill('BA2490');
@@ -169,6 +172,7 @@ test.describe('Travel', () => {
     await expect(page.getByText(/Seat 15B/i)).toBeVisible();
 
     // ── 8. Accommodation with dates: itinerary two chips ──────────────────────
+    await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
     await reservationsSection.getByPlaceholder('Reservation title').fill(hotelBookingTitle);
     await reservationsSection.locator('select').first().selectOption('accommodation');
     await reservationsSection.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(startAt));
@@ -183,6 +187,7 @@ test.describe('Travel', () => {
     await expect(itinerary.getByText(/\d+ nights?/)).toBeVisible();
 
     // ── 9. Taxi booking without endAt: itinerary one chip ─────────────────────
+    await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
     await reservationsSection.getByPlaceholder('Reservation title').fill(taxiBookingTitle);
     await reservationsSection.locator('select').first().selectOption('taxi');
     await reservationsSection.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(taxiStart));
@@ -379,8 +384,10 @@ test.describe('Travel', () => {
     await createTrip(page, tripName);
     const tripButton = page.getByRole('button', { name: new RegExp(tripName) });
     await tripButton.click();
+    await page.waitForLoadState('networkidle');
 
     // Booking with start + end → should produce 2 chips (start chip + end chip)
+    await page.getByRole('button', { name: 'Add Reservation' }).click();
     await page.getByPlaceholder('Reservation title').fill('Past Hotel');
     await page.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(pastStart));
     await page.locator('input[type="datetime-local"]').nth(1).fill(toDateTimeLocal(pastEnd));
@@ -388,12 +395,14 @@ test.describe('Travel', () => {
     await expect(page.locator('p.font-medium, button', { hasText: /Past Hotel/ }).first()).toBeVisible();
 
     // Booking with start only → should produce exactly 1 chip
+    await page.getByRole('button', { name: 'Add Reservation' }).click();
     await page.getByPlaceholder('Reservation title').fill('Imminent Flight');
     await page.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(imminentStart));
     await page.getByRole('button', { name: 'Add Reservation' }).click();
     await expect(page.locator('p.font-medium, button', { hasText: /Imminent Flight/ }).first()).toBeVisible();
 
     // Another future booking (start only)
+    await page.getByRole('button', { name: 'Add Reservation' }).click();
     await page.getByPlaceholder('Reservation title').fill('Future Tour');
     await page.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(futureStart));
     await page.getByRole('button', { name: 'Add Reservation' }).click();
