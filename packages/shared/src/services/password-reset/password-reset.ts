@@ -61,30 +61,35 @@ export async function verifyPasswordResetToken(token: string): Promise<string | 
  * Returns true if the token was valid and the password was updated, false otherwise.
  */
 export async function consumePasswordResetToken(token: string, newPassword: string): Promise<boolean> {
-  const userId = await verifyPasswordResetToken(token);
-  if (!userId) return false;
-
   const tokenHash = hashToken(token);
-  const passwordHash = await hashSecret(newPassword);
-  const now = new Date();
 
-  // Mark token as used
-  const rows = await db
-    .update(passwordResetTokens)
-    .set({ usedAt: now })
-    .where(
-      and(
-        eq(passwordResetTokens.token, tokenHash),
-        isNull(passwordResetTokens.usedAt),
-        gt(passwordResetTokens.expiresAt, now),
-      ),
-    )
-    .returning({ id: passwordResetTokens.id });
+  return db.transaction(async (tx) => {
+    const now = new Date();
 
-  if (rows.length === 0) return false;
+    // Atomically claim the token and get the associated user ID.
+    const rows = await tx
+      .update(passwordResetTokens)
+      .set({ usedAt: now })
+      .where(
+        and(
+          eq(passwordResetTokens.token, tokenHash),
+          isNull(passwordResetTokens.usedAt),
+          gt(passwordResetTokens.expiresAt, now),
+        ),
+      )
+      .returning({ userId: passwordResetTokens.userId });
 
-  // Update the user's password
-  await db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, userId));
+    if (rows.length === 0) return false;
 
-  return true;
+    const passwordHash = await hashSecret(newPassword);
+
+    // Update the user's password in the same transaction so the token
+    // claim and password change either both succeed or both roll back.
+    await tx
+      .update(users)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, rows[0].userId));
+
+    return true;
+  });
 }
