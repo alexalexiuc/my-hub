@@ -1,43 +1,41 @@
 'use client';
 
 import { useState, Suspense } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { MIN_PASSWORD_LENGTH } from '@my-hub/shared/constants';
+import { ResetPasswordSchema, type ResetPasswordInput } from '@my-hub/shared/schemas';
 import { apiFetch, ApiError } from '@/lib/utils';
-import { Input } from '@/components';
+import { Button, Field, Input } from '@/components';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token') ?? '';
-
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<ResetPasswordInput>({
+    resolver: zodResolver(ResetPasswordSchema),
+    defaultValues: { token },
+  });
 
-    if (password !== confirm) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    setLoading(true);
+  async function onSubmit(data: ResetPasswordInput) {
     try {
       await apiFetch('/api/auth/reset-password', {
         method: 'POST',
-        body: { token, password },
+        body: { token: data.token, password: data.password },
         silentToast: true,
       });
       setSuccess(true);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
+      setError('root', {
+        message: e instanceof ApiError ? e.message : 'Something went wrong. Please try again.',
+      });
     }
   }
 
@@ -78,43 +76,19 @@ function ResetPasswordForm() {
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div>
-              <label htmlFor="password" className="text-xs text-zinc-400 block mb-1">
-                New password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                minLength={MIN_PASSWORD_LENGTH}
-                autoFocus
-              />
-            </div>
-            <div>
-              <label htmlFor="confirm" className="text-xs text-zinc-400 block mb-1">
-                Confirm new password
-              </label>
-              <Input
-                id="confirm"
-                type="password"
-                value={confirm}
-                onChange={e => setConfirm(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
-            </div>
-            {error && <p className="text-sm text-red-400">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition"
-            >
-              {loading ? 'Updating…' : 'Update password'}
-            </button>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+            <Field label="New password">
+              <Input id="password" type="password" placeholder="••••••••" autoFocus {...register('password')} />
+              {errors.password && <p className="text-xs text-red-400 mt-1">{errors.password.message}</p>}
+            </Field>
+            <Field label="Confirm new password">
+              <Input id="confirm" type="password" placeholder="••••••••" {...register('confirm')} />
+              {errors.confirm && <p className="text-xs text-red-400 mt-1">{errors.confirm.message}</p>}
+            </Field>
+            {errors.root && <p className="text-sm text-red-400">{errors.root.message}</p>}
+            <Button type="submit" loading={isSubmitting} className="w-full">
+              Update password
+            </Button>
           </form>
         )}
       </div>

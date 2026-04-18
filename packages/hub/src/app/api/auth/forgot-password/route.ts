@@ -1,24 +1,24 @@
 import { NextResponse } from 'next/server';
 import { createPasswordResetToken, sendPasswordResetEmail } from '@my-hub/shared/services';
 import { PASSWORD_RESET_TOKEN_EXPIRY_MINUTES } from '@my-hub/shared/constants';
-import { withErrorLogging } from '@/lib/api/with-error-logging';
+import { ForgotPasswordSchema } from '@my-hub/shared/schemas';
+import { withErrorLogging, formatZodError } from '@/lib/api/with-error-logging';
 import { hubEnvConfig } from '@/config/env';
 
 async function forgotPasswordHandler(req: Request) {
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { email } = body as { email?: string };
-
-  if (!email || typeof email !== 'string') {
-    return NextResponse.json({ error: 'email is required' }, { status: 400 });
+  const parsed = ForgotPasswordSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
   }
 
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = parsed.data.email.toLowerCase();
 
   // createPasswordResetToken returns null if the user doesn't exist.
   // We always respond with 200 to prevent user enumeration.

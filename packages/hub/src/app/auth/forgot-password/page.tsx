@@ -1,32 +1,31 @@
 'use client';
 
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { apiFetch, ApiError } from '@/lib/utils';
-import { Input } from '@/components';
+import { ForgotPasswordSchema, type ForgotPasswordInput } from '@my-hub/shared/schemas';
+import { apiFetch } from '@/lib/utils';
+import { Button, Field, Input } from '@/components';
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      await apiFetch('/api/auth/forgot-password', {
-        method: 'POST',
-        body: { email },
-        silentToast: true,
-      });
-      setSubmitted(true);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ForgotPasswordInput>({
+    resolver: zodResolver(ForgotPasswordSchema),
+  });
+
+  async function onSubmit(data: ForgotPasswordInput) {
+    await apiFetch('/api/auth/forgot-password', {
+      method: 'POST',
+      body: data,
+      silentToast: true,
+    });
+    setSubmitted(true);
   }
 
   return (
@@ -53,29 +52,14 @@ export default function ForgotPasswordPage() {
             <p className="mb-6 text-sm text-zinc-400 text-center">
               Enter your email and we&apos;ll send you a link to reset your password.
             </p>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label htmlFor="email" className="text-xs text-zinc-400 block mb-1">
-                  Email
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                  autoFocus
-                />
-              </div>
-              {error && <p className="text-sm text-red-400">{error}</p>}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition"
-              >
-                {loading ? 'Sending…' : 'Send reset link'}
-              </button>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+              <Field label="Email">
+                <Input id="email" type="email" placeholder="you@example.com" autoFocus {...register('email')} />
+                {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email.message}</p>}
+              </Field>
+              <Button type="submit" loading={isSubmitting} className="w-full">
+                Send reset link
+              </Button>
             </form>
 
             <p className="mt-6 text-center text-sm text-zinc-400">
