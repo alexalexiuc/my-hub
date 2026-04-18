@@ -10,3 +10,4 @@ export * from './invite-tokens';
 export * from './apiary';
 export * from './travel';
 export * from './notifications';
+export * from './password-reset-tokens';

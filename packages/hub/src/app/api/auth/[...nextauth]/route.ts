@@ -1,7 +1,7 @@
 import NextAuth, { type AuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { verifyUserPassword, findOrCreateUser } from '@my-hub/shared/services';
+import { verifyUserPassword, findOrCreateUser, findUserByEmail } from '@my-hub/shared/services';
 import { hubEnvConfig } from '@/config/env';
 
 export const authOptions: AuthOptions = {
@@ -30,9 +30,20 @@ export const authOptions: AuthOptions = {
       if (account?.provider === 'credentials') return true;
 
       // Google OAuth: apply the email whitelist and provision user in DB.
-      if (hubEnvConfig.ALLOWED_EMAILS.length === 0) return false;
       const email = user.email?.trim().toLowerCase();
       if (!email) return false;
+
+      // If the user already exists in the DB (registered via credentials/invite),
+      // allow Google login regardless of the whitelist — this links their Google
+      // account to their existing account.
+      const existingUser = await findUserByEmail(email);
+      if (existingUser) {
+        await findOrCreateUser(email, user.name ?? undefined, user.id);
+        return true;
+      }
+
+      // New Google sign-in (no existing account): apply the email whitelist.
+      if (hubEnvConfig.ALLOWED_EMAILS.length === 0) return false;
       if (!hubEnvConfig.ALLOWED_EMAILS.includes(email)) return false;
 
       // Create user in database if they don't exist yet (first-time Google OAuth login).

@@ -169,6 +169,13 @@
       "when": 1776457330363,
       "tag": "0024_migrate_booking_details_to_camelcase",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1776513836675,
+      "tag": "0025_sudden_the_call",
+      "breakpoints": true
     }
   ]
 }
