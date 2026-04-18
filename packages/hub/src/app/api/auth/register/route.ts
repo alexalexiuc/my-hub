@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createUserWithPassword, claimInviteToken, bindInviteTokenToUser } from '@my-hub/shared/services';
+import { PASSWORD_RULES } from '@my-hub/shared/constants';
 import { withErrorLogging } from '@/lib/api/with-error-logging';
 import { hubEnvConfig } from '@/config/env';
 
@@ -24,8 +25,20 @@ async function registerHandler(req: Request) {
   if (!password || typeof password !== 'string') {
     return NextResponse.json({ error: 'password is required' }, { status: 400 });
   }
-  if (password.length < 8) {
-    return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
+  if (
+    password.length < PASSWORD_RULES.minLength ||
+    !PASSWORD_RULES.hasUppercase.test(password) ||
+    !PASSWORD_RULES.hasLowercase.test(password) ||
+    !PASSWORD_RULES.hasNumber.test(password) ||
+    !PASSWORD_RULES.hasSpecial.test(password)
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          'Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character',
+      },
+      { status: 400 },
+    );
   }
 
   const normalizedEmail = email.trim().toLowerCase();

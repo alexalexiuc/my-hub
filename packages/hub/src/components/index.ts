@@ -9,6 +9,7 @@ export { IconButton } from './IconButton';
 export { Input } from './Input';
 export { MultiButtonGroup } from './MultiButtonGroup';
 export { PageHeader } from './PageHeader';
+export { PasswordStrength } from './PasswordStrength';
 export { Providers } from './Providers';
 export { SectionCard } from './SectionCard';
 export { Select } from './Select';

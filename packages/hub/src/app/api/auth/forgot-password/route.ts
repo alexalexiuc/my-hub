@@ -26,10 +26,14 @@ async function forgotPasswordHandler(req: Request) {
 
   if (token) {
     const resetUrl = `${hubEnvConfig.HUB_URL}/auth/reset-password?token=${token}`;
-    await sendPasswordResetEmail(normalizedEmail, {
-      resetUrl,
-      expiryMinutes: PASSWORD_RESET_TOKEN_EXPIRY_MINUTES,
-    });
+    try {
+      await sendPasswordResetEmail(normalizedEmail, {
+        resetUrl,
+        expiryMinutes: PASSWORD_RESET_TOKEN_EXPIRY_MINUTES,
+      });
+    } catch {
+      // Swallow email send errors — the response is always 200 to prevent user enumeration.
+    }
   }
 
   return NextResponse.json({ ok: true });

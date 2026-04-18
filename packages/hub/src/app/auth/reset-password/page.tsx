@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ResetPasswordSchema, type ResetPasswordInput } from '@my-hub/shared/schemas';
 import { apiFetch, ApiError } from '@/lib/utils';
-import { Button, Field, Input } from '@/components';
+import { Button, Field, Input, PasswordStrength } from '@/components';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -18,6 +18,7 @@ function ResetPasswordForm() {
     register,
     handleSubmit,
     setError,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ResetPasswordInput>({
     resolver: zodResolver(ResetPasswordSchema),
@@ -28,7 +29,7 @@ function ResetPasswordForm() {
     try {
       await apiFetch('/api/auth/reset-password', {
         method: 'POST',
-        body: { token: data.token, password: data.password },
+        body: { token: data.token, password: data.password, confirm: data.confirm },
         silentToast: true,
       });
       setSuccess(true);
@@ -83,8 +84,8 @@ function ResetPasswordForm() {
             </Field>
             <Field label="Confirm new password">
               <Input id="confirm" type="password" placeholder="••••••••" {...register('confirm')} />
-              {errors.confirm && <p className="text-xs text-red-400 mt-1">{errors.confirm.message}</p>}
             </Field>
+            <PasswordStrength password={watch('password') ?? ''} confirm={watch('confirm') ?? ''} />
             {errors.root && <p className="text-sm text-red-400">{errors.root.message}</p>}
             <Button type="submit" loading={isSubmitting} className="w-full">
               Update password
