@@ -99,10 +99,12 @@ test.describe('Reset Password', () => {
     await expect(page).toHaveURL('/', { timeout: 10_000 });
 
     // ── 6. Restore the original password (teardown) ───────────────────────────
-    const restoreRes = await request.get(`${BASE_URL}/api/auth/test/reset-token?email=${TEST_USER.email}`);
-    const { token: restoreToken } = (await restoreRes.json()) as { token: string };
-    await request.post(`${BASE_URL}/api/auth/reset-password`, {
+    const restoreTokenRes = await request.get(`${BASE_URL}/api/auth/test/reset-token?email=${TEST_USER.email}`);
+    expect(restoreTokenRes.status()).toBe(200);
+    const { token: restoreToken } = (await restoreTokenRes.json()) as { token: string };
+    const restoreRes = await request.post(`${BASE_URL}/api/auth/reset-password`, {
       data: { token: restoreToken, password: TEST_USER.password },
     });
+    expect(restoreRes.status()).toBe(200);
   });
 });

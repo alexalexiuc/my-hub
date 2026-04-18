@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { consumePasswordResetToken } from '@my-hub/shared/services';
+import { MIN_PASSWORD_LENGTH } from '@my-hub/shared/constants';
 import { withErrorLogging } from '@/lib/api/with-error-logging';
 
 async function resetPasswordHandler(req: Request) {
@@ -18,8 +19,8 @@ async function resetPasswordHandler(req: Request) {
   if (!password || typeof password !== 'string') {
     return NextResponse.json({ error: 'password is required' }, { status: 400 });
   }
-  if (password.length < 8) {
-    return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return NextResponse.json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` }, { status: 400 });
   }
 
   const ok = await consumePasswordResetToken(token, password);

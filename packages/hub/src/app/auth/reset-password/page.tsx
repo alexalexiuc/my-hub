@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { MIN_PASSWORD_LENGTH } from '@my-hub/shared/constants';
 import { apiFetch, ApiError } from '@/lib/utils';
 import { Input } from '@/components';
 
@@ -89,7 +90,7 @@ function ResetPasswordForm() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                minLength={8}
+                minLength={MIN_PASSWORD_LENGTH}
                 autoFocus
               />
             </div>

@@ -4,11 +4,12 @@ import { hubEnvConfig } from '@/config/env';
 
 /**
  * Test-only endpoint: creates a password reset token for the given email.
- * Only available in non-production environments to support E2E testing.
+ * Only accessible when NODE_ENV is 'development' or 'test'.
+ * In production Docker deployments, NODE_ENV is always 'production' (set in Dockerfile).
  * GET /api/auth/test/reset-token?email=<email>
  */
 export async function GET(req: Request) {
-  if (hubEnvConfig.NODE_ENV === 'production') {
+  if (!['development', 'test'].includes(hubEnvConfig.NODE_ENV)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
