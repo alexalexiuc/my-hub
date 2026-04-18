@@ -204,7 +204,7 @@ function NewClientForm({ onCreated }: { onCreated: (c: CreatedClient) => void })
         <Input
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={e => setName(e.target.value)}
           placeholder="e.g. Claude Desktop"
           autoFocus
         />
@@ -478,24 +478,24 @@ function AuditLogSection() {
             className="text-sm"
             options={SERVER_OPTIONS}
             value={server}
-            onChange={(e) => setServer(e.target.value)}
+            onChange={e => setServer(e.target.value)}
           />
         </div>
         <div>
           <label className="text-xs text-zinc-500 block mb-1">From</label>
-          <Input type="date" className="text-sm" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          <Input type="date" className="text-sm" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
         </div>
         <div>
           <label className="text-xs text-zinc-500 block mb-1">To</label>
-          <Input type="date" className="text-sm" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          <Input type="date" className="text-sm" value={dateTo} onChange={e => setDateTo(e.target.value)} />
         </div>
         <div>
           <label className="text-xs text-zinc-500 block mb-1">Limit</label>
           <Select
             className="text-sm"
-            options={[25, 50, 100, 200].map((n) => ({ value: n, label: String(n) }))}
+            options={[25, 50, 100, 200].map(n => ({ value: n, label: String(n) }))}
             value={limit}
-            onChange={(e) => setLimit(Number(e.target.value))}
+            onChange={e => setLimit(Number(e.target.value))}
           />
         </div>
         <button
@@ -523,7 +523,7 @@ function AuditLogSection() {
                 <span className="text-right">Duration</span>
                 <span className="text-right">Time</span>
               </div>
-              {logs.map((log) => (
+              {logs.map(log => (
                 <div key={log.id}>
                   <div
                     className="grid grid-cols-[5rem_3.5rem_1fr_4rem_4.5rem_8rem] gap-2 px-4 py-2.5 text-sm hover:bg-zinc-800/50 cursor-pointer transition"
@@ -609,21 +609,21 @@ export default function McpControlPage() {
   }, [load]);
 
   function handleServerToggle(name: string, enabled: boolean) {
-    setServers((prev) => prev.map((s) => (s.serverName === name ? { ...s, enabled } : s)));
+    setServers(prev => prev.map(s => (s.serverName === name ? { ...s, enabled } : s)));
   }
 
   function handleClientToggle(id: number, enabled: boolean) {
-    setClients((prev) => prev.map((c) => (c.id === id ? { ...c, enabled } : c)));
+    setClients(prev => prev.map(c => (c.id === id ? { ...c, enabled } : c)));
   }
 
   function handleClientDelete(id: number) {
-    setClients((prev) => prev.filter((c) => c.id !== id));
+    setClients(prev => prev.filter(c => c.id !== id));
   }
 
   function handleCreated(created: CreatedClient) {
     setShowForm(false);
     setNewClient(created);
-    setClients((prev) => [...prev, created]);
+    setClients(prev => [...prev, created]);
   }
 
   function dismissSecret() {
@@ -663,8 +663,8 @@ export default function McpControlPage() {
               </p>
             )}
             {clients
-              .filter((c) => !newClient || c.id !== newClient.id)
-              .map((c) => (
+              .filter(c => !newClient || c.id !== newClient.id)
+              .map(c => (
                 <ClientCard key={c.id} client={c} onToggle={handleClientToggle} onDelete={handleClientDelete} />
               ))}
           </div>
@@ -682,7 +682,7 @@ export default function McpControlPage() {
           <p className="text-sm text-zinc-500">Loading…</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {servers.map((s) => (
+            {servers.map(s => (
               <ServerCard key={s.id} server={s} onToggle={handleServerToggle} />
             ))}
           </div>

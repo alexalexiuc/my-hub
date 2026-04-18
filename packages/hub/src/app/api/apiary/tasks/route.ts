@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
+import { formatZodError } from '@/lib/api/with-error-logging';
 import { getApiaryTasks, createApiaryTask } from '@my-hub/shared/services';
 import { omitNullish } from '@my-hub/shared/utils';
+import { TaskCreateSchema } from '@my-hub/shared/schemas';
 
 export const GET = withAuth(async ({ req, user }) => {
   const { searchParams } = new URL(req.url);
-  const hiveId = searchParams.get('hive_id') ? Number(searchParams.get('hive_id')) : undefined;
-  const yardId = searchParams.get('yard_id') ? Number(searchParams.get('yard_id')) : undefined;
+  const hiveId = searchParams.get('hiveId') ? Number(searchParams.get('hiveId')) : undefined;
+  const yardId = searchParams.get('yardId') ? Number(searchParams.get('yardId')) : undefined;
   const completed = searchParams.get('completed') !== null ? searchParams.get('completed') === 'true' : undefined;
   const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined;
 
@@ -15,25 +17,26 @@ export const GET = withAuth(async ({ req, user }) => {
 });
 
 export const POST = withAuth(async ({ req, user }) => {
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { title } = body as { title?: string };
-  if (!title?.trim()) {
-    return NextResponse.json({ error: 'title is required' }, { status: 400 });
+  const parsed = TaskCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
   }
 
-  const dueAt = typeof body.due_at === 'string' ? new Date(body.due_at) : undefined;
+  const { data } = parsed;
+  const dueAt = data.dueAt ? new Date(data.dueAt) : undefined;
 
   const task = await createApiaryTask(user.id, {
-    title: title.trim(),
+    title: data.title,
     ...omitNullish({
-      hiveId: body.hive_id as number | undefined,
-      yardId: body.yard_id as number | undefined,
+      hiveId: data.hiveId,
+      yardId: data.yardId,
       dueAt,
     }),
   });

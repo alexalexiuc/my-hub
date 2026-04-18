@@ -12,17 +12,17 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const tripId = Number(body.trip_id);
-  const bookingIdRaw = body.booking_id;
+  const tripId = Number(body.tripId);
+  const { bookingId: bookingIdRaw } = body;
   const bookingId =
     bookingIdRaw === null || bookingIdRaw === undefined || bookingIdRaw === '' ? null : Number(bookingIdRaw);
   const title = typeof body.title === 'string' ? body.title.trim() : '';
 
   if (!Number.isInteger(tripId) || tripId <= 0) {
-    return NextResponse.json({ error: 'trip_id is required' }, { status: 400 });
+    return NextResponse.json({ error: 'tripId is required' }, { status: 400 });
   }
   if (bookingId !== null && (!Number.isInteger(bookingId) || bookingId <= 0)) {
-    return NextResponse.json({ error: 'booking_id must be a positive integer' }, { status: 400 });
+    return NextResponse.json({ error: 'bookingId must be a positive integer' }, { status: 400 });
   }
   if (!title) return NextResponse.json({ error: 'title is required' }, { status: 400 });
 
@@ -38,7 +38,7 @@ export const POST = withAuth(async ({ req, user }) => {
       bookingId,
       title,
       notes: typeof body.notes === 'string' ? body.notes : null,
-      sourceUrl: typeof body.source_url === 'string' ? body.source_url : null,
+      sourceUrl: typeof body.sourceUrl === 'string' ? body.sourceUrl : null,
       originalName: null,
       mimeType: null,
       byteSize: null,
@@ -50,7 +50,7 @@ export const POST = withAuth(async ({ req, user }) => {
     if (message === 'Trip not found') {
       return NextResponse.json({ error: message }, { status: 404 });
     }
-    if (message === 'booking_id does not belong to this trip') {
+    if (message === 'bookingId does not belong to this trip') {
       return NextResponse.json({ error: message }, { status: 400 });
     }
     throw error;

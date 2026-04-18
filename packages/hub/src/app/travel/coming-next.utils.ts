@@ -1,4 +1,4 @@
-import type { FlightData, TransportDetails, TripBookingType, TripDocument } from '@my-hub/shared/types';
+import type { BookingDetails, FlightData, TransportDetails, TripBookingType, TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { TripBookingTypes, TripDocumentTypes } from '@my-hub/shared/constants';
 import {
@@ -123,6 +123,13 @@ function computeDuration(booking: TripBookingExtended, fd: FlightData | null): s
 // Labels / actions
 // ---------------------------------------------------------------------------
 
+function rawTextExcerpt(booking: TripBookingExtended, maxLen = 80): string {
+  const d = booking.details as BookingDetails | null;
+  const text = d?.rawText;
+  if (!text) return '';
+  return text.length > maxLen ? `${text.slice(0, maxLen).trimEnd()}…` : text;
+}
+
 function getTransportDetails(booking: TripBookingExtended): TransportDetails | null {
   const d = booking.details as { kind?: string } | null;
   if (d?.kind === 'transport') return booking.details as TransportDetails;
@@ -132,34 +139,33 @@ function getTransportDetails(booking: TripBookingExtended): TransportDetails | n
 function deriveLabels(booking: TripBookingExtended): { primary: string; secondary: string } {
   const fd = booking.flightData;
   const d = (booking.details ?? {}) as {
-    origin_iata?: string;
-    destination_iata?: string;
-    flight_number?: string;
+    originIata?: string;
+    destinationIata?: string;
+    flightNumber?: string;
     gate?: string;
     seat?: string;
   };
 
   switch (booking.bookingType) {
     case TripBookingTypes.Flight: {
-      const origin = fd?.originIata ?? d.origin_iata;
-      const dest = fd?.destinationIata ?? d.destination_iata;
+      const origin = fd?.originIata ?? d.originIata;
+      const dest = fd?.destinationIata ?? d.destinationIata;
       const primary = origin && dest ? `${origin} → ${dest}` : booking.title;
       const parts = [
-        fd?.flightNumber ?? d.flight_number,
+        fd?.flightNumber ?? d.flightNumber,
         (fd?.departureGate ?? d.gate) && `Gate ${fd?.departureGate ?? d.gate}`,
         d.seat && `Seat ${d.seat}`,
       ].filter(Boolean);
       return { primary, secondary: parts.join(' · ') || booking.provider || '' };
     }
-    case TripBookingTypes.Accommodation:
-      return {
-        primary: booking.title,
-        secondary: [booking.provider, booking.location].filter(Boolean).join(' · '),
-      };
+    case TripBookingTypes.Accommodation: {
+      const secondary = [booking.provider, booking.location].filter(Boolean).join(' · ');
+      return { primary: booking.title, secondary: secondary || rawTextExcerpt(booking) };
+    }
     default: {
       if (isTransportBookingType(booking.bookingType)) {
         const td = getTransportDetails(booking);
-        const reference = td?.service_number ?? booking.confirmationNumber;
+        const reference = td?.serviceNumber ?? booking.confirmationNumber;
         const seat = td?.seat ? `Seat ${td.seat}` : null;
         const travelClass = td?.class ?? null;
 
@@ -170,12 +176,10 @@ function deriveLabels(booking: TripBookingExtended): { primary: string; secondar
         }
 
         const parts = [booking.provider, reference].filter(Boolean);
-        return { primary: booking.title, secondary: parts.join(' · ') };
+        return { primary: booking.title, secondary: parts.join(' · ') || rawTextExcerpt(booking) };
       }
-      return {
-        primary: booking.title,
-        secondary: [booking.provider, booking.location].filter(Boolean).join(' · '),
-      };
+      const secondary = [booking.provider, booking.location].filter(Boolean).join(' · ');
+      return { primary: booking.title, secondary: secondary || rawTextExcerpt(booking) };
     }
   }
 }
@@ -227,13 +231,13 @@ function parseDirectionalLocation(location: string): { start: string; end: strin
 function endpointLocationQuery(booking: TripBookingExtended, endpoint: 'start' | 'end'): string | null {
   const fd = booking.flightData;
   const details = (booking.details ?? {}) as {
-    origin_iata?: string;
-    destination_iata?: string;
+    originIata?: string;
+    destinationIata?: string;
   };
 
   if (booking.bookingType === TripBookingTypes.Flight) {
-    const origin = fd?.originIata ?? details.origin_iata;
-    const destination = fd?.destinationIata ?? details.destination_iata;
+    const origin = fd?.originIata ?? details.originIata;
+    const destination = fd?.destinationIata ?? details.destinationIata;
     const flightEndpoint = endpoint === 'start' ? origin : destination;
     if (flightEndpoint) return flightEndpoint;
   }
@@ -390,7 +394,7 @@ export function mapBookingsToSegments(
   const segments: Segment[] = [];
 
   const sorted = bookings
-    .filter((b) => b.startAt != null)
+    .filter(b => b.startAt != null)
     .sort((a, b) => new Date(a.startAt!).getTime() - new Date(b.startAt!).getTime());
 
   for (const booking of sorted) {

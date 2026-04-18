@@ -1,7 +1,7 @@
 import fp from 'fastify-plugin';
 import { mcpSubServers } from '../mcp/registry.js';
 
-export const monitorRoute = fp(async (app) => {
+export const monitorRoute = fp(async app => {
   const counters = new Map<string, { totalCreated: number; totalDestroyed: number }>();
 
   // Wire session event counters per sub-server after all sub-servers are registered

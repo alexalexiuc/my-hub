@@ -16,7 +16,7 @@ export const mcpServers = pgTable(
     enabled: boolean('enabled').notNull().default(true),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     userServerUniq: unique('uq_mcp_user_server').on(table.userId, table.serverName),
   }),
 );

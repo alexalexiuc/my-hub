@@ -147,7 +147,7 @@ function SegmentCard({ segment }: { segment: Segment }) {
           onClick={isPast ? () => setExpanded(false) : undefined}
           onKeyDown={
             isPast
-              ? (e) => {
+              ? e => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     setExpanded(false);

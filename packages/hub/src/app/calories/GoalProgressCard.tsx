@@ -68,7 +68,7 @@ function getDailyGoalDelta(goalType: string | null, goalWeeklyRateKg: number | n
 function getBaselineWeightForWeek(weightRows: WeightMeasurement[], weekStartDate: string): number | null {
   // Weights are ordered descending, so it is safe to take the first match for Monday or the most recent past weight.
   const mondayWeightOrLast =
-    weightRows.find((row) => row.date === weekStartDate || row.date < weekStartDate)?.value ?? null;
+    weightRows.find(row => row.date === weekStartDate || row.date < weekStartDate)?.value ?? null;
   if (mondayWeightOrLast !== null) return mondayWeightOrLast;
 
   // If Monday has no measurement, fall back to the most recent known value before that week.
@@ -119,7 +119,7 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
   const delta =
     lastPastPoint && lastPastPoint.actual !== null ? (lastPastPoint.actual as number) - lastPastPoint.projected : null;
 
-  const values = chartData.flatMap((d) => [d.projected, d.actual ?? d.projected]);
+  const values = chartData.flatMap(d => [d.projected, d.actual ?? d.projected]);
   const minVal = Math.min(...values);
   const maxVal = Math.max(...values);
   const range = Math.max(maxVal - minVal, 0.4);
@@ -182,7 +182,7 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
             />
             <RechartsTooltip
               cursor={{ fill: 'rgba(63, 63, 70, 0.3)' }}
-              content={(props) => (
+              content={props => (
                 <CustomTooltip
                   active={props.active}
                   payload={props.payload}
@@ -195,7 +195,7 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
             />
             <Legend
               wrapperStyle={{ fontSize: 11, color: '#71717a', paddingTop: 4 }}
-              formatter={(value) => (value === 'actual' ? 'Actual' : 'Projected')}
+              formatter={value => (value === 'actual' ? 'Actual' : 'Projected')}
             />
             <Line
               dataKey="actual"

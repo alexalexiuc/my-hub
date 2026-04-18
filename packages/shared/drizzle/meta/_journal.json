@@ -162,6 +162,13 @@
       "when": 1776340412630,
       "tag": "0023_mushy_stone_men",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1776457330363,
+      "tag": "0024_migrate_booking_details_to_camelcase",
+      "breakpoints": true
     }
   ]
 }

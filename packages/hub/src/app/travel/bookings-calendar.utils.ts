@@ -43,10 +43,10 @@ export function bookingDotClass(bookingType: TripBookingType): string {
  */
 export function getMinBookingDate(bookings: TripBooking[], trip: Trip): Date {
   const dates = bookings
-    .map((b) => toDate(b.startAt))
+    .map(b => toDate(b.startAt))
     .concat(toDate(trip.startAt || Date.now()))
     .filter((d): d is Date => d !== null);
 
   if (dates.length === 0) return new Date();
-  return new Date(Math.min(...dates.map((d) => d.getTime())));
+  return new Date(Math.min(...dates.map(d => d.getTime())));
 }

@@ -13,7 +13,7 @@ interface Props<T extends string> {
 }
 
 export function MultiButtonGroup<T extends string>({ options, value, onChange, width }: Props<T>) {
-  const activeIndex = options.findIndex((o) => o.value === value);
+  const activeIndex = options.findIndex(o => o.value === value);
   const n = options.length;
 
   return (
@@ -27,7 +27,7 @@ export function MultiButtonGroup<T extends string>({ options, value, onChange, w
           left: `calc(2px + ${activeIndex} * (100% - 4px) / ${n})`,
         }}
       />
-      {options.map((option) => (
+      {options.map(option => (
         <button
           key={option.value}
           type="button"

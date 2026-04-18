@@ -8,7 +8,7 @@ import { toolResponse } from '../../shared/toolsUtils';
 // ---------------------------------------------------------------------------
 
 export const TravelUpsertDayNoteSchema = z.object({
-  trip_id: z.number().int().positive().describe('Trip ID the day belongs to.'),
+  tripId: z.number().int().positive().describe('Trip ID the day belongs to.'),
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be an ISO date string, e.g. "2026-06-21"')
@@ -20,7 +20,7 @@ export const TravelUpsertDayNoteSchema = z.object({
 export const travelUpsertDayNoteTool: ToolCallback<typeof TravelUpsertDayNoteSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
 
-  const day = await upsertTripDay(userId, input.trip_id, input.date, {
+  const day = await upsertTripDay(userId, input.tripId, input.date, {
     title: input.title ?? null,
     notes: input.notes ?? null,
   });
@@ -33,13 +33,13 @@ export const travelUpsertDayNoteTool: ToolCallback<typeof TravelUpsertDayNoteSch
 // ---------------------------------------------------------------------------
 
 export const TravelGetDayNotesSchema = z.object({
-  trip_id: z.number().int().positive().describe('Trip ID to retrieve day notes for.'),
+  tripId: z.number().int().positive().describe('Trip ID to retrieve day notes for.'),
 });
 
 export const travelGetDayNotesTool: ToolCallback<typeof TravelGetDayNotesSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
 
-  const days = await getTripDays(userId, input.trip_id);
+  const days = await getTripDays(userId, input.tripId);
 
   return toolResponse({ days });
 };

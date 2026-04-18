@@ -41,7 +41,7 @@ declare module 'fastify' {
 }
 
 async function requestLoggerPlugin(app: FastifyInstance) {
-  app.addHook('onRequest', async (req) => {
+  app.addHook('onRequest', async req => {
     // logLevel:'silent' set on known routes; empty url means no route matched (setNotFoundHandler)
     if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
 
@@ -78,7 +78,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
 
     // Read userId from verified auth (set by fastify-mcp-server's bearer middleware).
     // Falls back to null for unauthenticated or non-MCP routes — never uses unverified token data.
-    const auth = (req.raw as { auth?: AuthInfo }).auth;
+    const { auth } = req.raw as { auth?: AuthInfo };
     const verifiedUserId = (auth?.extra?.['userId'] as string | undefined) ?? null;
     const verifiedClientId = (auth?.extra?.['clientId'] as string | undefined) ?? null;
     const verifiedServerName = (auth?.extra?.['serverName'] as McpServerName | undefined) ?? null;
@@ -107,7 +107,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
       logger.info(`\tResponse: ${JSON.stringify(capPayload(redactedResponsePayload), null, 2)}`);
     }
 
-    putLog(logData).catch((err) => {
+    putLog(logData).catch(err => {
       app.log.error({ err }, 'Failed to write request log to DB');
     });
   });

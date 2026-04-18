@@ -82,7 +82,7 @@ describe.sequential('travel — trip and booking lifecycle', () => {
     // Best-effort cleanup in reverse order
     if (bookingId != null) {
       try {
-        await client.callTool({ name: 'travel_remove_booking', arguments: { booking_id: bookingId } });
+        await client.callTool({ name: 'travel_remove_booking', arguments: { bookingId } });
       } catch {
         // Ignore
       }
@@ -96,9 +96,9 @@ describe.sequential('travel — trip and booking lifecycle', () => {
       arguments: {
         name: tripName,
         destination: 'Paralimni, Cyprus',
-        start_at: '2099-07-01T00:00:00Z',
-        end_at: '2099-07-10T00:00:00Z',
-        auto_prepare_checklist: false,
+        startAt: '2099-07-01T00:00:00Z',
+        endAt: '2099-07-10T00:00:00Z',
+        autoPrepareChecklist: false,
       },
     });
 
@@ -118,15 +118,15 @@ describe.sequential('travel — trip and booking lifecycle', () => {
     const result = await client.callTool({
       name: 'travel_add_reservation_from_text',
       arguments: {
-        trip_id: tripId,
-        booking_text: 'Confirmation: your booking at Sunrise Hotel is confirmed for 1-5 July 2099.',
-        booking_type: 'accommodation',
+        tripId,
+        bookingText: 'Confirmation: your booking at Sunrise Hotel is confirmed for 1-5 July 2099.',
+        bookingType: 'accommodation',
         title: `[e2e:${runId}] Sunrise Hotel`,
         provider: 'Sunrise Hotel',
         location: 'Paralimni, Cyprus',
         timezone: 'Asia/Nicosia',
-        start_at: '2099-07-01T14:00:00Z',
-        end_at: '2099-07-05T11:00:00Z',
+        startAt: '2099-07-01T14:00:00Z',
+        endAt: '2099-07-05T11:00:00Z',
       },
     });
 
@@ -147,14 +147,14 @@ describe.sequential('travel — trip and booking lifecycle', () => {
 
     const result = await client.callTool({
       name: 'travel_get_trip_brief',
-      arguments: { trip_id: tripId },
+      arguments: { tripId },
     });
 
     expect(result.isError).toBeFalsy();
     const data = parseToolResult<TripBriefResult>(result);
 
     expect(data.trip.id).toBe(tripId);
-    expect(data.bookings.some((b) => b.id === bookingId)).toBe(true);
+    expect(data.bookings.some(b => b.id === bookingId)).toBe(true);
   });
 });
 
@@ -177,9 +177,9 @@ describe.sequential('travel — day note lifecycle', () => {
       arguments: {
         name: tripName,
         destination: 'Chișinău, Moldova',
-        start_at: '2099-08-01T00:00:00Z',
-        end_at: '2099-08-05T00:00:00Z',
-        auto_prepare_checklist: false,
+        startAt: '2099-08-01T00:00:00Z',
+        endAt: '2099-08-05T00:00:00Z',
+        autoPrepareChecklist: false,
       },
     });
     const data = parseToolResult<PlanTripResult>(result);
@@ -203,7 +203,7 @@ describe.sequential('travel — day note lifecycle', () => {
     const result = await client.callTool({
       name: 'travel_upsert_day_note',
       arguments: {
-        trip_id: tripId,
+        tripId,
         date: '2099-08-01',
         title: 'Arrival day',
         notes: 'Pick up rental car. Check in to hotel.',
@@ -229,7 +229,7 @@ describe.sequential('travel — day note lifecycle', () => {
     const result = await client.callTool({
       name: 'travel_upsert_day_note',
       arguments: {
-        trip_id: tripId,
+        tripId,
         date: '2099-08-01',
         title: 'Travel day',
         notes: 'Updated notes.',
@@ -251,14 +251,14 @@ describe.sequential('travel — day note lifecycle', () => {
 
     const result = await client.callTool({
       name: 'travel_get_day_notes',
-      arguments: { trip_id: tripId },
+      arguments: { tripId },
     });
 
     expect(result.isError).toBeFalsy();
     const data = parseToolResult<GetDayNotesResult>(result);
 
     expect(Array.isArray(data.days)).toBe(true);
-    const found = data.days.find((d) => d.id === dayNoteId);
+    const found = data.days.find(d => d.id === dayNoteId);
     expect(found).toBeDefined();
     expect(found!.date).toBe('2099-08-01');
     expect(found!.title).toBe('Travel day');
@@ -284,11 +284,11 @@ describe.sequential('travel — day note lifecycle', () => {
 
     const result = await client.callTool({
       name: 'travel_get_day_notes',
-      arguments: { trip_id: tripId },
+      arguments: { tripId },
     });
 
     const data = parseToolResult<GetDayNotesResult>(result);
-    expect(data.days.every((d) => d.date !== '2099-08-01')).toBe(true);
+    expect(data.days.every(d => d.date !== '2099-08-01')).toBe(true);
   });
 
   it('travel_delete_day_note returns an error for a non-existent note', async () => {

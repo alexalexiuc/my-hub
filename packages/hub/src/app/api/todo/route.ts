@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
+import { formatZodError } from '@/lib/api/with-error-logging';
 import { getTodos, addTodo } from '@my-hub/shared/services';
+import { TodoCreateSchema } from '@my-hub/shared/schemas';
 
 export const GET = withAuth(async ({ user }) => {
   const items = await getTodos(user.id);
@@ -8,18 +10,18 @@ export const GET = withAuth(async ({ user }) => {
 });
 
 export const POST = withAuth(async ({ req, user }) => {
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { title } = body as { title?: string };
-  if (!title?.trim()) {
-    return NextResponse.json({ error: 'title is required' }, { status: 400 });
+  const parsed = TodoCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
   }
 
-  const todo = await addTodo(user.id, title.trim());
+  const todo = await addTodo(user.id, parsed.data.title);
   return NextResponse.json({ todo }, { status: 201 });
 });

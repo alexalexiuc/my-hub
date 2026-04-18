@@ -118,7 +118,7 @@ const apiaryTools = [
     name: 'apiary_get_hive_status',
     description:
       'Get full status for a hive — returns the hive details, yard name, last inspection summary, ' +
-      'any active treatments (computed from duration_days), and all open tasks. ' +
+      'any active treatments (computed from durationDays), and all open tasks. ' +
       'Use this when asked "How is Hive X doing?" for a single-call complete picture.',
     inputSchema: GetHiveStatusSchema.shape,
     annotations: { readOnlyHint: true },
@@ -137,7 +137,7 @@ const apiaryTools = [
     name: 'apiary_log_treatment',
     description:
       'Record a treatment event with product, method, and duration. ' +
-      'The duration_days field is used to compute active treatment windows (via apiary_get_active_treatments).',
+      'The durationDays field is used to compute active treatment windows (via apiary_get_active_treatments).',
     inputSchema: LogTreatmentSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: logTreatmentTool,
@@ -166,7 +166,7 @@ const apiaryTools = [
   }),
   defineTool({
     name: 'apiary_log_relocation',
-    description: "Record a hive relocation to a different yard. Atomically updates the hive's yard_id to to_yard_id.",
+    description: "Record a hive relocation to a different yard. Atomically updates the hive's yardId to toYardId.",
     inputSchema: LogRelocationSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: logRelocationTool,
@@ -197,7 +197,7 @@ const apiaryTools = [
   defineTool({
     name: 'apiary_get_active_treatments',
     description:
-      'Get all currently active treatments — computes end dates from logged_at + duration_days server-side. ' +
+      'Get all currently active treatments — computes end dates from loggedAt + durationDays server-side. ' +
       'No manual date math needed. Optionally filter by hive.',
     inputSchema: GetActiveTreatmentsSchema.shape,
     annotations: { readOnlyHint: true },
@@ -217,8 +217,8 @@ const apiaryTools = [
     name: 'apiary_move_hives',
     description:
       'Bulk-move multiple hives to a different yard in one call. ' +
-      'Atomically updates yard_id on all hives and creates a relocation log entry per hive. ' +
-      'Use for seasonal moves like "I moved hives 1-40 to Pădurea 1 today".',
+      'Atomically updates yardId on all hives and creates a relocation log entry per hive. ' +
+      'Use for seasonal moves like "I moved hives 1-40 to Forest 1 today".',
     inputSchema: MoveHivesSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: moveHivesTool,
@@ -234,8 +234,8 @@ const apiaryTools = [
   defineTool({
     name: 'apiary_create_task',
     description:
-      'Create a beekeeping task. Can be tied to a specific hive (hive_id), a yard (yard_id), or neither (general task). ' +
-      'Cannot set both hive_id and yard_id.',
+      'Create a beekeeping task. Can be tied to a specific hive (hiveId), a yard (yardId), or neither (general task). ' +
+      'Cannot set both hiveId and yardId.',
     inputSchema: CreateTaskSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: createTaskTool,

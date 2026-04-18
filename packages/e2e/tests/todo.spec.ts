@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { deleteFeatures } from './helpers';
 
 async function addTodo(page: Parameters<typeof deleteFeatures>[0], title: string) {
-  await page.getByRole('button', { name: /add task/i }).click();
+  await page.getByRole('button', { name: /^add$/i }).click();
   await page.getByPlaceholder('New task...').fill(title);
   await page.getByPlaceholder('New task...').press('Enter');
 }
@@ -23,7 +23,7 @@ test.describe('Todo', () => {
   test('full todo workflow: empty state, add items, mark done', async ({ page }) => {
     // ── 1. Empty state ────────────────────────────────────────────────────────
     await expect(page.getByRole('heading', { name: 'Todo', level: 1 })).toBeVisible();
-    await expect(page.getByRole('button', { name: /add task/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^add$/i })).toBeVisible();
     await expect(page.getByText('All caught up!')).toBeVisible();
 
     // ── 2. Add two items ──────────────────────────────────────────────────────
@@ -60,5 +60,19 @@ test.describe('Todo', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('link', { name: /todo/i })).toBeVisible();
+
+    // ── 1. Empty state ────────────────────────────────────────────────────────
+    await expect(page.getByText('All caught up!')).toBeVisible({ timeout: 5_000 });
+
+    // ── 2. Add an item ──────────────────────────────────────────────────────
+    await addTodo(page, 'Write tests');
+    await expect(page.getByText('Write tests')).toBeVisible({ timeout: 5_000 });
+
+    // ── 3. Mark item done → back to empty state ──────────────────────────────
+    await page
+      .getByRole('button', { name: /mark done/i })
+      .first()
+      .click();
+    await expect(page.getByText('All caught up!')).toBeVisible({ timeout: 5_000 });
   });
 });

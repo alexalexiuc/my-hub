@@ -14,7 +14,7 @@ function parseCsv(val: string, fallback: string[]): string[] {
   if (!val) return fallback;
   const items = val
     .split(',')
-    .map((item) => item.trim())
+    .map(item => item.trim())
     .filter(Boolean);
   return items.length > 0 ? items : fallback;
 }

@@ -19,7 +19,7 @@ export function NotificationsSection() {
 
   useEffect(() => {
     apiFetch<{ subscriptions: SubscriptionState[] }>('/api/user/notification-preferences')
-      .then((data) => setSubscriptions(data.subscriptions))
+      .then(data => setSubscriptions(data.subscriptions))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -31,7 +31,7 @@ export function NotificationsSection() {
         method: 'PUT',
         body: { key, subscribed },
       });
-      setSubscriptions((prev) => prev.map((s) => (s.key === key ? { ...s, subscribed } : s)));
+      setSubscriptions(prev => prev.map(s => (s.key === key ? { ...s, subscribed } : s)));
     } catch {
       // ignore
     } finally {
@@ -40,7 +40,7 @@ export function NotificationsSection() {
   }
 
   // Group subscriptions by section using the config order
-  const sections = Array.from(new Map(NOTIFICATION_SUBSCRIPTIONS.map((s) => [s.section, s.section])).keys());
+  const sections = Array.from(new Map(NOTIFICATION_SUBSCRIPTIONS.map(s => [s.section, s.section])).keys());
 
   return (
     <SectionCard title="Notifications">
@@ -48,14 +48,14 @@ export function NotificationsSection() {
         <p className="text-sm text-zinc-400">Loading…</p>
       ) : (
         <div className="space-y-5">
-          {sections.map((section) => {
-            const items = NOTIFICATION_SUBSCRIPTIONS.filter((s) => s.section === section);
+          {sections.map(section => {
+            const items = NOTIFICATION_SUBSCRIPTIONS.filter(s => s.section === section);
             return (
               <div key={section}>
                 <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">{section}</p>
                 <div className="space-y-2">
                   {items.map(({ key, label }) => {
-                    const state = subscriptions.find((s) => s.key === key);
+                    const state = subscriptions.find(s => s.key === key);
                     const isSubscribed = state?.subscribed ?? true;
                     const isSaving = saving === key;
                     return (
@@ -67,7 +67,7 @@ export function NotificationsSection() {
                         <Checkbox
                           checked={isSubscribed}
                           disabled={isSaving}
-                          onChange={(e) => toggle(key, e.target.checked)}
+                          onChange={e => toggle(key, e.target.checked)}
                         />
                       </label>
                     );

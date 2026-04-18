@@ -39,7 +39,7 @@ async function assertBookingBelongsToTripOwner(userId: string, tripId: number, b
     .where(and(eq(tripBookings.id, bookingId), eq(tripBookings.tripId, tripId), eq(tripBookings.userId, userId)));
 
   if (!booking) {
-    throw new Error('booking_id does not belong to this trip');
+    throw new Error('bookingId does not belong to this trip');
   }
 }
 

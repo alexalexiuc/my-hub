@@ -10,11 +10,11 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const tripId = Number(body.trip_id);
+  const tripId = Number(body.tripId);
   const name = typeof body.name === 'string' ? body.name.trim() : '';
 
   if (!Number.isInteger(tripId) || tripId <= 0) {
-    return NextResponse.json({ error: 'trip_id is required' }, { status: 400 });
+    return NextResponse.json({ error: 'tripId is required' }, { status: 400 });
   }
   if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 });
 

@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
+import { formatZodError } from '@/lib/api/with-error-logging';
 import { getApiaryHives, createApiaryHive } from '@my-hub/shared/services';
 import { omitNullish } from '@my-hub/shared/utils';
+import { HiveCreateSchema } from '@my-hub/shared/schemas';
 
 export const GET = withAuth(async ({ req, user }) => {
   const { searchParams } = new URL(req.url);
-  const yardId = searchParams.get('yard_id') ? Number(searchParams.get('yard_id')) : undefined;
+  const yardId = searchParams.get('yardId') ? Number(searchParams.get('yardId')) : undefined;
   const active = searchParams.get('active') !== null ? searchParams.get('active') === 'true' : undefined;
 
   const hives = await getApiaryHives(user.id, omitNullish({ yardId, active }));
@@ -13,27 +15,29 @@ export const GET = withAuth(async ({ req, user }) => {
 });
 
 export const POST = withAuth(async ({ req, user }) => {
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { name } = body as { name?: string };
-  if (!name?.trim()) {
-    return NextResponse.json({ error: 'name is required' }, { status: 400 });
+  const parsed = HiveCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
   }
 
+  const { data } = parsed;
+
   const hive = await createApiaryHive(user.id, {
-    name: name.trim(),
+    name: data.name,
     ...omitNullish({
-      yardId: body.yard_id as number | undefined,
-      queenStatus: body.queen_status as string | undefined,
-      queenMarked: body.queen_marked as boolean | undefined,
-      queenYear: body.queen_year as number | undefined,
-      boxes: body.boxes as number | undefined,
-      notes: body.notes as string | undefined,
+      yardId: data.yardId,
+      queenStatus: data.queenStatus,
+      queenMarked: data.queenMarked,
+      queenYear: data.queenYear,
+      boxes: data.boxes,
+      notes: data.notes,
     }),
   });
   return NextResponse.json({ hive }, { status: 201 });

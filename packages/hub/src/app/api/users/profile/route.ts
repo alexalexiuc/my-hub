@@ -3,8 +3,8 @@ import { withAuth } from '@/lib/api/with-auth';
 import { findUserById, updateUserProfile } from '@my-hub/shared/services';
 import { COUNTRIES, TIMEZONES } from '@my-hub/shared/constants';
 
-const VALID_COUNTRIES = new Set(COUNTRIES.map((c) => c.value));
-const VALID_TIMEZONES = new Set(TIMEZONES.map((t) => t.value));
+const VALID_COUNTRIES = new Set(COUNTRIES.map(c => c.value));
+const VALID_TIMEZONES = new Set(TIMEZONES.map(t => t.value));
 
 export const GET = withAuth(async ({ user }) => {
   const record = await findUserById(user.id);

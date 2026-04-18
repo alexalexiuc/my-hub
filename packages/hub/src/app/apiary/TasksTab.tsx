@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import type { ApiaryTask, ApiaryHive } from '@my-hub/shared/types';
 import { SectionCard } from '@/components/SectionCard';
 import { Button, Input, Select } from '@/components';
 import { apiFetch } from '@/lib/utils';
+import { TaskFormSchema, type TaskFormValues, defaultTaskFormValues, formToTaskBody } from './apiary-form.schema';
 
 type FilterMode = 'pending' | 'completed' | 'all';
 
@@ -15,10 +18,15 @@ export function TasksTab() {
   const [filter, setFilter] = useState<FilterMode>('pending');
   const [showForm, setShowForm] = useState(false);
 
-  // Form state
-  const [formTitle, setFormTitle] = useState('');
-  const [formHiveId, setFormHiveId] = useState('');
-  const [formDueAt, setFormDueAt] = useState('');
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { isSubmitting },
+  } = useForm<TaskFormValues>({
+    resolver: zodResolver(TaskFormSchema),
+    defaultValues: defaultTaskFormValues,
+  });
 
   const loadData = useCallback(async () => {
     try {
@@ -40,16 +48,9 @@ export function TasksTab() {
     loadData();
   }, [loadData]);
 
-  async function handleAdd() {
-    if (!formTitle.trim()) return;
-    const body: Record<string, unknown> = { title: formTitle.trim() };
-    if (formHiveId) body.hive_id = Number(formHiveId);
-    if (formDueAt) body.due_at = formDueAt;
-
-    await apiFetch('/api/apiary/tasks', { method: 'POST', body });
-    setFormTitle('');
-    setFormHiveId('');
-    setFormDueAt('');
+  async function handleAdd(values: TaskFormValues) {
+    await apiFetch('/api/apiary/tasks', { method: 'POST', body: formToTaskBody(values) });
+    reset(defaultTaskFormValues);
     setShowForm(false);
     loadData();
   }
@@ -64,7 +65,7 @@ export function TasksTab() {
     loadData();
   }
 
-  const hiveMap = new Map(hives.map((h) => [h.id, h.name]));
+  const hiveMap = new Map(hives.map(h => [h.id, h.name]));
   const now = new Date();
 
   if (loading) {
@@ -79,7 +80,7 @@ export function TasksTab() {
     <div className="space-y-4">
       {/* Filter + add */}
       <div className="flex flex-wrap gap-2 items-center">
-        {(['pending', 'completed', 'all'] as const).map((mode) => (
+        {(['pending', 'completed', 'all'] as const).map(mode => (
           <button
             key={mode}
             onClick={() => setFilter(mode)}
@@ -99,32 +100,20 @@ export function TasksTab() {
 
       {showForm && (
         <SectionCard title="New Task">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Input
-              className="sm:col-span-3"
-              placeholder="Task title *"
-              value={formTitle}
-              onChange={(e) => setFormTitle(e.target.value)}
-            />
-            <Select
-              options={hives.map((h) => ({ value: h.id, label: h.name }))}
-              value={formHiveId}
-              onChange={(e) => setFormHiveId(e.target.value)}
-            >
-              <option value="">No hive</option>
-            </Select>
-            <Input
-              type="date"
-              value={formDueAt}
-              onChange={(e) => setFormDueAt(e.target.value)}
-              placeholder="Due date"
-            />
-            <div className="flex justify-end items-end">
-              <Button size="sm" onClick={handleAdd} disabled={!formTitle.trim()}>
-                Add
-              </Button>
+          <form onSubmit={handleSubmit(handleAdd)}>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Input {...register('title')} className="sm:col-span-3" placeholder="Task title *" autoFocus />
+              <Select {...register('hiveId')} options={hives.map(h => ({ value: h.id, label: h.name }))}>
+                <option value="">No hive</option>
+              </Select>
+              <Input {...register('dueAt')} type="date" placeholder="Due date" />
+              <div className="flex justify-end items-end">
+                <Button type="submit" size="sm" loading={isSubmitting}>
+                  Add
+                </Button>
+              </div>
             </div>
-          </div>
+          </form>
         </SectionCard>
       )}
 
@@ -138,7 +127,7 @@ export function TasksTab() {
         </p>
       ) : (
         <div className="space-y-2">
-          {tasks.map((task) => {
+          {tasks.map(task => {
             const isOverdue = !task.completed && task.dueAt && new Date(task.dueAt) < now;
             return (
               <div

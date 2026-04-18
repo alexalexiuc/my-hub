@@ -20,7 +20,7 @@ export const apiRequestLogs = pgTable(
     responseBody: jsonb('response_body'),
     error: text('error'),
   },
-  (table) => ({
+  table => ({
     createdAtIdx: index('idx_logs_created_at').on(table.createdAt),
     pathIdx: index('idx_logs_path').on(table.path),
     userIdx: index('idx_logs_user').on(table.userId),

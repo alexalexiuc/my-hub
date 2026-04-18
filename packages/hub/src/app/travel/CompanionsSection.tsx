@@ -28,7 +28,7 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
     await apiFetch('/api/travel/companions', {
       method: 'POST',
       body: {
-        trip_id: activeTripId,
+        tripId: activeTripId,
         name: newName.trim(),
         email: newEmail.trim() || undefined,
         phone: newPhone.trim() || undefined,
@@ -76,10 +76,10 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
   return (
     <SectionCard title="Companions" className="bg-fuchsia-950/20 border-fuchsia-800/50">
       <div className="space-y-2 mb-3">
-        <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Name" />
+        <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Name" />
         <div className="grid grid-cols-2 gap-2">
-          <Input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="Email" />
-          <Input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="Phone" />
+          <Input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="Email" />
+          <Input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="Phone" />
         </div>
         <Button
           onClick={addCompanion}
@@ -91,14 +91,14 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
       </div>
 
       <div className="space-y-2 max-h-64 overflow-auto">
-        {companions.map((companion) => (
+        {companions.map(companion => (
           <div key={companion.id} className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm">
             {editingId === companion.id ? (
               <div className="space-y-2">
-                <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Name" />
+                <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Name" />
                 <div className="grid grid-cols-2 gap-2">
-                  <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="Email" />
-                  <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Phone" />
+                  <Input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Email" />
+                  <Input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="Phone" />
                 </div>
                 <div className="flex items-center justify-end gap-2">
                   <Button

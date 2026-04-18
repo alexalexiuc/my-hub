@@ -15,7 +15,7 @@ export function TripMapInner({ mapData }: TripMapInnerProps) {
   useEffect(() => {
     if (!containerRef.current || mapData.points.length < 2) return;
 
-    import('leaflet').then((L) => {
+    import('leaflet').then(L => {
       if (!containerRef.current || mapRef.current) return;
 
       // Fix default icon paths broken by bundlers

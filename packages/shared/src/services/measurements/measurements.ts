@@ -62,7 +62,7 @@ export async function getMeasurements(
     .orderBy(desc(bodyMeasurements.date), desc(bodyMeasurements.createdAt))
     .limit(limit);
 
-  return rows.map((row) => ({ ...row, value: roundMeasurementValue(row.value) }));
+  return rows.map(row => ({ ...row, value: roundMeasurementValue(row.value) }));
 }
 
 /** Returns the latest measurement value for each type the user has recorded */

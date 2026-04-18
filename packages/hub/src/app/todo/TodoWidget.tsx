@@ -32,7 +32,7 @@ export function TodoWidget() {
     load();
   }, [load]);
 
-  const open = todos.filter((t) => !t.done);
+  const open = todos.filter(t => !t.done);
 
   function startAdding() {
     setAdding(true);
@@ -51,7 +51,7 @@ export function TodoWidget() {
         method: 'POST',
         body: { title: title.trim() },
       });
-      setTodos((prev) => [todo, ...prev]);
+      setTodos(prev => [todo, ...prev]);
       setTitle('');
       setAdding(false);
       setNewlyAdded(todo.id);
@@ -64,13 +64,13 @@ export function TodoWidget() {
   }
 
   async function handleMarkDone(id: number) {
-    setCompleting((prev) => new Set(prev).add(id));
+    setCompleting(prev => new Set(prev).add(id));
     setTimeout(async () => {
       try {
         await apiFetch(`/api/todo/${id}`, { method: 'PATCH' });
-        setTodos((prev) => prev.filter((t) => t.id !== id));
+        setTodos(prev => prev.filter(t => t.id !== id));
       } finally {
-        setCompleting((prev) => {
+        setCompleting(prev => {
           const next = new Set(prev);
           next.delete(id);
           return next;
@@ -81,7 +81,7 @@ export function TodoWidget() {
 
   async function handleDelete(id: number) {
     await apiFetch(`/api/todo/${id}`, { method: 'DELETE' });
-    setTodos((prev) => prev.filter((t) => t.id !== id));
+    setTodos(prev => prev.filter(t => t.id !== id));
   }
 
   return (
@@ -104,7 +104,7 @@ export function TodoWidget() {
     >
       {loading ? (
         <div className="space-y-2 mt-2 animate-pulse">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3].map(i => (
             <div key={i} className="h-9 rounded-lg bg-zinc-800" />
           ))}
         </div>
@@ -118,8 +118,8 @@ export function TodoWidget() {
                 className="flex-1 min-w-0 bg-transparent border-b border-zinc-600 focus:border-indigo-400 outline-none text-sm py-0.5 placeholder:text-zinc-600 transition-colors"
                 placeholder="New task..."
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onKeyDown={(e) => {
+                onChange={e => setTitle(e.target.value)}
+                onKeyDown={e => {
                   if (e.key === 'Enter') handleSave();
                   if (e.key === 'Escape') {
                     setAdding(false);
@@ -131,7 +131,7 @@ export function TodoWidget() {
               />
               {title.trim() && (
                 <button
-                  onMouseDown={(e) => {
+                  onMouseDown={e => {
                     e.preventDefault();
                     handleSave();
                   }}
@@ -148,7 +148,7 @@ export function TodoWidget() {
             <p className="text-sm text-zinc-500 px-1">All caught up!</p>
           ) : (
             <>
-              {open.slice(0, 5).map((todo) => (
+              {open.slice(0, 5).map(todo => (
                 <div
                   key={todo.id}
                   className={`flex items-center gap-3 rounded-lg bg-zinc-800/50 px-3 py-2 text-sm group transition-all duration-700 ${

@@ -2,7 +2,7 @@ import fp from 'fastify-plugin';
 import { mcpSubServers } from '../mcp/registry.js';
 import { SESSION_CLEANUP_INTERVAL_MS, SESSION_MAX_IDLE_MS } from '../config/constants.js';
 
-export const sessionCleanupPlugin = fp(async (app) => {
+export const sessionCleanupPlugin = fp(async app => {
   const sessionActivity = new Map<string, number>();
 
   // Track session activity across all registered sub-servers

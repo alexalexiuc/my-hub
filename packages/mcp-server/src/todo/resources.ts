@@ -29,7 +29,7 @@ export function registerTodoResources(server: McpServer): void {
       const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
       if (!userId) throw new Error('Authentication required');
       const items = await getOpenTodos(userId);
-      return resourceResponse({ open_todos: items, count: items.length });
+      return resourceResponse({ openTodos: items, count: items.length });
     },
   );
 }

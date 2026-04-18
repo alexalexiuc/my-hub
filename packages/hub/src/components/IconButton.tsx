@@ -9,16 +9,17 @@ interface Props {
   onClick?: () => void;
   href?: string;
   loading?: boolean;
+  className?: string;
 }
 
 const baseClassName = 'rounded-md bg-zinc-800 p-1.5 text-zinc-300 hover:bg-zinc-700';
 
-export function IconButton({ label, icon, onClick, href, loading = false }: Props) {
+export function IconButton({ label, icon, onClick, href, loading = false, className }: Props) {
   const content = loading ? <SpinnerIcon className="opacity-70" /> : icon;
 
   if (href) {
     return (
-      <Link href={href} className={baseClassName} aria-label={label} title={label}>
+      <Link href={href} className={cn(baseClassName, className)} aria-label={label} title={label}>
         {content}
       </Link>
     );
@@ -28,7 +29,7 @@ export function IconButton({ label, icon, onClick, href, loading = false }: Prop
     <button
       onClick={onClick}
       disabled={loading}
-      className={cn(baseClassName, 'disabled:opacity-50')}
+      className={cn(baseClassName, 'disabled:opacity-50', className)}
       aria-label={label}
       title={label}
     >

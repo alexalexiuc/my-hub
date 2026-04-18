@@ -28,7 +28,7 @@ export function DashboardTab() {
 
   useEffect(() => {
     apiFetch<Summary>('/api/apiary/summary')
-      .then((data) => setSummary(data))
+      .then(data => setSummary(data))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -37,7 +37,7 @@ export function DashboardTab() {
     return (
       <div className="space-y-4 animate-pulse">
         <div className="grid grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3].map(i => (
             <div key={i} className="h-24 rounded-xl bg-zinc-800" />
           ))}
         </div>
@@ -65,7 +65,7 @@ export function DashboardTab() {
             <p className="text-sm text-zinc-500">No log entries yet.</p>
           ) : (
             <ul className="space-y-2">
-              {summary.recentLogs.map((log) => (
+              {summary.recentLogs.map(log => (
                 <li key={log.id} className="flex items-start gap-2 text-sm">
                   <span
                     className={`px-2 py-0.5 rounded text-xs font-medium shrink-0 ${typeBadgeColors[log.type] ?? 'bg-zinc-700 text-zinc-300'}`}
@@ -91,7 +91,7 @@ export function DashboardTab() {
             <p className="text-sm text-zinc-500">No pending tasks.</p>
           ) : (
             <ul className="space-y-2">
-              {summary.upcomingTasks.map((task) => (
+              {summary.upcomingTasks.map(task => (
                 <li key={task.id} className="flex items-center gap-2 text-sm">
                   <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
                   <span className="text-zinc-300 truncate">

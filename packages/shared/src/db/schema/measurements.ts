@@ -32,7 +32,7 @@ export const bodyMeasurements = pgTable(
     notes: text('notes'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     userIdx: index('idx_body_measurements_user').on(table.userId),
     dateIdx: index('idx_body_measurements_date').on(table.date),
     userDateIdx: index('idx_body_measurements_user_date').on(table.userId, table.date),

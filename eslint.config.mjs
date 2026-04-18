@@ -30,7 +30,7 @@ export default [
       },
     },
   },
-  ...tseslint.configs.recommended.map((config) => ({
+  ...tseslint.configs.recommended.map(config => ({
     ...config,
     files: tsFiles,
   })),
@@ -58,6 +58,15 @@ export default [
         },
       ],
       'no-undef': 'off',
+      camelcase: ['error', { properties: 'never', ignoreDestructuring: false }],
+      'object-shorthand': ['error', 'always'],
+      'prefer-destructuring': [
+        'error',
+        {
+          VariableDeclarator: { array: false, object: true },
+          AssignmentExpression: { array: false, object: false },
+        },
+      ],
     },
   },
   {

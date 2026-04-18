@@ -80,7 +80,7 @@ export function localDateString(timezone?: string | null): string {
       const offsetMinutes = offsetToMinutes(timezone);
       if (offsetMinutes !== null) {
         // Standard technique: shift the UTC epoch by the offset amount, then read UTC
-        // components. Because UTC + offset_ms gives a Date whose UTC components equal
+        // components. Because UTC + offsetMs gives a Date whose UTC components equal
         // the local date/time in the target timezone (no DST adjustments needed for a
         // fixed offset).
         const d = new Date(Date.now() + offsetMinutes * 60000);
@@ -113,7 +113,7 @@ export function localHour(timezone?: string | null): number {
       const offsetMinutes = offsetToMinutes(timezone);
       if (offsetMinutes !== null) {
         // Standard technique: shift the UTC epoch by the offset, then read UTC hours.
-        // getUTCHours() on (Date.now() + offset_ms) equals the local hour in the target
+        // getUTCHours() on (Date.now() + offsetMs) equals the local hour in the target
         // fixed-offset timezone.
         return new Date(Date.now() + offsetMinutes * 60000).getUTCHours();
       }
@@ -124,7 +124,7 @@ export function localHour(timezone?: string | null): number {
           hour12: false,
           timeZone: timezone,
         }).formatToParts(new Date());
-        const h = parts.find((p) => p.type === 'hour');
+        const h = parts.find(p => p.type === 'hour');
         if (h) return parseInt(h.value, 10) % 24;
       } catch {
         // Invalid IANA timezone — fall through to local time
@@ -393,7 +393,7 @@ export function getTimezoneNamePart(
       timeZone: timezone,
       timeZoneName,
     }).formatToParts(date);
-    return parts.find((item) => item.type === 'timeZoneName')?.value ?? '';
+    return parts.find(item => item.type === 'timeZoneName')?.value ?? '';
   } catch {
     return '';
   }

@@ -33,7 +33,7 @@ export default function InvitesPage() {
 
   useEffect(() => {
     apiFetch<{ invites: InviteTokenWithUsedByEmail[] }>('/api/invites')
-      .then((data) => setInvites(data.invites))
+      .then(data => setInvites(data.invites))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -48,7 +48,7 @@ export default function InvitesPage() {
         method: 'POST',
         body,
       });
-      setInvites((prev) => [data.invite, ...prev]);
+      setInvites(prev => [data.invite, ...prev]);
       const link = `${window.location.origin}/auth/register?invite=${data.invite.token}`;
       setNewLink(link);
       setNewLinkInviteId(data.invite.id);
@@ -69,7 +69,7 @@ export default function InvitesPage() {
     setRevoking(id);
     try {
       await apiFetch(`/api/invites/${id}`, { method: 'DELETE' });
-      setInvites((prev) => prev.filter((i) => i.id !== id));
+      setInvites(prev => prev.filter(i => i.id !== id));
       if (newLinkInviteId === id) {
         setNewLink(null);
         setNewLinkInviteId(null);
@@ -105,7 +105,7 @@ export default function InvitesPage() {
                 { value: 'none', label: 'Never' },
               ]}
               value={expiry}
-              onChange={(e) => setExpiry(e.target.value as ExpiryOption)}
+              onChange={e => setExpiry(e.target.value as ExpiryOption)}
               className="w-auto"
             />
             <Button onClick={generateInvite} loading={creating}>
@@ -131,7 +131,7 @@ export default function InvitesPage() {
           <p className="text-sm text-zinc-500">No invites yet.</p>
         ) : (
           <ul className="space-y-2">
-            {invites.map((invite) => {
+            {invites.map(invite => {
               const status = inviteStatus(invite);
               const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/register?invite=${invite.token}`;
               return (

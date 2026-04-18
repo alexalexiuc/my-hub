@@ -44,7 +44,7 @@ function WeeklyReportContent() {
   }, [weekStart, load]);
 
   function navigate(delta: number) {
-    setWeekStart((prev) => addDays(prev, delta * 7));
+    setWeekStart(prev => addDays(prev, delta * 7));
   }
 
   return (
@@ -79,7 +79,7 @@ function WeeklyReportContent() {
           srcDoc={html}
           className="w-full border-0 rounded-lg"
           style={{ minHeight: '800px' }}
-          onLoad={(e) => {
+          onLoad={e => {
             const iframe = e.currentTarget;
             const doc = iframe.contentDocument;
             if (doc) iframe.style.height = `${doc.documentElement.scrollHeight}px`;

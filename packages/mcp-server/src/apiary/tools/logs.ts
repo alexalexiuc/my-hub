@@ -9,17 +9,14 @@ import { omitNullish } from '@my-hub/shared/utils';
 // ---------------------------------------------------------------------------
 
 export const LogInspectionSchema = z.object({
-  hive_id: z.number().int().positive().describe('ID of the hive inspected'),
+  hiveId: z.number().int().positive().describe('ID of the hive inspected'),
   temperament: z.string().optional().describe('Bee temperament (e.g. "calm", "aggressive", "nervous")'),
-  brood_pattern: z.string().optional().describe('Brood pattern quality (e.g. "solid", "spotty", "empty")'),
-  queen_seen: z.boolean().optional().describe('Whether the queen was spotted during inspection'),
+  broodPattern: z.string().optional().describe('Brood pattern quality (e.g. "solid", "spotty", "empty")'),
+  queenSeen: z.boolean().optional().describe('Whether the queen was spotted during inspection'),
   population: z.string().optional().describe('Colony population estimate (e.g. "strong", "moderate", "weak")'),
-  disease_signs: z
-    .string()
-    .optional()
-    .describe('Any disease signs observed (e.g. "possible chalkbrood", null if none)'),
+  diseaseSigns: z.string().optional().describe('Any disease signs observed (e.g. "possible chalkbrood", null if none)'),
   notes: z.string().optional().describe('Additional inspection notes'),
-  logged_at: z
+  loggedAt: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
@@ -27,17 +24,17 @@ export const LogInspectionSchema = z.object({
 });
 
 export const LogTreatmentSchema = z.object({
-  hive_id: z.number().int().positive().describe('ID of the hive treated'),
+  hiveId: z.number().int().positive().describe('ID of the hive treated'),
   product: z.string().describe('Treatment product name (e.g. "Apivar", "Formic Pro", "Oxalic acid")'),
   method: z.string().optional().describe('Application method (e.g. "strip", "pad", "dribble", "vaporization")'),
-  duration_days: z
+  durationDays: z
     .number()
     .int()
     .positive()
     .optional()
     .describe('Treatment duration in days (used to compute active treatment end date)'),
   notes: z.string().optional().describe('Additional treatment notes'),
-  logged_at: z
+  loggedAt: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
@@ -45,12 +42,12 @@ export const LogTreatmentSchema = z.object({
 });
 
 export const LogFeedingSchema = z.object({
-  hive_id: z.number().int().positive().describe('ID of the hive fed'),
-  feed_type: z.string().describe('Type of feed (e.g. "sugar_syrup", "fondant", "pollen_patty")'),
+  hiveId: z.number().int().positive().describe('ID of the hive fed'),
+  feedType: z.string().describe('Type of feed (e.g. "sugar_syrup", "fondant", "pollen_patty")'),
   ratio: z.string().optional().describe('Feed ratio if applicable (e.g. "1:1", "2:1")'),
-  amount_liters: z.number().positive().optional().describe('Amount of feed in liters'),
+  amountLiters: z.number().positive().optional().describe('Amount of feed in liters'),
   notes: z.string().optional().describe('Additional feeding notes'),
-  logged_at: z
+  loggedAt: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
@@ -58,12 +55,12 @@ export const LogFeedingSchema = z.object({
 });
 
 export const LogHarvestSchema = z.object({
-  hive_id: z.number().int().positive().describe('ID of the hive harvested'),
+  hiveId: z.number().int().positive().describe('ID of the hive harvested'),
   frames: z.number().int().positive().optional().describe('Number of frames harvested'),
-  weight_kg: z.number().positive().optional().describe('Total weight of harvest in kilograms'),
-  honey_type: z.string().optional().describe('Type of honey (e.g. "wildflower", "acacia", "clover")'),
+  weightKg: z.number().positive().optional().describe('Total weight of harvest in kilograms'),
+  honeyType: z.string().optional().describe('Type of honey (e.g. "wildflower", "acacia", "clover")'),
   notes: z.string().optional().describe('Additional harvest notes'),
-  logged_at: z
+  loggedAt: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
@@ -71,13 +68,13 @@ export const LogHarvestSchema = z.object({
 });
 
 export const LogQueenEventSchema = z.object({
-  hive_id: z.number().int().positive().describe('ID of the hive'),
+  hiveId: z.number().int().positive().describe('ID of the hive'),
   event: z.enum(['requeened', 'lost', 'seen', 'emerged', 'superseded']).describe('Type of queen event'),
-  queen_source: z.string().optional().describe('Source of the new queen (e.g. "local breeder", "split", "swarm cell")'),
+  queenSource: z.string().optional().describe('Source of the new queen (e.g. "local breeder", "split", "swarm cell")'),
   marked: z.boolean().optional().describe('Whether the queen is marked'),
   color: z.string().optional().describe('Mark color (e.g. "blue", "white", "yellow", "red", "green")'),
   notes: z.string().optional().describe('Additional queen event notes'),
-  logged_at: z
+  loggedAt: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
@@ -85,12 +82,12 @@ export const LogQueenEventSchema = z.object({
 });
 
 export const LogRelocationSchema = z.object({
-  hive_id: z.number().int().positive().describe('ID of the hive being relocated'),
-  from_yard_id: z.number().int().positive().optional().describe('ID of the yard the hive is moving from'),
-  to_yard_id: z.number().int().positive().describe('ID of the yard the hive is moving to'),
+  hiveId: z.number().int().positive().describe('ID of the hive being relocated'),
+  fromYardId: z.number().int().positive().optional().describe('ID of the yard the hive is moving from'),
+  toYardId: z.number().int().positive().describe('ID of the yard the hive is moving to'),
   reason: z.string().optional().describe('Reason for the move (e.g. "summer flow", "winter shelter")'),
   notes: z.string().optional().describe('Additional relocation notes'),
-  logged_at: z
+  loggedAt: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
@@ -98,9 +95,9 @@ export const LogRelocationSchema = z.object({
 });
 
 export const AddNoteSchema = z.object({
-  hive_id: z.number().int().positive().optional().describe('ID of the hive (optional — can be a general note)'),
+  hiveId: z.number().int().positive().optional().describe('ID of the hive (optional — can be a general note)'),
   notes: z.string().describe('Note text'),
-  logged_at: z
+  loggedAt: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
@@ -108,7 +105,7 @@ export const AddNoteSchema = z.object({
 });
 
 export const GetHiveLogsSchema = z.object({
-  hive_id: z.number().int().positive().describe('ID of the hive to get logs for'),
+  hiveId: z.number().int().positive().describe('ID of the hive to get logs for'),
   type: z
     .string()
     .optional()
@@ -125,7 +122,7 @@ export const GetHiveLogsSchema = z.object({
 });
 
 export const DeleteLogSchema = z.object({
-  log_id: z.number().int().positive().describe('ID of the log entry to delete'),
+  logId: z.number().int().positive().describe('ID of the log entry to delete'),
 });
 
 // ---------------------------------------------------------------------------
@@ -140,15 +137,15 @@ export const logInspectionTool: ToolCallback<typeof LogInspectionSchema.shape> =
   const userId = extra.authInfo?.extra?.['userId'] as string;
   const log = await createApiaryLog(userId, {
     type: 'inspection',
-    loggedAt: parseLogDate(input.logged_at),
-    hiveId: input.hive_id,
+    loggedAt: parseLogDate(input.loggedAt),
+    hiveId: input.hiveId,
     notes: input.notes ?? null,
     data: omitNullish({
       temperament: input.temperament,
-      brood_pattern: input.brood_pattern,
-      queen_seen: input.queen_seen,
+      broodPattern: input.broodPattern,
+      queenSeen: input.queenSeen,
       population: input.population,
-      disease_signs: input.disease_signs,
+      diseaseSigns: input.diseaseSigns,
     }),
   });
   return toolResponse(log);
@@ -158,10 +155,10 @@ export const logTreatmentTool: ToolCallback<typeof LogTreatmentSchema.shape> = a
   const userId = extra.authInfo?.extra?.['userId'] as string;
   const log = await createApiaryLog(userId, {
     type: 'treatment',
-    loggedAt: parseLogDate(input.logged_at),
-    hiveId: input.hive_id,
+    loggedAt: parseLogDate(input.loggedAt),
+    hiveId: input.hiveId,
     notes: input.notes ?? null,
-    data: { product: input.product, ...omitNullish({ method: input.method, duration_days: input.duration_days }) },
+    data: { product: input.product, ...omitNullish({ method: input.method, durationDays: input.durationDays }) },
   });
   return toolResponse(log);
 };
@@ -170,10 +167,10 @@ export const logFeedingTool: ToolCallback<typeof LogFeedingSchema.shape> = async
   const userId = extra.authInfo?.extra?.['userId'] as string;
   const log = await createApiaryLog(userId, {
     type: 'feeding',
-    loggedAt: parseLogDate(input.logged_at),
-    hiveId: input.hive_id,
+    loggedAt: parseLogDate(input.loggedAt),
+    hiveId: input.hiveId,
     notes: input.notes ?? null,
-    data: { feed_type: input.feed_type, ...omitNullish({ ratio: input.ratio, amount_liters: input.amount_liters }) },
+    data: { feedType: input.feedType, ...omitNullish({ ratio: input.ratio, amountLiters: input.amountLiters }) },
   });
   return toolResponse(log);
 };
@@ -182,10 +179,10 @@ export const logHarvestTool: ToolCallback<typeof LogHarvestSchema.shape> = async
   const userId = extra.authInfo?.extra?.['userId'] as string;
   const log = await createApiaryLog(userId, {
     type: 'harvest',
-    loggedAt: parseLogDate(input.logged_at),
-    hiveId: input.hive_id,
+    loggedAt: parseLogDate(input.loggedAt),
+    hiveId: input.hiveId,
     notes: input.notes ?? null,
-    data: omitNullish({ frames: input.frames, weight_kg: input.weight_kg, honey_type: input.honey_type }),
+    data: omitNullish({ frames: input.frames, weightKg: input.weightKg, honeyType: input.honeyType }),
   });
   return toolResponse(log);
 };
@@ -194,12 +191,12 @@ export const logQueenEventTool: ToolCallback<typeof LogQueenEventSchema.shape> =
   const userId = extra.authInfo?.extra?.['userId'] as string;
   const log = await createApiaryLog(userId, {
     type: 'queen_event',
-    loggedAt: parseLogDate(input.logged_at),
-    hiveId: input.hive_id,
+    loggedAt: parseLogDate(input.loggedAt),
+    hiveId: input.hiveId,
     notes: input.notes ?? null,
     data: {
       event: input.event,
-      ...omitNullish({ queen_source: input.queen_source, marked: input.marked, color: input.color }),
+      ...omitNullish({ queenSource: input.queenSource, marked: input.marked, color: input.color }),
     },
   });
   return toolResponse(log);
@@ -207,17 +204,17 @@ export const logQueenEventTool: ToolCallback<typeof LogQueenEventSchema.shape> =
 
 export const logRelocationTool: ToolCallback<typeof LogRelocationSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
-  const loggedAt = parseLogDate(input.logged_at);
+  const loggedAt = parseLogDate(input.loggedAt);
   const log = await createApiaryLog(userId, {
     type: 'relocation',
     loggedAt,
-    hiveId: input.hive_id,
+    hiveId: input.hiveId,
     notes: input.notes ?? null,
-    data: { to_yard_id: input.to_yard_id, ...omitNullish({ from_yard_id: input.from_yard_id, reason: input.reason }) },
+    data: { toYardId: input.toYardId, ...omitNullish({ fromYardId: input.fromYardId, reason: input.reason }) },
   });
 
-  // Atomically update the hive's yard_id
-  await updateApiaryHive(userId, input.hive_id, { yardId: input.to_yard_id });
+  // Atomically update the hive's yardId
+  await updateApiaryHive(userId, input.hiveId, { yardId: input.toYardId });
 
   return toolResponse(log);
 };
@@ -226,9 +223,9 @@ export const addNoteTool: ToolCallback<typeof AddNoteSchema.shape> = async (inpu
   const userId = extra.authInfo?.extra?.['userId'] as string;
   const log = await createApiaryLog(userId, {
     type: 'note',
-    loggedAt: parseLogDate(input.logged_at),
+    loggedAt: parseLogDate(input.loggedAt),
     notes: input.notes,
-    ...omitNullish({ hiveId: input.hive_id }),
+    ...omitNullish({ hiveId: input.hiveId }),
   });
   return toolResponse(log);
 };
@@ -236,7 +233,7 @@ export const addNoteTool: ToolCallback<typeof AddNoteSchema.shape> = async (inpu
 export const getHiveLogsTool: ToolCallback<typeof GetHiveLogsSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
   const logs = await getApiaryLogs(userId, {
-    hiveId: input.hive_id,
+    hiveId: input.hiveId,
     ...omitNullish({ type: input.type, limit: input.limit, offset: input.offset }),
   });
   return toolResponse({ logs, count: logs.length });
@@ -244,7 +241,7 @@ export const getHiveLogsTool: ToolCallback<typeof GetHiveLogsSchema.shape> = asy
 
 export const deleteLogTool: ToolCallback<typeof DeleteLogSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.['userId'] as string;
-  const deleted = await deleteApiaryLog(userId, input.log_id);
-  if (!deleted) throw new Error(`Log entry with id ${input.log_id} not found`);
-  return toolResponse({ deleted: true, log_id: input.log_id });
+  const deleted = await deleteApiaryLog(userId, input.logId);
+  if (!deleted) throw new Error(`Log entry with id ${input.logId} not found`);
+  return toolResponse({ deleted: true, logId: input.logId });
 };

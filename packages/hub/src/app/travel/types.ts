@@ -31,24 +31,24 @@ export interface TripOverviewResponse {
 export type { TripDay };
 
 export interface ApiTrip extends TripWithStatus {
-  owner_user_id: string;
-  owner_name: string | null;
-  owner_email: string;
-  access_role: 'owner' | 'viewer';
-  can_edit: boolean;
+  ownerUserId: string;
+  ownerName: string | null;
+  ownerEmail: string;
+  accessRole: 'owner' | 'viewer';
+  canEdit: boolean;
   permission: TripSharePermission;
 }
 
 export interface TripShareView {
   id: number;
-  user_id: string;
+  userId: string;
   permission: TripSharePermission;
   name: string | null;
   email: string;
 }
 
 export interface TripShareSuggestion {
-  user_id: string;
+  userId: string;
   name: string | null;
   email: string;
 }
@@ -60,6 +60,6 @@ export interface BookingRange {
 }
 
 export interface UploadConfig {
-  max_mb: number;
-  allowed_mime: string[];
+  maxMb: number;
+  allowedMime: string[];
 }

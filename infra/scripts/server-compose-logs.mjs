@@ -145,11 +145,11 @@ const child = spawn('ssh', [sshTarget, remoteCommand], {
   stdio: 'inherit',
 });
 
-child.on('exit', (code) => {
+child.on('exit', code => {
   process.exit(code ?? 1);
 });
 
-child.on('error', (error) => {
+child.on('error', error => {
   console.error(`Failed to run ssh: ${error.message}`);
   process.exit(1);
 });

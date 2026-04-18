@@ -25,7 +25,7 @@ export function registerMcpSubServer(
   serverName: McpServerName,
   createMcpServer: () => McpServer,
 ): void {
-  app.register(async (child) => {
+  app.register(async child => {
     await child.register(FastifyMcpServer, {
       createMcpServer,
       endpoint,

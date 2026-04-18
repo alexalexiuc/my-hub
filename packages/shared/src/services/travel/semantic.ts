@@ -91,7 +91,7 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
   ]);
 
   // Attach flight_data rows to flight bookings that have a link
-  const flightDataIds = rawBookings.map((b) => b.flightDataId).filter((id): id is number => id != null);
+  const flightDataIds = rawBookings.map(b => b.flightDataId).filter((id): id is number => id != null);
   const uniqueFlightDataIds = Array.from(new Set(flightDataIds));
 
   const flightDataMap = new Map<number, FlightData>();
@@ -100,7 +100,7 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
     for (const row of rows) flightDataMap.set(row.id, row);
   }
 
-  const bookings: TripBookingExtended[] = rawBookings.map((b) => {
+  const bookings: TripBookingExtended[] = rawBookings.map(b => {
     const fd = b.flightDataId != null ? (flightDataMap.get(b.flightDataId) ?? null) : null;
     const startTimezone = (fd?.originIata ? timezoneFromIata(fd.originIata) : b.timezone) ?? null;
     const endTimezone = (fd?.destinationIata ? timezoneFromIata(fd.destinationIata) : b.timezone) ?? null;

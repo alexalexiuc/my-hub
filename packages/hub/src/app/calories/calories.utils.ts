@@ -45,7 +45,14 @@ export function calcCalorieDonutState(eaten: number, cap: number | null, min: nu
           { value: 0, key: 'overflow-empty' },
         ];
 
-  return { isOver, isUnder, remaining, arcColor, chartData, overflowData };
+  return {
+    isOver,
+    isUnder,
+    remaining,
+    arcColor,
+    chartData,
+    overflowData,
+  };
 }
 
 /**

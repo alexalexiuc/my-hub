@@ -25,7 +25,7 @@ export default function ApiaryPage() {
 
       {/* Tab navigation */}
       <div className="flex gap-1 border-b border-zinc-800">
-        {tabs.map((tab) => (
+        {tabs.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}

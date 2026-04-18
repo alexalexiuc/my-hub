@@ -71,7 +71,14 @@ export async function fetchWeeklyReportCaloriesData(
     const agg = dayMap.get(date);
     days.push(
       agg
-        ? { date, kcal: Math.round(agg.kcal), protein: agg.protein, carbs: agg.carbs, fat: agg.fat, hasData: true }
+        ? {
+            date,
+            kcal: Math.round(agg.kcal),
+            protein: agg.protein,
+            carbs: agg.carbs,
+            fat: agg.fat,
+            hasData: true,
+          }
         : { date, kcal: 0, protein: 0, carbs: 0, fat: 0, hasData: false },
     );
   }
@@ -80,7 +87,7 @@ export async function fetchWeeklyReportCaloriesData(
   const weightPoints: WeightPoint[] = weightMeasurements
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date))
-    .map((m) => ({ date: m.date, value: m.value }));
+    .map(m => ({ date: m.date, value: m.value }));
 
   // Latest measurements as a record keyed by typeKey
   const latestMeasurements: Record<string, number | null> = {};
@@ -283,7 +290,7 @@ export async function fetchMonthlyReportCaloriesData(
   const weightPoints: MonthlyWeightPoint[] = weightMeasurements
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date))
-    .map((m) => ({ date: m.date, value: m.value }));
+    .map(m => ({ date: m.date, value: m.value }));
 
   // Body composition: start and end of month
   function getSnapshot(dateStr: string): MeasurementSnapshot {

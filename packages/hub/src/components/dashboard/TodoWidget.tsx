@@ -23,7 +23,7 @@ export function TodoWidget({ todos, loading, onAdd, onMarkDone, onDelete }: Todo
   const [newlyAdded, setNewlyAdded] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const open = todos.filter((t) => !t.done);
+  const open = todos.filter(t => !t.done);
 
   function startAdding() {
     setAdding(true);
@@ -51,12 +51,12 @@ export function TodoWidget({ todos, loading, onAdd, onMarkDone, onDelete }: Todo
   }
 
   async function handleMarkDone(id: number) {
-    setCompleting((prev) => new Set(prev).add(id));
+    setCompleting(prev => new Set(prev).add(id));
     setTimeout(async () => {
       try {
         await onMarkDone(id);
       } finally {
-        setCompleting((prev) => {
+        setCompleting(prev => {
           const next = new Set(prev);
           next.delete(id);
           return next;
@@ -97,8 +97,8 @@ export function TodoWidget({ todos, loading, onAdd, onMarkDone, onDelete }: Todo
                 variant="ghost"
                 placeholder="New task..."
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onKeyDown={(e) => {
+                onChange={e => setTitle(e.target.value)}
+                onKeyDown={e => {
                   if (e.key === 'Enter') handleSave();
                   if (e.key === 'Escape') {
                     setAdding(false);
@@ -110,7 +110,7 @@ export function TodoWidget({ todos, loading, onAdd, onMarkDone, onDelete }: Todo
               />
               {title.trim() && (
                 <button
-                  onMouseDown={(e) => {
+                  onMouseDown={e => {
                     e.preventDefault();
                     handleSave();
                   }}
@@ -127,7 +127,7 @@ export function TodoWidget({ todos, loading, onAdd, onMarkDone, onDelete }: Todo
             <p className="text-sm text-zinc-500 px-1">All caught up!</p>
           ) : (
             <>
-              {open.slice(0, 5).map((todo) => (
+              {open.slice(0, 5).map(todo => (
                 <div
                   key={todo.id}
                   className={`flex items-center gap-3 rounded-lg bg-zinc-800/50 px-3 py-2 text-sm group transition-all duration-700 ${

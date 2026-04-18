@@ -44,7 +44,7 @@ function MonthlyReportContent() {
   }, [monthStart, load]);
 
   function navigate(delta: number) {
-    setMonthStart((prev) => addMonths(prev, delta));
+    setMonthStart(prev => addMonths(prev, delta));
   }
 
   return (
@@ -79,7 +79,7 @@ function MonthlyReportContent() {
           srcDoc={html}
           className="w-full border-0 rounded-lg"
           style={{ minHeight: '900px' }}
-          onLoad={(e) => {
+          onLoad={e => {
             const iframe = e.currentTarget;
             const doc = iframe.contentDocument;
             if (doc) iframe.style.height = `${doc.documentElement.scrollHeight}px`;

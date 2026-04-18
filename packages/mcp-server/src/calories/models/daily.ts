@@ -10,17 +10,17 @@ export interface DailySummary {
   meals: MealEntry[];
   totals: {
     calories: number;
-    protein_g: number | null;
-    carbs_g: number | null;
-    fat_g: number | null;
-    meal_count: number;
+    proteinG: number | null;
+    carbsG: number | null;
+    fatG: number | null;
+    mealCount: number;
   };
-  goal_calories: number | null;
-  min_calories: number | null;
-  max_calories: number | null;
-  remaining_calories: number | null;
-  over_budget: boolean | null;
-  goal_met: boolean | null;
+  goalCalories: number | null;
+  minCalories: number | null;
+  maxCalories: number | null;
+  remainingCalories: number | null;
+  overBudget: boolean | null;
+  goalMet: boolean | null;
 }
 
 /**
@@ -36,7 +36,7 @@ export async function buildDailySummary(userId: string, date: string): Promise<D
   ]);
 
   const profile = profileRow ? rowToProfile(profileRow) : {};
-  const weightM = latestMeasurements.find((m) => m.typeKey === MeasurementTypes.Weight);
+  const weightM = latestMeasurements.find(m => m.typeKey === MeasurementTypes.Weight);
   const targets = profileToTargets(profile, weightM?.value);
 
   const meals = dayRows.map(rowToMealEntry);
@@ -45,8 +45,8 @@ export async function buildDailySummary(userId: string, date: string): Promise<D
   const maxCal = targets.maxCalories;
   const remaining = maxCal !== null ? maxCal - totals.calories : null;
 
-  // goal_met: weight_gain → at or above goal; everything else → at or below max
-  const goalType = 'goal_type' in profile ? profile.goal_type : null;
+  // goalMet: weightGain → at or above goal; everything else → at or below max
+  const goalType = 'goalType' in profile ? profile.goalType : null;
   let goalMet: boolean | null = null;
   if (maxCal !== null) {
     goalMet = goalType === GoalTypes.WeightGain ? totals.calories >= (goalCal ?? maxCal) : totals.calories <= maxCal;
@@ -57,16 +57,16 @@ export async function buildDailySummary(userId: string, date: string): Promise<D
     meals,
     totals: {
       calories: totals.calories,
-      protein_g: totals.protein_g || null,
-      carbs_g: totals.carbs_g || null,
-      fat_g: totals.fat_g || null,
-      meal_count: meals.length,
+      proteinG: totals.proteinG || null,
+      carbsG: totals.carbsG || null,
+      fatG: totals.fatG || null,
+      mealCount: meals.length,
     },
-    goal_calories: goalCal,
-    min_calories: targets.minCalories,
-    max_calories: maxCal,
-    remaining_calories: remaining,
-    over_budget: remaining !== null ? remaining < 0 : null,
-    goal_met: goalMet,
+    goalCalories: goalCal,
+    minCalories: targets.minCalories,
+    maxCalories: maxCal,
+    remainingCalories: remaining,
+    overBudget: remaining !== null ? remaining < 0 : null,
+    goalMet,
   };
 }

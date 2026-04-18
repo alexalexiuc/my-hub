@@ -38,7 +38,7 @@ export async function withBackoffRetry<T>(fn: () => Promise<T>, options: Backoff
       }
     }
     attempt++;
-    await new Promise((res) => setTimeout(res, delay * Math.pow(2, attempt - 1)));
+    await new Promise(res => setTimeout(res, delay * Math.pow(2, attempt - 1)));
   }
   throw new Error(`Failed after ${retries} attempts`);
 }

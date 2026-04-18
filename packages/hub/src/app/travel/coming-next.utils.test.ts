@@ -172,7 +172,7 @@ describe('mapBookingsToSegments', () => {
       }),
     ];
     const segments = mapBookingsToSegments(bookings, docs, now);
-    const actions = segments[0]!.actions;
+    const { actions } = segments[0]!;
     expect(actions).toHaveLength(2);
     expect(actions[0]!.type).toBe('boarding_pass');
     expect(actions[0]!.value).toBe('/api/travel/documents/10/download');
@@ -189,7 +189,7 @@ describe('mapBookingsToSegments', () => {
       }),
     ];
     const segments = mapBookingsToSegments(bookings, [], now);
-    const copyAction = segments[0]!.actions.find((a) => a.type === 'copy_ref');
+    const copyAction = segments[0]!.actions.find(a => a.type === 'copy_ref');
     expect(copyAction).toBeDefined();
     expect(copyAction!.value).toBe('ABC123');
   });
@@ -203,7 +203,7 @@ describe('mapBookingsToSegments', () => {
       }),
     ];
     const segments = mapBookingsToSegments(bookings, [], now);
-    const openLinkAction = segments[0]!.actions.find((a) => a.type === 'view_booking');
+    const openLinkAction = segments[0]!.actions.find(a => a.type === 'view_booking');
     expect(openLinkAction).toBeDefined();
     expect(openLinkAction!.label).toBe('Open link');
     expect(openLinkAction!.value).toBe('https://booking.com/reservation/abc123');
@@ -218,7 +218,7 @@ describe('mapBookingsToSegments', () => {
       }),
     ];
     const segments = mapBookingsToSegments(bookings, [], now);
-    const navAction = segments[0]!.actions.find((a) => a.type === 'navigate');
+    const navAction = segments[0]!.actions.find(a => a.type === 'navigate');
     expect(navAction).toBeDefined();
     expect(navAction!.value).toContain('www.google.com/maps/search');
     expect(navAction!.value).toContain('123%20Main%20St');
@@ -235,7 +235,7 @@ describe('mapBookingsToSegments', () => {
       }),
     ];
     const segments = mapBookingsToSegments(bookings, [], now);
-    const navAction = segments[0]!.actions.find((a) => a.type === 'navigate');
+    const navAction = segments[0]!.actions.find(a => a.type === 'navigate');
     expect(navAction).toBeDefined();
     expect(navAction!.value).toContain('www.google.com/maps/search');
     expect(navAction!.value).toContain('47.0105%2C28.8638');
@@ -252,7 +252,7 @@ describe('mapBookingsToSegments', () => {
       }),
     ];
     const segments = mapBookingsToSegments(bookings, [], now);
-    const navAction = segments[0]!.actions.find((a) => a.type === 'navigate');
+    const navAction = segments[0]!.actions.find(a => a.type === 'navigate');
     expect(navAction).toBeDefined();
     expect(navAction!.value).toBe(shareLink);
   });
@@ -267,7 +267,7 @@ describe('mapBookingsToSegments', () => {
       }),
     ];
     const segments = mapBookingsToSegments(bookings, [], now);
-    const navAction = segments[0]!.actions.find((a) => a.type === 'navigate');
+    const navAction = segments[0]!.actions.find(a => a.type === 'navigate');
     expect(navAction).toBeDefined();
     expect(navAction!.value).toContain('www.google.com/maps/search');
     expect(navAction!.value).toContain('2RFP%2BWM%20Chisinau%2C%20Moldova');
@@ -282,7 +282,7 @@ describe('mapBookingsToSegments', () => {
       }),
     ];
     const segments = mapBookingsToSegments(bookings, [], now);
-    const navAction = segments[0]!.actions.find((a) => a.type === 'navigate');
+    const navAction = segments[0]!.actions.find(a => a.type === 'navigate');
     expect(navAction).toBeDefined();
     expect(navAction!.value).toContain('47.0105%2C28.8638');
   });
@@ -296,7 +296,7 @@ describe('mapBookingsToSegments', () => {
       }),
     ];
     const segments = mapBookingsToSegments(bookings, [], now);
-    const navAction = segments[0]!.actions.find((a) => a.type === 'navigate');
+    const navAction = segments[0]!.actions.find(a => a.type === 'navigate');
     expect(navAction).toBeDefined();
     expect(navAction!.value).toContain('47.0105%2C28.8638');
   });
@@ -330,14 +330,14 @@ describe('mapBookingsToSegments', () => {
     ];
 
     const segments = mapBookingsToSegments(bookings, [], now);
-    const startSegment = segments.find((s) => s.segmentId === '1-start');
-    const endSegment = segments.find((s) => s.segmentId === '1-end');
+    const startSegment = segments.find(s => s.segmentId === '1-start');
+    const endSegment = segments.find(s => s.segmentId === '1-end');
 
     expect(startSegment).toBeDefined();
     expect(endSegment).toBeDefined();
 
-    const startNav = startSegment!.actions.find((a) => a.type === 'navigate');
-    const endNav = endSegment!.actions.find((a) => a.type === 'navigate');
+    const startNav = startSegment!.actions.find(a => a.type === 'navigate');
+    const endNav = endSegment!.actions.find(a => a.type === 'navigate');
 
     expect(startNav).toBeDefined();
     expect(endNav).toBeDefined();
@@ -357,11 +357,11 @@ describe('mapBookingsToSegments', () => {
     ];
 
     const segments = mapBookingsToSegments(bookings, [], now);
-    const startSegment = segments.find((s) => s.segmentId === '2-start');
-    const endSegment = segments.find((s) => s.segmentId === '2-end');
+    const startSegment = segments.find(s => s.segmentId === '2-start');
+    const endSegment = segments.find(s => s.segmentId === '2-end');
 
-    const startNav = startSegment!.actions.find((a) => a.type === 'navigate');
-    const endNav = endSegment!.actions.find((a) => a.type === 'navigate');
+    const startNav = startSegment!.actions.find(a => a.type === 'navigate');
+    const endNav = endSegment!.actions.find(a => a.type === 'navigate');
 
     expect(startNav).toBeDefined();
     expect(endNav).toBeDefined();

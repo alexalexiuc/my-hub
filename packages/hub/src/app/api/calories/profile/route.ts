@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
+import { formatZodError } from '@/lib/api/with-error-logging';
 import { getCalorieProfile, upsertCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shared/services';
+import { ProfileUpdateSchema } from '@my-hub/shared/schemas';
 
 export const GET = withAuth(async ({ user }) => {
   const [profile, measurements] = await Promise.all([
@@ -12,35 +14,23 @@ export const GET = withAuth(async ({ user }) => {
 });
 
 export const PUT = withAuth(async ({ req, user }) => {
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const allowed = [
-    'age',
-    'sex',
-    'heightCm',
-    'activityLevel',
-    'goalType',
-    'goalWeeklyRateKg',
-    'goalMinCalories',
-    'goalMaxCalories',
-    'goalProtein',
-    'goalCarbs',
-    'goalFat',
-    'notes',
-  ] as const;
-  const updates: Record<string, unknown> = {};
-  for (const key of allowed) {
-    if (key in body) updates[key] = body[key];
+  const parsed = ProfileUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
   }
 
-  // Coerce calorie goal fields to integers (DB columns are integer type)
+  const { data } = parsed;
+  const updates: Record<string, unknown> = { ...data };
+
   for (const key of ['goalMinCalories', 'goalMaxCalories'] as const) {
-    if (typeof updates[key] === 'number') updates[key] = Math.round(updates[key]);
+    if (typeof updates[key] === 'number') updates[key] = Math.round(updates[key] as number);
   }
 
   const profile = await upsertCalorieProfile(user.id, updates);

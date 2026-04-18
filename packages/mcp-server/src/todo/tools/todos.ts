@@ -3,7 +3,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { addTodo, markTodoDone, getTodos } from '@my-hub/shared/services';
 
 const AddTodoSchema = z.object({
-  title: z.string().min(1).describe('The todo item text'),
+  title: z.string().trim().min(1).describe('The todo item text'),
 });
 
 const MarkDoneSchema = z.object({

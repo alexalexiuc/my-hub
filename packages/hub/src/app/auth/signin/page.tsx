@@ -77,7 +77,7 @@ function SignInContent() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
               autoFocus
@@ -91,7 +91,7 @@ function SignInContent() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
               required
             />
@@ -138,7 +138,7 @@ function normalizeCallbackUrl(rawCallbackUrl: string | null) {
   if (!rawCallbackUrl) return '/';
 
   try {
-    const origin = window.location.origin;
+    const { origin } = window.location;
     const parsed = new URL(rawCallbackUrl, origin);
 
     if (parsed.origin === origin) {

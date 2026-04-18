@@ -38,6 +38,11 @@
       "types": "./dist/constants/index.d.ts",
       "import": "./dist/constants/index.js",
       "require": "./dist/constants/index.cjs"
+    },
+    "./schemas": {
+      "types": "./dist/schemas/index.d.ts",
+      "import": "./dist/schemas/index.js",
+      "require": "./dist/schemas/index.cjs"
     }
   },
   "scripts": {
@@ -59,7 +64,7 @@
     "juice": "^11.1.1",
     "postgres": "^3.4.4",
     "promise-cachex": "^2.0.0",
-    "zod": "^3.25.76"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",

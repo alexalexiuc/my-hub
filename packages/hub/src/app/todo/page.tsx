@@ -1,28 +1,47 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import Link from 'next/link';
 import type { Todo } from '@my-hub/shared/types';
 import { PageHeader } from '@/components/PageHeader';
 import { apiFetch, ApiError } from '@/lib/utils';
 import { SectionCard } from '@/components/SectionCard';
-import { Input } from '@/components';
+import { Button, IconButton, Input } from '@/components';
 import { PlusOutlineIcon, CheckOutlineIcon, TrashOutlineIcon } from '@/components/icons';
+
+const AddTodoSchema = z.object({ title: z.string().min(1) });
+type AddTodoValues = z.infer<typeof AddTodoSchema>;
 
 export default function TodoPage() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [title, setTitle] = useState('');
-  const [saving, setSaving] = useState(false);
   const [marking, setMarking] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    getValues,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<AddTodoValues>({
+    resolver: zodResolver(AddTodoSchema),
+    defaultValues: { title: '' },
+  });
+
+  const { ref: rhfRef, ...titleProps } = register('title');
+  const titleValue = watch('title');
+
   const loadTodos = useCallback(async () => {
     try {
-      const data = await apiFetch<{ todos: Todo[] }>('/api/todo');
+      const data = await apiFetch<{ todos: Todo[] }>('/api/todo', { silentToast: true });
       setTodos(data.todos);
     } catch (e) {
       setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
@@ -40,21 +59,24 @@ export default function TodoPage() {
     setTimeout(() => inputRef.current?.focus(), 0);
   }
 
-  async function handleSave() {
-    if (!title.trim()) {
-      setAdding(false);
-      setTitle('');
+  function cancelAdding() {
+    setAdding(false);
+    reset();
+  }
+
+  async function saveTitle(values: AddTodoValues) {
+    await apiFetch('/api/todo', { method: 'POST', body: { title: values.title.trim() } });
+    reset();
+    setAdding(false);
+    await loadTodos();
+  }
+
+  function handleBlur() {
+    if (!getValues('title').trim()) {
+      cancelAdding();
       return;
     }
-    setSaving(true);
-    try {
-      await apiFetch('/api/todo', { method: 'POST', body: { title: title.trim() } });
-      setTitle('');
-      setAdding(false);
-      await loadTodos();
-    } finally {
-      setSaving(false);
-    }
+    handleSubmit(saveTitle)();
   }
 
   async function markDone(id: number) {
@@ -98,55 +120,50 @@ export default function TodoPage() {
     );
   }
 
-  const open = todos.filter((t) => !t.done);
-  const done = todos.filter((t) => t.done);
+  const open = todos.filter(t => !t.done);
+  const done = todos.filter(t => t.done);
 
   return (
     <main className="mx-auto max-w-3xl p-8 space-y-6">
       <PageHeader title="Todo" backHref="/" backLabel="← Home" />
 
-      {/* Open todos */}
       <SectionCard
         title={`Open (${open.length})`}
         className="border-blue-800/50 bg-blue-950/20"
         action={
-          <button
-            onClick={startAdding}
-            aria-label="Add task"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
-            title="Add task"
-          >
+          <Button variant="secondary" size="xs" onClick={startAdding} className="flex items-center gap-1.5">
             <PlusOutlineIcon className="size-3" />
             Add
-          </button>
+          </Button>
         }
       >
         <div className="space-y-1">
-          {/* Inline add row */}
           {adding && (
             <div className="flex items-center gap-3 px-3 py-2">
               <div className="flex-shrink-0 w-5 h-5 rounded-full border-2 border-zinc-700" />
               <Input
-                ref={inputRef}
+                ref={el => {
+                  rhfRef(el);
+                  (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = el;
+                }}
                 variant="ghost"
                 placeholder="New task..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSave();
-                  if (e.key === 'Escape') {
-                    setAdding(false);
-                    setTitle('');
-                  }
-                }}
-                onBlur={handleSave}
-                disabled={saving}
-              />
-              {title.trim() && (
-                <button
-                  onMouseDown={(e) => {
+                {...titleProps}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
                     e.preventDefault();
-                    handleSave();
+                    handleSubmit(saveTitle)();
+                  }
+                  if (e.key === 'Escape') cancelAdding();
+                }}
+                onBlur={handleBlur}
+                disabled={isSubmitting}
+              />
+              {titleValue.trim() && (
+                <button
+                  onMouseDown={e => {
+                    e.preventDefault();
+                    handleSubmit(saveTitle)();
                   }}
                   className="flex-shrink-0 text-indigo-400 hover:text-indigo-300 transition"
                   title="Save"
@@ -160,7 +177,7 @@ export default function TodoPage() {
           {open.length === 0 && !adding ? (
             <p className="text-zinc-500 text-sm px-1">All caught up!</p>
           ) : (
-            open.map((todo) => (
+            open.map(todo => (
               <div
                 key={todo.id}
                 className="flex items-center gap-3 rounded-lg bg-zinc-800/50 px-3 py-2.5 text-sm group"
@@ -182,11 +199,10 @@ export default function TodoPage() {
         </div>
       </SectionCard>
 
-      {/* Done todos */}
       {done.length > 0 && (
         <SectionCard title={`Done (${done.length})`}>
           <div className="space-y-1">
-            {done.map((todo) => (
+            {done.map(todo => (
               <div
                 key={todo.id}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm group opacity-50 hover:opacity-80 transition-opacity"
@@ -198,18 +214,13 @@ export default function TodoPage() {
                 <span className="text-xs text-zinc-600 whitespace-nowrap">
                   {new Date(todo.createdAt).toLocaleDateString()}
                 </span>
-                <button
+                <IconButton
+                  label="Delete"
+                  icon={<TrashOutlineIcon className="size-3.5" />}
                   onClick={() => deleteTodo(todo.id)}
-                  disabled={deleting === todo.id}
-                  className="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-400/10 transition disabled:opacity-50"
-                  title="Delete"
-                >
-                  {deleting === todo.id ? (
-                    <span className="text-xs">...</span>
-                  ) : (
-                    <TrashOutlineIcon className="size-3.5" />
-                  )}
-                </button>
+                  loading={deleting === todo.id}
+                  className="w-6 h-6 p-0 bg-transparent text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-400/10"
+                />
               </div>
             ))}
           </div>

@@ -17,7 +17,7 @@ export async function findUserById(userId: string): Promise<User | undefined> {
 }
 
 export async function findUsersByEmails(emails: string[]): Promise<User[]> {
-  const normalized = [...new Set(emails.map((email) => email.trim().toLowerCase()).filter(Boolean))];
+  const normalized = [...new Set(emails.map(email => email.trim().toLowerCase()).filter(Boolean))];
   if (normalized.length === 0) return [];
 
   return db.select().from(users).where(inArray(users.email, normalized));

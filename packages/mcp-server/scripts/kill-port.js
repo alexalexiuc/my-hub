@@ -15,13 +15,13 @@ exec(cmd, (err, stdout) => {
   const pids = isWin
     ? stdout
         .split('\n')
-        .map((line) => line.trim().split(/\s+/).pop())
+        .map(line => line.trim().split(/\s+/).pop())
         .filter(Boolean)
     : stdout.split('\n').filter(Boolean);
 
   const uniquePids = [...new Set(pids)];
 
-  uniquePids.forEach((pid) => {
+  uniquePids.forEach(pid => {
     const killCmd = isWin ? `taskkill /PID ${pid} /F` : `kill -9 ${pid}`;
 
     exec(killCmd, () => {

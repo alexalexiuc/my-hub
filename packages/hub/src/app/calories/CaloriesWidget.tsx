@@ -94,7 +94,7 @@ export function CaloriesWidget() {
         fat: Math.round(meals.reduce((sum, m) => sum + (m.fat ?? 0), 0)),
       };
 
-      const latestWeight = measurements.find((m) => m.typeKey === 'weight');
+      const latestWeight = measurements.find(m => m.typeKey === 'weight');
       const targets = calculateCalorieTargets({
         age: profile?.age ?? null,
         sex: profile?.sex ?? null,
@@ -255,15 +255,15 @@ export function CaloriesWidget() {
             <Input
               placeholder="What did you eat?"
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              onKeyDown={(e) => e.key === 'Enter' && addMeal()}
+              onChange={e => setForm({ ...form, description: e.target.value })}
+              onKeyDown={e => e.key === 'Enter' && addMeal()}
               autoFocus
             />
             <div className="grid grid-cols-2 gap-2">
               <Select
-                options={MealTypesValues.map((t) => ({ value: t, label: MEAL_LABEL[t] }))}
+                options={MealTypesValues.map(t => ({ value: t, label: MEAL_LABEL[t] }))}
                 value={form.mealType}
-                onChange={(e) => setForm({ ...form, mealType: e.target.value as MealType })}
+                onChange={e => setForm({ ...form, mealType: e.target.value as MealType })}
               />
               <Input
                 type="number"
@@ -271,7 +271,7 @@ export function CaloriesWidget() {
                 min="0"
                 placeholder="kcal"
                 value={form.kcal}
-                onChange={(e) => setForm({ ...form, kcal: e.target.value })}
+                onChange={e => setForm({ ...form, kcal: e.target.value })}
               />
             </div>
           </div>

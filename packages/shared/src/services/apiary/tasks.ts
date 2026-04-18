@@ -33,7 +33,7 @@ export async function getApiaryTasks(userId: string, opts: GetApiaryTasksOpts = 
 
 export async function createApiaryTask(userId: string, data: ApiaryTaskInsert): Promise<ApiaryTask> {
   if (data.hiveId && data.yardId) {
-    throw new Error('A task cannot be tied to both a hive and a yard. Provide hive_id or yard_id, not both.');
+    throw new Error('A task cannot be tied to both a hive and a yard. Provide hiveId or yardId, not both.');
   }
   const [row] = await db
     .insert(apiaryTasks)

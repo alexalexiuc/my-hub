@@ -75,7 +75,7 @@ describe.sequential('todo — lifecycle', () => {
     const items = parseToolResult<TodoItem[]>(result);
 
     expect(Array.isArray(items)).toBe(true);
-    const found = items.find((t) => t.id === todoId);
+    const found = items.find(t => t.id === todoId);
     expect(found).toBeDefined();
     expect(found!.title).toBe(todoTitle);
     expect(found!.done).toBe(false);
@@ -88,11 +88,11 @@ describe.sequential('todo — lifecycle', () => {
 
     const raw = result.contents[0];
     expect(raw).toBeDefined();
-    const data = JSON.parse(raw!.text as string) as { open_todos: TodoItem[]; count: number };
+    const data = JSON.parse(raw!.text as string) as { openTodos: TodoItem[]; count: number };
 
     expect(typeof data.count).toBe('number');
-    expect(Array.isArray(data.open_todos)).toBe(true);
-    const found = data.open_todos.find((t) => t.id === todoId);
+    expect(Array.isArray(data.openTodos)).toBe(true);
+    const found = data.openTodos.find(t => t.id === todoId);
     expect(found).toBeDefined();
     expect(found!.done).toBe(false);
   });
@@ -118,7 +118,7 @@ describe.sequential('todo — lifecycle', () => {
     const result = await client.callTool({ name: 'todo_list', arguments: {} });
 
     const items = parseToolResult<TodoItem[]>(result);
-    const found = items.find((t) => t.id === todoId);
+    const found = items.find(t => t.id === todoId);
     expect(found).toBeDefined();
     expect(found!.done).toBe(true);
   });
@@ -129,9 +129,9 @@ describe.sequential('todo — lifecycle', () => {
     const result = await client.readResource({ uri: 'todo://open' });
 
     const raw = result.contents[0];
-    const data = JSON.parse(raw!.text as string) as { open_todos: TodoItem[]; count: number };
+    const data = JSON.parse(raw!.text as string) as { openTodos: TodoItem[]; count: number };
 
-    const found = data.open_todos.find((t) => t.id === todoId);
+    const found = data.openTodos.find(t => t.id === todoId);
     expect(found).toBeUndefined();
   });
 

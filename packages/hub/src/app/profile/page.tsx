@@ -61,7 +61,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     apiFetch<UserProfile>('/api/user/profile')
-      .then((data) => {
+      .then(data => {
         setUser(data);
         setNameForm(data.name ?? '');
       })
@@ -78,7 +78,7 @@ export default function ProfilePage() {
         method: 'PUT',
         body: { name: nameForm.trim() },
       });
-      setUser((u) => (u ? { ...u, name: data.name } : u));
+      setUser(u => (u ? { ...u, name: data.name } : u));
       setNameSuccess(true);
       setTimeout(() => setNameSuccess(false), 3000);
     } catch {
@@ -89,7 +89,7 @@ export default function ProfilePage() {
   }
 
   function toggleFeature(key: Feature) {
-    setSelectedFeatures((prev) => {
+    setSelectedFeatures(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -167,11 +167,11 @@ export default function ProfilePage() {
               <Input
                 value={nameForm}
                 placeholder="Enter your name"
-                onChange={(e) => {
+                onChange={e => {
                   setNameForm(e.target.value);
                   setNameSuccess(false);
                 }}
-                onKeyDown={(e) => e.key === 'Enter' && saveName()}
+                onKeyDown={e => e.key === 'Enter' && saveName()}
               />
             </Field>
             <Button onClick={saveName} loading={nameSaving} disabled={!nameForm.trim()}>
@@ -222,8 +222,8 @@ export default function ProfilePage() {
             <div className="rounded-lg border border-red-800/50 bg-red-950/30 p-4 space-y-3">
               <p className="text-sm font-medium text-red-400">Are you sure? This will permanently delete:</p>
               <ul className="list-disc list-inside text-sm text-red-400 space-y-1">
-                {Array.from(selectedFeatures).map((f) => (
-                  <li key={f}>{DATA_FEATURES.find((d) => d.key === f)?.label}</li>
+                {Array.from(selectedFeatures).map(f => (
+                  <li key={f}>{DATA_FEATURES.find(d => d.key === f)?.label}</li>
                 ))}
               </ul>
               <div className="flex gap-2">
@@ -242,7 +242,7 @@ export default function ProfilePage() {
               <p className="text-sm font-medium text-green-400 mb-2">Data deleted successfully:</p>
               <ul className="text-sm text-green-400 space-y-1">
                 {Object.entries(deleteResults).map(([feature, result]) => {
-                  const label = DATA_FEATURES.find((d) => d.key === feature)?.label ?? feature;
+                  const label = DATA_FEATURES.find(d => d.key === feature)?.label ?? feature;
                   const count = typeof result.deleted === 'number' ? result.deleted : result.deleted ? 1 : 0;
                   return (
                     <li key={feature}>

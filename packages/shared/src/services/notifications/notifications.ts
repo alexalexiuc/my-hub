@@ -16,7 +16,7 @@ export interface UserSubscription {
 export async function getUserSubscriptions(userId: string): Promise<UserSubscription[]> {
   const rows = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId));
 
-  const rowMap = new Map(rows.map((r) => [r.subscriptionKey, r.subscribed]));
+  const rowMap = new Map(rows.map(r => [r.subscriptionKey, r.subscribed]));
 
   return NOTIFICATION_SUBSCRIPTIONS.map(({ key }) => ({
     key,
@@ -64,5 +64,5 @@ export async function getSubscribedUserIds(subscriptionKey: SubscriptionKey): Pr
     )
     .where(and(eq(users.active, true), isNull(notificationPreferences.id)));
 
-  return rows.map((r) => r.id);
+  return rows.map(r => r.id);
 }

@@ -82,11 +82,11 @@ export function WeeklyChart({ data, target, min, max }: Props) {
 
   const ceiling = max ?? target;
   const lineLabel = max != null ? 'Limit' : 'Target';
-  const maxVal = Math.max(...data.map((d) => d.kcal), ceiling ?? 0, min ?? 0);
+  const maxVal = Math.max(...data.map(d => d.kcal), ceiling ?? 0, min ?? 0);
   const maxDisplayValue = Math.ceil(maxVal * 1.15);
 
   // Embed target/min/max in each data point for the custom tooltip
-  const chartData = data.map((d) => ({ ...d, _target: target, _min: min ?? null, _max: max ?? null }));
+  const chartData = data.map(d => ({ ...d, _target: target, _min: min ?? null, _max: max ?? null }));
 
   return (
     <SectionCard title="This week">
@@ -103,7 +103,7 @@ export function WeeklyChart({ data, target, min, max }: Props) {
             />
             <RechartsTooltip
               cursor={{ fill: 'rgba(63, 63, 70, 0.3)' }}
-              content={(props) => (
+              content={props => (
                 <CustomTooltip
                   active={props.active}
                   payload={props.payload}
@@ -115,7 +115,7 @@ export function WeeklyChart({ data, target, min, max }: Props) {
               )}
             />
             <Bar dataKey="kcal" radius={[4, 4, 0, 0]} maxBarSize={40}>
-              {data.map((entry) => (
+              {data.map(entry => (
                 <Cell key={entry.date} fill={getBarColor(entry.kcal, min, max, target)} />
               ))}
             </Bar>

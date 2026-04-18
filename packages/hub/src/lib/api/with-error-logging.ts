@@ -1,5 +1,10 @@
 import { putLog } from '@my-hub/shared/services';
 import { NextResponse } from 'next/server';
+import type { ZodError } from 'zod';
+
+export function formatZodError(err: ZodError): string {
+  return err.issues.map(i => (i.path.length ? `${i.path.join('.')}: ${i.message}` : i.message)).join('; ');
+}
 
 type MaybePromise<T> = T | Promise<T>;
 type ParamsRecord = Record<string, string | string[] | undefined>;
@@ -78,7 +83,7 @@ export function withErrorLogging<TRequest extends Request = Request, TParams ext
         ? await (handler as (req: TRequest, context: RouteContext<TParams>) => MaybePromise<Response>)(req, context)
         : await (handler as (req: TRequest) => MaybePromise<Response>)(req);
 
-      writeApiLog(req, response.status, Date.now() - start, undefined, options).catch((logErr) => {
+      writeApiLog(req, response.status, Date.now() - start, undefined, options).catch(logErr => {
         console.error('[api-log] failed to persist request log', logErr);
       });
       return response;

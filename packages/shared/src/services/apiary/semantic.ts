@@ -50,10 +50,10 @@ export async function getApiaryHiveStatus(userId: string, hiveId: number): Promi
       .orderBy(asc(apiaryTasks.dueAt)),
   ]);
 
-  // Filter active treatments (logged_at + duration_days > now)
-  const activeTreatments = treatmentRows.filter((t) => {
+  // Filter active treatments (loggedAt + durationDays > now)
+  const activeTreatments = treatmentRows.filter(t => {
     const data = t.data as Record<string, unknown> | null;
-    const durationDays = typeof data?.duration_days === 'number' ? data.duration_days : 0;
+    const durationDays = typeof data?.durationDays === 'number' ? data.durationDays : 0;
     if (durationDays <= 0) return false;
     const endDate = new Date(t.loggedAt.getTime() + durationDays * 86400000);
     return endDate > now;
@@ -69,7 +69,7 @@ export async function getApiaryHiveStatus(userId: string, hiveId: number): Promi
 }
 
 // ---------------------------------------------------------------------------
-// getApiaryActiveTreatments — treatments where logged_at + duration_days > now
+// getApiaryActiveTreatments — treatments where loggedAt + durationDays > now
 // ---------------------------------------------------------------------------
 
 export interface ActiveTreatment {
@@ -108,7 +108,7 @@ export async function getApiaryActiveTreatments(
 
   for (const row of rows) {
     const data = row.data as Record<string, unknown> | null;
-    const durationDays = typeof data?.duration_days === 'number' ? data.duration_days : 0;
+    const durationDays = typeof data?.durationDays === 'number' ? data.durationDays : 0;
     if (durationDays <= 0) continue;
     const endDate = new Date(row.loggedAt.getTime() + durationDays * 86400000);
     if (endDate <= now) continue;
@@ -160,7 +160,7 @@ export async function getApiaryOverdueInspections(
 
   // Get yards for name lookup
   const yards = await db.select().from(apiaryYards).where(eq(apiaryYards.userId, userId));
-  const yardMap = new Map(yards.map((y) => [y.id, y.name]));
+  const yardMap = new Map(yards.map(y => [y.id, y.name]));
 
   // Fetch the latest inspection date for ALL hives in a single query
   const latestInspections = await db
@@ -172,7 +172,7 @@ export async function getApiaryOverdueInspections(
     .where(and(eq(apiaryLogs.userId, userId), eq(apiaryLogs.type, 'inspection')))
     .groupBy(apiaryLogs.hiveId);
 
-  const inspectionMap = new Map(latestInspections.map((r) => [r.hiveId, r.lastLoggedAt]));
+  const inspectionMap = new Map(latestInspections.map(r => [r.hiveId, r.lastLoggedAt]));
 
   const now = new Date();
   const overdue: OverdueInspection[] = [];
@@ -197,7 +197,7 @@ export async function getApiaryOverdueInspections(
 }
 
 // ---------------------------------------------------------------------------
-// moveApiaryHives — bulk relocation: update yard_id + log entry per hive
+// moveApiaryHives — bulk relocation: update yardId + log entry per hive
 // ---------------------------------------------------------------------------
 
 export interface MoveApiaryHivesResult {
@@ -227,12 +227,12 @@ export async function moveApiaryHives(
     .where(and(eq(apiaryHives.userId, userId), inArray(apiaryHives.id, hiveIds)));
 
   if (hives.length !== hiveIds.length) {
-    const foundIds = new Set(hives.map((h) => h.id));
-    const missing = hiveIds.filter((id) => !foundIds.has(id));
+    const foundIds = new Set(hives.map(h => h.id));
+    const missing = hiveIds.filter(id => !foundIds.has(id));
     throw new Error(`Hive(s) not found: ${missing.join(', ')}`);
   }
 
-  const fromYardMap = new Map(hives.map((h) => [h.id, h.yardId]));
+  const fromYardMap = new Map(hives.map(h => [h.id, h.yardId]));
 
   // Atomically update all hives to the new yard
   await db
@@ -241,13 +241,13 @@ export async function moveApiaryHives(
     .where(and(eq(apiaryHives.userId, userId), inArray(apiaryHives.id, hiveIds)));
 
   // Create a relocation log entry for each hive
-  const logValues = hiveIds.map((hiveId) => ({
+  const logValues = hiveIds.map(hiveId => ({
     userId,
     hiveId,
     type: 'relocation' as const,
     loggedAt,
     notes: reason ?? null,
-    data: { to_yard_id: toYardId, from_yard_id: fromYardMap.get(hiveId) ?? null, reason: reason ?? null },
+    data: { toYardId, fromYardId: fromYardMap.get(hiveId) ?? null, reason: reason ?? null },
   }));
 
   const logs = await db.insert(apiaryLogs).values(logValues).returning();
@@ -281,7 +281,7 @@ export async function getApiaryYardBriefing(userId: string, yardId: number): Pro
     .where(and(eq(apiaryHives.userId, userId), eq(apiaryHives.yardId, yardId), eq(apiaryHives.isActive, true)))
     .orderBy(apiaryHives.name);
 
-  const hiveIds = hives.map((h) => h.id);
+  const hiveIds = hives.map(h => h.id);
 
   if (hiveIds.length === 0) {
     // Yard has no hives — still return yard tasks
@@ -311,7 +311,7 @@ export async function getApiaryYardBriefing(userId: string, yardId: number): Pro
     .where(and(eq(apiaryLogs.userId, userId), eq(apiaryLogs.type, 'inspection'), inArray(apiaryLogs.hiveId, hiveIds)))
     .groupBy(apiaryLogs.hiveId);
 
-  const inspectionMap = new Map(latestInspections.map((r) => [r.hiveId, r.lastLoggedAt]));
+  const inspectionMap = new Map(latestInspections.map(r => [r.hiveId, r.lastLoggedAt]));
   const now = new Date();
   const thresholdDays = 14;
   const overdueInspections: OverdueInspection[] = [];
@@ -347,7 +347,7 @@ export async function getApiaryYardBriefing(userId: string, yardId: number): Pro
   const activeTreatments: ActiveTreatment[] = [];
   for (const row of treatmentRows) {
     const data = row.data as Record<string, unknown> | null;
-    const durationDays = typeof data?.duration_days === 'number' ? data.duration_days : 0;
+    const durationDays = typeof data?.durationDays === 'number' ? data.durationDays : 0;
     if (durationDays <= 0) continue;
     const endDate = new Date(row.loggedAt.getTime() + durationDays * 86400000);
     if (endDate <= now) continue;

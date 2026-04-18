@@ -1,18 +1,11 @@
-import { verifyToken } from '@my-hub/shared/auth';
+import { verifyToken, McpTokenPayload } from '@my-hub/shared/auth';
 import { findOAuthClient } from '@my-hub/shared/services';
 import { PromiseCacheX } from 'promise-cachex';
 import { createHash } from 'node:crypto';
 
-interface AccessTokenPayload {
-  client_id: string;
-  user_id: string;
-  email?: string;
-  exp: number;
-}
-
 const AUTH_CACHE_TTL = 60_000 * 60 * 1; // 60 minutes
 
-const authCache = new PromiseCacheX<AccessTokenPayload>({
+const authCache = new PromiseCacheX<McpTokenPayload>({
   ttl: AUTH_CACHE_TTL,
 });
 
@@ -26,14 +19,14 @@ export const cachedVerifyToken = async (token: string) => {
   const payload = await authCache.get(key, async () => {
     // Step 1: Decode payload (no signature check yet) to extract client_id
     let clientId: string;
-    let rawPayload: Partial<AccessTokenPayload>;
+    let rawPayload: Partial<McpTokenPayload>;
     try {
       const dot = token.indexOf('.');
       if (dot === -1) throw new Error('Malformed token: missing dot separator');
       const payloadB64 = token.slice(0, dot);
       const base64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
       const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-      rawPayload = JSON.parse(Buffer.from(padded, 'base64').toString('utf-8')) as Partial<AccessTokenPayload>;
+      rawPayload = JSON.parse(Buffer.from(padded, 'base64').toString('utf-8')) as Partial<McpTokenPayload>;
       if (!rawPayload.client_id) throw new Error('Missing client_id in token payload');
       clientId = rawPayload.client_id;
     } catch (err) {
@@ -47,7 +40,7 @@ export const cachedVerifyToken = async (token: string) => {
     }
 
     // Step 3: Verify token signature + expiration
-    const payload = await verifyToken<AccessTokenPayload>(token, client.tokenSigningSecret);
+    const payload = await verifyToken<McpTokenPayload>(token, client.tokenSigningSecret);
     if (!payload) {
       throw new Error('Invalid or expired token');
     }

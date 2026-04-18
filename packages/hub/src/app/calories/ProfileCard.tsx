@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import type { CalorieProfile, User } from '@my-hub/shared/types';
 import { apiFetch } from '@/lib/utils';
 import type { MeasurementWithType } from '@my-hub/shared/services';
@@ -36,10 +39,9 @@ const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; description: stri
   { value: ActivityLevels.ExtraActive, label: 'Extra active', description: 'Very hard exercise, physical job' },
 ];
 
-const ACTIVITY_LABELS: Record<string, string> = Object.fromEntries(ACTIVITY_OPTIONS.map((o) => [o.value, o.label]));
-
+const ACTIVITY_LABELS: Record<string, string> = Object.fromEntries(ACTIVITY_OPTIONS.map(o => [o.value, o.label]));
 const ACTIVITY_DESCRIPTIONS: Record<string, string> = Object.fromEntries(
-  ACTIVITY_OPTIONS.map((o) => [o.value, o.description]),
+  ACTIVITY_OPTIONS.map(o => [o.value, o.description]),
 );
 
 const GOAL_LABELS: Record<GoalType, string> = {
@@ -48,10 +50,29 @@ const GOAL_LABELS: Record<GoalType, string> = {
   [GoalTypes.WeightGain]: 'Gain weight',
 };
 
-const TIMEZONE_LABELS: Record<string, string> = Object.fromEntries(TIMEZONES.map((t) => [t.value, t.label]));
-const COUNTRY_LABELS: Record<string, string> = Object.fromEntries(COUNTRIES.map((c) => [c.value, c.label]));
+const TIMEZONE_LABELS: Record<string, string> = Object.fromEntries(TIMEZONES.map(t => [t.value, t.label]));
+const COUNTRY_LABELS: Record<string, string> = Object.fromEntries(COUNTRIES.map(c => [c.value, c.label]));
 
-function buildForm(profile: Props['profile'], userProfile: Props['userProfile']) {
+const ProfileFormSchema = z.object({
+  age: z.string(),
+  sex: z.string(),
+  heightCm: z.string(),
+  activityLevel: z.string(),
+  goalType: z.string(),
+  goalWeeklyRateKg: z.string(),
+  goalMinCalories: z.string(),
+  goalMaxCalories: z.string(),
+  goalProtein: z.string(),
+  goalCarbs: z.string(),
+  goalFat: z.string(),
+  notes: z.string(),
+  country: z.string(),
+  timezone: z.string(),
+});
+
+type ProfileFormValues = z.infer<typeof ProfileFormSchema>;
+
+function buildFormValues(profile: Props['profile'], userProfile: Props['userProfile']): ProfileFormValues {
   return {
     age: profile?.age?.toString() ?? '',
     sex: profile?.sex ?? '',
@@ -72,11 +93,29 @@ function buildForm(profile: Props['profile'], userProfile: Props['userProfile'])
 
 export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdated }: Props) {
   const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState(() => buildForm(profile, userProfile));
   const [macroMode, setMacroMode] = useState<'g' | '%'>('g');
 
-  const weightMeasure = latestMeasurements.find((m) => m.typeKey === 'weight');
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    control,
+    reset,
+    formState: { isSubmitting },
+  } = useForm<ProfileFormValues>({
+    resolver: zodResolver(ProfileFormSchema),
+    defaultValues: buildFormValues(profile, userProfile),
+  });
+
+  const goalType = watch('goalType');
+  const activityLevel = watch('activityLevel');
+  const goalMaxCalories = watch('goalMaxCalories');
+  const goalProtein = watch('goalProtein');
+  const goalCarbs = watch('goalCarbs');
+  const goalFat = watch('goalFat');
+
+  const weightMeasure = latestMeasurements.find(m => m.typeKey === 'weight');
 
   const targets = calculateCalorieTargets({
     age: profile?.age ?? null,
@@ -98,97 +137,71 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
   );
   const activeEnergy = targets.tdee !== null && bmr !== null ? targets.tdee - Math.round(bmr) : null;
 
-  async function save() {
-    setSaving(true);
-    try {
-      await Promise.all([
-        apiFetch('/api/calories/profile', {
-          method: 'PUT',
-          body: {
-            age: form.age ? Number(form.age) : undefined,
-            sex: form.sex || undefined,
-            heightCm: form.heightCm ? Number(form.heightCm) : undefined,
-            activityLevel: form.activityLevel || undefined,
-            goalType: form.goalType || undefined,
-            goalWeeklyRateKg: form.goalWeeklyRateKg ? Number(form.goalWeeklyRateKg) : undefined,
-            goalMinCalories: form.goalMinCalories ? Math.round(Number(form.goalMinCalories)) : null,
-            goalMaxCalories: form.goalMaxCalories ? Math.round(Number(form.goalMaxCalories)) : null,
-            goalProtein: form.goalProtein
-              ? Number(macroMode === '%' ? pctToGrams(form.goalProtein, 4, maxCalNum ?? 0) : form.goalProtein)
-              : null,
-            goalCarbs: form.goalCarbs
-              ? Number(macroMode === '%' ? pctToGrams(form.goalCarbs, 4, maxCalNum ?? 0) : form.goalCarbs)
-              : null,
-            goalFat: form.goalFat
-              ? Number(macroMode === '%' ? pctToGrams(form.goalFat, 9, maxCalNum ?? 0) : form.goalFat)
-              : null,
-            notes: form.notes || undefined,
-          },
-        }),
-        apiFetch('/api/users/profile', {
-          method: 'PUT',
-          body: {
-            country: form.country || null,
-            timezone: form.timezone || null,
-          },
-        }),
-      ]);
-      setEditing(false);
-      onUpdated();
-    } finally {
-      setSaving(false);
-    }
-  }
+  const showRate = goalType === GoalTypes.WeightLoss || goalType === GoalTypes.WeightGain;
+  const maxCalNum = goalMaxCalories ? Math.round(Number(goalMaxCalories)) : null;
+  const macroSummary = computeMacroSummary(macroMode, goalProtein, goalCarbs, goalFat, maxCalNum);
 
-  function openEdit() {
-    setForm(buildForm(profile, userProfile));
-    setMacroMode('g');
-    setEditing(true);
-  }
-
-  const showRate = form.goalType === GoalTypes.WeightLoss || form.goalType === GoalTypes.WeightGain;
-
-  const maxCalNum = form.goalMaxCalories ? Math.round(Number(form.goalMaxCalories)) : null;
-
-  const macroSummary = computeMacroSummary(macroMode, form.goalProtein, form.goalCarbs, form.goalFat, maxCalNum);
+  const macroWarning = macroSummary?.isOver ?? null;
 
   function switchMacroMode(next: 'g' | '%') {
     if (next === macroMode) return;
+    const curMaxCal = maxCalNum ?? 0;
     if (next === '%') {
-      setForm({
-        ...form,
-        goalProtein: gramsToPct(form.goalProtein, 4, maxCalNum ?? 0),
-        goalCarbs: gramsToPct(form.goalCarbs, 4, maxCalNum ?? 0),
-        goalFat: gramsToPct(form.goalFat, 9, maxCalNum ?? 0),
-      });
+      setValue('goalProtein', gramsToPct(goalProtein, 4, curMaxCal));
+      setValue('goalCarbs', gramsToPct(goalCarbs, 4, curMaxCal));
+      setValue('goalFat', gramsToPct(goalFat, 9, curMaxCal));
     } else {
-      setForm({
-        ...form,
-        goalProtein: pctToGrams(form.goalProtein, 4, maxCalNum ?? 0),
-        goalCarbs: pctToGrams(form.goalCarbs, 4, maxCalNum ?? 0),
-        goalFat: pctToGrams(form.goalFat, 9, maxCalNum ?? 0),
-      });
+      setValue('goalProtein', pctToGrams(goalProtein, 4, curMaxCal));
+      setValue('goalCarbs', pctToGrams(goalCarbs, 4, curMaxCal));
+      setValue('goalFat', pctToGrams(goalFat, 9, curMaxCal));
     }
     setMacroMode(next);
   }
 
-  const macroWarning = (() => {
-    if (macroMode === '%') {
-      const total = (Number(form.goalProtein) || 0) + (Number(form.goalCarbs) || 0) + (Number(form.goalFat) || 0);
-      return total > 100 ? true : null;
-    }
-    if (macroMode === 'g' && maxCalNum) {
-      const usedPct =
-        (Number(gramsToPct(form.goalProtein, 4, maxCalNum)) || 0) +
-        (Number(gramsToPct(form.goalCarbs, 4, maxCalNum)) || 0) +
-        (Number(gramsToPct(form.goalFat, 9, maxCalNum)) || 0);
-      return usedPct > 100 ? true : null;
-    }
-    return null;
-  })();
+  async function save(values: ProfileFormValues) {
+    await Promise.all([
+      apiFetch('/api/calories/profile', {
+        method: 'PUT',
+        body: {
+          age: values.age ? Number(values.age) : undefined,
+          sex: values.sex || undefined,
+          heightCm: values.heightCm ? Number(values.heightCm) : undefined,
+          activityLevel: values.activityLevel || undefined,
+          goalType: values.goalType || undefined,
+          goalWeeklyRateKg: values.goalWeeklyRateKg ? Number(values.goalWeeklyRateKg) : undefined,
+          goalMinCalories: values.goalMinCalories ? Math.round(Number(values.goalMinCalories)) : null,
+          goalMaxCalories: values.goalMaxCalories ? Math.round(Number(values.goalMaxCalories)) : null,
+          goalProtein: values.goalProtein
+            ? Number(macroMode === '%' ? pctToGrams(values.goalProtein, 4, maxCalNum ?? 0) : values.goalProtein)
+            : null,
+          goalCarbs: values.goalCarbs
+            ? Number(macroMode === '%' ? pctToGrams(values.goalCarbs, 4, maxCalNum ?? 0) : values.goalCarbs)
+            : null,
+          goalFat: values.goalFat
+            ? Number(macroMode === '%' ? pctToGrams(values.goalFat, 9, maxCalNum ?? 0) : values.goalFat)
+            : null,
+          notes: values.notes || undefined,
+        },
+      }),
+      apiFetch('/api/users/profile', {
+        method: 'PUT',
+        body: {
+          country: values.country || null,
+          timezone: values.timezone || null,
+        },
+      }),
+    ]);
+    setEditing(false);
+    onUpdated();
+  }
+
+  function openEdit() {
+    reset(buildFormValues(profile, userProfile));
+    setMacroMode('g');
+    setEditing(true);
+  }
 
   if (!editing) {
-    // Compact view — just key stats + edit button
     const hasProfile = profile?.age && profile?.sex && profile?.heightCm;
 
     return (
@@ -209,7 +222,6 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
           <p className="text-sm text-zinc-500">Set up your profile to get personalized calorie targets.</p>
         ) : (
           <div className="space-y-3">
-            {/* Inline stats row */}
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
               <Stat label="Age" value={`${profile!.age}`} />
               <Stat label="Sex" value={profile!.sex === Sexes.Male ? 'Male' : 'Female'} />
@@ -230,7 +242,6 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
               )}
             </div>
 
-            {/* Calorie targets */}
             {targets.tdee && (
               <div className="flex flex-wrap gap-3">
                 {bmr !== null && <TargetPill label="Resting (BMR)" value={`${Math.round(bmr)}`} unit="kcal" />}
@@ -261,60 +272,59 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
   // Edit mode
   return (
     <SectionCard title="Profile">
-      <div className="space-y-3">
+      <form onSubmit={handleSubmit(save)} className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <Field label="Age">
-            <Input type="number" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} />
+            <Input type="number" {...register('age')} />
           </Field>
           <Field label="Sex">
             <Select
+              {...register('sex')}
               options={[
                 { value: Sexes.Male, label: 'Male' },
                 { value: Sexes.Female, label: 'Female' },
               ]}
-              value={form.sex}
-              onChange={(e) => setForm({ ...form, sex: e.target.value })}
             >
               <option value="">—</option>
             </Select>
           </Field>
           <Field label="Height (cm)">
-            <Input
-              type="number"
-              placeholder="e.g. 175"
-              value={form.heightCm}
-              onChange={(e) => setForm({ ...form, heightCm: e.target.value })}
-            />
+            <Input type="number" placeholder="e.g. 175" {...register('heightCm')} />
           </Field>
           <Field label="Activity level">
             <Select
-              options={ACTIVITY_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-              value={form.activityLevel}
-              onChange={(e) => setForm({ ...form, activityLevel: e.target.value })}
+              {...register('activityLevel')}
+              options={ACTIVITY_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
             >
               <option value="">—</option>
             </Select>
           </Field>
         </div>
-        {form.activityLevel && (
-          <p className="text-xs text-zinc-500 -mt-1 px-1">{ACTIVITY_DESCRIPTIONS[form.activityLevel]}</p>
-        )}
+        {activityLevel && <p className="text-xs text-zinc-500 -mt-1 px-1">{ACTIVITY_DESCRIPTIONS[activityLevel]}</p>}
 
-        {/* Goals section */}
         <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide pt-1">Goal</p>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Goal type" className={showRate ? '' : 'col-span-2'}>
-            <Select
-              options={[
-                { value: GoalTypes.WeightLoss, label: 'Lose weight' },
-                { value: GoalTypes.Maintain, label: 'Maintain' },
-                { value: GoalTypes.WeightGain, label: 'Gain weight' },
-              ]}
-              value={form.goalType}
-              onChange={(e) => setForm({ ...form, goalType: e.target.value, goalWeeklyRateKg: '' })}
-            >
-              <option value="">— no goal —</option>
-            </Select>
+            <Controller
+              control={control}
+              name="goalType"
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  options={[
+                    { value: GoalTypes.WeightLoss, label: 'Lose weight' },
+                    { value: GoalTypes.Maintain, label: 'Maintain' },
+                    { value: GoalTypes.WeightGain, label: 'Gain weight' },
+                  ]}
+                  onChange={e => {
+                    field.onChange(e);
+                    setValue('goalWeeklyRateKg', '');
+                  }}
+                >
+                  <option value="">— no goal —</option>
+                </Select>
+              )}
+            />
           </Field>
           {showRate && (
             <Field label="Rate (kg/week)">
@@ -324,39 +334,39 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
                 min="0.1"
                 max="2"
                 placeholder="e.g. 0.5"
-                value={form.goalWeeklyRateKg}
-                onChange={(e) => setForm({ ...form, goalWeeklyRateKg: e.target.value })}
+                {...register('goalWeeklyRateKg')}
               />
             </Field>
           )}
           <Field label="Min calories/day">
-            <Input
-              type="number"
-              step="1"
-              min="0"
-              placeholder="Optional floor"
-              value={form.goalMinCalories}
-              onChange={(e) => setForm({ ...form, goalMinCalories: e.target.value })}
-            />
+            <Input type="number" step="1" min="0" placeholder="Optional floor" {...register('goalMinCalories')} />
           </Field>
           <Field label="Max calories/day">
-            <Input
-              type="number"
-              step="1"
-              min="0"
-              placeholder="Optional ceiling"
-              value={form.goalMaxCalories}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (!val && macroMode === '%') {
-                  setMacroMode('g');
-                  setForm({ ...form, goalMaxCalories: val, goalProtein: '', goalCarbs: '', goalFat: '' });
-                } else {
-                  setForm({ ...form, goalMaxCalories: val });
-                }
-              }}
+            <Controller
+              control={control}
+              name="goalMaxCalories"
+              render={({ field }) => (
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  placeholder="Optional ceiling"
+                  value={field.value}
+                  onChange={e => {
+                    const val = e.target.value;
+                    field.onChange(val);
+                    if (!val && macroMode === '%') {
+                      setMacroMode('g');
+                      setValue('goalProtein', '');
+                      setValue('goalCarbs', '');
+                      setValue('goalFat', '');
+                    }
+                  }}
+                />
+              )}
             />
           </Field>
+
           <div className="col-span-2 flex items-center justify-between pt-1">
             <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Macros</span>
             <div className="flex rounded-md border border-zinc-700 text-xs overflow-hidden">
@@ -378,11 +388,13 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
               </button>
             </div>
           </div>
+
           {macroSummary && (
             <p className={`col-span-2 text-xs px-1 ${macroSummary.isOver ? 'text-amber-400' : 'text-zinc-500'}`}>
               Used: {macroSummary.used}% · Remaining: {macroSummary.remaining}%
             </p>
           )}
+
           <Field label={macroMode === 'g' ? 'Protein (g/day)' : 'Protein (%)'}>
             <Input
               type="number"
@@ -390,18 +402,17 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
               min="0"
               max={macroMode === '%' ? 100 : undefined}
               placeholder="Optional"
-              value={form.goalProtein}
-              onChange={(e) => setForm({ ...form, goalProtein: e.target.value })}
+              {...register('goalProtein')}
             />
-            {macroMode === '%' && form.goalProtein && maxCalNum && (
+            {macroMode === '%' && goalProtein && maxCalNum && (
               <p className="text-xs text-zinc-500 mt-0.5">
-                ≈ {pctToGrams(form.goalProtein, 4, maxCalNum)}g ·{' '}
-                {Math.round(Number(pctToGrams(form.goalProtein, 4, maxCalNum)) * 4)} kcal
+                ≈ {pctToGrams(goalProtein, 4, maxCalNum)}g ·{' '}
+                {Math.round(Number(pctToGrams(goalProtein, 4, maxCalNum)) * 4)} kcal
               </p>
             )}
-            {macroMode === 'g' && form.goalProtein && maxCalNum && (
+            {macroMode === 'g' && goalProtein && maxCalNum && (
               <p className="text-xs text-zinc-500 mt-0.5">
-                ≈ {gramsToPct(form.goalProtein, 4, maxCalNum)}% · {Math.round(Number(form.goalProtein) * 4)} kcal
+                ≈ {gramsToPct(goalProtein, 4, maxCalNum)}% · {Math.round(Number(goalProtein) * 4)} kcal
               </p>
             )}
           </Field>
@@ -412,18 +423,17 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
               min="0"
               max={macroMode === '%' ? 100 : undefined}
               placeholder="Optional"
-              value={form.goalCarbs}
-              onChange={(e) => setForm({ ...form, goalCarbs: e.target.value })}
+              {...register('goalCarbs')}
             />
-            {macroMode === '%' && form.goalCarbs && maxCalNum && (
+            {macroMode === '%' && goalCarbs && maxCalNum && (
               <p className="text-xs text-zinc-500 mt-0.5">
-                ≈ {pctToGrams(form.goalCarbs, 4, maxCalNum)}g ·{' '}
-                {Math.round(Number(pctToGrams(form.goalCarbs, 4, maxCalNum)) * 4)} kcal
+                ≈ {pctToGrams(goalCarbs, 4, maxCalNum)}g · {Math.round(Number(pctToGrams(goalCarbs, 4, maxCalNum)) * 4)}{' '}
+                kcal
               </p>
             )}
-            {macroMode === 'g' && form.goalCarbs && maxCalNum && (
+            {macroMode === 'g' && goalCarbs && maxCalNum && (
               <p className="text-xs text-zinc-500 mt-0.5">
-                ≈ {gramsToPct(form.goalCarbs, 4, maxCalNum)}% · {Math.round(Number(form.goalCarbs) * 4)} kcal
+                ≈ {gramsToPct(goalCarbs, 4, maxCalNum)}% · {Math.round(Number(goalCarbs) * 4)} kcal
               </p>
             )}
           </Field>
@@ -434,59 +444,49 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
               min="0"
               max={macroMode === '%' ? 100 : undefined}
               placeholder="Optional"
-              value={form.goalFat}
-              onChange={(e) => setForm({ ...form, goalFat: e.target.value })}
+              {...register('goalFat')}
             />
-            {macroMode === '%' && form.goalFat && maxCalNum && (
+            {macroMode === '%' && goalFat && maxCalNum && (
               <p className="text-xs text-zinc-500 mt-0.5">
-                ≈ {pctToGrams(form.goalFat, 9, maxCalNum)}g ·{' '}
-                {Math.round(Number(pctToGrams(form.goalFat, 9, maxCalNum)) * 9)} kcal
+                ≈ {pctToGrams(goalFat, 9, maxCalNum)}g · {Math.round(Number(pctToGrams(goalFat, 9, maxCalNum)) * 9)}{' '}
+                kcal
               </p>
             )}
-            {macroMode === 'g' && form.goalFat && maxCalNum && (
+            {macroMode === 'g' && goalFat && maxCalNum && (
               <p className="text-xs text-zinc-500 mt-0.5">
-                ≈ {gramsToPct(form.goalFat, 9, maxCalNum)}% · {Math.round(Number(form.goalFat) * 9)} kcal
+                ≈ {gramsToPct(goalFat, 9, maxCalNum)}% · {Math.round(Number(goalFat) * 9)} kcal
               </p>
             )}
           </Field>
         </div>
 
         <Field label="Notes" className="col-span-2">
-          <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          <Textarea rows={2} {...register('notes')} />
         </Field>
 
-        {/* Location section */}
         <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide pt-1">Location</p>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Country">
-            <Select
-              options={COUNTRIES}
-              value={form.country}
-              onChange={(e) => setForm({ ...form, country: e.target.value })}
-            >
+            <Select {...register('country')} options={COUNTRIES}>
               <option value="">— not set —</option>
             </Select>
           </Field>
           <Field label="Timezone">
-            <Select
-              options={TIMEZONES}
-              value={form.timezone}
-              onChange={(e) => setForm({ ...form, timezone: e.target.value })}
-            >
+            <Select {...register('timezone')} options={TIMEZONES}>
               <option value="">— not set —</option>
             </Select>
           </Field>
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={save} loading={saving} disabled={!!macroWarning}>
-            {saving ? 'Saving...' : 'Save'}
+          <Button type="submit" loading={isSubmitting} disabled={!!macroWarning}>
+            {isSubmitting ? 'Saving...' : 'Save'}
           </Button>
-          <Button variant="secondary" onClick={() => setEditing(false)}>
+          <Button type="button" variant="secondary" onClick={() => setEditing(false)}>
             Cancel
           </Button>
         </div>
-      </div>
+      </form>
     </SectionCard>
   );
 }

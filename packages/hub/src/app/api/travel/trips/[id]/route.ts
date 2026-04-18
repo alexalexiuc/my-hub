@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
+import { formatZodError } from '@/lib/api/with-error-logging';
 import { deleteTrip, updateTrip } from '@my-hub/shared/services';
 import { parseAndValidateDateForPatch } from '@/lib/api/date-validation';
-
-const hexColorRe = /^#[0-9A-F]{6}$/i;
+import { TripUpdateSchema } from '@my-hub/shared/schemas';
+import { omitUndefined, trimOrNull } from '@my-hub/shared/utils';
 
 export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
   const { id } = await params;
@@ -12,41 +13,43 @@ export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
     return NextResponse.json({ error: 'Invalid trip id' }, { status: 400 });
   }
 
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { date: startAt, error: startAtError } = parseAndValidateDateForPatch(body.start_at, 'start_at');
-  if (startAtError) {
-    return NextResponse.json({ error: startAtError }, { status: 400 });
+  const parsed = TripUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
   }
 
-  const { date: endAt, error: endAtError } = parseAndValidateDateForPatch(body.end_at, 'end_at');
-  if (endAtError) {
-    return NextResponse.json({ error: endAtError }, { status: 400 });
-  }
+  const { data } = parsed;
 
-  const { date: cancelledAt, error: cancelledAtError } = parseAndValidateDateForPatch(
-    body.cancelled_at,
-    'cancelled_at',
+  const { date: startAt, error: startAtError } = parseAndValidateDateForPatch(data.startAt, 'startAt');
+  if (startAtError) return NextResponse.json({ error: startAtError }, { status: 400 });
+
+  const { date: endAt, error: endAtError } = parseAndValidateDateForPatch(data.endAt, 'endAt');
+  if (endAtError) return NextResponse.json({ error: endAtError }, { status: 400 });
+
+  const { date: cancelledAt, error: cancelledAtError } = parseAndValidateDateForPatch(data.cancelledAt, 'cancelledAt');
+  if (cancelledAtError) return NextResponse.json({ error: cancelledAtError }, { status: 400 });
+
+  const trip = await updateTrip(
+    user.id,
+    tripId,
+    omitUndefined({
+      name: data.name,
+      destination: trimOrNull(data.destination),
+      color: data.color,
+      startAt,
+      endAt,
+      cancelledAt,
+      notes: data.notes,
+      coverImageUrl: data.coverImageUrl,
+    }),
   );
-  if (cancelledAtError) {
-    return NextResponse.json({ error: cancelledAtError }, { status: 400 });
-  }
-
-  const trip = await updateTrip(user.id, tripId, {
-    name: typeof body.name === 'string' ? body.name.trim() : undefined,
-    destination: typeof body.destination === 'string' ? body.destination.trim() || null : undefined,
-    color: typeof body.color === 'string' && hexColorRe.test(body.color) ? body.color : undefined,
-    startAt,
-    endAt,
-    cancelledAt,
-    notes: typeof body.notes === 'string' ? body.notes : undefined,
-    coverImageUrl: typeof body.cover_image_url === 'string' ? body.cover_image_url : undefined,
-  });
 
   if (!trip) return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
   return NextResponse.json({ trip });

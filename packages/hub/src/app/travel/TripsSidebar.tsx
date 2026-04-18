@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Button, ColorPicker, IconButton, Input, MultiButtonGroup, SectionCard } from '@/components';
+import { Button, IconButton, MultiButtonGroup, SectionCard } from '@/components';
+import { PencilIcon, PlusOutlineIcon, TrashIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
-import { PencilIcon, TrashIcon } from '@/components/icons';
 import type { Trip } from '@my-hub/shared/types';
 import type { ApiTrip, BookingRange } from './types';
-import { toDateInputValue } from '@my-hub/shared/utils';
-import { randomTripColor, formatShortDate } from './trips-sidebar.utils';
+import { TripForm } from './TripForm';
+import { tripToFormValues, formToCreateBody, formToUpdateBody, type TripFormValues } from './trip-form.schema';
+import { formatShortDate, formatTripDateRange } from './trips-sidebar.utils';
 
 type TripsSidebarProps = {
   trips: ApiTrip[];
@@ -28,23 +29,14 @@ export function TripsSidebar({
   onTripsChanged,
   onOverviewChanged,
 }: TripsSidebarProps) {
-  const [newTripName, setNewTripName] = useState('');
-  const [newTripColor, setNewTripColor] = useState(() => randomTripColor());
-  const [newTripDestination, setNewTripDestination] = useState('');
-  const [newTripStartAt, setNewTripStartAt] = useState('');
-  const [newTripEndAt, setNewTripEndAt] = useState('');
   const [editingTripId, setEditingTripId] = useState<number | null>(null);
-  const [editTripName, setEditTripName] = useState('');
-  const [editTripDestination, setEditTripDestination] = useState('');
-  const [editTripColor, setEditTripColor] = useState('#3B82F6');
-  const [editTripStartAt, setEditTripStartAt] = useState('');
-  const [editTripEndAt, setEditTripEndAt] = useState('');
+  const [showingCreateForm, setShowingCreateForm] = useState(false);
   const [filterMode, setFilterMode] = useState<'upcoming' | 'all'>('upcoming');
 
   const filteredTrips = useMemo(() => {
     const now = Date.now();
     const base =
-      filterMode === 'upcoming' ? trips.filter((t) => t.status !== 'cancelled' && t.status !== 'completed') : trips;
+      filterMode === 'upcoming' ? trips.filter(t => t.status !== 'cancelled' && t.status !== 'completed') : trips;
 
     const upcoming: ApiTrip[] = [];
     const past: ApiTrip[] = [];
@@ -70,62 +62,15 @@ export function TripsSidebar({
     return [...upcoming, ...past, ...noDate];
   }, [trips, filterMode]);
 
-  async function createTrip() {
-    if (!newTripName.trim()) return;
-    try {
-      await apiFetch('/api/travel/trips', {
-        method: 'POST',
-        body: {
-          name: newTripName.trim(),
-          color: newTripColor,
-          destination: newTripDestination.trim() || null,
-          start_at: newTripStartAt ? `${newTripStartAt}T00:00:00.000Z` : undefined,
-          end_at: newTripEndAt ? `${newTripEndAt}T00:00:00.000Z` : undefined,
-        },
-      });
-    } catch {
-      return;
-    }
-    setNewTripName('');
-    setNewTripColor(randomTripColor());
-    setNewTripDestination('');
-    setNewTripStartAt('');
-    setNewTripEndAt('');
+  async function createTrip(values: TripFormValues) {
+    await apiFetch('/api/travel/trips', { method: 'POST', body: formToCreateBody(values) });
+    setShowingCreateForm(false);
     onTripsChanged();
   }
 
-  function startEditTrip(trip: Trip) {
-    setEditingTripId(trip.id);
-    setEditTripName(trip.name);
-    setEditTripDestination(trip.destination ?? '');
-    setEditTripColor(trip.color);
-    setEditTripStartAt(toDateInputValue(trip.startAt));
-    setEditTripEndAt(toDateInputValue(trip.endAt));
-  }
-
-  function cancelEditTrip() {
+  async function saveTripEdits(tripId: number, values: TripFormValues) {
+    await apiFetch(`/api/travel/trips/${tripId}`, { method: 'PATCH', body: formToUpdateBody(values) });
     setEditingTripId(null);
-    setEditTripName('');
-    setEditTripDestination('');
-    setEditTripColor('#3B82F6');
-    setEditTripStartAt('');
-    setEditTripEndAt('');
-  }
-
-  async function saveTripEdits(tripId: number) {
-    const trimmedName = editTripName.trim();
-    if (!trimmedName) return;
-    await apiFetch(`/api/travel/trips/${tripId}`, {
-      method: 'PATCH',
-      body: {
-        name: trimmedName,
-        destination: editTripDestination.trim() || null,
-        color: editTripColor,
-        start_at: editTripStartAt ? `${editTripStartAt}T00:00:00.000Z` : null,
-        end_at: editTripEndAt ? `${editTripEndAt}T00:00:00.000Z` : null,
-      },
-    });
-    cancelEditTrip();
     onTripsChanged();
     if (activeTripId === tripId) onOverviewChanged(tripId);
   }
@@ -138,27 +83,18 @@ export function TripsSidebar({
   return (
     <SectionCard title="Trips" className="bg-emerald-950/20 border-emerald-800/50">
       <div className="space-y-3">
-        <div className="space-y-2">
-          <Input value={newTripName} onChange={(e) => setNewTripName(e.target.value)} placeholder="Trip name" />
-          <Input
-            value={newTripDestination}
-            onChange={(e) => setNewTripDestination(e.target.value)}
-            placeholder="Destination"
+        {showingCreateForm ? (
+          <TripForm
+            onSubmit={createTrip}
+            onCancel={() => setShowingCreateForm(false)}
+            submitLabel="Create Trip"
+            submitClassName="bg-emerald-600 hover:bg-emerald-500"
           />
-          <div className="grid grid-cols-2 gap-2">
-            <Input type="date" value={newTripStartAt} onChange={(e) => setNewTripStartAt(e.target.value)} />
-            <Input type="date" value={newTripEndAt} onChange={(e) => setNewTripEndAt(e.target.value)} />
-          </div>
-          <div className="flex items-center gap-2 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm">
-            <label htmlFor="trip-color" className="text-zinc-300">
-              Color
-            </label>
-            <ColorPicker id="trip-color" value={newTripColor} onChange={(e) => setNewTripColor(e.target.value)} />
-          </div>
-          <Button onClick={createTrip} className="w-full bg-emerald-600 hover:bg-emerald-500">
-            Create Trip
+        ) : (
+          <Button variant="secondary" className="w-full" onClick={() => setShowingCreateForm(true)}>
+            <PlusOutlineIcon /> New Trip
           </Button>
-        </div>
+        )}
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-zinc-500">
@@ -182,7 +118,7 @@ export function TripsSidebar({
               {filterMode === 'upcoming' ? 'No upcoming trips.' : 'No trips yet.'}
             </p>
           )}
-          {filteredTrips.map((trip) => (
+          {filteredTrips.map(trip => (
             <div
               key={trip.id}
               className={`w-full rounded-lg border px-3 py-2 text-left transition ${
@@ -191,42 +127,13 @@ export function TripsSidebar({
               style={{ borderColor: activeTripId === trip.id ? trip.color : undefined, borderLeftWidth: '4px' }}
             >
               {editingTripId === trip.id ? (
-                <div className="space-y-2">
-                  <Input
-                    value={editTripName}
-                    onChange={(e) => setEditTripName(e.target.value)}
-                    placeholder="Trip name"
-                  />
-                  <Input
-                    value={editTripDestination}
-                    onChange={(e) => setEditTripDestination(e.target.value)}
-                    placeholder="Destination"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input type="date" value={editTripStartAt} onChange={(e) => setEditTripStartAt(e.target.value)} />
-                    <Input type="date" value={editTripEndAt} onChange={(e) => setEditTripEndAt(e.target.value)} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <ColorPicker
-                      value={editTripColor}
-                      onChange={(e) => setEditTripColor(e.target.value)}
-                      aria-label="Trip color"
-                      title="Trip color"
-                    />
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="xs"
-                        onClick={() => saveTripEdits(trip.id)}
-                        className="bg-emerald-600 hover:bg-emerald-500"
-                      >
-                        Save
-                      </Button>
-                      <Button variant="secondary" size="xs" onClick={cancelEditTrip}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <TripForm
+                  defaultValues={tripToFormValues(trip as unknown as Trip)}
+                  onSubmit={values => saveTripEdits(trip.id, values)}
+                  onCancel={() => setEditingTripId(null)}
+                  submitLabel="Save"
+                  submitClassName="bg-emerald-600 hover:bg-emerald-500"
+                />
               ) : (
                 <div className="space-y-1">
                   <div className="flex items-start justify-between gap-2">
@@ -244,26 +151,21 @@ export function TripsSidebar({
                       </p>
                       <p className="text-xs text-zinc-400">{trip.destination ?? 'No destination set'}</p>
                       <p className="text-xs text-zinc-500 mt-0.5">
-                        Owner: {trip.access_role === 'owner' ? 'You' : (trip.owner_name ?? trip.owner_email)}
+                        Owner: {trip.accessRole === 'owner' ? 'You' : (trip.ownerName ?? trip.ownerEmail)}
                       </p>
                     </Button>
-                    {trip.can_edit && (
+                    {trip.canEdit && (
                       <div className="flex items-center gap-1">
-                        <IconButton label="Edit trip" onClick={() => startEditTrip(trip)} icon={<PencilIcon />} />
+                        <IconButton label="Edit trip" onClick={() => setEditingTripId(trip.id)} icon={<PencilIcon />} />
                         <IconButton label="Remove trip" onClick={() => removeTrip(trip.id)} icon={<TrashIcon />} />
                       </div>
                     )}
                   </div>
                   <p className="text-xs text-zinc-500 mt-1">
-                    {(() => {
-                      const from = formatShortDate(
-                        tripBookingRanges[trip.id]?.fromAt ?? (trip.startAt as string | null),
-                      );
-                      const to = formatShortDate(tripBookingRanges[trip.id]?.toAt ?? (trip.endAt as string | null));
-                      if (!from && !to) return 'Reservation dates not set';
-                      if (from && to && from !== to) return `${from} -> ${to}`;
-                      return from ?? to ?? 'Reservation dates not set';
-                    })()}
+                    {formatTripDateRange(
+                      formatShortDate(tripBookingRanges[trip.id]?.fromAt ?? (trip.startAt as string | null)),
+                      formatShortDate(tripBookingRanges[trip.id]?.toAt ?? (trip.endAt as string | null)),
+                    )}
                   </p>
                 </div>
               )}

@@ -59,7 +59,7 @@ export const flightData = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     flightDateUniqueIdx: uniqueIndex('uniq_flight_data_number_date').on(table.flightNumber, table.flightDate),
     nextFetchAtIdx: index('idx_flight_data_next_fetch_at').on(table.nextFetchAt),
     finishedIdx: index('idx_flight_data_finished').on(table.finished),
@@ -84,7 +84,7 @@ export const trips = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     userIdIdx: index('idx_trips_user_id').on(table.userId),
     startAtIdx: index('idx_trips_start_at').on(table.startAt),
   }),
@@ -123,7 +123,7 @@ export const tripBookings = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     tripIdIdx: index('idx_trip_bookings_trip_id').on(table.tripId),
     userIdIdx: index('idx_trip_bookings_user_id').on(table.userId),
     startAtIdx: index('idx_trip_bookings_start_at').on(table.startAt),
@@ -150,7 +150,7 @@ export const tripPlaces = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     tripIdIdx: index('idx_trip_places_trip_id').on(table.tripId),
     userIdIdx: index('idx_trip_places_user_id').on(table.userId),
   }),
@@ -171,7 +171,7 @@ export const tripChecklistItems = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     tripIdIdx: index('idx_trip_checklist_items_trip_id').on(table.tripId),
     userIdIdx: index('idx_trip_checklist_items_user_id').on(table.userId),
   }),
@@ -194,7 +194,7 @@ export const tripCompanions = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     tripIdIdx: index('idx_trip_companions_trip_id').on(table.tripId),
     userIdIdx: index('idx_trip_companions_user_id').on(table.userId),
   }),
@@ -223,7 +223,7 @@ export const tripDocuments = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     tripIdIdx: index('idx_trip_documents_trip_id').on(table.tripId),
     bookingIdIdx: index('idx_trip_documents_booking_id').on(table.bookingId),
     userIdIdx: index('idx_trip_documents_user_id').on(table.userId),
@@ -246,7 +246,7 @@ export const tripDays = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     tripDayUniqueIdx: uniqueIndex('uniq_trip_days_trip_date').on(table.tripId, table.date),
     tripIdIdx: index('idx_trip_days_trip_id').on(table.tripId),
     userIdIdx: index('idx_trip_days_user_id').on(table.userId),
@@ -270,7 +270,7 @@ export const tripShares = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     ownerTripUniqueIdx: uniqueIndex('uniq_trip_shares_owner_trip_shared_with').on(
       table.ownerUserId,
       table.tripId,

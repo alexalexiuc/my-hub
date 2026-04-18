@@ -27,8 +27,8 @@ export default function TravelPage() {
   const [loadingOverview, setLoadingOverview] = useState(false);
   const [tripBookingRanges, setTripBookingRanges] = useState<Record<number, BookingRange>>({});
 
-  const activeTrip = useMemo(() => trips.find((trip) => trip.id === activeTripId) ?? null, [trips, activeTripId]);
-  const canEditActiveTrip = activeTrip?.can_edit ?? false;
+  const activeTrip = useMemo(() => trips.find(trip => trip.id === activeTripId) ?? null, [trips, activeTripId]);
+  const canEditActiveTrip = activeTrip?.canEdit ?? false;
 
   const documentsByBookingId = useMemo(() => {
     const groups = new Map<number, TripDocument[]>();
@@ -45,10 +45,10 @@ export default function TravelPage() {
   const loadTrips = useCallback(async () => {
     setLoadingTrips(true);
     try {
-      const data = await apiFetch<{ trips: ApiTrip[]; booking_ranges?: BookingRange[] }>('/api/travel/trips');
+      const data = await apiFetch<{ trips: ApiTrip[]; bookingRanges?: BookingRange[] }>('/api/travel/trips');
       setTrips(data.trips);
       setTripBookingRanges(
-        Object.fromEntries((data.booking_ranges ?? []).map((range) => [range.tripId, range])) as Record<
+        Object.fromEntries((data.bookingRanges ?? []).map(range => [range.tripId, range])) as Record<
           number,
           BookingRange
         >,
@@ -56,10 +56,10 @@ export default function TravelPage() {
       if (data.trips.length === 0) {
         setActiveTripId(null);
         setOverview(null);
-      } else if (!activeTripId || !data.trips.some((trip) => trip.id === activeTripId)) {
+      } else if (!activeTripId || !data.trips.some(trip => trip.id === activeTripId)) {
         const now = Date.now();
         const upcoming = data.trips
-          .filter((t) => t.startAt && new Date(t.startAt as unknown as string).getTime() >= now)
+          .filter(t => t.startAt && new Date(t.startAt as unknown as string).getTime() >= now)
           .sort(
             (a, b) =>
               new Date(a.startAt as unknown as string).getTime() - new Date(b.startAt as unknown as string).getTime(),
