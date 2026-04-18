@@ -7,7 +7,11 @@ import { hashSecret } from '../../crypto/';
 import { findUserByEmail } from '../users/users';
 import { PASSWORD_RESET_TOKEN_EXPIRY_MINUTES } from '../../constants/auth';
 
-/** SHA-256 hash a plain token for safe storage in the database. */
+/**
+ * Hash a plain token using SHA-256 for secure database storage.
+ * @param plainToken - The raw token string to hash
+ * @returns Hex-encoded SHA-256 hash of the token
+ */
 function hashToken(plainToken: string): string {
   return createHash('sha256').update(plainToken).digest('hex');
 }

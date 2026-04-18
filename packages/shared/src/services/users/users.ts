@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, isNull, and } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
 import { hashSecret, verifySecret } from '../../crypto/';
@@ -82,6 +82,17 @@ export async function findOrCreateUser(email: string, name?: string | null, goog
   }
 
   return existing;
+}
+
+/**
+ * Backfill the googleId on an existing user record.
+ * No-op if the user already has a googleId set.
+ */
+export async function backfillUserGoogleId(userId: string, googleId: string): Promise<void> {
+  await db
+    .update(users)
+    .set({ googleId, updatedAt: new Date() })
+    .where(and(eq(users.id, userId), isNull(users.googleId)));
 }
 
 /** Update a user's profile fields (name, country, timezone). Only provided fields are updated. */

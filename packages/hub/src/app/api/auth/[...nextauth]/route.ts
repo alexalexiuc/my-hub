@@ -1,7 +1,7 @@
 import NextAuth, { type AuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { verifyUserPassword, findOrCreateUser, findUserByEmail } from '@my-hub/shared/services';
+import { verifyUserPassword, findOrCreateUser, findUserByEmail, backfillUserGoogleId } from '@my-hub/shared/services';
 import { hubEnvConfig } from '@/config/env';
 
 export const authOptions: AuthOptions = {
@@ -33,12 +33,12 @@ export const authOptions: AuthOptions = {
       const email = user.email?.trim().toLowerCase();
       if (!email) return false;
 
-      // If the user already exists in the DB (registered via credentials/invite),
-      // allow Google login regardless of the whitelist — this links their Google
-      // account to their existing account.
+      // Single DB lookup to check if the user already exists (registered via credentials/invite).
+      // If they do, link their Google account without re-querying via findOrCreateUser.
       const existingUser = await findUserByEmail(email);
       if (existingUser) {
-        await findOrCreateUser(email, user.name ?? undefined, user.id);
+        // Backfill googleId if not yet set (single UPDATE, no-op if already set).
+        if (user.id) await backfillUserGoogleId(existingUser.id, user.id);
         return true;
       }
 
@@ -46,7 +46,7 @@ export const authOptions: AuthOptions = {
       if (hubEnvConfig.ALLOWED_EMAILS.length === 0) return false;
       if (!hubEnvConfig.ALLOWED_EMAILS.includes(email)) return false;
 
-      // Create user in database if they don't exist yet (first-time Google OAuth login).
+      // Create user in database for first-time whitelisted Google OAuth login.
       // user.id from the Google provider is the Google account ID (sub claim).
       await findOrCreateUser(email, user.name ?? undefined, user.id);
       return true;
