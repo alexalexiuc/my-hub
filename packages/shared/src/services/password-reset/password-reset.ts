@@ -63,7 +63,7 @@ export async function verifyPasswordResetToken(token: string): Promise<string | 
 export async function consumePasswordResetToken(token: string, newPassword: string): Promise<boolean> {
   const tokenHash = hashToken(token);
 
-  return db.transaction(async (tx) => {
+  return db.transaction(async tx => {
     const now = new Date();
 
     // Atomically claim the token and get the associated user ID.
@@ -81,14 +81,12 @@ export async function consumePasswordResetToken(token: string, newPassword: stri
 
     if (rows.length === 0) return false;
 
+    const { userId } = rows[0]!;
     const passwordHash = await hashSecret(newPassword);
 
     // Update the user's password in the same transaction so the token
     // claim and password change either both succeed or both roll back.
-    await tx
-      .update(users)
-      .set({ passwordHash, updatedAt: new Date() })
-      .where(eq(users.id, rows[0].userId));
+    await tx.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, userId));
 
     return true;
   });
