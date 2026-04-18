@@ -1,3 +1,5 @@
+import { sendEmail } from '../../send-email';
+
 export interface PasswordResetEmailData {
   resetUrl: string;
   expiryMinutes: number;
@@ -34,7 +36,6 @@ export function buildPasswordResetEmail({ resetUrl, expiryMinutes }: PasswordRes
 }
 
 export async function sendPasswordResetEmail(to: string, data: PasswordResetEmailData): Promise<void> {
-  const { sendEmail } = await import('../../send-email');
   await sendEmail({
     to,
     subject: 'Reset your My HUB password',

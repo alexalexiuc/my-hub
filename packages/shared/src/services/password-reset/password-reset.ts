@@ -1,16 +1,21 @@
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { and, eq, isNull, gt } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { passwordResetTokens } from '../../db/schema/password-reset-tokens';
 import { users } from '../../db/schema/users';
 import { hashSecret } from '../../crypto/';
 import { findUserByEmail } from '../users/users';
+import { PASSWORD_RESET_TOKEN_EXPIRY_MINUTES } from '../../constants/auth';
 
-const TOKEN_EXPIRY_MINUTES = 60;
+/** SHA-256 hash a plain token for safe storage in the database. */
+function hashToken(plainToken: string): string {
+  return createHash('sha256').update(plainToken).digest('hex');
+}
 
 /**
  * Creates a password reset token for the given email address.
- * Returns the plain token (to be sent via email) or null if the user doesn't exist.
+ * The token is hashed before storage; the plain token is returned to be sent via email.
+ * Returns null if the user doesn't exist.
  * To prevent user enumeration, callers should treat both cases identically in responses.
  */
 export async function createPasswordResetToken(email: string): Promise<string | null> {
@@ -18,11 +23,12 @@ export async function createPasswordResetToken(email: string): Promise<string | 
   if (!user) return null;
 
   const plainToken = randomBytes(32).toString('hex');
-  const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_MINUTES * 60 * 1000);
+  const tokenHash = hashToken(plainToken);
+  const expiresAt = new Date(Date.now() + PASSWORD_RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000);
 
   await db.insert(passwordResetTokens).values({
     userId: user.id,
-    token: plainToken,
+    token: tokenHash,
     expiresAt,
   });
 
@@ -34,10 +40,11 @@ export async function createPasswordResetToken(email: string): Promise<string | 
  * Returns null if the token is invalid, expired, or already used.
  */
 export async function verifyPasswordResetToken(token: string): Promise<string | null> {
+  const tokenHash = hashToken(token);
   const now = new Date();
   const row = await db.query.passwordResetTokens.findFirst({
     where: and(
-      eq(passwordResetTokens.token, token),
+      eq(passwordResetTokens.token, tokenHash),
       isNull(passwordResetTokens.usedAt),
       gt(passwordResetTokens.expiresAt, now),
     ),
@@ -53,6 +60,7 @@ export async function consumePasswordResetToken(token: string, newPassword: stri
   const userId = await verifyPasswordResetToken(token);
   if (!userId) return false;
 
+  const tokenHash = hashToken(token);
   const passwordHash = await hashSecret(newPassword);
   const now = new Date();
 
@@ -62,7 +70,7 @@ export async function consumePasswordResetToken(token: string, newPassword: stri
     .set({ usedAt: now })
     .where(
       and(
-        eq(passwordResetTokens.token, token),
+        eq(passwordResetTokens.token, tokenHash),
         isNull(passwordResetTokens.usedAt),
         gt(passwordResetTokens.expiresAt, now),
       ),

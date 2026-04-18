@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createPasswordResetToken, sendPasswordResetEmail } from '@my-hub/shared/services';
+import { PASSWORD_RESET_TOKEN_EXPIRY_MINUTES } from '@my-hub/shared/constants';
 import { withErrorLogging } from '@/lib/api/with-error-logging';
 import { hubEnvConfig } from '@/config/env';
-
-const TOKEN_EXPIRY_MINUTES = 60;
 
 async function forgotPasswordHandler(req: Request) {
   let body: Record<string, unknown>;
@@ -29,7 +28,7 @@ async function forgotPasswordHandler(req: Request) {
     const resetUrl = `${hubEnvConfig.HUB_URL}/auth/reset-password?token=${token}`;
     await sendPasswordResetEmail(normalizedEmail, {
       resetUrl,
-      expiryMinutes: TOKEN_EXPIRY_MINUTES,
+      expiryMinutes: PASSWORD_RESET_TOKEN_EXPIRY_MINUTES,
     });
   }
 

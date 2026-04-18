@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createPasswordResetToken } from '@my-hub/shared/services';
+import { hubEnvConfig } from '@/config/env';
 
 /**
  * Test-only endpoint: creates a password reset token for the given email.
@@ -7,7 +8,7 @@ import { createPasswordResetToken } from '@my-hub/shared/services';
  * GET /api/auth/test/reset-token?email=<email>
  */
 export async function GET(req: Request) {
-  if (process.env['NODE_ENV'] === 'production') {
+  if (hubEnvConfig.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
