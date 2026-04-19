@@ -62,7 +62,7 @@ export async function getSubscribedUserIds(subscriptionKey: SubscriptionKey): Pr
         eq(notificationPreferences.subscribed, false),
       ),
     )
-    .where(and(eq(users.active, true), isNull(notificationPreferences.id)));
+    .where(and(eq(users.active, true), eq(users.emailVerified, true), isNull(notificationPreferences.id)));
 
   return rows.map(r => r.id);
 }

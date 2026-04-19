@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server';
+import { PromiseCacheX } from 'promise-cachex';
 import { createPasswordResetToken, sendPasswordResetEmail } from '@my-hub/shared/services';
-import { PASSWORD_RESET_TOKEN_EXPIRY_MINUTES } from '@my-hub/shared/constants';
+import { PASSWORD_RESET_TOKEN_EXPIRY_MINUTES, RETRY_PWD_RESET_AFTER_MINS } from '@my-hub/shared/constants';
 import { ForgotPasswordSchema } from '@my-hub/shared/schemas';
 import { withErrorLogging, formatZodError } from '@/lib/api/with-error-logging';
 import { hubEnvConfig } from '@/config/env';
+
+const RATE_LIMIT_TTL_MS = RETRY_PWD_RESET_AFTER_MINS * 60 * 1000;
+
+// Keyed by normalised email → timestamp of first request. TTL = rate-limit window.
+const resetRateLimitCache = new PromiseCacheX<number>({
+  ttl: RATE_LIMIT_TTL_MS,
+  maxEntries: 1000,
+});
 
 async function forgotPasswordHandler(req: Request) {
   let body: unknown;
@@ -20,7 +29,18 @@ async function forgotPasswordHandler(req: Request) {
 
   const normalizedEmail = parsed.data.email.toLowerCase();
 
-  // createPasswordResetToken returns null if the user doesn't exist.
+  // Rate-limit: if this email already has a pending window, return retryAfter.
+  // We cache regardless of whether the email exists to prevent user enumeration.
+  if (resetRateLimitCache.has(normalizedEmail)) {
+    const requestedAt = await resetRateLimitCache.get(normalizedEmail, () => Date.now());
+    const retryAfter = Math.max(1, Math.ceil((requestedAt + RATE_LIMIT_TTL_MS - Date.now()) / 1000));
+    return NextResponse.json({ ok: true, retryAfter });
+  }
+
+  // Stamp the cache before the async work so concurrent requests are also rate-limited.
+  await resetRateLimitCache.get(normalizedEmail, () => Date.now());
+
+  // createPasswordResetToken returns null if the user doesn't exist or is blocked.
   // We always respond with 200 to prevent user enumeration.
   const token = await createPasswordResetToken(normalizedEmail);
 

@@ -1,6 +1,18 @@
 /** How long a password reset token is valid (in minutes). */
 export const PASSWORD_RESET_TOKEN_EXPIRY_MINUTES = 60;
 
+/** Minimum minutes a user must wait before requesting another password reset email. */
+export const RETRY_PWD_RESET_AFTER_MINS = 5;
+
+/** How long an email verification token is valid (in hours). */
+export const EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS = 24;
+
+/** Number of consecutive failed login attempts before the account is blocked. */
+export const MAX_FAILED_LOGIN_ATTEMPTS = 10;
+
+/** Number of consecutive password-reset requests without completion before the account is blocked. */
+export const MAX_FAILED_RESET_ATTEMPTS = 10;
+
 /** Minimum number of characters required for user passwords. */
 export const MIN_PASSWORD_LENGTH = 8;
 

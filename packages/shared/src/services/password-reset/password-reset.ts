@@ -5,35 +5,39 @@ import { passwordResetTokens } from '../../db/schema/password-reset-tokens';
 import { users } from '../../db/schema/users';
 import { hashSecret } from '../../crypto/';
 import { findUserByEmail } from '../users/users';
-import { PASSWORD_RESET_TOKEN_EXPIRY_MINUTES } from '../../constants/auth';
+import { PASSWORD_RESET_TOKEN_EXPIRY_MINUTES, MAX_FAILED_RESET_ATTEMPTS } from '../../constants/auth';
 
-/**
- * Hash a plain token using SHA-256 for secure database storage.
- * @param plainToken - The raw token string to hash
- * @returns Hex-encoded SHA-256 hash of the token
- */
 function hashToken(plainToken: string): string {
   return createHash('sha256').update(plainToken).digest('hex');
 }
 
 /**
  * Creates a password reset token for the given email address.
- * The token is hashed before storage; the plain token is returned to be sent via email.
- * Returns null if the user doesn't exist.
- * To prevent user enumeration, callers should treat both cases identically in responses.
+ * Returns null if the user doesn't exist or is blocked.
+ * Increments failedResetAttempts on each new request; resets when a token is successfully consumed.
+ * To prevent user enumeration, callers should treat null and non-null responses identically.
  */
 export async function createPasswordResetToken(email: string): Promise<string | null> {
   const user = await findUserByEmail(email);
   if (!user) return null;
+  if (user.blockedAt) return null;
+
+  const newResetCount = user.failedResetAttempts + 1;
+  if (newResetCount > MAX_FAILED_RESET_ATTEMPTS) {
+    await db.update(users).set({ blockedAt: new Date(), updatedAt: new Date() }).where(eq(users.id, user.id));
+    return null;
+  }
 
   const plainToken = randomBytes(32).toString('hex');
   const tokenHash = hashToken(plainToken);
   const expiresAt = new Date(Date.now() + PASSWORD_RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000);
 
-  await db.insert(passwordResetTokens).values({
-    userId: user.id,
-    token: tokenHash,
-    expiresAt,
+  await db.transaction(async tx => {
+    await tx.insert(passwordResetTokens).values({ userId: user.id, token: tokenHash, expiresAt });
+    await tx
+      .update(users)
+      .set({ failedResetAttempts: newResetCount, updatedAt: new Date() })
+      .where(eq(users.id, user.id));
   });
 
   return plainToken;
@@ -58,6 +62,7 @@ export async function verifyPasswordResetToken(token: string): Promise<string | 
 
 /**
  * Consumes a password reset token (marks it as used) and updates the user's password.
+ * Resets failedResetAttempts to 0 on success.
  * Returns true if the token was valid and the password was updated, false otherwise.
  */
 export async function consumePasswordResetToken(token: string, newPassword: string): Promise<boolean> {
@@ -84,9 +89,11 @@ export async function consumePasswordResetToken(token: string, newPassword: stri
     const { userId } = rows[0]!;
     const passwordHash = await hashSecret(newPassword);
 
-    // Update the user's password in the same transaction so the token
-    // claim and password change either both succeed or both roll back.
-    await tx.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, userId));
+    // Update password and reset the failed-reset counter in the same transaction.
+    await tx
+      .update(users)
+      .set({ passwordHash, failedResetAttempts: 0, updatedAt: new Date() })
+      .where(eq(users.id, userId));
 
     return true;
   });

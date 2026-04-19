@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
@@ -10,6 +10,28 @@ import { Button, Field, Input } from '@/components';
 
 export default function ForgotPasswordPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  function startCountdown(seconds: number) {
+    setCountdown(seconds);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
 
   const {
     register,
@@ -20,13 +42,20 @@ export default function ForgotPasswordPage() {
   });
 
   async function onSubmit(data: ForgotPasswordInput) {
-    await apiFetch('/api/auth/forgot-password', {
+    const res = await apiFetch<{ ok: boolean; retryAfter?: number }>('/api/auth/forgot-password', {
       method: 'POST',
       body: data,
       silentToast: true,
     });
+    if (res?.retryAfter) {
+      startCountdown(res.retryAfter);
+    }
     setSubmitted(true);
   }
+
+  const mins = Math.floor(countdown / 60);
+  const secs = countdown % 60;
+  const countdownLabel = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 
   return (
     <main className="relative flex min-h-screen items-center justify-center bg-zinc-950 overflow-hidden">
@@ -43,6 +72,11 @@ export default function ForgotPasswordPage() {
             <p className="text-sm text-zinc-400">
               If an account with that email exists, we&apos;ve sent a password reset link. Check your inbox.
             </p>
+            {countdown > 0 && (
+              <p className="text-xs text-zinc-500">
+                You can request another link in <span className="font-medium text-zinc-300">{countdownLabel}</span>.
+              </p>
+            )}
             <Link href="/auth/signin" className="text-sm text-indigo-400 hover:underline">
               Back to sign in
             </Link>

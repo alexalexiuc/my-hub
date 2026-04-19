@@ -31,6 +31,7 @@ ENV AWS_REGION=us-east-1
 ENV UNSUBSCRIBE_SECRET=build-placeholder
 ENV SES_FROM_EMAIL=noreply@placeholder.dev
 ENV HUB_URL=http://localhost:3000
+ENV E2E_TEST_EMAILS=
 
 RUN pnpm --filter @my-hub/shared build
 RUN pnpm --filter @my-hub/hub build

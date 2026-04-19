@@ -23,12 +23,32 @@ test.describe('Forgot Password', () => {
   });
 
   test('success message also shown for non-existent email (prevents enumeration)', async ({ page }) => {
+    // Use a distinct address so it is never in the server-side rate-limit cache from the previous test.
     await page.goto('/auth/forgot-password');
-    await page.getByLabel('Email').fill('nonexistent@example.com');
+    await page.getByLabel('Email').fill('nonexistent-enumeration@example.com');
     await page.getByRole('button', { name: /send reset link/i }).click();
 
     // Same success message — no information about whether user exists
     await expect(page.getByText(/check your inbox/i)).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('shows countdown when same email is submitted again within rate-limit window', async ({ page }) => {
+    // Use a timestamped address so each test run gets a fresh cache entry.
+    const email = `rate-limit-${Date.now()}@example.com`;
+
+    // ── 1. First submission — success, no countdown ───────────────────────────
+    await page.goto('/auth/forgot-password');
+    await page.getByLabel('Email').fill(email);
+    await page.getByRole('button', { name: /send reset link/i }).click();
+    await expect(page.getByText(/check your inbox/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/request another link in/i)).not.toBeVisible();
+
+    // ── 2. Second submission within window — countdown shown ──────────────────
+    await page.goto('/auth/forgot-password');
+    await page.getByLabel('Email').fill(email);
+    await page.getByRole('button', { name: /send reset link/i }).click();
+    await expect(page.getByText(/check your inbox/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/request another link in/i)).toBeVisible();
   });
 });
 

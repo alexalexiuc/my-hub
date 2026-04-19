@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
-import { createUserWithPassword, claimInviteToken, bindInviteTokenToUser } from '@my-hub/shared/services';
-import { PASSWORD_RULES } from '@my-hub/shared/constants';
+import {
+  createUserWithPassword,
+  claimInviteToken,
+  bindInviteTokenToUser,
+  createEmailVerificationToken,
+  sendEmailVerificationEmail,
+} from '@my-hub/shared/services';
+import { PASSWORD_RULES, EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS } from '@my-hub/shared/constants';
 import { withErrorLogging } from '@/lib/api/with-error-logging';
 import { hubEnvConfig } from '@/config/env';
 
@@ -63,6 +69,22 @@ async function registerHandler(req: Request) {
     if (needsToken && inviteToken) {
       await bindInviteTokenToUser(inviteToken, user.id);
     }
+
+    // Send email verification unless this is a known e2e test address.
+    const isTestEmail = hubEnvConfig.E2E_TEST_EMAILS.includes(normalizedEmail);
+    if (!isTestEmail) {
+      try {
+        const verificationToken = await createEmailVerificationToken(user.id);
+        const verifyUrl = `${hubEnvConfig.HUB_URL}/auth/verify-email?token=${verificationToken}`;
+        await sendEmailVerificationEmail(normalizedEmail, {
+          verifyUrl,
+          expiryHours: EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS,
+        });
+      } catch {
+        // Swallow — user is created; they can request a re-send later.
+      }
+    }
+
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Registration failed';
