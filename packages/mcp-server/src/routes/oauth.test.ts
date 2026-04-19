@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
-import type { AuthCodePayload } from '@my-hub/shared/auth';
+import type { AuthCodePayload, JWTPayload } from '@my-hub/shared/auth';
 
 // ---------------------------------------------------------------------------
 // Module mocks — must be declared before any imports that trigger the module
@@ -41,15 +41,17 @@ import {
   createRefreshToken,
   findRefreshToken,
   deleteRefreshToken,
+  DecryptedOAuthClient,
 } from '@my-hub/shared/services';
 import { signToken, verifyToken, verifyPkceS256 } from '@my-hub/shared/auth';
 import { oauthRoutes } from './oauth';
+import { OAuthRefreshToken, User } from '@my-hub/shared/types';
 
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
 
-const MOCK_CLIENT = {
+const MOCK_CLIENT: DecryptedOAuthClient = {
   id: 1,
   clientId: 'hub_test1234',
   tokenSigningSecret: 'test-signing-secret',
@@ -60,7 +62,7 @@ const MOCK_CLIENT = {
   createdAt: new Date(),
 };
 
-const MOCK_USER = {
+const MOCK_USER: User = {
   id: 'user-uuid-1',
   email: 'test@example.com',
   name: 'Test User',
@@ -71,9 +73,13 @@ const MOCK_USER = {
   timezone: null,
   createdAt: new Date(),
   updatedAt: new Date(),
+  emailVerified: true,
+  failedLoginAttempts: 0,
+  blockedAt: null,
+  failedResetAttempts: 0,
 };
 
-const MOCK_REFRESH_TOKEN_ROW = {
+const MOCK_REFRESH_TOKEN_ROW: OAuthRefreshToken = {
   id: 42,
   clientId: 'hub_test1234',
   userId: 'user-uuid-1',
@@ -222,8 +228,8 @@ describe('POST /token — authorization_code grant returns refresh_token', () =>
       redirect_uri: 'https://example.com/callback',
       code_challenge: 'challenge123',
       code_challenge_method: 'S256',
-      exp: Date.now() + 300_000,
-    } as AuthCodePayload);
+      exp: Math.floor(Date.now() / 1000) + 300,
+    } as AuthCodePayload & JWTPayload);
     vi.mocked(verifyPkceS256).mockResolvedValue(true);
 
     const response = await app.inject({

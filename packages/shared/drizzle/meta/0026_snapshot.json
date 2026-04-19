@@ -1,5 +1,5 @@
 {
-  "id": "3c5fa846-7d44-4002-a5d3-bf8332b404ea",
+  "id": "b2e998df-c8db-4faf-8da9-04924d6064fc",
   "prevId": "a35e500d-5a5d-4e2a-8925-9b629f5e2bd7",
   "version": "6",
   "dialect": "postgresql",
@@ -64,18 +64,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "email_verification_token": {
-          "name": "email_verification_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "email_verification_token_expires_at": {
-          "name": "email_verification_token_expires_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
         },
         "failed_login_attempts": {
           "name": "failed_login_attempts",

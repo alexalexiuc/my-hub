@@ -6,7 +6,7 @@ import {
   createEmailVerificationToken,
   sendEmailVerificationEmail,
 } from '@my-hub/shared/services';
-import { PASSWORD_RULES, EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS } from '@my-hub/shared/constants';
+import { PASSWORD_RULES, EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES } from '@my-hub/shared/constants';
 import { withErrorLogging } from '@/lib/api/with-error-logging';
 import { hubEnvConfig } from '@/config/env';
 
@@ -78,7 +78,7 @@ async function registerHandler(req: Request) {
         const verifyUrl = `${hubEnvConfig.HUB_URL}/auth/verify-email?token=${verificationToken}`;
         await sendEmailVerificationEmail(normalizedEmail, {
           verifyUrl,
-          expiryHours: EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS,
+          expiryHours: EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES / 60,
         });
       } catch {
         // Swallow — user is created; they can request a re-send later.

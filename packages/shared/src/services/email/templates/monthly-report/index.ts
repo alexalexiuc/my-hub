@@ -1,4 +1,4 @@
-import type { MonthlyReportData } from './types';
+import type { BuildMonthlyReportHtmlData } from './types';
 
 const MINUS = '\u2212';
 
@@ -97,7 +97,7 @@ body {
 `.trim();
 }
 
-function buildHeader(data: MonthlyReportData): string {
+function buildHeader(data: BuildMonthlyReportHtmlData): string {
   const pct = data.daysLogged > 0 ? (data.daysOnTarget / data.daysLogged) * 100 : 0;
   const onTrack = pct >= 50;
   const verdictClass = onTrack ? 'verdict-on-track' : 'verdict-over';
@@ -117,7 +117,7 @@ function buildHeader(data: MonthlyReportData): string {
   </div>`;
 }
 
-function buildSummary(data: MonthlyReportData): string {
+function buildSummary(data: BuildMonthlyReportHtmlData): string {
   const deficitLabel =
     data.monthlyDeficit >= 0
       ? `${MINUS}${fmt(Math.abs(data.monthlyDeficit))}`
@@ -159,7 +159,7 @@ function buildSummary(data: MonthlyReportData): string {
   </table>`;
 }
 
-function buildWeeklyBreakdown(data: MonthlyReportData): string {
+function buildWeeklyBreakdown(data: BuildMonthlyReportHtmlData): string {
   const BAR_SCALE = 4500;
   const goalLinePct = ((data.goalMaxCalories / BAR_SCALE) * 100).toFixed(1);
 
@@ -213,7 +213,7 @@ function buildWeeklyBreakdown(data: MonthlyReportData): string {
   </div>`;
 }
 
-function buildMacros(data: MonthlyReportData): string {
+function buildMacros(data: BuildMonthlyReportHtmlData): string {
   const avgKcal = data.avgDailyKcal || 1;
   const carbsPct = Math.round(((data.avgCarbs * 4) / avgKcal) * 100);
   const proteinPct = Math.round(((data.avgProtein * 4) / avgKcal) * 100);
@@ -319,7 +319,7 @@ function buildMonthlyWeightChartImg(
   return `<img src="${chartUrl}" width="520" style="width:100%;display:block;" alt="Weight trend chart" />`;
 }
 
-function buildWeightTrendChart(data: MonthlyReportData): string {
+function buildWeightTrendChart(data: BuildMonthlyReportHtmlData): string {
   const points = data.weightPoints;
   if (points.length < 2) {
     return `
@@ -362,7 +362,7 @@ function buildWeightTrendChart(data: MonthlyReportData): string {
   </div>`;
 }
 
-function buildCompositionProgress(data: MonthlyReportData): string {
+function buildCompositionProgress(data: BuildMonthlyReportHtmlData): string {
   const { startMeasurements: s, endMeasurements: e } = data;
 
   type Row = { label: string; unit: string; start: number | null; end: number | null; decimals: number };
@@ -411,7 +411,7 @@ function buildCompositionProgress(data: MonthlyReportData): string {
   </div>`;
 }
 
-function buildConsistency(data: MonthlyReportData): string {
+function buildConsistency(data: BuildMonthlyReportHtmlData): string {
   return `
   <div class="section-label">Calorie consistency</div>
   <div class="chart-block" style="margin-bottom:28px;">
@@ -428,7 +428,7 @@ function buildConsistency(data: MonthlyReportData): string {
   </div>`;
 }
 
-function buildOutlook(data: MonthlyReportData): string {
+function buildOutlook(data: BuildMonthlyReportHtmlData): string {
   const dailyDeficit = data.tdee - data.goalMaxCalories;
   const projectedMonthlyKgChange = (dailyDeficit * 30) / 7700;
   const currentWeight = data.endMeasurements.weight;
@@ -464,16 +464,17 @@ function buildOutlook(data: MonthlyReportData): string {
   </div>`;
 }
 
-function buildFooter(data: MonthlyReportData): string {
+function buildFooter(data: BuildMonthlyReportHtmlData): string {
+  if (!data.urls) return '';
   return `
   <div class="footer">
     hub.alexiuc.dev &middot; calories module<br>
     ${data.monthLabel} &middot; Auto-generated<br>
-    <a href="${data.unsubscribeUrl}">Unsubscribe</a> &middot; <a href="${data.viewInAppUrl}">View in app</a>
+    <a href="${data.urls.unsubscribeUrl}">Unsubscribe</a> &middot; <a href="${data.urls.viewInAppUrl}">View in app</a>
   </div>`;
 }
 
-export function buildMonthlyReportHtml(data: MonthlyReportData, options?: { hideFooter?: boolean }): string {
+export function buildMonthlyReportHtml(data: BuildMonthlyReportHtmlData): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -494,7 +495,7 @@ ${buildWeightTrendChart(data)}
 ${buildCompositionProgress(data)}
 ${buildConsistency(data)}
 ${buildOutlook(data)}
-${options?.hideFooter ? '' : buildFooter(data)}
+${data.urls ? buildFooter(data) : ''}
 </div>
 </body>
 </html>`;

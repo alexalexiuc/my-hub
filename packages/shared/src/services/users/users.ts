@@ -1,10 +1,10 @@
 import { eq, inArray, isNull, and } from 'drizzle-orm';
-import { createHash, randomBytes } from 'crypto';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
 import { hashSecret, verifySecret } from '../../crypto/';
 import type { User } from '../../types';
-import { MAX_FAILED_LOGIN_ATTEMPTS, EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS } from '../../constants/auth';
+import { MAX_FAILED_LOGIN_ATTEMPTS } from '../../constants/auth';
+import { generateEmailVerificationToken, verifyEmailVerificationToken } from './email-verification-token';
 
 export async function findUserByEmail(email: string): Promise<User | undefined> {
   return db.query.users.findFirst({
@@ -135,54 +135,28 @@ export async function verifyUserEmail(userId: string): Promise<void> {
     .update(users)
     .set({
       emailVerified: true,
-      emailVerificationToken: null,
-      emailVerificationTokenExpiresAt: null,
       updatedAt: new Date(),
     })
     .where(eq(users.id, userId));
 }
 
 /**
- * Creates an email verification token for the given user.
- * Stores a SHA-256 hash of the plain token; returns the plain token to send via email.
+ * Generates a stateless HMAC email verification token for the given user.
+ * No DB write — token embeds userId and expiry, signed with EMAIL_VERIFICATION_SECRET.
  */
 export async function createEmailVerificationToken(userId: string): Promise<string> {
-  const plainToken = randomBytes(32).toString('hex');
-  const tokenHash = createHash('sha256').update(plainToken).digest('hex');
-  const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
-
-  await db
-    .update(users)
-    .set({ emailVerificationToken: tokenHash, emailVerificationTokenExpiresAt: expiresAt, updatedAt: new Date() })
-    .where(eq(users.id, userId));
-
-  return plainToken;
+  return generateEmailVerificationToken(userId);
 }
 
 /**
- * Consumes an email verification token and marks the user's email as verified.
+ * Verifies an email verification token and marks the user's email as verified.
  * Returns true if the token was valid and unexpired, false otherwise.
  */
-export async function consumeEmailVerificationToken(plainToken: string): Promise<boolean> {
-  const tokenHash = createHash('sha256').update(plainToken).digest('hex');
-  const now = new Date();
+export async function consumeEmailVerificationToken(token: string): Promise<boolean> {
+  const result = await verifyEmailVerificationToken(token);
+  if (!result) return false;
 
-  const user = await db.query.users.findFirst({
-    where: and(eq(users.emailVerificationToken, tokenHash), eq(users.emailVerified, false)),
-  });
-
-  if (!user) return false;
-  if (!user.emailVerificationTokenExpiresAt || user.emailVerificationTokenExpiresAt < now) return false;
-
-  await db
-    .update(users)
-    .set({
-      emailVerified: true,
-      emailVerificationToken: null,
-      emailVerificationTokenExpiresAt: null,
-      updatedAt: now,
-    })
-    .where(eq(users.id, user.id));
+  await db.update(users).set({ emailVerified: true, updatedAt: new Date() }).where(eq(users.id, result.userId));
 
   return true;
 }

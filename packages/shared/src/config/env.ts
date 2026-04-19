@@ -23,4 +23,7 @@ export const sharedEnvConfig = {
   get SES_FROM_EMAIL() {
     return getEnvVar('SES_FROM_EMAIL');
   },
+  get EMAIL_VERIFICATION_SECRET() {
+    return getEnvVar('EMAIL_VERIFICATION_SECRET');
+  },
 };

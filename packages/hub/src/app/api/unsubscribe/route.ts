@@ -17,7 +17,7 @@ h1{margin:0 0 12px;font-size:20px}p{margin:0;color:#8ca0b5;font-size:14px}a{colo
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const token = req.nextUrl.searchParams.get('token') ?? '';
-  const result = verifyUnsubscribeToken(token);
+  const result = await verifyUnsubscribeToken(token);
 
   if (!result || !validKeys.has(result.subscriptionKey)) {
     return htmlResponse(

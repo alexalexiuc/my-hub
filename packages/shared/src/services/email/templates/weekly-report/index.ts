@@ -1,5 +1,5 @@
 import { MeasurementTypes } from '../../../../constants';
-import type { WeeklyReportData, WeightPoint } from './types';
+import type { BuildWeeklyReportHtmlData, WeightPoint } from './types';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -296,7 +296,7 @@ body {
 
 // ─── Section builders ────────────────────────────────────────────────────────
 
-function buildHeader(data: WeeklyReportData): string {
+function buildHeader(data: BuildWeeklyReportHtmlData): string {
   const daysWithData = data.days.filter(d => d.hasData);
   const avgDailyKcal = daysWithData.length > 0 ? daysWithData.reduce((s, d) => s + d.kcal, 0) / daysWithData.length : 0;
   const onTrack = avgDailyKcal <= data.goalMaxCalories;
@@ -317,7 +317,7 @@ function buildHeader(data: WeeklyReportData): string {
   </div>`;
 }
 
-function buildSummary(data: WeeklyReportData): string {
+function buildSummary(data: BuildWeeklyReportHtmlData): string {
   const daysWithData = data.days.filter(d => d.hasData);
   const totalKcal = daysWithData.reduce((s, d) => s + d.kcal, 0);
   const avgDailyKcal = daysWithData.length > 0 ? Math.round(totalKcal / daysWithData.length) : 0;
@@ -368,7 +368,7 @@ function buildSummary(data: WeeklyReportData): string {
   </table>`;
 }
 
-function buildBarChart(data: WeeklyReportData): string {
+function buildBarChart(data: BuildWeeklyReportHtmlData): string {
   const BAR_SCALE = 4500;
   const goalLinePct = ((data.goalMaxCalories / BAR_SCALE) * 100).toFixed(1);
 
@@ -428,7 +428,7 @@ function buildBarChart(data: WeeklyReportData): string {
   </div>`;
 }
 
-function buildMacros(data: WeeklyReportData): string {
+function buildMacros(data: BuildWeeklyReportHtmlData): string {
   const daysWithData = data.days.filter(d => d.hasData);
   const count = daysWithData.length || 1;
   const avgKcal = daysWithData.reduce((s, d) => s + d.kcal, 0) / count || 1;
@@ -474,7 +474,7 @@ function buildMacros(data: WeeklyReportData): string {
   </table>`;
 }
 
-function buildWeightSparkline(data: WeeklyReportData): string {
+function buildWeightSparkline(data: BuildWeeklyReportHtmlData): string {
   const points = data.weightPoints;
 
   // Header info
@@ -523,7 +523,7 @@ function buildWeightSparkline(data: WeeklyReportData): string {
   </div>`;
 }
 
-function buildWeightChartImg(points: WeightPoint[], data: WeeklyReportData): string {
+function buildWeightChartImg(points: WeightPoint[], data: BuildWeeklyReportHtmlData): string {
   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const dayValues: (number | null)[] = new Array(7).fill(null);
   const weekStartMs = new Date(data.weekStart.toISOString().slice(0, 10) + 'T00:00:00Z').getTime();
@@ -594,7 +594,7 @@ function buildWeightChartImg(points: WeightPoint[], data: WeeklyReportData): str
   return `<img src="${chartUrl}" width="520" style="width:100%;display:block;" alt="Weight chart" />`;
 }
 
-function buildMeasurements(data: WeeklyReportData): string {
+function buildMeasurements(data: BuildWeeklyReportHtmlData): string {
   const m = data.latestMeasurements;
   const fmtVal = (v: number | null | undefined, decimals = 1) => (v != null ? v.toFixed(decimals) : '—');
 
@@ -647,7 +647,7 @@ function buildMeasurements(data: WeeklyReportData): string {
   </table>`;
 }
 
-function buildOutlook(data: WeeklyReportData): string {
+function buildOutlook(data: BuildWeeklyReportHtmlData): string {
   const currentWeight = data.latestMeasurements[MeasurementTypes.Weight];
   const projectedWeight = currentWeight != null ? currentWeight - data.goalWeeklyRateKg : null;
   const dailyDeficit = data.tdee - data.goalMaxCalories;
@@ -687,18 +687,19 @@ function buildOutlook(data: WeeklyReportData): string {
   </div>`;
 }
 
-function buildFooter(data: WeeklyReportData): string {
+function buildFooter(data: BuildWeeklyReportHtmlData): string {
+  if (!data.urls) return '';
   return `
   <div class="footer">
     hub.alexiuc.dev &middot; calories module<br>
     Week ${data.weekNumber}, ${data.year} &middot; Auto-generated<br>
-    <a href="${data.unsubscribeUrl}">Unsubscribe</a> &middot; <a href="${data.viewInAppUrl}">View in app</a>
+    <a href="${data.urls.unsubscribeUrl}">Unsubscribe</a> &middot; <a href="${data.urls.viewInAppUrl}">View in app</a>
   </div>`;
 }
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
-export function buildWeeklyReportHtml(data: WeeklyReportData, options?: { hideFooter?: boolean }): string {
+export function buildWeeklyReportHtml(data: BuildWeeklyReportHtmlData): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -718,7 +719,7 @@ ${buildMacros(data)}
 ${buildWeightSparkline(data)}
 ${buildMeasurements(data)}
 ${buildOutlook(data)}
-${options?.hideFooter ? '' : buildFooter(data)}
+${data.urls ? '' : buildFooter(data)}
 </div>
 </body>
 </html>`;

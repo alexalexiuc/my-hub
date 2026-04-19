@@ -1,11 +1,11 @@
-import { verifyToken, McpTokenPayload } from '@my-hub/shared/auth';
+import { verifyToken, decodeTokenPayload, McpTokenPayload } from '@my-hub/shared/auth';
 import { findOAuthClient } from '@my-hub/shared/services';
 import { PromiseCacheX } from 'promise-cachex';
 import { createHash } from 'node:crypto';
 
 const AUTH_CACHE_TTL = 60_000 * 60 * 1; // 60 minutes
 
-const authCache = new PromiseCacheX<McpTokenPayload>({
+const authCache = new PromiseCacheX<McpTokenPayload & { exp?: number }>({
   ttl: AUTH_CACHE_TTL,
 });
 
@@ -14,19 +14,16 @@ function toTokenCacheKey(token: string): string {
   return `token:${digest}`;
 }
 
-export const cachedVerifyToken = async (token: string) => {
+export const cachedVerifyToken = async (token: string): Promise<McpTokenPayload & { exp?: number }> => {
   const key = toTokenCacheKey(token);
+
+  let isCacheMiss = false;
   const payload = await authCache.get(key, async () => {
+    isCacheMiss = true;
     // Step 1: Decode payload (no signature check yet) to extract client_id
     let clientId: string;
-    let rawPayload: Partial<McpTokenPayload>;
     try {
-      const dot = token.indexOf('.');
-      if (dot === -1) throw new Error('Malformed token: missing dot separator');
-      const payloadB64 = token.slice(0, dot);
-      const base64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
-      const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-      rawPayload = JSON.parse(Buffer.from(padded, 'base64').toString('utf-8')) as Partial<McpTokenPayload>;
+      const rawPayload = decodeTokenPayload<McpTokenPayload>(token);
       if (!rawPayload.client_id) throw new Error('Missing client_id in token payload');
       clientId = rawPayload.client_id;
     } catch (err) {
@@ -40,16 +37,19 @@ export const cachedVerifyToken = async (token: string) => {
     }
 
     // Step 3: Verify token signature + expiration
-    const payload = await verifyToken<McpTokenPayload>(token, client.tokenSigningSecret);
-    if (!payload) {
+    const verified = await verifyToken<McpTokenPayload>(token, client.tokenSigningSecret);
+    if (!verified) {
       throw new Error('Invalid or expired token');
     }
-    return payload;
+    return verified;
   });
-  // Verify token expiration and refresh cache if expired
-  if (payload.exp && payload.exp < Date.now()) {
-    authCache.delete(key);
-    throw new Error('Token has expired');
+
+  // Correct the cache TTL to match token expiry — authCache.get stored with default TTL.
+  // Only on a cache miss; hits already have the correct TTL from the initial set.
+  if (isCacheMiss && payload.exp) {
+    const ttl = Math.max(0, payload.exp * 1000 - Date.now());
+    authCache.set(key, payload, { ttl });
   }
+
   return payload;
 };

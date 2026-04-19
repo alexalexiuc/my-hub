@@ -83,6 +83,7 @@ services:
       S3_LOGS_BUCKET: ${S3_LOGS_BUCKET:-}
       DOCKER_LOGS_DIR: /host/containers
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
+      EMAIL_VERIFICATION_SECRET: ${EMAIL_VERIFICATION_SECRET:?EMAIL_VERIFICATION_SECRET is required}
     depends_on:
       db:
         condition: service_healthy
@@ -129,6 +130,7 @@ services:
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
       SES_FROM_EMAIL: ${SES_FROM_EMAIL:?SES_FROM_EMAIL is required}
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
+      EMAIL_VERIFICATION_SECRET: ${EMAIL_VERIFICATION_SECRET:?EMAIL_VERIFICATION_SECRET is required}
     depends_on:
       db:
         condition: service_healthy
@@ -180,6 +182,7 @@ services:
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
       SES_FROM_EMAIL: ${SES_FROM_EMAIL:?SES_FROM_EMAIL is required}
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
+      EMAIL_VERIFICATION_SECRET: ${EMAIL_VERIFICATION_SECRET:?EMAIL_VERIFICATION_SECRET is required}
     depends_on:
       db:
         condition: service_healthy

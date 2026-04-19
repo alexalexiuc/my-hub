@@ -20,18 +20,18 @@ export async function sendCaloriesMonthlyReports(): Promise<void> {
 
   for (const userId of userIds) {
     try {
-      const monthStartStr = toUTCDateStr(monthStart);
-      const urls = {
-        unsubscribeUrl: `${workerEnvConfig.HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(userId, 'calories_monthly_report')}`,
-        viewInAppUrl: `${workerEnvConfig.HUB_URL}/calories/reports/monthly?monthStart=${monthStartStr}`,
-      };
-      const data = await fetchMonthlyReportCaloriesData(userId, monthStart, urls);
+      const data = await fetchMonthlyReportCaloriesData(userId, monthStart);
       if (!data) {
         skipped++;
         continue;
       }
 
-      const html = buildMonthlyReportHtml(data);
+      const monthStartStr = toUTCDateStr(monthStart);
+      const urls = {
+        unsubscribeUrl: `${workerEnvConfig.HUB_URL}/api/unsubscribe?token=${await generateUnsubscribeToken(userId, 'calories_monthly_report')}`,
+        viewInAppUrl: `${workerEnvConfig.HUB_URL}/calories/reports/monthly?monthStart=${monthStartStr}`,
+      };
+      const html = buildMonthlyReportHtml({ ...data, urls });
       await sendEmail({
         to: data.userEmail,
         subject: `Monthly Calories Report — ${data.monthLabel}`,

@@ -37,6 +37,11 @@ export interface WeeklyReportData {
   /** Most recent weight measurement from the week prior (for delta) */
   priorWeekWeight: number | null;
   userEmail: string;
-  unsubscribeUrl: string;
-  viewInAppUrl: string;
 }
+
+export type BuildWeeklyReportHtmlData = Omit<WeeklyReportData, 'userEmail'> & {
+  urls?: {
+    unsubscribeUrl: string;
+    viewInAppUrl: string;
+  };
+};

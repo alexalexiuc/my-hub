@@ -18,11 +18,7 @@ import { MeasurementTypes } from '../../constants/index.js';
  * Fetches all data needed to build a weekly calorie report.
  * Returns null if the user logged zero meals in the week.
  */
-export async function fetchWeeklyReportCaloriesData(
-  userId: string,
-  weekStart: Date,
-  urls: { unsubscribeUrl: string; viewInAppUrl: string },
-): Promise<WeeklyReportData | null> {
+export async function fetchWeeklyReportCaloriesData(userId: string, weekStart: Date): Promise<WeeklyReportData | null> {
   const weekEnd = addDays(weekStart, 6);
   const weekStartStr = toUTCDateStr(weekStart);
   const weekEndStr = toUTCDateStr(weekEnd);
@@ -135,7 +131,6 @@ export async function fetchWeeklyReportCaloriesData(
     latestMeasurements,
     priorWeekWeight,
     userEmail: user.email,
-    ...urls,
   };
 }
 
@@ -168,7 +163,6 @@ function longestConsecutiveStreak(loggedDates: Set<string>, year: number, month:
 export async function fetchMonthlyReportCaloriesData(
   userId: string,
   monthStart: Date,
-  urls: { unsubscribeUrl: string; viewInAppUrl: string },
 ): Promise<MonthlyReportData | null> {
   const year = monthStart.getUTCFullYear();
   const month = monthStart.getUTCMonth() + 1; // 1-12
@@ -342,6 +336,5 @@ export async function fetchMonthlyReportCaloriesData(
     startMeasurements,
     endMeasurements,
     userEmail: user.email,
-    ...urls,
   };
 }
