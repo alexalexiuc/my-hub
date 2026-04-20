@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch, ApiError } from '@/lib/utils';
 import Link from 'next/link';
-import type { CalorieProfile, MealLog, MeasurementType, User } from '@my-hub/shared/types';
+import type { CalorieProfile, MealLog, MeasurementType } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { calculateCalorieTargets, dateToString, getCurrentWeekDays } from '@my-hub/shared/utils';
 import { IconButton, PageHeader } from '@/components';
@@ -18,7 +18,6 @@ import { WeightChart } from './WeightChart';
 
 export default function CaloriesDashboardPage() {
   const [profile, setProfile] = useState<CalorieProfile | null>(null);
-  const [userProfile, setUserProfile] = useState<Pick<User, 'country' | 'timezone'> | null>(null);
   const [latestMeasurements, setLatestMeasurements] = useState<MeasurementWithType[]>([]);
   const [meals, setMeals] = useState<MealLog[]>([]);
   const [weeklyMeals, setWeeklyMeals] = useState<MealLog[]>([]);
@@ -48,7 +47,7 @@ export default function CaloriesDashboardPage() {
   const loadData = useCallback(async () => {
     try {
       const date = selectedDateRef.current;
-      const [profileData, mealsData, typesData, weeklyData, weightData, userProfileData] = await Promise.all([
+      const [profileData, mealsData, typesData, weeklyData, weightData] = await Promise.all([
         apiFetch<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>('/api/calories/profile'),
         apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date, limit: 100 } }),
         apiFetch<{ types: MeasurementType[] }>('/api/calories/measurement-types'),
@@ -56,11 +55,9 @@ export default function CaloriesDashboardPage() {
         apiFetch<{ measurements: MeasurementWithType[] }>('/api/calories/measurements', {
           query: { type: 'weight', limit: 30 },
         }),
-        apiFetch<{ user: Pick<User, 'country' | 'timezone'> }>('/api/users/profile').catch(() => ({ user: null })),
       ]);
 
       setProfile(profileData.profile);
-      setUserProfile(userProfileData.user);
       setLatestMeasurements(profileData.measurements);
       if (selectedDateRef.current === date) {
         setMeals(mealsData.meals);
@@ -201,12 +198,7 @@ export default function CaloriesDashboardPage() {
       />
 
       {/* Settings (profile) — at the bottom */}
-      <ProfileCard
-        profile={profile}
-        userProfile={userProfile}
-        latestMeasurements={latestMeasurements}
-        onUpdated={loadData}
-      />
+      <ProfileCard profile={profile} latestMeasurements={latestMeasurements} onUpdated={loadData} />
     </main>
   );
 }

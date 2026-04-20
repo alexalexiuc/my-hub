@@ -4,25 +4,16 @@ import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import type { CalorieProfile, User } from '@my-hub/shared/types';
+import type { CalorieProfile } from '@my-hub/shared/types';
 import { apiFetch } from '@/lib/utils';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { calculateCalorieTargets, calculateBMR } from '@my-hub/shared/utils';
-import {
-  ActivityLevel,
-  ActivityLevels,
-  COUNTRIES,
-  GoalType,
-  GoalTypes,
-  Sexes,
-  TIMEZONES,
-} from '@my-hub/shared/constants';
+import { ActivityLevel, ActivityLevels, GoalType, GoalTypes, Sexes } from '@my-hub/shared/constants';
 import { SectionCard, Field, Button, Input, Select, Textarea } from '@/components';
 import { pctToGrams, gramsToPct, computeMacroSummary } from './calories.utils';
 
 interface Props {
   profile: CalorieProfile | null;
-  userProfile: Pick<User, 'country' | 'timezone'> | null;
   latestMeasurements: MeasurementWithType[];
   onUpdated: () => void;
 }
@@ -50,9 +41,6 @@ const GOAL_LABELS: Record<GoalType, string> = {
   [GoalTypes.WeightGain]: 'Gain weight',
 };
 
-const TIMEZONE_LABELS: Record<string, string> = Object.fromEntries(TIMEZONES.map(t => [t.value, t.label]));
-const COUNTRY_LABELS: Record<string, string> = Object.fromEntries(COUNTRIES.map(c => [c.value, c.label]));
-
 const ProfileFormSchema = z.object({
   age: z.string(),
   sex: z.string(),
@@ -66,13 +54,11 @@ const ProfileFormSchema = z.object({
   goalCarbs: z.string(),
   goalFat: z.string(),
   notes: z.string(),
-  country: z.string(),
-  timezone: z.string(),
 });
 
 type ProfileFormValues = z.infer<typeof ProfileFormSchema>;
 
-function buildFormValues(profile: Props['profile'], userProfile: Props['userProfile']): ProfileFormValues {
+function buildFormValues(profile: Props['profile']): ProfileFormValues {
   return {
     age: profile?.age?.toString() ?? '',
     sex: profile?.sex ?? '',
@@ -86,12 +72,10 @@ function buildFormValues(profile: Props['profile'], userProfile: Props['userProf
     goalCarbs: profile?.goalCarbs?.toString() ?? '',
     goalFat: profile?.goalFat?.toString() ?? '',
     notes: profile?.notes ?? '',
-    country: userProfile?.country ?? '',
-    timezone: userProfile?.timezone ?? '',
   };
 }
 
-export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdated }: Props) {
+export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
   const [editing, setEditing] = useState(false);
   const [macroMode, setMacroMode] = useState<'g' | '%'>('g');
 
@@ -105,7 +89,7 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
     formState: { isSubmitting },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(ProfileFormSchema),
-    defaultValues: buildFormValues(profile, userProfile),
+    defaultValues: buildFormValues(profile),
   });
 
   const goalType = watch('goalType');
@@ -159,44 +143,35 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
   }
 
   async function save(values: ProfileFormValues) {
-    await Promise.all([
-      apiFetch('/api/calories/profile', {
-        method: 'PUT',
-        body: {
-          age: values.age ? Number(values.age) : undefined,
-          sex: values.sex || undefined,
-          heightCm: values.heightCm ? Number(values.heightCm) : undefined,
-          activityLevel: values.activityLevel || undefined,
-          goalType: values.goalType || undefined,
-          goalWeeklyRateKg: values.goalWeeklyRateKg ? Number(values.goalWeeklyRateKg) : undefined,
-          goalMinCalories: values.goalMinCalories ? Math.round(Number(values.goalMinCalories)) : null,
-          goalMaxCalories: values.goalMaxCalories ? Math.round(Number(values.goalMaxCalories)) : null,
-          goalProtein: values.goalProtein
-            ? Number(macroMode === '%' ? pctToGrams(values.goalProtein, 4, maxCalNum ?? 0) : values.goalProtein)
-            : null,
-          goalCarbs: values.goalCarbs
-            ? Number(macroMode === '%' ? pctToGrams(values.goalCarbs, 4, maxCalNum ?? 0) : values.goalCarbs)
-            : null,
-          goalFat: values.goalFat
-            ? Number(macroMode === '%' ? pctToGrams(values.goalFat, 9, maxCalNum ?? 0) : values.goalFat)
-            : null,
-          notes: values.notes || undefined,
-        },
-      }),
-      apiFetch('/api/users/profile', {
-        method: 'PUT',
-        body: {
-          country: values.country || null,
-          timezone: values.timezone || null,
-        },
-      }),
-    ]);
+    await apiFetch('/api/calories/profile', {
+      method: 'PUT',
+      body: {
+        age: values.age ? Number(values.age) : undefined,
+        sex: values.sex || undefined,
+        heightCm: values.heightCm ? Number(values.heightCm) : undefined,
+        activityLevel: values.activityLevel || undefined,
+        goalType: values.goalType || undefined,
+        goalWeeklyRateKg: values.goalWeeklyRateKg ? Number(values.goalWeeklyRateKg) : undefined,
+        goalMinCalories: values.goalMinCalories ? Math.round(Number(values.goalMinCalories)) : null,
+        goalMaxCalories: values.goalMaxCalories ? Math.round(Number(values.goalMaxCalories)) : null,
+        goalProtein: values.goalProtein
+          ? Number(macroMode === '%' ? pctToGrams(values.goalProtein, 4, maxCalNum ?? 0) : values.goalProtein)
+          : null,
+        goalCarbs: values.goalCarbs
+          ? Number(macroMode === '%' ? pctToGrams(values.goalCarbs, 4, maxCalNum ?? 0) : values.goalCarbs)
+          : null,
+        goalFat: values.goalFat
+          ? Number(macroMode === '%' ? pctToGrams(values.goalFat, 9, maxCalNum ?? 0) : values.goalFat)
+          : null,
+        notes: values.notes || undefined,
+      },
+    });
     setEditing(false);
     onUpdated();
   }
 
   function openEdit() {
-    reset(buildFormValues(profile, userProfile));
+    reset(buildFormValues(profile));
     setMacroMode('g');
     setEditing(true);
   }
@@ -233,12 +208,6 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
                   value={ACTIVITY_LABELS[profile!.activityLevel!] ?? profile!.activityLevel!}
                   hint={ACTIVITY_DESCRIPTIONS[profile!.activityLevel!]}
                 />
-              )}
-              {userProfile?.timezone && (
-                <Stat label="Timezone" value={TIMEZONE_LABELS[userProfile.timezone] ?? userProfile.timezone} />
-              )}
-              {userProfile?.country && (
-                <Stat label="Country" value={COUNTRY_LABELS[userProfile.country] ?? userProfile.country} />
               )}
             </div>
 
@@ -463,20 +432,6 @@ export function ProfileCard({ profile, userProfile, latestMeasurements, onUpdate
         <Field label="Notes" className="col-span-2">
           <Textarea rows={2} {...register('notes')} />
         </Field>
-
-        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide pt-1">Location</p>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Country">
-            <Select {...register('country')} options={COUNTRIES}>
-              <option value="">— not set —</option>
-            </Select>
-          </Field>
-          <Field label="Timezone">
-            <Select {...register('timezone')} options={TIMEZONES}>
-              <option value="">— not set —</option>
-            </Select>
-          </Field>
-        </div>
 
         <div className="flex gap-2">
           <Button type="submit" loading={isSubmitting} disabled={!!macroWarning}>

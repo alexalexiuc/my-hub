@@ -32,9 +32,7 @@ async function forgotPasswordHandler(req: Request) {
   // without re-triggering token creation or email delivery.
   // createPasswordResetToken returns null if the user doesn't exist or is blocked.
   // We always respond with 200 to prevent user enumeration.
-  let isNewRequest = false;
-  await resetCache.get(normalizedEmail, async () => {
-    isNewRequest = true;
+  const requestSentAt = await resetCache.get(normalizedEmail, async () => {
     const token = await createPasswordResetToken(normalizedEmail);
     if (token) {
       const resetUrl = `${hubEnvConfig.HUB_URL}/auth/reset-password?token=${token}`;
@@ -47,9 +45,10 @@ async function forgotPasswordHandler(req: Request) {
         // Swallow email send errors — the response is always 200 to prevent user enumeration.
       }
     }
+    return Date.now();
   });
 
-  const retryAfter = isNewRequest ? undefined : Math.ceil(RATE_LIMIT_TTL_MS / 1000);
+  const retryAfter = Math.ceil((RATE_LIMIT_TTL_MS - (Date.now() - requestSentAt)) / 1000);
   return NextResponse.json({ ok: true, ...(retryAfter !== undefined && { retryAfter }) });
 }
 

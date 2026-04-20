@@ -101,8 +101,6 @@ test.describe('Calories Dashboard', () => {
     await profileSection.getByRole('spinbutton', { name: /rate/i }).fill('0.5');
     await profileSection.getByRole('spinbutton', { name: /min calories\/day/i }).fill('1400');
     await profileSection.getByRole('spinbutton', { name: /max calories\/day/i }).fill('1900');
-    await profileSection.getByRole('combobox', { name: /country/i }).selectOption('RO');
-    await profileSection.getByRole('combobox', { name: /timezone/i }).selectOption('+2');
     await profileSection
       .getByRole('button', { name: /^save$/i })
       .first()
@@ -125,7 +123,5 @@ test.describe('Calories Dashboard', () => {
     await expect(reloadedProfileSection.getByRole('spinbutton', { name: /rate/i })).toHaveValue('0.5');
     await expect(reloadedProfileSection.getByRole('spinbutton', { name: /min calories\/day/i })).toHaveValue('1400');
     await expect(reloadedProfileSection.getByRole('spinbutton', { name: /max calories\/day/i })).toHaveValue('1900');
-    await expect(reloadedProfileSection.getByRole('combobox', { name: /country/i })).toHaveValue('RO');
-    await expect(reloadedProfileSection.getByRole('combobox', { name: /timezone/i })).toHaveValue('+2');
   });
 });

@@ -1,4 +1,4 @@
-import { eq, inArray, isNull, and } from 'drizzle-orm';
+import { eq, inArray, isNull, and, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
 import { hashSecret, verifySecret } from '../../crypto/';
@@ -68,10 +68,14 @@ export async function verifyUserPassword(email: string, password: string): Promi
     return user;
   }
 
-  const newCount = user.failedLoginAttempts + 1;
-  const patch: Partial<typeof users.$inferInsert> = { failedLoginAttempts: newCount, updatedAt: new Date() };
-  if (newCount >= MAX_FAILED_LOGIN_ATTEMPTS) patch.blockedAt = new Date();
-  await db.update(users).set(patch).where(eq(users.id, user.id));
+  await db
+    .update(users)
+    .set({
+      failedLoginAttempts: sql`${users.failedLoginAttempts} + 1`,
+      blockedAt: sql`CASE WHEN ${users.failedLoginAttempts} + 1 >= ${MAX_FAILED_LOGIN_ATTEMPTS} THEN NOW() ELSE ${users.blockedAt} END`,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, user.id));
 
   return null;
 }

@@ -3,3 +3,4 @@ export * from './calories';
 export * from './apiary';
 export * from './todo';
 export * from './auth';
+export * from './users';

@@ -9,6 +9,7 @@ import {
 import { PASSWORD_RULES, EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES } from '@my-hub/shared/constants';
 import { withErrorLogging } from '@/lib/api/with-error-logging';
 import { hubEnvConfig } from '@/config/env';
+import { logger } from '@my-hub/shared/utils';
 
 async function registerHandler(req: Request) {
   let body: Record<string, unknown>;
@@ -79,8 +80,14 @@ async function registerHandler(req: Request) {
           verifyUrl,
           expiryHours: EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES / 60,
         });
-      } catch {
-        // Swallow — user is created; they can request a re-send later.
+      } catch (err) {
+        // Registration succeeds even if verification delivery fails, but this
+        // must be reported because no resend flow is implemented here.
+        logger.error('Failed to send email verification after registration', {
+          userId: user.id,
+          email: normalizedEmail,
+          error: err instanceof Error ? err.message : err,
+        });
       }
     }
 

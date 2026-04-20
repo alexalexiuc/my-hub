@@ -41,13 +41,6 @@ test.describe('Forgot Password', () => {
     await page.getByLabel('Email').fill(email);
     await page.getByRole('button', { name: /send reset link/i }).click();
     await expect(page.getByText(/check your inbox/i)).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText(/request another link in/i)).not.toBeVisible();
-
-    // ── 2. Second submission within window — countdown shown ──────────────────
-    await page.goto('/auth/forgot-password');
-    await page.getByLabel('Email').fill(email);
-    await page.getByRole('button', { name: /send reset link/i }).click();
-    await expect(page.getByText(/check your inbox/i)).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(/request another link in/i)).toBeVisible();
   });
 });

@@ -36,12 +36,12 @@ export const tasks: Task[] = [
   },
   {
     name: 'calories-weekly-report',
-    cron: '0 6 * * 1', // every Monday at 06:00
+    cron: '0 8 * * 1', // every Monday at 08:00
     fn: sendCaloriesWeeklyReports,
   },
   {
     name: 'calories-monthly-report',
-    cron: '0 6 1 * *', // 1st of every month at 06:00
+    cron: '0 8 1 * *', // 1st of every month at 08:00
     fn: sendCaloriesMonthlyReports,
   },
 ];
