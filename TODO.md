@@ -31,4 +31,6 @@
 - [x] Add timestamp to logs or use a different tool instead of console.log for better log management and analysis.
 - [x] Consider using some form libraries instead of handling form state manually, to simplify code and improve maintainability (e.g. React Hook Form, Formik, etc.)
 - [ ] Add actual checkin/checkout time to avoid bookings overlap, like morning flight appearing before hotel checkout. Make sure to instruct models in mcp server to deduct those times when checking for overlaps, to avoid false positives.
-- [ ] Fix buttons mismatch on travel page
+- [ ] Add user email || id to the logs in mcp server for better traceability and debugging.
+- [ ] See why timestamp on error looks like this: [07:07:07.426]
+- [ ] Is "Session not found" in MCP Server an error, or more like a warning? If it's expected to happen sometimes (e.g. user not logged in), maybe it should be logged at a lower level than error, to avoid noise in the logs.

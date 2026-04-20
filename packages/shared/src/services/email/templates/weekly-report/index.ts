@@ -719,7 +719,7 @@ ${buildMacros(data)}
 ${buildWeightSparkline(data)}
 ${buildMeasurements(data)}
 ${buildOutlook(data)}
-${data.urls ? '' : buildFooter(data)}
+${data.urls ? buildFooter(data) : ''}
 </div>
 </body>
 </html>`;

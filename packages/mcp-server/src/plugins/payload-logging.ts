@@ -1,14 +1,6 @@
+import { REDACTED_PLACEHOLDER, SENSITIVE_FIELDS } from '../config/constants';
+
 const MAX_PAYLOAD_BYTES = 10_240; // 10 KB cap per payload field
-const REDACTED = '[REDACTED]';
-const SENSITIVE_FIELDS = new Set([
-  'client_name',
-  'client_secret',
-  'code',
-  'code_challenge',
-  'code_verifier',
-  'access_token',
-  'refresh_token',
-]);
 
 export function redactSensitiveFields(value: unknown): unknown {
   if (value === null || value === undefined) return value;
@@ -22,7 +14,7 @@ export function redactSensitiveFields(value: unknown): unknown {
     const output: Record<string, unknown> = {};
     for (const [key, nested] of Object.entries(input)) {
       if (SENSITIVE_FIELDS.has(key.toLowerCase())) {
-        output[key] = REDACTED;
+        output[key] = REDACTED_PLACEHOLDER;
       } else {
         output[key] = redactSensitiveFields(nested);
       }

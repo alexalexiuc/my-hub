@@ -240,7 +240,7 @@ export async function oauthRoutes(app: FastifyInstance) {
         JSON.stringify({
           access_token: accessToken,
           token_type: 'bearer',
-          expires_in: 86400,
+          expires_in: MCP_SERVER_TOKEN_EXPIRY_MIN * 60, // in seconds
           refresh_token: refreshToken,
         }),
       );
@@ -267,7 +267,7 @@ export async function oauthRoutes(app: FastifyInstance) {
       // Rotate: issue the new refresh token first, then delete the old one.
       // This ordering means that if the response fails mid-flight the old token
       // is still present and the client can retry — a deliberate tradeoff that
-      // priorities availability over strict single-use enforcement, which is
+      // prioritizes availability over strict single-use enforcement, which is
       // acceptable given the 30-day expiry and per-client scoping.
       const [tokenUser, newRefreshToken] = await Promise.all([
         findUserById(tokenRow.userId),

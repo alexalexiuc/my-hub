@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { PageHeader } from '@/components/PageHeader';
 import { SectionCard } from '@/components/SectionCard';
@@ -19,9 +19,12 @@ import { TripOverviewCards } from './TripOverviewCards';
 import { TripsSidebar } from './TripsSidebar';
 import { TravelOverviewSkeleton } from './TravelOverviewSkeleton';
 
+const ACTIVE_TRIP_KEY = 'travel:activeTripId';
+
 export default function TravelPage() {
   const [trips, setTrips] = useState<ApiTrip[]>([]);
   const [activeTripId, setActiveTripId] = useState<number | null>(null);
+  const activeTripIdRef = useRef<number | null>(null);
   const [overview, setOverview] = useState<TripOverviewResponse | null>(null);
   const [loadingTrips, setLoadingTrips] = useState(true);
   const [loadingOverview, setLoadingOverview] = useState(false);
@@ -42,33 +45,26 @@ export default function TravelPage() {
     return groups;
   }, [overview]);
 
-  const loadTrips = useCallback(async () => {
-    setLoadingTrips(true);
+  useEffect(() => {
     try {
-      const data = await apiFetch<{ trips: ApiTrip[]; bookingRanges?: BookingRange[] }>('/api/travel/trips');
-      setTrips(data.trips);
-      setTripBookingRanges(
-        Object.fromEntries((data.bookingRanges ?? []).map(range => [range.tripId, range])) as Record<
-          number,
-          BookingRange
-        >,
-      );
-      if (data.trips.length === 0) {
-        setActiveTripId(null);
-        setOverview(null);
-      } else if (!activeTripId || !data.trips.some(trip => trip.id === activeTripId)) {
-        const now = Date.now();
-        const upcoming = data.trips
-          .filter(t => t.startAt && new Date(t.startAt as unknown as string).getTime() >= now)
-          .sort(
-            (a, b) =>
-              new Date(a.startAt as unknown as string).getTime() - new Date(b.startAt as unknown as string).getTime(),
-          );
-        setActiveTripId((upcoming[0] ?? data.trips[0])!.id);
+      const stored = localStorage.getItem(ACTIVE_TRIP_KEY);
+      if (stored) {
+        const parsed = Number(stored);
+        setActiveTripId(parsed);
+        activeTripIdRef.current = parsed;
       }
-    } finally {
-      setLoadingTrips(false);
-    }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    activeTripIdRef.current = activeTripId;
+  }, [activeTripId]);
+
+  useEffect(() => {
+    try {
+      if (activeTripId != null) localStorage.setItem(ACTIVE_TRIP_KEY, String(activeTripId));
+      else localStorage.removeItem(ACTIVE_TRIP_KEY);
+    } catch {}
   }, [activeTripId]);
 
   const loadOverview = useCallback(async (tripId: number) => {
@@ -81,14 +77,56 @@ export default function TravelPage() {
     }
   }, []);
 
+  const selectTrip = useCallback(
+    async (tripId: number | null) => {
+      setActiveTripId(tripId);
+      activeTripIdRef.current = tripId;
+      if (!tripId) {
+        setOverview(null);
+        return;
+      }
+      await loadOverview(tripId);
+    },
+    [loadOverview],
+  );
+
+  const loadTrips = useCallback(async () => {
+    setLoadingTrips(true);
+    try {
+      const data = await apiFetch<{ trips: ApiTrip[]; bookingRanges?: BookingRange[] }>('/api/travel/trips');
+      setTrips(data.trips);
+      setTripBookingRanges(
+        Object.fromEntries((data.bookingRanges ?? []).map(range => [range.tripId, range])) as Record<
+          number,
+          BookingRange
+        >,
+      );
+
+      const currentTripId = activeTripIdRef.current;
+      if (data.trips.length === 0) {
+        await selectTrip(null);
+      } else {
+        let nextTripId = currentTripId;
+        if (!currentTripId || !data.trips.some(trip => trip.id === currentTripId)) {
+          const now = Date.now();
+          const upcoming = data.trips
+            .filter(t => t.startAt && new Date(t.startAt as unknown as string).getTime() >= now)
+            .sort(
+              (a, b) =>
+                new Date(a.startAt as unknown as string).getTime() - new Date(b.startAt as unknown as string).getTime(),
+            );
+          nextTripId = (upcoming[0] ?? data.trips[0])!.id;
+        }
+        await selectTrip(nextTripId);
+      }
+    } finally {
+      setLoadingTrips(false);
+    }
+  }, [selectTrip]);
+
   useEffect(() => {
     loadTrips();
   }, [loadTrips]);
-
-  useEffect(() => {
-    if (!activeTripId) return;
-    loadOverview(activeTripId);
-  }, [activeTripId, loadOverview]);
 
   function handleOverviewChanged() {
     if (activeTripId) loadOverview(activeTripId);
@@ -104,7 +142,7 @@ export default function TravelPage() {
         <TripsSidebar
           trips={trips}
           activeTripId={activeTripId}
-          onSelectTrip={setActiveTripId}
+          onSelectTrip={selectTrip}
           tripBookingRanges={tripBookingRanges}
           loadingTrips={loadingTrips}
           onTripsChanged={loadTrips}
@@ -112,7 +150,15 @@ export default function TravelPage() {
         />
 
         <div className="min-w-0 space-y-6">
-          {showOverviewSkeleton ? (
+          {!activeTripId ? (
+            <div
+              className={`flex items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900/50 p-16 text-center ${loadingTrips ? 'animate-pulse' : ''}`}
+            >
+              {!loadingTrips && (
+                <p className="text-zinc-500">No trips yet. Add your first trip using the form on the left.</p>
+              )}
+            </div>
+          ) : showOverviewSkeleton ? (
             <TravelOverviewSkeleton />
           ) : (
             <>

@@ -1,5 +1,5 @@
 {
-  "id": "b2e998df-c8db-4faf-8da9-04924d6064fc",
+  "id": "2d0cb1f4-d1ad-4f4e-a7f5-5d0bde535d3f",
   "prevId": "a35e500d-5a5d-4e2a-8925-9b629f5e2bd7",
   "version": "6",
   "dialect": "postgresql",
@@ -67,13 +67,6 @@
         },
         "failed_login_attempts": {
           "name": "failed_login_attempts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "failed_reset_attempts": {
-          "name": "failed_reset_attempts",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,

@@ -27,7 +27,7 @@ const bookingTypeLabels: Record<TripBookingType, string> = {
 type BookingFormProps = {
   defaultValues?: Partial<BookingFormValues>;
   onSubmit: (values: BookingFormValues) => Promise<void>;
-  onCancel: () => void;
+  onCancel?: () => void;
   submitLabel: string;
   disabled?: boolean;
 };
@@ -111,9 +111,11 @@ export function BookingForm({ defaultValues, onSubmit, onCancel, submitLabel, di
         <Button type="submit" size="xs" loading={isSubmitting} disabled={disabled || isSubmitting}>
           {submitLabel}
         </Button>
-        <Button type="button" variant="secondary" size="xs" onClick={onCancel}>
-          Cancel
-        </Button>
+        {onCancel && (
+          <Button type="button" variant="secondary" size="xs" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
       </div>
     </form>
   );

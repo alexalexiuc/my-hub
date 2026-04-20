@@ -51,7 +51,7 @@ export const sessionCleanupPlugin = fp(async app => {
     }
 
     const remaining = sessionActivity.size;
-    app.log.info({ removed, remaining }, 'MCP session cleanup completed');
+    app.log.debug({ removed, remaining }, 'MCP session cleanup completed');
   }, cleanupIntervalMs);
   // unref() allows the Node process to exit cleanly when no other work is pending
   // (e.g., during tests or graceful shutdown when the server is closed)

@@ -76,7 +76,6 @@ const MOCK_USER: User = {
   emailVerified: true,
   failedLoginAttempts: 0,
   blockedAt: null,
-  failedResetAttempts: 0,
 };
 
 const MOCK_REFRESH_TOKEN_ROW: OAuthRefreshToken = {
@@ -230,7 +229,7 @@ describe('POST /token — authorization_code grant returns refresh_token', () =>
       code_challenge_method: 'S256',
       exp: Math.floor(Date.now() / 1000) + 300,
     } as AuthCodePayload & JWTPayload);
-    vi.mocked(verifyPkceS256).mockResolvedValue(true);
+    vi.mocked(verifyPkceS256).mockReturnValue(true);
 
     const response = await app.inject({
       method: 'POST',

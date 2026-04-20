@@ -11,7 +11,6 @@ export const users = pgTable('users', {
   timezone: text('timezone'), // UTC offset string, e.g. '+2', '-5', '+5:30'
   emailVerified: boolean('email_verified').notNull().default(false),
   failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
-  failedResetAttempts: integer('failed_reset_attempts').notNull().default(0),
   blockedAt: timestamp('blocked_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

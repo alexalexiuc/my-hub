@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Button, IconButton, MultiButtonGroup, SectionCard } from '@/components';
-import { PencilIcon, PlusOutlineIcon, TrashIcon } from '@/components/icons';
+import { PencilIcon, TrashIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
 import type { Trip } from '@my-hub/shared/types';
 import type { ApiTrip, BookingRange } from './types';
@@ -30,7 +30,6 @@ export function TripsSidebar({
   onOverviewChanged,
 }: TripsSidebarProps) {
   const [editingTripId, setEditingTripId] = useState<number | null>(null);
-  const [showingCreateForm, setShowingCreateForm] = useState(false);
   const [filterMode, setFilterMode] = useState<'upcoming' | 'all'>('upcoming');
 
   const filteredTrips = useMemo(() => {
@@ -63,9 +62,12 @@ export function TripsSidebar({
   }, [trips, filterMode]);
 
   async function createTrip(values: TripFormValues) {
-    await apiFetch('/api/travel/trips', { method: 'POST', body: formToCreateBody(values) });
-    setShowingCreateForm(false);
+    const result = await apiFetch<{ trip: ApiTrip }>('/api/travel/trips', {
+      method: 'POST',
+      body: formToCreateBody(values),
+    });
     onTripsChanged();
+    if (result?.trip?.id) onSelectTrip(result.trip.id);
   }
 
   async function saveTripEdits(tripId: number, values: TripFormValues) {
@@ -83,18 +85,11 @@ export function TripsSidebar({
   return (
     <SectionCard title="Trips" className="bg-emerald-950/20 border-emerald-800/50">
       <div className="space-y-3">
-        {showingCreateForm ? (
-          <TripForm
-            onSubmit={createTrip}
-            onCancel={() => setShowingCreateForm(false)}
-            submitLabel="Create Trip"
-            submitClassName="bg-emerald-600 hover:bg-emerald-500"
-          />
-        ) : (
-          <Button variant="secondary" className="w-full" onClick={() => setShowingCreateForm(true)}>
-            <PlusOutlineIcon /> New Trip
-          </Button>
-        )}
+        <TripForm
+          onSubmit={createTrip}
+          submitLabel="Create Trip"
+          submitClassName="bg-emerald-600 hover:bg-emerald-500"
+        />
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-zinc-500">
@@ -111,8 +106,7 @@ export function TripsSidebar({
           />
         </div>
 
-        <div className="max-h-[420px] overflow-auto space-y-2">
-          {loadingTrips && <p className="text-sm text-zinc-500">Loading trips...</p>}
+        <div className="space-y-2 max-h-72 overflow-auto xl:max-h-none xl:overflow-visible pr-1 xl:pr-0">
           {!loadingTrips && filteredTrips.length === 0 && (
             <p className="text-sm text-zinc-500">
               {filterMode === 'upcoming' ? 'No upcoming trips.' : 'No trips yet.'}
@@ -127,13 +121,15 @@ export function TripsSidebar({
               style={{ borderColor: activeTripId === trip.id ? trip.color : undefined, borderLeftWidth: '4px' }}
             >
               {editingTripId === trip.id ? (
-                <TripForm
-                  defaultValues={tripToFormValues(trip as unknown as Trip)}
-                  onSubmit={values => saveTripEdits(trip.id, values)}
-                  onCancel={() => setEditingTripId(null)}
-                  submitLabel="Save"
-                  submitClassName="bg-emerald-600 hover:bg-emerald-500"
-                />
+                <div data-testid="trip-edit-form">
+                  <TripForm
+                    defaultValues={tripToFormValues(trip as unknown as Trip)}
+                    onSubmit={values => saveTripEdits(trip.id, values)}
+                    onCancel={() => setEditingTripId(null)}
+                    submitLabel="Save"
+                    submitClassName="bg-emerald-600 hover:bg-emerald-500"
+                  />
+                </div>
               ) : (
                 <div className="space-y-1">
                   <div className="flex items-start justify-between gap-2">

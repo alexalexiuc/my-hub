@@ -43,7 +43,6 @@ export const authOptions: AuthOptions = {
       }
 
       // New Google sign-in (no existing account): apply the email whitelist.
-      if (hubEnvConfig.ALLOWED_EMAILS.length === 0) return false;
       if (!hubEnvConfig.ALLOWED_EMAILS.includes(email)) return false;
 
       // Create user in database for first-time whitelisted Google OAuth login.
