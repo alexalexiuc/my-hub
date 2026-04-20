@@ -42,6 +42,8 @@ export async function getMeasurements(
     conditions.push(between(bodyMeasurements.date, dateFrom, dateTo));
   } else if (dateFrom !== undefined) {
     conditions.push(between(bodyMeasurements.date, dateFrom, '9999-12-31'));
+  } else if (dateTo !== undefined) {
+    conditions.push(between(bodyMeasurements.date, '0001-01-01', dateTo));
   }
 
   const rows = await db

@@ -6,13 +6,12 @@ vi.mock('./meals.js', () => ({ getMealsForDateRange: vi.fn() }));
 vi.mock('./profile.js', () => ({ getCalorieProfile: vi.fn() }));
 vi.mock('../measurements/measurements.js', () => ({
   getMeasurements: vi.fn(),
-  getLatestMeasurementsPerType: vi.fn(),
 }));
 vi.mock('../users/users.js', () => ({ findUserById: vi.fn() }));
 
 import { getMealsForDateRange } from './meals.js';
 import { getCalorieProfile } from './profile.js';
-import { getMeasurements, getLatestMeasurementsPerType } from '../measurements/measurements.js';
+import { getMeasurements } from '../measurements/measurements.js';
 import { findUserById } from '../users/users.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -86,7 +85,6 @@ describe('fetchWeeklyReportCaloriesData', () => {
     vi.mocked(getCalorieProfile).mockResolvedValue(mockProfile as any);
     vi.mocked(getMealsForDateRange).mockResolvedValue([]);
     vi.mocked(getMeasurements).mockResolvedValue([]);
-    vi.mocked(getLatestMeasurementsPerType).mockResolvedValue([]);
   });
 
   it('returns null when user is not found', async () => {
@@ -155,6 +153,7 @@ describe('fetchWeeklyReportCaloriesData', () => {
         makeMeasurement('weight', '2026-04-02', 80),
         makeMeasurement('weight', '2026-03-31', 81),
       ] as any)
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]); // prior week
     const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     expect(result!.weightPoints[0]!.date).toBe('2026-03-31');
@@ -165,6 +164,7 @@ describe('fetchWeeklyReportCaloriesData', () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-30', 1800)] as any);
     vi.mocked(getMeasurements)
       .mockResolvedValueOnce([]) // current week weights
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         makeMeasurement('weight', '2026-03-24', 82),
         makeMeasurement('weight', '2026-03-26', 83),
@@ -181,12 +181,15 @@ describe('fetchWeeklyReportCaloriesData', () => {
     expect(result!.priorWeekWeight).toBeNull();
   });
 
-  it('builds latestMeasurements record keyed by typeKey', async () => {
+  it('builds latestMeasurements record keyed by typeKey from measurements up to week end', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-30', 1800)] as any);
-    vi.mocked(getLatestMeasurementsPerType).mockResolvedValue([
-      makeMeasurement('weight', '2026-03-30', 80),
-      makeMeasurement('body_fat', '2026-03-30', 15),
-    ] as any);
+    vi.mocked(getMeasurements)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        makeMeasurement('weight', '2026-03-30', 80),
+        makeMeasurement('body_fat', '2026-03-30', 15),
+      ] as any)
+      .mockResolvedValueOnce([]);
     const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     expect(result!.latestMeasurements['weight']).toBe(80);
     expect(result!.latestMeasurements['body_fat']).toBe(15);

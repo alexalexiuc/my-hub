@@ -1,6 +1,6 @@
 import { getMealsForDateRange } from './meals.js';
 import { getCalorieProfile } from './profile.js';
-import { getMeasurements, getLatestMeasurementsPerType } from '../measurements/measurements.js';
+import { getMeasurements } from '../measurements/measurements.js';
 import { findUserById } from '../users/users.js';
 import { calculateBMR, calculateCalorieTargets, toUTCDateStr, addDays, getISOWeek } from '../../utils/index.js';
 import type { WeeklyReportData, DayData, WeightPoint } from '../email/templates/weekly-report/types.js';
@@ -27,24 +27,28 @@ export async function fetchWeeklyReportCaloriesData(userId: string, weekStart: D
   const priorWeekStartStr = toUTCDateStr(addDays(weekStart, -7));
   const priorWeekEndStr = toUTCDateStr(addDays(weekStart, -1));
 
-  const [user, profile, meals, weightMeasurements, allMeasurements, priorWeightMeasurements] = await Promise.all([
-    findUserById(userId),
-    getCalorieProfile(userId),
-    getMealsForDateRange(userId, weekStartStr, weekEndStr),
-    getMeasurements(userId, {
-      typeKey: MeasurementTypes.Weight,
-      dateFrom: weekStartStr,
-      dateTo: weekEndStr,
-      limit: 20,
-    }),
-    getLatestMeasurementsPerType(userId),
-    getMeasurements(userId, {
-      typeKey: MeasurementTypes.Weight,
-      dateFrom: priorWeekStartStr,
-      dateTo: priorWeekEndStr,
-      limit: 7,
-    }),
-  ]);
+  const [user, profile, meals, weightMeasurements, measurementsUpToWeekEnd, priorWeightMeasurements] =
+    await Promise.all([
+      findUserById(userId),
+      getCalorieProfile(userId),
+      getMealsForDateRange(userId, weekStartStr, weekEndStr),
+      getMeasurements(userId, {
+        typeKey: MeasurementTypes.Weight,
+        dateFrom: weekStartStr,
+        dateTo: weekEndStr,
+        limit: 20,
+      }),
+      getMeasurements(userId, {
+        dateTo: weekEndStr,
+        limit: 500,
+      }),
+      getMeasurements(userId, {
+        typeKey: MeasurementTypes.Weight,
+        dateFrom: priorWeekStartStr,
+        dateTo: priorWeekEndStr,
+        limit: 7,
+      }),
+    ]);
 
   if (!user) return null;
   if (meals.length === 0) return null;
@@ -87,8 +91,10 @@ export async function fetchWeeklyReportCaloriesData(userId: string, weekStart: D
 
   // Latest measurements as a record keyed by typeKey
   const latestMeasurements: Record<string, number | null> = {};
-  for (const m of allMeasurements) {
-    latestMeasurements[m.typeKey] = m.value;
+  for (const m of measurementsUpToWeekEnd) {
+    if (latestMeasurements[m.typeKey] === undefined) {
+      latestMeasurements[m.typeKey] = m.value;
+    }
   }
 
   // Prior week latest weight
