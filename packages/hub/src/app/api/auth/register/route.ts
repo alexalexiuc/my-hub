@@ -40,8 +40,7 @@ async function registerHandler(req: Request) {
   ) {
     return NextResponse.json(
       {
-        error:
-          'Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character',
+        error: `Password must be at least ${PASSWORD_RULES.minLength} characters and include uppercase, lowercase, a number, and a special character`,
       },
       { status: 400 },
     );
