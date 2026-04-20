@@ -61,6 +61,7 @@
     "@aws-sdk/client-ses": "^3.1023.0",
     "airports-data": "^1.4.0",
     "drizzle-orm": "^0.30.10",
+    "jose": "^6.2.2",
     "juice": "^11.1.1",
     "postgres": "^3.4.4",
     "promise-cachex": "^2.0.0",

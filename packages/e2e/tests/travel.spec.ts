@@ -27,7 +27,6 @@ async function ensureUserExists(page: Page, email: string, password: string, nam
 }
 
 async function createTrip(page: Page, tripName: string): Promise<void> {
-  await page.getByRole('button', { name: 'New Trip' }).click();
   await page.getByPlaceholder('Trip name').first().fill(tripName);
   await page.getByPlaceholder('Destination').first().fill('Rome');
   await page.getByRole('button', { name: 'Create Trip' }).click();
@@ -51,14 +50,13 @@ test.describe('Travel', () => {
 
   /**
    * Full trip journey: a single trip progresses through every feature in a natural order.
-   * Covers: create, owner label, sharing, edit name, reservations (generic + flight + accommodation + taxi),
+   * Covers: create, owner label, sharing, reservations (generic + flight + accommodation + taxi),
    * flight details display, edit flight, itinerary chips, document upload + attachment indicator,
-   * map with geo bookings, sidebar date range, checklist CRUD + edit/cancel, companion CRUD + edit/cancel,
+   * map with geo bookings, checklist CRUD + edit/cancel, companion CRUD + edit/cancel,
    * Day by Day section, day note add/edit/delete, and trip deletion.
    */
   test('full trip journey: create through delete covering all features', async ({ page }) => {
     const tripName = uniqueName('E2E Journey Trip');
-    const editedTripName = `${tripName} Updated`;
     const sharedEmail = 'e2e-mcp@test.local';
     const flightBookingTitle = uniqueName('London to Paris Flight');
     const hotelBookingTitle = uniqueName('Hotel Roma');
@@ -74,6 +72,7 @@ test.describe('Travel', () => {
 
     // ── 1. Create trip ────────────────────────────────────────────────────────
     await createTrip(page, tripName);
+    const tripId = await getTripIdByName(page, tripName);
     const tripButton = page.getByRole('button', { name: new RegExp(tripName) });
     await tripButton.click();
 
@@ -110,18 +109,11 @@ test.describe('Travel', () => {
     expect(revokeResponse.status()).toBe(200);
     await expect(removeButtons).toHaveCount(beforeCount);
 
-    // ── 4. Edit trip name ─────────────────────────────────────────────────────
-    await page.getByRole('button', { name: 'Edit trip' }).first().click();
-    await page.locator('input[placeholder="Trip name"]').first().fill(editedTripName);
-    await page.getByRole('button', { name: 'Save', exact: true }).first().click();
-    await expect(page.getByRole('button', { name: new RegExp(editedTripName) })).toBeVisible();
-
-    // ── 5. Generic reservation: expand / collapse ─────────────────────────────
+    // ── 4. Generic reservation: expand / collapse ────────────────────────────
     const reservationsSection = page
       .getByRole('heading', { name: 'Reservations' })
       .locator('xpath=ancestor::section[1]');
 
-    await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
     await reservationsSection.getByPlaceholder('Reservation title').fill(genericBookingTitle);
     await reservationsSection.getByPlaceholder('Provider').fill('Test Provider');
     await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
@@ -134,8 +126,7 @@ test.describe('Travel', () => {
     await genericRow.click();
     await expect(genericRow).toHaveAttribute('aria-expanded', 'false');
 
-    // ── 6. Flight booking: add with full details ──────────────────────────────
-    await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
+    // ── 5. Flight booking: add with full details ──────────────────────────────
     await reservationsSection.getByPlaceholder('Reservation title').fill(flightBookingTitle);
     await reservationsSection.locator('select').first().selectOption('flight');
     await reservationsSection.getByPlaceholder('Flight no. (e.g. BA2490)').fill('BA2490');
@@ -156,7 +147,7 @@ test.describe('Travel', () => {
     await expect(page.getByText(/T3/i)).toBeVisible();
     await expect(page.getByText(/Gate B25/i)).toBeVisible();
 
-    // ── 7. Edit flight booking ────────────────────────────────────────────────
+    // ── 6. Edit flight booking ────────────────────────────────────────────────
     await flightRow.getByRole('button', { name: 'Edit reservation' }).click();
     // In edit mode the title becomes an <input>, so hasText won't match it.
     // Filter by the presence of the flight-specific placeholder instead.
@@ -171,8 +162,7 @@ test.describe('Travel', () => {
     await expect(page.getByText(/BA2491/i)).toBeVisible();
     await expect(page.getByText(/Seat 15B/i)).toBeVisible();
 
-    // ── 8. Accommodation with dates: itinerary two chips ──────────────────────
-    await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
+    // ── 7. Accommodation with dates: itinerary two chips ──────────────────────
     await reservationsSection.getByPlaceholder('Reservation title').fill(hotelBookingTitle);
     await reservationsSection.locator('select').first().selectOption('accommodation');
     await reservationsSection.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(startAt));
@@ -186,8 +176,7 @@ test.describe('Travel', () => {
     await expect(itinerary.getByText('Check-out', { exact: true })).toBeVisible();
     await expect(itinerary.getByText(/\d+ nights?/)).toBeVisible();
 
-    // ── 9. Taxi booking without endAt: itinerary one chip ─────────────────────
-    await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
+    // ── 8. Taxi booking without endAt: itinerary one chip ─────────────────────
     await reservationsSection.getByPlaceholder('Reservation title').fill(taxiBookingTitle);
     await reservationsSection.locator('select').first().selectOption('taxi');
     await reservationsSection.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(taxiStart));
@@ -196,20 +185,13 @@ test.describe('Travel', () => {
     await expect(itinerary.getByText('Pickup', { exact: true })).toBeVisible();
     await expect(itinerary.getByText('Drop-off', { exact: true })).not.toBeVisible();
 
-    // ── 10. Sidebar date range ────────────────────────────────────────────────
-    // The accommodation booking with startAt/endAt should update the trip card date range.
+    // ── 9. Reload ─────────────────────────────────────────────────────────────
+    // Reload so the server-side state (booking dates, etc.) is reflected in subsequent steps.
+    // The ?trip= URL param persists the selection, so the overview reloads automatically.
     await page.reload();
     await page.waitForLoadState('networkidle');
 
-    const updatedTripButton = page.getByRole('button', { name: new RegExp(editedTripName) }).first();
-    const updatedTripCard = updatedTripButton.locator('xpath=ancestor::div[contains(@class,"rounded-lg")]').first();
-    await expect(updatedTripCard).not.toContainText('Reservation dates not set');
-    await expect(updatedTripCard).toContainText('->');
-
-    // Re-open the trip for subsequent steps
-    await updatedTripButton.click();
-
-    // ── 11. Document upload linked to hotel booking ───────────────────────────
+    // ── 10. Document upload linked to hotel booking ───────────────────────────
     const documentsSection = page.getByRole('heading', { name: 'Documents' }).locator('xpath=ancestor::section[1]');
 
     await documentsSection.getByPlaceholder('Document title').fill(documentTitle);
@@ -225,7 +207,13 @@ test.describe('Travel', () => {
     await bookingLinkSelect.selectOption({ label: hotelBookingTitle });
     const uploadButton = documentsSection.getByRole('button', { name: 'Upload Document' });
     await expect(uploadButton).toBeEnabled();
+
+    const uploadResponsePromise = page.waitForResponse(
+      res => res.url().includes('/api/travel/documents/upload') && res.request().method() === 'POST',
+    );
     await uploadButton.click();
+    const uploadResponse = await uploadResponsePromise;
+    expect(uploadResponse.status()).toBe(201);
 
     await expect(page.locator('p.font-medium', { hasText: documentTitle })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(`Linked to: ${hotelBookingTitle}`)).toBeVisible();
@@ -240,8 +228,7 @@ test.describe('Travel', () => {
     const downloadRes = await page.request.get(href!);
     expect(downloadRes.ok()).toBeTruthy();
 
-    // ── 12. Map: geo bookings via API ─────────────────────────────────────────
-    const tripId = await getTripIdByName(page, editedTripName);
+    // ── 11. Map: geo bookings via API ─────────────────────────────────────────
     const geoRes1 = await page.request.post('/api/travel/bookings', {
       data: { tripId, title: 'Paris Hotel', bookingType: 'accommodation', lat: 48.8566, lng: 2.3522 },
     });
@@ -260,13 +247,13 @@ test.describe('Travel', () => {
     const overviewResponsePromise = page.waitForResponse(
       res => res.url().includes(`/api/travel/trips/${tripId}/overview`) && res.status() === 200,
     );
-    await page.getByRole('button', { name: new RegExp(editedTripName) }).click();
+    await page.getByRole('button', { name: new RegExp(tripName) }).click();
     await overviewResponsePromise;
 
     await page.getByRole('button', { name: 'Show map' }).click();
     await expect(page.locator('[data-testid="trip-map-container"]')).toBeVisible({ timeout: 10_000 });
 
-    // ── 13. Checklist: add, toggle done, edit, cancel ─────────────────────────
+    // ── 12. Checklist: add, toggle done, edit, cancel ─────────────────────────
     const checklistSection = page.getByRole('heading', { name: 'Checklist' }).locator('xpath=ancestor::section[1]');
     await checklistSection.getByPlaceholder('Add checklist item').fill(checklistTitle);
     await checklistSection.getByRole('button', { name: 'Add', exact: true }).click();
@@ -298,7 +285,7 @@ test.describe('Travel', () => {
       checklistSection.getByRole('button', { name: new RegExp(`^${updatedChecklistTitle} Draft$`) }),
     ).not.toBeVisible();
 
-    // ── 14. Companion: add, edit, cancel ──────────────────────────────────────
+    // ── 13. Companion: add, edit, cancel ──────────────────────────────────────
     const companionsSection = page.getByRole('heading', { name: 'Companions' }).locator('xpath=ancestor::section[1]');
     await companionsSection.getByPlaceholder('Name').fill(companionName);
     await companionsSection.getByPlaceholder('Email').fill('original-companion@test.local');
@@ -327,7 +314,7 @@ test.describe('Travel', () => {
     await expect(updatedCompanionCard).toContainText(updatedCompanionName);
     await expect(updatedCompanionCard).not.toContainText(`${updatedCompanionName} Draft`);
 
-    // ── 15. Day by Day: section + note CRUD ───────────────────────────────────
+    // ── 14. Day by Day: section + note CRUD ───────────────────────────────────
     const tripStartAt = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000 + 1000 * 60);
     const tripEndAt = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000 + 1000 * 60);
     await page.request.patch(`/api/travel/trips/${tripId}`, {
@@ -336,10 +323,6 @@ test.describe('Travel', () => {
 
     await page.reload();
     await page.waitForLoadState('networkidle');
-    await page
-      .getByRole('button', { name: new RegExp(editedTripName) })
-      .first()
-      .click();
 
     const dayByDay = page.getByRole('heading', { name: 'Day by Day' }).locator('xpath=ancestor::section[1]');
     await expect(dayByDay).toBeVisible();
@@ -362,9 +345,51 @@ test.describe('Travel', () => {
     await expect(dayByDay.getByText('Travel day')).not.toBeVisible();
     await expect(dayByDay.getByRole('button', { name: '+ Add notes' }).first()).toBeVisible();
 
-    // ── 16. Delete trip ───────────────────────────────────────────────────────
+    // ── 15. Delete trip ───────────────────────────────────────────────────────
     await page.getByRole('button', { name: 'Remove trip' }).first().click();
-    await expect(page.getByRole('button', { name: new RegExp(editedTripName) })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: new RegExp(tripName) })).not.toBeVisible();
+  });
+
+  /**
+   * Sidebar date range: adding an accommodation booking with start/end dates updates
+   * the trip card in the sidebar to show a date range instead of "Reservation dates not set".
+   * Kept separate because it requires a page reload to verify server persistence.
+   */
+  test('sidebar shows date range after accommodation booking with dates', async ({ page }) => {
+    const tripName = uniqueName('E2E Sidebar Date Range');
+    const now = new Date();
+    const startAt = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const endAt = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+
+    await createTrip(page, tripName);
+    const tripButton = page.getByRole('button', { name: new RegExp(tripName) });
+    await tripButton.click();
+
+    const reservationsSection = page
+      .getByRole('heading', { name: 'Reservations' })
+      .locator('xpath=ancestor::section[1]');
+
+    await reservationsSection.getByPlaceholder('Reservation title').fill('Hotel Test');
+    await reservationsSection.locator('select').first().selectOption('accommodation');
+    await reservationsSection.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(startAt));
+    await reservationsSection.locator('input[type="datetime-local"]').nth(1).fill(toDateTimeLocal(endAt));
+    await reservationsSection.getByRole('button', { name: 'Add Reservation' }).click();
+    await expect(page.locator('p.font-medium', { hasText: 'Hotel Test' })).toBeVisible();
+
+    // Edit trip name — verify sidebar button updates immediately
+    const editedTripName = `${tripName} Updated`;
+    await page.getByRole('button', { name: 'Edit trip' }).first().click();
+    await page.getByTestId('trip-edit-form').locator('input[placeholder="Trip name"]').fill(editedTripName);
+    await page.getByTestId('trip-edit-form').getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByRole('button', { name: new RegExp(editedTripName) })).toBeVisible();
+
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    const updatedTripButton = page.getByRole('button', { name: new RegExp(editedTripName) }).first();
+    const updatedTripCard = updatedTripButton.locator('xpath=ancestor::div[contains(@class,"rounded-lg")]').first();
+    await expect(updatedTripCard).not.toContainText('Reservation dates not set');
+    await expect(updatedTripCard).toContainText('->');
   });
 
   /**
@@ -387,7 +412,6 @@ test.describe('Travel', () => {
     await page.waitForLoadState('networkidle');
 
     // Booking with start + end → should produce 2 chips (start chip + end chip)
-    await page.getByRole('button', { name: 'Add Reservation' }).click();
     await page.getByPlaceholder('Reservation title').fill('Past Hotel');
     await page.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(pastStart));
     await page.locator('input[type="datetime-local"]').nth(1).fill(toDateTimeLocal(pastEnd));
@@ -395,14 +419,12 @@ test.describe('Travel', () => {
     await expect(page.locator('p.font-medium, button', { hasText: /Past Hotel/ }).first()).toBeVisible();
 
     // Booking with start only → should produce exactly 1 chip
-    await page.getByRole('button', { name: 'Add Reservation' }).click();
     await page.getByPlaceholder('Reservation title').fill('Imminent Flight');
     await page.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(imminentStart));
     await page.getByRole('button', { name: 'Add Reservation' }).click();
     await expect(page.locator('p.font-medium, button', { hasText: /Imminent Flight/ }).first()).toBeVisible();
 
     // Another future booking (start only)
-    await page.getByRole('button', { name: 'Add Reservation' }).click();
     await page.getByPlaceholder('Reservation title').fill('Future Tour');
     await page.locator('input[type="datetime-local"]').first().fill(toDateTimeLocal(futureStart));
     await page.getByRole('button', { name: 'Add Reservation' }).click();

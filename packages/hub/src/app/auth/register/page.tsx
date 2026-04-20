@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { apiFetch, ApiError } from '@/lib/utils';
-import { Input } from '@/components';
+import { Input, PasswordStrength } from '@/components';
+import { PASSWORD_RULES } from '@my-hub/shared/constants';
 
 function RegisterForm() {
   const searchParams = useSearchParams();
@@ -22,6 +23,16 @@ function RegisterForm() {
     e.preventDefault();
     setError(null);
 
+    if (
+      password.length < PASSWORD_RULES.minLength ||
+      !PASSWORD_RULES.hasUppercase.test(password) ||
+      !PASSWORD_RULES.hasLowercase.test(password) ||
+      !PASSWORD_RULES.hasNumber.test(password) ||
+      !PASSWORD_RULES.hasSpecial.test(password)
+    ) {
+      setError('Password does not meet the requirements listed below.');
+      return;
+    }
     if (password !== confirm) {
       setError('Passwords do not match.');
       return;
@@ -107,7 +118,6 @@ function RegisterForm() {
               onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              minLength={8}
             />
           </div>
           <div>
@@ -123,6 +133,7 @@ function RegisterForm() {
               required
             />
           </div>
+          <PasswordStrength password={password} confirm={confirm} />
           {error && <p className="text-sm text-red-400">{error}</p>}
           <button
             type="submit"

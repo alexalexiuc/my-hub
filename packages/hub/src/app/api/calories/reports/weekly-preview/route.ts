@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
-import {
-  fetchWeeklyReportCaloriesData,
-  buildWeeklyReportHtml,
-  generateUnsubscribeToken,
-} from '@my-hub/shared/services';
-import { hubEnvConfig } from '@/config/env';
+import { fetchWeeklyReportCaloriesData, buildWeeklyReportHtml } from '@my-hub/shared/services';
 
 /**
  * GET /api/calories/reports/weekly-preview?weekStart=YYYY-MM-DD
@@ -28,16 +23,10 @@ export const GET = withAuth(async ({ req, user }) => {
     weekStart = todayUtc;
   }
 
-  const weekStartStr = weekStart.toISOString().slice(0, 10);
-  const urls = {
-    unsubscribeUrl: `${hubEnvConfig.HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(user.id, 'calories_weekly_report')}`,
-    viewInAppUrl: `${hubEnvConfig.HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
-  };
-
-  const data = await fetchWeeklyReportCaloriesData(user.id, weekStart, urls);
+  const data = await fetchWeeklyReportCaloriesData(user.id, weekStart);
   if (!data) {
     return NextResponse.json({ skipped: 'no_data' });
   }
 
-  return NextResponse.json({ html: buildWeeklyReportHtml(data, { hideFooter: true }) });
+  return NextResponse.json({ html: buildWeeklyReportHtml(data) });
 });

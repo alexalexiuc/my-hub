@@ -84,9 +84,14 @@ function SignInContent() {
             />
           </div>
           <div>
-            <label htmlFor="password" className="text-xs text-zinc-400 block mb-1">
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="password" className="text-xs text-zinc-400">
+                Password
+              </label>
+              <Link href="/auth/forgot-password" className="text-xs text-indigo-400 hover:underline">
+                Forgot password?
+              </Link>
+            </div>
             <Input
               id="password"
               type="password"

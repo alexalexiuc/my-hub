@@ -6,25 +6,41 @@ test.describe('Profile Page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/profile');
     await page.waitForLoadState('networkidle');
+    await page.request.put('/api/users/profile', { data: { name: null, country: null, timezone: null } });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
   });
 
   /**
-   * Profile page layout and non-destructive actions: account info, display name edit,
-   * and sign-out button — all verifiable in a single session without side effects.
+   * Profile page layout and non-destructive actions: account info, personal info edit
+   * (name + country + timezone), reload to verify persistence, and sign-out button.
    */
-  test('displays account info, allows name edit, and shows sign-out', async ({ page }) => {
+  test('displays account info, allows personal info edit, and shows sign-out', async ({ page }) => {
     // ── 1. Account info ───────────────────────────────────────────────────────
     await expect(page.locator('.font-medium', { hasText: TEST_USER.email })).toBeVisible();
     await expect(page.getByText(/member since/i)).toBeVisible();
 
-    // ── 2. Edit display name ──────────────────────────────────────────────────
-    const nameInput = page.getByPlaceholder(/enter your name/i);
-    await nameInput.clear();
-    await nameInput.fill('E2E Tester');
-    await page.getByRole('button', { name: /^save$/i }).click();
-    await expect(page.getByText(/name updated/i)).toBeVisible({ timeout: 5_000 });
+    // ── 2. Edit name, country, and timezone ───────────────────────────────────
+    const personalInfoSection = page
+      .getByRole('heading', { name: /personal information/i })
+      .locator('xpath=ancestor::section[1]');
+    await personalInfoSection.getByRole('button', { name: /^edit$/i }).click();
+    await personalInfoSection.getByPlaceholder(/enter your name/i).fill('E2E Tester');
+    await personalInfoSection.getByRole('combobox', { name: /country/i }).selectOption('RO');
+    await personalInfoSection.getByRole('combobox', { name: /timezone/i }).selectOption('+2');
+    await personalInfoSection.getByRole('button', { name: /^save$/i }).click();
+    await expect(personalInfoSection.getByRole('button', { name: /^edit$/i })).toBeVisible({ timeout: 5_000 });
 
-    // ── 3. Sign-out button present ────────────────────────────────────────────
+    // ── 3. Reload to verify persistence ──────────────────────────────────────
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    const reloaded = page.getByRole('heading', { name: /personal information/i }).locator('xpath=ancestor::section[1]');
+    await reloaded.getByRole('button', { name: /^edit$/i }).click();
+    await expect(reloaded.getByPlaceholder(/enter your name/i)).toHaveValue('E2E Tester');
+    await expect(reloaded.getByRole('combobox', { name: /country/i })).toHaveValue('RO');
+    await expect(reloaded.getByRole('combobox', { name: /timezone/i })).toHaveValue('+2');
+
+    // ── 4. Sign-out button present ────────────────────────────────────────────
     await expect(page.getByRole('button', { name: /sign out/i })).toBeVisible();
   });
 

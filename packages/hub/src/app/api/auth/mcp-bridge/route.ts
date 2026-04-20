@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { createHmac } from 'node:crypto';
+import { signToken } from '@my-hub/shared/auth';
 import { authOptions } from '../[...nextauth]/route';
 import { withErrorLogging } from '@/lib/api/with-error-logging';
 import { hubEnvConfig } from '@/config/env';
@@ -11,15 +11,10 @@ import { hubEnvConfig } from '@/config/env';
  * which requires matching jose library versions to decrypt).
  */
 const BRIDGE_COOKIE_NAME = '__Hub-mcp-bridge';
-const BRIDGE_COOKIE_MAX_AGE = 5 * 60; // 5 minutes — just enough for the OAuth flow
+const BRIDGE_COOKIE_MAX_AGE_MIN = 5; // 5 minutes — just enough for the OAuth flow
 
-/** Create an HMAC-signed bridge token: email|expiry|signature */
-function createBridgeToken(email: string): string {
-  const expiry = Date.now() + BRIDGE_COOKIE_MAX_AGE * 1000;
-  const payload = `${email}|${expiry}`;
-  const sig = createHmac('sha256', hubEnvConfig.NEXTAUTH_SECRET).update(payload).digest('base64url');
-  return `${payload}|${sig}`;
-}
+const createBridgeToken = (email: string) =>
+  signToken({ email }, hubEnvConfig.NEXTAUTH_SECRET, BRIDGE_COOKIE_MAX_AGE_MIN);
 
 /**
  * GET /api/auth/mcp-bridge?redirect=<url>
@@ -68,7 +63,7 @@ async function mcpBridgeHandler(req: NextRequest) {
   }
 
   // Create bridge token and set it as a cookie on the shared domain
-  const token = createBridgeToken(session.user.email);
+  const token = await createBridgeToken(session.user.email);
   const domain = hubEnvConfig.SHARED_COOKIE_DOMAIN;
   const isSecure = req.nextUrl.protocol === 'https:';
 
@@ -78,7 +73,7 @@ async function mcpBridgeHandler(req: NextRequest) {
     secure: isSecure,
     sameSite: 'lax',
     path: '/',
-    maxAge: BRIDGE_COOKIE_MAX_AGE,
+    maxAge: BRIDGE_COOKIE_MAX_AGE_MIN * 60, // in seconds
     ...(domain ? { domain } : {}),
   });
   return response;

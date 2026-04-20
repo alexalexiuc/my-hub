@@ -7,3 +7,4 @@ export * from './calories';
 export * from './measurements';
 export * from './mcp-servers';
 export * from './travel';
+export * from './auth';

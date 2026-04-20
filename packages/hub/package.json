@@ -17,6 +17,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@my-hub/shared": "workspace:*",
     "clsx": "^2.1.1",
+    "jose": "^6.2.2",
     "leaflet": "^1.9.4",
     "next": "~16.1.6",
     "next-auth": "^4.24.7",

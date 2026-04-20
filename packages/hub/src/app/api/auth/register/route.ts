@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server';
-import { createUserWithPassword, claimInviteToken, bindInviteTokenToUser } from '@my-hub/shared/services';
+import {
+  createUserWithPassword,
+  claimInviteToken,
+  bindInviteTokenToUser,
+  createEmailVerificationToken,
+  sendEmailVerificationEmail,
+} from '@my-hub/shared/services';
+import { PASSWORD_RULES, EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES } from '@my-hub/shared/constants';
 import { withErrorLogging } from '@/lib/api/with-error-logging';
 import { hubEnvConfig } from '@/config/env';
+import { logger } from '@my-hub/shared/utils';
 
 async function registerHandler(req: Request) {
   let body: Record<string, unknown>;
@@ -24,8 +32,19 @@ async function registerHandler(req: Request) {
   if (!password || typeof password !== 'string') {
     return NextResponse.json({ error: 'password is required' }, { status: 400 });
   }
-  if (password.length < 8) {
-    return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
+  if (
+    password.length < PASSWORD_RULES.minLength ||
+    !PASSWORD_RULES.hasUppercase.test(password) ||
+    !PASSWORD_RULES.hasLowercase.test(password) ||
+    !PASSWORD_RULES.hasNumber.test(password) ||
+    !PASSWORD_RULES.hasSpecial.test(password)
+  ) {
+    return NextResponse.json(
+      {
+        error: `Password must be at least ${PASSWORD_RULES.minLength} characters and include uppercase, lowercase, a number, and a special character`,
+      },
+      { status: 400 },
+    );
   }
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -50,6 +69,28 @@ async function registerHandler(req: Request) {
     if (needsToken && inviteToken) {
       await bindInviteTokenToUser(inviteToken, user.id);
     }
+
+    // Send email verification unless this is a known e2e test address.
+    const isTestEmail = hubEnvConfig.E2E_TEST_EMAILS.includes(normalizedEmail);
+    if (!isTestEmail) {
+      try {
+        const verificationToken = await createEmailVerificationToken(user.id);
+        const verifyUrl = `${hubEnvConfig.HUB_URL}/auth/verify-email?token=${verificationToken}`;
+        await sendEmailVerificationEmail(normalizedEmail, {
+          verifyUrl,
+          expiryHours: EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES / 60,
+        });
+      } catch (err) {
+        // Registration succeeds even if verification delivery fails, but this
+        // must be reported because no resend flow is implemented here.
+        logger.error('Failed to send email verification after registration', {
+          userId: user.id,
+          email: normalizedEmail,
+          error: err instanceof Error ? err.message : err,
+        });
+      }
+    }
+
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Registration failed';

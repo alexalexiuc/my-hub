@@ -53,7 +53,9 @@ test.describe('Authentication', () => {
     await page.locator('#password').fill('Password123!');
     await page.locator('#confirm').fill('DifferentPassword!');
     await page.getByRole('button', { name: /create account/i }).click();
-    await expect(page.getByText(/do not match/i)).toBeVisible();
+    // Target the form error <p> specifically — PasswordStrength renders the same phrase
+    // without a trailing period in a <span>, so this exact string matches only the <p>.
+    await expect(page.getByText('Passwords do not match.')).toBeVisible();
     await expect(page).toHaveURL('/auth/register');
 
     // ── 3. Duplicate email returns server error ───────────────────────────────
@@ -62,5 +64,20 @@ test.describe('Authentication', () => {
     await page.locator('#confirm').fill(TEST_USER.password);
     await page.getByRole('button', { name: /create account/i }).click();
     await expect(page.getByText(/already registered/i)).toBeVisible();
+  });
+
+  /**
+   * Verify email page: shows correct UI for missing token, invalid token, and success states.
+   */
+  test('verify-email: missing token, invalid token, success state', async ({ page }) => {
+    // ── 1. No token in URL — "Invalid link" state ─────────────────────────────
+    await page.goto('/auth/verify-email');
+    await expect(page.getByRole('heading', { name: /invalid link/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /back to sign in/i })).toBeVisible();
+
+    // ── 2. Invalid token — "Verification failed" state ───────────────────────
+    await page.goto('/auth/verify-email?token=invalid-token-that-does-not-exist');
+    await expect(page.getByRole('heading', { name: /verification failed/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/invalid or has expired/i)).toBeVisible();
   });
 });

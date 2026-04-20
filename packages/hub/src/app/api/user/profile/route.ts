@@ -11,6 +11,7 @@ export const GET = withAuth(async ({ user }) => {
     email: fullUser.email,
     name: fullUser.name,
     createdAt: fullUser.createdAt,
+    emailVerified: fullUser.emailVerified,
   });
 });
 

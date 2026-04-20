@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { createHmac } from 'node:crypto';
 import { envConfig } from '../config/env.js';
 import {
   findOAuthClient,
@@ -15,6 +14,8 @@ import {
 } from '@my-hub/shared/services';
 import { signToken, verifyToken, verifyPkceS256, type AuthCodePayload } from '@my-hub/shared/auth';
 import { renderConsentPage } from './consent.js';
+
+const MCP_SERVER_TOKEN_EXPIRY_MIN = 24 * 60; // in minutes
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -56,35 +57,16 @@ function tokenError(error: string): { status: number; body: string } {
 const BRIDGE_COOKIE_NAME = '__Hub-mcp-bridge';
 
 /** Verify the bridge cookie and return the email, or null if invalid/missing. */
-function getSessionEmail(req: FastifyRequest): string | null {
+async function getSessionEmail(req: FastifyRequest): Promise<string | null> {
   const rawCookieHeader = req.headers.cookie ?? '';
   const match = rawCookieHeader.match(new RegExp(`(?:^|;\\s*)${BRIDGE_COOKIE_NAME}=([^;]*)`));
   if (!match?.[1]) return null;
 
   const token = decodeURIComponent(match[1]);
-  const parts = token.split('|');
-  if (parts.length !== 3) return null;
-
-  const [email, expiryStr, sig] = parts;
-  const expiry = Number(expiryStr);
-  if (!email || !Number.isFinite(expiry)) return null;
-
-  // Check expiry
-  if (Date.now() > expiry) {
-    req.log.info('[oauth] Bridge cookie expired');
-    return null;
-  }
-
-  // Verify HMAC signature
-  const payload = `${email}|${expiryStr}`;
-  const expectedSig = createHmac('sha256', envConfig.NEXTAUTH_SECRET).update(payload).digest('base64url');
-  if (sig !== expectedSig) {
-    req.log.warn('[oauth] Bridge cookie signature mismatch');
-    return null;
-  }
-
-  req.log.info(`[oauth] Bridge cookie valid for email=${email}`);
-  return email;
+  const payload = await verifyToken<{ email: string }>(token, envConfig.NEXTAUTH_SECRET);
+  if (!payload?.email) return null;
+  req.log.info(`[oauth] Bridge cookie valid for email=${payload.email}`);
+  return payload.email;
 }
 
 // ---------------------------------------------------------------------------
@@ -152,7 +134,7 @@ export async function oauthRoutes(app: FastifyInstance) {
       return reply.status(400).send('Unknown client_id');
     }
 
-    const email = getSessionEmail(req);
+    const email = await getSessionEmail(req);
     if (!email) {
       // Redirect through the hub's bridge endpoint which verifies the NextAuth
       // session and sets a simple HMAC cookie readable by this MCP server.
@@ -194,7 +176,7 @@ export async function oauthRoutes(app: FastifyInstance) {
     const client = await findOAuthClient(clientId);
     if (!client) return sendError('invalid_client');
 
-    const email = getSessionEmail(req);
+    const email = await getSessionEmail(req);
     if (!email) return sendError('login_required');
 
     // Bind client + provision MCP server rows
@@ -215,7 +197,6 @@ export async function oauthRoutes(app: FastifyInstance) {
         redirect_uri: redirectUri,
         code_challenge: codeChallenge,
         code_challenge_method: codeChallengeMethod,
-        exp: Date.now() + 5 * 60 * 1000, // 5 minutes
       } satisfies AuthCodePayload,
       client.tokenSigningSecret,
     );
@@ -249,8 +230,9 @@ export async function oauthRoutes(app: FastifyInstance) {
       const tokenUser = await findUserById(client.userId);
       const [accessToken, refreshToken] = await Promise.all([
         signToken(
-          { client_id: clientId, user_id: client.userId, email: tokenUser?.email, exp: Date.now() + 86_400_000 },
+          { client_id: clientId, user_id: client.userId, email: tokenUser?.email },
           client.tokenSigningSecret,
+          MCP_SERVER_TOKEN_EXPIRY_MIN,
         ),
         createRefreshToken(clientId, client.userId),
       ]);
@@ -258,7 +240,7 @@ export async function oauthRoutes(app: FastifyInstance) {
         JSON.stringify({
           access_token: accessToken,
           token_type: 'bearer',
-          expires_in: 86400,
+          expires_in: MCP_SERVER_TOKEN_EXPIRY_MIN * 60, // in seconds
           refresh_token: refreshToken,
         }),
       );
@@ -285,7 +267,7 @@ export async function oauthRoutes(app: FastifyInstance) {
       // Rotate: issue the new refresh token first, then delete the old one.
       // This ordering means that if the response fails mid-flight the old token
       // is still present and the client can retry — a deliberate tradeoff that
-      // prioritises availability over strict single-use enforcement, which is
+      // prioritizes availability over strict single-use enforcement, which is
       // acceptable given the 30-day expiry and per-client scoping.
       const [tokenUser, newRefreshToken] = await Promise.all([
         findUserById(tokenRow.userId),
@@ -294,20 +276,16 @@ export async function oauthRoutes(app: FastifyInstance) {
       await deleteRefreshToken(tokenRow.id);
 
       const accessToken = await signToken(
-        {
-          client_id: clientId,
-          user_id: tokenRow.userId,
-          email: tokenUser?.email,
-          exp: Date.now() + 86_400_000, // 1 day
-        },
+        { client_id: clientId, user_id: tokenRow.userId, email: tokenUser?.email },
         client.tokenSigningSecret,
+        MCP_SERVER_TOKEN_EXPIRY_MIN,
       );
 
       return reply.header('Content-Type', 'application/json').send(
         JSON.stringify({
           access_token: accessToken,
           token_type: 'bearer',
-          expires_in: 86400,
+          expires_in: MCP_SERVER_TOKEN_EXPIRY_MIN * 60, // in seconds
           refresh_token: newRefreshToken,
         }),
       );
@@ -346,19 +324,15 @@ export async function oauthRoutes(app: FastifyInstance) {
     const codeVerifier = body['code_verifier'];
     if (!codeVerifier) return sendTokenError('invalid_grant');
 
-    const pkceOk = await verifyPkceS256(codeVerifier, authCodePayload.code_challenge);
+    const pkceOk = verifyPkceS256(codeVerifier, authCodePayload.code_challenge);
     if (!pkceOk) return sendTokenError('invalid_grant');
 
     const tokenUser = await findUserById(authCodePayload.user_id);
     const [accessToken, refreshToken] = await Promise.all([
       signToken(
-        {
-          client_id: clientId,
-          user_id: authCodePayload.user_id,
-          email: tokenUser?.email,
-          exp: Date.now() + 86_400_000, // 1 day
-        },
+        { client_id: clientId, user_id: authCodePayload.user_id, email: tokenUser?.email },
         client.tokenSigningSecret,
+        MCP_SERVER_TOKEN_EXPIRY_MIN,
       ),
       createRefreshToken(clientId, authCodePayload.user_id),
     ]);
@@ -367,7 +341,7 @@ export async function oauthRoutes(app: FastifyInstance) {
       JSON.stringify({
         access_token: accessToken,
         token_type: 'bearer',
-        expires_in: 86400,
+        expires_in: MCP_SERVER_TOKEN_EXPIRY_MIN * 60, // in seconds
         refresh_token: refreshToken,
       }),
     );

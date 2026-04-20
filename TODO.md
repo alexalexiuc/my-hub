@@ -31,4 +31,9 @@
 - [x] Add timestamp to logs or use a different tool instead of console.log for better log management and analysis.
 - [x] Consider using some form libraries instead of handling form state manually, to simplify code and improve maintainability (e.g. React Hook Form, Formik, etc.)
 - [ ] Add actual checkin/checkout time to avoid bookings overlap, like morning flight appearing before hotel checkout. Make sure to instruct models in mcp server to deduct those times when checking for overlaps, to avoid false positives.
-- [ ] Fix buttons mismatch on travel page
+- [ ] Add user email || id to the logs in mcp server for better traceability and debugging.
+- [ ] See why timestamp on error looks like this: [07:07:07.426]
+- [ ] Is "Session not found" in MCP Server an error, or more like a warning? If it's expected to happen sometimes (e.g. user not logged in), maybe it should be logged at a lower level than error, to avoid noise in the logs.
+- [ ] instead of skeleton for entire page, make so that each component knows to draw its own skeleton while loading, to avoid showing a blank page and make it feel more responsive. For example, the display name section can show a skeleton for the name field while it's loading, and then show the actual name once it's loaded, without waiting for the entire profile page to be ready. This would improve perceived performance and make the app feel faster.
+- [ ] Add a "Last updated" timestamp to the profile page, showing when the user's profile was last updated, to give users a sense of how fresh their data is and encourage them to keep it up to date.
+- [ ] Add a "Delete account" button in the profile page, which would allow users to delete their account and all associated data, with a confirmation step to prevent accidental deletions. This would give users more control over their data and comply with privacy regulations.

@@ -6,21 +6,12 @@ import type { McpServerName } from '@my-hub/shared/constants';
 import { logger } from '@my-hub/shared/utils';
 import { envConfig } from '../config/env.js';
 import { capPayload, redactSensitiveFields } from './payload-logging.js';
-
-const REDACTED = '[REDACTED]';
-const SENSITIVE_HEADERS = new Set([
-  'authorization',
-  'proxy-authorization',
-  'cookie',
-  'set-cookie',
-  'x-api-key',
-  'x-auth-token',
-]);
+import { REDACTED_PLACEHOLDER, SENSITIVE_HEADERS } from '../config/constants.js';
 
 function redactHeaders(headers: Record<string, unknown>): Record<string, unknown> {
   const redacted: Record<string, unknown> = {};
   for (const [name, value] of Object.entries(headers)) {
-    redacted[name] = SENSITIVE_HEADERS.has(name.toLowerCase()) ? REDACTED : value;
+    redacted[name] = SENSITIVE_HEADERS.has(name.toLowerCase()) ? REDACTED_PLACEHOLDER : value;
   }
   return redacted;
 }

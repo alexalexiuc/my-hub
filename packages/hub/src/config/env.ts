@@ -63,4 +63,12 @@ export const hubEnvConfig = {
   get SHARED_COOKIE_DOMAIN() {
     return getSharedCookieDomain(getEnvVar('NEXTAUTH_URL'));
   },
+  /** Current Node.js environment (e.g. 'development', 'test', 'production'). */
+  get NODE_ENV() {
+    return getEnvVar('NODE_ENV', 'development');
+  },
+  /** Comma-separated list of e2e test email addresses. Verification emails are skipped for these. */
+  get E2E_TEST_EMAILS() {
+    return parseEmails(getEnvVar('E2E_TEST_EMAILS', ''));
+  },
 };

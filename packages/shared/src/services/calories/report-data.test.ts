@@ -72,8 +72,6 @@ const mockProfile = {
   updatedAt: new Date(),
 };
 
-const TEST_URLS = { unsubscribeUrl: 'https://example.com/unsub', viewInAppUrl: 'https://example.com/app' };
-
 // Monday 2026-03-30
 const WEEK_START = new Date('2026-03-30T00:00:00.000Z');
 
@@ -93,19 +91,19 @@ describe('fetchWeeklyReportCaloriesData', () => {
 
   it('returns null when user is not found', async () => {
     vi.mocked(findUserById).mockResolvedValue(undefined);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     expect(result).toBeNull();
   });
 
   it('returns null when no meals were logged', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([]);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     expect(result).toBeNull();
   });
 
   it('returns report with correct weekStart and weekEnd', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-30', 1800)] as any);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     expect(result).not.toBeNull();
     expect(result!.weekStart).toEqual(WEEK_START);
     expect(result!.weekEnd).toEqual(new Date('2026-04-05T00:00:00.000Z'));
@@ -113,14 +111,14 @@ describe('fetchWeeklyReportCaloriesData', () => {
 
   it('returns correct weekNumber and year', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-30', 1800)] as any);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     expect(result!.weekNumber).toBe(14); // 2026-03-30 is week 14
     expect(result!.year).toBe(2026);
   });
 
   it('builds 7 DayData entries covering the full week', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-30', 1800)] as any);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     expect(result!.days).toHaveLength(7);
     expect(result!.days[0]!.date).toBe('2026-03-30');
     expect(result!.days[6]!.date).toBe('2026-04-05');
@@ -131,7 +129,7 @@ describe('fetchWeeklyReportCaloriesData', () => {
       makeMeal('2026-03-30', 800, 20, 100, 10),
       makeMeal('2026-03-30', 700, 30, 80, 15),
     ] as any);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     const mon = result!.days[0]!;
     expect(mon.hasData).toBe(true);
     expect(mon.kcal).toBe(1500);
@@ -142,7 +140,7 @@ describe('fetchWeeklyReportCaloriesData', () => {
 
   it('marks days without meals as hasData=false with zeroed macros', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-30', 1800)] as any);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     // Tuesday through Sunday should have no data
     for (const day of result!.days.slice(1)) {
       expect(day.hasData).toBe(false);
@@ -158,7 +156,7 @@ describe('fetchWeeklyReportCaloriesData', () => {
         makeMeasurement('weight', '2026-03-31', 81),
       ] as any)
       .mockResolvedValueOnce([]); // prior week
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     expect(result!.weightPoints[0]!.date).toBe('2026-03-31');
     expect(result!.weightPoints[1]!.date).toBe('2026-04-02');
   });
@@ -171,7 +169,7 @@ describe('fetchWeeklyReportCaloriesData', () => {
         makeMeasurement('weight', '2026-03-24', 82),
         makeMeasurement('weight', '2026-03-26', 83),
       ] as any);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     // Latest by date desc → 2026-03-26 → 83
     expect(result!.priorWeekWeight).toBe(83);
   });
@@ -179,7 +177,7 @@ describe('fetchWeeklyReportCaloriesData', () => {
   it('sets priorWeekWeight to null when no prior measurements exist', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-30', 1800)] as any);
     vi.mocked(getMeasurements).mockResolvedValue([]);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     expect(result!.priorWeekWeight).toBeNull();
   });
 
@@ -189,14 +187,14 @@ describe('fetchWeeklyReportCaloriesData', () => {
       makeMeasurement('weight', '2026-03-30', 80),
       makeMeasurement('body_fat', '2026-03-30', 15),
     ] as any);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     expect(result!.latestMeasurements['weight']).toBe(80);
     expect(result!.latestMeasurements['body_fat']).toBe(15);
   });
 
   it('uses profile goalMaxCalories and goalMinCalories when set', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-30', 1800)] as any);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     expect(result!.goalMaxCalories).toBe(2000);
     expect(result!.goalMinCalories).toBe(1500);
   });
@@ -204,20 +202,13 @@ describe('fetchWeeklyReportCaloriesData', () => {
   it('falls back goalMaxCalories to 2000 when profile and targets are null', async () => {
     vi.mocked(getCalorieProfile).mockResolvedValue(undefined);
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-30', 1800)] as any);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     expect(result!.goalMaxCalories).toBe(2000);
-  });
-
-  it('includes unsubscribeUrl and viewInAppUrl in result', async () => {
-    vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-30', 1800)] as any);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
-    expect(result!.unsubscribeUrl).toBe(TEST_URLS.unsubscribeUrl);
-    expect(result!.viewInAppUrl).toBe(TEST_URLS.viewInAppUrl);
   });
 
   it('includes userEmail from the fetched user', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-30', 1800)] as any);
-    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START, TEST_URLS);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
     expect(result!.userEmail).toBe('user@example.com');
   });
 });
@@ -234,18 +225,18 @@ describe('fetchMonthlyReportCaloriesData', () => {
 
   it('returns null when user is not found', async () => {
     vi.mocked(findUserById).mockResolvedValue(undefined);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result).toBeNull();
   });
 
   it('returns null when no meals were logged', async () => {
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result).toBeNull();
   });
 
   it('returns correct monthLabel and year', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-10', 1800)] as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.monthLabel).toBe('March 2026');
     expect(result!.year).toBe(2026);
     expect(result!.totalDaysInMonth).toBe(31);
@@ -257,7 +248,7 @@ describe('fetchMonthlyReportCaloriesData', () => {
       makeMeal('2026-03-01', 400), // same day — counts once
       makeMeal('2026-03-15', 2000),
     ] as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.daysLogged).toBe(2);
   });
 
@@ -266,7 +257,7 @@ describe('fetchMonthlyReportCaloriesData', () => {
       makeMeal('2026-03-01', 1200),
       makeMeal('2026-03-02', 1800),
     ] as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.avgDailyKcal).toBe(1500); // (1200+1800)/2
   });
 
@@ -277,7 +268,7 @@ describe('fetchMonthlyReportCaloriesData', () => {
       makeMeal('2026-03-02', 2500), // > 2000 → over
       makeMeal('2026-03-03', 2000), // exactly 2000 → on target
     ] as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.daysOnTarget).toBe(2);
   });
 
@@ -288,7 +279,7 @@ describe('fetchMonthlyReportCaloriesData', () => {
     ] as any);
     // goalMaxCalories=2000, daysLogged=2, totalKcal=3400
     // deficit = 2000*2 - 3400 = 600
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.monthlyDeficit).toBe(600);
   });
 
@@ -299,7 +290,7 @@ describe('fetchMonthlyReportCaloriesData', () => {
       makeMeal('2026-03-03', 1800),
       makeMeal('2026-03-10', 1800), // gap → streak broken
     ] as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.longestStreak).toBe(3);
   });
 
@@ -309,7 +300,7 @@ describe('fetchMonthlyReportCaloriesData', () => {
       makeMeal('2026-03-03', 1800),
       makeMeal('2026-03-05', 1800),
     ] as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.longestStreak).toBe(1);
   });
 
@@ -317,7 +308,7 @@ describe('fetchMonthlyReportCaloriesData', () => {
     // All 31 days logged
     const meals = Array.from({ length: 31 }, (_, i) => makeMeal(`2026-03-${String(i + 1).padStart(2, '0')}`, 1800));
     vi.mocked(getMealsForDateRange).mockResolvedValue(meals as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.longestStreak).toBe(31);
   });
 
@@ -329,7 +320,7 @@ describe('fetchMonthlyReportCaloriesData', () => {
         makeMeasurement('weight', '2026-03-05', 81),
       ] as any)
       .mockResolvedValueOnce([]); // all measurements for snapshot
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.weightPoints[0]!.date).toBe('2026-03-05');
     expect(result!.weightPoints[1]!.date).toBe('2026-03-20');
   });
@@ -344,7 +335,7 @@ describe('fetchMonthlyReportCaloriesData', () => {
         makeMeasurement('weight', '2026-03-20', 80), // after start — not in startSnapshot
         makeMeasurement('body_fat', '2026-02-28', 18), // before start — included
       ] as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.startMeasurements.weight).toBe(82);
     expect(result!.startMeasurements.bodyFat).toBe(18);
   });
@@ -357,7 +348,7 @@ describe('fetchMonthlyReportCaloriesData', () => {
         makeMeasurement('weight', '2026-03-01', 82),
         makeMeasurement('weight', '2026-03-25', 79),
       ] as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     // Latest weight at or before 2026-03-31 → 2026-03-25 → 79
     expect(result!.endMeasurements.weight).toBe(79);
   });
@@ -367,7 +358,7 @@ describe('fetchMonthlyReportCaloriesData', () => {
       makeMeal('2026-03-02', 1800),
       makeMeal('2026-03-09', 1600),
     ] as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.weeks.length).toBeGreaterThan(0);
     // Every week with data should have avgDailyKcal > 0
     const withData = result!.weeks.filter(w => w.hasData);
@@ -379,31 +370,29 @@ describe('fetchMonthlyReportCaloriesData', () => {
 
   it('week without meals has hasData=false and avgDailyKcal=0', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-02', 1800)] as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     const emptyWeeks = result!.weeks.filter(w => !w.hasData);
     for (const w of emptyWeeks) {
       expect(w.avgDailyKcal).toBe(0);
     }
   });
 
-  it('includes userEmail and urls in result', async () => {
+  it('includes userEmail in result', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-10', 1800)] as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.userEmail).toBe('user@example.com');
-    expect(result!.unsubscribeUrl).toBe(TEST_URLS.unsubscribeUrl);
-    expect(result!.viewInAppUrl).toBe(TEST_URLS.viewInAppUrl);
   });
 
   it('uses profile goalMaxCalories when set', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-10', 1800)] as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.goalMaxCalories).toBe(2000);
   });
 
   it('falls back goalMaxCalories to 2000 when profile is absent', async () => {
     vi.mocked(getCalorieProfile).mockResolvedValue(undefined);
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-10', 1800)] as any);
-    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START, TEST_URLS);
+    const result = await fetchMonthlyReportCaloriesData('u1', MONTH_START);
     expect(result!.goalMaxCalories).toBe(2000);
   });
 });

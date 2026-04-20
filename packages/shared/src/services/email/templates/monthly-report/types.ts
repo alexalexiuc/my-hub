@@ -53,6 +53,11 @@ export interface MonthlyReportData {
   endMeasurements: MeasurementSnapshot;
 
   userEmail: string;
-  unsubscribeUrl: string;
-  viewInAppUrl: string;
 }
+
+export type BuildMonthlyReportHtmlData = Omit<MonthlyReportData, 'userEmail'> & {
+  urls?: {
+    unsubscribeUrl: string;
+    viewInAppUrl: string;
+  };
+};

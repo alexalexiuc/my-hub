@@ -10,7 +10,7 @@ import { TripFormSchema, type TripFormValues } from './trip-form.schema';
 type TripFormProps = {
   defaultValues?: Partial<TripFormValues>;
   onSubmit: (values: TripFormValues) => Promise<void>;
-  onCancel: () => void;
+  onCancel?: () => void;
   submitLabel: string;
   submitClassName?: string;
 };
@@ -69,9 +69,11 @@ export function TripForm({ defaultValues, onSubmit, onCancel, submitLabel, submi
         <Button type="submit" loading={isSubmitting} className={submitClassName}>
           {submitLabel}
         </Button>
-        <Button type="button" variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
+        {onCancel && (
+          <Button type="button" variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
       </div>
     </form>
   );

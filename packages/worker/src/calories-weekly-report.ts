@@ -10,11 +10,10 @@ import { workerEnvConfig } from './config/env';
 
 export async function sendCaloriesWeeklyReports(): Promise<void> {
   const weekStart = getLastMonday();
+  const weekStartStr = toUTCDateStr(weekStart);
   const userIds = await getSubscribedUserIds('calories_weekly_report');
 
-  logger.info(
-    `[calories-weekly-report] Sending to ${userIds.length} user(s) for week starting ${toUTCDateStr(weekStart)}`,
-  );
+  logger.info(`[calories-weekly-report] Sending to ${userIds.length} user(s) for week starting ${weekStartStr}`);
 
   let sent = 0;
   let skipped = 0;
@@ -22,18 +21,18 @@ export async function sendCaloriesWeeklyReports(): Promise<void> {
   for (const userId of userIds) {
     try {
       logger.info(`[calories-weekly-report] Processing user ${userId}...`);
-      const weekStartStr = toUTCDateStr(weekStart);
-      const urls = {
-        unsubscribeUrl: `${workerEnvConfig.HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(userId, 'calories_weekly_report')}`,
-        viewInAppUrl: `${workerEnvConfig.HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
-      };
-      const data = await fetchWeeklyReportCaloriesData(userId, weekStart, urls);
+
+      const data = await fetchWeeklyReportCaloriesData(userId, weekStart);
       if (!data) {
         skipped++;
         continue;
       }
 
-      const html = buildWeeklyReportHtml(data);
+      const urls = {
+        unsubscribeUrl: `${workerEnvConfig.HUB_URL}/api/unsubscribe?token=${await generateUnsubscribeToken(userId, 'calories_weekly_report')}`,
+        viewInAppUrl: `${workerEnvConfig.HUB_URL}/calories/reports/weekly?weekStart=${weekStartStr}`,
+      };
+      const html = buildWeeklyReportHtml({ ...data, urls });
       await sendEmail({
         to: data.userEmail,
         subject: `Weekly Calories Report — Week ${data.weekNumber}, ${data.year}`,

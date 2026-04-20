@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
-import {
-  fetchMonthlyReportCaloriesData,
-  buildMonthlyReportHtml,
-  generateUnsubscribeToken,
-} from '@my-hub/shared/services';
-import { hubEnvConfig } from '@/config/env';
+import { fetchMonthlyReportCaloriesData, buildMonthlyReportHtml } from '@my-hub/shared/services';
 
 /**
  * GET /api/calories/reports/monthly-preview?monthStart=YYYY-MM-DD
@@ -24,16 +19,10 @@ export const GET = withAuth(async ({ req, user }) => {
     monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
   }
 
-  const monthStartStr = monthStart.toISOString().slice(0, 10);
-  const urls = {
-    unsubscribeUrl: `${hubEnvConfig.HUB_URL}/api/unsubscribe?token=${generateUnsubscribeToken(user.id, 'calories_monthly_report')}`,
-    viewInAppUrl: `${hubEnvConfig.HUB_URL}/calories/reports/monthly?monthStart=${monthStartStr}`,
-  };
-
-  const data = await fetchMonthlyReportCaloriesData(user.id, monthStart, urls);
+  const data = await fetchMonthlyReportCaloriesData(user.id, monthStart);
   if (!data) {
     return NextResponse.json({ skipped: 'no_data' });
   }
 
-  return NextResponse.json({ html: buildMonthlyReportHtml(data, { hideFooter: true }) });
+  return NextResponse.json({ html: buildMonthlyReportHtml(data) });
 });

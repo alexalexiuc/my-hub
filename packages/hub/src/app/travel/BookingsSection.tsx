@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import type { TripBookingType, TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
-import { AttachmentIcon, PencilIcon, PlusOutlineIcon, TrashIcon } from '@/components/icons';
-import { BookingTypeIcon, Button, IconButton } from '@/components';
+import { AttachmentIcon, PencilIcon, TrashIcon } from '@/components/icons';
+import { BookingTypeIcon, IconButton } from '@/components';
 import { TravelTimeDisplay } from './TravelTimeDisplay';
 import { TripBookingTypes } from '@my-hub/shared/constants';
 import { apiFetch } from '@/lib/utils';
@@ -45,13 +45,11 @@ export function BookingsSection({
   onChanged,
 }: BookingsSectionProps) {
   const [editingBookingId, setEditingBookingId] = useState<number | null>(null);
-  const [showingCreateForm, setShowingCreateForm] = useState(false);
   const [expandedBookingId, setExpandedBookingId] = useState<number | null>(null);
 
   async function addBooking(values: BookingFormValues) {
     if (!activeTripId || !canEdit) return;
     await apiFetch('/api/travel/bookings', { method: 'POST', body: formToCreateBody(values, activeTripId) });
-    setShowingCreateForm(false);
     onChanged();
   }
 
@@ -75,23 +73,7 @@ export function BookingsSection({
   return (
     <SectionCard title="Reservations" className="bg-indigo-950/20 border-indigo-800/50">
       <div className="mb-3">
-        {showingCreateForm ? (
-          <BookingForm
-            onSubmit={addBooking}
-            onCancel={() => setShowingCreateForm(false)}
-            submitLabel="Add Reservation"
-            disabled={!activeTripId || !canEdit}
-          />
-        ) : (
-          <Button
-            variant="secondary"
-            className="w-full"
-            onClick={() => setShowingCreateForm(true)}
-            disabled={!activeTripId || !canEdit}
-          >
-            <PlusOutlineIcon /> Add Reservation
-          </Button>
-        )}
+        <BookingForm onSubmit={addBooking} submitLabel="Add Reservation" disabled={!activeTripId || !canEdit} />
       </div>
 
       <div className="space-y-2 max-h-[28rem] overflow-auto">
