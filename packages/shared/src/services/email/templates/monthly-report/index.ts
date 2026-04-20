@@ -51,6 +51,7 @@ body {
 .header-meta { text-align: right; font-family: 'IBM Plex Mono','Courier New',monospace; font-size: 11px; color: #4b5a6b; }
 .header-verdict { display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; letter-spacing: 0.05em; }
 .verdict-on-track { background: #0e2a1f; color: #3db87a; border: 1px solid #1a4a33; }
+.verdict-close { background: #2a2414; color: #d4924a; border: 1px solid #4a3a1a; }
 .verdict-over { background: #2a1010; color: #e05a5a; border: 1px solid #4a1a1a; }
 
 .section-label { font-family: 'IBM Plex Mono','Courier New',monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: #2e3d50; margin-bottom: 12px; }
@@ -99,9 +100,15 @@ body {
 
 function buildHeader(data: BuildMonthlyReportHtmlData): string {
   const pct = data.daysLogged > 0 ? (data.daysOnTarget / data.daysLogged) * 100 : 0;
-  const onTrack = pct >= 50;
-  const verdictClass = onTrack ? 'verdict-on-track' : 'verdict-over';
-  const verdictLabel = onTrack ? 'On track' : 'Over';
+  let verdictClass = 'verdict-over';
+  let verdictLabel = 'Over';
+  if (pct >= 60) {
+    verdictClass = 'verdict-on-track';
+    verdictLabel = 'On track';
+  } else if (pct >= 40) {
+    verdictClass = 'verdict-close';
+    verdictLabel = 'Close';
+  }
 
   return `
   <div class="header">
@@ -160,7 +167,12 @@ function buildSummary(data: BuildMonthlyReportHtmlData): string {
 }
 
 function buildWeeklyBreakdown(data: BuildMonthlyReportHtmlData): string {
-  const BAR_SCALE = 4500;
+  // Dynamic bar scale based on goal and actual data
+  const maxWeeklyKcal = Math.max(0, ...data.weeks.filter(w => w.hasData).map(w => w.avgDailyKcal));
+  const BAR_SCALE = Math.max(
+    data.goalMaxCalories * 1.3, // At least 30% above goal to show context
+    maxWeeklyKcal * 1.1, // Or 10% above highest actual week
+  );
   const goalLinePct = ((data.goalMaxCalories / BAR_SCALE) * 100).toFixed(1);
 
   const DAY_TD = `font-family:'IBM Plex Mono','Courier New',monospace;font-size:11px;color:#4b5a6b;white-space:nowrap;width:54px;padding-right:10px;padding-bottom:8px;vertical-align:middle;`;
@@ -214,6 +226,15 @@ function buildWeeklyBreakdown(data: BuildMonthlyReportHtmlData): string {
 }
 
 function buildMacros(data: BuildMonthlyReportHtmlData): string {
+  // If insufficient data, show a note
+  if (data.daysLogged < 3) {
+    return `
+  <div class="section-label">Average macro split</div>
+  <div class="chart-block" style="margin-bottom:28px;">
+    <p style="font-size:12px; color:#4b5a6b;">Log at least 3 days to see meaningful macro trends.</p>
+  </div>`;
+  }
+
   const avgKcal = data.avgDailyKcal || 1;
   const carbsPct = Math.round(((data.avgCarbs * 4) / avgKcal) * 100);
   const proteinPct = Math.round(((data.avgProtein * 4) / avgKcal) * 100);
@@ -364,6 +385,29 @@ function buildWeightTrendChart(data: BuildMonthlyReportHtmlData): string {
 
 function buildCompositionProgress(data: BuildMonthlyReportHtmlData): string {
   const { startMeasurements: s, endMeasurements: e } = data;
+
+  // Check if any measurements exist
+  const hasAnyMeasurements =
+    s.weight != null ||
+    s.bodyFat != null ||
+    s.waist != null ||
+    s.chest != null ||
+    s.neck != null ||
+    e.weight != null ||
+    e.bodyFat != null ||
+    e.waist != null ||
+    e.chest != null ||
+    e.neck != null;
+
+  if (!hasAnyMeasurements) {
+    return `
+  <div class="section-label">Body composition progress</div>
+  <div style="margin-bottom:28px;">
+    <div style="background:#0d1219;border:1px solid #1a2230;border-radius:8px;padding:16px;font-size:12px;color:#4b5a6b;">
+      Start logging body measurements (weight, body fat %, waist, chest, neck) to track your composition progress.
+    </div>
+  </div>`;
+  }
 
   type Row = { label: string; unit: string; start: number | null; end: number | null; decimals: number };
   const rows: Row[] = [
