@@ -26,7 +26,7 @@ export function registerTodoResources(server: McpServer): void {
       mimeType: 'application/json',
     },
     async (_uri, extra) => {
-      const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+      const userId = extra.authInfo?.extra?.userId as string | undefined;
       if (!userId) throw new Error('Authentication required');
       const items = await getOpenTodos(userId);
       return resourceResponse({ openTodos: items, count: items.length });

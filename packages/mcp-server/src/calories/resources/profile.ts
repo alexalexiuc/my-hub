@@ -5,7 +5,7 @@ import { resourceResponse } from '../../shared/resourcesUtils';
 import { MeasurementTypes } from '@my-hub/shared/constants';
 
 export const getProfileResource: ReadResourceCallback = async (uri, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
 
   const [profileRow, latestMeasurements] = await Promise.all([
     getCalorieProfile(userId),

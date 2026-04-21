@@ -77,7 +77,7 @@ export const DeleteMealSchema = z.object({
 });
 
 export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+  const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
 
   // Fetch user record first to resolve timezone for date/mealType inference
@@ -192,7 +192,7 @@ export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (inpu
 };
 
 export const getMealsTool: ToolCallback<typeof GetMealsSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+  const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
   const limit = input.limit ?? DEFAULT_MEAL_LIMIT;
   const offset = input.offset ?? 0;
@@ -214,7 +214,7 @@ export const getMealsTool: ToolCallback<typeof GetMealsSchema.shape> = async (in
 };
 
 export const deleteMealTool: ToolCallback<typeof DeleteMealSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+  const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
   const deleted = await deleteMeal(userId, input.mealId);
   if (!deleted) {

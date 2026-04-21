@@ -11,10 +11,10 @@
 - [ ] Create a dedicated cron job (separate process/container) for api_request_logs retention cleanup and DB backup — the in-app log deletion scheduler was removed in favour of this
 - [x] Add turborepo for better monorepo management during builds/checks.
 - [ ] Review [CrowdSec](https://www.crowdsec.net/) to be added as a security layer in front of the MCP server, to block malicious IPs and prevent abuse. It can be run as a sidecar container in the same network as the MCP server, and configured to forward allowed requests to it while blocking suspicious ones. This would add an extra layer of protection against attacks like brute-force login attempts, DDoS, and other common web threats.
-- [ ] Check calories min max if works properly and makes sense.
+- [x] Check calories min max if works properly and makes sense.
 - [ ] Enhance Harvesting with a dedicated table for to store harvests(start, end, collection per hive. etc. Add MCP tools for reporting & UI elements)
-- [ ] Verify issue with Github PR checks where E2E test action is finished with success but in PR checks it has pending status.
-- [ ] Mobile authorization redirects to localhost. Check!
+- [x] Verify issue with Github PR checks where E2E test action is finished with success but in PR checks it has pending status.
+- [x] Mobile authorization redirects to localhost. Check!
 - [x] Add refresh token support to the OAuth implementation. Then increase access token expiration.
 - [ ] Wire up MCP Service monitor to HUB UI.
 - [ ] **Travel UX:** Allow users to override flight details shown in the UI (fetched from flightDetails table) with user-inserted values (via Hub UI form or MCP). Provide a "Use manual details" toggle or similar UX to let users override auto-fetched flight info (status, gate, terminal, etc.) when manually entered values should take precedence.
@@ -37,3 +37,4 @@
 - [ ] instead of skeleton for entire page, make so that each component knows to draw its own skeleton while loading, to avoid showing a blank page and make it feel more responsive. For example, the display name section can show a skeleton for the name field while it's loading, and then show the actual name once it's loaded, without waiting for the entire profile page to be ready. This would improve perceived performance and make the app feel faster.
 - [ ] Add a "Last updated" timestamp to the profile page, showing when the user's profile was last updated, to give users a sense of how fresh their data is and encourage them to keep it up to date.
 - [ ] Add a "Delete account" button in the profile page, which would allow users to delete their account and all associated data, with a confirmation step to prevent accidental deletions. This would give users more control over their data and comply with privacy regulations.
+- [ ] Add auto versioning

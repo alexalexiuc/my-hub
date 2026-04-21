@@ -24,9 +24,9 @@ function parseAllowedMime(raw: string | undefined): string[] {
 }
 
 export const travelFilesConfig = {
-  storageRoot: process.env['TRAVEL_FILES_ROOT'] ?? TRAVEL_FILES_ROOT_DEFAULT,
-  maxMb: parseMaxMb(process.env['TRAVEL_FILES_MAX_MB']),
-  allowedMime: parseAllowedMime(process.env['TRAVEL_FILES_ALLOWED_MIME']),
+  storageRoot: process.env.TRAVEL_FILES_ROOT ?? TRAVEL_FILES_ROOT_DEFAULT,
+  maxMb: parseMaxMb(process.env.TRAVEL_FILES_MAX_MB),
+  allowedMime: parseAllowedMime(process.env.TRAVEL_FILES_ALLOWED_MIME),
 } as const;
 
 export function getTravelFileMaxBytes(): number {

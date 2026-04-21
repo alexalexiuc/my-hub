@@ -18,7 +18,7 @@ export const TravelUpsertDayNoteSchema = z.object({
 });
 
 export const travelUpsertDayNoteTool: ToolCallback<typeof TravelUpsertDayNoteSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
 
   const day = await upsertTripDay(userId, input.tripId, input.date, {
     title: input.title ?? null,
@@ -37,7 +37,7 @@ export const TravelGetDayNotesSchema = z.object({
 });
 
 export const travelGetDayNotesTool: ToolCallback<typeof TravelGetDayNotesSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
 
   const days = await getTripDays(userId, input.tripId);
 
@@ -53,7 +53,7 @@ export const TravelDeleteDayNoteSchema = z.object({
 });
 
 export const travelDeleteDayNoteTool: ToolCallback<typeof TravelDeleteDayNoteSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
 
   const removed = await deleteTripDay(userId, input.id);
   if (!removed) throw new Error(`Day note ${input.id} not found or already removed.`);

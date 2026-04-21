@@ -36,7 +36,7 @@ export const GetHiveStatusSchema = z.object({
 });
 
 export const createHiveTool: ToolCallback<typeof CreateHiveSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const hive = await createApiaryHive(userId, {
     name: input.name,
     ...omitNullish({
@@ -52,13 +52,13 @@ export const createHiveTool: ToolCallback<typeof CreateHiveSchema.shape> = async
 };
 
 export const listHivesTool: ToolCallback<typeof ListHivesSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const hives = await getApiaryHives(userId, omitNullish({ yardId: input.yardId, active: input.active }));
   return toolResponse({ hives, count: hives.length });
 };
 
 export const updateHiveTool: ToolCallback<typeof UpdateHiveSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const hive = await updateApiaryHive(
     userId,
     input.hiveId,
@@ -78,7 +78,7 @@ export const updateHiveTool: ToolCallback<typeof UpdateHiveSchema.shape> = async
 };
 
 export const getHiveStatusTool: ToolCallback<typeof GetHiveStatusSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const status = await getApiaryHiveStatus(userId, input.hiveId);
   if (!status) throw new Error(`Hive with id ${input.hiveId} not found`);
   return toolResponse(status);

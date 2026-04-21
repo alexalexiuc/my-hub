@@ -2,6 +2,8 @@
  * Date utilities
  * - isValidDate(d) — type guard: true if d is a non-NaN Date object
  * - dateToString(d) — format Date as YYYY-MM-DD using local time
+ * - currentDateString(timezone?) — explicit alias for localDateString(timezone)
+ * - dateStringDaysAgo(daysAgo, timezone?) — YYYY-MM-DD for N calendar days ago in resolved timezone
  * - localDateString(timezone?) — today as YYYY-MM-DD, resolved via UTC offset / IANA / local
  * - localHour(timezone?) — current hour (0-23) in the resolved timezone
  * - toUTCDateStr(d) — format Date as YYYY-MM-DD using UTC components
@@ -46,6 +48,19 @@ export function isValidDate(d: unknown): d is Date {
  */
 export function dateToString(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Returns today's date string (YYYY-MM-DD) in the provided timezone. */
+export function currentDateString(timezone?: string | null): string {
+  return localDateString(timezone);
+}
+
+/** Returns the date string for N calendar days ago in the provided timezone. */
+export function dateStringDaysAgo(daysAgo: number, timezone?: string | null): string {
+  const [year, month, day] = currentDateString(timezone).split('-').map(Number) as [number, number, number];
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() - daysAgo);
+  return toUTCDateStr(date);
 }
 
 /** Returns true when the string is a UTC offset like "+2", "-5", "+5:30". */

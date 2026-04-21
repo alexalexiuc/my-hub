@@ -134,7 +134,7 @@ function parseLogDate(dateStr?: string): Date {
 }
 
 export const logInspectionTool: ToolCallback<typeof LogInspectionSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const log = await createApiaryLog(userId, {
     type: 'inspection',
     loggedAt: parseLogDate(input.loggedAt),
@@ -152,7 +152,7 @@ export const logInspectionTool: ToolCallback<typeof LogInspectionSchema.shape> =
 };
 
 export const logTreatmentTool: ToolCallback<typeof LogTreatmentSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const log = await createApiaryLog(userId, {
     type: 'treatment',
     loggedAt: parseLogDate(input.loggedAt),
@@ -164,7 +164,7 @@ export const logTreatmentTool: ToolCallback<typeof LogTreatmentSchema.shape> = a
 };
 
 export const logFeedingTool: ToolCallback<typeof LogFeedingSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const log = await createApiaryLog(userId, {
     type: 'feeding',
     loggedAt: parseLogDate(input.loggedAt),
@@ -176,7 +176,7 @@ export const logFeedingTool: ToolCallback<typeof LogFeedingSchema.shape> = async
 };
 
 export const logHarvestTool: ToolCallback<typeof LogHarvestSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const log = await createApiaryLog(userId, {
     type: 'harvest',
     loggedAt: parseLogDate(input.loggedAt),
@@ -188,7 +188,7 @@ export const logHarvestTool: ToolCallback<typeof LogHarvestSchema.shape> = async
 };
 
 export const logQueenEventTool: ToolCallback<typeof LogQueenEventSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const log = await createApiaryLog(userId, {
     type: 'queen_event',
     loggedAt: parseLogDate(input.loggedAt),
@@ -203,7 +203,7 @@ export const logQueenEventTool: ToolCallback<typeof LogQueenEventSchema.shape> =
 };
 
 export const logRelocationTool: ToolCallback<typeof LogRelocationSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const loggedAt = parseLogDate(input.loggedAt);
   const log = await createApiaryLog(userId, {
     type: 'relocation',
@@ -220,7 +220,7 @@ export const logRelocationTool: ToolCallback<typeof LogRelocationSchema.shape> =
 };
 
 export const addNoteTool: ToolCallback<typeof AddNoteSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const log = await createApiaryLog(userId, {
     type: 'note',
     loggedAt: parseLogDate(input.loggedAt),
@@ -231,7 +231,7 @@ export const addNoteTool: ToolCallback<typeof AddNoteSchema.shape> = async (inpu
 };
 
 export const getHiveLogsTool: ToolCallback<typeof GetHiveLogsSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const logs = await getApiaryLogs(userId, {
     hiveId: input.hiveId,
     ...omitNullish({ type: input.type, limit: input.limit, offset: input.offset }),
@@ -240,7 +240,7 @@ export const getHiveLogsTool: ToolCallback<typeof GetHiveLogsSchema.shape> = asy
 };
 
 export const deleteLogTool: ToolCallback<typeof DeleteLogSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const deleted = await deleteApiaryLog(userId, input.logId);
   if (!deleted) throw new Error(`Log entry with id ${input.logId} not found`);
   return toolResponse({ deleted: true, logId: input.logId });

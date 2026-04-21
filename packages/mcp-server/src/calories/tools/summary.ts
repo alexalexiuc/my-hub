@@ -9,7 +9,7 @@ export const GetDailySummarySchema = z.object({
 });
 
 export const getDailySummaryTool: ToolCallback<typeof GetDailySummarySchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+  const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
   const date = input.date ?? new Date().toISOString().split('T')[0]!;
   const summary = await buildDailySummary(userId, date);

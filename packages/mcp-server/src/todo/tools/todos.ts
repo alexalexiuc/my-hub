@@ -25,7 +25,7 @@ export function registerTodoTools(server: McpServer) {
       annotations: { idempotentHint: false, destructiveHint: false },
     },
     async (input: z.infer<typeof AddTodoSchema>, extra) => {
-      const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+      const userId = extra.authInfo?.extra?.userId as string | undefined;
       if (!userId) throw new Error('Authentication required');
       const todo = await addTodo(userId, input.title);
       return toolResponse(todo);
@@ -40,7 +40,7 @@ export function registerTodoTools(server: McpServer) {
       annotations: { idempotentHint: true, destructiveHint: false },
     },
     async (input: z.infer<typeof MarkDoneSchema>, extra) => {
-      const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+      const userId = extra.authInfo?.extra?.userId as string | undefined;
       if (!userId) throw new Error('Authentication required');
       const todo = await markTodoDone(userId, input.id);
       if (!todo) throw new Error(`Todo with id ${input.id} not found`);
@@ -56,7 +56,7 @@ export function registerTodoTools(server: McpServer) {
       annotations: { readOnlyHint: true },
     },
     async (_input, extra) => {
-      const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+      const userId = extra.authInfo?.extra?.userId as string | undefined;
       if (!userId) throw new Error('Authentication required');
       const items = await getTodos(userId);
       return toolResponse(items);

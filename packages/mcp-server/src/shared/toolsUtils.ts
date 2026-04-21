@@ -17,7 +17,7 @@ export const defineResource = (def: CaloriesResourceDef): CaloriesResourceDef =>
 export const withUserIdCheckResource =
   (cb: ReadResourceCallback): ReadResourceCallback =>
   (uri, extra) => {
-    const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+    const userId = extra.authInfo?.extra?.userId as string | undefined;
     if (!userId) throw new Error('Authentication required');
     return cb(uri, extra);
   };

@@ -7,10 +7,10 @@ export const AUTH_FILE = path.join(__dirname, '.auth', 'user.json');
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false, // tests share a DB — run sequentially to avoid races
-  forbidOnly: !!process.env['CI'],
-  retries: process.env['CI'] ? 1 : 0,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 1 : 0,
   workers: 1,
-  reporter: process.env['CI']
+  reporter: process.env.CI
     ? [['github'], ['list'], ['html', { open: 'never' }]]
     : [['list'], ['html', { open: 'never' }]],
 

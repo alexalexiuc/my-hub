@@ -21,7 +21,7 @@ export const UpdateYardSchema = z.object({
 });
 
 export const createYardTool: ToolCallback<typeof CreateYardSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const yard = await createApiaryYard(userId, {
     name: input.name,
     ...omitNullish({ location: input.location, notes: input.notes }),
@@ -30,13 +30,13 @@ export const createYardTool: ToolCallback<typeof CreateYardSchema.shape> = async
 };
 
 export const listYardsTool: ToolCallback<typeof ListYardsSchema.shape> = async (_input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const yards = await getApiaryYards(userId);
   return toolResponse({ yards, count: yards.length });
 };
 
 export const updateYardTool: ToolCallback<typeof UpdateYardSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const yard = await updateApiaryYard(
     userId,
     input.yardId,

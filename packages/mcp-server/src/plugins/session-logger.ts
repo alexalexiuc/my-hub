@@ -14,7 +14,7 @@ function extractMessageInfo(message: JSONRPCMessage): { method: string; toolName
 
   const { method } = message;
   const params = 'params' in message ? (message.params as Record<string, unknown> | undefined) : undefined;
-  const toolName = method === 'tools/call' ? (params?.['name'] as string | undefined) : undefined;
+  const toolName = method === 'tools/call' ? (params?.name as string | undefined) : undefined;
 
   return { method, toolName };
 }
@@ -31,9 +31,9 @@ function logSessionMessage(
 
   const { method, toolName } = info;
   const authInfo = extra?.authInfo;
-  const userId = (authInfo?.extra?.['userId'] as string | undefined) ?? null;
-  const clientId = (authInfo?.extra?.['clientId'] as string | undefined) ?? null;
-  const serverName = (authInfo?.extra?.['serverName'] as McpServerName | undefined) ?? null;
+  const userId = (authInfo?.extra?.userId as string | undefined) ?? null;
+  const clientId = (authInfo?.extra?.clientId as string | undefined) ?? null;
+  const serverName = (authInfo?.extra?.serverName as McpServerName | undefined) ?? null;
   const redactedMessage = redactSensitiveFields(message);
 
   logger.info(`--> MCP ${method}${toolName ? ` (${toolName})` : ''} [session:${sessionId.slice(0, 8)}]`);

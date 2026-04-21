@@ -35,7 +35,7 @@ export const DeleteMeasurementSchema = z.object({
 });
 
 export const logMeasurementTool: ToolCallback<typeof LogMeasurementSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+  const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
 
   const measurementType = await getMeasurementTypeByKey(input.type as MeasurementTypeKey);
@@ -64,7 +64,7 @@ export const logMeasurementTool: ToolCallback<typeof LogMeasurementSchema.shape>
 };
 
 export const getMeasurementsTool: ToolCallback<typeof GetMeasurementsSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+  const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
 
   let typeKey: MeasurementTypeKey | undefined;
@@ -88,7 +88,7 @@ export const getMeasurementsTool: ToolCallback<typeof GetMeasurementsSchema.shap
 };
 
 export const deleteMeasurementTool: ToolCallback<typeof DeleteMeasurementSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
+  const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
   const deleted = await deleteMeasurement(input.id, userId);
   if (!deleted) {

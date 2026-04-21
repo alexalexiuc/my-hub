@@ -41,6 +41,7 @@ export default [
       sourceType: 'module',
     },
     rules: {
+      'dot-notation': 'error',
       '@typescript-eslint/no-unused-expressions': [
         'error',
         {

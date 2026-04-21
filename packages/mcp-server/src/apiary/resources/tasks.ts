@@ -3,7 +3,7 @@ import { getApiaryTasks, getApiaryHives } from '@my-hub/shared/services';
 import { resourceResponse } from '../../shared/resourcesUtils';
 
 export const getTasksResource: ReadResourceCallback = async (uri, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const [tasks, hives] = await Promise.all([getApiaryTasks(userId, { completed: false }), getApiaryHives(userId)]);
 
   const hiveMap = new Map(hives.map(h => [h.id, h.name]));

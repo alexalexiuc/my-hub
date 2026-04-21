@@ -26,7 +26,7 @@ Create `packages/mcp-server/src/calories/tools/<name>.ts`.
 
 ```typescript
 import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
-import z from 'zod';
+import { z } from 'zod';
 import { toolResponse } from '../../shared/toolsUtils';
 // Add any shared service imports from '@my-hub/shared/services' as needed
 ```
@@ -44,8 +44,10 @@ export const MyActionSchema = z.object({
 
 ```typescript
 export const myActionTool: ToolCallback<typeof MyActionSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+  const userId = extra.authInfo?.extra?.['userId'];
+  if (typeof userId !== 'string' || userId.length === 0) {
+    throw new Error('Authentication required');
+  }
 
   // ... business logic, call shared services, etc.
 
@@ -66,7 +68,9 @@ Key rules:
 
 ```typescript
 import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
-import z from 'zod';
+import { z } from 'zod';
+import { findUserById } from '@my-hub/shared/services';
+import { currentDateString } from '@my-hub/shared/utils';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import { toolResponse } from '../../shared/toolsUtils';
 import { buildDailySummary } from '../models/daily';
@@ -76,9 +80,10 @@ export const GetDailySummarySchema = z.object({
 });
 
 export const getDailySummaryTool: ToolCallback<typeof GetDailySummarySchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
-  if (!userId) throw new Error('Authentication required');
-  const date = input.date ?? new Date().toISOString().split('T')[0]!;
+  const userId = extra.authInfo?.extra?.['userId'];
+  if (typeof userId !== 'string' || userId.length === 0) throw new Error('Authentication required');
+  const userRecord = await findUserById(userId);
+  const date = input.date ?? currentDateString(userRecord?.timezone ?? null);
   const summary = await buildDailySummary(userId, date);
   return toolResponse(summary);
 };
@@ -132,19 +137,19 @@ Most tools do NOT need this — `tools.ts` imports directly from the implementat
 
 ## Shared utilities reference
 
-| Utility                      | Location                  | Purpose                                                          |
-| ---------------------------- | ------------------------- | ---------------------------------------------------------------- |
-| `toolResponse(payload)`      | `../../shared/toolsUtils` | Wrap any object as MCP tool response                             |
-| `defineTool(def)`            | `../../shared/toolsUtils` | Type-safe tool definition (used in tools.ts)                     |
-| `withUserIdCheck(cb, skip?)` | `../../shared/toolsUtils` | Auth middleware (applied automatically in registerCaloriesTools) |
-| `yyyyMmDdSchema`             | `../../shared/schemas`    | Zod schema for "YYYY-MM-DD" date strings                         |
-| `today()`                    | `../../shared/dateUTils`  | Returns today's date as "YYYY-MM-DD"                             |
-| `daysAgo(n)`                 | `../../shared/dateUTils`  | Returns "YYYY-MM-DD" for n days ago                              |
+| Utility                                 | Location                  | Purpose                                                             |
+| --------------------------------------- | ------------------------- | ------------------------------------------------------------------- |
+| `toolResponse(payload)`                 | `../../shared/toolsUtils` | Wrap any object as MCP tool response                                |
+| `defineTool(def)`                       | `../../shared/toolsUtils` | Type-safe tool definition (used in tools.ts)                        |
+| `withUserIdCheck(cb, skip?)`            | `../../shared/toolsUtils` | Auth middleware (applied automatically in registerCaloriesTools)    |
+| `yyyyMmDdSchema`                        | `../../shared/schemas`    | Zod schema for "YYYY-MM-DD" date strings                            |
+| `currentDateString(timezone?)`          | `@my-hub/shared/utils`    | Returns current date as "YYYY-MM-DD" in user timezone when provided |
+| `dateStringDaysAgo(daysAgo, timezone?)` | `@my-hub/shared/utils`    | Returns "YYYY-MM-DD" for N days ago in the resolved timezone        |
 
 ## Verification
 
 After creating the files, verify by:
 
-1. Building the package: `cd packages/mcp-server && npm run build` (or `tsc --noEmit`)
+1. Building the package: `pnpm --filter @my-hub/mcp-server build` (or `pnpm --filter @my-hub/mcp-server typecheck`)
 2. Confirming the new tool name appears in the registered tools list
 3. Calling the tool via the MCP client (e.g. Claude with the calories MCP server connected)

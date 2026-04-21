@@ -38,7 +38,7 @@ setup('write seeds, create test user and authenticate', async ({ request, page }
   await page.context().storageState({ path: AUTH_FILE });
 
   // Seed Hub E2E fixtures when running locally (CI seeds via docker compose run e2e-seeds)
-  if (process.env['IS_LOCAL'] === 'true') {
+  if (process.env.IS_LOCAL === 'true') {
     const seedEnv = { ...process.env, E2E_HUB_USER_EMAIL: TEST_USER.email };
     execSync('npx tsx scripts/setup-e2e-db.ts', {
       cwd: __dirname,

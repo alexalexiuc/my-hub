@@ -121,7 +121,7 @@ export const TravelAddReservationFromTextSchema = TravelAddReservationFromTextIn
 export const travelAddReservationFromTextTool: ToolCallback<
   typeof TravelAddReservationFromTextInputSchema.shape
 > = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
 
   const bookingType = input.bookingType ?? TripBookingTypes.Other;
   const isTransport = isTransportBookingType(bookingType);
@@ -223,7 +223,7 @@ export const TravelAddFlightSchema = z.object({
 });
 
 export const travelAddFlightTool: ToolCallback<typeof TravelAddFlightSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
 
   const flightNumber = input.flightNumber.toUpperCase();
   const originIata = input.originIata.toUpperCase();
@@ -332,7 +332,7 @@ export const TravelAddTransportSchema = z.object({
 });
 
 export const travelAddTransportTool: ToolCallback<typeof TravelAddTransportSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
 
   const title = input.title ?? `${input.origin.name} → ${input.destination.name}`;
 
@@ -417,7 +417,7 @@ export const TravelEditBookingSchema = z.object({
 });
 
 export const travelEditBookingTool: ToolCallback<typeof TravelEditBookingSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
 
   const existing = await getTripBookingById(userId, input.bookingId);
   if (!existing) throw new Error(`Booking ${input.bookingId} not found.`);
@@ -483,7 +483,7 @@ export const TravelEditFlightSchema = z.object({
 });
 
 export const travelEditFlightTool: ToolCallback<typeof TravelEditFlightSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
 
   const existing = await getTripBookingById(userId, input.bookingId);
   if (!existing) throw new Error(`Booking ${input.bookingId} not found.`);
@@ -550,7 +550,7 @@ export const TravelRemoveBookingSchema = z.object({
 });
 
 export const travelRemoveBookingTool: ToolCallback<typeof TravelRemoveBookingSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
 
   const removed = await deleteTripBooking(userId, input.bookingId);
   if (!removed) throw new Error(`Booking ${input.bookingId} not found or already removed.`);

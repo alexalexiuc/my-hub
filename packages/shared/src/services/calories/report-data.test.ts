@@ -191,8 +191,8 @@ describe('fetchWeeklyReportCaloriesData', () => {
       ] as any)
       .mockResolvedValueOnce([]);
     const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
-    expect(result!.latestMeasurements['weight']).toBe(80);
-    expect(result!.latestMeasurements['body_fat']).toBe(15);
+    expect(result!.latestMeasurements.weight).toBe(80);
+    expect(result!.latestMeasurements.body_fat).toBe(15);
   });
 
   it('uses profile goalMaxCalories and goalMinCalories when set', async () => {

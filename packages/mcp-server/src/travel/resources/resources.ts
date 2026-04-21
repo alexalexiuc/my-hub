@@ -5,7 +5,7 @@ import { resourceResponse } from '../../shared/resourcesUtils';
 import { travelFilesConfig } from '../files-config';
 
 export const getTravelTripsResource: ReadResourceCallback = async (uri, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const trips = await getTrips(userId);
 
   return resourceResponse(uri, {
@@ -15,7 +15,7 @@ export const getTravelTripsResource: ReadResourceCallback = async (uri, extra) =
 };
 
 export const getTravelUpcomingResource: ReadResourceCallback = async (uri, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const trips = await getTrips(userId);
 
   const nextTrip =

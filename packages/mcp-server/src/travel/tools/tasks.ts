@@ -68,7 +68,7 @@ export const TravelAttachDocumentLinkSchema = z.object({
 });
 
 export const travelPlanTripTool: ToolCallback<typeof TravelPlanTripSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
 
   const trip = await createTrip(userId, {
     name: input.name,
@@ -103,7 +103,7 @@ export const travelPrepareTripChecklistTool: ToolCallback<typeof TravelPrepareTr
   input,
   extra,
 ) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const trips = await getTrips(userId);
   const trip = trips.find(t => t.id === input.tripId);
   if (!trip) throw new Error(`Trip with id ${input.tripId} not found`);
@@ -129,7 +129,7 @@ export const travelPrepareTripChecklistTool: ToolCallback<typeof TravelPrepareTr
 };
 
 export const travelWhoIsTravelingTool: ToolCallback<typeof TravelWhoIsTravelingSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
 
   for (const companion of input.add ?? []) {
     await addTripCompanion(userId, input.tripId, {
@@ -163,7 +163,7 @@ export const travelWhoIsTravelingTool: ToolCallback<typeof TravelWhoIsTravelingS
 };
 
 export const travelGetTripBriefTool: ToolCallback<typeof TravelGetTripBriefSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const overview = await getTripBrief(userId, input.tripId);
 
   if (!overview) {
@@ -193,7 +193,7 @@ export const travelAttachDocumentLinkTool: ToolCallback<typeof TravelAttachDocum
   input,
   extra,
 ) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
 
   const document = await addTripDocument(userId, input.tripId, {
     type: (input.type ?? TripDocumentTypes.Other) as TripDocumentType,

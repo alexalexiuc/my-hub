@@ -1,7 +1,7 @@
 // Bridge E2E_DATABASE_URL → DATABASE_URL so the shared db client picks it up.
 // This must happen before any function calls that touch the db.
-if (process.env['E2E_DATABASE_URL'] && !process.env['DATABASE_URL']) {
-  process.env['DATABASE_URL'] = process.env['E2E_DATABASE_URL'];
+if (process.env.E2E_DATABASE_URL && !process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.E2E_DATABASE_URL;
 }
 
 import { findUserByEmail, createUserWithPassword, verifyUserEmail } from '@my-hub/shared/services';

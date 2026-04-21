@@ -53,7 +53,7 @@ export const DeleteTaskSchema = z.object({
 });
 
 export const createTaskTool: ToolCallback<typeof CreateTaskSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const dueAt = input.dueAt ? new Date(input.dueAt) : undefined;
   const task = await createApiaryTask(userId, {
     title: input.title,
@@ -63,21 +63,21 @@ export const createTaskTool: ToolCallback<typeof CreateTaskSchema.shape> = async
 };
 
 export const completeTaskTool: ToolCallback<typeof CompleteTaskSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const task = await updateApiaryTask(userId, input.taskId, { completed: true });
   if (!task) throw new Error(`Task with id ${input.taskId} not found`);
   return toolResponse(task);
 };
 
 export const deleteTaskTool: ToolCallback<typeof DeleteTaskSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const deleted = await deleteApiaryTask(userId, input.taskId);
   if (!deleted) throw new Error(`Task with id ${input.taskId} not found`);
   return toolResponse({ deleted: true, taskId: input.taskId });
 };
 
 export const listTasksTool: ToolCallback<typeof ListTasksSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const userId = extra.authInfo?.extra?.userId as string;
   const dueBefore = input.dueBefore ? new Date(input.dueBefore) : undefined;
   const tasks = await getApiaryTasks(
     userId,

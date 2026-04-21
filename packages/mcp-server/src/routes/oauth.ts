@@ -77,9 +77,9 @@ export async function oauthRoutes(app: FastifyInstance) {
   // RFC 7591 — Dynamic Client Registration
   app.post('/register', async (req, reply) => {
     const body = req.body as Record<string, unknown>;
-    const clientName = typeof body['client_name'] === 'string' ? body['client_name'] : null;
-    const redirectUris: string[] = Array.isArray(body['redirect_uris'])
-      ? (body['redirect_uris'] as string[]).filter(u => typeof u === 'string' && validateRedirectUri(u) !== null)
+    const clientName = typeof body.client_name === 'string' ? body.client_name : null;
+    const redirectUris: string[] = Array.isArray(body.redirect_uris)
+      ? (body.redirect_uris as string[]).filter(u => typeof u === 'string' && validateRedirectUri(u) !== null)
       : [];
 
     // hub_<8 hex chars> — short prefix makes it identifiable at a glance
@@ -152,8 +152,8 @@ export async function oauthRoutes(app: FastifyInstance) {
   // POST /authorize — process consent
   app.post('/authorize', async (req, reply) => {
     const body = req.body as Record<string, string>;
-    const redirectUri = body['redirect_uri'] ?? '';
-    const state = body['state'] ?? null;
+    const redirectUri = body.redirect_uri ?? '';
+    const state = body.state ?? null;
 
     const parsedRedirectUri = validateRedirectUri(redirectUri);
     if (!parsedRedirectUri) {
@@ -166,11 +166,11 @@ export async function oauthRoutes(app: FastifyInstance) {
       return reply.redirect(parsedRedirectUri.toString());
     };
 
-    if (body['action'] !== 'allow') {
+    if (body.action !== 'allow') {
       return sendError('access_denied');
     }
 
-    const clientId = body['client_id'];
+    const clientId = body.client_id;
     if (!clientId) return reply.status(400).send('Missing client_id');
 
     const client = await findOAuthClient(clientId);
@@ -186,8 +186,8 @@ export async function oauthRoutes(app: FastifyInstance) {
     await ensureAllMcpServers(user.id);
     const userId = user.id;
 
-    const codeChallenge = body['code_challenge'] ?? '';
-    const codeChallengeMethod = body['code_challenge_method'] ?? 'S256';
+    const codeChallenge = body.code_challenge ?? '';
+    const codeChallengeMethod = body.code_challenge_method ?? 'S256';
 
     // TODO: Make auth token single-use(either inMemory map or db table) to prevent replay attacks. Currently the 5 minute expiry is the only protection.
     const authCode = await signToken(
@@ -215,9 +215,9 @@ export async function oauthRoutes(app: FastifyInstance) {
     };
 
     // client_credentials grant — for machine-to-machine use (e.g. e2e tests)
-    if (body['grant_type'] === 'client_credentials') {
-      const clientId = body['client_id'];
-      const clientSecret = body['client_secret'];
+    if (body.grant_type === 'client_credentials') {
+      const clientId = body.client_id;
+      const clientSecret = body.client_secret;
       if (!clientId || !clientSecret) return sendTokenError('invalid_client', 401);
 
       const [client, secretOk] = await Promise.all([
@@ -247,10 +247,10 @@ export async function oauthRoutes(app: FastifyInstance) {
     }
 
     // refresh_token grant — issue a new access token using a valid refresh token
-    if (body['grant_type'] === 'refresh_token') {
-      const clientId = body['client_id'];
-      const clientSecret = body['client_secret'];
-      const plainRefreshToken = body['refresh_token'];
+    if (body.grant_type === 'refresh_token') {
+      const clientId = body.client_id;
+      const clientSecret = body.client_secret;
+      const plainRefreshToken = body.refresh_token;
       if (!clientId || !clientSecret || !plainRefreshToken) {
         return sendTokenError('invalid_request');
       }
@@ -291,13 +291,13 @@ export async function oauthRoutes(app: FastifyInstance) {
       );
     }
 
-    if (body['grant_type'] !== 'authorization_code') {
+    if (body.grant_type !== 'authorization_code') {
       const { status, body: b } = tokenError('unsupported_grant_type');
       return reply.status(status).header('Content-Type', 'application/json').send(b);
     }
 
-    const clientId = body['client_id'];
-    const clientSecret = body['client_secret'];
+    const clientId = body.client_id;
+    const clientSecret = body.client_secret;
     if (!clientId || !clientSecret) {
       return sendTokenError('invalid_client', 401);
     }
@@ -316,12 +316,12 @@ export async function oauthRoutes(app: FastifyInstance) {
     const authCodePayload = await verifyToken<AuthCodePayload>(code, client.tokenSigningSecret);
     if (!authCodePayload) return sendTokenError('invalid_grant');
 
-    const redirectUri = body['redirect_uri'] ?? '';
+    const redirectUri = body.redirect_uri ?? '';
     if (authCodePayload.client_id !== clientId || authCodePayload.redirect_uri !== redirectUri) {
       return sendTokenError('invalid_grant');
     }
 
-    const codeVerifier = body['code_verifier'];
+    const codeVerifier = body.code_verifier;
     if (!codeVerifier) return sendTokenError('invalid_grant');
 
     const pkceOk = verifyPkceS256(codeVerifier, authCodePayload.code_challenge);

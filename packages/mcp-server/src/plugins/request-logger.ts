@@ -70,9 +70,9 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     // Read userId from verified auth (set by fastify-mcp-server's bearer middleware).
     // Falls back to null for unauthenticated or non-MCP routes — never uses unverified token data.
     const { auth } = req.raw as { auth?: AuthInfo };
-    const verifiedUserId = (auth?.extra?.['userId'] as string | undefined) ?? null;
-    const verifiedClientId = (auth?.extra?.['clientId'] as string | undefined) ?? null;
-    const verifiedServerName = (auth?.extra?.['serverName'] as McpServerName | undefined) ?? null;
+    const verifiedUserId = (auth?.extra?.userId as string | undefined) ?? null;
+    const verifiedClientId = (auth?.extra?.clientId as string | undefined) ?? null;
+    const verifiedServerName = (auth?.extra?.serverName as McpServerName | undefined) ?? null;
 
     // Write to DB asynchronously — don't await so we don't slow down the response.
     const logData: Parameters<typeof putLog>[0] = {
