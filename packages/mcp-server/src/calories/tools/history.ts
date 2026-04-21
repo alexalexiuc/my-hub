@@ -1,4 +1,4 @@
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import { findUserById } from '@my-hub/shared/services';
 import { currentDateString } from '@my-hub/shared/utils';
 import { z } from 'zod';
@@ -11,7 +11,7 @@ export const GetHistorySchema = z.object({
   endDate: yyyyMmDdSchema.optional().describe('End of the period (YYYY-MM-DD). Defaults to today when omitted.'),
 });
 
-export const getHistoryTool: ToolCallback<typeof GetHistorySchema.shape> = async (input, extra) => {
+export const getHistoryTool: ToolHandler<typeof GetHistorySchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId;
   if (typeof userId !== 'string' || userId.length === 0) throw new Error('Authentication required');
 

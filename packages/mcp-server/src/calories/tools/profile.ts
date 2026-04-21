@@ -1,4 +1,4 @@
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import { upsertCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shared/services';
 import { omitNullish } from '@my-hub/shared/utils';
 import { z } from 'zod';
@@ -74,7 +74,7 @@ export const UpdateProfileSchema = z.object({
   notes: z.string().optional().describe('Additional notes about your health goals'),
 });
 
-export const updateProfileTool: ToolCallback<typeof UpdateProfileSchema.shape> = async (input, extra) => {
+export const updateProfileTool: ToolHandler<typeof UpdateProfileSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
 

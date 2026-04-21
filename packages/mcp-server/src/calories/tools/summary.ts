@@ -1,4 +1,4 @@
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import { z } from 'zod';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -8,7 +8,7 @@ export const GetDailySummarySchema = z.object({
   date: yyyyMmDdSchema.optional().describe('Date to summarize (YYYY-MM-DD). Defaults to today.'),
 });
 
-export const getDailySummaryTool: ToolCallback<typeof GetDailySummarySchema.shape> = async (input, extra) => {
+export const getDailySummaryTool: ToolHandler<typeof GetDailySummarySchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
   const date = input.date ?? new Date().toISOString().split('T')[0]!;

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import { createApiaryLog, getApiaryLogs, deleteApiaryLog, updateApiaryHive } from '@my-hub/shared/services';
 import { toolResponse } from '../../shared/toolsUtils';
 import { omitNullish } from '@my-hub/shared/utils';
@@ -133,7 +133,7 @@ function parseLogDate(dateStr?: string): Date {
   return dateStr ? new Date(dateStr) : new Date();
 }
 
-export const logInspectionTool: ToolCallback<typeof LogInspectionSchema.shape> = async (input, extra) => {
+export const logInspectionTool: ToolHandler<typeof LogInspectionSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const log = await createApiaryLog(userId, {
     type: 'inspection',
@@ -151,7 +151,7 @@ export const logInspectionTool: ToolCallback<typeof LogInspectionSchema.shape> =
   return toolResponse(log);
 };
 
-export const logTreatmentTool: ToolCallback<typeof LogTreatmentSchema.shape> = async (input, extra) => {
+export const logTreatmentTool: ToolHandler<typeof LogTreatmentSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const log = await createApiaryLog(userId, {
     type: 'treatment',
@@ -163,7 +163,7 @@ export const logTreatmentTool: ToolCallback<typeof LogTreatmentSchema.shape> = a
   return toolResponse(log);
 };
 
-export const logFeedingTool: ToolCallback<typeof LogFeedingSchema.shape> = async (input, extra) => {
+export const logFeedingTool: ToolHandler<typeof LogFeedingSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const log = await createApiaryLog(userId, {
     type: 'feeding',
@@ -175,7 +175,7 @@ export const logFeedingTool: ToolCallback<typeof LogFeedingSchema.shape> = async
   return toolResponse(log);
 };
 
-export const logHarvestTool: ToolCallback<typeof LogHarvestSchema.shape> = async (input, extra) => {
+export const logHarvestTool: ToolHandler<typeof LogHarvestSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const log = await createApiaryLog(userId, {
     type: 'harvest',
@@ -187,7 +187,7 @@ export const logHarvestTool: ToolCallback<typeof LogHarvestSchema.shape> = async
   return toolResponse(log);
 };
 
-export const logQueenEventTool: ToolCallback<typeof LogQueenEventSchema.shape> = async (input, extra) => {
+export const logQueenEventTool: ToolHandler<typeof LogQueenEventSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const log = await createApiaryLog(userId, {
     type: 'queen_event',
@@ -202,7 +202,7 @@ export const logQueenEventTool: ToolCallback<typeof LogQueenEventSchema.shape> =
   return toolResponse(log);
 };
 
-export const logRelocationTool: ToolCallback<typeof LogRelocationSchema.shape> = async (input, extra) => {
+export const logRelocationTool: ToolHandler<typeof LogRelocationSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const loggedAt = parseLogDate(input.loggedAt);
   const log = await createApiaryLog(userId, {
@@ -219,7 +219,7 @@ export const logRelocationTool: ToolCallback<typeof LogRelocationSchema.shape> =
   return toolResponse(log);
 };
 
-export const addNoteTool: ToolCallback<typeof AddNoteSchema.shape> = async (input, extra) => {
+export const addNoteTool: ToolHandler<typeof AddNoteSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const log = await createApiaryLog(userId, {
     type: 'note',
@@ -230,7 +230,7 @@ export const addNoteTool: ToolCallback<typeof AddNoteSchema.shape> = async (inpu
   return toolResponse(log);
 };
 
-export const getHiveLogsTool: ToolCallback<typeof GetHiveLogsSchema.shape> = async (input, extra) => {
+export const getHiveLogsTool: ToolHandler<typeof GetHiveLogsSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const logs = await getApiaryLogs(userId, {
     hiveId: input.hiveId,
@@ -239,7 +239,7 @@ export const getHiveLogsTool: ToolCallback<typeof GetHiveLogsSchema.shape> = asy
   return toolResponse({ logs, count: logs.length });
 };
 
-export const deleteLogTool: ToolCallback<typeof DeleteLogSchema.shape> = async (input, extra) => {
+export const deleteLogTool: ToolHandler<typeof DeleteLogSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const deleted = await deleteApiaryLog(userId, input.logId);
   if (!deleted) throw new Error(`Log entry with id ${input.logId} not found`);

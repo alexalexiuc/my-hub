@@ -1,4 +1,4 @@
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import { z } from 'zod';
 import {
   addTripBooking,
@@ -118,7 +118,7 @@ export const TravelAddReservationFromTextSchema = TravelAddReservationFromTextIn
   }
 });
 
-export const travelAddReservationFromTextTool: ToolCallback<
+export const travelAddReservationFromTextTool: ToolHandler<
   typeof TravelAddReservationFromTextInputSchema.shape
 > = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
@@ -222,7 +222,7 @@ export const TravelAddFlightSchema = z.object({
     .describe('Any additional fields you consider relevant (e.g. baggage allowance, meal preference).'),
 });
 
-export const travelAddFlightTool: ToolCallback<typeof TravelAddFlightSchema.shape> = async (input, extra) => {
+export const travelAddFlightTool: ToolHandler<typeof TravelAddFlightSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
 
   const flightNumber = input.flightNumber.toUpperCase();
@@ -331,7 +331,7 @@ export const TravelAddTransportSchema = z.object({
     .describe('Any additional fields you consider relevant (e.g. driver contact, vehicle plate).'),
 });
 
-export const travelAddTransportTool: ToolCallback<typeof TravelAddTransportSchema.shape> = async (input, extra) => {
+export const travelAddTransportTool: ToolHandler<typeof TravelAddTransportSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
 
   const title = input.title ?? `${input.origin.name} → ${input.destination.name}`;
@@ -416,7 +416,7 @@ export const TravelEditBookingSchema = z.object({
     .describe('Contact phone number for the property/provider. Pass null to clear.'),
 });
 
-export const travelEditBookingTool: ToolCallback<typeof TravelEditBookingSchema.shape> = async (input, extra) => {
+export const travelEditBookingTool: ToolHandler<typeof TravelEditBookingSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
 
   const existing = await getTripBookingById(userId, input.bookingId);
@@ -482,7 +482,7 @@ export const TravelEditFlightSchema = z.object({
   lng: z.number().optional().describe('Updated longitude of the departure location.'),
 });
 
-export const travelEditFlightTool: ToolCallback<typeof TravelEditFlightSchema.shape> = async (input, extra) => {
+export const travelEditFlightTool: ToolHandler<typeof TravelEditFlightSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
 
   const existing = await getTripBookingById(userId, input.bookingId);
@@ -549,7 +549,7 @@ export const TravelRemoveBookingSchema = z.object({
   bookingId: z.number().int().positive().describe('ID of the booking to remove.'),
 });
 
-export const travelRemoveBookingTool: ToolCallback<typeof TravelRemoveBookingSchema.shape> = async (input, extra) => {
+export const travelRemoveBookingTool: ToolHandler<typeof TravelRemoveBookingSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
 
   const removed = await deleteTripBooking(userId, input.bookingId);

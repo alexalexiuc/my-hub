@@ -1,10 +1,10 @@
 import { getCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shared/services';
 import { rowToProfile, profileToTargets } from '../models/profile';
-import { ReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ResourceHandler } from '../../shared/types';
 import { resourceResponse } from '../../shared/resourcesUtils';
 import { MeasurementTypes } from '@my-hub/shared/constants';
 
-export const getProfileResource: ReadResourceCallback = async (uri, extra) => {
+export const getProfileResource: ResourceHandler = async (uri, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
 
   const [profileRow, latestMeasurements] = await Promise.all([

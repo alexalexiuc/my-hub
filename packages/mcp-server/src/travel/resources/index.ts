@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { defineResource, withUserIdCheckResource } from '../../shared/toolsUtils';
+import { defineResource, toSdkReadResourceCallback, withUserIdCheckResource } from '../../shared/toolsUtils';
 import { getTravelTripsResource, getTravelUpcomingResource, getTravelUploadPolicyResource } from './resources';
 
 const travelResources = [
@@ -32,7 +32,9 @@ export function registerTravelResources(server: McpServer): void {
       resource.name,
       resource.uri,
       { description: resource.description, mimeType: resource.mimeType },
-      resource.skipUserIdCheck ? resource.callback : withUserIdCheckResource(resource.callback),
+      resource.skipUserIdCheck
+        ? toSdkReadResourceCallback(resource.callback)
+        : withUserIdCheckResource(resource.callback),
     );
   }
 }

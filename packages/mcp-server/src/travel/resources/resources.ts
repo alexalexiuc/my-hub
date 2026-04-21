@@ -1,10 +1,10 @@
-import { ReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ResourceHandler } from '../../shared/types';
 import { TripBookingTypes } from '@my-hub/shared/constants';
 import { getTrips, getUpcomingTripBookings } from '@my-hub/shared/services';
 import { resourceResponse } from '../../shared/resourcesUtils';
 import { travelFilesConfig } from '../files-config';
 
-export const getTravelTripsResource: ReadResourceCallback = async (uri, extra) => {
+export const getTravelTripsResource: ResourceHandler = async (uri, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const trips = await getTrips(userId);
 
@@ -14,7 +14,7 @@ export const getTravelTripsResource: ReadResourceCallback = async (uri, extra) =
   });
 };
 
-export const getTravelUpcomingResource: ReadResourceCallback = async (uri, extra) => {
+export const getTravelUpcomingResource: ResourceHandler = async (uri, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const trips = await getTrips(userId);
 
@@ -35,7 +35,7 @@ export const getTravelUpcomingResource: ReadResourceCallback = async (uri, extra
   });
 };
 
-export const getTravelUploadPolicyResource: ReadResourceCallback = async uri => {
+export const getTravelUploadPolicyResource: ResourceHandler = async uri => {
   return resourceResponse(uri, {
     maxMb: travelFilesConfig.maxMb,
     allowedMime: travelFilesConfig.allowedMime,

@@ -1,4 +1,4 @@
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import {
   deleteMeasurement,
   getMeasurements,
@@ -34,7 +34,7 @@ export const DeleteMeasurementSchema = z.object({
   id: z.number().int().positive().describe('The measurement entry ID to delete'),
 });
 
-export const logMeasurementTool: ToolCallback<typeof LogMeasurementSchema.shape> = async (input, extra) => {
+export const logMeasurementTool: ToolHandler<typeof LogMeasurementSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
 
@@ -63,7 +63,7 @@ export const logMeasurementTool: ToolCallback<typeof LogMeasurementSchema.shape>
   });
 };
 
-export const getMeasurementsTool: ToolCallback<typeof GetMeasurementsSchema.shape> = async (input, extra) => {
+export const getMeasurementsTool: ToolHandler<typeof GetMeasurementsSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
 
@@ -87,7 +87,7 @@ export const getMeasurementsTool: ToolCallback<typeof GetMeasurementsSchema.shap
   });
 };
 
-export const deleteMeasurementTool: ToolCallback<typeof DeleteMeasurementSchema.shape> = async (input, extra) => {
+export const deleteMeasurementTool: ToolHandler<typeof DeleteMeasurementSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
   const deleted = await deleteMeasurement(input.id, userId);

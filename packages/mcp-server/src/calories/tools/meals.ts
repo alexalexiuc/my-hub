@@ -12,7 +12,7 @@ import { MAX_MEAL_LIMIT, DEFAULT_MEAL_LIMIT } from '../constants';
 import { rowToProfile, profileToTargets } from '../models/profile';
 import { toolResponse } from '../../shared/toolsUtils';
 import { yyyyMmDdSchema } from '../../shared/schemas';
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import { omitNullish, localDateString, localHour } from '@my-hub/shared/utils';
 import { rowToMealEntry } from '../models/meals';
 import { MealEntry } from '../types';
@@ -76,7 +76,7 @@ export const DeleteMealSchema = z.object({
   mealId: z.string().describe('The mealId of the entry to delete'),
 });
 
-export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (input, extra) => {
+export const logMealTool: ToolHandler<typeof LogMealSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
 
@@ -191,7 +191,7 @@ export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (inpu
   });
 };
 
-export const getMealsTool: ToolCallback<typeof GetMealsSchema.shape> = async (input, extra) => {
+export const getMealsTool: ToolHandler<typeof GetMealsSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
   const limit = input.limit ?? DEFAULT_MEAL_LIMIT;
@@ -213,7 +213,7 @@ export const getMealsTool: ToolCallback<typeof GetMealsSchema.shape> = async (in
   });
 };
 
-export const deleteMealTool: ToolCallback<typeof DeleteMealSchema.shape> = async (input, extra) => {
+export const deleteMealTool: ToolHandler<typeof DeleteMealSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string | undefined;
   if (!userId) throw new Error('Authentication required');
   const deleted = await deleteMeal(userId, input.mealId);

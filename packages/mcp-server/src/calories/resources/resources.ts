@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { defineResource, withUserIdCheckResource } from '../../shared/toolsUtils';
+import { defineResource, toSdkReadResourceCallback, withUserIdCheckResource } from '../../shared/toolsUtils';
 import { getHistory7DaysResource } from './history-7days';
 import { getHistory30DaysResource } from './history-30days';
 import { getProfileResource } from './profile';
@@ -46,7 +46,9 @@ export function registerCaloriesResources(server: McpServer): void {
       resource.name,
       resource.uri,
       { description: resource.description, mimeType: resource.mimeType },
-      resource.skipUserIdCheck ? resource.callback : withUserIdCheckResource(resource.callback),
+      resource.skipUserIdCheck
+        ? toSdkReadResourceCallback(resource.callback)
+        : withUserIdCheckResource(resource.callback),
     );
   }
 }

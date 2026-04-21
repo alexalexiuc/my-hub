@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerTodoTools } from './tools/todos';
-import { registerTodoResources } from './resources';
+import { registerTodoResources } from './resources/';
+import { registerTodoTools } from './tools/';
 
 export function createTodoServer(): McpServer {
   const server = new McpServer({

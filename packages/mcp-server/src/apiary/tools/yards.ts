@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import { getApiaryYards, createApiaryYard, updateApiaryYard } from '@my-hub/shared/services';
 import { toolResponse } from '../../shared/toolsUtils';
 import { omitNullish } from '@my-hub/shared/utils';
@@ -20,7 +20,7 @@ export const UpdateYardSchema = z.object({
   isActive: z.boolean().optional().describe('Whether the yard is active'),
 });
 
-export const createYardTool: ToolCallback<typeof CreateYardSchema.shape> = async (input, extra) => {
+export const createYardTool: ToolHandler<typeof CreateYardSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const yard = await createApiaryYard(userId, {
     name: input.name,
@@ -29,13 +29,13 @@ export const createYardTool: ToolCallback<typeof CreateYardSchema.shape> = async
   return toolResponse(yard);
 };
 
-export const listYardsTool: ToolCallback<typeof ListYardsSchema.shape> = async (_input, extra) => {
+export const listYardsTool: ToolHandler<typeof ListYardsSchema.shape> = async (_input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const yards = await getApiaryYards(userId);
   return toolResponse({ yards, count: yards.length });
 };
 
-export const updateYardTool: ToolCallback<typeof UpdateYardSchema.shape> = async (input, extra) => {
+export const updateYardTool: ToolHandler<typeof UpdateYardSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const yard = await updateApiaryYard(
     userId,

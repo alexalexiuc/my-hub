@@ -3,10 +3,10 @@ import type { FastifyInstance } from 'fastify';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { MessageExtraInfo } from '@modelcontextprotocol/sdk/types.js';
 import { putLog } from '@my-hub/shared/services';
-import type { McpServerName } from '@my-hub/shared/constants';
 import { logger } from '@my-hub/shared/utils';
 import { envConfig } from '../config/env.js';
 import { mcpSubServers } from '../mcp/registry.js';
+import { getHubAuthExtra } from '../shared/toolsUtils.js';
 import { capPayload, redactSensitiveFields } from './payload-logging.js';
 
 function extractMessageInfo(message: JSONRPCMessage): { method: string; toolName?: string } | null {
@@ -30,10 +30,10 @@ function logSessionMessage(
   if (!info) return;
 
   const { method, toolName } = info;
-  const authInfo = extra?.authInfo;
-  const userId = (authInfo?.extra?.userId as string | undefined) ?? null;
-  const clientId = (authInfo?.extra?.clientId as string | undefined) ?? null;
-  const serverName = (authInfo?.extra?.serverName as McpServerName | undefined) ?? null;
+  const authExtra = getHubAuthExtra(extra);
+  const userId = authExtra?.userId ?? null;
+  const clientId = authExtra?.clientId ?? null;
+  const serverName = authExtra?.serverName ?? null;
   const redactedMessage = redactSensitiveFields(message);
 
   logger.info(`--> MCP ${method}${toolName ? ` (${toolName})` : ''} [session:${sessionId.slice(0, 8)}]`);

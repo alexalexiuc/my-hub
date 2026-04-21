@@ -1,4 +1,4 @@
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import { z } from 'zod';
 import { deleteTripDay, getTripDays, upsertTripDay } from '@my-hub/shared/services';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -17,7 +17,7 @@ export const TravelUpsertDayNoteSchema = z.object({
   notes: z.string().optional().describe('Free-text notes for the day. Markdown is supported.'),
 });
 
-export const travelUpsertDayNoteTool: ToolCallback<typeof TravelUpsertDayNoteSchema.shape> = async (input, extra) => {
+export const travelUpsertDayNoteTool: ToolHandler<typeof TravelUpsertDayNoteSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
 
   const day = await upsertTripDay(userId, input.tripId, input.date, {
@@ -36,7 +36,7 @@ export const TravelGetDayNotesSchema = z.object({
   tripId: z.number().int().positive().describe('Trip ID to retrieve day notes for.'),
 });
 
-export const travelGetDayNotesTool: ToolCallback<typeof TravelGetDayNotesSchema.shape> = async (input, extra) => {
+export const travelGetDayNotesTool: ToolHandler<typeof TravelGetDayNotesSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
 
   const days = await getTripDays(userId, input.tripId);
@@ -52,7 +52,7 @@ export const TravelDeleteDayNoteSchema = z.object({
   id: z.number().int().positive().describe('ID of the day note to delete.'),
 });
 
-export const travelDeleteDayNoteTool: ToolCallback<typeof TravelDeleteDayNoteSchema.shape> = async (input, extra) => {
+export const travelDeleteDayNoteTool: ToolHandler<typeof TravelDeleteDayNoteSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
 
   const removed = await deleteTripDay(userId, input.id);

@@ -1,4 +1,4 @@
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import { z } from 'zod';
 import {
   addChecklistItem,
@@ -67,7 +67,7 @@ export const TravelAttachDocumentLinkSchema = z.object({
   notes: z.string().optional().describe('Optional notes about this document.'),
 });
 
-export const travelPlanTripTool: ToolCallback<typeof TravelPlanTripSchema.shape> = async (input, extra) => {
+export const travelPlanTripTool: ToolHandler<typeof TravelPlanTripSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
 
   const trip = await createTrip(userId, {
@@ -99,7 +99,7 @@ export const travelPlanTripTool: ToolCallback<typeof TravelPlanTripSchema.shape>
   });
 };
 
-export const travelPrepareTripChecklistTool: ToolCallback<typeof TravelPrepareTripChecklistSchema.shape> = async (
+export const travelPrepareTripChecklistTool: ToolHandler<typeof TravelPrepareTripChecklistSchema.shape> = async (
   input,
   extra,
 ) => {
@@ -128,7 +128,7 @@ export const travelPrepareTripChecklistTool: ToolCallback<typeof TravelPrepareTr
   });
 };
 
-export const travelWhoIsTravelingTool: ToolCallback<typeof TravelWhoIsTravelingSchema.shape> = async (input, extra) => {
+export const travelWhoIsTravelingTool: ToolHandler<typeof TravelWhoIsTravelingSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
 
   for (const companion of input.add ?? []) {
@@ -162,7 +162,7 @@ export const travelWhoIsTravelingTool: ToolCallback<typeof TravelWhoIsTravelingS
   });
 };
 
-export const travelGetTripBriefTool: ToolCallback<typeof TravelGetTripBriefSchema.shape> = async (input, extra) => {
+export const travelGetTripBriefTool: ToolHandler<typeof TravelGetTripBriefSchema.shape> = async (input, extra) => {
   const userId = extra.authInfo?.extra?.userId as string;
   const overview = await getTripBrief(userId, input.tripId);
 
@@ -189,7 +189,7 @@ export const travelGetTripBriefTool: ToolCallback<typeof TravelGetTripBriefSchem
   });
 };
 
-export const travelAttachDocumentLinkTool: ToolCallback<typeof TravelAttachDocumentLinkSchema.shape> = async (
+export const travelAttachDocumentLinkTool: ToolHandler<typeof TravelAttachDocumentLinkSchema.shape> = async (
   input,
   extra,
 ) => {
