@@ -78,7 +78,6 @@ export const DeleteMealSchema = z.object({
 export const logMealTool: ToolHandler<typeof LogMealSchema.shape> = async (input, context) => {
   const { userId, timezone } = context;
 
-  // Fetch user record first to resolve timezone for date/mealType inference
   const profileRow = await getCalorieProfile(userId);
 
   const date = input.date ?? localDateString(timezone);
