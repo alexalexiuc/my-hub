@@ -10,7 +10,7 @@ If implementing manually, the two-file pattern is:
 
    ```ts
    export const MyToolSchema = z.object({ ... });
-   export const myTool: ToolHandler<typeof MyToolSchema.shape> = async (input, extra) => { ... };
+   export const myTool: ToolHandler<typeof MyToolSchema.shape> = async (input, context, extra) => { ... };
    ```
 
 2. **Register** in `src/<domain>/tools/tools.ts` — both the import and a `defineTool()` entry with a description:
@@ -32,7 +32,7 @@ Both steps are required. A tool defined but not registered in `tools.ts` will no
 - Register handlers through the shared wrappers from `src/shared/toolsUtils.ts`:
   - `withUserIdCheck(...)` for tools
   - `withUserIdCheckResource(...)` for resources
-  - `toSdkReadResourceCallback(...)` only when a resource intentionally skips auth checks
+  - No auth-skipping resource wrapper exists today; if you need one, add it in `src/shared/toolsUtils.ts` before documenting or using it
 
 ## Build dependency
 

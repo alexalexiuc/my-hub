@@ -5,9 +5,6 @@ import { buildHistoryPeriod } from '../models/history';
 
 export const getHistory30DaysResource: ResourceHandler = async (uri, context) => {
   const { userId, timezone } = context;
-  if (typeof userId !== 'string' || userId.length === 0) {
-    throw new Error('Authentication required');
-  }
   const endDate = currentDateString(timezone);
   const data = await buildHistoryPeriod(userId, dateStringDaysAgo(29, timezone), endDate);
   return resourceResponse(uri, data);

@@ -7,6 +7,7 @@ import {
   logMeasurement,
 } from '@my-hub/shared/services';
 import { MeasurementTypeKey } from '@my-hub/shared/types';
+import { localDateString } from '@my-hub/shared/utils';
 import { z } from 'zod';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -43,7 +44,7 @@ export const logMeasurementTool: ToolHandler<typeof LogMeasurementSchema.shape> 
     throw new Error(`Unknown measurement type "${input.type}". Available types: ${types.map(t => t.key).join(', ')}`);
   }
 
-  const today = new Date().toISOString().split('T')[0]!;
+  const today = localDateString(context.timezone);
   const row = await logMeasurement({
     userId,
     typeKey: measurementType.key,

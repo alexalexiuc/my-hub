@@ -1,5 +1,4 @@
 import { ToolHandler } from '../../shared/types';
-import { findUserById } from '@my-hub/shared/services';
 import { currentDateString } from '@my-hub/shared/utils';
 import { z } from 'zod';
 import { yyyyMmDdSchema } from '../../shared/schemas';
@@ -12,11 +11,9 @@ export const GetHistorySchema = z.object({
 });
 
 export const getHistoryTool: ToolHandler<typeof GetHistorySchema.shape> = async (input, context) => {
-  const { userId } = context;
-  if (typeof userId !== 'string' || userId.length === 0) throw new Error('Authentication required');
+  const { userId, timezone } = context;
 
-  const userRecord = await findUserById(userId);
-  const currentDate = currentDateString(userRecord?.timezone ?? null);
+  const currentDate = currentDateString(timezone);
   const startDate = input.startDate ?? currentDate;
   const endDate = input.endDate ?? currentDate;
 

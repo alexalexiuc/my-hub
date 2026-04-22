@@ -6,9 +6,6 @@ import { resourceResponse } from '../../shared/resourcesUtils';
 
 export const getTodayResource: ResourceHandler = async (uri, context) => {
   const { userId } = context;
-  if (typeof userId !== 'string' || userId.length === 0) {
-    throw new Error('Authentication required');
-  }
   const userRecord = await findUserById(userId);
   const date = currentDateString(userRecord?.timezone ?? null);
   const summary = await buildDailySummary(userId, date);
