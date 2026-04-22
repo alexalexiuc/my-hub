@@ -78,9 +78,8 @@ export const GetDailySummarySchema = z.object({
 });
 
 export const getDailySummaryTool: ToolHandler<typeof GetDailySummarySchema.shape> = async (input, context) => {
-  const { userId } = context;
-  const userRecord = await findUserById(userId);
-  const date = input.date ?? currentDateString(userRecord?.timezone ?? null);
+  const { userId, timezone } = context;
+  const date = input.date ?? currentDateString(timezone);
   const summary = await buildDailySummary(userId, date);
   return toolResponse(summary);
 };
