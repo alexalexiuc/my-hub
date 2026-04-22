@@ -32,7 +32,7 @@ interface CreatedClient extends OAuthClientRow {
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-const MCP_BASE_URL = process.env['NEXT_PUBLIC_MCP_URL'] ?? 'https://mcp.alexiuc.dev';
+const MCP_BASE_URL = process.env.NEXT_PUBLIC_MCP_URL ?? 'https://mcp.alexiuc.dev';
 
 const SERVER_META: Record<string, { label: string; path: string; description: string; active: boolean }> = {
   calories: {

@@ -38,6 +38,7 @@ export function createHubTokenVerifier(serverName: McpServerName) {
           email: payload.email,
           clientId: payload.client_id,
           serverName,
+          timezone: user.timezone ?? null,
         },
       };
     },

@@ -133,10 +133,10 @@ describe('POST /token — refresh_token grant', () => {
 
     expect(response.statusCode).toBe(200);
     const json = JSON.parse(response.body) as Record<string, unknown>;
-    expect(json['access_token']).toBe('new-access-token');
-    expect(json['refresh_token']).toBe('new-refresh-token-plain');
-    expect(json['token_type']).toBe('bearer');
-    expect(json['expires_in']).toBe(86400);
+    expect(json.access_token).toBe('new-access-token');
+    expect(json.refresh_token).toBe('new-refresh-token-plain');
+    expect(json.token_type).toBe('bearer');
+    expect(json.expires_in).toBe(86400);
 
     // Old refresh token must be deleted (rotation)
     expect(deleteRefreshToken).toHaveBeenCalledWith(MOCK_REFRESH_TOKEN_ROW.id);
@@ -247,10 +247,10 @@ describe('POST /token — authorization_code grant returns refresh_token', () =>
 
     expect(response.statusCode).toBe(200);
     const json = JSON.parse(response.body) as Record<string, unknown>;
-    expect(json['access_token']).toBe('issued-access-token');
-    expect(json['refresh_token']).toBe('issued-refresh-token');
-    expect(json['token_type']).toBe('bearer');
-    expect(json['expires_in']).toBe(86400);
+    expect(json.access_token).toBe('issued-access-token');
+    expect(json.refresh_token).toBe('issued-refresh-token');
+    expect(json.token_type).toBe('bearer');
+    expect(json.expires_in).toBe(86400);
   });
 });
 
@@ -286,10 +286,10 @@ describe('POST /token — client_credentials grant returns refresh_token', () =>
 
     expect(response.statusCode).toBe(200);
     const json = JSON.parse(response.body) as Record<string, unknown>;
-    expect(json['access_token']).toBe('cc-access-token');
-    expect(json['refresh_token']).toBe('cc-refresh-token');
-    expect(json['token_type']).toBe('bearer');
-    expect(json['expires_in']).toBe(86400);
+    expect(json.access_token).toBe('cc-access-token');
+    expect(json.refresh_token).toBe('cc-refresh-token');
+    expect(json.token_type).toBe('bearer');
+    expect(json.expires_in).toBe(86400);
     expect(createRefreshToken).toHaveBeenCalledWith('hub_test1234', MOCK_CLIENT.userId);
   });
 });

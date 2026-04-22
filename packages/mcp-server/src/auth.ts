@@ -21,7 +21,7 @@ declare module 'fastify' {
  *  5. Attach req.mcpUserId = payload.user_id
  */
 export async function mcpAuthHandler(req: FastifyRequest, reply: FastifyReply): Promise<void> {
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers.authorization;
   if (!authHeader) {
     return reply.status(401).header('WWW-Authenticate', 'Bearer').send({ error: 'missing_token' });
   }

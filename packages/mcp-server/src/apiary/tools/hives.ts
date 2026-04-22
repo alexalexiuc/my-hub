@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import { getApiaryHives, createApiaryHive, updateApiaryHive, getApiaryHiveStatus } from '@my-hub/shared/services';
 import { toolResponse } from '../../shared/toolsUtils';
 import { omitNullish } from '@my-hub/shared/utils';
@@ -35,8 +35,8 @@ export const GetHiveStatusSchema = z.object({
   hiveId: z.number().int().positive().describe('ID of the hive to get full status for'),
 });
 
-export const createHiveTool: ToolCallback<typeof CreateHiveSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+export const createHiveTool: ToolHandler<typeof CreateHiveSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const hive = await createApiaryHive(userId, {
     name: input.name,
     ...omitNullish({
@@ -51,14 +51,14 @@ export const createHiveTool: ToolCallback<typeof CreateHiveSchema.shape> = async
   return toolResponse(hive);
 };
 
-export const listHivesTool: ToolCallback<typeof ListHivesSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+export const listHivesTool: ToolHandler<typeof ListHivesSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const hives = await getApiaryHives(userId, omitNullish({ yardId: input.yardId, active: input.active }));
   return toolResponse({ hives, count: hives.length });
 };
 
-export const updateHiveTool: ToolCallback<typeof UpdateHiveSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+export const updateHiveTool: ToolHandler<typeof UpdateHiveSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const hive = await updateApiaryHive(
     userId,
     input.hiveId,
@@ -77,8 +77,8 @@ export const updateHiveTool: ToolCallback<typeof UpdateHiveSchema.shape> = async
   return toolResponse(hive);
 };
 
-export const getHiveStatusTool: ToolCallback<typeof GetHiveStatusSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+export const getHiveStatusTool: ToolHandler<typeof GetHiveStatusSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const status = await getApiaryHiveStatus(userId, input.hiveId);
   if (!status) throw new Error(`Hive with id ${input.hiveId} not found`);
   return toolResponse(status);

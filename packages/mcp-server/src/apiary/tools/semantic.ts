@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import {
   getApiaryActiveTreatments,
   getApiaryOverdueInspections,
@@ -38,23 +38,23 @@ export const GetYardBriefingSchema = z.object({
   yardId: z.number().int().positive().describe('ID of the yard to get a briefing for'),
 });
 
-export const getActiveTreatmentsTool: ToolCallback<typeof GetActiveTreatmentsSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+export const getActiveTreatmentsTool: ToolHandler<typeof GetActiveTreatmentsSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const treatments = await getApiaryActiveTreatments(userId, omitNullish({ hiveId: input.hiveId }));
   return toolResponse({ treatments, count: treatments.length });
 };
 
-export const getOverdueInspectionsTool: ToolCallback<typeof GetOverdueInspectionsSchema.shape> = async (
+export const getOverdueInspectionsTool: ToolHandler<typeof GetOverdueInspectionsSchema.shape> = async (
   input,
-  extra,
+  context,
 ) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const { userId } = context;
   const overdue = await getApiaryOverdueInspections(userId, omitNullish({ thresholdDays: input.thresholdDays }));
   return toolResponse({ hives: overdue, count: overdue.length });
 };
 
-export const moveHivesTool: ToolCallback<typeof MoveHivesSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+export const moveHivesTool: ToolHandler<typeof MoveHivesSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const movedAt = input.movedAt ? new Date(input.movedAt) : undefined;
   const result = await moveApiaryHives(userId, {
     hiveIds: input.hiveIds,
@@ -64,8 +64,8 @@ export const moveHivesTool: ToolCallback<typeof MoveHivesSchema.shape> = async (
   return toolResponse(result);
 };
 
-export const getYardBriefingTool: ToolCallback<typeof GetYardBriefingSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+export const getYardBriefingTool: ToolHandler<typeof GetYardBriefingSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const briefing = await getApiaryYardBriefing(userId, input.yardId);
   if (!briefing) throw new Error(`Yard with id ${input.yardId} not found`);
   return toolResponse(briefing);

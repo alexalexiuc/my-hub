@@ -5,14 +5,13 @@ import {
   logMeal,
   getMeals,
   deleteMeal,
-  findUserById,
 } from '@my-hub/shared/services';
 import { z } from 'zod';
 import { MAX_MEAL_LIMIT, DEFAULT_MEAL_LIMIT } from '../constants';
 import { rowToProfile, profileToTargets } from '../models/profile';
 import { toolResponse } from '../../shared/toolsUtils';
 import { yyyyMmDdSchema } from '../../shared/schemas';
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import { omitNullish, localDateString, localHour } from '@my-hub/shared/utils';
 import { rowToMealEntry } from '../models/meals';
 import { MealEntry } from '../types';
@@ -76,13 +75,11 @@ export const DeleteMealSchema = z.object({
   mealId: z.string().describe('The mealId of the entry to delete'),
 });
 
-export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+export const logMealTool: ToolHandler<typeof LogMealSchema.shape> = async (input, context) => {
+  const { userId, timezone } = context;
 
   // Fetch user record first to resolve timezone for date/mealType inference
-  const [profileRow, userRecord] = await Promise.all([getCalorieProfile(userId), findUserById(userId)]);
-  const timezone = userRecord?.timezone ?? null;
+  const profileRow = await getCalorieProfile(userId);
 
   const date = input.date ?? localDateString(timezone);
 
@@ -191,9 +188,8 @@ export const logMealTool: ToolCallback<typeof LogMealSchema.shape> = async (inpu
   });
 };
 
-export const getMealsTool: ToolCallback<typeof GetMealsSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+export const getMealsTool: ToolHandler<typeof GetMealsSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const limit = input.limit ?? DEFAULT_MEAL_LIMIT;
   const offset = input.offset ?? 0;
 
@@ -213,9 +209,8 @@ export const getMealsTool: ToolCallback<typeof GetMealsSchema.shape> = async (in
   });
 };
 
-export const deleteMealTool: ToolCallback<typeof DeleteMealSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+export const deleteMealTool: ToolHandler<typeof DeleteMealSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const deleted = await deleteMeal(userId, input.mealId);
   if (!deleted) {
     throw new Error(`Meal with id "${input.mealId}" not found.`);

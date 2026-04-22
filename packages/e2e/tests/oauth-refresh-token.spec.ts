@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test';
  *   - The e2e test user authenticated (handled by global.setup.ts)
  */
 
-const MCP_BASE_URL = process.env['NEXT_PUBLIC_MCP_URL'] ?? 'http://localhost:3001';
+const MCP_BASE_URL = process.env.NEXT_PUBLIC_MCP_URL ?? 'http://localhost:3001';
 
 interface CreatedClient {
   id: number;

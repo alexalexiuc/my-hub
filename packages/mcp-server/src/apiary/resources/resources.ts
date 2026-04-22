@@ -34,7 +34,7 @@ export function registerApiaryResources(server: McpServer): void {
       resource.name,
       resource.uri,
       { description: resource.description, mimeType: resource.mimeType },
-      resource.skipUserIdCheck ? resource.callback : withUserIdCheckResource(resource.callback),
+      withUserIdCheckResource(resource.callback),
     );
   }
 }

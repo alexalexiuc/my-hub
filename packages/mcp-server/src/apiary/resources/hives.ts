@@ -1,9 +1,9 @@
-import { ReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ResourceHandler } from '../../shared/types';
 import { getApiaryHives, getApiaryYards } from '@my-hub/shared/services';
 import { resourceResponse } from '../../shared/resourcesUtils';
 
-export const getHivesResource: ReadResourceCallback = async (uri, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+export const getHivesResource: ResourceHandler = async (uri, context) => {
+  const { userId } = context;
   const [hives, yards] = await Promise.all([getApiaryHives(userId, { active: true }), getApiaryYards(userId)]);
 
   const yardMap = new Map(yards.map(y => [y.id, y.name]));

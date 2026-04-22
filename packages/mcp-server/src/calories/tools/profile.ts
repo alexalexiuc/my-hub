@@ -1,4 +1,4 @@
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import { upsertCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shared/services';
 import { omitNullish } from '@my-hub/shared/utils';
 import { z } from 'zod';
@@ -74,9 +74,8 @@ export const UpdateProfileSchema = z.object({
   notes: z.string().optional().describe('Additional notes about your health goals'),
 });
 
-export const updateProfileTool: ToolCallback<typeof UpdateProfileSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+export const updateProfileTool: ToolHandler<typeof UpdateProfileSchema.shape> = async (input, context) => {
+  const { userId } = context;
 
   const updates: Record<string, unknown> = omitNullish({
     age: input.age,
@@ -89,11 +88,11 @@ export const updateProfileTool: ToolCallback<typeof UpdateProfileSchema.shape> =
   });
 
   // Nullable fields: pass null explicitly to allow clearing stored values
-  if (input.goalMinCalories !== undefined) updates['goalMinCalories'] = input.goalMinCalories;
-  if (input.goalMaxCalories !== undefined) updates['goalMaxCalories'] = input.goalMaxCalories;
-  if (input.goalProteinG !== undefined) updates['goalProtein'] = input.goalProteinG;
-  if (input.goalCarbsG !== undefined) updates['goalCarbs'] = input.goalCarbsG;
-  if (input.goalFatG !== undefined) updates['goalFat'] = input.goalFatG;
+  if (input.goalMinCalories !== undefined) updates.goalMinCalories = input.goalMinCalories;
+  if (input.goalMaxCalories !== undefined) updates.goalMaxCalories = input.goalMaxCalories;
+  if (input.goalProteinG !== undefined) updates.goalProtein = input.goalProteinG;
+  if (input.goalCarbsG !== undefined) updates.goalCarbs = input.goalCarbsG;
+  if (input.goalFatG !== undefined) updates.goalFat = input.goalFatG;
 
   const row = await upsertCalorieProfile(userId, updates);
 

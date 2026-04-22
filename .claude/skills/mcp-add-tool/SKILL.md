@@ -25,9 +25,9 @@ Create `packages/mcp-server/src/calories/tools/<name>.ts`.
 **Required imports:**
 
 ```typescript
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
-import z from 'zod';
+import { z } from 'zod';
 import { toolResponse } from '../../shared/toolsUtils';
+import { ToolHandler } from '../../shared/types';
 // Add any shared service imports from '@my-hub/shared/services' as needed
 ```
 
@@ -43,9 +43,8 @@ export const MyActionSchema = z.object({
 **Implement the callback** typed against the schema shape:
 
 ```typescript
-export const myActionTool: ToolCallback<typeof MyActionSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+export const myActionTool: ToolHandler<typeof MyActionSchema.shape> = async (input, context) => {
+  const { userId } = context;
 
   // ... business logic, call shared services, etc.
 
@@ -57,7 +56,8 @@ export const myActionTool: ToolCallback<typeof MyActionSchema.shape> = async (in
 
 Key rules:
 
-- Always extract and check `userId` unless the tool is truly public (like `getMeasurementTypes`).
+- Always use `context.userId` for authenticated tools.
+- The optional third callback arg (`extra`) is the raw SDK request extra when needed.
 - Return via `toolResponse(payload)` — this wraps the payload in the MCP text content format.
 - Throw plain `Error` instances for user-visible errors (the SDK surfaces them cleanly).
 - For read-only tools add no side-effect annotations; for writes set `idempotentHint: false`.
@@ -65,20 +65,21 @@ Key rules:
 **Minimal real example** (`summary.ts`):
 
 ```typescript
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
-import z from 'zod';
+import { z } from 'zod';
+import { findUserById } from '@my-hub/shared/services';
+import { currentDateString } from '@my-hub/shared/utils';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import { toolResponse } from '../../shared/toolsUtils';
 import { buildDailySummary } from '../models/daily';
+import { ToolHandler } from '../../shared/types';
 
 export const GetDailySummarySchema = z.object({
   date: yyyyMmDdSchema.optional().describe('Date to summarize (YYYY-MM-DD). Defaults to today.'),
 });
 
-export const getDailySummaryTool: ToolCallback<typeof GetDailySummarySchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
-  if (!userId) throw new Error('Authentication required');
-  const date = input.date ?? new Date().toISOString().split('T')[0]!;
+export const getDailySummaryTool: ToolHandler<typeof GetDailySummarySchema.shape> = async (input, context) => {
+  const { userId, timezone } = context;
+  const date = input.date ?? currentDateString(timezone);
   const summary = await buildDailySummary(userId, date);
   return toolResponse(summary);
 };
@@ -105,7 +106,6 @@ defineTool({
   inputSchema: MyActionSchema.shape,
   annotations: { readOnlyHint: true },  // or { idempotentHint: false, destructiveHint: false/true }
   callback: myActionTool,
-  // skipUserIdCheck: true,             // only for truly public tools (no user data)
 }),
 ```
 
@@ -132,19 +132,19 @@ Most tools do NOT need this — `tools.ts` imports directly from the implementat
 
 ## Shared utilities reference
 
-| Utility                      | Location                  | Purpose                                                          |
-| ---------------------------- | ------------------------- | ---------------------------------------------------------------- |
-| `toolResponse(payload)`      | `../../shared/toolsUtils` | Wrap any object as MCP tool response                             |
-| `defineTool(def)`            | `../../shared/toolsUtils` | Type-safe tool definition (used in tools.ts)                     |
-| `withUserIdCheck(cb, skip?)` | `../../shared/toolsUtils` | Auth middleware (applied automatically in registerCaloriesTools) |
-| `yyyyMmDdSchema`             | `../../shared/schemas`    | Zod schema for "YYYY-MM-DD" date strings                         |
-| `today()`                    | `../../shared/dateUTils`  | Returns today's date as "YYYY-MM-DD"                             |
-| `daysAgo(n)`                 | `../../shared/dateUTils`  | Returns "YYYY-MM-DD" for n days ago                              |
+| Utility                                 | Location                  | Purpose                                                             |
+| --------------------------------------- | ------------------------- | ------------------------------------------------------------------- |
+| `toolResponse(payload)`                 | `../../shared/toolsUtils` | Wrap any object as MCP tool response                                |
+| `defineTool(def)`                       | `../../shared/toolsUtils` | Type-safe tool definition (used in tools.ts)                        |
+| `withUserIdCheck(cb)`                   | `../../shared/toolsUtils` | Auth middleware (applied automatically in registerCaloriesTools)    |
+| `yyyyMmDdSchema`                        | `../../shared/schemas`    | Zod schema for "YYYY-MM-DD" date strings                            |
+| `currentDateString(timezone?)`          | `@my-hub/shared/utils`    | Returns current date as "YYYY-MM-DD" in user timezone when provided |
+| `dateStringDaysAgo(daysAgo, timezone?)` | `@my-hub/shared/utils`    | Returns "YYYY-MM-DD" for N days ago in the resolved timezone        |
 
 ## Verification
 
 After creating the files, verify by:
 
-1. Building the package: `cd packages/mcp-server && npm run build` (or `tsc --noEmit`)
+1. Building the package: `pnpm --filter @my-hub/mcp-server build` (or `pnpm --filter @my-hub/mcp-server typecheck`)
 2. Confirming the new tool name appears in the registered tools list
 3. Calling the tool via the MCP client (e.g. Claude with the calories MCP server connected)

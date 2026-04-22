@@ -1,10 +1,11 @@
-import { ReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ResourceHandler } from '../../shared/types';
+import { currentDateString } from '@my-hub/shared/utils';
 import { buildDailySummary } from '../models/daily';
-import { today } from '../../shared/dateUtils';
 import { resourceResponse } from '../../shared/resourcesUtils';
 
-export const getTodayResource: ReadResourceCallback = async (uri, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
-  const summary = await buildDailySummary(userId, today());
+export const getTodayResource: ResourceHandler = async (uri, context) => {
+  const { userId, timezone } = context;
+  const date = currentDateString(timezone ?? null);
+  const summary = await buildDailySummary(userId, date);
   return resourceResponse(uri, summary);
 };

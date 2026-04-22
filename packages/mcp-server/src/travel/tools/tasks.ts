@@ -1,4 +1,4 @@
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import { z } from 'zod';
 import {
   addChecklistItem,
@@ -67,8 +67,8 @@ export const TravelAttachDocumentLinkSchema = z.object({
   notes: z.string().optional().describe('Optional notes about this document.'),
 });
 
-export const travelPlanTripTool: ToolCallback<typeof TravelPlanTripSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+export const travelPlanTripTool: ToolHandler<typeof TravelPlanTripSchema.shape> = async (input, context) => {
+  const { userId } = context;
 
   const trip = await createTrip(userId, {
     name: input.name,
@@ -99,11 +99,11 @@ export const travelPlanTripTool: ToolCallback<typeof TravelPlanTripSchema.shape>
   });
 };
 
-export const travelPrepareTripChecklistTool: ToolCallback<typeof TravelPrepareTripChecklistSchema.shape> = async (
+export const travelPrepareTripChecklistTool: ToolHandler<typeof TravelPrepareTripChecklistSchema.shape> = async (
   input,
-  extra,
+  context,
 ) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const { userId } = context;
   const trips = await getTrips(userId);
   const trip = trips.find(t => t.id === input.tripId);
   if (!trip) throw new Error(`Trip with id ${input.tripId} not found`);
@@ -128,8 +128,11 @@ export const travelPrepareTripChecklistTool: ToolCallback<typeof TravelPrepareTr
   });
 };
 
-export const travelWhoIsTravelingTool: ToolCallback<typeof TravelWhoIsTravelingSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+export const travelWhoIsTravelingTool: ToolHandler<typeof TravelWhoIsTravelingSchema.shape> = async (
+  input,
+  context,
+) => {
+  const { userId } = context;
 
   for (const companion of input.add ?? []) {
     await addTripCompanion(userId, input.tripId, {
@@ -162,8 +165,8 @@ export const travelWhoIsTravelingTool: ToolCallback<typeof TravelWhoIsTravelingS
   });
 };
 
-export const travelGetTripBriefTool: ToolCallback<typeof TravelGetTripBriefSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+export const travelGetTripBriefTool: ToolHandler<typeof TravelGetTripBriefSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const overview = await getTripBrief(userId, input.tripId);
 
   if (!overview) {
@@ -189,11 +192,11 @@ export const travelGetTripBriefTool: ToolCallback<typeof TravelGetTripBriefSchem
   });
 };
 
-export const travelAttachDocumentLinkTool: ToolCallback<typeof TravelAttachDocumentLinkSchema.shape> = async (
+export const travelAttachDocumentLinkTool: ToolHandler<typeof TravelAttachDocumentLinkSchema.shape> = async (
   input,
-  extra,
+  context,
 ) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
+  const { userId } = context;
 
   const document = await addTripDocument(userId, input.tripId, {
     type: (input.type ?? TripDocumentTypes.Other) as TripDocumentType,

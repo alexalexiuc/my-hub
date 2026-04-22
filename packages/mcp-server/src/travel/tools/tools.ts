@@ -166,7 +166,7 @@ export function registerTravelTools(server: McpServer): void {
         inputSchema: tool.inputSchema,
         annotations: tool.annotations,
       },
-      withUserIdCheck(tool.callback, tool.skipUserIdCheck),
+      withUserIdCheck(tool.callback),
     );
   }
 }

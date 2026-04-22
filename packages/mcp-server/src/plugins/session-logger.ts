@@ -2,11 +2,11 @@ import fp from 'fastify-plugin';
 import type { FastifyInstance } from 'fastify';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { MessageExtraInfo } from '@modelcontextprotocol/sdk/types.js';
-import { putLog } from '@my-hub/shared/services';
-import type { McpServerName } from '@my-hub/shared/constants';
+import { putLog, PutLogData } from '@my-hub/shared/services';
 import { logger } from '@my-hub/shared/utils';
 import { envConfig } from '../config/env.js';
 import { mcpSubServers } from '../mcp/registry.js';
+import { getHubAuthExtra } from '../shared/toolsUtils.js';
 import { capPayload, redactSensitiveFields } from './payload-logging.js';
 
 function extractMessageInfo(message: JSONRPCMessage): { method: string; toolName?: string } | null {
@@ -14,7 +14,7 @@ function extractMessageInfo(message: JSONRPCMessage): { method: string; toolName
 
   const { method } = message;
   const params = 'params' in message ? (message.params as Record<string, unknown> | undefined) : undefined;
-  const toolName = method === 'tools/call' ? (params?.['name'] as string | undefined) : undefined;
+  const toolName = method === 'tools/call' ? (params?.name as string | undefined) : undefined;
 
   return { method, toolName };
 }
@@ -24,16 +24,13 @@ function logSessionMessage(
   sessionId: string,
   endpoint: string,
   message: JSONRPCMessage,
-  extra: MessageExtraInfo | undefined,
+  extra?: MessageExtraInfo,
 ): void {
   const info = extractMessageInfo(message);
   if (!info) return;
 
   const { method, toolName } = info;
-  const authInfo = extra?.authInfo;
-  const userId = (authInfo?.extra?.['userId'] as string | undefined) ?? null;
-  const clientId = (authInfo?.extra?.['clientId'] as string | undefined) ?? null;
-  const serverName = (authInfo?.extra?.['serverName'] as McpServerName | undefined) ?? null;
+  const { userId = null, clientId = null, serverName = null } = getHubAuthExtra(extra) || {};
   const redactedMessage = redactSensitiveFields(message);
 
   logger.info(`--> MCP ${method}${toolName ? ` (${toolName})` : ''} [session:${sessionId.slice(0, 8)}]`);
@@ -43,7 +40,7 @@ function logSessionMessage(
 
   const path = toolName ? `${endpoint}#${toolName}` : endpoint;
 
-  const logData: Parameters<typeof putLog>[0] = {
+  const logData: PutLogData = {
     service: 'mcp-service',
     server: serverName,
     method,

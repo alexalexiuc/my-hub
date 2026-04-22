@@ -1,6 +1,8 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import {
   isValidDate,
+  currentDateString,
+  dateStringDaysAgo,
   addMinutes,
   addHours,
   toUTCDateStr,
@@ -40,6 +42,46 @@ describe('isValidDate', () => {
     expect(isValidDate('2026-03-23T00:00:00.000Z')).toBe(false);
     expect(isValidDate(123)).toBe(false);
     expect(isValidDate({})).toBe(false);
+  });
+});
+
+describe('currentDateString', () => {
+  it('returns today in local time when timezone is omitted', () => {
+    const now = new Date();
+    const expected = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    expect(currentDateString()).toBe(expected);
+  });
+
+  it('supports fixed UTC offset strings', () => {
+    vi.setSystemTime(new Date('2026-03-23T23:30:00.000Z'));
+
+    expect(currentDateString('+2')).toBe('2026-03-24');
+    expect(currentDateString('-3')).toBe('2026-03-23');
+  });
+
+  it('falls back to local date for an invalid IANA timezone', () => {
+    expect(currentDateString('Invalid/Timezone')).toBe(currentDateString());
+  });
+});
+
+describe('dateStringDaysAgo', () => {
+  it('returns the same date when daysAgo is 0', () => {
+    expect(dateStringDaysAgo(0, '+0')).toBe('2026-03-23');
+  });
+
+  it('subtracts days correctly within the same month', () => {
+    expect(dateStringDaysAgo(7, '+0')).toBe('2026-03-16');
+  });
+
+  it('crosses month/year boundaries correctly', () => {
+    vi.setSystemTime(new Date('2026-01-02T12:00:00.000Z'));
+    expect(dateStringDaysAgo(3, '+0')).toBe('2025-12-30');
+  });
+
+  it('respects timezone when computing the reference current date', () => {
+    vi.setSystemTime(new Date('2026-03-23T12:30:00.000Z'));
+    // In +14 timezone current date is 2026-03-24, so one day ago is 2026-03-23.
+    expect(dateStringDaysAgo(1, '+14')).toBe('2026-03-23');
   });
 });
 

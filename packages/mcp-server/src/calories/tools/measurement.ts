@@ -1,4 +1,4 @@
-import { ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ToolHandler } from '../../shared/types';
 import {
   deleteMeasurement,
   getMeasurements,
@@ -7,6 +7,7 @@ import {
   logMeasurement,
 } from '@my-hub/shared/services';
 import { MeasurementTypeKey } from '@my-hub/shared/types';
+import { localDateString } from '@my-hub/shared/utils';
 import { z } from 'zod';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -34,9 +35,8 @@ export const DeleteMeasurementSchema = z.object({
   id: z.number().int().positive().describe('The measurement entry ID to delete'),
 });
 
-export const logMeasurementTool: ToolCallback<typeof LogMeasurementSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+export const logMeasurementTool: ToolHandler<typeof LogMeasurementSchema.shape> = async (input, context) => {
+  const { userId } = context;
 
   const measurementType = await getMeasurementTypeByKey(input.type as MeasurementTypeKey);
   if (!measurementType) {
@@ -44,7 +44,7 @@ export const logMeasurementTool: ToolCallback<typeof LogMeasurementSchema.shape>
     throw new Error(`Unknown measurement type "${input.type}". Available types: ${types.map(t => t.key).join(', ')}`);
   }
 
-  const today = new Date().toISOString().split('T')[0]!;
+  const today = localDateString(context.timezone);
   const row = await logMeasurement({
     userId,
     typeKey: measurementType.key,
@@ -63,9 +63,8 @@ export const logMeasurementTool: ToolCallback<typeof LogMeasurementSchema.shape>
   });
 };
 
-export const getMeasurementsTool: ToolCallback<typeof GetMeasurementsSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+export const getMeasurementsTool: ToolHandler<typeof GetMeasurementsSchema.shape> = async (input, context) => {
+  const { userId } = context;
 
   let typeKey: MeasurementTypeKey | undefined;
   if (input.type) {
@@ -87,9 +86,8 @@ export const getMeasurementsTool: ToolCallback<typeof GetMeasurementsSchema.shap
   });
 };
 
-export const deleteMeasurementTool: ToolCallback<typeof DeleteMeasurementSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+export const deleteMeasurementTool: ToolHandler<typeof DeleteMeasurementSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const deleted = await deleteMeasurement(input.id, userId);
   if (!deleted) {
     throw new Error(`Measurement with id ${input.id} not found.`);

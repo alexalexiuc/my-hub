@@ -11,8 +11,8 @@ import {
 } from '@my-hub/shared/services';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const E2E_MCP_CLIENT_NAME = process.env['E2E_MCP_CLIENT_NAME'] || 'e2e-test';
-const E2E_MCP_USER_EMAIL = process.env['E2E_MCP_USER_EMAIL'] || 'e2e@test.local';
+const E2E_MCP_CLIENT_NAME = process.env.E2E_MCP_CLIENT_NAME || 'e2e-test';
+const E2E_MCP_USER_EMAIL = process.env.E2E_MCP_USER_EMAIL || 'e2e@test.local';
 
 console.error('Provisioning e2e test user...');
 const user = await findOrCreateUser(E2E_MCP_USER_EMAIL, 'E2E Test User');
@@ -28,8 +28,8 @@ for (const c of existing.filter(c => c.clientName === E2E_MCP_CLIENT_NAME)) {
 const created = await createUserOAuthClient(
   user.id,
   E2E_MCP_CLIENT_NAME,
-  process.env['E2E_MCP_CLIENT_ID'],
-  process.env['E2E_MCP_CLIENT_SECRET'],
+  process.env.E2E_MCP_CLIENT_ID,
+  process.env.E2E_MCP_CLIENT_SECRET,
 );
 await ensureAllMcpServers(user.id);
 console.error('Created e2e client:', created.clientId);
@@ -42,7 +42,7 @@ const lines =
   ].join('\n') + '\n';
 
 // Write .env.e2e only on local machines (IS_LOCAL=true in .env)
-if (process.env['IS_LOCAL'] === 'true') {
+if (process.env.IS_LOCAL === 'true') {
   const envPath = resolve(__dirname, '../.env.e2e');
   writeFileSync(envPath, lines);
   console.error('Written to', envPath);

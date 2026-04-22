@@ -18,15 +18,15 @@ export interface E2eEnv {
 
 /** Base URL only — usable without auth credentials (defaults to localhost). */
 export function getBaseUrl(): string {
-  const url = process.env['E2E_MCP_BASE_URL'] ?? 'http://localhost:3001';
+  const url = process.env.E2E_MCP_BASE_URL ?? 'http://localhost:3001';
   return `${url}/api`;
 }
 
 /** Full env with auth credentials — required for authenticated MCP requests. */
 export function getE2eEnv(): E2eEnv {
   const baseUrl = getBaseUrl();
-  const clientId = process.env['E2E_MCP_CLIENT_ID'];
-  const clientSecret = process.env['E2E_MCP_CLIENT_SECRET'];
+  const clientId = process.env.E2E_MCP_CLIENT_ID;
+  const clientSecret = process.env.E2E_MCP_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
     throw new Error(

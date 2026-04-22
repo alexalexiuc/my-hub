@@ -1,10 +1,11 @@
-import { ReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ResourceHandler } from '../../shared/types';
+import { currentDateString, dateStringDaysAgo } from '@my-hub/shared/utils';
 import { resourceResponse } from '../../shared/resourcesUtils';
 import { buildHistoryPeriod } from '../models/history';
-import { today, daysAgo } from '../../shared/dateUtils';
 
-export const getHistory7DaysResource: ReadResourceCallback = async (uri, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'] as string;
-  const data = await buildHistoryPeriod(userId, daysAgo(6), today());
+export const getHistory7DaysResource: ResourceHandler = async (uri, context) => {
+  const { userId, timezone } = context;
+  const endDate = currentDateString(timezone);
+  const data = await buildHistoryPeriod(userId, dateStringDaysAgo(6, timezone), endDate);
   return resourceResponse(uri, data);
 };

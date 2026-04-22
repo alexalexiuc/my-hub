@@ -48,6 +48,7 @@ PostgreSQL on the self-hosted platform.
 | TR-05 | MCP transport uses `WebStandardStreamableHTTPServerTransport` in stateless mode (new server instance per POST).                                                                                |
 | TR-06 | `measurement_types` is a lookup table pre-seeded with: `weight` (kg), `height` (cm), `neck` (cm), `waist` (cm), `hips` (cm), `chest` (cm), `bicep` (cm), `body_fat` (%). Seeded via migration. |
 | TR-07 | `calories_get_profile` and TDEE-dependent summary tools must call `getLatestMeasurementsPerType(userId)` and pass the latest `height`/`weight` values to `calculateTDEE`.                      |
+| TR-08 | Date defaults for calorie daily/history flows must use the authenticated user's stored timezone when available (falling back to server-local behavior only when timezone is unset/invalid).    |
 
 ---
 
