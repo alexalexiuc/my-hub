@@ -24,19 +24,16 @@ Create `packages/mcp-server/src/calories/resources/<name>.ts`.
 **Required imports:**
 
 ```typescript
-import { ReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { resourceResponse } from '../../shared/resourcesUtils';
+import { ResourceHandler } from '../../shared/types';
 // Add any shared service imports from '@my-hub/shared/services' as needed
 ```
 
-**Implement the callback** typed as `ReadResourceCallback`:
+**Implement the callback** typed as `ResourceHandler`:
 
 ```typescript
-export const getMyDataResource: ReadResourceCallback = async (uri, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'];
-  if (typeof userId !== 'string' || userId.length === 0) {
-    throw new Error('Authentication required');
-  }
+export const getMyDataResource: ResourceHandler = async (uri, context) => {
+  const { userId } = context;
 
   // ... fetch data, compute, etc.
 
@@ -48,7 +45,8 @@ export const getMyDataResource: ReadResourceCallback = async (uri, extra) => {
 
 Key rules:
 
-- Always extract `userId` from `extra.authInfo?.extra?.['userId']`.
+- Always use `context.userId` for authenticated resources.
+- The optional third callback arg (`extra`) is the raw SDK request extra when needed.
 - Return via `resourceResponse(uri, payload)` — this wraps the payload as MCP resource content
   with `mimeType: 'application/json'` and pretty-printed JSON.
 - Resources are read-only by convention; never write to the database from a resource callback.
@@ -57,15 +55,14 @@ Key rules:
 **Minimal real example** (`today.ts`):
 
 ```typescript
-import { ReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { findUserById } from '@my-hub/shared/services';
 import { currentDateString } from '@my-hub/shared/utils';
 import { buildDailySummary } from '../models/daily';
 import { resourceResponse } from '../../shared/resourcesUtils';
+import { ResourceHandler } from '../../shared/types';
 
-export const getTodayResource: ReadResourceCallback = async (uri, extra) => {
-  const userId = extra.authInfo?.extra?.['userId'];
-  if (typeof userId !== 'string' || userId.length === 0) throw new Error('Authentication required');
+export const getTodayResource: ResourceHandler = async (uri, context) => {
+  const { userId } = context;
   const userRecord = await findUserById(userId);
   const date = currentDateString(userRecord?.timezone ?? null);
   const summary = await buildDailySummary(userId, date);
@@ -94,7 +91,6 @@ defineResource({
     'exposes, when to read it, and how it relates to other resources or tools.',
   mimeType: 'application/json',
   callback: getMyDataResource,
-  // skipUserIdCheck: true,            // only for truly public resources (no user data)
 }),
 ```
 

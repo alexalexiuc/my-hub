@@ -87,6 +87,13 @@ After tool semantics are approved with this skill:
 2. Use `.claude/skills/mcp-add-resource/SKILL.md` for resources.
 3. Keep shared DB and service logic in `packages/shared` first.
 
+Current implementation contract in this repo:
+
+- Tool callbacks use local `ToolHandler` with `(input, context, extra?)`.
+- Resource callbacks use local `ResourceHandler` with `(uri, context, extra?)`.
+- `context` is authenticated and non-null (`userId`, `clientId`, `serverName`, `timezone`).
+- Wrapper registration uses `withUserIdCheck(cb)` and `withUserIdCheckResource(cb)` (no skip flag).
+
 ## Review Checklist
 
 - Tool list reads as end-user tasks.

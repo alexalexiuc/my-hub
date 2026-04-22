@@ -74,9 +74,8 @@ export const UpdateProfileSchema = z.object({
   notes: z.string().optional().describe('Additional notes about your health goals'),
 });
 
-export const updateProfileTool: ToolHandler<typeof UpdateProfileSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+export const updateProfileTool: ToolHandler<typeof UpdateProfileSchema.shape> = async (input, context) => {
+  const { userId } = context;
 
   const updates: Record<string, unknown> = omitNullish({
     age: input.age,

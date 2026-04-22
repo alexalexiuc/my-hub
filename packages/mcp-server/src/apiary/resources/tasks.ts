@@ -2,8 +2,8 @@ import { ResourceHandler } from '../../shared/types';
 import { getApiaryTasks, getApiaryHives } from '@my-hub/shared/services';
 import { resourceResponse } from '../../shared/resourcesUtils';
 
-export const getTasksResource: ResourceHandler = async (uri, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string;
+export const getTasksResource: ResourceHandler = async (uri, context) => {
+  const { userId } = context;
   const [tasks, hives] = await Promise.all([getApiaryTasks(userId, { completed: false }), getApiaryHives(userId)]);
 
   const hiveMap = new Map(hives.map(h => [h.id, h.name]));

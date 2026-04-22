@@ -7,12 +7,13 @@ import {
   AnyOutput,
   AnyMcpToolDef,
   HubAuthExtra,
-  HubRequestExtra,
   McpResourceDef,
   McpToolDef,
   ResourceHandler,
   ToolHandler,
   ToolInput,
+  RequestExtraParam,
+  HubExtraParam,
 } from './types';
 
 export const toolResponse = (payload: unknown) => {
@@ -28,20 +29,8 @@ export const defineTool = <InputArgs extends AnyInput = undefined, OutputArgs ex
 
 export const defineResource = (def: McpResourceDef): McpResourceDef => def;
 
-type RawRequestExtra =
-  | {
-      authInfo?: {
-        extra?: Record<string, unknown>;
-      };
-    }
-  | HubRequestExtra
-  | undefined;
-
-export function getHubAuthExtra(extra: RawRequestExtra): HubAuthExtra | null {
-  const authExtra = extra?.authInfo?.extra;
-  const userId = authExtra?.userId;
-  const clientId = authExtra?.clientId;
-  const serverName = authExtra?.serverName;
+export function getHubAuthExtra(extra?: HubExtraParam): HubAuthExtra | null {
+  const { userId, clientId, serverName, email, timezone } = extra?.authInfo?.extra || {};
 
   if (typeof userId !== 'string' || userId.length === 0) return null;
   if (typeof clientId !== 'string' || clientId.length === 0) return null;
@@ -49,14 +38,14 @@ export function getHubAuthExtra(extra: RawRequestExtra): HubAuthExtra | null {
 
   return {
     userId,
-    email: typeof authExtra?.email === 'string' ? authExtra.email : undefined,
+    email: typeof email === 'string' ? email : undefined,
     clientId,
     serverName: serverName as HubAuthExtra['serverName'],
-    timezone: typeof authExtra?.timezone === 'string' ? authExtra.timezone : null,
+    timezone: typeof timezone === 'string' ? timezone : null,
   };
 }
 
-export function requireHubAuthExtra(extra: RawRequestExtra): HubAuthExtra {
+export function requireHubAuthExtra(extra: RequestExtraParam): HubAuthExtra {
   const authExtra = getHubAuthExtra(extra);
   if (!authExtra) {
     throw new Error('Authentication required');
@@ -64,31 +53,20 @@ export function requireHubAuthExtra(extra: RawRequestExtra): HubAuthExtra {
   return authExtra;
 }
 
-export const toSdkReadResourceCallback = (cb: ResourceHandler): SdkReadResourceCallback => {
-  return (uri, extra) => cb(uri, extra as HubRequestExtra);
-};
-
 export const withUserIdCheckResource =
   (cb: ResourceHandler): SdkReadResourceCallback =>
   (uri, extra) => {
-    requireHubAuthExtra(extra);
-    return cb(uri, extra as HubRequestExtra);
+    const context = requireHubAuthExtra(extra);
+    return cb(uri, context, extra);
   };
 
-export const withUserIdCheck = <InputArgs extends AnyInput>(
-  cb: ToolHandler<InputArgs>,
-  skipUserIdCheck = false,
-): SdkToolCallback<InputArgs> => {
+export const withUserIdCheck = <InputArgs extends AnyInput>(cb: ToolHandler<InputArgs>): SdkToolCallback<InputArgs> => {
   return ((...args: unknown[]) => {
     const input = (args.length === 2 ? args[0] : undefined) as ToolInput<InputArgs>;
-    const extra = (args.length === 2 ? args[1] : args[0]) as RawRequestExtra;
+    const extra = (args.length === 2 ? args[1] : args[0]) as RequestExtraParam;
 
-    if (skipUserIdCheck) {
-      return cb(input, extra as HubRequestExtra);
-    }
+    const context = requireHubAuthExtra(extra);
 
-    requireHubAuthExtra(extra);
-
-    return cb(input, extra as HubRequestExtra);
+    return cb(input, context, extra);
   }) as SdkToolCallback<InputArgs>;
 };

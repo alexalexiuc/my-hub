@@ -98,7 +98,6 @@ const caloriesTools = [
     name: 'calories_get_measurement_types',
     description: 'List all available measurement types with their units (weight in kg, height in cm, etc.)',
     annotations: { readOnlyHint: true },
-    skipUserIdCheck: true,
     callback: async () => {
       const types = await getMeasurementTypes();
       return toolResponse(types.map(t => ({ key: t.key, label: t.label, unit: t.unit })));
@@ -124,7 +123,7 @@ export function registerCaloriesTools(server: McpServer): void {
         outputSchema: tool.outputSchema,
         annotations: tool.annotations,
       },
-      withUserIdCheck(tool.callback, tool.skipUserIdCheck),
+      withUserIdCheck(tool.callback),
     );
   }
 }

@@ -17,8 +17,8 @@ export const TravelUpsertDayNoteSchema = z.object({
   notes: z.string().optional().describe('Free-text notes for the day. Markdown is supported.'),
 });
 
-export const travelUpsertDayNoteTool: ToolHandler<typeof TravelUpsertDayNoteSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string;
+export const travelUpsertDayNoteTool: ToolHandler<typeof TravelUpsertDayNoteSchema.shape> = async (input, context) => {
+  const { userId } = context;
 
   const day = await upsertTripDay(userId, input.tripId, input.date, {
     title: input.title ?? null,
@@ -36,8 +36,8 @@ export const TravelGetDayNotesSchema = z.object({
   tripId: z.number().int().positive().describe('Trip ID to retrieve day notes for.'),
 });
 
-export const travelGetDayNotesTool: ToolHandler<typeof TravelGetDayNotesSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string;
+export const travelGetDayNotesTool: ToolHandler<typeof TravelGetDayNotesSchema.shape> = async (input, context) => {
+  const { userId } = context;
 
   const days = await getTripDays(userId, input.tripId);
 
@@ -52,8 +52,8 @@ export const TravelDeleteDayNoteSchema = z.object({
   id: z.number().int().positive().describe('ID of the day note to delete.'),
 });
 
-export const travelDeleteDayNoteTool: ToolHandler<typeof TravelDeleteDayNoteSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string;
+export const travelDeleteDayNoteTool: ToolHandler<typeof TravelDeleteDayNoteSchema.shape> = async (input, context) => {
+  const { userId } = context;
 
   const removed = await deleteTripDay(userId, input.id);
   if (!removed) throw new Error(`Day note ${input.id} not found or already removed.`);

@@ -34,9 +34,8 @@ export const DeleteMeasurementSchema = z.object({
   id: z.number().int().positive().describe('The measurement entry ID to delete'),
 });
 
-export const logMeasurementTool: ToolHandler<typeof LogMeasurementSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+export const logMeasurementTool: ToolHandler<typeof LogMeasurementSchema.shape> = async (input, context) => {
+  const { userId } = context;
 
   const measurementType = await getMeasurementTypeByKey(input.type as MeasurementTypeKey);
   if (!measurementType) {
@@ -63,9 +62,8 @@ export const logMeasurementTool: ToolHandler<typeof LogMeasurementSchema.shape> 
   });
 };
 
-export const getMeasurementsTool: ToolHandler<typeof GetMeasurementsSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+export const getMeasurementsTool: ToolHandler<typeof GetMeasurementsSchema.shape> = async (input, context) => {
+  const { userId } = context;
 
   let typeKey: MeasurementTypeKey | undefined;
   if (input.type) {
@@ -87,9 +85,8 @@ export const getMeasurementsTool: ToolHandler<typeof GetMeasurementsSchema.shape
   });
 };
 
-export const deleteMeasurementTool: ToolHandler<typeof DeleteMeasurementSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+export const deleteMeasurementTool: ToolHandler<typeof DeleteMeasurementSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const deleted = await deleteMeasurement(input.id, userId);
   if (!deleted) {
     throw new Error(`Measurement with id ${input.id} not found.`);

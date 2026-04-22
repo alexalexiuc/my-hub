@@ -2,7 +2,7 @@ import fp from 'fastify-plugin';
 import type { FastifyInstance } from 'fastify';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { MessageExtraInfo } from '@modelcontextprotocol/sdk/types.js';
-import { putLog } from '@my-hub/shared/services';
+import { putLog, PutLogData } from '@my-hub/shared/services';
 import { logger } from '@my-hub/shared/utils';
 import { envConfig } from '../config/env.js';
 import { mcpSubServers } from '../mcp/registry.js';
@@ -24,16 +24,13 @@ function logSessionMessage(
   sessionId: string,
   endpoint: string,
   message: JSONRPCMessage,
-  extra: MessageExtraInfo | undefined,
+  extra?: MessageExtraInfo,
 ): void {
   const info = extractMessageInfo(message);
   if (!info) return;
 
   const { method, toolName } = info;
-  const authExtra = getHubAuthExtra(extra);
-  const userId = authExtra?.userId ?? null;
-  const clientId = authExtra?.clientId ?? null;
-  const serverName = authExtra?.serverName ?? null;
+  const { userId = null, clientId = null, serverName = null } = getHubAuthExtra(extra) || {};
   const redactedMessage = redactSensitiveFields(message);
 
   logger.info(`--> MCP ${method}${toolName ? ` (${toolName})` : ''} [session:${sessionId.slice(0, 8)}]`);
@@ -43,7 +40,7 @@ function logSessionMessage(
 
   const path = toolName ? `${endpoint}#${toolName}` : endpoint;
 
-  const logData: Parameters<typeof putLog>[0] = {
+  const logData: PutLogData = {
     service: 'mcp-service',
     server: serverName,
     method,

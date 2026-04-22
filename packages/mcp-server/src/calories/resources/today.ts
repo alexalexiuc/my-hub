@@ -4,8 +4,8 @@ import { currentDateString } from '@my-hub/shared/utils';
 import { buildDailySummary } from '../models/daily';
 import { resourceResponse } from '../../shared/resourcesUtils';
 
-export const getTodayResource: ResourceHandler = async (uri, extra) => {
-  const userId = extra.authInfo?.extra?.userId;
+export const getTodayResource: ResourceHandler = async (uri, context) => {
+  const { userId } = context;
   if (typeof userId !== 'string' || userId.length === 0) {
     throw new Error('Authentication required');
   }

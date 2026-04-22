@@ -1,11 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getOpenTodos } from '@my-hub/shared/services';
-import {
-  defineResource,
-  requireHubAuthExtra,
-  toSdkReadResourceCallback,
-  withUserIdCheckResource,
-} from '../../shared/toolsUtils';
+import { defineResource, withUserIdCheckResource } from '../../shared/toolsUtils';
 import { resourceResponse } from '../../shared/resourcesUtils';
 
 const todoOpenResource = defineResource({
@@ -13,8 +8,8 @@ const todoOpenResource = defineResource({
   uri: 'todo://open',
   description: 'All unfinished (open) todo items for the current user.',
   mimeType: 'application/json',
-  callback: async (uri, extra) => {
-    const { userId } = requireHubAuthExtra(extra);
+  callback: async (uri, context) => {
+    const { userId } = context;
     const items = await getOpenTodos(userId);
     return resourceResponse(uri, { openTodos: items, count: items.length });
   },
@@ -28,9 +23,7 @@ export function registerTodoResources(server: McpServer): void {
       resource.name,
       resource.uri,
       { description: resource.description, mimeType: resource.mimeType },
-      resource.skipUserIdCheck
-        ? toSdkReadResourceCallback(resource.callback)
-        : withUserIdCheckResource(resource.callback),
+      withUserIdCheckResource(resource.callback),
     );
   }
 }

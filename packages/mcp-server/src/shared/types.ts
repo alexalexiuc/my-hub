@@ -1,4 +1,3 @@
-import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import { ReadResourceCallback as SdkReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   AnySchema,
@@ -12,20 +11,28 @@ import { McpServerName } from '@my-hub/shared/constants';
 export type AnyInput = undefined | ZodRawShapeCompat | AnySchema;
 export type AnyOutput = undefined | ZodRawShapeCompat | AnySchema;
 
+/** Exact extra object passed by SDK tool/resource callbacks. */
+export type RequestExtraParam = Parameters<SdkReadResourceCallback>[1];
+
+/** Minimal auth-bearing shape accepted by auth helper utilities and logging hooks. */
+export type HubExtraParam = {
+  authInfo?: {
+    extra?: {
+      userId?: unknown;
+      email?: unknown;
+      clientId?: unknown;
+      serverName?: unknown;
+      timezone?: unknown;
+    };
+  };
+};
+
 export type HubAuthExtra = {
   userId: string;
   email?: string;
   clientId: string;
   serverName: McpServerName;
   timezone: string | null;
-};
-
-type SdkRequestExtra = Parameters<SdkReadResourceCallback>[1];
-
-export type HubRequestExtra = Omit<SdkRequestExtra, 'authInfo'> & {
-  authInfo?: Omit<AuthInfo, 'extra'> & {
-    extra?: HubAuthExtra;
-  };
 };
 
 export type ToolInput<InputArgs extends AnyInput = undefined> = InputArgs extends ZodRawShapeCompat
@@ -36,12 +43,14 @@ export type ToolInput<InputArgs extends AnyInput = undefined> = InputArgs extend
 
 export type ToolHandler<InputArgs extends AnyInput = undefined> = (
   input: ToolInput<InputArgs>,
-  extra: HubRequestExtra,
+  context: HubAuthExtra,
+  extra?: RequestExtraParam,
 ) => CallToolResult | Promise<CallToolResult>;
 
 export type ResourceHandler = (
   uri: Parameters<SdkReadResourceCallback>[0],
-  extra: HubRequestExtra,
+  context: HubAuthExtra,
+  extra?: RequestExtraParam,
 ) => ReturnType<SdkReadResourceCallback>;
 
 /** Per-tool fully-typed definition — used inside defineTool for compile-time safety */
@@ -53,7 +62,6 @@ export type McpToolDef<InputArgs extends AnyInput = undefined, OutputArgs extend
   outputSchema?: OutputArgs;
   annotations?: ToolAnnotations;
   callback: ToolHandler<InputArgs>;
-  skipUserIdCheck?: boolean;
 };
 
 export type McpResourceDef = {
@@ -61,7 +69,6 @@ export type McpResourceDef = {
   uri: string;
   description?: string;
   mimeType?: string;
-  skipUserIdCheck?: boolean;
   callback: ResourceHandler;
 };
 
@@ -75,5 +82,4 @@ export type AnyMcpToolDef = {
   annotations?: ToolAnnotations;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   callback: ToolHandler<any>;
-  skipUserIdCheck?: boolean;
 };

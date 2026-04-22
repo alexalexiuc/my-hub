@@ -11,8 +11,8 @@ export const GetHistorySchema = z.object({
   endDate: yyyyMmDdSchema.optional().describe('End of the period (YYYY-MM-DD). Defaults to today when omitted.'),
 });
 
-export const getHistoryTool: ToolHandler<typeof GetHistorySchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId;
+export const getHistoryTool: ToolHandler<typeof GetHistorySchema.shape> = async (input, context) => {
+  const { userId } = context;
   if (typeof userId !== 'string' || userId.length === 0) throw new Error('Authentication required');
 
   const userRecord = await findUserById(userId);

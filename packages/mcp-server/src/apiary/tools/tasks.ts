@@ -52,8 +52,8 @@ export const DeleteTaskSchema = z.object({
   taskId: z.number().int().positive().describe('ID of the task to delete'),
 });
 
-export const createTaskTool: ToolHandler<typeof CreateTaskSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string;
+export const createTaskTool: ToolHandler<typeof CreateTaskSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const dueAt = input.dueAt ? new Date(input.dueAt) : undefined;
   const task = await createApiaryTask(userId, {
     title: input.title,
@@ -62,22 +62,22 @@ export const createTaskTool: ToolHandler<typeof CreateTaskSchema.shape> = async 
   return toolResponse(task);
 };
 
-export const completeTaskTool: ToolHandler<typeof CompleteTaskSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string;
+export const completeTaskTool: ToolHandler<typeof CompleteTaskSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const task = await updateApiaryTask(userId, input.taskId, { completed: true });
   if (!task) throw new Error(`Task with id ${input.taskId} not found`);
   return toolResponse(task);
 };
 
-export const deleteTaskTool: ToolHandler<typeof DeleteTaskSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string;
+export const deleteTaskTool: ToolHandler<typeof DeleteTaskSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const deleted = await deleteApiaryTask(userId, input.taskId);
   if (!deleted) throw new Error(`Task with id ${input.taskId} not found`);
   return toolResponse({ deleted: true, taskId: input.taskId });
 };
 
-export const listTasksTool: ToolHandler<typeof ListTasksSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string;
+export const listTasksTool: ToolHandler<typeof ListTasksSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const dueBefore = input.dueBefore ? new Date(input.dueBefore) : undefined;
   const tasks = await getApiaryTasks(
     userId,

@@ -8,9 +8,8 @@ export const GetDailySummarySchema = z.object({
   date: yyyyMmDdSchema.optional().describe('Date to summarize (YYYY-MM-DD). Defaults to today.'),
 });
 
-export const getDailySummaryTool: ToolHandler<typeof GetDailySummarySchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string | undefined;
-  if (!userId) throw new Error('Authentication required');
+export const getDailySummaryTool: ToolHandler<typeof GetDailySummarySchema.shape> = async (input, context) => {
+  const { userId } = context;
   const date = input.date ?? new Date().toISOString().split('T')[0]!;
   const summary = await buildDailySummary(userId, date);
   return toolResponse(summary);

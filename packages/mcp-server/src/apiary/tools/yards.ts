@@ -20,8 +20,8 @@ export const UpdateYardSchema = z.object({
   isActive: z.boolean().optional().describe('Whether the yard is active'),
 });
 
-export const createYardTool: ToolHandler<typeof CreateYardSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string;
+export const createYardTool: ToolHandler<typeof CreateYardSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const yard = await createApiaryYard(userId, {
     name: input.name,
     ...omitNullish({ location: input.location, notes: input.notes }),
@@ -29,14 +29,14 @@ export const createYardTool: ToolHandler<typeof CreateYardSchema.shape> = async 
   return toolResponse(yard);
 };
 
-export const listYardsTool: ToolHandler<typeof ListYardsSchema.shape> = async (_input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string;
+export const listYardsTool: ToolHandler<typeof ListYardsSchema.shape> = async (_input, context) => {
+  const { userId } = context;
   const yards = await getApiaryYards(userId);
   return toolResponse({ yards, count: yards.length });
 };
 
-export const updateYardTool: ToolHandler<typeof UpdateYardSchema.shape> = async (input, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string;
+export const updateYardTool: ToolHandler<typeof UpdateYardSchema.shape> = async (input, context) => {
+  const { userId } = context;
   const yard = await updateApiaryYard(
     userId,
     input.yardId,

@@ -4,8 +4,8 @@ import { getTrips, getUpcomingTripBookings } from '@my-hub/shared/services';
 import { resourceResponse } from '../../shared/resourcesUtils';
 import { travelFilesConfig } from '../files-config';
 
-export const getTravelTripsResource: ResourceHandler = async (uri, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string;
+export const getTravelTripsResource: ResourceHandler = async (uri, context) => {
+  const { userId } = context;
   const trips = await getTrips(userId);
 
   return resourceResponse(uri, {
@@ -14,8 +14,8 @@ export const getTravelTripsResource: ResourceHandler = async (uri, extra) => {
   });
 };
 
-export const getTravelUpcomingResource: ResourceHandler = async (uri, extra) => {
-  const userId = extra.authInfo?.extra?.userId as string;
+export const getTravelUpcomingResource: ResourceHandler = async (uri, context) => {
+  const { userId } = context;
   const trips = await getTrips(userId);
 
   const nextTrip =
