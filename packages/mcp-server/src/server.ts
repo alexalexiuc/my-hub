@@ -32,9 +32,23 @@ export async function buildServer() {
           colorize: true,
           singleLine: true,
           ignore: 'pid,hostname',
+          translateTime: 'UTC:yyyy-mm-dd"T"HH:MM:ss.l"Z"',
+        },
+      },
+      hooks: {
+        logMethod(args, method) {
+          if (
+            method.name === 'error' &&
+            (args[0] as { err?: { name?: string } })?.err?.name === 'SessionNotFoundError'
+          ) {
+            // eslint-disable-next-line prefer-spread
+            return this.warn.apply(this, args);
+          }
+          return method.apply(this, args);
         },
       },
     },
+
     // Disable Fastify's built-in request/response logging — we use our own
     // requestLoggerPlugin which formats lines as `<-- GET /path` / `--> GET /path`.
     disableRequestLogging: true,

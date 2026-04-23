@@ -156,6 +156,48 @@ describe.sequential('travel — trip and booking lifecycle', () => {
     expect(data.trip.id).toBe(tripId);
     expect(data.bookings.some(b => b.id === bookingId)).toBe(true);
   });
+
+  it('travel://trips resource includes the created trip', async () => {
+    expect(tripId).toBeDefined();
+
+    const result = await client.readResource({ uri: 'travel://trips' });
+
+    const raw = result.contents[0];
+    expect(raw).toBeDefined();
+    const data = JSON.parse(raw!.text as string) as { trips: Trip[]; count: number };
+
+    expect(typeof data.count).toBe('number');
+    expect(Array.isArray(data.trips)).toBe(true);
+    const found = data.trips.find(t => t.id === tripId);
+    expect(found).toBeDefined();
+    expect(found!.name).toBe(tripName);
+  });
+
+  it('travel://upcoming resource returns a valid structure', async () => {
+    const result = await client.readResource({ uri: 'travel://upcoming' });
+
+    const raw = result.contents[0];
+    expect(raw).toBeDefined();
+    const data = JSON.parse(raw!.text as string) as {
+      nextTrip: Trip | null;
+      upcomingDepartures48h: unknown[];
+    };
+
+    expect(Array.isArray(data.upcomingDepartures48h)).toBe(true);
+    expect(data.nextTrip === null || typeof data.nextTrip === 'object').toBe(true);
+  });
+
+  it('travel://upload-policy resource returns file constraints', async () => {
+    const result = await client.readResource({ uri: 'travel://upload-policy' });
+
+    const raw = result.contents[0];
+    expect(raw).toBeDefined();
+    const data = JSON.parse(raw!.text as string) as { maxMb: number; allowedMime: string[] };
+
+    expect(data.maxMb).toBeGreaterThan(0);
+    expect(Array.isArray(data.allowedMime)).toBe(true);
+    expect(data.allowedMime.length).toBeGreaterThan(0);
+  });
 });
 
 describe.sequential('travel — day note lifecycle', () => {
