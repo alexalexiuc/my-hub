@@ -99,12 +99,14 @@ export const sessionLoggerPlugin = fp(async (app: FastifyInstance) => {
             const pending = pendingCalls.get(message.id);
             if (pending) {
               const durationMs = Date.now() - pending.startMs;
+              const hasJsonRpcError = 'error' in message;
               const responseBody =
-                'result' in message ? message.result : 'error' in message ? message.error : undefined;
-              const isError =
+                'result' in message ? message.result : hasJsonRpcError ? message.error : undefined;
+              const isToolResultError =
                 typeof responseBody === 'object' &&
                 responseBody !== null &&
                 (responseBody as Record<string, unknown>).isError === true;
+              const isError = hasJsonRpcError || isToolResultError;
               const logFn = isError ? app.log.warn.bind(app.log) : app.log.info.bind(app.log);
               logFn(`<-- MCP tools/call (${pending.toolName}) [session:${sessionId.slice(0, 8)}] ${durationMs}ms`);
               if (envConfig.PRINT_PAYLOADS) {
