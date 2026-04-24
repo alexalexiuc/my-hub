@@ -5,14 +5,22 @@
  * - getAccountById(userId, budgetId, accountId) — single account with access check
  * - updateAccount(userId, budgetId, accountId, data) — partial update
  * - deleteAccount(userId, budgetId, accountId) — hard delete
- * Types: AccountInsert, AccountUpdate, GetAccountsOpts
+ * - getNetWorthHistory(userId, budgetId, limit?) — last N monthly net-worth snapshots, oldest-first
+ * Types: AccountInsert, AccountUpdate, GetAccountsOpts, NetWorthSnapshot
  */
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { financeAccounts } from '../../db/schema/finances';
+import { financeAccounts, financeNetWorthSnapshots } from '../../db/schema/finances';
 import { omitNullish } from '../../utils';
 import { verifyBudgetAccess } from './budgets';
 import type { FinanceAccount, NewFinanceAccount } from '../../types';
+
+export interface NetWorthSnapshot {
+  month: string;
+  netWorth: number;
+  totalAssets: number;
+  totalLiabilities: number;
+}
 
 export type AccountInsert = Omit<NewFinanceAccount, 'id' | 'budgetId' | 'createdAt' | 'updatedAt'>;
 export type AccountUpdate = Partial<
@@ -102,4 +110,29 @@ export async function deleteAccount(userId: string, budgetId: number, accountId:
   await db
     .delete(financeAccounts)
     .where(and(eq(financeAccounts.id, accountId), eq(financeAccounts.budgetId, budgetId)));
+}
+
+export async function getNetWorthHistory(userId: string, budgetId: number, limit = 6): Promise<NetWorthSnapshot[]> {
+  if (!(await verifyBudgetAccess(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const rows = await db
+    .select({
+      month: financeNetWorthSnapshots.month,
+      netWorth: financeNetWorthSnapshots.netWorth,
+      totalAssets: financeNetWorthSnapshots.totalAssets,
+      totalLiabilities: financeNetWorthSnapshots.totalLiabilities,
+    })
+    .from(financeNetWorthSnapshots)
+    .where(eq(financeNetWorthSnapshots.budgetId, budgetId))
+    .orderBy(desc(financeNetWorthSnapshots.month))
+    .limit(limit);
+
+  return rows.reverse().map(r => ({
+    month: r.month,
+    netWorth: parseFloat(r.netWorth),
+    totalAssets: parseFloat(r.totalAssets),
+    totalLiabilities: parseFloat(r.totalLiabilities),
+  }));
 }

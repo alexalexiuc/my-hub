@@ -33,13 +33,13 @@
 
 ## Service inventory — `src/services/finances/`
 
-| File              | What's inside                                                                                                                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `budgets.ts`      | Budget CRUD + access: createBudget, getUserBudgets, getBudgetById, updateBudget, deleteBudget, deleteAllUserFinanceBudgets, verifyBudgetAccess — membership-based access via financeBudgetMembers |
-| `accounts.ts`     | Account CRUD: createAccount, getAccounts (opts: includeArchived), getAccountById, updateAccount, deleteAccount                                                                                    |
-| `categories.ts`   | Group + category CRUD: createGroup/getGroups/updateGroup/deleteGroup, createCategory/getCategories/getCategoryById/updateCategory/deleteCategory                                                  |
-| `transactions.ts` | Transaction CRUD: addTransaction, getTransactions (opts: accountId/categoryId/type/fromDate/toDate/includeCorrections/limit/offset), getTransactionById, updateTransaction, deleteTransaction     |
-| `merchants.ts`    | Merchant CRUD: upsertMerchant (insert-or-return for autofill), getMerchants, deleteMerchant                                                                                                       |
+| File              | What's inside                                                                                                                                                                                                                    |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `budgets.ts`      | Budget CRUD + access: createBudget, getUserBudgets, getBudgetById, updateBudget, deleteBudget, deleteAllUserFinanceBudgets, verifyBudgetAccess — membership-based access via financeBudgetMembers                                |
+| `accounts.ts`     | Account CRUD: createAccount, getAccounts (opts: includeArchived), getAccountById, updateAccount, deleteAccount; getNetWorthHistory(userId, budgetId, limit?) — last N monthly snapshots oldest-first, returns NetWorthSnapshot[] |
+| `categories.ts`   | Group + category CRUD: createGroup/getGroups/updateGroup/deleteGroup, createCategory/getCategories/getCategoryById/updateCategory/deleteCategory                                                                                 |
+| `transactions.ts` | Transaction CRUD: addTransaction, getTransactions (opts: accountId/categoryId/type/fromDate/toDate/includeCorrections/limit/offset), getTransactionById, updateTransaction, deleteTransaction                                    |
+| `merchants.ts`    | Merchant CRUD: upsertMerchant (insert-or-return for autofill), getMerchants, deleteMerchant                                                                                                                                      |
 
 ## Keeping the inventory current
 
