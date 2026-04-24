@@ -31,6 +31,16 @@
 | `flightDataApi.ts`      | AeroDataBox API client: fetchFlightFromApi — RapidAPI, 600 req/month, requires RAPIDAPI_KEY                                                                                         |
 | `flightDataApiTypes.ts` | AeroDataBox response types: AeroDataBoxFlight, FlightStatus, CodeshareStatus, FlightAirportMovementQualityEnum                                                                      |
 
+## Service inventory — `src/services/finances/`
+
+| File              | What's inside                                                                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `budgets.ts`      | Budget CRUD + access: createBudget, getUserBudgets, getBudgetById, updateBudget, deleteBudget, deleteAllUserFinanceBudgets, verifyBudgetAccess — membership-based access via financeBudgetMembers |
+| `accounts.ts`     | Account CRUD: createAccount, getAccounts (opts: includeArchived), getAccountById, updateAccount, deleteAccount                                                                                    |
+| `categories.ts`   | Group + category CRUD: createGroup/getGroups/updateGroup/deleteGroup, createCategory/getCategories/getCategoryById/updateCategory/deleteCategory                                                  |
+| `transactions.ts` | Transaction CRUD: addTransaction, getTransactions (opts: accountId/categoryId/type/fromDate/toDate/includeCorrections/limit/offset), getTransactionById, updateTransaction, deleteTransaction     |
+| `merchants.ts`    | Merchant CRUD: upsertMerchant (insert-or-return for autofill), getMerchants, deleteMerchant                                                                                                       |
+
 ## Keeping the inventory current
 
 When you **modify or add** any file under `src/utils/` or `src/services/`:
