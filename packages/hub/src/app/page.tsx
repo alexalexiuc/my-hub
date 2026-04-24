@@ -10,6 +10,7 @@ import {
   PlaneOutlineIcon,
   ServerOutlineIcon,
   UserPlusOutlineIcon,
+  BarChartIcon,
 } from '@/components/icons';
 
 const appSections = [
@@ -52,6 +53,16 @@ const appSections = [
     labelColor: 'text-emerald-400',
     accentColor: 'bg-emerald-500/20',
     icon: <PlaneOutlineIcon className="size-5" />,
+  },
+  {
+    href: '/finances',
+    label: 'Finances',
+    description: 'Track accounts, budgets, transactions & net worth',
+    color:
+      'bg-gradient-to-br from-violet-950/40 to-zinc-900 border-violet-800/50 hover:border-violet-500/70 hover:shadow-lg hover:shadow-violet-950/20 hover:-translate-y-0.5',
+    labelColor: 'text-violet-400',
+    accentColor: 'bg-violet-500/20',
+    icon: <BarChartIcon className="size-5" />,
   },
 ];
 
