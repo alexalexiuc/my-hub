@@ -4,9 +4,9 @@ import { AeroDataBoxFlight } from './flightDataApiTypes';
 
 // Make PromiseCacheX transparent so tests exercise the real fetch/retry logic
 vi.mock('promise-cachex', () => ({
-  PromiseCacheX: vi.fn().mockImplementation(() => ({
-    get: (_key: string, factory: () => unknown) => factory(),
-  })),
+  PromiseCacheX: vi.fn().mockImplementation(function () {
+    return { get: (_key: string, factory: () => unknown) => factory() };
+  }),
 }));
 
 const SAMPLE_RESPONSE: AeroDataBoxFlight[] = [

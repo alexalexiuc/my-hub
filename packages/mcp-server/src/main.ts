@@ -10,7 +10,7 @@ async function main() {
     if (err) {
       app.log.error({ err }, 'Server closing due to error');
     } else {
-      app.log.info(`${signal ?? 'shutdown'} received — shutting down gracefully`);
+      app.log.info(`${signal ?? 'shutdown'} received - shutting down gracefully`);
     }
     await app.close();
     process.exit(err ? 1 : 0);

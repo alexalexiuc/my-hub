@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "pnpm run test:unit",
     "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "e2e:setup": "tsx e2e/scripts/setup-e2e-db.ts",
     "kill:port": "node scripts/kill-port.js",
@@ -35,10 +36,12 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.14",
+    "@vitest/coverage-v8": "^4.1.5",
+    "vite": "^6.0.0",
     "nodemon": "^3.1.14",
     "tsup": "^8.0.0",
     "tsx": "^4.15.1",
     "typescript": "^5.4.5",
-    "vitest": "^1.6.0"
+    "vitest": "^4.1.5"
   }
 }

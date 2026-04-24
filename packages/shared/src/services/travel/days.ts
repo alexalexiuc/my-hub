@@ -44,7 +44,7 @@ export async function upsertTripDay(
       set: {
         title: sql`excluded.title`,
         notes: sql`excluded.notes`,
-        updatedAt: sql`now()`,
+        updatedAt: sql`excluded.updated_at`,
       },
     })
     .returning();

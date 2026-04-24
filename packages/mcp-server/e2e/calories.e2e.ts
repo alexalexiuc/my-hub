@@ -241,3 +241,128 @@ describe.sequential('calories — meal lifecycle', () => {
     expect(result.isError).toBe(true);
   });
 });
+
+interface DailyTotals {
+  calories: number;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  mealCount: number;
+}
+
+interface DailySummaryResource {
+  date: string;
+  meals: unknown[];
+  totals: DailyTotals;
+  goalCalories: number | null;
+  minCalories: number | null;
+  maxCalories: number | null;
+  remainingCalories: number | null;
+  overBudget: boolean | null;
+  goalMet: boolean | null;
+}
+
+interface HistoryDay {
+  date: string;
+  calories: number;
+  mealCount: number;
+}
+
+interface HistoryPeriodResource {
+  period: { start: string; end: string };
+  days: HistoryDay[];
+  weightLogs: unknown[];
+  totalCalories: number;
+  averageDailyCalories: number;
+  goalCalories: number | null;
+  minCalories: number | null;
+  maxCalories: number | null;
+  periodTarget: number | null;
+  periodRemaining: number | null;
+}
+
+interface ProfileResource {
+  profile: Record<string, unknown>;
+  calculated: {
+    tdee: number | null;
+    goalCalories: number | null;
+    minCalories: number | null;
+    maxCalories: number | null;
+  };
+  latestMeasurements: unknown[];
+}
+
+/**
+ * E2e tests for the calories MCP resources.
+ * These verify the shape and structure of all four calories:// resources.
+ */
+describe.sequential('calories — resources', () => {
+  let client: McpClient;
+
+  beforeAll(async () => {
+    const { baseUrl } = getE2eEnv();
+    const token = await generateToken();
+    client = await createMcpClient(baseUrl, '/calories/mcp', token);
+  });
+
+  afterAll(async () => {
+    await client.close();
+  });
+
+  it('calories://profile returns a valid structure', async () => {
+    const result = await client.readResource({ uri: 'calories://profile' });
+
+    const raw = result.contents[0];
+    expect(raw).toBeDefined();
+    const data = JSON.parse(raw!.text as string) as ProfileResource;
+
+    expect(typeof data.profile).toBe('object');
+    expect(typeof data.calculated).toBe('object');
+    expect(Array.isArray(data.latestMeasurements)).toBe(true);
+    expect('tdee' in data.calculated).toBe(true);
+    expect('goalCalories' in data.calculated).toBe(true);
+  });
+
+  it('calories://today returns a valid daily summary structure', async () => {
+    const result = await client.readResource({ uri: 'calories://today' });
+
+    const raw = result.contents[0];
+    expect(raw).toBeDefined();
+    const data = JSON.parse(raw!.text as string) as DailySummaryResource;
+
+    expect(typeof data.date).toBe('string');
+    expect(Array.isArray(data.meals)).toBe(true);
+    expect(typeof data.totals).toBe('object');
+    expect(typeof data.totals.calories).toBe('number');
+    expect(typeof data.totals.mealCount).toBe('number');
+  });
+
+  it('calories://history-7days returns 7 days of data', async () => {
+    const result = await client.readResource({ uri: 'calories://history-7days' });
+
+    const raw = result.contents[0];
+    expect(raw).toBeDefined();
+    const data = JSON.parse(raw!.text as string) as HistoryPeriodResource;
+
+    expect(typeof data.period.start).toBe('string');
+    expect(typeof data.period.end).toBe('string');
+    expect(Array.isArray(data.days)).toBe(true);
+    expect(data.days).toHaveLength(7);
+    expect(Array.isArray(data.weightLogs)).toBe(true);
+    expect(typeof data.totalCalories).toBe('number');
+    expect(typeof data.averageDailyCalories).toBe('number');
+  });
+
+  it('calories://history-30days returns 30 days of data', async () => {
+    const result = await client.readResource({ uri: 'calories://history-30days' });
+
+    const raw = result.contents[0];
+    expect(raw).toBeDefined();
+    const data = JSON.parse(raw!.text as string) as HistoryPeriodResource;
+
+    expect(Array.isArray(data.days)).toBe(true);
+    expect(data.days).toHaveLength(30);
+    expect(typeof data.totalCalories).toBe('number');
+    expect(typeof data.averageDailyCalories).toBe('number');
+  });
+});

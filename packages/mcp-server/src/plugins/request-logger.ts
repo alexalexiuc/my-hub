@@ -8,6 +8,11 @@ import { getHubAuthExtra } from '../shared/toolsUtils.js';
 import { capPayload, redactSensitiveFields } from './payload-logging.js';
 import { REDACTED_PLACEHOLDER, SENSITIVE_HEADERS } from '../config/constants.js';
 
+/** Returns true for MCP transport endpoints (/api/<name>/mcp). */
+function isMcpEndpoint(url: string): boolean {
+  return /\/api\/[^/]+\/mcp(\?|$)/.test(url);
+}
+
 function redactHeaders(headers: Record<string, unknown>): Record<string, unknown> {
   const redacted: Record<string, unknown> = {};
   for (const [name, value] of Object.entries(headers)) {
@@ -36,6 +41,10 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     // logLevel:'silent' set on known routes; empty url means no route matched (setNotFoundHandler)
     if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
 
+    // MCP endpoints are fully covered by the session logger — skip HTTP-level logging entirely.
+    // GET opens a long-lived SSE stream; POST carries MCP JSON-RPC messages logged by session-logger.
+    if (isMcpEndpoint(req.url)) return;
+
     logger.info(`--> ${req.method} ${req.url}`);
     if (envConfig.PRINT_PAYLOADS) {
       logger.info(`\tRequest: ${JSON.stringify(capPayload(buildRequestPayload(req)), null, 2)}`);
@@ -47,6 +56,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
   // Return undefined so Fastify keeps the original payload untouched.
   app.addHook('onSend', async (req: FastifyRequest, _reply, payload) => {
     if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
+    if (isMcpEndpoint(req.url)) return;
 
     if (envConfig.LOG_PAYLOADS || envConfig.PRINT_PAYLOADS) {
       try {
@@ -60,6 +70,9 @@ async function requestLoggerPlugin(app: FastifyInstance) {
 
   app.addHook('onResponse', async (req, reply) => {
     if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
+
+    // MCP endpoints are fully covered by the session logger.
+    if (isMcpEndpoint(req.url)) return;
 
     const durationMs = Math.round(reply.elapsedTime);
     const bodySize = Number(reply.getHeader('content-length') ?? 0);
@@ -95,7 +108,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
       logData.responseBody = capPayload(redactedResponsePayload);
     }
 
-    if (envConfig.PRINT_PAYLOADS) {
+    if (envConfig.PRINT_PAYLOADS && req._capturedResponseBody != null) {
       logger.info(`\tResponse: ${JSON.stringify(capPayload(redactedResponsePayload), null, 2)}`);
     }
 
