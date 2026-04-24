@@ -74,6 +74,23 @@ export const financeAccounts = pgTable(
   }),
 );
 
+// ─── Groups (replaces parentId on categories) ────────────────────────────
+
+export const financeGroups = pgTable(
+  'finance_groups',
+  {
+    id:        serial('id').primaryKey(),
+    budgetId:  integer('budget_id').notNull().references(() => financeBudgets.id, { onDelete: 'cascade' }),
+    name:      text('name').notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  table => ({
+    budgetIdIdx: index('idx_finance_groups_budget').on(table.budgetId),
+  }),
+);
+
 // ─── Categories ───────────────────────────────────────────────────────────
 
 export const financeCategories = pgTable(
@@ -82,19 +99,20 @@ export const financeCategories = pgTable(
     id:       serial('id').primaryKey(),
     budgetId: integer('budget_id').notNull().references(() => financeBudgets.id, { onDelete: 'cascade' }),
     name:     text('name').notNull(),
-    // Self-reference for grouping (e.g. Food > Groceries). null = top-level.
-    parentId:      integer('parent_id'),
+    // null = ungrouped
+    groupId:       integer('group_id').references(() => financeGroups.id, { onDelete: 'set null' }),
     color:         text('color'),
     // Icon key — maps to a UI component via CategoryIcons constant in the Hub package
     icon:          text('icon').$type<CategoryIcon>(),
     // Optional monthly spending target — nullable, no envelope-style allocation
     monthlyTarget: numeric('monthly_target', { precision: 18, scale: 4 }),
+    sortOrder:     integer('sort_order').notNull().default(0),
     createdAt:     timestamp('created_at').notNull().defaultNow(),
     updatedAt:     timestamp('updated_at').notNull().defaultNow(),
   },
   table => ({
     budgetIdIdx: index('idx_finance_categories_budget').on(table.budgetId),
-    parentIdIdx: index('idx_finance_categories_parent').on(table.parentId),
+    groupIdIdx:  index('idx_finance_categories_group').on(table.groupId),
   }),
 );
 
