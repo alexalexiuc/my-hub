@@ -16,12 +16,15 @@
  * Types: TripInsert, TripUpdate, TripBookingRange, AccessibleTrip
  */
 import { and, asc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
+import { PromiseCacheX } from 'promise-cachex';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
 import { tripBookings, tripShares, trips } from '../../db/schema/travel';
 import { deriveTripStatus, omitNullish } from '../../utils';
 import type { NewTrip, Trip, TripSharePermission, TripWithStatus } from '../../types';
 import { TripSharePermissions } from '../../constants';
+
+const tripAccessCache = new PromiseCacheX<boolean>({ ttl: 300_000 });
 
 const tripColorPalette = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#84CC16'];
 
@@ -202,27 +205,31 @@ export async function getTripBookingRangesByTripIds(tripIds: number[]): Promise<
 }
 
 export async function verifyTripOwnership(userId: string, tripId: number): Promise<boolean> {
-  const [row] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(trips)
-    .where(and(eq(trips.userId, userId), eq(trips.id, tripId)));
+  return tripAccessCache.get(`own:${userId}:${tripId}`, async () => {
+    const [row] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(trips)
+      .where(and(eq(trips.userId, userId), eq(trips.id, tripId)));
 
-  return (row?.count ?? 0) > 0;
+    return (row?.count ?? 0) > 0;
+  });
 }
 
 export async function verifyTripAccess(userId: string, tripId: number): Promise<boolean> {
-  const [row] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(trips)
-    .leftJoin(
-      tripShares,
-      and(
-        eq(tripShares.tripId, trips.id),
-        eq(tripShares.sharedWithUserId, userId),
-        eq(tripShares.ownerUserId, trips.userId),
-      ),
-    )
-    .where(and(eq(trips.id, tripId), or(eq(trips.userId, userId), eq(tripShares.sharedWithUserId, userId))));
+  return tripAccessCache.get(`access:${userId}:${tripId}`, async () => {
+    const [row] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(trips)
+      .leftJoin(
+        tripShares,
+        and(
+          eq(tripShares.tripId, trips.id),
+          eq(tripShares.sharedWithUserId, userId),
+          eq(tripShares.ownerUserId, trips.userId),
+        ),
+      )
+      .where(and(eq(trips.id, tripId), or(eq(trips.userId, userId), eq(tripShares.sharedWithUserId, userId))));
 
-  return (row?.count ?? 0) > 0;
+    return (row?.count ?? 0) > 0;
+  });
 }

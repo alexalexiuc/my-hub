@@ -38,3 +38,4 @@
 - [ ] Add a "Last updated" timestamp to the profile page, showing when the user's profile was last updated, to give users a sense of how fresh their data is and encourage them to keep it up to date.
 - [ ] Add a "Delete account" button in the profile page, which would allow users to delete their account and all associated data, with a confirmation step to prevent accidental deletions. This would give users more control over their data and comply with privacy regulations.
 - [ ] Add auto versioning
+- [ ] Discover areas that can benefit from caching

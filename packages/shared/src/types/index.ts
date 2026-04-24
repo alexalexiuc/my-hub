@@ -98,6 +98,37 @@ export type {
   BaseTransactionDetails,
 } from './transaction-details';
 
+// Finances — table row types
+import type {
+  financeBudgets,
+  financeBudgetMembers,
+  financeAccounts,
+  financeGroups,
+  financeCategories,
+  financeMerchants,
+  financeTransactions,
+  financeCurrencyRates,
+  financeNetWorthSnapshots,
+} from '../db/schema/finances';
+export type FinanceBudget = InferSelectModel<typeof financeBudgets>;
+export type NewFinanceBudget = InferInsertModel<typeof financeBudgets>;
+export type FinanceBudgetMember = InferSelectModel<typeof financeBudgetMembers>;
+export type NewFinanceBudgetMember = InferInsertModel<typeof financeBudgetMembers>;
+export type FinanceAccount = InferSelectModel<typeof financeAccounts>;
+export type NewFinanceAccount = InferInsertModel<typeof financeAccounts>;
+export type FinanceGroup = InferSelectModel<typeof financeGroups>;
+export type NewFinanceGroup = InferInsertModel<typeof financeGroups>;
+export type FinanceCategory = InferSelectModel<typeof financeCategories>;
+export type NewFinanceCategory = InferInsertModel<typeof financeCategories>;
+export type FinanceMerchant = InferSelectModel<typeof financeMerchants>;
+export type NewFinanceMerchant = InferInsertModel<typeof financeMerchants>;
+export type FinanceTransaction = InferSelectModel<typeof financeTransactions>;
+export type NewFinanceTransaction = InferInsertModel<typeof financeTransactions>;
+export type FinanceCurrencyRate = InferSelectModel<typeof financeCurrencyRates>;
+export type NewFinanceCurrencyRate = InferInsertModel<typeof financeCurrencyRates>;
+export type FinanceNetWorthSnapshot = InferSelectModel<typeof financeNetWorthSnapshots>;
+export type NewFinanceNetWorthSnapshot = InferInsertModel<typeof financeNetWorthSnapshots>;
+
 // Travel
 export type FlightData = InferSelectModel<typeof flightData>;
 export type NewFlightData = InferInsertModel<typeof flightData>;

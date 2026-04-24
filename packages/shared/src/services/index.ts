@@ -10,6 +10,7 @@ export * from './todos';
 export * from './invites';
 export * from './apiary';
 export * from './travel';
+export * from './finances';
 export * from './s3';
 export * from './notifications';
 export * from './email';
