@@ -1,7 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { T, fmt, Card, SectionLabel, Pill, Bar, Divider, Sparkline } from './ui';
+import { T, fmt, Card, SectionLabel, Bar, Divider, Sparkline } from './ui';
+import { AddTransactionModal } from './transactions/AddTransactionModal';
+import { TransactionList } from './transactions/TransactionList';
 import type { FinanceDashboardData } from './types';
 
 function getGreeting() {
@@ -22,6 +25,7 @@ type DashboardScreenProps = {
 
 export function DashboardScreen({ data, userName }: DashboardScreenProps) {
   const router = useRouter();
+  const [showAddTx, setShowAddTx] = useState(false);
   const { currency, netWorth, netWorthHistory, monthlyIncome, monthlyExpense, categories, goals, recentTransactions } =
     data;
 
@@ -31,6 +35,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {showAddTx && <AddTransactionModal onClose={() => setShowAddTx(false)} onCreated={() => setShowAddTx(false)} />}
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
@@ -43,7 +48,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
           </div>
         </div>
         <button
-          onClick={() => router.push('/finances/transactions/add')}
+          onClick={() => setShowAddTx(true)}
           style={{
             padding: '6px 12px',
             borderRadius: 20,
@@ -190,59 +195,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
           </span>
         </div>
 
-        {recentTransactions.length === 0 && (
-          <div style={{ fontSize: 12, color: T.subtle, padding: '12px 0', textAlign: 'center' }}>
-            No transactions yet
-          </div>
-        )}
-
-        {recentTransactions.map((tx, i) => {
-          const catColor = tx.categoryColor ?? T.muted;
-          return (
-            <div key={tx.id}>
-              {i > 0 && <Divider />}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0' }}>
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 9,
-                    flexShrink: 0,
-                    background: catColor + '22',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 14,
-                    border: `1px solid ${catColor}33`,
-                  }}
-                >
-                  {tx.categoryIcon ?? '•'}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{tx.payeeName ?? tx.notes ?? '—'}</div>
-                  {tx.categoryName && (
-                    <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
-                      <Pill label={tx.categoryName} color={catColor} />
-                    </div>
-                  )}
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: tx.type === 'income' ? T.green : T.text,
-                    }}
-                  >
-                    {tx.type === 'income' ? '+' : '-'}
-                    {fmt(tx.amount, currency)}
-                  </div>
-                  <div style={{ fontSize: 10, color: T.subtle }}>{tx.date}</div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        <TransactionList transactions={recentTransactions} currency={currency} />
       </Card>
     </div>
   );

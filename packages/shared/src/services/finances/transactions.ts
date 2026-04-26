@@ -9,11 +9,11 @@
  */
 import { and, desc, eq, gte, isNull, lte, or } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { financeTransactions } from '../../db/schema/finances';
+import { financeAccounts, financeTransactions } from '../../db/schema/finances';
 import { omitNullish } from '../../utils';
 import { verifyBudgetAccess } from './budgets';
 import type { FinanceTransaction, NewFinanceTransaction } from '../../types';
-import type { TransactionType } from '../../constants/finances';
+import { TransactionTypes, type TransactionType } from '../../constants/finances';
 
 export type TransactionInsert = Omit<
   NewFinanceTransaction,
@@ -58,13 +58,59 @@ export async function addTransaction(
     throw new Error('Budget not found');
   }
 
-  const [row] = await db
-    .insert(financeTransactions)
-    .values({ ...data, budgetId, addedByUserId: userId })
-    .returning();
+  const amt = parseFloat(data.amount);
 
-  if (!row) throw new Error('Insert did not return a row');
-  return row;
+  return db.transaction(async tx => {
+    const [fromAccount] = await tx
+      .select({ balance: financeAccounts.balance })
+      .from(financeAccounts)
+      .where(and(eq(financeAccounts.id, data.accountId), eq(financeAccounts.budgetId, budgetId)));
+
+    if (!fromAccount) throw new Error('Account not found');
+
+    const fromBalanceAfter =
+      data.type === TransactionTypes.Income
+        ? parseFloat(fromAccount.balance) + amt
+        : parseFloat(fromAccount.balance) - amt;
+
+    await tx
+      .update(financeAccounts)
+      .set({ balance: String(fromBalanceAfter), updatedAt: new Date() })
+      .where(and(eq(financeAccounts.id, data.accountId), eq(financeAccounts.budgetId, budgetId)));
+
+    let toBalanceAfter: number | null = null;
+
+    if (data.type === TransactionTypes.Transfer && data.toAccountId != null) {
+      const [toAccount] = await tx
+        .select({ balance: financeAccounts.balance })
+        .from(financeAccounts)
+        .where(and(eq(financeAccounts.id, data.toAccountId), eq(financeAccounts.budgetId, budgetId)));
+
+      if (!toAccount) throw new Error('Destination account not found');
+
+      const exchangeRate = parseFloat(data.exchangeRate ?? '1');
+      toBalanceAfter = parseFloat(toAccount.balance) + amt * exchangeRate;
+
+      await tx
+        .update(financeAccounts)
+        .set({ balance: String(toBalanceAfter), updatedAt: new Date() })
+        .where(and(eq(financeAccounts.id, data.toAccountId), eq(financeAccounts.budgetId, budgetId)));
+    }
+
+    const [row] = await tx
+      .insert(financeTransactions)
+      .values({
+        ...data,
+        budgetId,
+        addedByUserId: userId,
+        fromAccountBalanceAfter: String(fromBalanceAfter),
+        toAccountBalanceAfter: toBalanceAfter != null ? String(toBalanceAfter) : null,
+      })
+      .returning();
+
+    if (!row) throw new Error('Insert did not return a row');
+    return row;
+  });
 }
 
 export async function getTransactions(

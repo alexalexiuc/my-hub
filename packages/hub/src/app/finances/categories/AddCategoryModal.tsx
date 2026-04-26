@@ -88,7 +88,7 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !icon) return;
     setSaving(true);
     await apiFetch('/api/finances/categories', {
       method: 'POST',
@@ -245,7 +245,7 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
             </button>
             <button
               type="submit"
-              disabled={saving || !name.trim()}
+              disabled={saving || !name.trim() || !icon}
               style={{
                 background: T.accent,
                 border: 'none',
@@ -254,8 +254,8 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
                 fontSize: 13,
                 fontWeight: 600,
                 color: '#0e0e12',
-                cursor: saving ? 'not-allowed' : 'pointer',
-                opacity: saving ? 0.7 : 1,
+                cursor: saving || !name.trim() || !icon ? 'not-allowed' : 'pointer',
+                opacity: saving || !name.trim() || !icon ? 0.5 : 1,
               }}
             >
               {saving ? 'Saving…' : 'Create'}

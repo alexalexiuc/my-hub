@@ -3,213 +3,276 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
-import { T, fmt, Card, SectionLabel, Pill, Bar, Divider, TYPE_META } from '../../ui';
-import { categoryIconEmoji } from '../../categoryIcons';
+import { T, fmt, Card, SectionLabel, Bar, Pill, TYPE_META } from '../../ui';
+import { TransactionList } from '../../transactions/TransactionList';
 import type { AccountDetailData, AccountItem } from '../types';
 
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function CorrectionForm({
+function CorrectionModal({
   accountId,
   currency,
+  currentBalance,
+  onClose,
   onSaved,
 }: {
   accountId: number;
   currency: string;
+  currentBalance: number;
+  onClose: () => void;
   onSaved: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [txType, setTxType] = useState<'income' | 'expense'>('income');
-  const [amount, setAmount] = useState('');
+  const [newBalance, setNewBalance] = useState(String(currentBalance));
   const [date, setDate] = useState(today());
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const parsed = parseFloat(newBalance);
+  const correction = isNaN(parsed) ? 0 : parsed - currentBalance;
+  const isZero = correction === 0;
+  const correctionColor = correction > 0 ? T.green : correction < 0 ? T.red : T.subtle;
+
   async function handleSave() {
-    if (!amount) return;
+    if (isZero || saving) return;
     setSaving(true);
     try {
       await apiFetch('/api/finances/transactions', {
         method: 'POST',
         body: {
-          type: txType,
+          type: correction > 0 ? 'income' : 'expense',
           accountId,
-          amount: parseFloat(amount),
+          amount: Math.abs(correction),
           date,
           notes: notes.trim() || 'Balance Correction',
           isCorrection: true,
         },
         silentToast: true,
       });
-      setOpen(false);
-      setAmount('');
-      setNotes('');
+      onClose();
       onSaved();
     } finally {
       setSaving(false);
     }
   }
 
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,.65)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
         style={{
-          background: T.card2,
+          background: T.card,
           border: `1px solid ${T.border}`,
-          borderRadius: 8,
-          padding: '8px 14px',
-          fontSize: 12,
-          color: T.muted,
-          cursor: 'pointer',
+          borderRadius: 14,
+          padding: 20,
           width: '100%',
+          maxWidth: 400,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
         }}
       >
-        + Add Correction
-      </button>
-    );
-  }
+        <div style={{ fontSize: 16, fontWeight: 700, color: T.text }}>Balance Correction</div>
 
-  return (
-    <Card style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: T.muted }}>Balance Correction</div>
-      <div
-        style={{ display: 'flex', background: T.card2, padding: 3, borderRadius: 8, border: `1px solid ${T.border}` }}
-      >
-        {(['income', 'expense'] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setTxType(t)}
-            style={{
-              flex: 1,
-              padding: '5px 0',
-              borderRadius: 6,
-              border: 'none',
-              background: txType === t ? (t === 'income' ? T.green : T.red) + '22' : 'transparent',
-              color: txType === t ? (t === 'income' ? T.green : T.red) : T.muted,
-              fontSize: 11,
-              fontWeight: txType === t ? 600 : 400,
-              cursor: 'pointer',
-              textTransform: 'capitalize',
-            }}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, padding: '8px 10px' }}>
-          <div
-            style={{
-              fontSize: 9,
-              color: T.subtle,
-              textTransform: 'uppercase',
-              letterSpacing: '.07em',
-              marginBottom: 3,
-            }}
-          >
-            Amount ({currency})
-          </div>
-          <input
-            type="number"
-            placeholder="0.00"
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
-            style={{
-              width: '100%',
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: T.text,
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          />
-        </div>
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, padding: '8px 10px' }}>
-          <div
-            style={{
-              fontSize: 9,
-              color: T.subtle,
-              textTransform: 'uppercase',
-              letterSpacing: '.07em',
-              marginBottom: 3,
-            }}
-          >
-            Date
-          </div>
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            style={{
-              width: '100%',
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: T.text,
-              fontSize: 13,
-            }}
-          />
-        </div>
-      </div>
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, padding: '8px 10px' }}>
+        {/* Balance summary row */}
         <div
-          style={{ fontSize: 9, color: T.subtle, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 3 }}
-        >
-          Notes
-        </div>
-        <input
-          placeholder="Balance Correction"
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
           style={{
-            width: '100%',
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            color: T.text,
-            fontSize: 13,
-          }}
-        />
-      </div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button
-          onClick={() => setOpen(false)}
-          style={{
-            flex: 1,
             background: T.card2,
             border: `1px solid ${T.border}`,
-            borderRadius: 8,
-            padding: '8px',
-            fontSize: 12,
-            color: T.muted,
-            cursor: 'pointer',
+            borderRadius: 10,
+            padding: '12px 14px',
+            display: 'grid',
+            gridTemplateColumns: '1fr auto 1fr',
+            alignItems: 'center',
+            gap: 8,
           }}
         >
-          Cancel
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={!amount || saving}
-          style={{
-            flex: 2,
-            background: !amount || saving ? T.card3 : T.accent,
-            border: 'none',
-            borderRadius: 8,
-            padding: '8px',
-            fontSize: 12,
-            fontWeight: 600,
-            color: !amount || saving ? T.subtle : '#fff',
-            cursor: !amount || saving ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {saving ? 'Saving…' : 'Save Correction'}
-        </button>
+          <div>
+            <div
+              style={{
+                fontSize: 9,
+                color: T.subtle,
+                textTransform: 'uppercase',
+                letterSpacing: '.07em',
+                marginBottom: 2,
+              }}
+            >
+              Current
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: T.muted }}>{fmt(currentBalance, currency)}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: correctionColor,
+                minWidth: 60,
+                padding: '3px 8px',
+                borderRadius: 6,
+                background: isZero ? 'transparent' : correctionColor + '18',
+              }}
+            >
+              {isZero ? '—' : `${correction > 0 ? '+' : ''}${fmt(correction, currency)}`}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div
+              style={{
+                fontSize: 9,
+                color: T.subtle,
+                textTransform: 'uppercase',
+                letterSpacing: '.07em',
+                marginBottom: 2,
+              }}
+            >
+              New
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: isZero ? T.muted : T.text }}>
+              {isNaN(parsed) ? '—' : fmt(parsed, currency)}
+            </div>
+          </div>
+        </div>
+
+        {/* New balance input */}
+        <div style={{ background: T.card2, border: `1px solid ${T.border}`, borderRadius: 10, padding: '10px 14px' }}>
+          <div
+            style={{
+              fontSize: 9,
+              color: T.subtle,
+              textTransform: 'uppercase',
+              letterSpacing: '.07em',
+              marginBottom: 4,
+            }}
+          >
+            Actual Balance ({currency})
+          </div>
+          <input
+            autoFocus
+            type="number"
+            placeholder={String(currentBalance)}
+            value={newBalance}
+            onChange={e => setNewBalance(e.target.value)}
+            style={{
+              width: '100%',
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: T.text,
+              fontSize: 20,
+              fontWeight: 700,
+            }}
+          />
+        </div>
+
+        {/* Date + Notes */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div style={{ background: T.card2, border: `1px solid ${T.border}`, borderRadius: 10, padding: '10px 12px' }}>
+            <div
+              style={{
+                fontSize: 9,
+                color: T.subtle,
+                textTransform: 'uppercase',
+                letterSpacing: '.07em',
+                marginBottom: 4,
+              }}
+            >
+              Date
+            </div>
+            <input
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: T.text,
+                fontSize: 13,
+              }}
+            />
+          </div>
+          <div style={{ background: T.card2, border: `1px solid ${T.border}`, borderRadius: 10, padding: '10px 12px' }}>
+            <div
+              style={{
+                fontSize: 9,
+                color: T.subtle,
+                textTransform: 'uppercase',
+                letterSpacing: '.07em',
+                marginBottom: 4,
+              }}
+            >
+              Notes
+            </div>
+            <input
+              placeholder="Balance Correction"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: T.text,
+                fontSize: 13,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1,
+              padding: '10px 0',
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              background: T.card2,
+              border: `1px solid ${T.border}`,
+              color: T.muted,
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isZero || saving}
+            style={{
+              flex: 2,
+              padding: '10px 0',
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 700,
+              background: isZero || saving ? T.card3 : correctionColor,
+              border: 'none',
+              color: isZero || saving ? T.subtle : '#fff',
+              cursor: isZero || saving ? 'not-allowed' : 'pointer',
+              transition: 'background .15s',
+            }}
+          >
+            {saving ? 'Saving…' : 'Apply Correction'}
+          </button>
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -335,6 +398,7 @@ export default function AccountDetailPage() {
   const numericId = Number(params.id);
   const [data, setData] = useState<AccountDetailData | null>(null);
   const [loading, setLoading] = useState(!isNaN(numericId));
+  const [correctionOpen, setCorrectionOpen] = useState(false);
 
   const load = useCallback(async () => {
     const result = await apiFetch<AccountDetailData>(`/api/finances/accounts/${params.id}`, { silentToast: true });
@@ -417,65 +481,34 @@ export default function AccountDetailPage() {
       <Card style={{ padding: 14 }}>
         <SectionLabel style={{ marginBottom: 10 }}>Ledger</SectionLabel>
 
-        {transactions.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: T.subtle, fontSize: 13 }}>
-            No transactions yet
-          </div>
-        )}
-
-        {transactions.map((tx, i) => {
-          const catColor = tx.categoryColor ?? (tx.isCorrection ? T.amber : T.muted);
-          const label = tx.isCorrection ? (tx.notes ?? 'Balance Correction') : (tx.payeeName ?? tx.notes ?? '—');
-          const isTransfer = tx.type === 'transfer';
-          return (
-            <div key={tx.id}>
-              {i > 0 && <Divider />}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
-                <div
-                  style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 7,
-                    flexShrink: 0,
-                    background: catColor + '22',
-                    border: `1px solid ${catColor}33`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 12,
-                  }}
-                >
-                  {tx.isCorrection ? '⚖' : isTransfer ? '↔' : categoryIconEmoji(tx.categoryIcon)}
-                </div>
-                <span
-                  style={{ fontSize: 13, fontWeight: 500, color: tx.isCorrection ? T.amber : T.text, flexShrink: 0 }}
-                >
-                  {label}
-                </span>
-                {tx.categoryName && <Pill label={tx.categoryName} color={catColor} />}
-                <span style={{ flex: 1 }} />
-                <span style={{ fontSize: 11, color: T.subtle, flexShrink: 0 }}>{tx.date}</span>
-                <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 80 }}>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: tx.type === 'income' ? T.green : isTransfer ? T.blue : T.red,
-                    }}
-                  >
-                    {fmt(tx.amount, acc.currency)}
-                  </div>
-                  {tx.balanceAfter != null && (
-                    <div style={{ fontSize: 10, color: T.subtle }}>{fmt(tx.balanceAfter, acc.currency)}</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        <TransactionList transactions={transactions} currency={acc.currency} />
       </Card>
 
-      <CorrectionForm accountId={acc.id} currency={acc.currency} onSaved={load} />
+      <button
+        onClick={() => setCorrectionOpen(true)}
+        style={{
+          background: T.card2,
+          border: `1px solid ${T.border}`,
+          borderRadius: 8,
+          padding: '8px 14px',
+          fontSize: 12,
+          color: T.muted,
+          cursor: 'pointer',
+          width: '100%',
+        }}
+      >
+        + Add Correction
+      </button>
+
+      {correctionOpen && (
+        <CorrectionModal
+          accountId={acc.id}
+          currency={acc.currency}
+          currentBalance={acc.balance}
+          onClose={() => setCorrectionOpen(false)}
+          onSaved={load}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { T } from './ui';
+import { AddTransactionModal } from './transactions/AddTransactionModal';
 
 interface NavItem {
   id: string;
@@ -27,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
 export function FinancesSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [showAddTx, setShowAddTx] = useState(false);
 
   const isActive = (path: string) => (path === '/finances' ? pathname === '/finances' : pathname.startsWith(path));
 
@@ -88,8 +91,9 @@ export function FinancesSidebar() {
 
       <div style={{ flex: 1 }} />
 
+      {showAddTx && <AddTransactionModal onClose={() => setShowAddTx(false)} onCreated={() => setShowAddTx(false)} />}
       <button
-        onClick={() => router.push('/finances/transactions/add')}
+        onClick={() => setShowAddTx(true)}
         style={{
           background: T.accent,
           color: '#fff',

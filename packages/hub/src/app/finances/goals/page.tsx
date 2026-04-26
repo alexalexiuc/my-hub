@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import { T, fmt, Card, Bar } from '../ui';
+import { AddTransactionModal } from '../transactions/AddTransactionModal';
 import type { GoalItem } from '@/app/api/finances/goals/route';
 
 interface GoalsData {
@@ -21,6 +22,7 @@ export default function GoalsPage() {
   const router = useRouter();
   const [data, setData] = useState<GoalsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAddTx, setShowAddTx] = useState(false);
 
   const load = useCallback(async () => {
     const result = await apiFetch<GoalsData>('/api/finances/goals', { silentToast: true });
@@ -54,6 +56,7 @@ export default function GoalsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {showAddTx && <AddTransactionModal onClose={() => setShowAddTx(false)} onCreated={() => setShowAddTx(false)} />}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', color: T.text }}>Goals</div>
         <button
@@ -128,7 +131,7 @@ export default function GoalsPage() {
               <button
                 onClick={e => {
                   e.stopPropagation();
-                  router.push('/finances/transactions/add');
+                  setShowAddTx(true);
                 }}
                 style={{
                   flex: 1,
