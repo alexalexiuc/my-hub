@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
-import { getUserBudgets, getAccounts, getNetWorthHistory, createAccount } from '@my-hub/shared/services';
+import {
+  getUserBudgets,
+  getAccounts,
+  getNetWorthHistory,
+  createAccount,
+  addTransaction,
+} from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
 import type {
@@ -139,6 +145,24 @@ export const POST = withAuth(async ({ req, user }) => {
     archived: false,
     details: details && typeof details === 'object' ? details : null,
   });
+
+  if (balanceNum !== 0) {
+    await addTransaction(user.id, budget.id, {
+      type: balanceNum > 0 ? 'income' : 'expense',
+      accountId: account.id,
+      toAccountId: null,
+      amount: String(Math.abs(balanceNum)),
+      exchangeRate: '1',
+      date: new Date().toISOString().slice(0, 10),
+      categoryId: null,
+      merchantId: null,
+      notes: 'Initial Balance',
+      isCorrection: true,
+      fromAccountBalanceAfter: null,
+      toAccountBalanceAfter: null,
+      extras: null,
+    });
+  }
 
   return NextResponse.json({ account }, { status: 201 });
 });

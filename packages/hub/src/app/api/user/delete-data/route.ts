@@ -13,11 +13,12 @@ import {
   deleteAllUserTripPlaces,
   deleteAllUserTripBookings,
   deleteAllUserTrips,
+  deleteAllUserFinanceBudgets,
 } from '@my-hub/shared/services';
 
-type Feature = 'meals' | 'measurements' | 'calories_profile' | 'todos' | 'my_travels';
+type Feature = 'meals' | 'measurements' | 'calories_profile' | 'todos' | 'my_travels' | 'finances';
 
-const SUPPORTED_FEATURES: Feature[] = ['meals', 'measurements', 'calories_profile', 'todos', 'my_travels'];
+const SUPPORTED_FEATURES: Feature[] = ['meals', 'measurements', 'calories_profile', 'todos', 'my_travels', 'finances'];
 
 export const POST = withAuth(async ({ req, user }) => {
   let body: Record<string, unknown>;
@@ -62,6 +63,11 @@ export const POST = withAuth(async ({ req, user }) => {
       case 'todos': {
         const count = await deleteAllUserTodos(user.id);
         results.todos = { deleted: count };
+        break;
+      }
+      case 'finances': {
+        await deleteAllUserFinanceBudgets(user.id);
+        results.finances = { deleted: true };
         break;
       }
       case 'my_travels': {

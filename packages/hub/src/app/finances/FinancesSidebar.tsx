@@ -16,11 +16,12 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'accounts', label: 'Accounts', icon: '⊞', path: '/finances/accounts' },
   { id: 'transactions', label: 'Transactions', icon: '↕', path: '/finances/transactions' },
   { id: 'categories', label: 'Categories', icon: '⬡', path: '/finances/categories' },
-  { id: 'goals', label: 'Goals', icon: '🎯', path: '/finances/goals' },
-  { id: 'budget', label: 'Budget', icon: '▦', path: '/finances/budget', dividerBefore: true },
-  { id: 'cashflow', label: 'Cashflow', icon: '∿', path: '/finances/cashflow' },
-  { id: 'merchants', label: 'Merchants', icon: '⊛', path: '/finances/merchants' },
-  { id: 'networth', label: 'Net Worth', icon: '◎', path: '/finances/networth' },
+  { id: 'goals', label: 'Goals', icon: '◎', path: '/finances/goals' },
+  { id: 'budget', label: 'Budget', icon: '', path: '/finances/budget', dividerBefore: true },
+  { id: 'cashflow', label: 'Cashflow', icon: '', path: '/finances/cashflow' },
+  { id: 'merchants', label: 'Merchants', icon: '', path: '/finances/merchants' },
+  { id: 'networth', label: 'Net Worth', icon: '', path: '/finances/networth' },
+  { id: 'settings', label: 'Settings', icon: '⚙', path: '/finances/settings', dividerBefore: true },
 ];
 
 export function FinancesSidebar() {
@@ -78,7 +79,7 @@ export function FinancesSidebar() {
                 cursor: 'pointer',
               }}
             >
-              <span style={{ fontSize: 15, lineHeight: 1 }}>{icon}</span>
+              {icon && <span style={{ fontSize: 15, lineHeight: 1 }}>{icon}</span>}
               {label}
             </button>
           </div>

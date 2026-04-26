@@ -38,7 +38,7 @@ export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
     getAccountById(user.id, budgetId, accountId),
     getCategories(user.id, budgetId),
     getMerchants(user.id, budgetId),
-    getTransactions(user.id, budgetId, { accountId, limit: 50 }),
+    getTransactions(user.id, budgetId, { accountId, limit: 50, includeCorrections: true }),
   ]);
 
   if (!rawAccount) return NextResponse.json({ error: 'Account not found' }, { status: 404 });
@@ -63,6 +63,7 @@ export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
       categoryColor: cat?.color ?? null,
       categoryIcon: cat?.icon ?? null,
       balanceAfter: rawBal != null ? parseFloat(rawBal) : null,
+      isCorrection: t.isCorrection,
     };
   });
 
