@@ -22,7 +22,7 @@ interface FormData {
   currency: string;
   accounts: AccountOption[];
   categories: CategoryOption[];
-  merchantSuggestions: Record<string, { categoryId: number | null; accountId: number }>;
+  payeeSuggestions: Record<string, { categoryId: number | null; accountId: number }>;
 }
 
 type TxType = 'expense' | 'income' | 'transfer';
@@ -202,7 +202,7 @@ export default function AddTransactionPage() {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData | null>(null);
   const [txType, setTxType] = useState<TxType>('expense');
-  const [merchant, setMerchant] = useState('');
+  const [payee, setPayee] = useState('');
   const [amount, setAmount] = useState('');
   const [selCatId, setSelCatId] = useState<number | null>(null);
   const [selAccId, setSelAccId] = useState<number | null>(null);
@@ -222,13 +222,13 @@ export default function AddTransactionPage() {
     load();
   }, [load]);
 
-  // Autofill from merchant history
-  const suggestion = formData?.merchantSuggestions[merchant.trim().toLowerCase()];
-  const hasSuggestion = !!suggestion && merchant.trim().length > 2 && !autofillDismissed;
+  // Autofill from payee history
+  const suggestion = formData?.payeeSuggestions[payee.trim().toLowerCase()];
+  const hasSuggestion = !!suggestion && payee.trim().length > 2 && !autofillDismissed;
 
   useEffect(() => {
     setAutofillDismissed(false);
-  }, [merchant]);
+  }, [payee]);
 
   useEffect(() => {
     if (hasSuggestion && suggestion) {
@@ -256,7 +256,7 @@ export default function AddTransactionPage() {
           amount: parseFloat(amount),
           date,
           categoryId: txType === 'transfer' ? null : selCatId,
-          merchantName: merchant.trim() || undefined,
+          payeeName: payee.trim() || undefined,
           notes: note.trim() || undefined,
         },
         silentToast: true,
@@ -328,18 +328,18 @@ export default function AddTransactionPage() {
         ))}
       </div>
 
-      {/* Merchant */}
+      {/* Payee */}
       <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: '10px 14px' }}>
         <div
           style={{ fontSize: 10, color: T.subtle, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 4 }}
         >
-          Merchant
+          Payee
         </div>
         <input
           autoFocus
           placeholder="e.g. Carrefour, Netflix…"
-          value={merchant}
-          onChange={e => setMerchant(e.target.value)}
+          value={payee}
+          onChange={e => setPayee(e.target.value)}
           style={{
             width: '100%',
             background: 'transparent',

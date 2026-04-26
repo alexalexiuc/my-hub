@@ -124,11 +124,11 @@ export const financeCategories = pgTable(
   }),
 );
 
-// ─── Merchants ────────────────────────────────────────────────────────────
-// Normalised merchant list — powers autofill suggestions and spending-by-merchant reports.
+// ─── Payees ───────────────────────────────────────────────────────────────
+// Normalised payee list — powers autofill suggestions and spending-by-payee reports.
 
-export const financeMerchants = pgTable(
-  'finance_merchants',
+export const financePayees = pgTable(
+  'finance_payees',
   {
     id: serial('id').primaryKey(),
     budgetId: integer('budget_id')
@@ -138,7 +138,7 @@ export const financeMerchants = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   table => ({
-    budgetNameUniq: uniqueIndex('uq_finance_merchants_budget_name').on(table.budgetId, table.name),
+    budgetNameUniq: uniqueIndex('uq_finance_payees_budget_name').on(table.budgetId, table.name),
   }),
 );
 
@@ -166,7 +166,7 @@ export const financeTransactions = pgTable(
 
     date: date('date').notNull(), // YYYY-MM-DD, user-visible date
     categoryId: integer('category_id').references(() => financeCategories.id, { onDelete: 'set null' }),
-    merchantId: integer('merchant_id').references(() => financeMerchants.id, { onDelete: 'set null' }),
+    payeeId: integer('payee_id').references(() => financePayees.id, { onDelete: 'set null' }),
 
     // Human-readable note — shown in UI, indexed for search.
     // AI entries are encouraged to populate this with a plain-language summary.
@@ -200,7 +200,7 @@ export const financeTransactions = pgTable(
     toAccountIdx: index('idx_finance_txns_to_account').on(table.toAccountId),
     dateIdx: index('idx_finance_txns_date').on(table.date),
     categoryIdx: index('idx_finance_txns_category').on(table.categoryId),
-    merchantIdx: index('idx_finance_txns_merchant').on(table.merchantId),
+    payeeIdx: index('idx_finance_txns_payee').on(table.payeeId),
     addedByIdx: index('idx_finance_txns_added_by').on(table.addedByUserId),
     // Composite — most common query pattern: budget + date range
     budgetDateIdx: index('idx_finance_txns_budget_date').on(table.budgetId, table.date),

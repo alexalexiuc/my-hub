@@ -219,9 +219,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
                   {tx.categoryIcon ?? '•'}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>
-                    {tx.merchantName ?? tx.notes ?? '—'}
-                  </div>
+                  <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{tx.payeeName ?? tx.notes ?? '—'}</div>
                   {tx.categoryName && (
                     <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
                       <Pill label={tx.categoryName} color={catColor} />

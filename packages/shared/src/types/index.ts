@@ -105,7 +105,7 @@ import type {
   financeAccounts,
   financeGroups,
   financeCategories,
-  financeMerchants,
+  financePayees,
   financeTransactions,
   financeCurrencyRates,
   financeNetWorthSnapshots,
@@ -120,8 +120,8 @@ export type FinanceGroup = InferSelectModel<typeof financeGroups>;
 export type NewFinanceGroup = InferInsertModel<typeof financeGroups>;
 export type FinanceCategory = InferSelectModel<typeof financeCategories>;
 export type NewFinanceCategory = InferInsertModel<typeof financeCategories>;
-export type FinanceMerchant = InferSelectModel<typeof financeMerchants>;
-export type NewFinanceMerchant = InferInsertModel<typeof financeMerchants>;
+export type FinancePayee = InferSelectModel<typeof financePayees>;
+export type NewFinancePayee = InferInsertModel<typeof financePayees>;
 export type FinanceTransaction = InferSelectModel<typeof financeTransactions>;
 export type NewFinanceTransaction = InferInsertModel<typeof financeTransactions>;
 export type FinanceCurrencyRate = InferSelectModel<typeof financeCurrencyRates>;

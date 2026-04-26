@@ -19,7 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'goals', label: 'Goals', icon: '◎', path: '/finances/goals' },
   { id: 'budget', label: 'Budget', icon: '', path: '/finances/budget', dividerBefore: true },
   { id: 'cashflow', label: 'Cashflow', icon: '', path: '/finances/cashflow' },
-  { id: 'merchants', label: 'Merchants', icon: '', path: '/finances/merchants' },
+  { id: 'payees', label: 'Payees', icon: '', path: '/finances/payees' },
   { id: 'networth', label: 'Net Worth', icon: '', path: '/finances/networth' },
   { id: 'settings', label: 'Settings', icon: '⚙', path: '/finances/settings', dividerBefore: true },
 ];

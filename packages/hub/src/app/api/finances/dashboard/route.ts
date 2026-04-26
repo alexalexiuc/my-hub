@@ -4,7 +4,7 @@ import {
   getUserBudgets,
   getAccounts,
   getCategories,
-  getMerchants,
+  getPayees,
   getTransactions,
   getNetWorthHistory,
 } from '@my-hub/shared/services';
@@ -26,10 +26,10 @@ export const GET = withAuth(async ({ user }) => {
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   const today = now.toISOString().slice(0, 10);
 
-  const [accounts, categories, merchants, expenseTxns, incomeTxns, recentTxns, nwHistory] = await Promise.all([
+  const [accounts, categories, payees, expenseTxns, incomeTxns, recentTxns, nwHistory] = await Promise.all([
     getAccounts(user.id, budgetId),
     getCategories(user.id, budgetId),
-    getMerchants(user.id, budgetId),
+    getPayees(user.id, budgetId),
     getTransactions(user.id, budgetId, { type: 'expense', fromDate: monthStart, toDate: today, limit: 2000 }),
     getTransactions(user.id, budgetId, { type: 'income', fromDate: monthStart, toDate: today, limit: 2000 }),
     getTransactions(user.id, budgetId, { limit: 5 }),
@@ -84,20 +84,20 @@ export const GET = withAuth(async ({ user }) => {
     })
     .filter(g => g.target > 0);
 
-  // Recent transactions enriched with category + merchant names
+  // Recent transactions enriched with category + payee names
   const categoryMap = new Map(categories.map(c => [c.id, c]));
-  const merchantMap = new Map(merchants.map(m => [m.id, m]));
+  const payeeMap = new Map(payees.map(p => [p.id, p]));
 
   const recentTransactions = recentTxns.map(t => {
     const cat = t.categoryId != null ? categoryMap.get(t.categoryId) : undefined;
-    const merchant = t.merchantId != null ? merchantMap.get(t.merchantId) : undefined;
+    const payee = t.payeeId != null ? payeeMap.get(t.payeeId) : undefined;
     return {
       id: t.id,
       date: t.date,
       amount: parseFloat(t.amount),
       type: t.type,
       notes: t.notes ?? null,
-      merchantName: merchant?.name ?? null,
+      payeeName: payee?.name ?? null,
       categoryName: cat?.name ?? null,
       categoryColor: cat?.color ?? null,
       categoryIcon: cat?.icon ?? null,

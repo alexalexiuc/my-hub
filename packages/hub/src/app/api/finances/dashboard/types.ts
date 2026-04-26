@@ -20,7 +20,7 @@ export interface DashboardTransaction {
   amount: number;
   type: string;
   notes: string | null;
-  merchantName: string | null;
+  payeeName: string | null;
   categoryName: string | null;
   categoryColor: string | null;
   categoryIcon: string | null;

@@ -59,13 +59,6 @@ CREATE TABLE IF NOT EXISTS "finance_groups" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "finance_merchants" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"budget_id" integer NOT NULL,
-	"name" text NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "finance_net_worth_snapshots" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"budget_id" integer NOT NULL,
@@ -74,6 +67,13 @@ CREATE TABLE IF NOT EXISTS "finance_net_worth_snapshots" (
 	"total_liabilities" numeric(18, 4) NOT NULL,
 	"net_worth" numeric(18, 4) NOT NULL,
 	"breakdown" jsonb NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "finance_payees" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"budget_id" integer NOT NULL,
+	"name" text NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS "finance_transactions" (
 	"exchange_rate" numeric(18, 8) DEFAULT '1' NOT NULL,
 	"date" date NOT NULL,
 	"category_id" integer,
-	"merchant_id" integer,
+	"payee_id" integer,
 	"notes" text,
 	"extras" jsonb,
 	"is_correction" boolean DEFAULT false NOT NULL,
@@ -141,13 +141,13 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "finance_merchants" ADD CONSTRAINT "finance_merchants_budget_id_finance_budgets_id_fk" FOREIGN KEY ("budget_id") REFERENCES "public"."finance_budgets"("id") ON DELETE cascade ON UPDATE no action;
+ ALTER TABLE "finance_net_worth_snapshots" ADD CONSTRAINT "finance_net_worth_snapshots_budget_id_finance_budgets_id_fk" FOREIGN KEY ("budget_id") REFERENCES "public"."finance_budgets"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "finance_net_worth_snapshots" ADD CONSTRAINT "finance_net_worth_snapshots_budget_id_finance_budgets_id_fk" FOREIGN KEY ("budget_id") REFERENCES "public"."finance_budgets"("id") ON DELETE cascade ON UPDATE no action;
+ ALTER TABLE "finance_payees" ADD CONSTRAINT "finance_payees_budget_id_finance_budgets_id_fk" FOREIGN KEY ("budget_id") REFERENCES "public"."finance_budgets"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
@@ -177,7 +177,7 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "finance_transactions" ADD CONSTRAINT "finance_transactions_merchant_id_finance_merchants_id_fk" FOREIGN KEY ("merchant_id") REFERENCES "public"."finance_merchants"("id") ON DELETE set null ON UPDATE no action;
+ ALTER TABLE "finance_transactions" ADD CONSTRAINT "finance_transactions_payee_id_finance_payees_id_fk" FOREIGN KEY ("payee_id") REFERENCES "public"."finance_payees"("id") ON DELETE set null ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
@@ -195,14 +195,14 @@ CREATE INDEX IF NOT EXISTS "idx_finance_budget_members_user" ON "finance_budget_
 CREATE INDEX IF NOT EXISTS "idx_finance_categories_budget" ON "finance_categories" ("budget_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_finance_categories_group" ON "finance_categories" ("group_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_finance_groups_budget" ON "finance_groups" ("budget_id");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "uq_finance_merchants_budget_name" ON "finance_merchants" ("budget_id","name");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "uq_finance_net_worth_budget_month" ON "finance_net_worth_snapshots" ("budget_id","month");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_finance_net_worth_budget" ON "finance_net_worth_snapshots" ("budget_id");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_finance_payees_budget_name" ON "finance_payees" ("budget_id","name");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_finance_txns_budget" ON "finance_transactions" ("budget_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_finance_txns_account" ON "finance_transactions" ("account_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_finance_txns_to_account" ON "finance_transactions" ("to_account_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_finance_txns_date" ON "finance_transactions" ("date");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_finance_txns_category" ON "finance_transactions" ("category_id");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_finance_txns_merchant" ON "finance_transactions" ("merchant_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_finance_txns_payee" ON "finance_transactions" ("payee_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_finance_txns_added_by" ON "finance_transactions" ("added_by_user_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_finance_txns_budget_date" ON "finance_transactions" ("budget_id","date");
