@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
-import { T } from './ui';
 import { AddTransactionModal } from './transactions/AddTransactionModal';
 
 interface NavItem {
@@ -47,25 +46,12 @@ export function FinancesSidebar() {
 
   return (
     <div
-      style={{
-        width: 200,
-        flexShrink: 0,
-        background: T.card,
-        borderRight: `1px solid ${T.border}`,
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '16px 10px',
-      }}
+      className="flex w-[200px] shrink-0 flex-col px-2.5 py-4"
+      style={{ background: 'var(--fin-card)', borderRight: `1px solid ${'var(--fin-border)'}` }}
     >
-      <div
-        style={{
-          padding: '4px 8px 16px',
-          borderBottom: `1px solid ${T.border}`,
-          marginBottom: 12,
-        }}
-      >
-        <div style={{ fontSize: 16, fontWeight: 700, color: T.text, letterSpacing: '-.02em' }}>
-          {currency && <span style={{ color: T.accent }}>{currency} </span>}
+      <div className="mb-3 border-b px-2 pb-4 pt-1" style={{ borderColor: 'var(--fin-border)' }}>
+        <div className="text-base font-bold tracking-[-0.02em]" style={{ color: 'var(--fin-text)' }}>
+          {currency && <span style={{ color: 'var(--fin-accent)' }}>{currency} </span>}
           {budgetName ?? 'Finances'}
         </div>
       </div>
@@ -74,54 +60,38 @@ export function FinancesSidebar() {
         const active = isActive(path);
         return (
           <div key={id}>
-            {dividerBefore && <div style={{ height: 1, background: T.border, margin: '6px 4px' }} />}
+            {dividerBefore && <div className="mx-1 my-1.5 h-px" style={{ background: 'var(--fin-border)' }} />}
             <button
               onClick={() => router.push(path)}
+              className="mb-0.5 flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-[9px] text-left text-[13px]"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '9px 10px',
-                borderRadius: 7,
-                marginBottom: 2,
-                width: '100%',
-                textAlign: 'left',
-                background: active ? T.accentD : 'transparent',
-                border: active ? `1px solid ${T.accent}44` : '1px solid transparent',
-                color: active ? T.accent : T.muted,
-                fontSize: 13,
+                background: active ? 'var(--fin-accent-d)' : 'transparent',
+                border: active ? `1px solid ${'var(--fin-accent)'}44` : '1px solid transparent',
+                color: active ? 'var(--fin-accent)' : 'var(--fin-muted)',
                 fontWeight: active ? 600 : 400,
                 cursor: 'pointer',
               }}
             >
-              {icon && <span style={{ fontSize: 15, lineHeight: 1 }}>{icon}</span>}
+              {icon && <span className="text-[15px] leading-none">{icon}</span>}
               {label}
             </button>
           </div>
         );
       })}
 
-      <div style={{ flex: 1 }} />
+      <div className="flex-1" />
 
       {showAddTx && <AddTransactionModal onClose={() => setShowAddTx(false)} onCreated={() => setShowAddTx(false)} />}
       <button
         onClick={() => setShowAddTx(true)}
+        className="flex items-center justify-center gap-1.5 rounded-lg border-none p-2.5 text-[13px] font-semibold"
         style={{
-          background: T.accent,
-          color: '#fff',
-          border: 'none',
-          borderRadius: 8,
-          padding: '10px',
-          fontSize: 13,
-          fontWeight: 600,
+          background: 'var(--fin-accent)',
+          color: 'var(--fin-on-solid)',
           cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
         }}
       >
-        <span style={{ fontSize: 16 }}>+</span> Add Transaction
+        <span className="text-base">+</span> Add Transaction
       </button>
     </div>
   );

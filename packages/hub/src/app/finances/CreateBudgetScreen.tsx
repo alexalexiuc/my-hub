@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { T, Card } from './ui';
+import { Card } from './ui';
 
 const COMMON_CURRENCIES = ['EUR', 'USD', 'GBP', 'MDL', 'RON', 'UAH'];
 
@@ -36,61 +36,49 @@ export function CreateBudgetScreen({ onCreated }: CreateBudgetScreenProps) {
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '60vh',
-      }}
-    >
-      <Card style={{ width: '100%', maxWidth: 380, padding: 28 }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontSize: 32, marginBottom: 10 }}>₤</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: T.text, marginBottom: 6 }}>Create your budget</div>
-          <div style={{ fontSize: 13, color: T.muted }}>
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <Card className="w-full max-w-[380px] p-7">
+        <div className="mb-6 text-center">
+          <div className="mb-2.5 text-[32px]">₤</div>
+          <div className="mb-1.5 text-lg font-bold" style={{ color: 'var(--fin-text)' }}>
+            Create your budget
+          </div>
+          <div className="text-[13px]" style={{ color: 'var(--fin-muted)' }}>
             Give your budget a name and pick a default currency to get started.
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-[14px]">
           <div>
-            <label style={{ fontSize: 11, color: T.muted, display: 'block', marginBottom: 6 }}>Budget name</label>
+            <label className="mb-1.5 block text-[11px]" style={{ color: 'var(--fin-muted)' }}>
+              Budget name
+            </label>
             <input
               autoFocus
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. Household, Personal…"
+              className="w-full rounded-[7px] border px-3 py-[9px] text-[13px] outline-none"
               style={{
-                width: '100%',
-                background: T.card2,
-                border: `1px solid ${T.border}`,
-                borderRadius: 7,
-                padding: '9px 12px',
-                fontSize: 13,
-                color: T.text,
-                outline: 'none',
-                boxSizing: 'border-box',
+                background: 'var(--fin-card2)',
+                borderColor: 'var(--fin-border)',
+                color: 'var(--fin-text)',
               }}
             />
           </div>
 
           <div>
-            <label style={{ fontSize: 11, color: T.muted, display: 'block', marginBottom: 6 }}>Default currency</label>
+            <label className="mb-1.5 block text-[11px]" style={{ color: 'var(--fin-muted)' }}>
+              Default currency
+            </label>
             <select
               value={currency}
               onChange={e => setCurrency(e.target.value)}
+              className="w-full cursor-pointer rounded-[7px] border px-3 py-[9px] text-[13px] outline-none"
               style={{
-                width: '100%',
-                background: T.card2,
-                border: `1px solid ${T.border}`,
-                borderRadius: 7,
-                padding: '9px 12px',
-                fontSize: 13,
-                color: T.text,
-                outline: 'none',
-                cursor: 'pointer',
-                boxSizing: 'border-box',
+                background: 'var(--fin-card2)',
+                borderColor: 'var(--fin-border)',
+                color: 'var(--fin-text)',
               }}
             >
               {COMMON_CURRENCIES.map(c => (
@@ -101,22 +89,20 @@ export function CreateBudgetScreen({ onCreated }: CreateBudgetScreenProps) {
             </select>
           </div>
 
-          {error && <div style={{ fontSize: 12, color: T.red }}>{error}</div>}
+          {error && (
+            <div className="text-xs" style={{ color: 'var(--fin-red)' }}>
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={!name.trim() || saving}
+            className="mt-1 rounded-lg border-none py-[11px] text-[13px] font-semibold transition-colors"
             style={{
-              background: name.trim() && !saving ? T.accent : T.card3,
-              color: name.trim() && !saving ? '#fff' : T.subtle,
-              border: 'none',
-              borderRadius: 8,
-              padding: '11px',
-              fontSize: 13,
-              fontWeight: 600,
+              background: name.trim() && !saving ? 'var(--fin-accent)' : 'var(--fin-card3)',
+              color: name.trim() && !saving ? 'var(--fin-on-solid)' : 'var(--fin-subtle)',
               cursor: name.trim() && !saving ? 'pointer' : 'not-allowed',
-              transition: 'background .15s',
-              marginTop: 4,
             }}
           >
             {saving ? 'Creating…' : 'Create budget'}

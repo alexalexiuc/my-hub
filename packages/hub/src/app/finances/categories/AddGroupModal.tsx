@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { T } from '../ui';
 
 type AddGroupModalProps = {
   onClose: () => void;
@@ -11,26 +10,15 @@ type AddGroupModalProps = {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <label style={{ fontSize: 10, color: T.subtle, textTransform: 'uppercase', letterSpacing: '.08em' }}>
-        {label}
-      </label>
+    <div className="flex flex-col gap-1">
+      <label className="text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">{label}</label>
       {children}
     </div>
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  background: T.card2,
-  border: `1px solid ${T.border}`,
-  borderRadius: 8,
-  padding: '7px 10px',
-  fontSize: 13,
-  color: T.text,
-  outline: 'none',
-  width: '100%',
-  boxSizing: 'border-box',
-};
+const inputClassName =
+  'w-full rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-2.5 py-[7px] text-[13px] text-[var(--fin-text)] outline-none';
 
 export function AddGroupModal({ onClose, onCreated }: AddGroupModalProps) {
   const [name, setName] = useState('');
@@ -51,34 +39,21 @@ export function AddGroupModal({ onClose, onCreated }: AddGroupModalProps) {
   return (
     <div
       onClick={onClose}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
       style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,.65)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
+        background: 'var(--fin-overlay)',
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{
-          background: T.card,
-          border: `1px solid ${T.border}`,
-          borderRadius: 14,
-          padding: 20,
-          width: '100%',
-          maxWidth: 360,
-        }}
+        className="w-full max-w-[360px] rounded-[14px] border border-[var(--fin-border)] bg-[var(--fin-card)] p-5"
       >
-        <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 16 }}>New Group</div>
+        <div className="mb-4 text-base font-bold text-[var(--fin-text)]">New Group</div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <Field label="Name">
             <input
-              style={inputStyle}
+              className={inputClassName}
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. Living Expenses"
@@ -87,36 +62,22 @@ export function AddGroupModal({ onClose, onCreated }: AddGroupModalProps) {
             />
           </Field>
 
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
+          <div className="mt-1 flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: `1px solid ${T.border}`,
-                borderRadius: 8,
-                padding: '7px 16px',
-                fontSize: 13,
-                color: T.muted,
-                cursor: 'pointer',
-              }}
+              className="rounded-lg border border-[var(--fin-border)] bg-transparent px-4 py-[7px] text-[13px] text-[var(--fin-muted)]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving || !name.trim()}
-              style={{
-                background: T.accent,
-                border: 'none',
-                borderRadius: 8,
-                padding: '7px 16px',
-                fontSize: 13,
-                fontWeight: 600,
-                color: '#0e0e12',
-                cursor: saving ? 'not-allowed' : 'pointer',
-                opacity: saving ? 0.7 : 1,
-              }}
+              className={`rounded-lg border-none px-4 py-[7px] text-[13px] font-semibold ${
+                saving
+                  ? 'bg-[var(--fin-card2)] text-[var(--fin-muted)] opacity-70'
+                  : 'bg-[var(--fin-accent)] text-[var(--fin-on-accent)]'
+              }`}
             >
               {saving ? 'Saving…' : 'Create'}
             </button>

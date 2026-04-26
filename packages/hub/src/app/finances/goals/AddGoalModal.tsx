@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { T } from '../ui';
 import { AccountTypes } from '@my-hub/shared/constants';
 
 type AddGoalModalProps = {
@@ -13,26 +12,15 @@ type AddGoalModalProps = {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <label style={{ fontSize: 10, color: T.subtle, textTransform: 'uppercase', letterSpacing: '.08em' }}>
-        {label}
-      </label>
+    <div className="flex flex-col gap-1">
+      <label className="text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">{label}</label>
       {children}
     </div>
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  background: T.card2,
-  border: `1px solid ${T.border}`,
-  borderRadius: 8,
-  padding: '7px 10px',
-  fontSize: 13,
-  color: T.text,
-  outline: 'none',
-  width: '100%',
-  boxSizing: 'border-box',
-};
+const inputClassName =
+  'w-full rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-2.5 py-[7px] text-[13px] text-[var(--fin-text)] outline-none';
 
 export function AddGoalModal({ defaultCurrency, onClose, onCreated }: AddGoalModalProps) {
   const [name, setName] = useState('');
@@ -61,34 +49,21 @@ export function AddGoalModal({ defaultCurrency, onClose, onCreated }: AddGoalMod
   return (
     <div
       onClick={onClose}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
       style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,.65)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
+        background: 'var(--fin-overlay)',
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{
-          background: T.card,
-          border: `1px solid ${T.border}`,
-          borderRadius: 14,
-          padding: 20,
-          width: '100%',
-          maxWidth: 420,
-        }}
+        className="w-full max-w-[420px] rounded-[14px] border border-[var(--fin-border)] bg-[var(--fin-card)] p-5"
       >
-        <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 16 }}>New Goal</div>
+        <div className="mb-4 text-base font-bold text-[var(--fin-text)]">New Goal</div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <Field label="Goal Name">
             <input
-              style={inputStyle}
+              className={inputClassName}
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. Emergency Fund"
@@ -99,7 +74,7 @@ export function AddGoalModal({ defaultCurrency, onClose, onCreated }: AddGoalMod
 
           <Field label="Target Amount">
             <input
-              style={inputStyle}
+              className={inputClassName}
               type="number"
               step="0.01"
               min="0"
@@ -111,7 +86,7 @@ export function AddGoalModal({ defaultCurrency, onClose, onCreated }: AddGoalMod
 
           <Field label="Current Savings">
             <input
-              style={inputStyle}
+              className={inputClassName}
               type="number"
               step="0.01"
               min="0"
@@ -121,39 +96,22 @@ export function AddGoalModal({ defaultCurrency, onClose, onCreated }: AddGoalMod
             />
           </Field>
 
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <div className="mt-1 flex gap-2">
             <button
               type="button"
               onClick={onClose}
-              style={{
-                flex: 1,
-                padding: '8px 0',
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 600,
-                background: T.card2,
-                border: `1px solid ${T.border}`,
-                color: T.muted,
-                cursor: 'pointer',
-              }}
+              className="flex-1 rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] py-2 text-[13px] font-semibold text-[var(--fin-muted)]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving || !name.trim()}
-              style={{
-                flex: 2,
-                padding: '8px 0',
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 600,
-                background: saving ? T.card2 : T.accent,
-                border: 'none',
-                color: saving ? T.muted : '#0e0e12',
-                cursor: saving ? 'default' : 'pointer',
-                opacity: !name.trim() ? 0.5 : 1,
-              }}
+              className={`flex-[2] rounded-lg border-none py-2 text-[13px] font-semibold ${
+                saving
+                  ? 'bg-[var(--fin-card2)] text-[var(--fin-muted)]'
+                  : 'bg-[var(--fin-accent)] text-[var(--fin-on-accent)]'
+              } ${!name.trim() ? 'opacity-50' : ''}`}
             >
               {saving ? 'Saving…' : 'Create Goal'}
             </button>

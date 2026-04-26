@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
-import { T, fmt, Card, SectionLabel, Bar } from '../../../ui';
+import { fmt, Card, SectionLabel, Bar } from '../../../ui';
 import type { AmortizationData } from '@/app/api/finances/accounts/[id]/amortization/route';
 
 export default function AmortizationPage() {
@@ -24,11 +24,12 @@ export default function AmortizationPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="flex flex-col gap-[14px]">
         {[44, 160, 72, 320].map((h, i) => (
           <div
             key={i}
-            style={{ height: h, borderRadius: 10, background: T.card, border: `1px solid ${T.border}`, opacity: 0.6 }}
+            className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+            style={{ height: h, opacity: 0.6 }}
           />
         ))}
       </div>
@@ -45,104 +46,77 @@ export default function AmortizationPage() {
     : null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="flex flex-col gap-[14px]">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="flex items-center gap-2.5">
         <button
           onClick={() => router.push(`/finances/accounts/${id}`)}
-          style={{
-            background: 'transparent',
-            border: `1px solid ${T.border}`,
-            color: T.muted,
-            padding: '5px 10px',
-            borderRadius: 6,
-            cursor: 'pointer',
-            fontSize: 12,
-          }}
+          className="cursor-pointer rounded-md border border-[var(--fin-border)] bg-transparent px-2.5 py-[5px] text-xs text-[var(--fin-muted)]"
         >
           ← Back
         </button>
-        <div style={{ fontSize: 18, fontWeight: 700, color: T.text }}>Loan Schedule</div>
+        <div className="text-lg font-bold text-[var(--fin-text)]">Loan Schedule</div>
       </div>
 
       {/* Summary card */}
       <div
+        className="rounded-xl p-4"
         style={{
-          background: `linear-gradient(135deg, ${T.accent}18, ${T.card})`,
-          border: `1px solid ${T.accent}33`,
-          borderRadius: 12,
-          padding: 16,
+          background:
+            'linear-gradient(135deg, color-mix(in srgb, var(--fin-accent) 12%, transparent), var(--fin-card))',
+          border: '1px solid color-mix(in srgb, var(--fin-accent) 20%, transparent)',
         }}
       >
-        <div style={{ fontSize: 13, color: T.muted, marginBottom: 4 }}>{data.name}</div>
-        <div style={{ fontSize: 28, fontWeight: 700, color: T.red, marginBottom: 8 }}>
+        <div className="mb-1 text-[13px] text-[var(--fin-muted)]">{data.name}</div>
+        <div className="mb-2 text-[28px] font-bold text-[var(--fin-red)]">
           -{fmt(data.currentBalance, data.currency)}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        <div className="grid grid-cols-3 gap-3">
           {[
             { label: 'Principal', value: fmt(data.principal, data.currency) },
             { label: 'Rate', value: data.interestRate === 0 ? '0% (installment)' : `${data.interestRate}%` },
             { label: 'Monthly', value: fmt(data.monthlyPayment, data.currency) },
           ].map(s => (
-            <div key={s.label} style={{ background: T.card2 + '88', borderRadius: 6, padding: '8px 10px' }}>
-              <div
-                style={{
-                  fontSize: 9,
-                  color: T.subtle,
-                  textTransform: 'uppercase',
-                  letterSpacing: '.06em',
-                  marginBottom: 3,
-                }}
-              >
-                {s.label}
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{s.value}</div>
+            <div
+              key={s.label}
+              className="rounded-md px-2.5 py-2"
+              style={{ background: 'color-mix(in srgb, var(--fin-card2) 53%, transparent)' }}
+            >
+              <div className="mb-[3px] text-[9px] uppercase tracking-[0.06em] text-[var(--fin-subtle)]">{s.label}</div>
+              <div className="text-sm font-semibold text-[var(--fin-text)]">{s.value}</div>
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 10, color: T.subtle }}>Paid off</span>
-            <span style={{ fontSize: 10, color: T.green }}>
+        <div className="mt-3">
+          <div className="mb-1 flex justify-between">
+            <span className="text-[10px] text-[var(--fin-subtle)]">Paid off</span>
+            <span className="text-[10px] text-[var(--fin-green)]">
               {paidPct}% · {fmt(paidAmount, data.currency)} paid
             </span>
           </div>
-          <Bar value={paidAmount} max={data.principal} color={T.green} height={6} />
+          <Bar value={paidAmount} max={data.principal} color="var(--fin-green)" height={6} />
         </div>
       </div>
 
       {/* Next payment banner */}
       {nextRow && (
         <div
+          className="flex items-center justify-between rounded-[10px] border px-[14px] py-3"
           style={{
-            background: T.amberD,
-            border: `1px solid ${T.amber}44`,
-            borderRadius: 10,
-            padding: '12px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            background: 'var(--fin-amber-d)',
+            borderColor: 'color-mix(in srgb, var(--fin-amber) 27%, transparent)',
           }}
         >
           <div>
-            <div style={{ fontSize: 11, color: T.amber, fontWeight: 600, marginBottom: 2 }}>Next Payment</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>
+            <div className="mb-0.5 text-[11px] font-semibold text-[var(--fin-amber)]">Next Payment</div>
+            <div className="text-[15px] font-bold text-[var(--fin-text)]">
               {fmt(data.monthlyPayment, data.currency)}
             </div>
-            {nextDue && <div style={{ fontSize: 11, color: T.muted }}>Due {nextDue}</div>}
+            {nextDue && <div className="text-[11px] text-[var(--fin-muted)]">Due {nextDue}</div>}
           </div>
           <button
             onClick={() => router.push('/finances/transactions/add')}
-            style={{
-              background: T.accent,
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '8px 14px',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className="cursor-pointer rounded-lg border-none bg-[var(--fin-accent)] px-[14px] py-2 text-xs font-semibold text-[var(--fin-on-solid)]"
           >
             Mark Paid
           </button>
@@ -150,19 +124,14 @@ export default function AmortizationPage() {
       )}
 
       {/* Schedule table */}
-      <Card style={{ padding: 14 }}>
+      <Card className="p-[14px]">
         <SectionLabel>Amortization Schedule</SectionLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: '28px 1fr 1fr 1fr 1fr', gap: 0 }}>
+        <div className="grid grid-cols-[28px_1fr_1fr_1fr_1fr] gap-0">
           {['#', 'Date', 'Principal', 'Interest', 'Balance'].map(h => (
             <div
               key={h}
+              className="border-b border-[var(--fin-border)] px-1 pb-2 text-[9px] uppercase tracking-[0.06em] text-[var(--fin-subtle)]"
               style={{
-                fontSize: 9,
-                color: T.subtle,
-                textTransform: 'uppercase',
-                letterSpacing: '.06em',
-                padding: '0 4px 8px',
-                borderBottom: `1px solid ${T.border}`,
                 textAlign: h === '#' ? 'left' : 'right',
               }}
             >
@@ -171,29 +140,31 @@ export default function AmortizationPage() {
           ))}
 
           {data.rows.map(row => {
-            const rowBg = row.current ? T.accentD : row.paid ? T.greenD : 'transparent';
+            const rowBg = row.current ? 'var(--fin-accent-d)' : row.paid ? 'var(--fin-green-d)' : 'transparent';
             const cells = [
-              <span style={{ color: row.paid ? T.green : row.current ? T.accent : T.muted }}>
+              <span
+                style={{
+                  color: row.paid ? 'var(--fin-green)' : row.current ? 'var(--fin-accent)' : 'var(--fin-muted)',
+                }}
+              >
                 {row.paid ? '✓' : row.n}
               </span>,
-              <span style={{ color: T.text, fontWeight: row.current ? 600 : 400 }}>
+              <span style={{ color: 'var(--fin-text)', fontWeight: row.current ? 600 : 400 }}>
                 {new Date(row.date).toLocaleDateString('en-IE', { month: 'short', year: '2-digit' })}
               </span>,
-              <span style={{ color: T.blue }}>{fmt(row.principalPart, data.currency)}</span>,
-              <span style={{ color: T.muted }}>{fmt(row.interestPart, data.currency)}</span>,
-              <span style={{ color: T.text }}>{fmt(row.balance, data.currency)}</span>,
+              <span style={{ color: 'var(--fin-blue)' }}>{fmt(row.principalPart, data.currency)}</span>,
+              <span style={{ color: 'var(--fin-muted)' }}>{fmt(row.interestPart, data.currency)}</span>,
+              <span style={{ color: 'var(--fin-text)' }}>{fmt(row.balance, data.currency)}</span>,
             ];
 
             return cells.map((cell, ci) => (
               <div
                 key={`${row.n}-${ci}`}
+                className="px-1 py-2 text-xs tabular-nums"
                 style={{
-                  fontSize: 12,
-                  padding: '8px 4px',
-                  borderBottom: `1px solid ${T.border}22`,
+                  borderBottom: '1px solid color-mix(in srgb, var(--fin-border) 13%, transparent)',
                   textAlign: ci === 0 ? 'left' : 'right',
                   background: rowBg,
-                  fontVariantNumeric: 'tabular-nums',
                 }}
               >
                 {cell}

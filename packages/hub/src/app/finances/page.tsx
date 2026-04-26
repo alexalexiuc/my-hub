@@ -5,7 +5,6 @@ import { useSession } from 'next-auth/react';
 import { apiFetch } from '@/lib/utils';
 import { DashboardScreen } from './DashboardScreen';
 import { CreateBudgetScreen } from './CreateBudgetScreen';
-import { T } from './ui';
 import type { DashboardResponse, FinanceDashboardData } from './types';
 
 export default function FinancesPage() {
@@ -31,17 +30,17 @@ export default function FinancesPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="flex flex-col gap-[14px]">
         {[140, 100, 180, 160].map((h, i) => (
           <div
             key={i}
             style={{
               height: h,
-              borderRadius: 10,
-              background: T.card,
-              border: `1px solid ${T.border}`,
+              background: 'var(--fin-card)',
+              borderColor: 'var(--fin-border)',
               opacity: 0.6,
             }}
+            className="rounded-[10px] border"
           />
         ))}
       </div>
