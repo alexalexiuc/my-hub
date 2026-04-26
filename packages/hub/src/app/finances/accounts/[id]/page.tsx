@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
-import { T, fmt, Card, SectionLabel, Bar, Pill, TYPE_META } from '../../ui';
+import { fmt, Card, SectionLabel, Bar, Pill, TYPE_META } from '../../ui';
 import { TransactionList } from '../../transactions/TransactionList';
 import type { AccountDetailData, AccountItem } from '../types';
 
@@ -32,7 +32,7 @@ function CorrectionModal({
   const parsed = parseFloat(newBalance);
   const correction = isNaN(parsed) ? 0 : parsed - currentBalance;
   const isZero = correction === 0;
-  const correctionColor = correction > 0 ? T.green : correction < 0 ? T.red : T.subtle;
+  const correctionColor = correction > 0 ? 'var(--fin-green)' : correction < 0 ? 'var(--fin-red)' : 'var(--fin-subtle)';
 
   async function handleSave() {
     if (isZero || saving) return;
@@ -60,51 +60,36 @@ function CorrectionModal({
   return (
     <div
       onClick={onClose}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
       style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,.65)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
+        background: 'var(--fin-overlay)',
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
+        className="flex w-full max-w-[400px] flex-col gap-3 rounded-[14px] p-5"
         style={{
-          background: T.card,
-          border: `1px solid ${T.border}`,
-          borderRadius: 14,
-          padding: 20,
-          width: '100%',
-          maxWidth: 400,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
+          background: 'var(--fin-card)',
+          border: `1px solid ${'var(--fin-border)'}`,
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 700, color: T.text }}>Balance Correction</div>
+        <div className="text-base font-bold" style={{ color: 'var(--fin-text)' }}>
+          Balance Correction
+        </div>
 
         {/* Balance summary row */}
         <div
+          className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[10px] px-[14px] py-3"
           style={{
-            background: T.card2,
-            border: `1px solid ${T.border}`,
-            borderRadius: 10,
-            padding: '12px 14px',
-            display: 'grid',
-            gridTemplateColumns: '1fr auto 1fr',
-            alignItems: 'center',
-            gap: 8,
+            background: 'var(--fin-card2)',
+            border: `1px solid ${'var(--fin-border)'}`,
           }}
         >
           <div>
             <div
               style={{
                 fontSize: 9,
-                color: T.subtle,
+                color: 'var(--fin-subtle)',
                 textTransform: 'uppercase',
                 letterSpacing: '.07em',
                 marginBottom: 2,
@@ -112,28 +97,26 @@ function CorrectionModal({
             >
               Current
             </div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: T.muted }}>{fmt(currentBalance, currency)}</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--fin-muted)' }}>
+              {fmt(currentBalance, currency)}
+            </div>
           </div>
-          <div style={{ textAlign: 'center' }}>
+          <div className="text-center">
             <div
+              className="min-w-[60px] rounded-md px-2 py-[3px] text-[13px] font-bold"
               style={{
-                fontSize: 13,
-                fontWeight: 700,
                 color: correctionColor,
-                minWidth: 60,
-                padding: '3px 8px',
-                borderRadius: 6,
                 background: isZero ? 'transparent' : correctionColor + '18',
               }}
             >
               {isZero ? '—' : `${correction > 0 ? '+' : ''}${fmt(correction, currency)}`}
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
+          <div className="text-right">
             <div
               style={{
                 fontSize: 9,
-                color: T.subtle,
+                color: 'var(--fin-subtle)',
                 textTransform: 'uppercase',
                 letterSpacing: '.07em',
                 marginBottom: 2,
@@ -141,18 +124,21 @@ function CorrectionModal({
             >
               New
             </div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: isZero ? T.muted : T.text }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: isZero ? 'var(--fin-muted)' : 'var(--fin-text)' }}>
               {isNaN(parsed) ? '—' : fmt(parsed, currency)}
             </div>
           </div>
         </div>
 
         {/* New balance input */}
-        <div style={{ background: T.card2, border: `1px solid ${T.border}`, borderRadius: 10, padding: '10px 14px' }}>
+        <div
+          className="rounded-[10px] px-[14px] py-[10px]"
+          style={{ background: 'var(--fin-card2)', border: `1px solid ${'var(--fin-border)'}` }}
+        >
           <div
             style={{
               fontSize: 9,
-              color: T.subtle,
+              color: 'var(--fin-subtle)',
               textTransform: 'uppercase',
               letterSpacing: '.07em',
               marginBottom: 4,
@@ -171,7 +157,7 @@ function CorrectionModal({
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: T.text,
+              color: 'var(--fin-text)',
               fontSize: 20,
               fontWeight: 700,
             }}
@@ -179,12 +165,15 @@ function CorrectionModal({
         </div>
 
         {/* Date + Notes */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <div style={{ background: T.card2, border: `1px solid ${T.border}`, borderRadius: 10, padding: '10px 12px' }}>
+        <div className="grid grid-cols-2 gap-2">
+          <div
+            className="rounded-[10px] px-3 py-[10px]"
+            style={{ background: 'var(--fin-card2)', border: `1px solid ${'var(--fin-border)'}` }}
+          >
             <div
               style={{
                 fontSize: 9,
-                color: T.subtle,
+                color: 'var(--fin-subtle)',
                 textTransform: 'uppercase',
                 letterSpacing: '.07em',
                 marginBottom: 4,
@@ -201,16 +190,19 @@ function CorrectionModal({
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                color: T.text,
+                color: 'var(--fin-text)',
                 fontSize: 13,
               }}
             />
           </div>
-          <div style={{ background: T.card2, border: `1px solid ${T.border}`, borderRadius: 10, padding: '10px 12px' }}>
+          <div
+            className="rounded-[10px] px-3 py-[10px]"
+            style={{ background: 'var(--fin-card2)', border: `1px solid ${'var(--fin-border)'}` }}
+          >
             <div
               style={{
                 fontSize: 9,
-                color: T.subtle,
+                color: 'var(--fin-subtle)',
                 textTransform: 'uppercase',
                 letterSpacing: '.07em',
                 marginBottom: 4,
@@ -227,7 +219,7 @@ function CorrectionModal({
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                color: T.text,
+                color: 'var(--fin-text)',
                 fontSize: 13,
               }}
             />
@@ -235,18 +227,14 @@ function CorrectionModal({
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="flex gap-2">
           <button
             onClick={onClose}
+            className="flex-1 rounded-lg border py-2.5 text-[13px] font-semibold"
             style={{
-              flex: 1,
-              padding: '10px 0',
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              background: T.card2,
-              border: `1px solid ${T.border}`,
-              color: T.muted,
+              background: 'var(--fin-card2)',
+              border: `1px solid ${'var(--fin-border)'}`,
+              color: 'var(--fin-muted)',
               cursor: 'pointer',
             }}
           >
@@ -255,15 +243,11 @@ function CorrectionModal({
           <button
             onClick={handleSave}
             disabled={isZero || saving}
+            className="flex-[2] rounded-lg border-none py-2.5 text-[13px] font-bold"
             style={{
-              flex: 2,
-              padding: '10px 0',
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 700,
-              background: isZero || saving ? T.card3 : correctionColor,
+              background: isZero || saving ? 'var(--fin-card3)' : correctionColor,
               border: 'none',
-              color: isZero || saving ? T.subtle : '#fff',
+              color: isZero || saving ? 'var(--fin-subtle)' : 'var(--fin-on-solid)',
               cursor: isZero || saving ? 'not-allowed' : 'pointer',
               transition: 'background .15s',
             }}
@@ -277,31 +261,29 @@ function CorrectionModal({
 }
 
 function TypeBadge({ type }: { type: string }) {
-  const meta = TYPE_META[type] ?? { label: type, color: T.muted };
+  const meta = TYPE_META[type] ?? { label: type, color: 'var(--fin-muted)' };
   return <Pill label={meta.label} color={meta.color} />;
 }
 
 function AccountHeader({ acc }: { acc: AccountItem }) {
-  const meta = TYPE_META[acc.type] ?? { color: T.muted };
+  const meta = TYPE_META[acc.type] ?? { color: 'var(--fin-muted)' };
   const isLiability = acc.type === 'loan' || acc.type === 'credit_card';
 
   return (
     <div
+      className="rounded-xl p-[18px]"
       style={{
-        background: `linear-gradient(135deg, ${meta.color}18, ${T.card})`,
+        background: `linear-gradient(135deg, ${meta.color}18, ${'var(--fin-card)'})`,
         border: `1px solid ${meta.color}33`,
-        borderRadius: 12,
-        padding: 18,
       }}
     >
-      <div style={{ fontSize: 13, color: T.muted, marginBottom: 4 }}>{acc.name}</div>
+      <div className="mb-1 text-[13px]" style={{ color: 'var(--fin-muted)' }}>
+        {acc.name}
+      </div>
       <div
+        className="mb-2 text-[30px] font-bold tracking-[-0.02em]"
         style={{
-          fontSize: 30,
-          fontWeight: 700,
-          letterSpacing: '-.02em',
-          marginBottom: 8,
-          color: isLiability ? T.red : T.text,
+          color: isLiability ? 'var(--fin-red)' : 'var(--fin-text)',
         }}
       >
         {acc.type === 'loan' ? '-' : ''}
@@ -311,7 +293,7 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
       {acc.type === 'credit_card' && acc.creditLimit != null && (
         <div>
           <Bar value={acc.balance} max={acc.creditLimit} color={meta.color} height={6} style={{ marginBottom: 6 }} />
-          <div style={{ fontSize: 11, color: T.muted }}>
+          <div style={{ fontSize: 11, color: 'var(--fin-muted)' }}>
             {fmt(acc.creditLimit - acc.balance, acc.currency)} available
             {' · '}Limit {fmt(acc.creditLimit, acc.currency)}
             {acc.statementDay != null ? ` · Statement day ${acc.statementDay}` : ''}
@@ -322,21 +304,21 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
       {acc.type === 'goal' && acc.targetAmount != null && (
         <div>
           <Bar value={acc.balance} max={acc.targetAmount} color={meta.color} height={6} style={{ marginBottom: 6 }} />
-          <div style={{ fontSize: 11, color: T.muted }}>
+          <div style={{ fontSize: 11, color: 'var(--fin-muted)' }}>
             {fmt(acc.targetAmount - acc.balance, acc.currency)} to go · Target {fmt(acc.targetAmount, acc.currency)}
           </div>
         </div>
       )}
 
       {acc.type === 'investment' && acc.deposited != null && (
-        <div style={{ display: 'flex', gap: 20 }}>
+        <div className="flex gap-5">
           <div>
-            <div style={{ fontSize: 10, color: T.subtle }}>Deposited</div>
-            <div style={{ color: T.muted }}>{fmt(acc.deposited, acc.currency)}</div>
+            <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>Deposited</div>
+            <div style={{ color: 'var(--fin-muted)' }}>{fmt(acc.deposited, acc.currency)}</div>
           </div>
           <div>
-            <div style={{ fontSize: 10, color: T.subtle }}>Unrealised P&L</div>
-            <div style={{ color: acc.balance >= acc.deposited ? T.green : T.red }}>
+            <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>Unrealised P&L</div>
+            <div style={{ color: acc.balance >= acc.deposited ? 'var(--fin-green)' : 'var(--fin-red)' }}>
               {acc.balance >= acc.deposited ? '+' : '-'}
               {fmt(Math.abs(acc.balance - acc.deposited), acc.currency)}
               {acc.deposited > 0 &&
@@ -347,45 +329,53 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
       )}
 
       {acc.type === 'loan' && acc.principal != null && (
-        <div style={{ display: 'flex', gap: 20 }}>
+        <div className="flex gap-5">
           {acc.interestRate != null && (
             <div>
-              <div style={{ fontSize: 10, color: T.subtle }}>Rate</div>
-              <div style={{ color: T.muted }}>{acc.interestRate}%</div>
+              <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>Rate</div>
+              <div style={{ color: 'var(--fin-muted)' }}>{acc.interestRate}%</div>
             </div>
           )}
           {acc.principal > 0 && (
             <div>
-              <div style={{ fontSize: 10, color: T.subtle }}>Paid off</div>
-              <div style={{ color: T.green }}>{Math.round(((acc.principal - acc.balance) / acc.principal) * 100)}%</div>
+              <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>Paid off</div>
+              <div style={{ color: 'var(--fin-green)' }}>
+                {Math.round(((acc.principal - acc.balance) / acc.principal) * 100)}%
+              </div>
             </div>
           )}
         </div>
       )}
 
       {acc.type === 'borrowed_lent' && (
-        <div style={{ display: 'flex', gap: 20 }}>
+        <div className="flex gap-5">
           {acc.direction && (
             <div>
-              <div style={{ fontSize: 10, color: T.subtle }}>Direction</div>
-              <div style={{ color: acc.direction === 'gave' ? T.green : T.amber, fontWeight: 600 }}>
+              <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>Direction</div>
+              <div
+                style={{ color: acc.direction === 'gave' ? 'var(--fin-green)' : 'var(--fin-amber)', fontWeight: 600 }}
+              >
                 {acc.direction === 'gave' ? 'Lent' : 'Borrowed'}
               </div>
             </div>
           )}
           {acc.counterpartyName && (
             <div>
-              <div style={{ fontSize: 10, color: T.subtle }}>With</div>
-              <div style={{ color: T.muted }}>{acc.counterpartyName}</div>
+              <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>With</div>
+              <div style={{ color: 'var(--fin-muted)' }}>{acc.counterpartyName}</div>
             </div>
           )}
           {acc.dueDate && (
             <div>
-              <div style={{ fontSize: 10, color: T.subtle }}>Due</div>
-              <div style={{ color: T.amber }}>{acc.dueDate}</div>
+              <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>Due</div>
+              <div style={{ color: 'var(--fin-amber)' }}>{acc.dueDate}</div>
             </div>
           )}
-          {acc.settled && <div style={{ color: T.green, alignSelf: 'flex-end', fontSize: 12 }}>✓ Settled</div>}
+          {acc.settled && (
+            <div className="self-end text-xs" style={{ color: 'var(--fin-green)' }}>
+              ✓ Settled
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -416,11 +406,12 @@ export default function AccountDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="flex flex-col gap-[14px]">
         {[44, 120, 300].map((h, i) => (
           <div
             key={i}
-            style={{ height: h, borderRadius: 10, background: T.card, border: `1px solid ${T.border}`, opacity: 0.6 }}
+            className="rounded-[10px] border"
+            style={{ height: h, background: 'var(--fin-card)', borderColor: 'var(--fin-border)', opacity: 0.6 }}
           />
         ))}
       </div>
@@ -432,19 +423,16 @@ export default function AccountDetailPage() {
   const { account: acc, transactions } = data;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="flex flex-col gap-[14px]">
       {/* Navigation row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="flex items-center gap-2.5">
         <button
           onClick={() => router.push('/finances/accounts')}
+          className="rounded-md border bg-transparent px-2.5 py-[5px] text-xs"
           style={{
-            background: 'transparent',
-            border: `1px solid ${T.border}`,
-            color: T.muted,
-            padding: '5px 10px',
-            borderRadius: 6,
+            border: `1px solid ${'var(--fin-border)'}`,
+            color: 'var(--fin-muted)',
             cursor: 'pointer',
-            fontSize: 12,
           }}
         >
           ← Back
@@ -457,28 +445,21 @@ export default function AccountDetailPage() {
       {acc.type === 'loan' && (
         <button
           onClick={() => router.push(`/finances/accounts/${acc.id}/amortization`)}
+          className="flex w-full items-center justify-between rounded-lg px-[14px] py-[10px] text-left text-[13px]"
           style={{
-            background: T.card2,
-            border: `1px solid ${T.border}`,
-            borderRadius: 8,
-            padding: '10px 14px',
-            color: T.text,
-            fontSize: 13,
+            background: 'var(--fin-card2)',
+            border: `1px solid ${'var(--fin-border)'}`,
+            color: 'var(--fin-text)',
             cursor: 'pointer',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            width: '100%',
-            textAlign: 'left',
           }}
         >
           <span>View amortization schedule</span>
-          <span style={{ color: T.accent }}>→</span>
+          <span style={{ color: 'var(--fin-accent)' }}>→</span>
         </button>
       )}
 
       {/* Transaction ledger */}
-      <Card style={{ padding: 14 }}>
+      <Card className="p-[14px]">
         <SectionLabel style={{ marginBottom: 10 }}>Ledger</SectionLabel>
 
         <TransactionList transactions={transactions} currency={acc.currency} />
@@ -486,15 +467,12 @@ export default function AccountDetailPage() {
 
       <button
         onClick={() => setCorrectionOpen(true)}
+        className="w-full rounded-lg px-[14px] py-2 text-xs"
         style={{
-          background: T.card2,
-          border: `1px solid ${T.border}`,
-          borderRadius: 8,
-          padding: '8px 14px',
-          fontSize: 12,
-          color: T.muted,
+          background: 'var(--fin-card2)',
+          border: `1px solid ${'var(--fin-border)'}`,
+          color: 'var(--fin-muted)',
           cursor: 'pointer',
-          width: '100%',
         }}
       >
         + Add Correction

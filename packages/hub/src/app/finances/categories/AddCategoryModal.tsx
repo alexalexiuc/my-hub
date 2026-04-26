@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { T } from '../ui';
 import { CategoryIcons } from '@my-hub/shared/constants';
 import type { CategoryIcon } from '@my-hub/shared/constants';
 
@@ -17,26 +16,15 @@ type AddCategoryModalProps = {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <label style={{ fontSize: 10, color: T.subtle, textTransform: 'uppercase', letterSpacing: '.08em' }}>
-        {label}
-      </label>
+    <div className="flex flex-col gap-1">
+      <label className="text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">{label}</label>
       {children}
     </div>
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  background: T.card2,
-  border: `1px solid ${T.border}`,
-  borderRadius: 8,
-  padding: '7px 10px',
-  fontSize: 13,
-  color: T.text,
-  outline: 'none',
-  width: '100%',
-  boxSizing: 'border-box',
-};
+const inputClassName =
+  'w-full rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-2.5 py-[7px] text-[13px] text-[var(--fin-text)] outline-none';
 
 const PRESET_COLORS = [
   '#6ee7b7',
@@ -107,36 +95,21 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
   return (
     <div
       onClick={onClose}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
       style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,.65)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
+        background: 'var(--fin-overlay)',
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{
-          background: T.card,
-          border: `1px solid ${T.border}`,
-          borderRadius: 14,
-          padding: 20,
-          width: '100%',
-          maxWidth: 400,
-          maxHeight: '90vh',
-          overflowY: 'auto',
-        }}
+        className="max-h-[90vh] w-full max-w-[400px] overflow-y-auto rounded-[14px] border border-[var(--fin-border)] bg-[var(--fin-card)] p-5"
       >
-        <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 16 }}>New Category</div>
+        <div className="mb-4 text-base font-bold text-[var(--fin-text)]">New Category</div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <Field label="Name">
             <input
-              style={inputStyle}
+              className={inputClassName}
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. Groceries"
@@ -146,21 +119,17 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
           </Field>
 
           <Field label="Icon">
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <div className="flex flex-wrap gap-1.5">
               {ICON_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => setIcon(icon === opt.value ? null : opt.value)}
                   title={opt.label}
+                  className="min-w-9 cursor-pointer rounded-md px-[7px] py-1 text-sm"
                   style={{
-                    background: icon === opt.value ? T.accentD : T.card2,
-                    border: `1px solid ${icon === opt.value ? T.accent + '44' : T.border}`,
-                    borderRadius: 6,
-                    padding: '4px 7px',
-                    fontSize: 14,
-                    cursor: 'pointer',
-                    minWidth: 36,
+                    background: icon === opt.value ? 'var(--fin-accent-d)' : 'var(--fin-card2)',
+                    border: `1px solid ${icon === opt.value ? 'var(--fin-accent)' + '44' : 'var(--fin-border)'}`,
                   }}
                 >
                   {opt.emoji}
@@ -170,20 +139,16 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
           </Field>
 
           <Field label="Color">
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="flex flex-wrap items-center gap-2">
               {PRESET_COLORS.map(c => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
+                  className="h-6 w-6 shrink-0 cursor-pointer rounded-full"
                   style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
                     background: c,
-                    border: color === c ? `2px solid ${T.text}` : `2px solid transparent`,
-                    cursor: 'pointer',
-                    flexShrink: 0,
+                    border: color === c ? '2px solid var(--fin-text)' : '2px solid transparent',
                   }}
                 />
               ))}
@@ -191,14 +156,7 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
                 type="color"
                 value={color}
                 onChange={e => setColor(e.target.value)}
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: 'none',
-                }}
+                className="h-6 w-6 cursor-pointer rounded-full border-none bg-transparent"
                 title="Custom color"
               />
             </div>
@@ -206,7 +164,7 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
 
           <Field label="Monthly Target (optional)">
             <input
-              style={inputStyle}
+              className={inputClassName}
               type="number"
               step="0.01"
               min="0"
@@ -217,7 +175,7 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
           </Field>
 
           <Field label="Group (optional)">
-            <select style={inputStyle} value={groupId} onChange={e => setGroupId(e.target.value)}>
+            <select className={inputClassName} value={groupId} onChange={e => setGroupId(e.target.value)}>
               <option value="">— None —</option>
               {groups.map(g => (
                 <option key={g.id} value={g.id}>
@@ -227,36 +185,22 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
             </select>
           </Field>
 
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
+          <div className="mt-1 flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: `1px solid ${T.border}`,
-                borderRadius: 8,
-                padding: '7px 16px',
-                fontSize: 13,
-                color: T.muted,
-                cursor: 'pointer',
-              }}
+              className="rounded-lg border border-[var(--fin-border)] bg-transparent px-4 py-[7px] text-[13px] text-[var(--fin-muted)]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving || !name.trim() || !icon}
-              style={{
-                background: T.accent,
-                border: 'none',
-                borderRadius: 8,
-                padding: '7px 16px',
-                fontSize: 13,
-                fontWeight: 600,
-                color: '#0e0e12',
-                cursor: saving || !name.trim() || !icon ? 'not-allowed' : 'pointer',
-                opacity: saving || !name.trim() || !icon ? 0.5 : 1,
-              }}
+              className={`rounded-lg border-none px-4 py-[7px] text-[13px] font-semibold ${
+                saving || !name.trim() || !icon
+                  ? 'cursor-not-allowed bg-[var(--fin-card2)] text-[var(--fin-muted)] opacity-50'
+                  : 'bg-[var(--fin-accent)] text-[var(--fin-on-accent)]'
+              }`}
             >
               {saving ? 'Saving…' : 'Create'}
             </button>

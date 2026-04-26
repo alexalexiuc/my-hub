@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { T, fmt, Card, SectionLabel, Bar, Divider, CategoryIcon } from '../ui';
+import { fmt, Card, SectionLabel, Bar, Divider, CategoryIcon } from '../ui';
 import { AddCategoryModal } from './AddCategoryModal';
 import { AddGroupModal } from './AddGroupModal';
 
@@ -45,7 +45,7 @@ function lastNMonths(n: number): { label: string; value: string }[] {
 }
 
 function groupColor(group: GroupRow): string {
-  return group.categories.find(c => c.color)?.color ?? T.muted;
+  return group.categories.find(c => c.color)?.color ?? 'var(--fin-muted)';
 }
 
 function CatRow({ cat, currency }: { cat: CategoryRow; currency: string }) {
@@ -53,27 +53,45 @@ function CatRow({ cat, currency }: { cat: CategoryRow; currency: string }) {
     cat.monthlyTarget && cat.monthlyTarget > 0
       ? Math.min(100, Math.round((cat.spent / cat.monthlyTarget) * 100))
       : null;
-  const barColor = pct !== null ? (pct >= 100 ? T.red : pct >= 80 ? T.amber : (cat.color ?? T.green)) : T.muted;
+  const barColor =
+    pct !== null
+      ? pct >= 100
+        ? 'var(--fin-red)'
+        : pct >= 80
+          ? 'var(--fin-amber)'
+          : (cat.color ?? 'var(--fin-green)')
+      : 'var(--fin-muted)';
 
   return (
-    <div style={{ padding: '10px 14px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: pct !== null ? 8 : 0 }}>
+    <div className="px-[14px] py-[10px]">
+      <div className="flex items-center gap-2.5" style={{ marginBottom: pct !== null ? 8 : 0 }}>
         <CategoryIcon color={cat.color} icon={cat.icon} size="lg" fallback={cat.name[0]?.toUpperCase() ?? '?'} />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{cat.name}</div>
+        <div className="flex-1">
+          <div className="text-[13px] font-medium" style={{ color: 'var(--fin-text)' }}>
+            {cat.name}
+          </div>
           {cat.monthlyTarget && (
-            <div style={{ fontSize: 10, color: T.subtle }}>Target {fmt(cat.monthlyTarget, currency)}/mo</div>
+            <div className="text-[10px]" style={{ color: 'var(--fin-subtle)' }}>
+              Target {fmt(cat.monthlyTarget, currency)}/mo
+            </div>
           )}
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: pct !== null && pct >= 100 ? T.red : T.text }}>
+        <div className="text-right">
+          <div
+            className="text-sm font-semibold"
+            style={{ color: pct !== null && pct >= 100 ? 'var(--fin-red)' : 'var(--fin-text)' }}
+          >
             {fmt(cat.spent, currency)}
           </div>
-          {pct !== null && <div style={{ fontSize: 10, color: barColor }}>{pct}%</div>}
+          {pct !== null && (
+            <div className="text-[10px]" style={{ color: barColor }}>
+              {pct}%
+            </div>
+          )}
         </div>
       </div>
       {pct !== null && cat.monthlyTarget && (
-        <Bar value={cat.spent} max={cat.monthlyTarget} color={cat.color ?? T.green} height={4} />
+        <Bar value={cat.spent} max={cat.monthlyTarget} color={cat.color ?? 'var(--fin-green)'} height={4} />
       )}
     </div>
   );
@@ -95,32 +113,23 @@ function GroupSection({
 
   return (
     <div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '6px 4px',
-          marginBottom: 6,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="mb-1.5 flex items-center justify-between px-1 py-[6px]" style={{}}>
+        <div className="flex items-center gap-2">
           <div style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{group.name}</span>
+          <span className="text-[13px] font-semibold" style={{ color: 'var(--fin-text)' }}>
+            {group.name}
+          </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="flex items-center gap-2">
           {groupTarget > 0 && (
-            <span style={{ fontSize: 11, color: T.subtle }}>
+            <span className="text-[11px]" style={{ color: 'var(--fin-subtle)' }}>
               {fmt(groupSpent, currency)} / {fmt(groupTarget, currency)}
             </span>
           )}
           {groupPct !== null && (
             <span
+              className="rounded-[20px] px-[7px] py-[2px] text-[10px] font-semibold"
               style={{
-                fontSize: 10,
-                fontWeight: 600,
-                padding: '2px 7px',
-                borderRadius: 20,
                 background: color + '22',
                 color,
               }}
@@ -130,21 +139,18 @@ function GroupSection({
           )}
           <button
             onClick={() => onAddCategory(group.id)}
+            className="cursor-pointer rounded-md border px-2 py-[2px] text-[10px]"
             style={{
               background: 'transparent',
-              border: `1px dashed ${T.border}`,
-              color: T.subtle,
-              borderRadius: 6,
-              padding: '2px 8px',
-              fontSize: 10,
-              cursor: 'pointer',
+              border: `1px dashed ${'var(--fin-border)'}`,
+              color: 'var(--fin-subtle)',
             }}
           >
             + Add
           </button>
         </div>
       </div>
-      <Card style={{ padding: '6px 0' }}>
+      <Card className="py-[6px]">
         {group.categories.map((cat, i) => (
           <div key={cat.id}>
             {i > 0 && <Divider />}
@@ -152,7 +158,7 @@ function GroupSection({
           </div>
         ))}
         {group.categories.length === 0 && (
-          <div style={{ padding: '14px', fontSize: 12, color: T.subtle, textAlign: 'center' }}>
+          <div className="p-[14px] text-center text-xs" style={{ color: 'var(--fin-subtle)' }}>
             No categories in this group
           </div>
         )}
@@ -198,36 +204,29 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', color: T.text }}>Categories</div>
-        <div style={{ position: 'relative' }}>
+    <div className="flex flex-col gap-[14px]">
+      <div className="flex items-center justify-between">
+        <div className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: 'var(--fin-text)' }}>
+          Categories
+        </div>
+        <div className="relative">
           <button
             onClick={() => setShowNewMenu(v => !v)}
+            className="cursor-pointer rounded-[20px] border px-3 py-1.5 text-[11px]"
             style={{
-              padding: '6px 12px',
-              borderRadius: 20,
-              fontSize: 11,
-              background: T.card2,
-              border: `1px solid ${T.border}`,
-              color: T.muted,
-              cursor: 'pointer',
+              background: 'var(--fin-card2)',
+              border: `1px solid ${'var(--fin-border)'}`,
+              color: 'var(--fin-muted)',
             }}
           >
             + New
           </button>
           {showNewMenu && (
             <div
+              className="absolute right-0 top-[calc(100%+6px)] z-[100] min-w-[150px] rounded-[10px] p-1"
               style={{
-                position: 'absolute',
-                right: 0,
-                top: 'calc(100% + 6px)',
-                background: T.card,
-                border: `1px solid ${T.border}`,
-                borderRadius: 10,
-                padding: 4,
-                zIndex: 100,
-                minWidth: 150,
+                background: 'var(--fin-card)',
+                border: `1px solid ${'var(--fin-border)'}`,
               }}
             >
               {[
@@ -243,19 +242,15 @@ export default function CategoriesPage() {
                 <button
                   key={item.label}
                   onClick={item.action}
+                  className="block w-full cursor-pointer rounded-[7px] border-none px-3 py-2 text-left text-xs"
                   style={{
                     display: 'block',
                     width: '100%',
                     background: 'transparent',
                     border: 'none',
-                    borderRadius: 7,
-                    padding: '8px 12px',
-                    fontSize: 12,
-                    color: T.text,
-                    textAlign: 'left',
-                    cursor: 'pointer',
+                    color: 'var(--fin-text)',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = T.card2)}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--fin-card2)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   {item.label}
@@ -267,21 +262,18 @@ export default function CategoriesPage() {
       </div>
 
       {/* Month filter */}
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div className="flex gap-1.5">
         {months.map(m => {
           const active = m.value === selectedMonth;
           return (
             <button
               key={m.value}
               onClick={() => setSelectedMonth(m.value)}
+              className="cursor-pointer rounded-[20px] px-3 py-[5px] text-[11px]"
               style={{
-                padding: '5px 12px',
-                borderRadius: 20,
-                fontSize: 11,
-                cursor: 'pointer',
-                background: active ? T.accentD : T.card2,
-                border: active ? `1px solid ${T.accent}44` : `1px solid ${T.border}`,
-                color: active ? T.accent : T.muted,
+                background: active ? 'var(--fin-accent-d)' : 'var(--fin-card2)',
+                border: active ? `1px solid ${'var(--fin-accent)'}44` : `1px solid ${'var(--fin-border)'}`,
+                color: active ? 'var(--fin-accent)' : 'var(--fin-muted)',
                 fontWeight: active ? 600 : 400,
               }}
             >
@@ -292,11 +284,12 @@ export default function CategoriesPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="flex flex-col gap-[14px]">
           {[80, 140, 120].map((h, i) => (
             <div
               key={i}
-              style={{ height: h, borderRadius: 10, background: T.card, border: `1px solid ${T.border}`, opacity: 0.6 }}
+              className="rounded-[10px] border"
+              style={{ height: h, background: 'var(--fin-card)', borderColor: 'var(--fin-border)', opacity: 0.6 }}
             />
           ))}
         </div>
@@ -304,10 +297,12 @@ export default function CategoriesPage() {
         data && (
           <>
             {/* Rainbow spend bar */}
-            <Card style={{ padding: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 13, color: T.muted }}>Total spent</span>
-                <span style={{ fontSize: 16, fontWeight: 700, color: T.text }}>
+            <Card className="p-[14px]">
+              <div className="mb-2 flex justify-between">
+                <span className="text-[13px]" style={{ color: 'var(--fin-muted)' }}>
+                  Total spent
+                </span>
+                <span className="text-base font-bold" style={{ color: 'var(--fin-text)' }}>
                   {fmt(data.totalSpent, data.currency)}
                 </span>
               </div>
@@ -322,7 +317,7 @@ export default function CategoriesPage() {
                           <div
                             key={cat.id}
                             title={`${cat.name}: ${fmt(cat.spent, data.currency)}`}
-                            style={{ width: `${pct}%`, background: cat.color ?? T.muted, minWidth: 3 }}
+                            style={{ width: `${pct}%`, background: cat.color ?? 'var(--fin-muted)', minWidth: 3 }}
                           />
                         ) : null;
                       })}
@@ -332,15 +327,22 @@ export default function CategoriesPage() {
                       .filter(c => c.spent > 0)
                       .map(cat => (
                         <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <div style={{ width: 7, height: 7, borderRadius: 2, background: cat.color ?? T.muted }} />
-                          <span style={{ fontSize: 10, color: T.muted }}>{cat.name}</span>
+                          <div
+                            style={{
+                              width: 7,
+                              height: 7,
+                              borderRadius: 2,
+                              background: cat.color ?? 'var(--fin-muted)',
+                            }}
+                          />
+                          <span style={{ fontSize: 10, color: 'var(--fin-muted)' }}>{cat.name}</span>
                         </div>
                       ))}
                   </div>
                 </>
               )}
               {data.totalSpent === 0 && (
-                <div style={{ fontSize: 12, color: T.subtle, textAlign: 'center', padding: '8px 0' }}>
+                <div style={{ fontSize: 12, color: 'var(--fin-subtle)', textAlign: 'center', padding: '8px 0' }}>
                   No spending this month
                 </div>
               )}
@@ -355,7 +357,7 @@ export default function CategoriesPage() {
             {data.ungrouped.length > 0 && (
               <div>
                 <SectionLabel>Ungrouped</SectionLabel>
-                <Card style={{ padding: '6px 0' }}>
+                <Card className="py-[6px]">
                   {data.ungrouped.map((cat, i) => (
                     <div key={cat.id}>
                       {i > 0 && <Divider />}
@@ -367,7 +369,7 @@ export default function CategoriesPage() {
             )}
 
             {data.groups.length === 0 && data.ungrouped.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '48px 0', color: T.subtle, fontSize: 13 }}>
+              <div className="py-12 text-center text-[13px]" style={{ color: 'var(--fin-subtle)' }}>
                 No categories yet. Add your first category to start tracking.
               </div>
             )}

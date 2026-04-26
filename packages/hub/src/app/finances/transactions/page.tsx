@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { T, Card } from '../ui';
+import { Card } from '../ui';
 import { AddTransactionModal } from './AddTransactionModal';
 import { TransactionList } from './TransactionList';
 
@@ -75,20 +75,18 @@ export default function TransactionsPage() {
   const currency = data?.currency ?? 'EUR';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', color: T.text }}>Transactions</div>
+    <div className="flex flex-col gap-[14px]">
+      <div className="flex items-center justify-between">
+        <div className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: 'var(--fin-text)' }}>
+          Transactions
+        </div>
         <button
           onClick={() => setShowModal(true)}
+          className="cursor-pointer rounded-[20px] border px-3 py-1.5 text-[11px] font-semibold"
           style={{
-            padding: '6px 12px',
-            borderRadius: 20,
-            fontSize: 11,
-            background: T.accentD,
-            border: `1px solid ${T.accent}44`,
-            color: T.accent,
-            fontWeight: 600,
-            cursor: 'pointer',
+            background: 'var(--fin-accent-d)',
+            border: `1px solid ${'var(--fin-accent)'}44`,
+            color: 'var(--fin-accent)',
           }}
         >
           + Add
@@ -96,21 +94,18 @@ export default function TransactionsPage() {
       </div>
 
       {/* Type filter */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      <div className="flex flex-wrap gap-1.5">
         {FILTERS.map(({ key, label }) => {
           const active = filter === key;
           return (
             <button
               key={key}
               onClick={() => setFilter(key)}
+              className="cursor-pointer rounded-[20px] px-3 py-[5px] text-[11px]"
               style={{
-                padding: '5px 12px',
-                borderRadius: 20,
-                fontSize: 11,
-                cursor: 'pointer',
-                background: active ? T.accentD : T.card2,
-                border: active ? `1px solid ${T.accent}44` : `1px solid ${T.border}`,
-                color: active ? T.accent : T.muted,
+                background: active ? 'var(--fin-accent-d)' : 'var(--fin-card2)',
+                border: active ? `1px solid ${'var(--fin-accent)'}44` : `1px solid ${'var(--fin-border)'}`,
+                color: active ? 'var(--fin-accent)' : 'var(--fin-muted)',
                 fontWeight: active ? 600 : 400,
               }}
             >
@@ -121,14 +116,14 @@ export default function TransactionsPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <div className="flex flex-col gap-0">
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
+              className="h-[58px]"
               style={{
-                height: 58,
-                borderBottom: `1px solid ${T.border}22`,
-                background: i % 2 === 0 ? T.card : 'transparent',
+                borderBottom: `1px solid ${'var(--fin-border)'}22`,
+                background: i % 2 === 0 ? 'var(--fin-card)' : 'transparent',
                 opacity: 0.5,
               }}
             />
@@ -144,15 +139,12 @@ export default function TransactionsPage() {
             <button
               onClick={() => load(filter, false)}
               disabled={loadingMore}
+              className="w-full rounded-lg p-2.5 text-xs"
               style={{
-                background: T.card2,
-                border: `1px solid ${T.border}`,
-                borderRadius: 8,
-                padding: '10px',
-                fontSize: 12,
-                color: T.muted,
+                background: 'var(--fin-card2)',
+                border: `1px solid ${'var(--fin-border)'}`,
+                color: 'var(--fin-muted)',
                 cursor: loadingMore ? 'default' : 'pointer',
-                width: '100%',
               }}
             >
               {loadingMore ? 'Loading…' : 'Load more'}

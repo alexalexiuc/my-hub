@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { T, Pill } from '../ui';
+import { Pill } from '../ui';
 import { categoryIconEmoji } from '../categoryIcons';
 
 interface AccountOption {
@@ -27,9 +27,9 @@ interface FormData {
 type TxType = 'expense' | 'income' | 'transfer';
 
 const TYPE_COLORS: Record<TxType, string> = {
-  expense: T.red,
-  income: T.green,
-  transfer: T.blue,
+  expense: 'var(--fin-red)',
+  income: 'var(--fin-green)',
+  transfer: 'var(--fin-blue)',
 };
 
 function today() {
@@ -40,19 +40,11 @@ function FieldCard({ label, children, onClick }: { label: string; children: Reac
   return (
     <div
       onClick={onClick}
-      style={{
-        background: T.card,
-        border: `1px solid ${T.border}`,
-        borderRadius: 10,
-        padding: '10px 12px',
-        cursor: onClick ? 'pointer' : 'default',
-      }}
+      className={`rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)] px-3 py-2.5 ${
+        onClick ? 'cursor-pointer' : 'cursor-default'
+      }`}
     >
-      <div
-        style={{ fontSize: 9, color: T.subtle, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 3 }}
-      >
-        {label}
-      </div>
+      <div className="mb-[3px] text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">{label}</div>
       {children}
     </div>
   );
@@ -71,31 +63,16 @@ function CategoryDropdown({
   const selected = categories.find(c => c.id === selectedId);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="relative">
       <FieldCard label="Category *" onClick={() => setOpen(o => !o)}>
-        <div style={{ fontSize: 13, color: selected ? T.text : T.red, fontWeight: 500 }}>
+        <div className={`text-[13px] font-medium ${selected ? 'text-[var(--fin-text)]' : 'text-[var(--fin-red)]'}`}>
           {selected ? `${selected.icon ? categoryIconEmoji(selected.icon) + ' ' : ''}${selected.name}` : '⬡ Required…'}
         </div>
       </FieldCard>
       {open && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            zIndex: 20,
-            marginTop: 4,
-            background: T.card2,
-            border: `1px solid ${T.border}`,
-            borderRadius: 8,
-            overflow: 'hidden',
-            maxHeight: 220,
-            overflowY: 'auto',
-          }}
-        >
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-[220px] overflow-hidden overflow-y-auto rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)]">
           {categories.length === 0 && (
-            <div style={{ padding: '10px 12px', fontSize: 12, color: T.subtle }}>
+            <div className="px-3 py-2.5 text-xs text-[var(--fin-subtle)]">
               No categories yet — add one in the Categories tab.
             </div>
           )}
@@ -106,19 +83,15 @@ function CategoryDropdown({
                 onSelect(c.id);
                 setOpen(false);
               }}
+              className="block w-full px-3 py-[9px] text-left text-[13px]"
               style={{
-                display: 'block',
-                width: '100%',
-                textAlign: 'left',
-                padding: '9px 12px',
-                background: c.id === selectedId ? T.accentD : 'transparent',
+                background: c.id === selectedId ? 'var(--fin-accent-d)' : 'transparent',
                 border: 'none',
-                color: c.id === selectedId ? T.accent : T.text,
-                fontSize: 13,
+                color: c.id === selectedId ? 'var(--fin-accent)' : 'var(--fin-text)',
                 cursor: 'pointer',
               }}
             >
-              <span style={{ marginRight: 6 }}>{categoryIconEmoji(c.icon)}</span>
+              <span className="mr-1.5">{categoryIconEmoji(c.icon)}</span>
               {c.name}
             </button>
           ))}
@@ -141,27 +114,14 @@ function AccountDropdown({
   const selected = accounts.find(a => a.id === selectedId);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="relative">
       <FieldCard label="Account" onClick={() => setOpen(o => !o)}>
-        <div style={{ fontSize: 13, color: selected ? T.text : T.subtle, fontWeight: 500 }}>
+        <div className={`text-[13px] font-medium ${selected ? 'text-[var(--fin-text)]' : 'text-[var(--fin-subtle)]'}`}>
           🏦 {selected?.name ?? 'Choose…'}
         </div>
       </FieldCard>
       {open && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            zIndex: 10,
-            marginTop: 4,
-            background: T.card2,
-            border: `1px solid ${T.border}`,
-            borderRadius: 8,
-            overflow: 'hidden',
-          }}
-        >
+        <div className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)]">
           {accounts.map(a => (
             <button
               key={a.id}
@@ -169,20 +129,16 @@ function AccountDropdown({
                 onSelect(a.id);
                 setOpen(false);
               }}
+              className="block w-full px-3 py-[9px] text-left text-[13px]"
               style={{
-                display: 'block',
-                width: '100%',
-                textAlign: 'left',
-                padding: '9px 12px',
-                background: a.id === selectedId ? T.accentD : 'transparent',
+                background: a.id === selectedId ? 'var(--fin-accent-d)' : 'transparent',
                 border: 'none',
-                color: a.id === selectedId ? T.accent : T.text,
-                fontSize: 13,
+                color: a.id === selectedId ? 'var(--fin-accent)' : 'var(--fin-text)',
                 cursor: 'pointer',
               }}
             >
               {a.name}
-              <span style={{ fontSize: 10, color: T.subtle, marginLeft: 6 }}>{a.currency}</span>
+              <span className="ml-1.5 text-[10px] text-[var(--fin-subtle)]">{a.currency}</span>
             </button>
           ))}
         </div>
@@ -265,45 +221,27 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
   return (
     <div
       onClick={onClose}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
       style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,.65)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
+        background: 'var(--fin-overlay)',
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{
-          background: T.card,
-          border: `1px solid ${T.border}`,
-          borderRadius: 14,
-          padding: 20,
-          width: '100%',
-          maxWidth: 480,
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-        }}
+        className="flex max-h-[90vh] w-full max-w-[480px] flex-col gap-2.5 overflow-y-auto rounded-[14px] border border-[var(--fin-border)] bg-[var(--fin-card)] p-5"
       >
-        <div style={{ fontSize: 16, fontWeight: 700, color: T.text }}>New Transaction</div>
+        <div className="text-base font-bold text-[var(--fin-text)]">New Transaction</div>
 
         {!formData ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="flex flex-col gap-2.5">
             {[44, 52, 80, 60, 60].map((h, i) => (
               <div
                 key={i}
+                className="rounded-[10px] border"
                 style={{
                   height: h,
-                  borderRadius: 10,
-                  background: T.card2,
-                  border: `1px solid ${T.border}`,
+                  background: 'var(--fin-card2)',
+                  borderColor: 'var(--fin-border)',
                   opacity: 0.6,
                 }}
               />
@@ -312,30 +250,17 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
         ) : (
           <>
             {/* Type toggle */}
-            <div
-              style={{
-                display: 'flex',
-                background: T.card2,
-                padding: 3,
-                borderRadius: 9,
-                border: `1px solid ${T.border}`,
-              }}
-            >
+            <div className="flex rounded-[9px] border border-[var(--fin-border)] bg-[var(--fin-card2)] p-[3px]">
               {(['expense', 'income', 'transfer'] as TxType[]).map(t => (
                 <button
                   key={t}
                   onClick={() => setTxType(t)}
+                  className="flex-1 rounded-[7px] border-none py-[7px] text-xs capitalize"
                   style={{
-                    flex: 1,
-                    padding: '7px 0',
-                    borderRadius: 7,
-                    border: 'none',
                     background: txType === t ? TYPE_COLORS[t] + '22' : 'transparent',
-                    color: txType === t ? TYPE_COLORS[t] : T.muted,
-                    fontSize: 12,
+                    color: txType === t ? TYPE_COLORS[t] : 'var(--fin-muted)',
                     fontWeight: txType === t ? 600 : 400,
                     cursor: 'pointer',
-                    textTransform: 'capitalize',
                     outline: txType === t ? `1px solid ${TYPE_COLORS[t]}44` : 'none',
                   }}
                 >
@@ -345,61 +270,31 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
             </div>
 
             {/* Payee */}
-            <div
-              style={{ background: T.card2, border: `1px solid ${T.border}`, borderRadius: 10, padding: '10px 14px' }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  color: T.subtle,
-                  textTransform: 'uppercase',
-                  letterSpacing: '.07em',
-                  marginBottom: 4,
-                }}
-              >
-                Payee
-              </div>
+            <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-[10px]">
+              <div className="mb-1 text-[10px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Payee</div>
               <input
                 autoFocus
                 placeholder="e.g. Kaufland, Netflix…"
                 value={payee}
                 onChange={e => setPayee(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: T.text,
-                  fontSize: 15,
-                }}
+                className="w-full border-none bg-transparent text-[15px] text-[var(--fin-text)] outline-none"
               />
             </div>
 
             {/* Autofill hint */}
             {hasSuggestion && (
-              <div
-                style={{
-                  background: T.card2,
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 8,
-                  padding: '8px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  fontSize: 12,
-                }}
-              >
-                <span style={{ color: T.subtle }}>↩</span>
-                <span style={{ color: T.muted }}>Filled from past entries:</span>
+              <div className="flex items-center gap-2 rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2 text-xs">
+                <span className="text-[var(--fin-subtle)]">↩</span>
+                <span className="text-[var(--fin-muted)]">Filled from past entries:</span>
                 {selectedCat && (
                   <Pill
                     icon={categoryIconEmoji(selectedCat.icon)}
                     label={selectedCat.name}
-                    color={selectedCat.color ?? T.accent}
+                    color={selectedCat.color ?? 'var(--fin-accent)'}
                   />
                 )}
-                <span style={{ color: T.subtle }}>·</span>
-                <span style={{ color: T.muted, fontSize: 11 }}>
+                <span className="text-[var(--fin-subtle)]">·</span>
+                <span className="text-[11px] text-[var(--fin-muted)]">
                   {formData.accounts.find(a => a.id === selAccId)?.name}
                 </span>
                 <button
@@ -407,14 +302,7 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
                     setSelCatId(null);
                     setAutofillDismissed(true);
                   }}
-                  style={{
-                    marginLeft: 'auto',
-                    background: 'transparent',
-                    border: 'none',
-                    color: T.subtle,
-                    fontSize: 12,
-                    cursor: 'pointer',
-                  }}
+                  className="ml-auto border-none bg-transparent text-xs text-[var(--fin-subtle)]"
                 >
                   ✕
                 </button>
@@ -422,18 +310,8 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
             )}
 
             {/* Amount */}
-            <div
-              style={{
-                background: T.card2,
-                border: `1px solid ${T.border}`,
-                borderRadius: 10,
-                padding: '12px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <span style={{ fontSize: 20, color: T.muted, fontWeight: 300 }}>
+            <div className="flex items-center gap-2 rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-4 py-3">
+              <span className="text-xl font-light text-[var(--fin-muted)]">
                 {(() => {
                   const acctCurrency = formData.accounts.find(a => a.id === selAccId)?.currency ?? formData.currency;
                   return acctCurrency === 'USD'
@@ -450,20 +328,15 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
                 placeholder="0.00"
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
+                className="flex-1 border-none bg-transparent text-[28px] font-bold outline-none"
                 style={{
-                  flex: 1,
-                  fontSize: 28,
-                  fontWeight: 700,
                   color: typeColor,
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
                 }}
               />
             </div>
 
             {/* Account + Category (or To Account for transfer) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div className="grid grid-cols-2 gap-2">
               <AccountDropdown accounts={formData.accounts} selectedId={selAccId} onSelect={setSelAccId} />
               {txType === 'transfer' ? (
                 <AccountDropdown
@@ -477,20 +350,13 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
             </div>
 
             {/* Date + Notes */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div className="grid grid-cols-2 gap-2">
               <FieldCard label="Date">
                 <input
                   type="date"
                   value={date}
                   onChange={e => setDate(e.target.value)}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    color: T.text,
-                    fontSize: 13,
-                    width: '100%',
-                  }}
+                  className="w-full border-none bg-transparent text-[13px] text-[var(--fin-text)] outline-none"
                 />
               </FieldCard>
               <FieldCard label="Notes">
@@ -498,35 +364,26 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
                   placeholder="Optional…"
                   value={note}
                   onChange={e => setNote(e.target.value)}
-                  style={{
-                    width: '100%',
-                    background: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    color: T.text,
-                    fontSize: 13,
-                  }}
+                  className="w-full border-none bg-transparent text-[13px] text-[var(--fin-text)] outline-none"
                 />
               </FieldCard>
             </div>
 
             {/* Category quick-pick */}
             {txType !== 'transfer' && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              <div className="flex flex-wrap gap-[5px]">
                 {formData.categories.map(cat => (
                   <button
                     key={cat.id}
                     onClick={() => setSelCatId(cat.id === selCatId ? null : cat.id)}
+                    className="flex items-center gap-1 rounded-[20px] px-2.5 py-[5px] text-[11px]"
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: '5px 10px',
-                      borderRadius: 20,
-                      background: selCatId === cat.id ? (cat.color ?? T.accent) + '28' : T.card2,
-                      border: selCatId === cat.id ? `1px solid ${cat.color ?? T.accent}66` : `1px solid ${T.border}`,
-                      color: selCatId === cat.id ? (cat.color ?? T.accent) : T.muted,
-                      fontSize: 11,
+                      background: selCatId === cat.id ? (cat.color ?? 'var(--fin-accent)') + '28' : 'var(--fin-card2)',
+                      border:
+                        selCatId === cat.id
+                          ? `1px solid ${(cat.color ?? 'var(--fin-accent)') + '66'}`
+                          : '1px solid var(--fin-border)',
+                      color: selCatId === cat.id ? (cat.color ?? 'var(--fin-accent)') : 'var(--fin-muted)',
                       cursor: 'pointer',
                       fontWeight: selCatId === cat.id ? 600 : 400,
                     }}
@@ -539,35 +396,24 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
             )}
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+            <div className="mt-0.5 flex gap-2">
               <button
                 onClick={onClose}
-                style={{
-                  flex: 1,
-                  padding: '10px 0',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  background: T.card2,
-                  border: `1px solid ${T.border}`,
-                  color: T.muted,
-                  cursor: 'pointer',
-                }}
+                className="flex-1 rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] py-2.5 text-[13px] font-semibold text-[var(--fin-muted)]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={!amount || !selAccId || (needsCategory && !selCatId) || saving}
+                className="flex-[2] rounded-lg border-none py-2.5 text-[13px] font-bold"
                 style={{
-                  flex: 2,
-                  background: !amount || !selAccId || (needsCategory && !selCatId) || saving ? T.card3 : typeColor,
-                  color: !amount || !selAccId || (needsCategory && !selCatId) || saving ? T.subtle : '#fff',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px 0',
-                  fontSize: 13,
-                  fontWeight: 700,
+                  background:
+                    !amount || !selAccId || (needsCategory && !selCatId) || saving ? 'var(--fin-card3)' : typeColor,
+                  color:
+                    !amount || !selAccId || (needsCategory && !selCatId) || saving
+                      ? 'var(--fin-subtle)'
+                      : 'var(--fin-on-solid)',
                   cursor: !amount || !selAccId || (needsCategory && !selCatId) || saving ? 'not-allowed' : 'pointer',
                   transition: 'background .15s',
                 }}

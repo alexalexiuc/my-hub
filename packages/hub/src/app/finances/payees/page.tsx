@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { T, fmt, Card, Divider, CategoryIcon } from '../ui';
+import { fmt, Card, Divider, CategoryIcon } from '../ui';
 import type { PayeeReportItem } from '@/app/api/finances/payees/report/route';
 
 interface PayeesData {
@@ -45,25 +45,24 @@ export default function PayeesPage() {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', color: T.text }}>Payees</div>
+    <div className="flex flex-col gap-[14px]">
+      <div className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: 'var(--fin-text)' }}>
+        Payees
+      </div>
 
       {/* Range filter */}
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div className="flex gap-1.5">
         {RANGES.map(({ key, label }) => {
           const active = range === key;
           return (
             <button
               key={key}
               onClick={() => setRange(key)}
+              className="cursor-pointer rounded-[20px] px-3 py-[5px] text-[11px]"
               style={{
-                padding: '5px 12px',
-                borderRadius: 20,
-                fontSize: 11,
-                cursor: 'pointer',
-                background: active ? T.accentD : T.card2,
-                border: active ? `1px solid ${T.accent}44` : `1px solid ${T.border}`,
-                color: active ? T.accent : T.muted,
+                background: active ? 'var(--fin-accent-d)' : 'var(--fin-card2)',
+                border: active ? `1px solid ${'var(--fin-accent)'}44` : `1px solid ${'var(--fin-border)'}`,
+                color: active ? 'var(--fin-accent)' : 'var(--fin-muted)',
                 fontWeight: active ? 600 : 400,
               }}
             >
@@ -75,17 +74,16 @@ export default function PayeesPage() {
 
       {loading ? (
         <div
-          style={{ height: 300, borderRadius: 10, background: T.card, border: `1px solid ${T.border}`, opacity: 0.6 }}
+          className="h-[300px] rounded-[10px] border"
+          style={{ background: 'var(--fin-card)', borderColor: 'var(--fin-border)', opacity: 0.6 }}
         />
       ) : (
-        <Card style={{ padding: 0 }}>
+        <Card className="p-0">
           {/* Table header */}
           <div
+            className="grid grid-cols-[1fr_80px_90px] px-[14px] py-[10px]"
             style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 80px 90px',
-              padding: '10px 14px',
-              borderBottom: `1px solid ${T.border}`,
+              borderBottom: `1px solid ${'var(--fin-border)'}`,
             }}
           >
             {(
@@ -98,12 +96,9 @@ export default function PayeesPage() {
               <div
                 key={key}
                 onClick={() => setSortBy(key)}
+                className="cursor-pointer text-[10px] uppercase tracking-[0.08em]"
                 style={{
-                  fontSize: 10,
-                  textTransform: 'uppercase',
-                  letterSpacing: '.08em',
-                  cursor: 'pointer',
-                  color: sortBy === key ? T.accent : T.subtle,
+                  color: sortBy === key ? 'var(--fin-accent)' : 'var(--fin-subtle)',
                   fontWeight: sortBy === key ? 700 : 400,
                   textAlign: key === 'name' ? 'left' : 'right',
                 }}
@@ -114,43 +109,35 @@ export default function PayeesPage() {
           </div>
 
           {sorted.length === 0 && (
-            <div style={{ fontSize: 12, color: T.subtle, textAlign: 'center', padding: '32px 0' }}>
+            <div className="py-8 text-center text-xs" style={{ color: 'var(--fin-subtle)' }}>
               No payee data for this period
             </div>
           )}
 
           {sorted.map((p, i) => {
-            const catColor = p.categoryColor ?? T.muted;
+            const catColor = p.categoryColor ?? 'var(--fin-muted)';
             return (
               <div key={p.id}>
                 {i > 0 && <Divider />}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 80px 90px',
-                    padding: '10px 14px',
-                    alignItems: 'center',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="grid grid-cols-[1fr_80px_90px] items-center px-[14px] py-[10px]" style={{}}>
+                  <div className="flex items-center gap-2.5">
                     <CategoryIcon color={catColor} icon={p.categoryIcon} size="lg" />
                     <div>
-                      <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{p.name}</div>
-                      <div style={{ fontSize: 10, color: T.subtle }}>
+                      <div className="text-[13px] font-medium" style={{ color: 'var(--fin-text)' }}>
+                        {p.name}
+                      </div>
+                      <div className="text-[10px]" style={{ color: 'var(--fin-subtle)' }}>
                         {p.categoryName ? `${p.categoryName} · ` : ''}Last: {p.lastDate}
                       </div>
                     </div>
                   </div>
-                  <div style={{ fontSize: 12, color: T.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                  <div className="text-right text-xs tabular-nums" style={{ color: 'var(--fin-muted)' }}>
                     {p.txCount}
                   </div>
                   <div
+                    className="text-right text-[13px] font-semibold tabular-nums"
                     style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: T.text,
-                      textAlign: 'right',
-                      fontVariantNumeric: 'tabular-nums',
+                      color: 'var(--fin-text)',
                     }}
                   >
                     {fmt(p.totalSpent, currency)}

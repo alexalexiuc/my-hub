@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
-import { T, Card, SectionLabel } from '../ui';
+import { Card, SectionLabel } from '../ui';
 
 interface Member {
   userId: string;
@@ -20,12 +20,12 @@ interface BudgetSettings {
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'MDL', 'RON', 'CHF', 'JPY', 'CAD', 'AUD'];
 
 const inputStyle: React.CSSProperties = {
-  background: T.card2,
-  border: `1px solid ${T.border}`,
+  background: 'var(--fin-card2)',
+  border: `1px solid ${'var(--fin-border)'}`,
   borderRadius: 8,
   padding: '8px 10px',
   fontSize: 13,
-  color: T.text,
+  color: 'var(--fin-text)',
   outline: 'none',
   width: '100%',
   boxSizing: 'border-box',
@@ -92,13 +92,12 @@ export default function FinancesSettingsPage() {
 
   if (!data) {
     return (
-      <div
-        style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 560, margin: '0 auto', width: '100%' }}
-      >
+      <div className="mx-auto flex w-full max-w-[560px] flex-col gap-[14px]">
         {[80, 140, 100].map((h, i) => (
           <div
             key={i}
-            style={{ height: h, borderRadius: 10, background: T.card, border: `1px solid ${T.border}`, opacity: 0.6 }}
+            className="rounded-[10px] border"
+            style={{ height: h, background: 'var(--fin-card)', borderColor: 'var(--fin-border)', opacity: 0.6 }}
           />
         ))}
       </div>
@@ -108,22 +107,24 @@ export default function FinancesSettingsPage() {
   const isOwner = data.budget.createdByUserId !== undefined;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 560, margin: '0 auto', width: '100%' }}>
-      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', color: T.text }}>Budget Settings</div>
+    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-[18px]">
+      <div className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: 'var(--fin-text)' }}>
+        Budget Settings
+      </div>
 
       {/* General */}
-      <Card style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <Card className="flex flex-col gap-[14px] p-[18px]">
         <SectionLabel style={{ marginBottom: 0 }}>General</SectionLabel>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 10, color: T.subtle, textTransform: 'uppercase', letterSpacing: '.08em' }}>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-[0.08em]" style={{ color: 'var(--fin-subtle)' }}>
             Budget name
           </label>
           <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="My Budget" />
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 10, color: T.subtle, textTransform: 'uppercase', letterSpacing: '.08em' }}>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-[0.08em]" style={{ color: 'var(--fin-subtle)' }}>
             Default currency
           </label>
           <select style={inputStyle} value={currency} onChange={e => setCurrency(e.target.value)}>
@@ -138,15 +139,10 @@ export default function FinancesSettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving || !name.trim()}
+          className="self-start rounded-lg border-none px-[18px] py-2 text-[13px] font-semibold"
           style={{
-            alignSelf: 'flex-start',
-            background: T.accent,
-            border: 'none',
-            borderRadius: 8,
-            padding: '8px 18px',
-            fontSize: 13,
-            fontWeight: 600,
-            color: '#0e0e12',
+            background: 'var(--fin-accent)',
+            color: 'var(--fin-on-accent)',
             cursor: saving ? 'not-allowed' : 'pointer',
             opacity: saving ? 0.7 : 1,
           }}
@@ -156,45 +152,41 @@ export default function FinancesSettingsPage() {
       </Card>
 
       {/* Members */}
-      <Card style={{ padding: 18 }}>
+      <Card className="p-[18px]">
         <SectionLabel style={{ marginBottom: 12 }}>Members</SectionLabel>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {data.members.map(m => {
             const isCreator = m.userId === data.budget.createdByUserId;
             const isRemoving = removingUserId === m.userId;
             return (
-              <div key={m.userId} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div key={m.userId} className="flex items-center gap-2.5">
                 <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold"
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    background: T.accentD,
-                    border: `1px solid ${T.accent}44`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 13,
-                    color: T.accent,
-                    fontWeight: 600,
-                    flexShrink: 0,
+                    background: 'var(--fin-accent-d)',
+                    border: `1px solid ${'var(--fin-accent)'}44`,
+                    color: 'var(--fin-accent)',
                   }}
                 >
                   {(m.name ?? m.email)[0]?.toUpperCase()}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{m.name ?? m.email}</div>
-                  {m.name && <div style={{ fontSize: 11, color: T.subtle }}>{m.email}</div>}
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13px] font-medium" style={{ color: 'var(--fin-text)' }}>
+                    {m.name ?? m.email}
+                  </div>
+                  {m.name && (
+                    <div className="text-[11px]" style={{ color: 'var(--fin-subtle)' }}>
+                      {m.email}
+                    </div>
+                  )}
                 </div>
                 {isCreator && (
                   <span
+                    className="rounded-[20px] px-2 py-[2px] text-[10px]"
                     style={{
-                      fontSize: 10,
-                      color: T.accent,
-                      background: T.accentD,
-                      padding: '2px 8px',
-                      borderRadius: 20,
-                      border: `1px solid ${T.accent}44`,
+                      color: 'var(--fin-accent)',
+                      background: 'var(--fin-accent-d)',
+                      border: `1px solid ${'var(--fin-accent)'}44`,
                     }}
                   >
                     Owner
@@ -204,13 +196,10 @@ export default function FinancesSettingsPage() {
                   <button
                     onClick={() => handleRemoveMember(m.userId)}
                     disabled={isRemoving}
+                    className="rounded-md border bg-transparent px-2.5 py-1 text-[11px]"
                     style={{
-                      background: 'transparent',
-                      border: `1px solid ${T.border}`,
-                      borderRadius: 6,
-                      padding: '4px 10px',
-                      fontSize: 11,
-                      color: T.red,
+                      border: `1px solid ${'var(--fin-border)'}`,
+                      color: 'var(--fin-red)',
                       cursor: isRemoving ? 'not-allowed' : 'pointer',
                       opacity: isRemoving ? 0.5 : 1,
                     }}
@@ -225,55 +214,43 @@ export default function FinancesSettingsPage() {
       </Card>
 
       {/* Danger zone */}
-      <Card style={{ padding: 18, border: `1px solid ${T.red}33` }}>
-        <SectionLabel style={{ marginBottom: 8, color: T.red }}>Danger zone</SectionLabel>
-        <p style={{ fontSize: 12, color: T.muted, marginBottom: 12 }}>
+      <Card className="p-[18px]" style={{ border: `1px solid ${'var(--fin-red)'}33` }}>
+        <SectionLabel style={{ marginBottom: 8, color: 'var(--fin-red)' }}>Danger zone</SectionLabel>
+        <p className="mb-3 text-xs" style={{ color: 'var(--fin-muted)' }}>
           Permanently deletes this budget and all associated accounts, categories, and transactions. This cannot be
           undone.
         </p>
         {!confirmDelete ? (
           <button
             onClick={() => setConfirmDelete(true)}
+            className="cursor-pointer rounded-lg px-4 py-2 text-[13px] font-semibold"
             style={{
-              background: T.redD,
-              border: `1px solid ${T.red}44`,
-              borderRadius: 8,
-              padding: '8px 16px',
-              fontSize: 13,
-              color: T.red,
-              cursor: 'pointer',
-              fontWeight: 600,
+              background: 'var(--fin-red-d)',
+              border: `1px solid ${'var(--fin-red)'}44`,
+              color: 'var(--fin-red)',
             }}
           >
             Delete budget…
           </button>
         ) : (
           <div
+            className="flex flex-col gap-2.5 rounded-[10px] p-[14px]"
             style={{
-              background: T.redD,
-              border: `1px solid ${T.red}44`,
-              borderRadius: 10,
-              padding: 14,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10,
+              background: 'var(--fin-red-d)',
+              border: `1px solid ${'var(--fin-red)'}44`,
             }}
           >
-            <p style={{ fontSize: 13, color: T.red, fontWeight: 500 }}>
+            <p className="text-[13px] font-medium" style={{ color: 'var(--fin-red)' }}>
               Are you sure? All data will be permanently deleted.
             </p>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="flex gap-2">
               <button
                 onClick={handleDeleteBudget}
                 disabled={deleting}
+                className="rounded-lg border-none px-4 py-2 text-[13px] font-semibold"
                 style={{
-                  background: T.red,
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '8px 16px',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: '#fff',
+                  background: 'var(--fin-red)',
+                  color: 'var(--fin-on-solid)',
                   cursor: deleting ? 'not-allowed' : 'pointer',
                 }}
               >
@@ -281,13 +258,10 @@ export default function FinancesSettingsPage() {
               </button>
               <button
                 onClick={() => setConfirmDelete(false)}
+                className="rounded-lg border bg-transparent px-4 py-2 text-[13px]"
                 style={{
-                  background: 'transparent',
-                  border: `1px solid ${T.border}`,
-                  borderRadius: 8,
-                  padding: '8px 16px',
-                  fontSize: 13,
-                  color: T.muted,
+                  border: `1px solid ${'var(--fin-border)'}`,
+                  color: 'var(--fin-muted)',
                   cursor: 'pointer',
                 }}
               >

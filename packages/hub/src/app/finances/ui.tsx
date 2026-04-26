@@ -1,33 +1,7 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { categoryIconEmoji } from './categoryIcons';
-
-// ─── Design tokens ────────────────────────────────────────────────────────────
-export const T = {
-  bg: '#0e0e12',
-  shell: '#111116',
-  card: '#18181e',
-  card2: '#21212a',
-  card3: '#2a2a35',
-  border: '#35354a',
-  text: '#f2f2f8',
-  muted: '#9898b0',
-  subtle: '#606078',
-  accent: '#a78bfa',
-  accentD: 'rgba(167,139,250,.12)',
-  green: '#6ee7b7',
-  greenD: 'rgba(110,231,183,.10)',
-  blue: '#93c5fd',
-  blueD: 'rgba(147,197,253,.10)',
-  amber: '#fcd34d',
-  amberD: 'rgba(252,211,77,.10)',
-  red: '#f87171',
-  redD: 'rgba(248,113,113,.10)',
-  violet: '#a78bfa',
-  violetD: 'rgba(167,139,250,.12)',
-  teal: '#2dd4bf',
-  tealD: 'rgba(45,212,191,.10)',
-} as const;
 
 // ─── Currency formatter ───────────────────────────────────────────────────────
 export function fmt(value: number, currency = 'EUR') {
@@ -46,23 +20,24 @@ export function fmtSign(value: number, currency = 'EUR') {
 
 export function Card({
   children,
+  className,
   style,
   onClick,
 }: {
   children: React.ReactNode;
+  className?: string;
   style?: React.CSSProperties;
   onClick?: () => void;
 }) {
   return (
     <div
       onClick={onClick}
+      className={cn(
+        'rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)] px-4 py-[14px] transition-colors',
+        onClick ? 'cursor-pointer' : 'cursor-default',
+        className,
+      )}
       style={{
-        background: T.card,
-        border: `1px solid ${T.border}`,
-        borderRadius: 10,
-        padding: '14px 16px',
-        cursor: onClick ? 'pointer' : 'default',
-        transition: 'border-color .15s',
         ...style,
       }}
     >
@@ -74,13 +49,8 @@ export function Card({
 export function SectionLabel({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <div
+      className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--fin-subtle)]"
       style={{
-        fontSize: 10,
-        fontWeight: 600,
-        textTransform: 'uppercase',
-        letterSpacing: '.1em',
-        color: T.subtle,
-        marginBottom: 8,
         ...style,
       }}
     >
@@ -92,20 +62,14 @@ export function SectionLabel({ children, style }: { children: React.ReactNode; s
 export function Pill({ icon, label, color }: { icon?: string; label: string; color: string }) {
   return (
     <span
+      className="inline-flex items-center gap-1 rounded-[20px] border px-2 py-[2px] text-[11px] font-medium"
       style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 4,
-        padding: '2px 8px',
-        borderRadius: 20,
         background: color + '22',
         border: `1px solid ${color}44`,
-        fontSize: 11,
-        fontWeight: 500,
         color,
       }}
     >
-      {icon && <span style={{ fontSize: 10 }}>{icon}</span>}
+      {icon && <span className="text-[10px]">{icon}</span>}
       {label}
     </span>
   );
@@ -125,16 +89,11 @@ export function Bar({
   style?: React.CSSProperties;
 }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
-  const barColor = pct >= 100 ? T.red : pct >= 80 ? T.amber : (color ?? T.green);
+  const barColor = pct >= 100 ? 'var(--fin-red)' : pct >= 80 ? 'var(--fin-amber)' : (color ?? 'var(--fin-green)');
   return (
     <div
-      style={{
-        height,
-        borderRadius: height / 2,
-        background: T.card2,
-        overflow: 'hidden',
-        ...style,
-      }}
+      className="overflow-hidden"
+      style={{ height, borderRadius: height / 2, background: 'var(--fin-card2)', ...style }}
     >
       <div
         style={{
@@ -161,15 +120,14 @@ export function AmountText({
   sign?: boolean;
 }) {
   const isNeg = value < 0;
-  const color = sign ? (isNeg ? T.red : T.green) : T.text;
+  const color = sign ? (isNeg ? 'var(--fin-red)' : 'var(--fin-green)') : 'var(--fin-text)';
   const sizes = { sm: 14, md: 18, lg: 28, xl: 36 };
   return (
     <span
+      className="font-semibold tabular-nums"
       style={{
-        fontWeight: 600,
         fontSize: sizes[size],
         color,
-        fontVariantNumeric: 'tabular-nums',
       }}
     >
       {sign ? (isNeg ? '-' : '+') : ''}
@@ -179,7 +137,7 @@ export function AmountText({
 }
 
 export function Divider() {
-  return <div style={{ height: 1, background: T.border, margin: '2px 0' }} />;
+  return <div className="my-[2px] h-px" style={{ background: 'var(--fin-border)' }} />;
 }
 
 export function Sparkline({
@@ -208,7 +166,7 @@ export function Sparkline({
     .join(' ');
   const area = `M ${pts.split(' ').join(' L ')} L ${width},${height} L 0,${height} Z`;
   return (
-    <svg width={width} height={height} style={{ display: 'block' }}>
+    <svg width={width} height={height} className="block">
       <defs>
         <linearGradient id="finances-sg" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.3" />
@@ -245,20 +203,17 @@ type CategoryIconProps = {
 };
 
 export function CategoryIcon({ color, icon, size = 'md', fallback, children }: CategoryIconProps) {
-  const c = color ?? T.muted;
+  const c = color ?? 'var(--fin-muted)';
   const { box, radius, font } = CATEGORY_ICON_SIZES[size];
   return (
     <div
+      className="flex shrink-0 items-center justify-center"
       style={{
         width: box,
         height: box,
         borderRadius: radius,
-        flexShrink: 0,
         background: c + '20',
         border: `1px solid ${c}2a`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         fontSize: font,
       }}
     >
@@ -269,14 +224,14 @@ export function CategoryIcon({ color, icon, size = 'md', fallback, children }: C
 
 // ─── Account type metadata ────────────────────────────────────────────────────
 export const TYPE_META: Record<string, { label: string; color: string; icon: string }> = {
-  bank: { label: 'Bank', color: '#93c5fd', icon: '🏦' },
-  investment: { label: 'Investment', color: '#6ee7b7', icon: '📈' },
-  credit_card: { label: 'Credit Card', color: '#f87171', icon: '💳' },
-  loan: { label: 'Loan', color: '#f87171', icon: '🏷' },
-  goal: { label: 'Goal', color: '#a78bfa', icon: '🎯' },
-  cash: { label: 'Cash', color: '#fcd34d', icon: '💵' },
-  tracking: { label: 'Tracking', color: '#9898b0', icon: '👁' },
-  borrowed_lent: { label: 'Borrowed/Lent', color: '#2dd4bf', icon: '🤝' },
+  bank: { label: 'Bank', color: 'var(--fin-blue)', icon: '🏦' },
+  investment: { label: 'Investment', color: 'var(--fin-green)', icon: '📈' },
+  credit_card: { label: 'Credit Card', color: 'var(--fin-red)', icon: '💳' },
+  loan: { label: 'Loan', color: 'var(--fin-red)', icon: '🏷' },
+  goal: { label: 'Goal', color: 'var(--fin-violet)', icon: '🎯' },
+  cash: { label: 'Cash', color: 'var(--fin-amber)', icon: '💵' },
+  tracking: { label: 'Tracking', color: 'var(--fin-muted)', icon: '👁' },
+  borrowed_lent: { label: 'Borrowed/Lent', color: 'var(--fin-teal)', icon: '🤝' },
 };
 
 // ─── Cashflow bar chart (SVG) ─────────────────────────────────────────────────
@@ -297,16 +252,24 @@ export function CashflowChart({
   const gap = 2;
 
   return (
-    <svg width={width} height={height + 20} style={{ display: 'block', overflow: 'visible' }}>
+    <svg width={width} height={height + 20} className="block overflow-visible">
       {data.map((d, i) => {
         const x = i * colW + (colW - bw * 2 - gap) / 2;
         const iH = Math.max(2, (d.income / max) * height);
         const eH = Math.max(2, (d.expense / max) * height);
         return (
           <g key={i}>
-            <rect x={x} y={height - iH} width={bw} height={iH} fill={T.green} fillOpacity={0.7} rx={3} />
-            <rect x={x + bw + gap} y={height - eH} width={bw} height={eH} fill={T.red} fillOpacity={0.7} rx={3} />
-            <text x={x + bw} y={height + 14} textAnchor="middle" fontSize={9} fill={T.subtle}>
+            <rect x={x} y={height - iH} width={bw} height={iH} fill="var(--fin-green)" fillOpacity={0.7} rx={3} />
+            <rect
+              x={x + bw + gap}
+              y={height - eH}
+              width={bw}
+              height={eH}
+              fill="var(--fin-red)"
+              fillOpacity={0.7}
+              rx={3}
+            />
+            <text x={x + bw} y={height + 14} textAnchor="middle" fontSize={9} fill="var(--fin-subtle)">
               {d.month}
             </text>
           </g>
