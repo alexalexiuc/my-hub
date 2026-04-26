@@ -65,17 +65,19 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { type, accountId, toAccountId, amount, date, categoryId, merchantName, notes, exchangeRate } = body as {
-    type?: string;
-    accountId?: number;
-    toAccountId?: number;
-    amount?: number;
-    date?: string;
-    categoryId?: number | null;
-    merchantName?: string;
-    notes?: string;
-    exchangeRate?: number;
-  };
+  const { type, accountId, toAccountId, amount, date, categoryId, merchantName, notes, exchangeRate, isCorrection } =
+    body as {
+      type?: string;
+      accountId?: number;
+      toAccountId?: number;
+      amount?: number;
+      date?: string;
+      categoryId?: number | null;
+      merchantName?: string;
+      notes?: string;
+      exchangeRate?: number;
+      isCorrection?: boolean;
+    };
 
   if (!type || !accountId || amount == null || !date) {
     return NextResponse.json({ error: 'type, accountId, amount, date are required' }, { status: 400 });
@@ -103,7 +105,7 @@ export const POST = withAuth(async ({ req, user }) => {
     categoryId: categoryId ?? null,
     merchantId,
     notes: notes?.trim() || null,
-    isCorrection: false,
+    isCorrection: isCorrection === true,
     fromAccountBalanceAfter: null,
     toAccountBalanceAfter: null,
     extras: null,

@@ -45,6 +45,7 @@ export interface AccountTransaction {
   categoryColor: string | null;
   categoryIcon: string | null;
   balanceAfter: number | null;
+  isCorrection: boolean;
 }
 
 export interface AccountDetailData {

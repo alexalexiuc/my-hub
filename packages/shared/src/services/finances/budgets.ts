@@ -3,8 +3,10 @@
  * - createBudget(userId, data) — creates a budget and adds the creator as its first member
  * - getUserBudgets(userId) — lists all budgets the user is a member of
  * - getBudgetById(userId, budgetId) — single budget with access check, null if not found or no access
+ * - getBudgetMembers(userId, budgetId) — lists members (id, email, name, joinedAt) with access check
  * - updateBudget(userId, budgetId, data) — partial update; requires budget membership
  * - deleteBudget(userId, budgetId) — hard delete; requires budget membership
+ * - removeBudgetMember(userId, budgetId, targetUserId) — removes a member from the budget; requires membership; cannot remove creator
  * - deleteAllUserFinanceBudgets(userId) — bulk delete owned budgets + remove from shared memberships
  * - verifyBudgetAccess(userId, budgetId) — returns true if user is a budget member
  * Types: BudgetInsert, BudgetUpdate
@@ -13,6 +15,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { PromiseCacheX } from 'promise-cachex';
 import { db } from '../../db/client';
 import { financeBudgets, financeBudgetMembers } from '../../db/schema/finances';
+import { users } from '../../db/schema/users';
 import { omitNullish } from '../../utils';
 import type { FinanceBudget, NewFinanceBudget } from '../../types';
 
@@ -98,6 +101,44 @@ export async function deleteBudget(userId: string, budgetId: number): Promise<vo
   }
 
   await db.delete(financeBudgets).where(eq(financeBudgets.id, budgetId));
+}
+
+export interface BudgetMember {
+  userId: string;
+  email: string;
+  name: string | null;
+  joinedAt: Date;
+}
+
+export async function getBudgetMembers(userId: string, budgetId: number): Promise<BudgetMember[]> {
+  if (!(await verifyBudgetAccess(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  return db
+    .select({ userId: users.id, email: users.email, name: users.name, joinedAt: financeBudgetMembers.joinedAt })
+    .from(financeBudgetMembers)
+    .innerJoin(users, eq(users.id, financeBudgetMembers.userId))
+    .where(eq(financeBudgetMembers.budgetId, budgetId));
+}
+
+export async function removeBudgetMember(userId: string, budgetId: number, targetUserId: string): Promise<void> {
+  if (!(await verifyBudgetAccess(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const [budget] = await db
+    .select({ createdByUserId: financeBudgets.createdByUserId })
+    .from(financeBudgets)
+    .where(eq(financeBudgets.id, budgetId));
+
+  if (budget?.createdByUserId === targetUserId) {
+    throw new Error('Cannot remove the budget creator');
+  }
+
+  await db
+    .delete(financeBudgetMembers)
+    .where(and(eq(financeBudgetMembers.budgetId, budgetId), eq(financeBudgetMembers.userId, targetUserId)));
 }
 
 export async function deleteAllUserFinanceBudgets(userId: string): Promise<void> {

@@ -73,7 +73,7 @@ function CatRow({ cat, currency }: { cat: CategoryRow; currency: string }) {
             border: `1px solid ${cat.color ?? T.muted}2a`,
           }}
         >
-          {categoryIconEmoji(cat.icon)}
+          {cat.icon ? categoryIconEmoji(cat.icon) : (cat.name[0]?.toUpperCase() ?? '?')}
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{cat.name}</div>

@@ -81,7 +81,7 @@ function CategoryDropdown({
             fontWeight: 500,
           }}
         >
-          {selected ? `${categoryIconEmoji(selected.icon)} ${selected.name}` : '⬡ Required…'}
+          {selected ? `${selected.icon ? categoryIconEmoji(selected.icon) + ' ' : ''}${selected.name}` : '⬡ Required…'}
         </div>
       </FieldCard>
       {open && (
@@ -281,7 +281,7 @@ export default function AddTransactionPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 480 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 480, margin: '0 auto', width: '100%' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <button
@@ -408,7 +408,16 @@ export default function AddTransactionPage() {
         }}
       >
         <span style={{ fontSize: 20, color: T.muted, fontWeight: 300 }}>
-          {formData.currency === 'USD' ? '$' : formData.currency === 'GBP' ? '£' : '€'}
+          {(() => {
+            const acctCurrency = formData.accounts.find(a => a.id === selAccId)?.currency ?? formData.currency;
+            return acctCurrency === 'USD'
+              ? '$'
+              : acctCurrency === 'GBP'
+                ? '£'
+                : acctCurrency === 'EUR'
+                  ? '€'
+                  : acctCurrency;
+          })()}
         </span>
         <input
           type="number"

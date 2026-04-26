@@ -22,6 +22,7 @@ import {
   deleteAllUserTripPlaces,
   deleteAllUserTripBookings,
   deleteAllUserTrips,
+  deleteAllUserFinanceBudgets,
 } from '@my-hub/shared/services';
 
 /**
@@ -51,6 +52,7 @@ export const POST = withAuth(async ({ user }) => {
     tripPlaces,
     tripBookings,
     trips,
+    finances,
   ] = await Promise.all([
     deleteAllUserMeals(user.id),
     deleteAllUserMeasurements(user.id),
@@ -73,6 +75,7 @@ export const POST = withAuth(async ({ user }) => {
     deleteAllUserTripPlaces(user.id),
     deleteAllUserTripBookings(user.id),
     deleteAllUserTrips(user.id),
+    deleteAllUserFinanceBudgets(user.id),
   ]);
 
   return NextResponse.json({
@@ -98,6 +101,7 @@ export const POST = withAuth(async ({ user }) => {
       tripPlaces,
       tripBookings,
       trips,
+      finances,
     },
   });
 });

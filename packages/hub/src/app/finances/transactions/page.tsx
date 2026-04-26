@@ -144,51 +144,58 @@ export default function TransactionsPage() {
             {data?.transactions.map((tx, i) => {
               const catColor = tx.categoryColor ?? T.muted;
               const isTransfer = tx.type === 'transfer';
-              const subtitle =
-                isTransfer && tx.toAccountName
-                  ? `${tx.accountName} → ${tx.toAccountName} · ${tx.date}`
-                  : `${tx.accountName} · ${tx.date}`;
+              const accountLabel =
+                isTransfer && tx.toAccountName ? `${tx.accountName} → ${tx.toAccountName}` : tx.accountName;
               return (
                 <div key={tx.id}>
                   {i > 0 && <Divider />}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
+                    {/* Category icon */}
                     <div
                       style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 9,
+                        width: 26,
+                        height: 26,
+                        borderRadius: 7,
                         flexShrink: 0,
                         background: catColor + '22',
+                        border: `1px solid ${catColor}33`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 15,
-                        border: `1px solid ${catColor}33`,
+                        fontSize: 12,
                       }}
                     >
                       {isTransfer ? '↔' : (tx.categoryIcon ?? '•')}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: T.text }}>
-                        {tx.merchantName ?? tx.notes ?? (isTransfer ? 'Transfer' : '—')}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, marginTop: 2, alignItems: 'center' }}>
-                        {tx.categoryName && <Pill label={tx.categoryName} color={catColor} />}
-                        <span style={{ fontSize: 10, color: T.subtle }}>{subtitle}</span>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 600,
-                          color: tx.type === 'income' ? T.green : isTransfer ? T.blue : T.text,
-                        }}
-                      >
-                        {tx.type === 'income' ? '+' : isTransfer ? '⇄' : '-'}
-                        {fmt(tx.amount, currency)}
-                      </div>
-                    </div>
+                    {/* Account */}
+                    <span style={{ fontSize: 11, color: T.subtle, flexShrink: 0 }}>{accountLabel}</span>
+                    {/* Payee / to-account for transfers */}
+                    {!isTransfer && (
+                      <span style={{ fontSize: 13, fontWeight: 500, color: T.text, flexShrink: 0 }}>
+                        {tx.merchantName ?? tx.notes ?? '—'}
+                      </span>
+                    )}
+                    {/* Category pill */}
+                    {tx.categoryName && <Pill label={tx.categoryName} color={catColor} />}
+                    {/* Spacer */}
+                    <span style={{ flex: 1 }} />
+                    {/* Date */}
+                    <span style={{ fontSize: 11, color: T.subtle, flexShrink: 0, minWidth: 72, textAlign: 'right' }}>
+                      {tx.date}
+                    </span>
+                    {/* Amount */}
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: tx.type === 'income' ? T.green : isTransfer ? T.blue : T.red,
+                        flexShrink: 0,
+                        minWidth: 90,
+                        textAlign: 'right',
+                      }}
+                    >
+                      {fmt(tx.amount, currency)}
+                    </span>
                   </div>
                 </div>
               );
