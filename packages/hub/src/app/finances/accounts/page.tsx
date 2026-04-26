@@ -53,7 +53,6 @@ function AccountCard({
             {acc.type === 'loan' ? '-' : ''}
             {fmt(acc.balance, acc.currency)}
           </div>
-          <div style={{ fontSize: 10, color: T.subtle }}>{acc.currency}</div>
         </div>
       </div>
 

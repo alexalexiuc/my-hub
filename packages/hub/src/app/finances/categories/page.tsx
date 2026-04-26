@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { T, fmt, Card, SectionLabel, Bar, Divider } from '../ui';
+import { T, fmt, Card, SectionLabel, Bar, Divider, CategoryIcon } from '../ui';
 import { AddCategoryModal } from './AddCategoryModal';
 import { AddGroupModal } from './AddGroupModal';
-import { categoryIconEmoji } from '../categoryIcons';
 
 interface CategoryRow {
   id: number;
@@ -59,22 +58,7 @@ function CatRow({ cat, currency }: { cat: CategoryRow; currency: string }) {
   return (
     <div style={{ padding: '10px 14px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: pct !== null ? 8 : 0 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 9,
-            flexShrink: 0,
-            background: (cat.color ?? T.muted) + '20',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 15,
-            border: `1px solid ${cat.color ?? T.muted}2a`,
-          }}
-        >
-          {cat.icon ? categoryIconEmoji(cat.icon) : (cat.name[0]?.toUpperCase() ?? '?')}
-        </div>
+        <CategoryIcon color={cat.color} icon={cat.icon} size="lg" fallback={cat.name[0]?.toUpperCase() ?? '?'} />
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{cat.name}</div>
           {cat.monthlyTarget && (

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { apiFetch } from '@/lib/utils';
 import { T } from './ui';
 import { AddTransactionModal } from './transactions/AddTransactionModal';
 
@@ -30,6 +31,17 @@ export function FinancesSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [showAddTx, setShowAddTx] = useState(false);
+  const [budgetName, setBudgetName] = useState<string | null>(null);
+  const [currency, setCurrency] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiFetch<{ budget: { name: string; defaultCurrency: string } }>('/api/finances/budget', { silentToast: true })
+      .then(res => {
+        setBudgetName(res.budget.name);
+        setCurrency(res.budget.defaultCurrency);
+      })
+      .catch(() => {});
+  }, []);
 
   const isActive = (path: string) => (path === '/finances' ? pathname === '/finances' : pathname.startsWith(path));
 
@@ -52,9 +64,9 @@ export function FinancesSidebar() {
           marginBottom: 12,
         }}
       >
-        <div style={{ fontSize: 11, color: T.subtle, marginBottom: 2 }}>My Hub</div>
         <div style={{ fontSize: 16, fontWeight: 700, color: T.text, letterSpacing: '-.02em' }}>
-          <span style={{ color: T.accent }}>₤</span> Finances
+          {currency && <span style={{ color: T.accent }}>{currency} </span>}
+          {budgetName ?? 'Finances'}
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { T, fmt, Divider, Pill } from '../ui';
+import { T, fmt, Divider, Pill, CategoryIcon } from '../ui';
 import { categoryIconEmoji } from '../categoryIcons';
 
 export interface TransactionItem {
@@ -50,22 +50,9 @@ export function TransactionList({
           <div key={tx.id}>
             {i > 0 && <Divider />}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  flexShrink: 0,
-                  background: catColor + '22',
-                  border: `1px solid ${catColor}33`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 12,
-                }}
-              >
+              <CategoryIcon color={catColor} size="sm">
                 {tx.isCorrection ? '⚖' : isTransfer ? '↔' : categoryIconEmoji(tx.categoryIcon)}
-              </div>
+              </CategoryIcon>
               {showAccount && accountLabel && (
                 <span style={{ fontSize: 11, color: T.subtle, flexShrink: 0 }}>{accountLabel}</span>
               )}
