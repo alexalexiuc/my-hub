@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { T, fmt, Card, Divider } from '../ui';
-import type { MerchantReportItem } from '@/app/api/finances/merchants/report/route';
+import type { PayeeReportItem } from '@/app/api/finances/payees/report/route';
 
-interface MerchantsData {
+interface PayeesData {
   currency: string;
-  merchants: MerchantReportItem[];
+  payees: PayeeReportItem[];
 }
 type Range = '30d' | '3m' | 'ytd';
 type SortKey = 'totalSpent' | 'txCount' | 'name';
@@ -18,16 +18,16 @@ const RANGES: { key: Range; label: string }[] = [
   { key: 'ytd', label: 'This year' },
 ];
 
-export default function MerchantsPage() {
+export default function PayeesPage() {
   const [range, setRange] = useState<Range>('30d');
   const [sortBy, setSortBy] = useState<SortKey>('totalSpent');
-  const [data, setData] = useState<MerchantsData | null>(null);
+  const [data, setData] = useState<PayeesData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (r: Range) => {
     setLoading(true);
     try {
-      const result = await apiFetch<MerchantsData>(`/api/finances/merchants/report?range=${r}`, { silentToast: true });
+      const result = await apiFetch<PayeesData>(`/api/finances/payees/report?range=${r}`, { silentToast: true });
       setData(result);
     } finally {
       setLoading(false);
@@ -39,14 +39,14 @@ export default function MerchantsPage() {
   }, [range, load]);
 
   const currency = data?.currency ?? 'EUR';
-  const sorted = [...(data?.merchants ?? [])].sort((a, b) => {
+  const sorted = [...(data?.payees ?? [])].sort((a, b) => {
     if (sortBy === 'name') return a.name.localeCompare(b.name);
     return b[sortBy] - a[sortBy];
   });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', color: T.text }}>Merchants</div>
+      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', color: T.text }}>Payees</div>
 
       {/* Range filter */}
       <div style={{ display: 'flex', gap: 6 }}>
@@ -90,7 +90,7 @@ export default function MerchantsPage() {
           >
             {(
               [
-                ['name', 'Merchant'],
+                ['name', 'Payee'],
                 ['txCount', 'Txns'],
                 ['totalSpent', 'Total'],
               ] as [SortKey, string][]
@@ -115,14 +115,14 @@ export default function MerchantsPage() {
 
           {sorted.length === 0 && (
             <div style={{ fontSize: 12, color: T.subtle, textAlign: 'center', padding: '32px 0' }}>
-              No merchant data for this period
+              No payee data for this period
             </div>
           )}
 
-          {sorted.map((m, i) => {
-            const catColor = m.categoryColor ?? T.muted;
+          {sorted.map((p, i) => {
+            const catColor = p.categoryColor ?? T.muted;
             return (
-              <div key={m.id}>
+              <div key={p.id}>
                 {i > 0 && <Divider />}
                 <div
                   style={{
@@ -147,17 +147,17 @@ export default function MerchantsPage() {
                         border: `1px solid ${catColor}2a`,
                       }}
                     >
-                      {m.categoryIcon ?? '•'}
+                      {p.categoryIcon ?? '•'}
                     </div>
                     <div>
-                      <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{m.name}</div>
+                      <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{p.name}</div>
                       <div style={{ fontSize: 10, color: T.subtle }}>
-                        {m.categoryName ? `${m.categoryName} · ` : ''}Last: {m.lastDate}
+                        {p.categoryName ? `${p.categoryName} · ` : ''}Last: {p.lastDate}
                       </div>
                     </div>
                   </div>
                   <div style={{ fontSize: 12, color: T.muted, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                    {m.txCount}
+                    {p.txCount}
                   </div>
                   <div
                     style={{
@@ -168,7 +168,7 @@ export default function MerchantsPage() {
                       fontVariantNumeric: 'tabular-nums',
                     }}
                   >
-                    {fmt(m.totalSpent, currency)}
+                    {fmt(p.totalSpent, currency)}
                   </div>
                 </div>
               </div>

@@ -11,7 +11,7 @@ export interface TransactionDetails {
   rawInput?: string;
   // Card hint used to match to an account (e.g. "Visa *4242")
   cardHint?: string;
-  // Confidence score (0–1) when category/merchant was auto-suggested
+  // Confidence score (0–1) when category/payee was auto-suggested
   autofillConfidence?: number;
   /** Open bag — AI may add any extra fields it considers relevant. */
   extra?: Record<string, unknown>;
@@ -25,8 +25,8 @@ export interface ManualTransactionDetails extends TransactionDetails {
 // Receipt scan — AI-populated from a photo or OCR'd bill.
 export interface ReceiptTransactionDetails extends TransactionDetails {
   readonly kind: 'receipt';
-  merchantName?: string;
-  merchantAddress?: string;
+  payeeName?: string;
+  payeeAddress?: string;
   receiptNumber?: string;
   taxAmount?: number;
   tipAmount?: number;

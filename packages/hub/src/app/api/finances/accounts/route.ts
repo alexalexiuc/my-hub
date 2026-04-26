@@ -155,7 +155,7 @@ export const POST = withAuth(async ({ req, user }) => {
       exchangeRate: '1',
       date: new Date().toISOString().slice(0, 10),
       categoryId: null,
-      merchantId: null,
+      payeeId: null,
       notes: 'Initial Balance',
       isCorrection: true,
       fromAccountBalanceAfter: null,

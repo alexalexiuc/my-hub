@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api/with-auth';
-import { getUserBudgets, getAccounts, getCategories, getMerchants, getTransactions } from '@my-hub/shared/services';
+import { getUserBudgets, getAccounts, getCategories, getPayees, getTransactions } from '@my-hub/shared/services';
 
 export const GET = withAuth(async ({ user }) => {
   const budgets = await getUserBudgets(user.id);
@@ -9,19 +9,19 @@ export const GET = withAuth(async ({ user }) => {
 
   const budgetId = budget.id;
 
-  const [accounts, categories, merchants, recentTxns] = await Promise.all([
+  const [accounts, categories, payees, recentTxns] = await Promise.all([
     getAccounts(user.id, budgetId),
     getCategories(user.id, budgetId),
-    getMerchants(user.id, budgetId),
+    getPayees(user.id, budgetId),
     getTransactions(user.id, budgetId, { limit: 200 }),
   ]);
 
-  // Build merchant suggestions: merchantName (lowercase) → last used categoryId + accountId
-  const merchantMap = new Map(merchants.map(m => [m.id, m.name]));
+  // Build payee suggestions: payeeName (lowercase) → last used categoryId + accountId
+  const payeeMap = new Map(payees.map(p => [p.id, p.name]));
   const suggestions: Record<string, { categoryId: number | null; accountId: number }> = {};
   for (const t of recentTxns) {
-    if (t.merchantId == null) continue;
-    const name = merchantMap.get(t.merchantId);
+    if (t.payeeId == null) continue;
+    const name = payeeMap.get(t.payeeId);
     if (!name) continue;
     const key = name.toLowerCase();
     if (!suggestions[key]) {
@@ -39,6 +39,6 @@ export const GET = withAuth(async ({ user }) => {
       color: c.color ?? null,
       groupId: c.groupId ?? null,
     })),
-    merchantSuggestions: suggestions,
+    payeeSuggestions: suggestions,
   });
 });

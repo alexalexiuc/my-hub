@@ -4,7 +4,7 @@ import {
   getUserBudgets,
   getAccountById,
   getCategories,
-  getMerchants,
+  getPayees,
   getTransactions,
   updateAccount,
 } from '@my-hub/shared/services';
@@ -34,10 +34,10 @@ export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
 
   const budgetId = budget.id;
 
-  const [rawAccount, categories, merchants, rawTxns] = await Promise.all([
+  const [rawAccount, categories, payees, rawTxns] = await Promise.all([
     getAccountById(user.id, budgetId, accountId),
     getCategories(user.id, budgetId),
-    getMerchants(user.id, budgetId),
+    getPayees(user.id, budgetId),
     getTransactions(user.id, budgetId, { accountId, limit: 50, includeCorrections: true }),
   ]);
 
@@ -45,11 +45,11 @@ export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
 
   const account = flattenAccount(rawAccount);
   const categoryMap = new Map(categories.map(c => [c.id, c]));
-  const merchantMap = new Map(merchants.map(m => [m.id, m]));
+  const payeeMap = new Map(payees.map(p => [p.id, p]));
 
   const transactions: AccountTransaction[] = rawTxns.map(t => {
     const cat = t.categoryId != null ? categoryMap.get(t.categoryId) : undefined;
-    const merchant = t.merchantId != null ? merchantMap.get(t.merchantId) : undefined;
+    const payee = t.payeeId != null ? payeeMap.get(t.payeeId) : undefined;
     const isSource = t.accountId === accountId;
     const rawBal = isSource ? t.fromAccountBalanceAfter : t.toAccountBalanceAfter;
     return {
@@ -58,7 +58,7 @@ export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
       amount: parseFloat(t.amount),
       type: t.type,
       notes: t.notes ?? null,
-      merchantName: merchant?.name ?? null,
+      payeeName: payee?.name ?? null,
       categoryName: cat?.name ?? null,
       categoryColor: cat?.color ?? null,
       categoryIcon: cat?.icon ?? null,

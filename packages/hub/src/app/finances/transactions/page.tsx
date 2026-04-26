@@ -11,7 +11,7 @@ interface TxItem {
   amount: number;
   type: string;
   notes: string | null;
-  merchantName: string | null;
+  payeeName: string | null;
   categoryName: string | null;
   categoryColor: string | null;
   categoryIcon: string | null;
@@ -172,7 +172,7 @@ export default function TransactionsPage() {
                     {/* Payee / to-account for transfers */}
                     {!isTransfer && (
                       <span style={{ fontSize: 13, fontWeight: 500, color: T.text, flexShrink: 0 }}>
-                        {tx.merchantName ?? tx.notes ?? '—'}
+                        {tx.payeeName ?? tx.notes ?? '—'}
                       </span>
                     )}
                     {/* Category pill */}

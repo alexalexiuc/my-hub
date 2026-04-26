@@ -29,7 +29,7 @@ export type TransactionUpdate = Partial<
     | 'exchangeRate'
     | 'date'
     | 'categoryId'
-    | 'merchantId'
+    | 'payeeId'
     | 'notes'
     | 'extras'
     | 'isCorrection'

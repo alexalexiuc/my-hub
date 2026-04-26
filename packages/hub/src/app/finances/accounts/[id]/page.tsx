@@ -425,7 +425,7 @@ export default function AccountDetailPage() {
 
         {transactions.map((tx, i) => {
           const catColor = tx.categoryColor ?? (tx.isCorrection ? T.amber : T.muted);
-          const label = tx.isCorrection ? (tx.notes ?? 'Balance Correction') : (tx.merchantName ?? tx.notes ?? '—');
+          const label = tx.isCorrection ? (tx.notes ?? 'Balance Correction') : (tx.payeeName ?? tx.notes ?? '—');
           const isTransfer = tx.type === 'transfer';
           return (
             <div key={tx.id}>

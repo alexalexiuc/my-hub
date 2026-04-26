@@ -3,10 +3,10 @@ import { withAuth } from '@/lib/api/with-auth';
 import {
   getUserBudgets,
   addTransaction,
-  upsertMerchant,
+  upsertPayee,
   getAccounts,
   getCategories,
-  getMerchants,
+  getPayees,
   getTransactions,
 } from '@my-hub/shared/services';
 import type { TransactionInsert } from '@my-hub/shared/services';
@@ -23,20 +23,20 @@ export const GET = withAuth(async ({ req, user }) => {
 
   const budgetId = budget.id;
 
-  const [accounts, categories, merchants, txns] = await Promise.all([
+  const [accounts, categories, payees, txns] = await Promise.all([
     getAccounts(user.id, budgetId),
     getCategories(user.id, budgetId),
-    getMerchants(user.id, budgetId),
+    getPayees(user.id, budgetId),
     getTransactions(user.id, budgetId, { type: type ?? undefined, limit, offset }),
   ]);
 
   const accountMap = new Map(accounts.map(a => [a.id, a]));
   const categoryMap = new Map(categories.map(c => [c.id, c]));
-  const merchantMap = new Map(merchants.map(m => [m.id, m]));
+  const payeeMap = new Map(payees.map(p => [p.id, p]));
 
   const items = txns.map(t => {
     const cat = t.categoryId != null ? categoryMap.get(t.categoryId) : undefined;
-    const merchant = t.merchantId != null ? merchantMap.get(t.merchantId) : undefined;
+    const payee = t.payeeId != null ? payeeMap.get(t.payeeId) : undefined;
     const account = accountMap.get(t.accountId);
     const toAccount = t.toAccountId != null ? accountMap.get(t.toAccountId) : undefined;
     return {
@@ -45,7 +45,7 @@ export const GET = withAuth(async ({ req, user }) => {
       amount: parseFloat(t.amount),
       type: t.type,
       notes: t.notes ?? null,
-      merchantName: merchant?.name ?? null,
+      payeeName: payee?.name ?? null,
       categoryName: cat?.name ?? null,
       categoryColor: cat?.color ?? null,
       categoryIcon: cat?.icon ?? null,
@@ -65,7 +65,7 @@ export const POST = withAuth(async ({ req, user }) => {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { type, accountId, toAccountId, amount, date, categoryId, merchantName, notes, exchangeRate, isCorrection } =
+  const { type, accountId, toAccountId, amount, date, categoryId, payeeName, notes, exchangeRate, isCorrection } =
     body as {
       type?: string;
       accountId?: number;
@@ -73,7 +73,7 @@ export const POST = withAuth(async ({ req, user }) => {
       amount?: number;
       date?: string;
       categoryId?: number | null;
-      merchantName?: string;
+      payeeName?: string;
       notes?: string;
       exchangeRate?: number;
       isCorrection?: boolean;
@@ -89,10 +89,10 @@ export const POST = withAuth(async ({ req, user }) => {
 
   const budgetId = budget.id;
 
-  let merchantId: number | null = null;
-  if (merchantName?.trim()) {
-    const merchant = await upsertMerchant(user.id, budgetId, merchantName.trim());
-    merchantId = merchant.id;
+  let payeeId: number | null = null;
+  if (payeeName?.trim()) {
+    const payee = await upsertPayee(user.id, budgetId, payeeName.trim());
+    payeeId = payee.id;
   }
 
   const data: TransactionInsert = {
@@ -103,7 +103,7 @@ export const POST = withAuth(async ({ req, user }) => {
     exchangeRate: String(exchangeRate ?? 1),
     date,
     categoryId: categoryId ?? null,
-    merchantId,
+    payeeId,
     notes: notes?.trim() || null,
     isCorrection: isCorrection === true,
     fromAccountBalanceAfter: null,

@@ -39,7 +39,7 @@
 | `accounts.ts`     | Account CRUD: createAccount, getAccounts (opts: includeArchived), getAccountById, updateAccount, deleteAccount; getNetWorthHistory(userId, budgetId, limit?) — last N monthly snapshots oldest-first, returns NetWorthSnapshot[] |
 | `categories.ts`   | Group + category CRUD: createGroup/getGroups/updateGroup/deleteGroup, createCategory/getCategories/getCategoryById/updateCategory/deleteCategory                                                                                 |
 | `transactions.ts` | Transaction CRUD: addTransaction, getTransactions (opts: accountId/categoryId/type/fromDate/toDate/includeCorrections/limit/offset), getTransactionById, updateTransaction, deleteTransaction                                    |
-| `merchants.ts`    | Merchant CRUD: upsertMerchant (insert-or-return for autofill), getMerchants, deleteMerchant                                                                                                                                      |
+| `payees.ts`       | Payee CRUD: upsertPayee (insert-or-return for autofill), getPayees, deletePayee                                                                                                                                                  |
 
 ## Keeping the inventory current
 

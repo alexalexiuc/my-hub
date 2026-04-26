@@ -1,5 +1,5 @@
 {
-  "id": "e4fd84db-2db3-4254-a834-ec1b20e82531",
+  "id": "20c73621-2c36-461d-a09d-b217e3e5eca3",
   "prevId": "2d0cb1f4-d1ad-4f4e-a7f5-5d0bde535d3f",
   "version": "6",
   "dialect": "postgresql",
@@ -3308,64 +3308,6 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "public.finance_merchants": {
-      "name": "finance_merchants",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "budget_id": {
-          "name": "budget_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "uq_finance_merchants_budget_name": {
-          "name": "uq_finance_merchants_budget_name",
-          "columns": [
-            "budget_id",
-            "name"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "finance_merchants_budget_id_finance_budgets_id_fk": {
-          "name": "finance_merchants_budget_id_finance_budgets_id_fk",
-          "tableFrom": "finance_merchants",
-          "tableTo": "finance_budgets",
-          "columnsFrom": [
-            "budget_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
-    },
     "public.finance_net_worth_snapshots": {
       "name": "finance_net_worth_snapshots",
       "schema": "",
@@ -3455,6 +3397,64 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
+    "public.finance_payees": {
+      "name": "finance_payees",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "budget_id": {
+          "name": "budget_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "uq_finance_payees_budget_name": {
+          "name": "uq_finance_payees_budget_name",
+          "columns": [
+            "budget_id",
+            "name"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "finance_payees_budget_id_finance_budgets_id_fk": {
+          "name": "finance_payees_budget_id_finance_budgets_id_fk",
+          "tableFrom": "finance_payees",
+          "tableTo": "finance_budgets",
+          "columnsFrom": [
+            "budget_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
     "public.finance_transactions": {
       "name": "finance_transactions",
       "schema": "",
@@ -3514,8 +3514,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "merchant_id": {
-          "name": "merchant_id",
+        "payee_id": {
+          "name": "payee_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
@@ -3608,10 +3608,10 @@
           ],
           "isUnique": false
         },
-        "idx_finance_txns_merchant": {
-          "name": "idx_finance_txns_merchant",
+        "idx_finance_txns_payee": {
+          "name": "idx_finance_txns_payee",
           "columns": [
-            "merchant_id"
+            "payee_id"
           ],
           "isUnique": false
         },
@@ -3684,12 +3684,12 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "finance_transactions_merchant_id_finance_merchants_id_fk": {
-          "name": "finance_transactions_merchant_id_finance_merchants_id_fk",
+        "finance_transactions_payee_id_finance_payees_id_fk": {
+          "name": "finance_transactions_payee_id_finance_payees_id_fk",
           "tableFrom": "finance_transactions",
-          "tableTo": "finance_merchants",
+          "tableTo": "finance_payees",
           "columnsFrom": [
-            "merchant_id"
+            "payee_id"
           ],
           "columnsTo": [
             "id"
