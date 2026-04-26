@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { T, fmt, Card, SectionLabel, Bar, Divider, Sparkline } from './ui';
+import { T, fmt, Card, SectionLabel, Bar, Divider, Sparkline, CategoryIcon } from './ui';
 import { AddTransactionModal } from './transactions/AddTransactionModal';
 import { TransactionList } from './transactions/TransactionList';
 import type { FinanceDashboardData } from './types';
@@ -139,7 +139,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
               <div key={cat.id}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {cat.icon && <span style={{ fontSize: 13 }}>{cat.icon}</span>}
+                    <CategoryIcon color={cat.color} icon={cat.icon} size="sm" />
                     <span style={{ fontSize: 12, color: T.text }}>{cat.name}</span>
                   </div>
                   <div style={{ fontSize: 11, color: T.muted }}>

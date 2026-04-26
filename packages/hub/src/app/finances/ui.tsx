@@ -1,5 +1,7 @@
 'use client';
 
+import { categoryIconEmoji } from './categoryIcons';
+
 // ─── Design tokens ────────────────────────────────────────────────────────────
 export const T = {
   bg: '#0e0e12',
@@ -223,6 +225,45 @@ export function Sparkline({
         strokeLinejoin="round"
       />
     </svg>
+  );
+}
+
+// ─── Category icon in a colored square ───────────────────────────────────────
+
+const CATEGORY_ICON_SIZES = {
+  sm: { box: 26, radius: 7, font: 12 },
+  md: { box: 30, radius: 8, font: 13 },
+  lg: { box: 32, radius: 9, font: 15 },
+} as const;
+
+type CategoryIconProps = {
+  color: string | null;
+  icon?: string | null;
+  size?: keyof typeof CATEGORY_ICON_SIZES;
+  fallback?: string;
+  children?: React.ReactNode;
+};
+
+export function CategoryIcon({ color, icon, size = 'md', fallback, children }: CategoryIconProps) {
+  const c = color ?? T.muted;
+  const { box, radius, font } = CATEGORY_ICON_SIZES[size];
+  return (
+    <div
+      style={{
+        width: box,
+        height: box,
+        borderRadius: radius,
+        flexShrink: 0,
+        background: c + '20',
+        border: `1px solid ${c}2a`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: font,
+      }}
+    >
+      {children ?? (fallback && !icon ? fallback : categoryIconEmoji(icon))}
+    </div>
   );
 }
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { T, fmt, Card, SectionLabel } from '../ui';
+import { T, fmt, Card, SectionLabel, CategoryIcon } from '../ui';
 
 interface CatRow {
   id: number;
@@ -138,7 +138,7 @@ export default function BudgetPage() {
                     <div key={cat.id}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {cat.icon && <span style={{ fontSize: 13 }}>{cat.icon}</span>}
+                          <CategoryIcon color={cat.color} icon={cat.icon} size="sm" />
                           <span style={{ fontSize: 13, color: T.text }}>{cat.name}</span>
                         </div>
                         <div
@@ -217,8 +217,9 @@ export default function BudgetPage() {
                       padding: '2px 0',
                     }}
                   >
-                    <span>
-                      {c.icon} {c.name}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <CategoryIcon color={c.color} icon={c.icon} size="sm" />
+                      {c.name}
                     </span>
                     <span style={{ color: T.red }}>
                       +{fmt(c.spent - (c.monthlyTarget ?? 0), currency)} (

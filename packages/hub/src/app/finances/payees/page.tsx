@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { T, fmt, Card, Divider } from '../ui';
+import { T, fmt, Card, Divider, CategoryIcon } from '../ui';
 import type { PayeeReportItem } from '@/app/api/finances/payees/report/route';
 
 interface PayeesData {
@@ -133,22 +133,7 @@ export default function PayeesPage() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div
-                      style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 8,
-                        flexShrink: 0,
-                        background: catColor + '20',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 13,
-                        border: `1px solid ${catColor}2a`,
-                      }}
-                    >
-                      {p.categoryIcon ?? '•'}
-                    </div>
+                    <CategoryIcon color={catColor} icon={p.categoryIcon} size="lg" />
                     <div>
                       <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{p.name}</div>
                       <div style={{ fontSize: 10, color: T.subtle }}>
