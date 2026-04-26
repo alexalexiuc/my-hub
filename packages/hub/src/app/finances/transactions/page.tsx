@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
-import { T, fmt, Card, Pill, Divider } from '../ui';
+import { T, Card } from '../ui';
+import { AddTransactionModal } from './AddTransactionModal';
+import { TransactionList } from './TransactionList';
 
 interface TxItem {
   id: number;
@@ -33,7 +34,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 ];
 
 export default function TransactionsPage() {
-  const router = useRouter();
+  const [showModal, setShowModal] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
   const [data, setData] = useState<ListData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,7 +79,7 @@ export default function TransactionsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em', color: T.text }}>Transactions</div>
         <button
-          onClick={() => router.push('/finances/transactions/add')}
+          onClick={() => setShowModal(true)}
           style={{
             padding: '6px 12px',
             borderRadius: 20,
@@ -136,70 +137,7 @@ export default function TransactionsPage() {
       ) : (
         <>
           <Card style={{ padding: 14 }}>
-            {(!data || data.transactions.length === 0) && (
-              <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: T.subtle }}>
-                No transactions yet
-              </div>
-            )}
-            {data?.transactions.map((tx, i) => {
-              const catColor = tx.categoryColor ?? T.muted;
-              const isTransfer = tx.type === 'transfer';
-              const accountLabel =
-                isTransfer && tx.toAccountName ? `${tx.accountName} → ${tx.toAccountName}` : tx.accountName;
-              return (
-                <div key={tx.id}>
-                  {i > 0 && <Divider />}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
-                    {/* Category icon */}
-                    <div
-                      style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: 7,
-                        flexShrink: 0,
-                        background: catColor + '22',
-                        border: `1px solid ${catColor}33`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 12,
-                      }}
-                    >
-                      {isTransfer ? '↔' : (tx.categoryIcon ?? '•')}
-                    </div>
-                    {/* Account */}
-                    <span style={{ fontSize: 11, color: T.subtle, flexShrink: 0 }}>{accountLabel}</span>
-                    {/* Payee / to-account for transfers */}
-                    {!isTransfer && (
-                      <span style={{ fontSize: 13, fontWeight: 500, color: T.text, flexShrink: 0 }}>
-                        {tx.payeeName ?? tx.notes ?? '—'}
-                      </span>
-                    )}
-                    {/* Category pill */}
-                    {tx.categoryName && <Pill label={tx.categoryName} color={catColor} />}
-                    {/* Spacer */}
-                    <span style={{ flex: 1 }} />
-                    {/* Date */}
-                    <span style={{ fontSize: 11, color: T.subtle, flexShrink: 0, minWidth: 72, textAlign: 'right' }}>
-                      {tx.date}
-                    </span>
-                    {/* Amount */}
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: tx.type === 'income' ? T.green : isTransfer ? T.blue : T.red,
-                        flexShrink: 0,
-                        minWidth: 90,
-                        textAlign: 'right',
-                      }}
-                    >
-                      {fmt(tx.amount, currency)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+            <TransactionList transactions={data?.transactions ?? []} currency={currency} showAccount />
           </Card>
 
           {hasMore && (
@@ -221,6 +159,15 @@ export default function TransactionsPage() {
             </button>
           )}
         </>
+      )}
+      {showModal && (
+        <AddTransactionModal
+          onClose={() => setShowModal(false)}
+          onCreated={() => {
+            setShowModal(false);
+            load(filter, true);
+          }}
+        />
       )}
     </div>
   );

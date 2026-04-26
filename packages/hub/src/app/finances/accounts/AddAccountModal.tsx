@@ -48,7 +48,7 @@ const inputStyle: React.CSSProperties = {
 export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAccountModalProps) {
   const [name, setName] = useState('');
   const [type, setType] = useState<string>(AccountTypes.Bank);
-  const [currency, setCurrency] = useState(defaultCurrency);
+  const currency = defaultCurrency;
   const [openingBalance, setOpeningBalance] = useState('0');
   const [saving, setSaving] = useState(false);
 
@@ -173,7 +173,7 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
               style={inputStyle}
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="e.g. Revolut"
+              placeholder="e.g. Salary"
               autoFocus
               required
             />
@@ -189,30 +189,15 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
             </select>
           </Field>
 
-          <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}>
-              <Field label="Currency">
-                <input
-                  style={inputStyle}
-                  value={currency}
-                  onChange={e => setCurrency(e.target.value.toUpperCase())}
-                  maxLength={3}
-                  placeholder="EUR"
-                />
-              </Field>
-            </div>
-            <div style={{ flex: 2 }}>
-              <Field label="Opening Balance">
-                <input
-                  style={inputStyle}
-                  type="number"
-                  step="0.01"
-                  value={openingBalance}
-                  onChange={e => setOpeningBalance(e.target.value)}
-                />
-              </Field>
-            </div>
-          </div>
+          <Field label="Opening Balance">
+            <input
+              style={inputStyle}
+              type="number"
+              step="0.01"
+              value={openingBalance}
+              onChange={e => setOpeningBalance(e.target.value)}
+            />
+          </Field>
 
           {/* Credit Card extras */}
           {type === AccountTypes.CreditCard && (
