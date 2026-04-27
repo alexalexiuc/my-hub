@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
+import { FinancialDropdown } from '../FinancialDropdown';
 import { FinModalShell } from '../FinModalShell';
-import { Button, Input } from '@/components';
-import { Pill } from '../ui';
+import { Button, Input, Pill } from '@/components';
 import { categoryIconEmoji } from '../categoryIcons';
 import { AddTransactionSchema, defaultAddTransactionValues, type AddTransactionValues } from '../finances-form.schema';
 
@@ -23,11 +23,17 @@ interface CategoryOption {
   icon: string | null;
   color: string | null;
 }
+interface PayeeSuggestion {
+  id: number;
+  name: string;
+  useCount: number;
+  lastUsedAt: string | null;
+  recentCategoryId: number | null;
+}
 interface FormData {
   currency: string;
   accounts: AccountOption[];
   categories: CategoryOption[];
-  payeeSuggestions: Record<string, { categoryId: number | null; accountId: number }>;
 }
 
 type TxType = 'expense' | 'income' | 'transfer';
@@ -52,114 +58,32 @@ function FieldCard({ label, children, onClick }: { label: string; children: Reac
   );
 }
 
-function CategoryDropdown({
-  categories,
-  selectedId,
-  onSelect,
-}: {
-  categories: CategoryOption[];
-  selectedId: number | null;
-  onSelect: (id: number | null) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const selected = categories.find(c => c.id === selectedId);
-
-  return (
-    <div className="relative">
-      <FieldCard label="Category *" onClick={() => setOpen(o => !o)}>
-        <div className={`text-[13px] font-medium ${selected ? 'text-[var(--fin-text)]' : 'text-[var(--fin-red)]'}`}>
-          {selected ? `${selected.icon ? categoryIconEmoji(selected.icon) + ' ' : ''}${selected.name}` : '⬡ Required…'}
-        </div>
-      </FieldCard>
-      {open && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-[220px] overflow-hidden overflow-y-auto rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)]">
-          {categories.length === 0 && (
-            <div className="px-3 py-2.5 text-xs text-[var(--fin-subtle)]">
-              No categories yet — add one in the Categories tab.
-            </div>
-          )}
-          {categories.map(c => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => {
-                onSelect(c.id);
-                setOpen(false);
-              }}
-              className={cn(
-                'block w-full cursor-pointer border-none px-3 py-[9px] text-left text-[13px]',
-                c.id === selectedId
-                  ? 'bg-[var(--fin-accent-d)] text-[var(--fin-accent)]'
-                  : 'bg-transparent text-[var(--fin-text)]',
-              )}
-            >
-              <span className="mr-1.5">{categoryIconEmoji(c.icon)}</span>
-              {c.name}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AccountDropdown({
-  accounts,
-  selectedId,
-  onSelect,
-}: {
-  accounts: AccountOption[];
-  selectedId: number | null;
-  onSelect: (id: number) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const selected = accounts.find(a => a.id === selectedId);
-
-  return (
-    <div className="relative">
-      <FieldCard label="Account" onClick={() => setOpen(o => !o)}>
-        <div className={`text-[13px] font-medium ${selected ? 'text-[var(--fin-text)]' : 'text-[var(--fin-subtle)]'}`}>
-          🏦 {selected?.name ?? 'Choose…'}
-        </div>
-      </FieldCard>
-      {open && (
-        <div className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)]">
-          {accounts.map(a => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => {
-                onSelect(a.id);
-                setOpen(false);
-              }}
-              className={cn(
-                'block w-full cursor-pointer border-none px-3 py-[9px] text-left text-[13px]',
-                a.id === selectedId
-                  ? 'bg-[var(--fin-accent-d)] text-[var(--fin-accent)]'
-                  : 'bg-transparent text-[var(--fin-text)]',
-              )}
-            >
-              {a.name}
-              <span className="ml-1.5 text-[10px] text-[var(--fin-subtle)]">{a.currency}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 type AddTransactionModalProps = {
   onClose: () => void;
   onCreated: () => void;
+  /** Pre-loaded payee suggestions — pass from parent to avoid re-fetching each open. */
+  // payees?: PayeeSuggestion[];
 };
 
 export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalProps) {
   const [formData, setFormData] = useState<FormData | null>(null);
+  const [payees, setPayees] = useState<PayeeSuggestion[]>([]);
   const [selCatId, setSelCatId] = useState<number | null>(null);
   const [selAccId, setSelAccId] = useState<number | null>(null);
   const [selToAccId, setSelToAccId] = useState<number | null>(null);
-  const [autofillDismissed, setAutofillDismissed] = useState(false);
+  const [accQuery, setAccQuery] = useState('');
+  const [toAccQuery, setToAccQuery] = useState('');
+  const [catQuery, setCatQuery] = useState('');
+
+  const mostUsedPayees = useMemo(() => {
+    const sorted = [...payees]
+      .filter(p => p.useCount > 0)
+      .sort(
+        (a, b) =>
+          b.useCount - a.useCount || new Date(b.lastUsedAt ?? '').getTime() - new Date(a.lastUsedAt ?? '').getTime(),
+      );
+    return sorted.slice(0, 5);
+  }, [payees]);
 
   const {
     register,
@@ -173,39 +97,35 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
   });
 
   const txType = watch('txType');
-  const payee = watch('payee');
+  const payeeQuery = watch('payee');
 
   const load = useCallback(async () => {
-    const data = await apiFetch<FormData>('/api/finances/transactions/form-data', { silentToast: true });
-    setFormData(data);
-    if (data.accounts[0]) setSelAccId(data.accounts[0].id);
+    // TODO: Considering local storage to make modal faster, if will be necessary
+    const [fd, pd] = await Promise.all([
+      apiFetch<FormData>('/api/finances/transactions/form-data', { silentToast: true }),
+      apiFetch<{ payees: PayeeSuggestion[] }>('/api/finances/payees', { silentToast: true }),
+    ]);
+    setFormData(fd);
+    if (fd.accounts[0]) {
+      setSelAccId(fd.accounts[0].id);
+      setAccQuery(fd.accounts[0].name);
+    }
+    if (pd) setPayees(pd.payees);
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const suggestion = formData?.payeeSuggestions[payee.trim().toLowerCase()];
-  const hasSuggestion = !!suggestion && payee.trim().length > 2 && !autofillDismissed;
+  function selectPayee(p: PayeeSuggestion) {
+    setValue('payee', p.name);
+    if (p.recentCategoryId != null) setSelCatId(p.recentCategoryId);
+  }
 
-  useEffect(() => {
-    setAutofillDismissed(false);
-  }, [payee]);
-
-  useEffect(() => {
-    if (hasSuggestion && suggestion) {
-      if (suggestion.categoryId != null) setSelCatId(suggestion.categoryId);
-      setSelAccId(suggestion.accountId);
-    }
-  }, [hasSuggestion, suggestion]);
-
-  const selectedCat = formData?.categories.find(c => c.id === selCatId);
   const typeColor = TYPE_COLORS[txType];
-  const needsCategory = txType !== 'transfer';
 
   async function onSubmit(values: AddTransactionValues) {
     if (!selAccId) return;
-    if (needsCategory && !selCatId) return;
     await apiFetch('/api/finances/transactions', {
       method: 'POST',
       body: {
@@ -223,7 +143,7 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
     onCreated();
   }
 
-  const isSubmitDisabled = !watch('amount') || !selAccId || (needsCategory && !selCatId) || isSubmitting;
+  const isSubmitDisabled = !watch('amount') || !selAccId || isSubmitting;
 
   return (
     <FinModalShell onClose={onClose} title="New Transaction" className="md:max-w-[480px]">
@@ -238,7 +158,7 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
           ))}
         </div>
       ) : (
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2.5">
+        <form onSubmit={handleSubmit(onSubmit)} autoComplete="off" className="flex flex-col gap-2.5">
           {/* Type toggle */}
           <div className="flex rounded-[9px] border border-[var(--fin-border)] bg-[var(--fin-card2)] p-[3px]">
             {(['expense', 'income', 'transfer'] as TxType[]).map(t => (
@@ -261,47 +181,6 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
             ))}
           </div>
 
-          {/* Payee */}
-          <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-[10px]">
-            <div className="mb-1 text-[10px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Payee</div>
-            <Input
-              {...register('payee')}
-              autoFocus
-              placeholder="e.g. Kaufland, Netflix…"
-              variant="ghost"
-              className="w-full text-[15px]"
-            />
-          </div>
-
-          {/* Autofill hint */}
-          {hasSuggestion && (
-            <div className="flex items-center gap-2 rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2 text-xs">
-              <span className="text-[var(--fin-subtle)]">↩</span>
-              <span className="text-[var(--fin-muted)]">Filled from past entries:</span>
-              {selectedCat && (
-                <Pill
-                  icon={categoryIconEmoji(selectedCat.icon)}
-                  label={selectedCat.name}
-                  color={selectedCat.color ?? 'var(--fin-accent)'}
-                />
-              )}
-              <span className="text-[var(--fin-subtle)]">·</span>
-              <span className="text-[11px] text-[var(--fin-muted)]">
-                {formData.accounts.find(a => a.id === selAccId)?.name}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelCatId(null);
-                  setAutofillDismissed(true);
-                }}
-                className="ml-auto border-none bg-transparent text-xs text-[var(--fin-subtle)]"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-
           {/* Amount */}
           <div className="flex items-center gap-2 rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-4 py-3">
             <span className="text-xl font-light text-[var(--fin-muted)]">
@@ -318,6 +197,7 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
             </span>
             <Input
               {...register('amount')}
+              autoFocus
               type="number"
               placeholder="0.00"
               variant="ghost"
@@ -326,17 +206,112 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
             />
           </div>
 
+          {/* Payee with fuzzy dropdown — hidden for transfers */}
+          {txType !== 'transfer' && (
+            <>
+              <FinancialDropdown
+                options={payees.map(p => ({ id: p.id, value: p.name }))}
+                query={payeeQuery}
+                onQueryChange={v => setValue('payee', v)}
+                onSelect={item => {
+                  const full = payees.find(p => p.id === item.id);
+                  if (full) selectPayee(full);
+                }}
+                fuse
+                placeholder="e.g. Kaufland, Netflix…"
+                createOption={{ onCreate: name => setValue('payee', name) }}
+              />
+              {mostUsedPayees.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {mostUsedPayees.map(p => (
+                    <Pill key={p.id} onClick={() => selectPayee(p)} label={p.name} color="var(--fin-accent)" />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
           {/* Account + Category (or To Account for transfer) */}
           <div className="grid grid-cols-2 gap-2">
-            <AccountDropdown accounts={formData.accounts} selectedId={selAccId} onSelect={setSelAccId} />
-            {txType === 'transfer' ? (
-              <AccountDropdown
-                accounts={formData.accounts.filter(a => a.id !== selAccId)}
-                selectedId={selToAccId}
-                onSelect={setSelToAccId}
+            <FieldCard label="Account">
+              <FinancialDropdown
+                options={formData.accounts.map(a => ({ id: a.id, value: a.name }))}
+                query={accQuery}
+                onQueryChange={setAccQuery}
+                onSelect={item => {
+                  setSelAccId(item.id as number);
+                  setAccQuery(String(item.value));
+                }}
+                clearable
+                onClear={() => {
+                  setSelAccId(null);
+                  setAccQuery('');
+                }}
+                renderOption={item => {
+                  const acc = formData.accounts.find(a => a.id === item.id);
+                  return (
+                    <span className="flex w-full items-center justify-between">
+                      <span>{String(item.value)}</span>
+                      {acc && <span className="ml-auto text-[10px] text-[var(--fin-subtle)]">{acc.currency}</span>}
+                    </span>
+                  );
+                }}
+                placeholder="Choose…"
+                inputClassName="border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
               />
+            </FieldCard>
+
+            {txType === 'transfer' ? (
+              <FieldCard label="To Account">
+                <FinancialDropdown
+                  options={formData.accounts.filter(a => a.id !== selAccId).map(a => ({ id: a.id, value: a.name }))}
+                  query={toAccQuery}
+                  onQueryChange={setToAccQuery}
+                  onSelect={item => {
+                    setSelToAccId(item.id as number);
+                    setToAccQuery(String(item.value));
+                  }}
+                  clearable
+                  onClear={() => {
+                    setSelToAccId(null);
+                    setToAccQuery('');
+                  }}
+                  renderOption={item => {
+                    const acc = formData.accounts.find(a => a.id === item.id);
+                    return (
+                      <span className="flex w-full items-center justify-between">
+                        <span>{String(item.value)}</span>
+                        {acc && <span className="ml-auto text-[10px] text-[var(--fin-subtle)]">{acc.currency}</span>}
+                      </span>
+                    );
+                  }}
+                  placeholder="Choose…"
+                  inputClassName="border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+                />
+              </FieldCard>
             ) : (
-              <CategoryDropdown categories={formData.categories} selectedId={selCatId} onSelect={setSelCatId} />
+              <FieldCard label="Category">
+                <FinancialDropdown
+                  options={formData.categories.map(c => ({
+                    id: c.id,
+                    value: `${categoryIconEmoji(c.icon)} ${c.name}`.trim(),
+                  }))}
+                  query={catQuery}
+                  onQueryChange={setCatQuery}
+                  onSelect={item => {
+                    setSelCatId(item.id as number);
+                    setCatQuery(String(item.value));
+                  }}
+                  clearable
+                  onClear={() => {
+                    setSelCatId(null);
+                    setCatQuery('');
+                  }}
+                  noResultsText="No categories yet — add one in the Categories tab."
+                  placeholder="⬡ Choose…"
+                  inputClassName="border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+                />
+              </FieldCard>
             )}
           </div>
 
@@ -359,35 +334,6 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
               />
             </FieldCard>
           </div>
-
-          {/* Category quick-pick */}
-          {txType !== 'transfer' && (
-            <div className="flex flex-wrap gap-[5px]">
-              {formData.categories.map(cat => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setSelCatId(cat.id === selCatId ? null : cat.id)}
-                  className={cn(
-                    'flex cursor-pointer items-center gap-1 rounded-[20px] px-2.5 py-[5px] text-[11px]',
-                    selCatId === cat.id ? 'font-semibold' : 'bg-[var(--fin-card2)] text-[var(--fin-muted)]',
-                  )}
-                  style={
-                    selCatId === cat.id
-                      ? {
-                          background: (cat.color ?? 'var(--fin-accent)') + '28',
-                          border: `1px solid ${(cat.color ?? 'var(--fin-accent)') + '66'}`,
-                          color: cat.color ?? 'var(--fin-accent)',
-                        }
-                      : { border: '1px solid var(--fin-border)' }
-                  }
-                >
-                  <span>{categoryIconEmoji(cat.icon)}</span>
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          )}
 
           {/* Actions */}
           <div className="mt-0.5 flex gap-2">

@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import {
-  getUserBudgets,
   getBudgetMembers,
   updateBudget,
   deleteBudget,
   removeBudgetMember,
+  getUserActiveBudget,
 } from '@my-hub/shared/services';
 const BudgetUpdateSchema = z.object({
   name: z.string().trim().min(1).optional(),
@@ -17,8 +17,7 @@ const BudgetDeleteSchema = z.object({
 });
 
 export const GET = route(async ({ user }) => {
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const members = await getBudgetMembers(user.id, budget.id);
@@ -35,8 +34,7 @@ export const GET = route(async ({ user }) => {
 });
 
 export const PATCH = route({ body: BudgetUpdateSchema })(async ({ user, body }) => {
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const updated = await updateBudget(user.id, budget.id, {
@@ -48,8 +46,7 @@ export const PATCH = route({ body: BudgetUpdateSchema })(async ({ user, body }) 
 });
 
 export const DELETE = route({ body: BudgetDeleteSchema })(async ({ user, body }) => {
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   if (body.removeMemberUserId) {

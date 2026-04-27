@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
-import { getUserBudgets, getAccountById } from '@my-hub/shared/services';
+import { getAccountById, getUserActiveBudget } from '@my-hub/shared/services';
 import type { LoanAccountDetails } from '@my-hub/shared/constants';
 
 export interface ScheduleRow {
@@ -41,8 +41,7 @@ export const GET = route({ params: z.object({ id: z.string() }) })(async ({ user
   const accountId = Number(params.id);
   if (isNaN(accountId)) routeHttpError(400, { error: 'Invalid id' });
 
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const account = await getAccountById(user.id, budget.id, accountId);

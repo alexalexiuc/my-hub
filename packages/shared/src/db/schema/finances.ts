@@ -126,6 +126,13 @@ export const financeCategories = pgTable(
 
 // ─── Payees ───────────────────────────────────────────────────────────────
 // Normalised payee list — powers autofill suggestions and spending-by-payee reports.
+// Unique by (budgetId, normalizedName) for case-insensitive duplicate prevention.
+
+export interface PayeeUserStats {
+  count: number;
+  lastUsedAt: string | null;
+  lastUsedCategoryId: number | null;
+}
 
 export const financePayees = pgTable(
   'finance_payees',
@@ -135,10 +142,15 @@ export const financePayees = pgTable(
       .notNull()
       .references(() => financeBudgets.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
+    // lower(trim(name)) — used for case-insensitive uniqueness check
+    normalizedName: text('normalized_name').notNull(),
+    // keyed by userId string; tracks per-user usage for ranked suggestions
+    statsByUser: jsonb('stats_by_user').$type<Record<string, PayeeUserStats>>().notNull().default({}),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   table => ({
-    budgetNameUniq: uniqueIndex('uq_finance_payees_budget_name').on(table.budgetId, table.name),
+    budgetNormUniq: uniqueIndex('uq_finance_payees_budget_norm').on(table.budgetId, table.normalizedName),
+    budgetIdx: index('idx_finance_payees_budget').on(table.budgetId),
   }),
 );
 

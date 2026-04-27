@@ -1,7 +1,8 @@
 'use client';
 
+import { Pill } from '@/components';
 import { cn } from '@/lib/utils';
-import { fmt, Divider, Pill, CategoryIcon } from '../ui';
+import { fmt, Divider, CategoryIcon } from '../ui';
 import { categoryIconEmoji } from '../categoryIcons';
 
 export interface TransactionItem {

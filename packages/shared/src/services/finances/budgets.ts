@@ -2,6 +2,7 @@
  * Finance budget CRUD and access-control queries
  * - createBudget(userId, data) — creates a budget and adds the creator as its first member
  * - getUserBudgets(userId) — lists all budgets the user is a member of
+ * - getUserActiveBudget(userId) — returns user's active budget
  * - getBudgetById(userId, budgetId) — single budget with access check, null if not found or no access
  * - getBudgetMembers(userId, budgetId) — lists members (id, email, name, joinedAt) with access check
  * - updateBudget(userId, budgetId, data) — partial update; requires budget membership
@@ -20,6 +21,7 @@ import { omitNullish } from '../../utils';
 import type { FinanceBudget, NewFinanceBudget } from '../../types';
 
 const budgetAccessCache = new PromiseCacheX<boolean>({ ttl: 300_000 });
+const budgetsCache = new PromiseCacheX<FinanceBudget[]>({ ttl: 300_000 });
 
 export type BudgetInsert = Omit<NewFinanceBudget, 'id' | 'createdByUserId' | 'createdAt' | 'updatedAt'>;
 export type BudgetUpdate = Partial<Pick<BudgetInsert, 'name' | 'defaultCurrency'>>;
@@ -45,22 +47,34 @@ export async function createBudget(userId: string, data: BudgetInsert): Promise<
 
   await db.insert(financeBudgetMembers).values({ budgetId: budget.id, userId });
 
+  // Invalidate caches
+  budgetsCache.delete(userId);
+  budgetAccessCache.delete(`${userId}:${budget.id}`);
+
   return budget;
 }
 
 export async function getUserBudgets(userId: string): Promise<FinanceBudget[]> {
-  return db
-    .select({
-      id: financeBudgets.id,
-      name: financeBudgets.name,
-      defaultCurrency: financeBudgets.defaultCurrency,
-      createdByUserId: financeBudgets.createdByUserId,
-      createdAt: financeBudgets.createdAt,
-      updatedAt: financeBudgets.updatedAt,
-    })
-    .from(financeBudgets)
-    .innerJoin(financeBudgetMembers, eq(financeBudgetMembers.budgetId, financeBudgets.id))
-    .where(eq(financeBudgetMembers.userId, userId));
+  return budgetsCache.get(userId, async () => {
+    return db
+      .select({
+        id: financeBudgets.id,
+        name: financeBudgets.name,
+        defaultCurrency: financeBudgets.defaultCurrency,
+        createdByUserId: financeBudgets.createdByUserId,
+        createdAt: financeBudgets.createdAt,
+        updatedAt: financeBudgets.updatedAt,
+      })
+      .from(financeBudgets)
+      .innerJoin(financeBudgetMembers, eq(financeBudgetMembers.budgetId, financeBudgets.id))
+      .where(eq(financeBudgetMembers.userId, userId));
+  });
+}
+
+export async function getUserActiveBudget(userId: string): Promise<FinanceBudget | null> {
+  const budgets = await getUserBudgets(userId);
+  // for now we will only operate with a single budget per user, so just return the first one.
+  return budgets[0] ?? null;
 }
 
 export async function getBudgetById(userId: string, budgetId: number): Promise<FinanceBudget | null> {
@@ -139,6 +153,10 @@ export async function removeBudgetMember(userId: string, budgetId: number, targe
   await db
     .delete(financeBudgetMembers)
     .where(and(eq(financeBudgetMembers.budgetId, budgetId), eq(financeBudgetMembers.userId, targetUserId)));
+
+  // Invalidate caches
+  budgetAccessCache.delete(`${targetUserId}:${budgetId}`);
+  budgetsCache.delete(targetUserId);
 }
 
 export async function deleteAllUserFinanceBudgets(userId: string): Promise<void> {
@@ -146,4 +164,11 @@ export async function deleteAllUserFinanceBudgets(userId: string): Promise<void>
   await db.delete(financeBudgets).where(eq(financeBudgets.createdByUserId, userId));
   // Remove user from any remaining shared budget memberships.
   await db.delete(financeBudgetMembers).where(eq(financeBudgetMembers.userId, userId));
+
+  // Invalidate caches
+  budgetsCache.delete(userId);
+  budgetAccessCache
+    .keys()
+    .filter(key => key.startsWith(`${userId}:`))
+    .forEach(key => budgetAccessCache.delete(key));
 }

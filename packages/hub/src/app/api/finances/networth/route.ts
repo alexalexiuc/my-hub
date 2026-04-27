@@ -1,5 +1,5 @@
 import { route, routeHttpError } from '@/lib/api/route';
-import { getUserBudgets, getAccounts, getNetWorthHistory } from '@my-hub/shared/services';
+import { getUserActiveBudget, getAccounts, getNetWorthHistory } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 
 const LIABILITY_TYPES = new Set<string>([AccountTypes.Loan, AccountTypes.CreditCard]);
@@ -16,8 +16,7 @@ export interface NetWorthData {
 }
 
 export const GET = route(async ({ user }) => {
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;

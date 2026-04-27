@@ -1,10 +1,10 @@
 /**
  * Finance transaction CRUD
- * - addTransaction(userId, budgetId, data) — inserts a transaction; sets addedByUserId from session
+ * - addTransaction(userId, budgetId, data) — inserts a transaction; updates account balances and payee stats
  * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (date range, account, category, type)
  * - getTransactionById(userId, budgetId, transactionId) — single transaction with access check
- * - updateTransaction(userId, budgetId, transactionId, data) — partial update
- * - deleteTransaction(userId, budgetId, transactionId) — hard delete
+ * - updateTransaction(userId, budgetId, transactionId, data) — partial update; adjusts payee stats when payeeId changes
+ * - deleteTransaction(userId, budgetId, transactionId) — hard delete; decrements payee stats
  * Types: TransactionInsert, TransactionUpdate, GetTransactionsOpts
  */
 import { and, desc, eq, gte, isNull, lte, or } from 'drizzle-orm';
@@ -12,6 +12,7 @@ import { db } from '../../db/client';
 import { financeAccounts, financeTransactions } from '../../db/schema/finances';
 import { omitNullish } from '../../utils';
 import { verifyBudgetAccess } from './budgets';
+import { incrementPayeeStats, decrementPayeeStats } from './payees';
 import type { FinanceTransaction, NewFinanceTransaction } from '../../types';
 import { TransactionTypes, type TransactionType } from '../../constants/finances';
 
@@ -109,6 +110,11 @@ export async function addTransaction(
       .returning();
 
     if (!row) throw new Error('Insert did not return a row');
+
+    if (data.payeeId != null) {
+      await incrementPayeeStats(tx, data.payeeId, userId, data.categoryId ?? null);
+    }
+
     return row;
   });
 }
@@ -190,14 +196,39 @@ export async function updateTransaction(
     throw new Error('Budget not found');
   }
 
-  const [row] = await db
-    .update(financeTransactions)
-    .set({ ...omitNullish(data), updatedAt: new Date() })
-    .where(and(eq(financeTransactions.id, transactionId), eq(financeTransactions.budgetId, budgetId)))
-    .returning();
+  return db.transaction(async tx => {
+    const [existing] = await tx
+      .select()
+      .from(financeTransactions)
+      .where(and(eq(financeTransactions.id, transactionId), eq(financeTransactions.budgetId, budgetId)));
 
-  if (!row) throw new Error('Transaction not found');
-  return row;
+    if (!existing) throw new Error('Transaction not found');
+
+    const [row] = await tx
+      .update(financeTransactions)
+      .set({ ...omitNullish(data), updatedAt: new Date() })
+      .where(and(eq(financeTransactions.id, transactionId), eq(financeTransactions.budgetId, budgetId)))
+      .returning();
+
+    if (!row) throw new Error('Transaction not found');
+
+    const oldPayeeId = existing.payeeId;
+    const newPayeeId = data.payeeId !== undefined ? data.payeeId : oldPayeeId;
+    const payeeChanged = data.payeeId !== undefined && data.payeeId !== oldPayeeId;
+
+    if (payeeChanged) {
+      if (oldPayeeId != null) await decrementPayeeStats(tx, oldPayeeId, userId);
+      if (newPayeeId != null) {
+        const categoryId = data.categoryId !== undefined ? data.categoryId : existing.categoryId;
+        await incrementPayeeStats(tx, newPayeeId, userId, categoryId ?? null);
+      }
+    } else if (newPayeeId != null && data.categoryId !== undefined && data.categoryId !== existing.categoryId) {
+      // Same payee but category changed — update lastUsedCategoryId
+      await incrementPayeeStats(tx, newPayeeId, userId, data.categoryId ?? null);
+    }
+
+    return row;
+  });
 }
 
 export async function deleteTransaction(userId: string, budgetId: number, transactionId: number): Promise<void> {
@@ -205,7 +236,20 @@ export async function deleteTransaction(userId: string, budgetId: number, transa
     throw new Error('Budget not found');
   }
 
-  await db
-    .delete(financeTransactions)
-    .where(and(eq(financeTransactions.id, transactionId), eq(financeTransactions.budgetId, budgetId)));
+  await db.transaction(async tx => {
+    const [existing] = await tx
+      .select()
+      .from(financeTransactions)
+      .where(and(eq(financeTransactions.id, transactionId), eq(financeTransactions.budgetId, budgetId)));
+
+    if (!existing) return;
+
+    await tx
+      .delete(financeTransactions)
+      .where(and(eq(financeTransactions.id, transactionId), eq(financeTransactions.budgetId, budgetId)));
+
+    if (existing.payeeId != null) {
+      await decrementPayeeStats(tx, existing.payeeId, userId);
+    }
+  });
 }

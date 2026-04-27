@@ -10,6 +10,7 @@ export { Input } from './Input';
 export { MultiButtonGroup } from './MultiButtonGroup';
 export { PageHeader } from './PageHeader';
 export { PasswordStrength } from './PasswordStrength';
+export { Pill } from './Pill';
 export { Providers } from './Providers';
 export { SectionCard } from './SectionCard';
 export { Select } from './Select';
