@@ -97,7 +97,8 @@ export class RouteHttpError extends Error {
   }
 
   toResponse(): Response {
-    return NextResponse.json(this.payload, { status: this.status });
+    const payload = typeof this.payload === 'string' ? { error: this.payload } : this.payload;
+    return NextResponse.json(payload, { status: this.status });
   }
 }
 

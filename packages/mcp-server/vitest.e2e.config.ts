@@ -6,8 +6,8 @@ export default defineConfig({
     testTimeout: 30_000,
     hookTimeout: 30_000,
     // E2e tests are stateful — run files and tests sequentially
-    pool: 'forks',
-    poolOptions: { forks: { singleFork: true } },
+    maxWorkers: 1,
+    isolate: false,
     sequence: { concurrent: false },
     setupFiles: ['e2e/helpers/load-env.ts'],
     globalSetup: 'e2e/global.setup.ts',
