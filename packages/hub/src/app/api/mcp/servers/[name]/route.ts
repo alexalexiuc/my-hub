@@ -1,21 +1,17 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import { setMcpServerEnabled } from '@my-hub/shared/services';
 import { McpServerName } from '@my-hub/shared/constants';
 
 const VALID_NAMES = new Set<string>(Object.values(McpServerName));
 
-export const PATCH = withAuth<{ name: string }>(async ({ req, user, params }) => {
-  const { name } = await params;
-  if (!VALID_NAMES.has(name)) {
-    return NextResponse.json({ error: 'Unknown server name' }, { status: 400 });
-  }
+export const PATCH = route({ params: z.object({ name: z.string() }), body: z.object({ enabled: z.boolean() }) })(
+  async ({ user, params, body }) => {
+    if (!VALID_NAMES.has(params.name)) {
+      routeHttpError(400, { error: 'Unknown server name' });
+    }
 
-  const body = (await req.json()) as { enabled?: boolean };
-  if (typeof body.enabled !== 'boolean') {
-    return NextResponse.json({ error: 'enabled (boolean) is required' }, { status: 400 });
-  }
-
-  const row = await setMcpServerEnabled(user.id, name as McpServerName, body.enabled);
-  return NextResponse.json(row);
-});
+    const row = await setMcpServerEnabled(user.id, params.name as McpServerName, body.enabled);
+    return row;
+  },
+);

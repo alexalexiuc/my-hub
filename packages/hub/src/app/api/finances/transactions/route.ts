@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError, created } from '@/lib/api/route';
 import {
   getUserBudgets,
   addTransaction,
@@ -10,24 +10,44 @@ import {
   getTransactions,
 } from '@my-hub/shared/services';
 import type { TransactionInsert } from '@my-hub/shared/services';
+import { TransactionTypes } from '@my-hub/shared/constants';
+const TransactionCreateSchema = z.object({
+  type: z.enum(Object.values(TransactionTypes) as [string, ...string[]]),
+  accountId: z.number().int().positive(),
+  toAccountId: z.number().int().positive().optional(),
+  amount: z.number(),
+  date: z.string().min(1, 'date is required'),
+  categoryId: z.number().int().positive().nullable().optional(),
+  payeeName: z.string().optional(),
+  notes: z.string().optional(),
+  exchangeRate: z.number().optional(),
+  isCorrection: z.boolean().optional(),
+});
 
-export const GET = withAuth(async ({ req, user }) => {
-  const { searchParams } = new URL(req.url);
-  const type = searchParams.get('type') as 'expense' | 'income' | 'transfer' | null;
-  const limit = Math.min(Number(searchParams.get('limit') ?? 50), 200);
-  const offset = Number(searchParams.get('offset') ?? 0);
+const TransactionQuerySchema = z.object({
+  type: z.enum(Object.values(TransactionTypes) as [string, ...string[]]).optional(),
+  limit: z.coerce.number().int().positive().max(200).optional(),
+  offset: z.coerce.number().int().nonnegative().optional(),
+});
 
+export const GET = route({ query: TransactionQuerySchema })(async ({ user, query }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
+  const limit = Math.min(query.limit ?? 50, 200);
+  const offset = query.offset ?? 0;
 
   const [accounts, categories, payees, txns] = await Promise.all([
     getAccounts(user.id, budgetId),
     getCategories(user.id, budgetId),
     getPayees(user.id, budgetId),
-    getTransactions(user.id, budgetId, { type: type ?? undefined, limit, offset }),
+    getTransactions(user.id, budgetId, {
+      type: query.type as 'expense' | 'income' | 'transfer' | undefined,
+      limit,
+      offset,
+    }),
   ]);
 
   const accountMap = new Map(accounts.map(a => [a.id, a]));
@@ -54,63 +74,38 @@ export const GET = withAuth(async ({ req, user }) => {
     };
   });
 
-  return NextResponse.json({ transactions: items, currency: budget.defaultCurrency });
+  return { transactions: items, currency: budget.defaultCurrency };
 });
 
-export const POST = withAuth(async ({ req, user }) => {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const { type, accountId, toAccountId, amount, date, categoryId, payeeName, notes, exchangeRate, isCorrection } =
-    body as {
-      type?: string;
-      accountId?: number;
-      toAccountId?: number;
-      amount?: number;
-      date?: string;
-      categoryId?: number | null;
-      payeeName?: string;
-      notes?: string;
-      exchangeRate?: number;
-      isCorrection?: boolean;
-    };
-
-  if (!type || !accountId || amount == null || !date) {
-    return NextResponse.json({ error: 'type, accountId, amount, date are required' }, { status: 400 });
-  }
-
+export const POST = route({ body: TransactionCreateSchema })(async ({ user, body }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
 
   let payeeId: number | null = null;
-  if (payeeName?.trim()) {
-    const payee = await upsertPayee(user.id, budgetId, payeeName.trim());
+  if (body.payeeName?.trim()) {
+    const payee = await upsertPayee(user.id, budgetId, body.payeeName.trim());
     payeeId = payee.id;
   }
 
   const data: TransactionInsert = {
-    type: type as TransactionInsert['type'],
-    accountId,
-    toAccountId: toAccountId ?? null,
-    amount: String(amount),
-    exchangeRate: String(exchangeRate ?? 1),
-    date,
-    categoryId: categoryId ?? null,
+    type: body.type as TransactionInsert['type'],
+    accountId: body.accountId,
+    toAccountId: body.toAccountId ?? null,
+    amount: String(body.amount),
+    exchangeRate: String(body.exchangeRate ?? 1),
+    date: body.date,
+    categoryId: body.categoryId ?? null,
     payeeId,
-    notes: notes?.trim() || null,
-    isCorrection: isCorrection === true,
+    notes: body.notes?.trim() || null,
+    isCorrection: body.isCorrection === true,
     fromAccountBalanceAfter: null,
     toAccountBalanceAfter: null,
     extras: null,
   };
 
   const transaction = await addTransaction(user.id, budgetId, data);
-  return NextResponse.json({ transaction }, { status: 201 });
+  return created({ transaction });
 });

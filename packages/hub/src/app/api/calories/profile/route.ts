@@ -1,38 +1,38 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
-import { formatZodError } from '@/lib/api/with-error-logging';
+import { z } from 'zod';
+import { route } from '@/lib/api/route';
 import { getCalorieProfile, upsertCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shared/services';
-import { ProfileUpdateSchema } from '@my-hub/shared/schemas';
+import { ActivityLevelsValues, GoalTypesValues, SexesValues } from '@my-hub/shared/constants';
 
-export const GET = withAuth(async ({ user }) => {
+const ProfileUpdateSchema = z.object({
+  age: z.number().int().positive().optional(),
+  sex: z.enum(SexesValues as [string, ...string[]]).optional(),
+  heightCm: z.number().positive().optional(),
+  activityLevel: z.enum(ActivityLevelsValues as [string, ...string[]]).optional(),
+  goalType: z.enum(GoalTypesValues as [string, ...string[]]).optional(),
+  goalWeeklyRateKg: z.number().optional(),
+  goalMinCalories: z.number().int().nonnegative().nullable().optional(),
+  goalMaxCalories: z.number().int().nonnegative().nullable().optional(),
+  goalProtein: z.number().nonnegative().nullable().optional(),
+  goalCarbs: z.number().nonnegative().nullable().optional(),
+  goalFat: z.number().nonnegative().nullable().optional(),
+  notes: z.string().optional(),
+});
+
+export const GET = route(async ({ user }) => {
   const [profile, measurements] = await Promise.all([
     getCalorieProfile(user.id),
     getLatestMeasurementsPerType(user.id),
   ]);
-
-  return NextResponse.json({ profile: profile ?? null, measurements });
+  return { profile: profile ?? null, measurements };
 });
 
-export const PUT = withAuth(async ({ req, user }) => {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const parsed = ProfileUpdateSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
-  }
-
-  const { data } = parsed;
-  const updates: Record<string, unknown> = { ...data };
+export const PUT = route({ body: ProfileUpdateSchema })(async ({ user, body }) => {
+  const updates: Record<string, unknown> = { ...body };
 
   for (const key of ['goalMinCalories', 'goalMaxCalories'] as const) {
     if (typeof updates[key] === 'number') updates[key] = Math.round(updates[key] as number);
   }
 
   const profile = await upsertCalorieProfile(user.id, updates);
-  return NextResponse.json({ profile });
+  return { profile };
 });

@@ -1,20 +1,19 @@
-import { NextResponse } from 'next/server';
 import { PromiseCacheX } from 'promise-cachex';
 import { findUserById, createEmailVerificationToken, sendEmailVerificationEmail } from '@my-hub/shared/services';
 import { EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES } from '@my-hub/shared/constants';
-import { withAuth } from '@/lib/api/with-auth';
+import { route, routeHttpError } from '@/lib/api/route';
 import { hubEnvConfig } from '@/config/env';
 
 const RATE_LIMIT_TTL_MS = 5 * 60 * 1000; // 5 minutes between resends
 
 const resendCache = new PromiseCacheX({ ttl: RATE_LIMIT_TTL_MS, maxEntries: 1000 });
 
-export const POST = withAuth(async ({ user }) => {
+export const POST = route(async ({ user }) => {
   const fullUser = await findUserById(user.id);
-  if (!fullUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!fullUser) routeHttpError(401, { error: 'Unauthorized' });
 
   if (fullUser.emailVerified) {
-    return NextResponse.json({ error: 'Email is already verified' }, { status: 400 });
+    routeHttpError(400, { error: 'Email is already verified' });
   }
 
   const requestSentAt = await resendCache.get(user.id, async () => {
@@ -28,5 +27,5 @@ export const POST = withAuth(async ({ user }) => {
   });
 
   const retryAfter = Math.ceil((RATE_LIMIT_TTL_MS - (Date.now() - requestSentAt)) / 1000);
-  return NextResponse.json({ ok: true, retryAfter });
+  return { ok: true, retryAfter };
 });

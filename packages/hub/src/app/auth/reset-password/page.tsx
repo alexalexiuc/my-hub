@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ResetPasswordSchema, type ResetPasswordInput } from '@my-hub/shared/schemas';
+import { ResetPasswordSchema, type ResetPasswordInput } from '@/lib/schemas/auth';
 import { apiFetch, ApiError } from '@/lib/utils';
 import { Button, Field, Input, PasswordStrength } from '@/components';
 

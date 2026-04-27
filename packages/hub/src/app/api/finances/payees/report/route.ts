@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import { getUserBudgets, getPayees, getCategories, getTransactions } from '@my-hub/shared/services';
 
 export interface PayeeReportItem {
@@ -27,13 +27,15 @@ function getFromDate(range: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-export const GET = withAuth(async ({ req, user }) => {
-  const { searchParams } = new URL(req.url);
-  const range = searchParams.get('range') ?? '30d';
+export const GET = route({ query: z.object({ range: z.enum(['30d', '3m', 'ytd']).default('30d') }) })(async ({
+  user,
+  query,
+}) => {
+  const { range } = query;
 
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
   const fromDate = getFromDate(range);
@@ -91,5 +93,5 @@ export const GET = withAuth(async ({ req, user }) => {
     })
     .sort((a, b) => b.totalSpent - a.totalSpent);
 
-  return NextResponse.json({ currency: budget.defaultCurrency, payees: items });
+  return { currency: budget.defaultCurrency, payees: items };
 });

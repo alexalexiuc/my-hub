@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import {
   getUserBudgets,
   getAccountById,
@@ -10,6 +10,9 @@ import {
 } from '@my-hub/shared/services';
 import type { BorrowedLentAccountDetails } from '@my-hub/shared/constants';
 import type { AccountItem, AccountDetailData, AccountTransaction } from '@/app/finances/accounts/types';
+const AccountPatchSchema = z.object({
+  action: z.literal('settle'),
+});
 
 function flattenAccount(a: NonNullable<Awaited<ReturnType<typeof getAccountById>>>): AccountItem {
   const details = a.details as Record<string, unknown> | null;
@@ -24,13 +27,12 @@ function flattenAccount(a: NonNullable<Awaited<ReturnType<typeof getAccountById>
   } as AccountItem;
 }
 
-export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
-  const accountId = Number((await params).id);
-  if (isNaN(accountId)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+export const GET = route({ params: z.object({ id: z.coerce.number().int().positive() }) })(async ({ user, params }) => {
+  const accountId = params.id;
 
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
 
@@ -41,7 +43,7 @@ export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
     getTransactions(user.id, budgetId, { accountId, limit: 50, includeCorrections: true }),
   ]);
 
-  if (!rawAccount) return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+  if (!rawAccount) routeHttpError(404, { error: 'Account not found' });
 
   const account = flattenAccount(rawAccount);
   const categoryMap = new Map(categories.map(c => [c.id, c]));
@@ -68,36 +70,28 @@ export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
   });
 
   const data: AccountDetailData = { account, transactions };
-  return NextResponse.json(data);
+  return data;
 });
 
-export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
-  const accountId = Number((await params).id);
-  if (isNaN(accountId)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+export const PATCH = route({ params: z.object({ id: z.coerce.number().int().positive() }), body: AccountPatchSchema })(
+  async ({ user, params, body }) => {
+    const accountId = params.id;
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
+    const budgets = await getUserBudgets(user.id);
+    const budget = budgets[0];
+    if (!budget) routeHttpError(404, { error: 'No budget found' });
 
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+    const existing = await getAccountById(user.id, budget.id, accountId);
+    if (!existing) routeHttpError(404, { error: 'Account not found' });
 
-  const existing = await getAccountById(user.id, budget.id, accountId);
-  if (!existing) return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+    if (body.action === 'settle') {
+      const currentDetails = (existing.details ?? {}) as BorrowedLentAccountDetails;
+      const updated = await updateAccount(user.id, budget.id, accountId, {
+        details: { ...currentDetails, settled: true },
+      });
+      return { account: updated };
+    }
 
-  const { action } = body as { action?: string };
-
-  if (action === 'settle') {
-    const currentDetails = (existing.details ?? {}) as BorrowedLentAccountDetails;
-    const updated = await updateAccount(user.id, budget.id, accountId, {
-      details: { ...currentDetails, settled: true },
-    });
-    return NextResponse.json({ account: updated });
-  }
-
-  return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
-});
+    routeHttpError(400, { error: 'Unknown action' });
+  },
+);

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ApiaryLog, ApiaryHive } from '@my-hub/shared/types';
-import { ApiaryLogTypes } from '@my-hub/shared/schemas';
+import { ApiaryLogTypes } from '@/lib/schemas/apiary';
 import { SectionCard } from '@/components/SectionCard';
 import { Button, Input, Select, Textarea } from '@/components';
 import { apiFetch } from '@/lib/utils';

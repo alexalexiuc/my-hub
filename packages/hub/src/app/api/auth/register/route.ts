@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import {
   createUserWithPassword,
   claimInviteToken,
@@ -7,31 +7,20 @@ import {
   sendEmailVerificationEmail,
 } from '@my-hub/shared/services';
 import { PASSWORD_RULES, EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES } from '@my-hub/shared/constants';
-import { withErrorLogging } from '@/lib/api/with-error-logging';
+import { created, route, routeHttpError } from '@/lib/api/route';
 import { hubEnvConfig } from '@/config/env';
 import { logger } from '@my-hub/shared/utils';
 
-async function registerHandler(req: Request) {
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
+const RegisterBodySchema = z.object({
+  email: z.string().min(1, 'email is required'),
+  password: z.string().min(1, 'password is required'),
+  name: z.string().optional(),
+  inviteToken: z.string().optional(),
+});
 
-  const { email, password, name, inviteToken } = body as {
-    email?: string;
-    password?: string;
-    name?: string;
-    inviteToken?: string;
-  };
+export const POST = route({ public: true, body: RegisterBodySchema })(async ({ body }) => {
+  const { email, password, name, inviteToken } = body;
 
-  if (!email || typeof email !== 'string') {
-    return NextResponse.json({ error: 'email is required' }, { status: 400 });
-  }
-  if (!password || typeof password !== 'string') {
-    return NextResponse.json({ error: 'password is required' }, { status: 400 });
-  }
   if (
     password.length < PASSWORD_RULES.minLength ||
     !PASSWORD_RULES.hasUppercase.test(password) ||
@@ -39,11 +28,9 @@ async function registerHandler(req: Request) {
     !PASSWORD_RULES.hasNumber.test(password) ||
     !PASSWORD_RULES.hasSpecial.test(password)
   ) {
-    return NextResponse.json(
-      {
-        error: `Password must be at least ${PASSWORD_RULES.minLength} characters and include uppercase, lowercase, a number, and a special character`,
-      },
-      { status: 400 },
+    return routeHttpError(
+      400,
+      `Password must be at least ${PASSWORD_RULES.minLength} characters and include uppercase, lowercase, a number, and a special character`,
     );
   }
 
@@ -56,11 +43,11 @@ async function registerHandler(req: Request) {
   // where two concurrent requests could both pass a non-atomic validate+consume check.
   if (needsToken) {
     if (!inviteToken) {
-      return NextResponse.json({ error: 'An invite link is required to register' }, { status: 403 });
+      return routeHttpError(403, 'An invite link is required to register');
     }
     const claimed = await claimInviteToken(inviteToken);
     if (!claimed) {
-      return NextResponse.json({ error: 'Invite link is invalid or already used' }, { status: 403 });
+      return routeHttpError(403, 'Invite link is invalid or already used');
     }
   }
 
@@ -91,14 +78,12 @@ async function registerHandler(req: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true }, { status: 201 });
+    return created({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Registration failed';
     if (message === 'Email already registered') {
-      return NextResponse.json({ error: message }, { status: 409 });
+      return routeHttpError(409, message);
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+    return routeHttpError(500, message);
   }
-}
-
-export const POST = withErrorLogging(registerHandler);
+});

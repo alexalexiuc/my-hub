@@ -1,61 +1,57 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
-import { formatZodError } from '@/lib/api/with-error-logging';
+import { z } from 'zod';
+import { route, created } from '@/lib/api/route';
 import { getMeals, getMealsForDateRange, logMeal } from '@my-hub/shared/services';
-import type { MealType } from '@my-hub/shared/constants';
 import { MealTypesValues } from '@my-hub/shared/constants';
-import { MealCreateSchema } from '@my-hub/shared/schemas';
+import type { MealType } from '@my-hub/shared/constants';
 
-function isMealType(value: string): value is MealType {
-  return MealTypesValues.includes(value as MealType);
-}
-
-export const GET = withAuth(async ({ req, user }) => {
-  const { searchParams } = new URL(req.url);
-  const date = searchParams.get('date') ?? undefined;
-  const dateFrom = searchParams.get('dateFrom') ?? undefined;
-  const dateTo = searchParams.get('dateTo') ?? undefined;
-  const mealTypeParam = searchParams.get('mealType');
-  const mealType = mealTypeParam && isMealType(mealTypeParam) ? mealTypeParam : undefined;
-  const limit = searchParams.get('limit') ? Number(searchParams.get('limit')) : 100;
-
-  if (dateFrom && dateTo) {
-    const meals = await getMealsForDateRange(user.id, dateFrom, dateTo);
-    return NextResponse.json({ meals });
-  }
-
-  const meals = await getMeals(user.id, { date, mealType, limit });
-  return NextResponse.json({ meals });
+const MealQuerySchema = z.object({
+  date: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  mealType: z.string().optional(),
+  limit: z.coerce.number().int().positive().optional(),
 });
 
-export const POST = withAuth(async ({ req, user }) => {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+const MealCreateSchema = z.object({
+  description: z.string().trim().min(1, 'description is required'),
+  mealType: z.enum(MealTypesValues),
+  date: z.string().optional(),
+  kcal: z.number().optional(),
+  protein: z.number().optional(),
+  carbs: z.number().optional(),
+  fat: z.number().optional(),
+  notes: z.string().optional(),
+});
+
+export const GET = route({ query: MealQuerySchema })(async ({ user, query }) => {
+  if (query.dateFrom && query.dateTo) {
+    const meals = await getMealsForDateRange(user.id, query.dateFrom, query.dateTo);
+    return { meals };
   }
 
-  const parsed = MealCreateSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
-  }
+  const meals = await getMeals(user.id, {
+    date: query.date,
+    mealType: query.mealType as MealType | undefined,
+    limit: query.limit ?? 100,
+  });
+  return { meals };
+});
 
-  const { data } = parsed;
+export const POST = route({ body: MealCreateSchema })(async ({ user, body }) => {
   const today = new Date().toISOString().split('T')[0]!;
 
   const meal = await logMeal({
     mealId: crypto.randomUUID(),
     userId: user.id,
-    date: data.date ?? today,
-    mealType: data.mealType as MealType,
-    description: data.description,
-    kcal: data.kcal != null ? Math.round(data.kcal) : null,
-    protein: data.protein ?? null,
-    carbs: data.carbs ?? null,
-    fat: data.fat ?? null,
-    notes: data.notes ?? null,
+    date: body.date ?? today,
+    mealType: body.mealType as MealType,
+    description: body.description,
+    kcal: body.kcal != null ? Math.round(body.kcal) : null,
+    protein: body.protein ?? null,
+    carbs: body.carbs ?? null,
+    fat: body.fat ?? null,
+    notes: body.notes ?? null,
   });
 
-  return NextResponse.json({ meal }, { status: 201 });
+  return created({ meal });
 });

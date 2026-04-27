@@ -1,14 +1,13 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route } from '@/lib/api/route';
 import { fetchWeeklyReportCaloriesData, buildWeeklyReportHtml } from '@my-hub/shared/services';
 
 /**
  * GET /api/calories/reports/weekly-preview?weekStart=YYYY-MM-DD
  * Returns the rendered weekly report HTML for the authenticated user.
  */
-export const GET = withAuth(async ({ req, user }) => {
-  const url = new URL(req.url);
-  const weekStartParam = url.searchParams.get('weekStart');
+export const GET = route({ query: z.object({ weekStart: z.string().optional() }) })(async ({ user, query }) => {
+  const weekStartParam = query.weekStart;
 
   let weekStart: Date;
   if (weekStartParam && /^\d{4}-\d{2}-\d{2}$/.test(weekStartParam)) {
@@ -25,8 +24,8 @@ export const GET = withAuth(async ({ req, user }) => {
 
   const data = await fetchWeeklyReportCaloriesData(user.id, weekStart);
   if (!data) {
-    return NextResponse.json({ skipped: 'no_data' });
+    return { skipped: 'no_data' };
   }
 
-  return NextResponse.json({ html: buildWeeklyReportHtml(data) });
+  return { html: buildWeeklyReportHtml(data) };
 });

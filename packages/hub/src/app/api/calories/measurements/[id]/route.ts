@@ -1,14 +1,13 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import { deleteMeasurement } from '@my-hub/shared/services';
 
-export const DELETE = withAuth<{ id: string }>(async ({ user, params }) => {
-  const { id } = await params;
-  const numId = Number(id);
-  if (isNaN(numId)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+export const DELETE = route({ params: z.object({ id: z.string() }) })(async ({ user, params }) => {
+  const numId = Number(params.id);
+  if (isNaN(numId)) routeHttpError(400, { error: 'Invalid id' });
 
   const deleted = await deleteMeasurement(numId, user.id);
-  if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!deleted) routeHttpError(404, { error: 'Not found' });
 
-  return NextResponse.json({ deleted: true });
+  return { deleted: true };
 });

@@ -35,7 +35,7 @@ function getClientIp(req: Request): string | undefined {
   return realIp || undefined;
 }
 
-async function writeApiLog(
+export async function writeApiLog(
   req: Request,
   statusCode: number,
   durationMs: number,

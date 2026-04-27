@@ -1,30 +1,27 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError, noContent } from '@/lib/api/route';
 import { deleteUserOAuthClient, setOAuthClientEnabled } from '@my-hub/shared/services';
 
-export const DELETE = withAuth<{ id: string }>(async ({ user, params }) => {
-  const { id } = await params;
-  const numId = Number(id);
+export const DELETE = route({ params: z.object({ id: z.string() }) })(async ({ user, params }) => {
+  const numId = Number(params.id);
   if (!Number.isInteger(numId) || numId <= 0) {
-    return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+    routeHttpError(400, { error: 'Invalid id' });
   }
 
   await deleteUserOAuthClient(numId, user.id);
-  return new NextResponse(null, { status: 204 });
+  return noContent();
 });
 
-export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
-  const { id } = await params;
-  const numId = Number(id);
+export const PATCH = route({ params: z.object({ id: z.string() }), body: z.object({ enabled: z.boolean() }) })(async ({
+  user,
+  params,
+  body,
+}) => {
+  const numId = Number(params.id);
   if (!Number.isInteger(numId) || numId <= 0) {
-    return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
-  }
-
-  const body = (await req.json()) as { enabled?: boolean };
-  if (typeof body.enabled !== 'boolean') {
-    return NextResponse.json({ error: 'enabled (boolean) is required' }, { status: 400 });
+    routeHttpError(400, { error: 'Invalid id' });
   }
 
   const row = await setOAuthClientEnabled(numId, user.id, body.enabled);
-  return NextResponse.json(row);
+  return row;
 });

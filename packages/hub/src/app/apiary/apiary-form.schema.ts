@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ApiaryLogTypes } from '@my-hub/shared/schemas';
+import { ApiaryLogTypes } from '@/lib/schemas/apiary';
 
 export const HiveFormSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),

@@ -1,11 +1,10 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { route, routeHttpError } from '@/lib/api/route';
 import { getUserBudgets, getAccounts, getCategories, getPayees, getTransactions } from '@my-hub/shared/services';
 
-export const GET = withAuth(async ({ user }) => {
+export const GET = route(async ({ user }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
 
@@ -29,7 +28,7 @@ export const GET = withAuth(async ({ user }) => {
     }
   }
 
-  return NextResponse.json({
+  return {
     currency: budget.defaultCurrency,
     accounts: accounts.map(a => ({ id: a.id, name: a.name, type: a.type, currency: a.currency })),
     categories: categories.map(c => ({
@@ -40,5 +39,5 @@ export const GET = withAuth(async ({ user }) => {
       groupId: c.groupId ?? null,
     })),
     payeeSuggestions: suggestions,
-  });
+  };
 });

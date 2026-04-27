@@ -1,21 +1,21 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError, created } from '@/lib/api/route';
 import { getUserBudgets, createGroup } from '@my-hub/shared/services';
 
-export const POST = withAuth(async ({ req, user }) => {
-  const body = await req.json();
-  const { name, sortOrder } = body as { name: string; sortOrder?: number };
+const GroupCreateSchema = z.object({
+  name: z.string().trim().min(1, 'name is required'),
+  sortOrder: z.number().int().nonnegative().optional(),
+});
 
-  if (!name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
-
+export const POST = route({ body: GroupCreateSchema })(async ({ user, body }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const group = await createGroup(user.id, budget.id, {
-    name: name.trim(),
-    sortOrder: sortOrder ?? 0,
+    name: body.name.trim(),
+    sortOrder: body.sortOrder ?? 0,
   });
 
-  return NextResponse.json(group, { status: 201 });
+  return created(group);
 });

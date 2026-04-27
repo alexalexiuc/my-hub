@@ -1,10 +1,9 @@
-import { NextResponse } from 'next/server';
 import { PromiseCacheX } from 'promise-cachex';
 import { createPasswordResetToken, sendPasswordResetEmail } from '@my-hub/shared/services';
 import { PASSWORD_RESET_TOKEN_EXPIRY_MINUTES, RETRY_PWD_RESET_AFTER_MINS } from '@my-hub/shared/constants';
-import { ForgotPasswordSchema } from '@my-hub/shared/schemas';
-import { withErrorLogging, formatZodError } from '@/lib/api/with-error-logging';
+import { ForgotPasswordSchema } from '@/lib/schemas/auth';
 import { hubEnvConfig } from '@/config/env';
+import { route } from '@/lib/api/route';
 
 const RATE_LIMIT_TTL_MS = RETRY_PWD_RESET_AFTER_MINS * 60 * 1000;
 
@@ -12,20 +11,8 @@ const RATE_LIMIT_TTL_MS = RETRY_PWD_RESET_AFTER_MINS * 60 * 1000;
 // and repeat requests within the window get the cached result without re-sending.
 const resetCache = new PromiseCacheX({ ttl: RATE_LIMIT_TTL_MS, maxEntries: 1000 });
 
-async function forgotPasswordHandler(req: Request) {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const parsed = ForgotPasswordSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
-  }
-
-  const normalizedEmail = parsed.data.email.toLowerCase();
+export const POST = route({ public: true, body: ForgotPasswordSchema })(async ({ body }) => {
+  const normalizedEmail = body.email.toLowerCase();
 
   // Cached per email for the TTL window: concurrent requests coalesce onto one promise
   // (no duplicate emails sent), and repeat requests within the window return immediately
@@ -49,7 +36,5 @@ async function forgotPasswordHandler(req: Request) {
   });
 
   const retryAfter = Math.ceil((RATE_LIMIT_TTL_MS - (Date.now() - requestSentAt)) / 1000);
-  return NextResponse.json({ ok: true, ...(retryAfter !== undefined && { retryAfter }) });
-}
-
-export const POST = withErrorLogging(forgotPasswordHandler);
+  return { ok: true, ...(retryAfter !== undefined && { retryAfter }) };
+});

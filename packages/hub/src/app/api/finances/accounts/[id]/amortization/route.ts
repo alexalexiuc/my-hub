@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import { getUserBudgets, getAccountById } from '@my-hub/shared/services';
 import type { LoanAccountDetails } from '@my-hub/shared/constants';
 
@@ -37,17 +37,17 @@ function toDateStr(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
-  const accountId = Number((await params).id);
-  if (isNaN(accountId)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+export const GET = route({ params: z.object({ id: z.string() }) })(async ({ user, params }) => {
+  const accountId = Number(params.id);
+  if (isNaN(accountId)) routeHttpError(400, { error: 'Invalid id' });
 
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const account = await getAccountById(user.id, budget.id, accountId);
-  if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 });
-  if (account.type !== 'loan') return NextResponse.json({ error: 'Not a loan account' }, { status: 400 });
+  if (!account) routeHttpError(404, { error: 'Account not found' });
+  if (account.type !== 'loan') routeHttpError(400, { error: 'Not a loan account' });
 
   const details = account.details as LoanAccountDetails;
   const { principal, interestRate, termMonths, startDate } = details;
@@ -106,5 +106,5 @@ export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
     rows,
   };
 
-  return NextResponse.json(data);
+  return data;
 });
