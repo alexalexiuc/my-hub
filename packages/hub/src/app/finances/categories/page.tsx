@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar, Divider, CategoryIcon } from '../ui';
 import { AddCategoryModal } from './AddCategoryModal';
@@ -64,22 +65,20 @@ function CatRow({ cat, currency }: { cat: CategoryRow; currency: string }) {
 
   return (
     <div className="px-[14px] py-[10px]">
-      <div className="flex items-center gap-2.5" style={{ marginBottom: pct !== null ? 8 : 0 }}>
+      <div className={cn('flex items-center gap-2.5', pct !== null ? 'mb-2' : 'mb-0')}>
         <CategoryIcon color={cat.color} icon={cat.icon} size="lg" fallback={cat.name[0]?.toUpperCase() ?? '?'} />
         <div className="flex-1">
-          <div className="text-[13px] font-medium" style={{ color: 'var(--fin-text)' }}>
-            {cat.name}
-          </div>
+          <div className="text-[13px] font-medium text-[var(--fin-text)]">{cat.name}</div>
           {cat.monthlyTarget && (
-            <div className="text-[10px]" style={{ color: 'var(--fin-subtle)' }}>
-              Target {fmt(cat.monthlyTarget, currency)}/mo
-            </div>
+            <div className="text-[10px] text-[var(--fin-subtle)]">Target {fmt(cat.monthlyTarget, currency)}/mo</div>
           )}
         </div>
         <div className="text-right">
           <div
-            className="text-sm font-semibold"
-            style={{ color: pct !== null && pct >= 100 ? 'var(--fin-red)' : 'var(--fin-text)' }}
+            className={cn(
+              'text-sm font-semibold',
+              pct !== null && pct >= 100 ? 'text-[var(--fin-red)]' : 'text-[var(--fin-text)]',
+            )}
           >
             {fmt(cat.spent, currency)}
           </div>
@@ -113,38 +112,28 @@ function GroupSection({
 
   return (
     <div>
-      <div className="mb-1.5 flex items-center justify-between px-1 py-[6px]" style={{}}>
+      <div className="mb-1.5 flex items-center justify-between px-1 py-[6px]">
         <div className="flex items-center gap-2">
           <div style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
-          <span className="text-[13px] font-semibold" style={{ color: 'var(--fin-text)' }}>
-            {group.name}
-          </span>
+          <span className="text-[13px] font-semibold text-[var(--fin-text)]">{group.name}</span>
         </div>
         <div className="flex items-center gap-2">
           {groupTarget > 0 && (
-            <span className="text-[11px]" style={{ color: 'var(--fin-subtle)' }}>
+            <span className="text-[11px] text-[var(--fin-subtle)]">
               {fmt(groupSpent, currency)} / {fmt(groupTarget, currency)}
             </span>
           )}
           {groupPct !== null && (
             <span
               className="rounded-[20px] px-[7px] py-[2px] text-[10px] font-semibold"
-              style={{
-                background: color + '22',
-                color,
-              }}
+              style={{ background: color + '22', color }}
             >
               {groupPct}%
             </span>
           )}
           <button
             onClick={() => onAddCategory(group.id)}
-            className="cursor-pointer rounded-md border px-2 py-[2px] text-[10px]"
-            style={{
-              background: 'transparent',
-              border: `1px dashed ${'var(--fin-border)'}`,
-              color: 'var(--fin-subtle)',
-            }}
+            className="cursor-pointer rounded-md border border-dashed border-[var(--fin-border)] bg-transparent px-2 py-[2px] text-[10px] text-[var(--fin-subtle)]"
           >
             + Add
           </button>
@@ -158,9 +147,7 @@ function GroupSection({
           </div>
         ))}
         {group.categories.length === 0 && (
-          <div className="p-[14px] text-center text-xs" style={{ color: 'var(--fin-subtle)' }}>
-            No categories in this group
-          </div>
+          <div className="p-[14px] text-center text-xs text-[var(--fin-subtle)]">No categories in this group</div>
         )}
       </Card>
     </div>
@@ -206,29 +193,16 @@ export default function CategoriesPage() {
   return (
     <div className="flex flex-col gap-[14px]">
       <div className="flex items-center justify-between">
-        <div className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: 'var(--fin-text)' }}>
-          Categories
-        </div>
+        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Categories</div>
         <div className="relative">
           <button
             onClick={() => setShowNewMenu(v => !v)}
-            className="cursor-pointer rounded-[20px] border px-3 py-1.5 text-[11px]"
-            style={{
-              background: 'var(--fin-card2)',
-              border: `1px solid ${'var(--fin-border)'}`,
-              color: 'var(--fin-muted)',
-            }}
+            className="cursor-pointer rounded-[20px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-1.5 text-[11px] text-[var(--fin-muted)]"
           >
             + New
           </button>
           {showNewMenu && (
-            <div
-              className="absolute right-0 top-[calc(100%+6px)] z-[100] min-w-[150px] rounded-[10px] p-1"
-              style={{
-                background: 'var(--fin-card)',
-                border: `1px solid ${'var(--fin-border)'}`,
-              }}
-            >
+            <div className="absolute right-0 top-[calc(100%+6px)] z-[100] min-w-[150px] rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)] p-1">
               {[
                 {
                   label: '📂 New Group',
@@ -242,16 +216,7 @@ export default function CategoriesPage() {
                 <button
                   key={item.label}
                   onClick={item.action}
-                  className="block w-full cursor-pointer rounded-[7px] border-none px-3 py-2 text-left text-xs"
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--fin-text)',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--fin-card2)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  className="block w-full cursor-pointer rounded-[7px] border-none bg-transparent px-3 py-2 text-left text-xs text-[var(--fin-text)] hover:bg-[var(--fin-card2)]"
                 >
                   {item.label}
                 </button>
@@ -269,13 +234,13 @@ export default function CategoriesPage() {
             <button
               key={m.value}
               onClick={() => setSelectedMonth(m.value)}
-              className="cursor-pointer rounded-[20px] px-3 py-[5px] text-[11px]"
-              style={{
-                background: active ? 'var(--fin-accent-d)' : 'var(--fin-card2)',
-                border: active ? `1px solid ${'var(--fin-accent)'}44` : `1px solid ${'var(--fin-border)'}`,
-                color: active ? 'var(--fin-accent)' : 'var(--fin-muted)',
-                fontWeight: active ? 600 : 400,
-              }}
+              className={cn(
+                'cursor-pointer rounded-[20px] px-3 py-[5px] text-[11px]',
+                active
+                  ? 'bg-[var(--fin-accent-d)] text-[var(--fin-accent)] font-semibold'
+                  : 'bg-[var(--fin-card2)] text-[var(--fin-muted)]',
+              )}
+              style={{ border: active ? `1px solid var(--fin-accent)44` : `1px solid var(--fin-border)` }}
             >
               {m.label}
             </button>
@@ -288,8 +253,8 @@ export default function CategoriesPage() {
           {[80, 140, 120].map((h, i) => (
             <div
               key={i}
-              className="rounded-[10px] border"
-              style={{ height: h, background: 'var(--fin-card)', borderColor: 'var(--fin-border)', opacity: 0.6 }}
+              className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+              style={{ height: h, opacity: 0.6 }}
             />
           ))}
         </div>
@@ -299,16 +264,14 @@ export default function CategoriesPage() {
             {/* Rainbow spend bar */}
             <Card className="p-[14px]">
               <div className="mb-2 flex justify-between">
-                <span className="text-[13px]" style={{ color: 'var(--fin-muted)' }}>
-                  Total spent
-                </span>
-                <span className="text-base font-bold" style={{ color: 'var(--fin-text)' }}>
+                <span className="text-[13px] text-[var(--fin-muted)]">Total spent</span>
+                <span className="text-base font-bold text-[var(--fin-text)]">
                   {fmt(data.totalSpent, data.currency)}
                 </span>
               </div>
               {data.totalSpent > 0 && (
                 <>
-                  <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', gap: 1 }}>
+                  <div className="flex h-2 overflow-hidden rounded gap-px">
                     {data.allCategories
                       .filter(c => c.spent > 0)
                       .map(cat => {
@@ -322,29 +285,23 @@ export default function CategoriesPage() {
                         ) : null;
                       })}
                   </div>
-                  <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+                  <div className="mt-2 flex flex-wrap gap-2.5">
                     {data.allCategories
                       .filter(c => c.spent > 0)
                       .map(cat => (
-                        <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div key={cat.id} className="flex items-center gap-1">
                           <div
-                            style={{
-                              width: 7,
-                              height: 7,
-                              borderRadius: 2,
-                              background: cat.color ?? 'var(--fin-muted)',
-                            }}
+                            className="rounded-sm"
+                            style={{ width: 7, height: 7, background: cat.color ?? 'var(--fin-muted)' }}
                           />
-                          <span style={{ fontSize: 10, color: 'var(--fin-muted)' }}>{cat.name}</span>
+                          <span className="text-[10px] text-[var(--fin-muted)]">{cat.name}</span>
                         </div>
                       ))}
                   </div>
                 </>
               )}
               {data.totalSpent === 0 && (
-                <div style={{ fontSize: 12, color: 'var(--fin-subtle)', textAlign: 'center', padding: '8px 0' }}>
-                  No spending this month
-                </div>
+                <div className="py-2 text-center text-xs text-[var(--fin-subtle)]">No spending this month</div>
               )}
             </Card>
 
@@ -369,7 +326,7 @@ export default function CategoriesPage() {
             )}
 
             {data.groups.length === 0 && data.ungrouped.length === 0 && (
-              <div className="py-12 text-center text-[13px]" style={{ color: 'var(--fin-subtle)' }}>
+              <div className="py-12 text-center text-[13px] text-[var(--fin-subtle)]">
                 No categories yet. Add your first category to start tracking.
               </div>
             )}

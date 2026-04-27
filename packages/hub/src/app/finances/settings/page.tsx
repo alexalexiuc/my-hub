@@ -1,9 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
+import { Button, Field, Input, Select } from '@/components';
 import { Card, SectionLabel } from '../ui';
+import { BudgetSettingsSchema, type BudgetSettingsValues } from '../finances-form.schema';
 
 interface Member {
   userId: string;
@@ -19,51 +23,39 @@ interface BudgetSettings {
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'MDL', 'RON', 'CHF', 'JPY', 'CAD', 'AUD'];
 
-const inputStyle: React.CSSProperties = {
-  background: 'var(--fin-card2)',
-  border: `1px solid ${'var(--fin-border)'}`,
-  borderRadius: 8,
-  padding: '8px 10px',
-  fontSize: 13,
-  color: 'var(--fin-text)',
-  outline: 'none',
-  width: '100%',
-  boxSizing: 'border-box',
-};
-
 export default function FinancesSettingsPage() {
   const router = useRouter();
   const [data, setData] = useState<BudgetSettings | null>(null);
-  const [name, setName] = useState('');
-  const [currency, setCurrency] = useState('');
-  const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { isSubmitting },
+  } = useForm<BudgetSettingsValues>({
+    resolver: zodResolver(BudgetSettingsSchema),
+    defaultValues: { name: '', defaultCurrency: 'EUR' },
+  });
+
   const load = useCallback(async () => {
     const result = await apiFetch<BudgetSettings>('/api/finances/budget', { silentToast: true });
     setData(result);
-    setName(result.budget.name);
-    setCurrency(result.budget.defaultCurrency);
-  }, []);
+    reset({ name: result.budget.name, defaultCurrency: result.budget.defaultCurrency });
+  }, [reset]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  async function handleSave() {
-    if (!data) return;
-    setSaving(true);
-    try {
-      await apiFetch('/api/finances/budget', {
-        method: 'PATCH',
-        body: { name, defaultCurrency: currency },
-      });
-      await load();
-    } finally {
-      setSaving(false);
-    }
+  async function onSubmit(values: BudgetSettingsValues) {
+    await apiFetch('/api/finances/budget', {
+      method: 'PATCH',
+      body: { name: values.name, defaultCurrency: values.defaultCurrency },
+    });
+    await load();
   }
 
   async function handleDeleteBudget() {
@@ -96,8 +88,8 @@ export default function FinancesSettingsPage() {
         {[80, 140, 100].map((h, i) => (
           <div
             key={i}
-            className="rounded-[10px] border"
-            style={{ height: h, background: 'var(--fin-card)', borderColor: 'var(--fin-border)', opacity: 0.6 }}
+            className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+            style={{ height: h, opacity: 0.6 }}
           />
         ))}
       </div>
@@ -108,52 +100,35 @@ export default function FinancesSettingsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-[18px]">
-      <div className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: 'var(--fin-text)' }}>
-        Budget Settings
-      </div>
+      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Budget Settings</div>
 
       {/* General */}
-      <Card className="flex flex-col gap-[14px] p-[18px]">
-        <SectionLabel style={{ marginBottom: 0 }}>General</SectionLabel>
+      <Card className="p-[18px]">
+        <SectionLabel className="mb-3">General</SectionLabel>
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-[14px]">
+          <Field label="Budget name">
+            <Input {...register('name')} placeholder="My Budget" />
+          </Field>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] uppercase tracking-[0.08em]" style={{ color: 'var(--fin-subtle)' }}>
-            Budget name
-          </label>
-          <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="My Budget" />
-        </div>
+          <Field label="Default currency">
+            <Select {...register('defaultCurrency')}>
+              {CURRENCIES.map(c => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+          </Field>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] uppercase tracking-[0.08em]" style={{ color: 'var(--fin-subtle)' }}>
-            Default currency
-          </label>
-          <select style={inputStyle} value={currency} onChange={e => setCurrency(e.target.value)}>
-            {CURRENCIES.map(c => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button
-          onClick={handleSave}
-          disabled={saving || !name.trim()}
-          className="self-start rounded-lg border-none px-[18px] py-2 text-[13px] font-semibold"
-          style={{
-            background: 'var(--fin-accent)',
-            color: 'var(--fin-on-accent)',
-            cursor: saving ? 'not-allowed' : 'pointer',
-            opacity: saving ? 0.7 : 1,
-          }}
-        >
-          {saving ? 'Saving…' : 'Save changes'}
-        </button>
+          <Button type="submit" size="sm" className="self-start" loading={isSubmitting}>
+            Save changes
+          </Button>
+        </form>
       </Card>
 
       {/* Members */}
       <Card className="p-[18px]">
-        <SectionLabel style={{ marginBottom: 12 }}>Members</SectionLabel>
+        <SectionLabel className="mb-3">Members</SectionLabel>
         <div className="flex flex-col gap-2">
           {data.members.map(m => {
             const isCreator = m.userId === data.budget.createdByUserId;
@@ -161,51 +136,33 @@ export default function FinancesSettingsPage() {
             return (
               <div key={m.userId} className="flex items-center gap-2.5">
                 <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold"
-                  style={{
-                    background: 'var(--fin-accent-d)',
-                    border: `1px solid ${'var(--fin-accent)'}44`,
-                    color: 'var(--fin-accent)',
-                  }}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold bg-[var(--fin-accent-d)] text-[var(--fin-accent)]"
+                  style={{ border: `1px solid var(--fin-accent)44` }}
                 >
                   {(m.name ?? m.email)[0]?.toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-medium" style={{ color: 'var(--fin-text)' }}>
-                    {m.name ?? m.email}
-                  </div>
-                  {m.name && (
-                    <div className="text-[11px]" style={{ color: 'var(--fin-subtle)' }}>
-                      {m.email}
-                    </div>
-                  )}
+                  <div className="text-[13px] font-medium text-[var(--fin-text)]">{m.name ?? m.email}</div>
+                  {m.name && <div className="text-[11px] text-[var(--fin-subtle)]">{m.email}</div>}
                 </div>
                 {isCreator && (
                   <span
-                    className="rounded-[20px] px-2 py-[2px] text-[10px]"
-                    style={{
-                      color: 'var(--fin-accent)',
-                      background: 'var(--fin-accent-d)',
-                      border: `1px solid ${'var(--fin-accent)'}44`,
-                    }}
+                    className="rounded-[20px] bg-[var(--fin-accent-d)] px-2 py-[2px] text-[10px] text-[var(--fin-accent)]"
+                    style={{ border: `1px solid var(--fin-accent)44` }}
                   >
                     Owner
                   </span>
                 )}
                 {!isCreator && isOwner && (
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="xs"
                     onClick={() => handleRemoveMember(m.userId)}
                     disabled={isRemoving}
-                    className="rounded-md border bg-transparent px-2.5 py-1 text-[11px]"
-                    style={{
-                      border: `1px solid ${'var(--fin-border)'}`,
-                      color: 'var(--fin-red)',
-                      cursor: isRemoving ? 'not-allowed' : 'pointer',
-                      opacity: isRemoving ? 0.5 : 1,
-                    }}
+                    className="text-red-400 hover:text-red-300"
                   >
                     {isRemoving ? '…' : 'Remove'}
-                  </button>
+                  </Button>
                 )}
               </div>
             );
@@ -214,59 +171,31 @@ export default function FinancesSettingsPage() {
       </Card>
 
       {/* Danger zone */}
-      <Card className="p-[18px]" style={{ border: `1px solid ${'var(--fin-red)'}33` }}>
-        <SectionLabel style={{ marginBottom: 8, color: 'var(--fin-red)' }}>Danger zone</SectionLabel>
-        <p className="mb-3 text-xs" style={{ color: 'var(--fin-muted)' }}>
+      <Card className="p-[18px]" style={{ border: `1px solid var(--fin-red)33` }}>
+        <SectionLabel className="mb-2 text-[var(--fin-red)]">Danger zone</SectionLabel>
+        <p className="mb-3 text-xs text-[var(--fin-muted)]">
           Permanently deletes this budget and all associated accounts, categories, and transactions. This cannot be
           undone.
         </p>
         {!confirmDelete ? (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="cursor-pointer rounded-lg px-4 py-2 text-[13px] font-semibold"
-            style={{
-              background: 'var(--fin-red-d)',
-              border: `1px solid ${'var(--fin-red)'}44`,
-              color: 'var(--fin-red)',
-            }}
-          >
+          <Button variant="danger" size="sm" onClick={() => setConfirmDelete(true)}>
             Delete budget…
-          </button>
+          </Button>
         ) : (
           <div
-            className="flex flex-col gap-2.5 rounded-[10px] p-[14px]"
-            style={{
-              background: 'var(--fin-red-d)',
-              border: `1px solid ${'var(--fin-red)'}44`,
-            }}
+            className="flex flex-col gap-2.5 rounded-[10px] bg-[var(--fin-red-d)] p-[14px]"
+            style={{ border: `1px solid var(--fin-red)44` }}
           >
-            <p className="text-[13px] font-medium" style={{ color: 'var(--fin-red)' }}>
+            <p className="text-[13px] font-medium text-[var(--fin-red)]">
               Are you sure? All data will be permanently deleted.
             </p>
             <div className="flex gap-2">
-              <button
-                onClick={handleDeleteBudget}
-                disabled={deleting}
-                className="rounded-lg border-none px-4 py-2 text-[13px] font-semibold"
-                style={{
-                  background: 'var(--fin-red)',
-                  color: 'var(--fin-on-solid)',
-                  cursor: deleting ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {deleting ? 'Deleting…' : 'Yes, delete everything'}
-              </button>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="rounded-lg border bg-transparent px-4 py-2 text-[13px]"
-                style={{
-                  border: `1px solid ${'var(--fin-border)'}`,
-                  color: 'var(--fin-muted)',
-                  cursor: 'pointer',
-                }}
-              >
+              <Button variant="danger" size="sm" onClick={handleDeleteBudget} loading={deleting}>
+                Yes, delete everything
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setConfirmDelete(false)}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         )}

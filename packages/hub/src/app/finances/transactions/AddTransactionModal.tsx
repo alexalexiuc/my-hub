@@ -1,9 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
+import { Button, Input } from '@/components';
 import { Pill } from '../ui';
 import { categoryIconEmoji } from '../categoryIcons';
+import { AddTransactionSchema, defaultAddTransactionValues, type AddTransactionValues } from '../finances-form.schema';
 
 interface AccountOption {
   id: number;
@@ -31,10 +36,6 @@ const TYPE_COLORS: Record<TxType, string> = {
   income: 'var(--fin-green)',
   transfer: 'var(--fin-blue)',
 };
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function FieldCard({ label, children, onClick }: { label: string; children: React.ReactNode; onClick?: () => void }) {
   return (
@@ -79,17 +80,17 @@ function CategoryDropdown({
           {categories.map(c => (
             <button
               key={c.id}
+              type="button"
               onClick={() => {
                 onSelect(c.id);
                 setOpen(false);
               }}
-              className="block w-full px-3 py-[9px] text-left text-[13px]"
-              style={{
-                background: c.id === selectedId ? 'var(--fin-accent-d)' : 'transparent',
-                border: 'none',
-                color: c.id === selectedId ? 'var(--fin-accent)' : 'var(--fin-text)',
-                cursor: 'pointer',
-              }}
+              className={cn(
+                'block w-full cursor-pointer border-none px-3 py-[9px] text-left text-[13px]',
+                c.id === selectedId
+                  ? 'bg-[var(--fin-accent-d)] text-[var(--fin-accent)]'
+                  : 'bg-transparent text-[var(--fin-text)]',
+              )}
             >
               <span className="mr-1.5">{categoryIconEmoji(c.icon)}</span>
               {c.name}
@@ -125,17 +126,17 @@ function AccountDropdown({
           {accounts.map(a => (
             <button
               key={a.id}
+              type="button"
               onClick={() => {
                 onSelect(a.id);
                 setOpen(false);
               }}
-              className="block w-full px-3 py-[9px] text-left text-[13px]"
-              style={{
-                background: a.id === selectedId ? 'var(--fin-accent-d)' : 'transparent',
-                border: 'none',
-                color: a.id === selectedId ? 'var(--fin-accent)' : 'var(--fin-text)',
-                cursor: 'pointer',
-              }}
+              className={cn(
+                'block w-full cursor-pointer border-none px-3 py-[9px] text-left text-[13px]',
+                a.id === selectedId
+                  ? 'bg-[var(--fin-accent-d)] text-[var(--fin-accent)]'
+                  : 'bg-transparent text-[var(--fin-text)]',
+              )}
             >
               {a.name}
               <span className="ml-1.5 text-[10px] text-[var(--fin-subtle)]">{a.currency}</span>
@@ -154,16 +155,24 @@ type AddTransactionModalProps = {
 
 export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalProps) {
   const [formData, setFormData] = useState<FormData | null>(null);
-  const [txType, setTxType] = useState<TxType>('expense');
-  const [payee, setPayee] = useState('');
-  const [amount, setAmount] = useState('');
   const [selCatId, setSelCatId] = useState<number | null>(null);
   const [selAccId, setSelAccId] = useState<number | null>(null);
   const [selToAccId, setSelToAccId] = useState<number | null>(null);
-  const [date, setDate] = useState(today());
-  const [note, setNote] = useState('');
-  const [saving, setSaving] = useState(false);
   const [autofillDismissed, setAutofillDismissed] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { isSubmitting },
+  } = useForm<AddTransactionValues>({
+    resolver: zodResolver(AddTransactionSchema),
+    defaultValues: defaultAddTransactionValues,
+  });
+
+  const txType = watch('txType');
+  const payee = watch('payee');
 
   const load = useCallback(async () => {
     const data = await apiFetch<FormData>('/api/finances/transactions/form-data', { silentToast: true });
@@ -193,38 +202,32 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
   const typeColor = TYPE_COLORS[txType];
   const needsCategory = txType !== 'transfer';
 
-  async function handleSubmit() {
-    if (!amount || !selAccId) return;
+  async function onSubmit(values: AddTransactionValues) {
+    if (!selAccId) return;
     if (needsCategory && !selCatId) return;
-    setSaving(true);
-    try {
-      await apiFetch('/api/finances/transactions', {
-        method: 'POST',
-        body: {
-          type: txType,
-          accountId: selAccId,
-          toAccountId: txType === 'transfer' ? selToAccId : undefined,
-          amount: parseFloat(amount),
-          date,
-          categoryId: txType === 'transfer' ? null : selCatId,
-          payeeName: payee.trim() || undefined,
-          notes: note.trim() || undefined,
-        },
-        silentToast: true,
-      });
-      onCreated();
-    } finally {
-      setSaving(false);
-    }
+    await apiFetch('/api/finances/transactions', {
+      method: 'POST',
+      body: {
+        type: values.txType,
+        accountId: selAccId,
+        toAccountId: txType === 'transfer' ? selToAccId : undefined,
+        amount: parseFloat(values.amount),
+        date: values.date,
+        categoryId: txType === 'transfer' ? null : selCatId,
+        payeeName: values.payee.trim() || undefined,
+        notes: values.note.trim() || undefined,
+      },
+      silentToast: true,
+    });
+    onCreated();
   }
+
+  const isSubmitDisabled = !watch('amount') || !selAccId || (needsCategory && !selCatId) || isSubmitting;
 
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
-      style={{
-        background: 'var(--fin-overlay)',
-      }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-[var(--fin-overlay)]"
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -237,30 +240,27 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
             {[44, 52, 80, 60, 60].map((h, i) => (
               <div
                 key={i}
-                className="rounded-[10px] border"
-                style={{
-                  height: h,
-                  background: 'var(--fin-card2)',
-                  borderColor: 'var(--fin-border)',
-                  opacity: 0.6,
-                }}
+                className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)]"
+                style={{ height: h, opacity: 0.6 }}
               />
             ))}
           </div>
         ) : (
-          <>
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2.5">
             {/* Type toggle */}
             <div className="flex rounded-[9px] border border-[var(--fin-border)] bg-[var(--fin-card2)] p-[3px]">
               {(['expense', 'income', 'transfer'] as TxType[]).map(t => (
                 <button
                   key={t}
-                  onClick={() => setTxType(t)}
-                  className="flex-1 rounded-[7px] border-none py-[7px] text-xs capitalize"
+                  type="button"
+                  onClick={() => setValue('txType', t)}
+                  className={cn(
+                    'flex-1 cursor-pointer rounded-[7px] border-none py-[7px] text-xs capitalize',
+                    txType === t ? 'font-semibold' : 'bg-transparent text-[var(--fin-muted)]',
+                  )}
                   style={{
-                    background: txType === t ? TYPE_COLORS[t] + '22' : 'transparent',
-                    color: txType === t ? TYPE_COLORS[t] : 'var(--fin-muted)',
-                    fontWeight: txType === t ? 600 : 400,
-                    cursor: 'pointer',
+                    background: txType === t ? TYPE_COLORS[t] + '22' : undefined,
+                    color: txType === t ? TYPE_COLORS[t] : undefined,
                     outline: txType === t ? `1px solid ${TYPE_COLORS[t]}44` : 'none',
                   }}
                 >
@@ -272,12 +272,12 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
             {/* Payee */}
             <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-[10px]">
               <div className="mb-1 text-[10px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Payee</div>
-              <input
+              <Input
+                {...register('payee')}
                 autoFocus
                 placeholder="e.g. Kaufland, Netflix…"
-                value={payee}
-                onChange={e => setPayee(e.target.value)}
-                className="w-full border-none bg-transparent text-[15px] text-[var(--fin-text)] outline-none"
+                variant="ghost"
+                className="w-full text-[15px]"
               />
             </div>
 
@@ -298,6 +298,7 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
                   {formData.accounts.find(a => a.id === selAccId)?.name}
                 </span>
                 <button
+                  type="button"
                   onClick={() => {
                     setSelCatId(null);
                     setAutofillDismissed(true);
@@ -323,15 +324,13 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
                         : acctCurrency;
                 })()}
               </span>
-              <input
+              <Input
+                {...register('amount')}
                 type="number"
                 placeholder="0.00"
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                className="flex-1 border-none bg-transparent text-[28px] font-bold outline-none"
-                style={{
-                  color: typeColor,
-                }}
+                variant="ghost"
+                className="flex-1 text-[28px] font-bold"
+                style={{ color: typeColor }}
               />
             </div>
 
@@ -352,19 +351,19 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
             {/* Date + Notes */}
             <div className="grid grid-cols-2 gap-2">
               <FieldCard label="Date">
-                <input
+                <Input
+                  {...register('date')}
                   type="date"
-                  value={date}
-                  onChange={e => setDate(e.target.value)}
-                  className="w-full border-none bg-transparent text-[13px] text-[var(--fin-text)] outline-none"
+                  variant="ghost"
+                  className="w-full text-[13px] text-[var(--fin-text)]"
                 />
               </FieldCard>
               <FieldCard label="Notes">
-                <input
+                <Input
+                  {...register('note')}
                   placeholder="Optional…"
-                  value={note}
-                  onChange={e => setNote(e.target.value)}
-                  className="w-full border-none bg-transparent text-[13px] text-[var(--fin-text)] outline-none"
+                  variant="ghost"
+                  className="w-full text-[13px] text-[var(--fin-text)]"
                 />
               </FieldCard>
             </div>
@@ -375,18 +374,21 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
                 {formData.categories.map(cat => (
                   <button
                     key={cat.id}
+                    type="button"
                     onClick={() => setSelCatId(cat.id === selCatId ? null : cat.id)}
-                    className="flex items-center gap-1 rounded-[20px] px-2.5 py-[5px] text-[11px]"
-                    style={{
-                      background: selCatId === cat.id ? (cat.color ?? 'var(--fin-accent)') + '28' : 'var(--fin-card2)',
-                      border:
-                        selCatId === cat.id
-                          ? `1px solid ${(cat.color ?? 'var(--fin-accent)') + '66'}`
-                          : '1px solid var(--fin-border)',
-                      color: selCatId === cat.id ? (cat.color ?? 'var(--fin-accent)') : 'var(--fin-muted)',
-                      cursor: 'pointer',
-                      fontWeight: selCatId === cat.id ? 600 : 400,
-                    }}
+                    className={cn(
+                      'flex cursor-pointer items-center gap-1 rounded-[20px] px-2.5 py-[5px] text-[11px]',
+                      selCatId === cat.id ? 'font-semibold' : 'bg-[var(--fin-card2)] text-[var(--fin-muted)]',
+                    )}
+                    style={
+                      selCatId === cat.id
+                        ? {
+                            background: (cat.color ?? 'var(--fin-accent)') + '28',
+                            border: `1px solid ${(cat.color ?? 'var(--fin-accent)') + '66'}`,
+                            color: cat.color ?? 'var(--fin-accent)',
+                          }
+                        : { border: '1px solid var(--fin-border)' }
+                    }
                   >
                     <span>{categoryIconEmoji(cat.icon)}</span>
                     {cat.name}
@@ -397,31 +399,24 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
 
             {/* Actions */}
             <div className="mt-0.5 flex gap-2">
-              <button
-                onClick={onClose}
-                className="flex-1 rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] py-2.5 text-[13px] font-semibold text-[var(--fin-muted)]"
-              >
+              <Button type="button" variant="secondary" size="sm" className="flex-1" onClick={onClose}>
                 Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={!amount || !selAccId || (needsCategory && !selCatId) || saving}
-                className="flex-[2] rounded-lg border-none py-2.5 text-[13px] font-bold"
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="flex-[2]"
+                disabled={isSubmitDisabled}
+                loading={isSubmitting}
                 style={{
-                  background:
-                    !amount || !selAccId || (needsCategory && !selCatId) || saving ? 'var(--fin-card3)' : typeColor,
-                  color:
-                    !amount || !selAccId || (needsCategory && !selCatId) || saving
-                      ? 'var(--fin-subtle)'
-                      : 'var(--fin-on-solid)',
-                  cursor: !amount || !selAccId || (needsCategory && !selCatId) || saving ? 'not-allowed' : 'pointer',
-                  transition: 'background .15s',
+                  background: isSubmitDisabled ? 'var(--fin-card3)' : typeColor,
+                  color: isSubmitDisabled ? 'var(--fin-subtle)' : 'var(--fin-on-solid)',
                 }}
               >
-                {saving ? 'Saving…' : `Save ${txType.charAt(0).toUpperCase() + txType.slice(1)}`}
-              </button>
+                {`Save ${txType.charAt(0).toUpperCase() + txType.slice(1)}`}
+              </Button>
             </div>
-          </>
+          </form>
         )}
       </div>
     </div>
