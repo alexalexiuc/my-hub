@@ -46,13 +46,6 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
           </div>
           <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">{currentMonthLabel()}</div>
         </div>
-        <button
-          onClick={() => setShowAddTx(true)}
-          className="cursor-pointer rounded-[20px] border px-3 py-1.5 text-[11px] font-semibold bg-[var(--fin-accent-d)] text-[var(--fin-accent)]"
-          style={{ border: `1px solid var(--fin-accent)44` }}
-        >
-          + Add
-        </button>
       </div>
 
       {/* Net worth + cashflow row */}

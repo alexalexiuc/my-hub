@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
-import { Card } from '../ui';
+import { AddButton, Card } from '../ui';
 import { AddTransactionModal } from './AddTransactionModal';
 import { TransactionList } from './TransactionList';
 
@@ -79,13 +79,7 @@ export default function TransactionsPage() {
     <div className="flex flex-col gap-[14px]">
       <div className="flex items-center justify-between">
         <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Transactions</div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="cursor-pointer rounded-[20px] border px-3 py-1.5 text-[11px] font-semibold bg-[var(--fin-accent-d)] text-[var(--fin-accent)]"
-          style={{ border: `1px solid var(--fin-accent)44` }}
-        >
-          + Add
-        </button>
+        <AddButton onClick={() => setShowModal(true)} title="Add transaction" />
       </div>
 
       {/* Type filter */}

@@ -4,8 +4,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Bar, Sparkline } from '../ui';
+import { fmt, Card, SectionLabel, AddButton } from '../ui';
 import { AddAccountModal } from './AddAccountModal';
+import { AccountProgressBar } from './AccountProgressBar';
+import { BorrowedLentDetails } from './BorrowedLentDetails';
+import { NetWorthSummary } from './NetWorthSummary';
+import { AccountsPageSkeleton } from './AccountsPageSkeleton';
 import type { AccountsListData, AccountItem } from './types';
 
 const ACCOUNT_GROUPS = [
@@ -51,31 +55,22 @@ function AccountCard({
       </div>
 
       {acc.type === 'credit_card' && acc.creditLimit != null && (
-        <div>
-          <div className="mb-1 flex justify-between">
-            <span className="text-[10px] text-[var(--fin-muted)]">
-              Used {fmt(acc.balance, acc.currency)} of {fmt(acc.creditLimit, acc.currency)}
-            </span>
-            <span className="text-[10px] text-[var(--fin-muted)]">
-              {Math.round((acc.balance / acc.creditLimit) * 100)}%
-            </span>
-          </div>
-          <Bar value={acc.balance} max={acc.creditLimit} color={'var(--fin-blue)'} height={4} />
-        </div>
+        <AccountProgressBar
+          value={acc.balance}
+          max={acc.creditLimit}
+          currency={acc.currency}
+          color="var(--fin-blue)"
+          prefix="Used"
+        />
       )}
 
       {acc.type === 'goal' && acc.targetAmount != null && (
-        <div>
-          <div className="mb-1 flex justify-between">
-            <span className="text-[10px] text-[var(--fin-muted)]">
-              {fmt(acc.balance, acc.currency)} of {fmt(acc.targetAmount, acc.currency)}
-            </span>
-            <span className="text-[10px] text-[var(--fin-green)]">
-              {Math.round((acc.balance / acc.targetAmount) * 100)}%
-            </span>
-          </div>
-          <Bar value={acc.balance} max={acc.targetAmount} color={'var(--fin-green)'} height={4} />
-        </div>
+        <AccountProgressBar
+          value={acc.balance}
+          max={acc.targetAmount}
+          currency={acc.currency}
+          color="var(--fin-green)"
+        />
       )}
 
       {acc.type === 'investment' && acc.deposited != null && (
@@ -116,48 +111,7 @@ function AccountCard({
         <div className="text-[10px] text-[var(--fin-subtle)]">Manually tracked value · read-only</div>
       )}
 
-      {acc.type === 'borrowed_lent' && (
-        <div className="mt-2 flex items-center justify-between">
-          <div className="flex gap-3">
-            <div>
-              <div className="text-[9px] uppercase tracking-[0.06em] text-[var(--fin-subtle)]">Direction</div>
-              <div
-                className={cn(
-                  'text-xs font-semibold',
-                  acc.direction === 'gave' ? 'text-[var(--fin-green)]' : 'text-[var(--fin-amber)]',
-                )}
-              >
-                {acc.direction === 'gave' ? 'Lent' : 'Borrowed'}
-              </div>
-            </div>
-            {acc.counterpartyName && (
-              <div>
-                <div className="text-[9px] uppercase tracking-[0.06em] text-[var(--fin-subtle)]">With</div>
-                <div className="text-xs text-[var(--fin-muted)]">{acc.counterpartyName}</div>
-              </div>
-            )}
-            {acc.dueDate && (
-              <div>
-                <div className="text-[9px] uppercase tracking-[0.06em] text-[var(--fin-subtle)]">Due</div>
-                <div className="text-xs text-[var(--fin-amber)]">{acc.dueDate}</div>
-              </div>
-            )}
-            {acc.settled && <div className="self-center text-[11px] text-[var(--fin-green)]">✓ Settled</div>}
-          </div>
-          {!acc.settled && (
-            <button
-              onClick={e => {
-                e.stopPropagation();
-                onSettle(acc.id);
-              }}
-              className="cursor-pointer rounded-md border px-2.5 py-1 text-[11px] font-semibold bg-[var(--fin-teal-d)] text-[var(--fin-teal)]"
-              style={{ border: `1px solid var(--fin-teal)44` }}
-            >
-              Settle
-            </button>
-          )}
-        </div>
-      )}
+      {acc.type === 'borrowed_lent' && <BorrowedLentDetails acc={acc} onSettle={onSettle} />}
     </Card>
   );
 }
@@ -184,17 +138,7 @@ export default function AccountsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex flex-col gap-[14px]">
-        {[80, 120, 100].map((h, i) => (
-          <div
-            key={i}
-            className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
-            style={{ height: h, opacity: 0.6 }}
-          />
-        ))}
-      </div>
-    );
+    return <AccountsPageSkeleton />;
   }
 
   if (!data) return null;
@@ -206,30 +150,10 @@ export default function AccountsPage() {
     <div className="flex flex-col gap-[14px]">
       <div className="flex items-center justify-between">
         <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Accounts</div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="cursor-pointer rounded-[20px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-1.5 text-[11px] text-[var(--fin-muted)]"
-        >
-          + New Account
-        </button>
+        <AddButton onClick={() => setShowAddModal(true)} title="Add account" />
       </div>
 
-      {/* Net worth summary */}
-      <div
-        className="flex items-center justify-between rounded-xl p-4"
-        style={{
-          background: `linear-gradient(135deg, var(--fin-accent)18, var(--fin-violet)18)`,
-          border: `1px solid var(--fin-accent)33`,
-        }}
-      >
-        <div>
-          <div className="mb-1 text-[11px] text-[var(--fin-muted)]">Total Net Worth</div>
-          <div className="text-[26px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">
-            {fmt(netWorth, currency)}
-          </div>
-        </div>
-        <Sparkline data={netWorthHistory} color={'var(--fin-green)'} width={80} height={40} />
-      </div>
+      <NetWorthSummary netWorth={netWorth} currency={currency} history={netWorthHistory} />
 
       {ACCOUNT_GROUPS.map(({ key, label, icon }) => {
         const accs = byType(key);
