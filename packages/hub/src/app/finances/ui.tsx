@@ -2,6 +2,8 @@
 
 import { cn } from '@/lib/utils';
 import { categoryIconEmoji } from './categoryIcons';
+import { Button } from '@/components';
+import { PlusOutlineIcon } from '@/components/icons/PlusOutlineIcon';
 
 // ─── Currency formatter ───────────────────────────────────────────────────────
 export function fmt(value: number, currency = 'EUR') {
@@ -267,5 +269,26 @@ export function CashflowChart({
         );
       })}
     </svg>
+  );
+}
+
+type AddButtonProps = {
+  onClick: () => void;
+  title: string;
+};
+
+export function AddButton({ onClick, title }: AddButtonProps) {
+  return (
+    <Button
+      variant="ghost"
+      size="xs"
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-[20px] font-semibold bg-[var(--fin-accent-d)] text-[var(--fin-accent)] hover:bg-[var(--fin-accent)] hover:text-[var(--fin-card)]"
+    >
+      <PlusOutlineIcon className="size-3" />
+      {title}
+    </Button>
   );
 }
