@@ -1,72 +1,64 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
-import { formatZodError } from '@/lib/api/with-error-logging';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import { deleteTripBooking, updateTripBooking } from '@my-hub/shared/services';
 import type { FlightDetails } from '@my-hub/shared/types';
 import { parseAndValidateDateForPatch } from '@/lib/api/date-validation';
-import { BookingUpdateSchema } from '@my-hub/shared/schemas';
 import { omitUndefined, trimOrNull } from '@my-hub/shared/utils';
+import { tripBookingTypeValues } from '@my-hub/shared/constants';
 
-export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
-  const { id } = await params;
-  const bookingId = Number(id);
-  if (!Number.isInteger(bookingId) || bookingId <= 0) {
-    return NextResponse.json({ error: 'Invalid booking id' }, { status: 400 });
-  }
-
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const parsed = BookingUpdateSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
-  }
-
-  const { data } = parsed;
-
-  const { date: startAt, error: startAtError } = parseAndValidateDateForPatch(data.startAt, 'startAt');
-  if (startAtError) return NextResponse.json({ error: startAtError }, { status: 400 });
-
-  const { date: endAt, error: endAtError } = parseAndValidateDateForPatch(data.endAt, 'endAt');
-  if (endAtError) return NextResponse.json({ error: endAtError }, { status: 400 });
-
-  const flightDetails = data.flightDetails != null ? (data.flightDetails as Partial<FlightDetails>) : undefined;
-
-  const booking = await updateTripBooking(
-    user.id,
-    bookingId,
-    omitUndefined({
-      title: data.title,
-      bookingType: data.bookingType as Parameters<typeof updateTripBooking>[2]['bookingType'],
-      provider: trimOrNull(data.provider),
-      referenceLink: trimOrNull(data.referenceLink),
-      startAt,
-      endAt,
-      details: flightDetails,
-      contactName: trimOrNull(data.contactName),
-      contactEmail: trimOrNull(data.contactEmail),
-      contactPhone: trimOrNull(data.contactPhone),
-    }),
-  );
-
-  if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
-
-  return NextResponse.json({ booking });
+const BookingUpdateSchema = z.object({
+  title: z.string().trim().min(1).optional(),
+  bookingType: z.enum(tripBookingTypeValues as [string, ...string[]]).optional(),
+  provider: z.string().nullable().optional(),
+  referenceLink: z.string().nullable().optional(),
+  startAt: z.string().nullable().optional(),
+  endAt: z.string().nullable().optional(),
+  flightDetails: z.record(z.string(), z.unknown()).optional(),
+  contactName: z.string().nullable().optional(),
+  contactEmail: z.string().nullable().optional(),
+  contactPhone: z.string().nullable().optional(),
 });
 
-export const DELETE = withAuth<{ id: string }>(async ({ user, params }) => {
-  const { id } = await params;
-  const bookingId = Number(id);
-  if (!Number.isInteger(bookingId) || bookingId <= 0) {
-    return NextResponse.json({ error: 'Invalid booking id' }, { status: 400 });
-  }
+export const PATCH = route({ params: z.object({ id: z.coerce.number().int().positive() }), body: BookingUpdateSchema })(
+  async ({ user, params, body }) => {
+    const bookingId = params.id;
 
+    const { date: startAt, error: startAtError } = parseAndValidateDateForPatch(body.startAt, 'startAt');
+    if (startAtError) routeHttpError(400, { error: startAtError });
+
+    const { date: endAt, error: endAtError } = parseAndValidateDateForPatch(body.endAt, 'endAt');
+    if (endAtError) routeHttpError(400, { error: endAtError });
+
+    const flightDetails = body.flightDetails != null ? (body.flightDetails as Partial<FlightDetails>) : undefined;
+
+    const booking = await updateTripBooking(
+      user.id,
+      bookingId,
+      omitUndefined({
+        title: body.title,
+        bookingType: body.bookingType as Parameters<typeof updateTripBooking>[2]['bookingType'],
+        provider: trimOrNull(body.provider),
+        referenceLink: trimOrNull(body.referenceLink),
+        startAt,
+        endAt,
+        details: flightDetails,
+        contactName: trimOrNull(body.contactName),
+        contactEmail: trimOrNull(body.contactEmail),
+        contactPhone: trimOrNull(body.contactPhone),
+      }),
+    );
+
+    if (!booking) routeHttpError(404, { error: 'Booking not found' });
+    return { booking };
+  },
+);
+
+export const DELETE = route({ params: z.object({ id: z.coerce.number().int().positive() }) })(async ({
+  user,
+  params,
+}) => {
+  const bookingId = params.id;
   const booking = await deleteTripBooking(user.id, bookingId);
-  if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
-
-  return NextResponse.json({ booking });
+  if (!booking) routeHttpError(404, { error: 'Booking not found' });
+  return { booking };
 });

@@ -1,9 +1,8 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route } from '@/lib/api/route';
 import { revokeInviteToken } from '@my-hub/shared/services';
 
-export const DELETE = withAuth<{ id: string }>(async ({ user, params }) => {
-  const { id } = await params;
-  await revokeInviteToken(id, user.id);
-  return NextResponse.json({ ok: true });
+export const DELETE = route({ params: z.object({ id: z.string() }) })(async ({ user, params }) => {
+  await revokeInviteToken(params.id, user.id);
+  return { ok: true };
 });

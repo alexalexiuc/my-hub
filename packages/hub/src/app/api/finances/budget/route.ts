@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import {
   getUserBudgets,
   getBudgetMembers,
@@ -7,15 +7,23 @@ import {
   deleteBudget,
   removeBudgetMember,
 } from '@my-hub/shared/services';
+const BudgetUpdateSchema = z.object({
+  name: z.string().trim().min(1).optional(),
+  defaultCurrency: z.string().trim().optional(),
+});
 
-export const GET = withAuth(async ({ user }) => {
+const BudgetDeleteSchema = z.object({
+  removeMemberUserId: z.string().optional(),
+});
+
+export const GET = route(async ({ user }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const members = await getBudgetMembers(user.id, budget.id);
 
-  return NextResponse.json({
+  return {
     budget: {
       id: budget.id,
       name: budget.name,
@@ -23,49 +31,32 @@ export const GET = withAuth(async ({ user }) => {
       createdByUserId: budget.createdByUserId,
     },
     members: members.map(m => ({ userId: m.userId, email: m.email, name: m.name, joinedAt: m.joinedAt })),
-  });
+  };
 });
 
-export const PATCH = withAuth(async ({ req, user }) => {
+export const PATCH = route({ body: BudgetUpdateSchema })(async ({ user, body }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const { name, defaultCurrency } = body as { name?: string; defaultCurrency?: string };
   const updated = await updateBudget(user.id, budget.id, {
-    ...(name ? { name: name.trim() } : {}),
-    ...(defaultCurrency ? { defaultCurrency: defaultCurrency.trim().toUpperCase() } : {}),
+    ...(body.name ? { name: body.name.trim() } : {}),
+    ...(body.defaultCurrency ? { defaultCurrency: body.defaultCurrency.trim().toUpperCase() } : {}),
   });
 
-  return NextResponse.json({ budget: updated });
+  return { budget: updated };
 });
 
-export const DELETE = withAuth(async ({ req, user }) => {
+export const DELETE = route({ body: BudgetDeleteSchema })(async ({ user, body }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    body = {};
-  }
-
-  const { removeMemberUserId } = body as { removeMemberUserId?: string };
-
-  if (removeMemberUserId) {
-    await removeBudgetMember(user.id, budget.id, removeMemberUserId);
-    return NextResponse.json({ ok: true });
+  if (body.removeMemberUserId) {
+    await removeBudgetMember(user.id, budget.id, body.removeMemberUserId);
+    return { ok: true };
   }
 
   await deleteBudget(user.id, budget.id);
-  return NextResponse.json({ ok: true });
+  return { ok: true };
 });

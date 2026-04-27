@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { route, routeHttpError } from '@/lib/api/route';
 import { getUserBudgets, getAccounts, getNetWorthHistory } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 
@@ -16,10 +15,10 @@ export interface NetWorthData {
   deltaVsLastMonth: number | null;
 }
 
-export const GET = withAuth(async ({ user }) => {
+export const GET = route(async ({ user }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
   const [accounts, snapshots] = await Promise.all([
@@ -69,5 +68,5 @@ export const GET = withAuth(async ({ user }) => {
     deltaVsLastMonth,
   };
 
-  return NextResponse.json(data);
+  return data;
 });

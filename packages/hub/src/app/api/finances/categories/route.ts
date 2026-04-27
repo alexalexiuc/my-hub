@@ -1,23 +1,37 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError, created } from '@/lib/api/route';
 import { getUserBudgets, getGroups, getCategories, getTransactions, createCategory } from '@my-hub/shared/services';
 import { CategoryIcons } from '@my-hub/shared/constants';
 import type { CategoryIcon } from '@my-hub/shared/constants';
 
-const VALID_ICONS = new Set<string>(Object.values(CategoryIcons));
+const CategoryCreateSchema = z.object({
+  name: z.string().trim().min(1, 'name is required'),
+  icon: z
+    .enum(Object.values(CategoryIcons) as [string, ...string[]])
+    .nullable()
+    .optional(),
+  color: z.string().optional(),
+  monthlyTarget: z.number().nonnegative().optional(),
+  groupId: z.number().int().positive().nullable().optional(),
+  sortOrder: z.number().int().nonnegative().optional(),
+});
 
-export const GET = withAuth(async ({ req, user }) => {
-  const { searchParams } = new URL(req.url);
+const CategoryQuerySchema = z.object({
+  month: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/, 'month must be YYYY-MM')
+    .optional(),
+});
 
+export const GET = route({ query: CategoryQuerySchema })(async ({ user, query }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
 
-  // Default to current month
   const now = new Date();
-  const month = searchParams.get('month') ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const month = query.month ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const [year, mon] = month.split('-').map(Number);
   const fromDate = `${month}-01`;
   const lastDay = new Date(year!, mon!, 0).getDate();
@@ -29,7 +43,6 @@ export const GET = withAuth(async ({ req, user }) => {
     getTransactions(user.id, budgetId, { type: 'expense', fromDate, toDate, limit: 2000 }),
   ]);
 
-  // Spending per category
   const spentByCategory = new Map<number, number>();
   for (const t of expenseTxns) {
     if (t.categoryId != null) {
@@ -58,43 +71,29 @@ export const GET = withAuth(async ({ req, user }) => {
   const ungrouped = catRows.filter(c => c.groupId === null);
   const totalSpent = catRows.reduce((s, c) => s + c.spent, 0);
 
-  return NextResponse.json({
+  return {
     currency: budget.defaultCurrency,
     month,
     groups: groupRows,
     ungrouped,
     totalSpent,
     allCategories: catRows,
-  });
+  };
 });
 
-export const POST = withAuth(async ({ req, user }) => {
-  const body = await req.json();
-  const { name, icon, color, monthlyTarget, groupId, sortOrder } = body as {
-    name: string;
-    icon?: string;
-    color?: string;
-    monthlyTarget?: number;
-    groupId?: number;
-    sortOrder?: number;
-  };
-
-  if (!name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
-
+export const POST = route({ body: CategoryCreateSchema })(async ({ user, body }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
-
-  const validatedIcon: CategoryIcon | null = icon && VALID_ICONS.has(icon) ? (icon as CategoryIcon) : null;
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const category = await createCategory(user.id, budget.id, {
-    name: name.trim(),
-    icon: validatedIcon,
-    color: color ?? null,
-    monthlyTarget: monthlyTarget != null ? String(monthlyTarget) : null,
-    groupId: groupId ?? null,
-    sortOrder: sortOrder ?? 0,
+    name: body.name.trim(),
+    icon: (body.icon as CategoryIcon | null | undefined) ?? null,
+    color: body.color ?? null,
+    monthlyTarget: body.monthlyTarget != null ? String(body.monthlyTarget) : null,
+    groupId: body.groupId ?? null,
+    sortOrder: body.sortOrder ?? 0,
   });
 
-  return NextResponse.json(category, { status: 201 });
+  return created(category);
 });

@@ -1,24 +1,17 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, created } from '@/lib/api/route';
 import { createBudget } from '@my-hub/shared/services';
 
-export const POST = withAuth(async ({ req, user }) => {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
+const BudgetCreateSchema = z.object({
+  name: z.string().trim().min(1, 'name is required'),
+  defaultCurrency: z.string().trim().optional(),
+});
 
-  const { name, defaultCurrency } = body as { name?: string; defaultCurrency?: string };
-  if (!name || typeof name !== 'string' || !name.trim()) {
-    return NextResponse.json({ error: 'name is required' }, { status: 400 });
-  }
-
+export const POST = route({ body: BudgetCreateSchema })(async ({ user, body }) => {
   const budget = await createBudget(user.id, {
-    name: name.trim(),
-    defaultCurrency: (defaultCurrency ?? 'EUR').trim().toUpperCase(),
+    name: body.name.trim(),
+    defaultCurrency: (body.defaultCurrency ?? 'EUR').trim().toUpperCase(),
   });
 
-  return NextResponse.json({ budget }, { status: 201 });
+  return created({ budget });
 });

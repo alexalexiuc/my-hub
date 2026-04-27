@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError, created } from '@/lib/api/route';
 import {
   getUserBudgets,
   getAccounts,
@@ -19,6 +19,13 @@ import type {
   CashAccountDetails,
 } from '@my-hub/shared/constants';
 import type { AccountItem, AccountsListData } from '@/app/finances/accounts/types';
+const AccountCreateSchema = z.object({
+  name: z.string().trim().min(1, 'name is required'),
+  type: z.enum(Object.values(AccountTypes) as [string, ...string[]], { error: 'Invalid account type' }),
+  currency: z.string().trim().min(1, 'currency is required'),
+  openingBalance: z.number().optional(),
+  details: z.record(z.string(), z.unknown()).nullable().optional(),
+});
 
 function flattenDetails(type: string, details: unknown): Partial<AccountItem> {
   if (!details || typeof details !== 'object') return {};
@@ -67,10 +74,10 @@ function flattenDetails(type: string, details: unknown): Partial<AccountItem> {
   }
 }
 
-export const GET = withAuth(async ({ user }) => {
+export const GET = route(async ({ user }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
   const liabilityTypes = new Set<string>([AccountTypes.Loan, AccountTypes.CreditCard]);
@@ -104,46 +111,25 @@ export const GET = withAuth(async ({ user }) => {
     accounts,
   };
 
-  return NextResponse.json(data);
+  return data;
 });
 
-const VALID_TYPES = new Set<AccountType>(Object.values(AccountTypes));
-
-export const POST = withAuth(async ({ req, user }) => {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const { name, type, currency, openingBalance, details } = body as Record<string, unknown>;
-
-  if (typeof name !== 'string' || !name.trim()) {
-    return NextResponse.json({ error: 'name is required' }, { status: 400 });
-  }
-  if (typeof type !== 'string' || !VALID_TYPES.has(type as AccountType)) {
-    return NextResponse.json({ error: 'Invalid account type' }, { status: 400 });
-  }
-  if (typeof currency !== 'string' || !currency.trim()) {
-    return NextResponse.json({ error: 'currency is required' }, { status: 400 });
-  }
-
-  const balanceNum = typeof openingBalance === 'number' ? openingBalance : 0;
-  const balStr = balanceNum.toFixed(4);
-
+export const POST = route({ body: AccountCreateSchema })(async ({ user, body }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
+
+  const balanceNum = body.openingBalance ?? 0;
+  const balStr = balanceNum.toFixed(4);
 
   const account = await createAccount(user.id, budget.id, {
-    name: name.trim(),
-    type: type as AccountType,
-    currency: currency.trim().toUpperCase(),
+    name: body.name.trim(),
+    type: body.type as AccountType,
+    currency: body.currency.trim().toUpperCase(),
     openingBalance: balStr,
     balance: balStr,
     archived: false,
-    details: details && typeof details === 'object' ? details : null,
+    details: body.details ?? null,
   });
 
   if (balanceNum !== 0) {
@@ -164,5 +150,5 @@ export const POST = withAuth(async ({ req, user }) => {
     });
   }
 
-  return NextResponse.json({ account }, { status: 201 });
+  return created({ account });
 });

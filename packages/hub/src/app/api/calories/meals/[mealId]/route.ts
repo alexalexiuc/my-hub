@@ -1,42 +1,36 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
-import { formatZodError } from '@/lib/api/with-error-logging';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import { deleteMeal, updateMeal } from '@my-hub/shared/services';
+import { MealTypesValues } from '@my-hub/shared/constants';
 import type { MealType } from '@my-hub/shared/constants';
-import { MealUpdateSchema } from '@my-hub/shared/schemas';
 
-export const PATCH = withAuth<{ mealId: string }>(async ({ req, user, params }) => {
-  const { mealId } = await params;
-
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
-  }
-
-  const parsed = MealUpdateSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
-  }
-
-  const { data } = parsed;
-  const update = {
-    ...data,
-    mealType: data.mealType as MealType | undefined,
-    ...(data.kcal != null ? { kcal: Math.round(data.kcal) } : {}),
-  };
-
-  const updated = await updateMeal(user.id, mealId, update);
-  if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  return NextResponse.json({ meal: updated });
+const MealUpdateSchema = z.object({
+  description: z.string().trim().min(1).optional(),
+  mealType: z.enum(MealTypesValues).optional(),
+  kcal: z.number().optional(),
+  protein: z.number().optional(),
+  carbs: z.number().optional(),
+  fat: z.number().optional(),
+  notes: z.string().optional(),
 });
 
-export const DELETE = withAuth<{ mealId: string }>(async ({ user, params }) => {
-  const { mealId } = await params;
-  const deleted = await deleteMeal(user.id, mealId);
-  if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+const MealIdParamSchema = z.object({ mealId: z.coerce.string().trim().min(1, 'Invalid meal id') });
 
-  return NextResponse.json({ deleted: true });
+export const PATCH = route({ body: MealUpdateSchema, params: MealIdParamSchema })(async ({ user, params, body }) => {
+  const update = {
+    ...body,
+    mealType: body.mealType as MealType | undefined,
+    ...(body.kcal != null ? { kcal: Math.round(body.kcal) } : {}),
+  };
+
+  const updated = await updateMeal(user.id, params.mealId, update);
+  if (!updated) routeHttpError(404, { error: 'Not found' });
+
+  return { meal: updated };
+});
+
+export const DELETE = route({ params: MealIdParamSchema })(async ({ user, params }) => {
+  const deleted = await deleteMeal(user.id, params.mealId);
+  if (!deleted) routeHttpError(404, { error: 'Not found' });
+  return { deleted: true };
 });

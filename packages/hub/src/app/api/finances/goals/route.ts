@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { route, routeHttpError } from '@/lib/api/route';
 import { getUserBudgets, getAccounts, getTransactions } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import type { GoalAccountDetails } from '@my-hub/shared/constants';
@@ -14,17 +13,17 @@ export interface GoalItem {
   projectedMonths: number | null;
 }
 
-export const GET = withAuth(async ({ user }) => {
+export const GET = route(async ({ user }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
   const allAccounts = await getAccounts(user.id, budgetId);
   const goalAccounts = allAccounts.filter(a => a.type === AccountTypes.Goal);
 
   if (!goalAccounts.length) {
-    return NextResponse.json({ currency: budget.defaultCurrency, goals: [] });
+    return { currency: budget.defaultCurrency, goals: [] };
   }
 
   const goalIds = new Set(goalAccounts.map(a => a.id));
@@ -56,5 +55,5 @@ export const GET = withAuth(async ({ user }) => {
     return { id: a.id, name: a.name, currency: a.currency, balance, targetAmount, monthlyAvg, projectedMonths };
   });
 
-  return NextResponse.json({ currency: budget.defaultCurrency, goals });
+  return { currency: budget.defaultCurrency, goals };
 });

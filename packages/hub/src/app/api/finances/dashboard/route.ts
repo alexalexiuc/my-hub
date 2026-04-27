@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { route } from '@/lib/api/route';
 import {
   getUserBudgets,
   getAccounts,
@@ -12,11 +11,11 @@ import { AccountTypes } from '@my-hub/shared/constants';
 import type { GoalAccountDetails } from '@my-hub/shared/constants';
 import type { FinanceDashboardData } from './types';
 
-export const GET = withAuth(async ({ user }) => {
+export const GET = route(async ({ user }) => {
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
   if (!budget) {
-    return NextResponse.json({ hasBudget: false });
+    return { hasBudget: false };
   }
 
   const budgetId = budget.id;
@@ -121,5 +120,5 @@ export const GET = withAuth(async ({ user }) => {
     recentTransactions,
   };
 
-  return NextResponse.json(data);
+  return data;
 });

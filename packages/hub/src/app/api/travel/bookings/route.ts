@@ -1,60 +1,67 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
-import { formatZodError } from '@/lib/api/with-error-logging';
+import { z } from 'zod';
+import { route, routeHttpError, created } from '@/lib/api/route';
 import { parseAndValidateDate } from '@/lib/api/date-validation';
 import { addTripBooking } from '@my-hub/shared/services';
 import type { FlightDetails } from '@my-hub/shared/types';
-import { TripBookingTypes } from '@my-hub/shared/constants';
-import { BookingCreateSchema } from '@my-hub/shared/schemas';
+import { TripBookingTypes, tripBookingTypeValues } from '@my-hub/shared/constants';
 
-export const POST = withAuth(async ({ req, user }) => {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
+const BookingCreateSchema = z.object({
+  tripId: z.number().int().positive(),
+  title: z.string().trim().min(1, 'title is required'),
+  bookingType: z.enum(tripBookingTypeValues as [string, ...string[]]).optional(),
+  provider: z.string().optional(),
+  confirmationNumber: z.string().optional(),
+  startAt: z.string().optional(),
+  endAt: z.string().optional(),
+  status: z.string().optional(),
+  costAmount: z.number().optional(),
+  costCurrency: z.string().optional(),
+  location: z.string().optional(),
+  referenceLink: z.string().optional(),
+  notes: z.string().optional(),
+  flightDetails: z.record(z.string(), z.unknown()).optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+  contactName: z.string().optional(),
+  contactEmail: z.string().optional(),
+  contactPhone: z.string().optional(),
+});
 
-  const parsed = BookingCreateSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
-  }
+export const POST = route({ body: BookingCreateSchema })(async ({ user, body }) => {
+  const { date: startAt, error: startAtError } = parseAndValidateDate(body.startAt, 'startAt');
+  if (startAtError) routeHttpError(400, { error: startAtError });
 
-  const { data } = parsed;
+  const { date: endAt, error: endAtError } = parseAndValidateDate(body.endAt, 'endAt');
+  if (endAtError) routeHttpError(400, { error: endAtError });
 
-  const { date: startAt, error: startAtError } = parseAndValidateDate(data.startAt, 'startAt');
-  if (startAtError) return NextResponse.json({ error: startAtError }, { status: 400 });
-
-  const { date: endAt, error: endAtError } = parseAndValidateDate(data.endAt, 'endAt');
-  if (endAtError) return NextResponse.json({ error: endAtError }, { status: 400 });
-
-  const bookingType = data.bookingType ?? TripBookingTypes.Other;
+  const bookingType = (body.bookingType ??
+    TripBookingTypes.Other) as (typeof TripBookingTypes)[keyof typeof TripBookingTypes];
 
   const flightDetails =
-    bookingType === TripBookingTypes.Flight && data.flightDetails != null
-      ? (data.flightDetails as Partial<FlightDetails>)
+    bookingType === TripBookingTypes.Flight && body.flightDetails != null
+      ? (body.flightDetails as Partial<FlightDetails>)
       : null;
 
-  const booking = await addTripBooking(user.id, data.tripId, {
+  const booking = await addTripBooking(user.id, body.tripId, {
     bookingType,
-    title: data.title,
-    provider: data.provider ?? null,
-    confirmationNumber: data.confirmationNumber ?? null,
+    title: body.title,
+    provider: body.provider ?? null,
+    confirmationNumber: body.confirmationNumber ?? null,
     startAt,
     endAt,
-    status: data.status ?? 'scheduled',
-    costAmount: data.costAmount ?? null,
-    costCurrency: data.costCurrency ?? 'EUR',
-    location: data.location ?? null,
-    referenceLink: data.referenceLink?.trim() || null,
-    notes: data.notes ?? null,
+    status: body.status ?? 'scheduled',
+    costAmount: body.costAmount ?? null,
+    costCurrency: body.costCurrency ?? 'EUR',
+    location: body.location ?? null,
+    referenceLink: body.referenceLink?.trim() || null,
+    notes: body.notes ?? null,
     details: flightDetails,
-    lat: data.lat ?? null,
-    lng: data.lng ?? null,
-    contactName: data.contactName?.trim() || null,
-    contactEmail: data.contactEmail?.trim() || null,
-    contactPhone: data.contactPhone?.trim() || null,
+    lat: body.lat ?? null,
+    lng: body.lng ?? null,
+    contactName: body.contactName?.trim() || null,
+    contactEmail: body.contactEmail?.trim() || null,
+    contactPhone: body.contactPhone?.trim() || null,
   });
 
-  return NextResponse.json({ booking }, { status: 201 });
+  return created({ booking });
 });

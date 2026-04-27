@@ -1,25 +1,17 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { route, created } from '@/lib/api/route';
 import { getApiaryYards, createApiaryYard } from '@my-hub/shared/services';
+import { YardCreateSchema } from '@/lib/schemas/apiary';
 
-export const GET = withAuth(async ({ user }) => {
+export const GET = route(async ({ user }) => {
   const yards = await getApiaryYards(user.id);
-  return NextResponse.json({ yards });
+  return { yards };
 });
 
-export const POST = withAuth(async ({ req, user }) => {
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const { name, location, notes } = body as { name?: string; location?: string; notes?: string };
-  if (!name?.trim()) {
-    return NextResponse.json({ error: 'name is required' }, { status: 400 });
-  }
-
-  const yard = await createApiaryYard(user.id, { name: name.trim(), location: location ?? null, notes: notes ?? null });
-  return NextResponse.json({ yard }, { status: 201 });
+export const POST = route({ body: YardCreateSchema })(async ({ user, body }) => {
+  const yard = await createApiaryYard(user.id, {
+    name: body.name.trim(),
+    location: body.location ?? null,
+    notes: body.notes ?? null,
+  });
+  return created({ yard });
 });

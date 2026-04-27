@@ -1,16 +1,13 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import { deleteTripDay } from '@my-hub/shared/services';
 
-export const DELETE = withAuth<{ id: string }>(async ({ user, params }) => {
-  const { id } = await params;
-  const dayId = Number(id);
-  if (!Number.isInteger(dayId) || dayId <= 0) {
-    return NextResponse.json({ error: 'Invalid day id' }, { status: 400 });
-  }
+const DaysParamsSchema = z.object({ id: z.coerce.number().int().positive('Invalid item id') });
 
-  const removed = await deleteTripDay(user.id, dayId);
-  if (!removed) return NextResponse.json({ error: 'Day note not found' }, { status: 404 });
-
-  return NextResponse.json({ id: removed.id });
+export const DELETE = route({ params: DaysParamsSchema })(async ({ user, params }) => {
+  const { id } = params;
+  if (!id) routeHttpError(400, { error: 'Invalid day id' });
+  const removed = await deleteTripDay(user.id, id);
+  if (!removed) routeHttpError(404, { error: 'Day note not found' });
+  return { id: removed.id };
 });

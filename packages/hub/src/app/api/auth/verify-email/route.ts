@@ -1,26 +1,16 @@
-import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { consumeEmailVerificationToken } from '@my-hub/shared/services';
-import { withErrorLogging } from '@/lib/api/with-error-logging';
+import { route, routeHttpError } from '@/lib/api/route';
 
-async function verifyEmailHandler(req: Request) {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
+const VerifyEmailBodySchema = z.object({
+  token: z.string().min(1, 'token is required'),
+});
 
-  const token = (body as Record<string, unknown>)?.token;
-  if (!token || typeof token !== 'string') {
-    return NextResponse.json({ error: 'token is required' }, { status: 400 });
-  }
-
-  const ok = await consumeEmailVerificationToken(token);
+export const POST = route({ public: true, body: VerifyEmailBodySchema })(async ({ body }) => {
+  const ok = await consumeEmailVerificationToken(body.token);
   if (!ok) {
-    return NextResponse.json({ error: 'Verification link is invalid or has expired' }, { status: 400 });
+    return routeHttpError(400, 'Verification link is invalid or has expired');
   }
 
-  return NextResponse.json({ ok: true });
-}
-
-export const POST = withErrorLogging(verifyEmailHandler);
+  return { ok: true };
+});

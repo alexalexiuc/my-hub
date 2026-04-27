@@ -1,17 +1,16 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, created } from '@/lib/api/route';
 import { listUserOAuthClients, createUserOAuthClient } from '@my-hub/shared/services';
 
-export const GET = withAuth(async ({ user }) => {
+export const GET = route(async ({ user }) => {
   const clients = await listUserOAuthClients(user.id);
-  return NextResponse.json(clients);
+  return clients;
 });
 
-export const POST = withAuth(async ({ req, user }) => {
-  const body = (await req.json()) as { name?: string };
+export const POST = route({ body: z.object({ name: z.string().optional() }) })(async ({ user, body }) => {
   const name = typeof body.name === 'string' && body.name.trim() ? body.name.trim() : null;
 
-  const created = await createUserOAuthClient(user.id, name);
+  const newClient = await createUserOAuthClient(user.id, name);
   // plainClientSecret is returned ONCE here — it is not stored and cannot be retrieved later.
-  return NextResponse.json(created, { status: 201 });
+  return created(newClient);
 });

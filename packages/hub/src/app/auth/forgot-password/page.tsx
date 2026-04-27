@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { ForgotPasswordSchema, type ForgotPasswordInput } from '@my-hub/shared/schemas';
+import { ForgotPasswordSchema, type ForgotPasswordInput } from '@/lib/schemas/auth';
 import { apiFetch } from '@/lib/utils';
 import { Button, Field, Input } from '@/components';
 

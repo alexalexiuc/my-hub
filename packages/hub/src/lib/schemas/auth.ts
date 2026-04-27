@@ -1,8 +1,8 @@
 /**
- * API-level Zod schemas for auth endpoints (forgot-password, reset-password).
+ * Zod schemas for auth flows — used by both API routes and client pages.
  */
 import { z } from 'zod';
-import { MIN_PASSWORD_LENGTH, PASSWORD_RULES } from '../../constants/auth';
+import { MIN_PASSWORD_LENGTH, PASSWORD_RULES } from '@my-hub/shared/constants';
 
 export const ForgotPasswordSchema = z.object({
   email: z.string().trim().email('A valid email address is required'),

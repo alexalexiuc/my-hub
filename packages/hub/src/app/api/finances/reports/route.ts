@@ -1,6 +1,10 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import { getUserBudgets, getTransactions, getNetWorthHistory } from '@my-hub/shared/services';
+
+const ReportsQuerySchema = z.object({
+  months: z.coerce.number().int().positive().max(12).optional(),
+});
 
 export interface CashflowMonth {
   month: string; // short label e.g. "Jan"
@@ -21,13 +25,12 @@ function addMonths(date: Date, n: number): Date {
   return d;
 }
 
-export const GET = withAuth(async ({ req, user }) => {
-  const { searchParams } = new URL(req.url);
-  const months = Math.min(Number(searchParams.get('months') ?? 6), 12);
+export const GET = route({ query: ReportsQuerySchema })(async ({ user, query }) => {
+  const months = Math.min(query.months ?? 6, 12);
 
   const budgets = await getUserBudgets(user.id);
   const budget = budgets[0];
-  if (!budget) return NextResponse.json({ error: 'No budget found' }, { status: 404 });
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
 
@@ -41,7 +44,6 @@ export const GET = withAuth(async ({ req, user }) => {
     getNetWorthHistory(user.id, budgetId, months),
   ]);
 
-  // Aggregate per month
   const monthMap = new Map<string, { income: number; expense: number }>();
   for (let i = months - 1; i >= 0; i--) {
     const d = addMonths(now, -i);
@@ -74,5 +76,5 @@ export const GET = withAuth(async ({ req, user }) => {
   }));
 
   const data: ReportsData = { currency: budget.defaultCurrency, cashflow, netWorthHistory };
-  return NextResponse.json(data);
+  return data;
 });

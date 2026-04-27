@@ -1,48 +1,27 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import { getApiaryYard, updateApiaryYard, deleteApiaryYard } from '@my-hub/shared/services';
+import { YardUpdateSchema } from '@/lib/schemas/apiary';
 
-function parseId(id: string): number | null {
-  const n = Number(id);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
-
-export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
-  const { id } = await params;
-  const numId = parseId(id);
-  if (!numId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
-
-  const yard = await getApiaryYard(user.id, numId);
-  if (!yard) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  return NextResponse.json({ yard });
+export const GET = route({ params: z.object({ id: z.coerce.number().int().positive() }) })(async ({ user, params }) => {
+  const yard = await getApiaryYard(user.id, params.id);
+  if (!yard) routeHttpError(404, { error: 'Not found' });
+  return { yard };
 });
 
-export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
-  const { id } = await params;
-  const numId = parseId(id);
-  if (!numId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+export const PATCH = route({ params: z.object({ id: z.coerce.number().int().positive() }), body: YardUpdateSchema })(
+  async ({ user, params, body }) => {
+    const yard = await updateApiaryYard(user.id, params.id, body);
+    if (!yard) routeHttpError(404, { error: 'Not found' });
+    return { yard };
+  },
+);
 
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const yard = await updateApiaryYard(user.id, numId, body);
-  if (!yard) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  return NextResponse.json({ yard });
-});
-
-export const DELETE = withAuth<{ id: string }>(async ({ user, params }) => {
-  const { id } = await params;
-  const numId = parseId(id);
-  if (!numId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
-
-  const yard = await deleteApiaryYard(user.id, numId);
-  if (!yard) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  return NextResponse.json({ yard });
+export const DELETE = route({ params: z.object({ id: z.coerce.number().int().positive() }) })(async ({
+  user,
+  params,
+}) => {
+  const yard = await deleteApiaryYard(user.id, params.id);
+  if (!yard) routeHttpError(404, { error: 'Not found' });
+  return { yard };
 });

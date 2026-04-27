@@ -1,36 +1,25 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import { updateApiaryTask, deleteApiaryTask } from '@my-hub/shared/services';
+import { TaskUpdateSchema } from '@/lib/schemas/apiary';
 
-export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
-  const { id } = await params;
-  const numId = Number(id);
-  if (!Number.isInteger(numId) || numId <= 0) {
-    return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
-  }
+export const PATCH = route({ params: z.object({ id: z.coerce.number().int().positive() }), body: TaskUpdateSchema })(
+  async ({ user, params, body }) => {
+    const { dueAt: dueAtStr, ...rest } = body;
+    const task = await updateApiaryTask(user.id, params.id, {
+      ...rest,
+      ...(dueAtStr !== undefined ? { dueAt: dueAtStr ? new Date(dueAtStr) : null } : {}),
+    });
+    if (!task) routeHttpError(404, { error: 'Not found' });
+    return { task };
+  },
+);
 
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const task = await updateApiaryTask(user.id, numId, body);
-  if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  return NextResponse.json({ task });
-});
-
-export const DELETE = withAuth<{ id: string }>(async ({ user, params }) => {
-  const { id } = await params;
-  const numId = Number(id);
-  if (!Number.isInteger(numId) || numId <= 0) {
-    return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
-  }
-
-  const task = await deleteApiaryTask(user.id, numId);
-  if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  return NextResponse.json({ task });
+export const DELETE = route({ params: z.object({ id: z.coerce.number().int().positive() }) })(async ({
+  user,
+  params,
+}) => {
+  const task = await deleteApiaryTask(user.id, params.id);
+  if (!task) routeHttpError(404, { error: 'Not found' });
+  return { task };
 });

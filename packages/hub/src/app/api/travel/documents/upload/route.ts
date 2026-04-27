@@ -1,8 +1,7 @@
-import { NextResponse } from 'next/server';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
-import { withAuth } from '@/lib/api/with-auth';
+import { route, routeHttpError, created } from '@/lib/api/route';
 import { getTravelFileMaxBytes, travelFilesConfig } from '@/lib/travel-files-config';
 import { addTripDocument } from '@my-hub/shared/services';
 import type { TripDocumentType } from '@my-hub/shared/types';
@@ -10,7 +9,7 @@ import { TripDocumentTypes, tripDocumentTypeValues } from '@my-hub/shared/consta
 
 export const runtime = 'nodejs';
 
-export const POST = withAuth(async ({ req, user }) => {
+export const POST = route(async ({ req, user }) => {
   const form = await req.formData();
   const file = form.get('file');
   const tripId = Number(form.get('tripId'));
@@ -22,24 +21,24 @@ export const POST = withAuth(async ({ req, user }) => {
   const notes = String(form.get('notes') ?? '').trim();
 
   if (!Number.isInteger(tripId) || tripId <= 0) {
-    return NextResponse.json({ error: 'tripId is required' }, { status: 400 });
+    routeHttpError(400, { error: 'tripId is required' });
   }
   if (bookingId !== null && (!Number.isInteger(bookingId) || bookingId <= 0)) {
-    return NextResponse.json({ error: 'bookingId must be a positive integer' }, { status: 400 });
+    routeHttpError(400, { error: 'bookingId must be a positive integer' });
   }
 
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: 'file is required' }, { status: 400 });
+    routeHttpError(400, { error: 'file is required' });
   }
 
   const maxBytes = getTravelFileMaxBytes();
   if (file.size > maxBytes) {
-    return NextResponse.json({ error: `File exceeds max size of ${maxBytes} bytes` }, { status: 400 });
+    routeHttpError(400, { error: `File exceeds max size of ${maxBytes} bytes` });
   }
 
   const { allowedMime } = travelFilesConfig;
   if (!allowedMime.includes(file.type)) {
-    return NextResponse.json({ error: `MIME type ${file.type} is not allowed` }, { status: 400 });
+    routeHttpError(400, { error: `MIME type ${file.type} is not allowed` });
   }
 
   const type = tripDocumentTypeValues.includes(typeRaw as TripDocumentType)
@@ -73,13 +72,13 @@ export const POST = withAuth(async ({ req, user }) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to upload document';
     if (message === 'Trip not found') {
-      return NextResponse.json({ error: message }, { status: 404 });
+      routeHttpError(404, { error: message });
     }
     if (message === 'bookingId does not belong to this trip') {
-      return NextResponse.json({ error: message }, { status: 400 });
+      routeHttpError(400, { error: message });
     }
     throw error;
   }
 
-  return NextResponse.json({ document }, { status: 201 });
+  return created({ document });
 });
