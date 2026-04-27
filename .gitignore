@@ -62,6 +62,14 @@ next-env.d.ts
 #claude config
 .claude/settings.local.json
 
+#test results
 playwright-report
 test-results/
 packages/e2e/.auth/
+
+#storybook
+storybook-static/
+*storybook.log
+
+#vitest
+vitest.shims.d.ts
