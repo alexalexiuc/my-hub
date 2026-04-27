@@ -110,6 +110,7 @@ import type {
   financeCurrencyRates,
   financeNetWorthSnapshots,
 } from '../db/schema/finances';
+export type { PayeeUserStats } from '../db/schema/finances';
 export type FinanceBudget = InferSelectModel<typeof financeBudgets>;
 export type NewFinanceBudget = InferInsertModel<typeof financeBudgets>;
 export type FinanceBudgetMember = InferSelectModel<typeof financeBudgetMembers>;

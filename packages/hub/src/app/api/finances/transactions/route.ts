@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { route, routeHttpError, created } from '@/lib/api/route';
 import {
-  getUserBudgets,
+  getUserActiveBudget,
   addTransaction,
   upsertPayee,
   getAccounts,
@@ -31,8 +31,7 @@ const TransactionQuerySchema = z.object({
 });
 
 export const GET = route({ query: TransactionQuerySchema })(async ({ user, query }) => {
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
@@ -78,8 +77,7 @@ export const GET = route({ query: TransactionQuerySchema })(async ({ user, query
 });
 
 export const POST = route({ body: TransactionCreateSchema })(async ({ user, body }) => {
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;

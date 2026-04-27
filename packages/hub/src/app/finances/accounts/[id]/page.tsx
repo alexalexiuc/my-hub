@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { Pill } from '@/components';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Bar, Pill, TYPE_META } from '../../ui';
+import { fmt, Card, SectionLabel, Bar, TYPE_META } from '../../ui';
 import { TransactionList } from '../../transactions/TransactionList';
 import type { AccountDetailData, AccountItem } from '../types';
 

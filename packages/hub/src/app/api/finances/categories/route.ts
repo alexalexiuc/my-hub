@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { route, routeHttpError, created } from '@/lib/api/route';
-import { getUserBudgets, getGroups, getCategories, getTransactions, createCategory } from '@my-hub/shared/services';
+import {
+  getGroups,
+  getCategories,
+  getTransactions,
+  createCategory,
+  getUserActiveBudget,
+} from '@my-hub/shared/services';
 import { CategoryIcons } from '@my-hub/shared/constants';
 import type { CategoryIcon } from '@my-hub/shared/constants';
 
@@ -24,8 +30,7 @@ const CategoryQuerySchema = z.object({
 });
 
 export const GET = route({ query: CategoryQuerySchema })(async ({ user, query }) => {
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
@@ -82,8 +87,7 @@ export const GET = route({ query: CategoryQuerySchema })(async ({ user, query })
 });
 
 export const POST = route({ body: CategoryCreateSchema })(async ({ user, body }) => {
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const category = await createCategory(user.id, budget.id, {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
-import { getUserBudgets, getTransactions, getNetWorthHistory } from '@my-hub/shared/services';
+import { getUserActiveBudget, getTransactions, getNetWorthHistory } from '@my-hub/shared/services';
 
 const ReportsQuerySchema = z.object({
   months: z.coerce.number().int().positive().max(12).optional(),
@@ -28,8 +28,7 @@ function addMonths(date: Date, n: number): Date {
 export const GET = route({ query: ReportsQuerySchema })(async ({ user, query }) => {
   const months = Math.min(query.months ?? 6, 12);
 
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;

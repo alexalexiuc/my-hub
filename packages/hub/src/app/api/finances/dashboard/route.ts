@@ -1,19 +1,18 @@
 import { route } from '@/lib/api/route';
 import {
-  getUserBudgets,
   getAccounts,
   getCategories,
   getPayees,
   getTransactions,
   getNetWorthHistory,
+  getUserActiveBudget,
 } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import type { GoalAccountDetails } from '@my-hub/shared/constants';
 import type { FinanceDashboardData } from './types';
 
 export const GET = route(async ({ user }) => {
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) {
     return { hasBudget: false };
   }

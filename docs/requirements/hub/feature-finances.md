@@ -35,18 +35,19 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 
 ## Technical Requirements
 
-| ID    | Requirement                                                                                                                                                         |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TR-01 | Mobile bottom nav is implemented as `FinancesBottomNav` (`src/app/finances/FinancesBottomNav.tsx`), a `'use client'` component using `usePathname` and `useRouter`. |
-| TR-02 | `FinancesBottomNav` is rendered only below the `md` breakpoint (`hidden` inside `FinancesBottomNav`'s outer div + `md:hidden` wrapper in layout).                   |
-| TR-03 | The desktop `FinancesSidebar` is hidden below `md` via a `hidden md:contents` wrapper in `layout.tsx`; its internal implementation is unchanged.                    |
-| TR-04 | A shared `FinModalShell` component (`src/app/finances/FinModalShell.tsx`) handles the responsive modal/sheet wrapper, title, overlay, and outside-click handling.   |
-| TR-05 | `FinModalShell` uses Tailwind responsive classes only — `items-end` on mobile, `md:items-center md:justify-center` on desktop; no inline `style` props for layout.  |
-| TR-06 | Each creation modal passes a `className="md:max-w-[Npx]"` prop to `FinModalShell` to preserve its desktop card width.                                               |
-| TR-07 | All form logic, schema validation, and API calls inside each creation modal remain unchanged.                                                                       |
-| TR-08 | Bottom-nav FAB shadow uses `--fin-accent` colour with 40% opacity to match the accent palette.                                                                      |
-| TR-09 | `FinancesBottomNav` renders the FAB above the tab bar using `−mt-5` lift so the circle visually floats above the nav strip, consistent with the reference design.   |
-| TR-10 | z-index layering: modal overlay `z-[1000]`, bottom nav `z-[900]`; sheets rendered inside the overlay do not conflict with the nav bar.                              |
+| ID    | Requirement                                                                                                                                                                         |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TR-01 | Mobile bottom nav is implemented as `FinancesBottomNav` (`src/app/finances/FinancesBottomNav.tsx`), a `'use client'` component using `usePathname` and `useRouter`.                 |
+| TR-02 | `FinancesBottomNav` is rendered only below the `md` breakpoint (`hidden` inside `FinancesBottomNav`'s outer div + `md:hidden` wrapper in layout).                                   |
+| TR-03 | The desktop `FinancesSidebar` is hidden below `md` via a `hidden md:contents` wrapper in `layout.tsx`; its internal implementation is unchanged.                                    |
+| TR-04 | A shared `FinModalShell` component (`src/app/finances/FinModalShell.tsx`) handles the responsive modal/sheet wrapper, title, overlay, and outside-click handling.                   |
+| TR-05 | `FinModalShell` uses Tailwind responsive classes only — `items-end` on mobile, `md:items-center md:justify-center` on desktop; no inline `style` props for layout.                  |
+| TR-06 | Each creation modal passes a `className="md:max-w-[Npx]"` prop to `FinModalShell` to preserve its desktop card width.                                                               |
+| TR-07 | All form logic, schema validation, and API calls inside each creation modal remain unchanged.                                                                                       |
+| TR-08 | Bottom-nav FAB shadow uses `--fin-accent` colour with 40% opacity to match the accent palette.                                                                                      |
+| TR-09 | `FinancesBottomNav` renders the FAB above the tab bar using `−mt-5` lift so the circle visually floats above the nav strip, consistent with the reference design.                   |
+| TR-10 | z-index layering: modal overlay `z-[1000]`, bottom nav `z-[900]`; sheets rendered inside the overlay do not conflict with the nav bar.                                              |
+| TR-11 | Metadata chips used across finances pages are rendered via the shared `Pill` component (`src/components/Pill.tsx`), which supports both passive badges and optional click handling. |
 
 ---
 
@@ -68,4 +69,5 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 - [x] Outside-click closes the modal/sheet in both layouts.
 - [x] Cancel buttons and successful submissions still close the modal and refresh data correctly.
 - [x] Desktop sidebar "Add Transaction" button continues to open the transaction modal.
+- [x] Finance metadata chips render through the shared `Pill` component without regressing existing styling.
 - [x] Lint and typecheck pass without errors after all changes.

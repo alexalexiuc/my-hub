@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import {
-  getUserBudgets,
   getAccountById,
   getCategories,
   getPayees,
   getTransactions,
   updateAccount,
+  getUserActiveBudget,
 } from '@my-hub/shared/services';
 import type { BorrowedLentAccountDetails } from '@my-hub/shared/constants';
 import type { AccountItem, AccountDetailData, AccountTransaction } from '@/app/finances/accounts/types';
@@ -30,8 +30,7 @@ function flattenAccount(a: NonNullable<Awaited<ReturnType<typeof getAccountById>
 export const GET = route({ params: z.object({ id: z.coerce.number().int().positive() }) })(async ({ user, params }) => {
   const accountId = params.id;
 
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
@@ -77,8 +76,7 @@ export const PATCH = route({ params: z.object({ id: z.coerce.number().int().posi
   async ({ user, params, body }) => {
     const accountId = params.id;
 
-    const budgets = await getUserBudgets(user.id);
-    const budget = budgets[0];
+    const budget = await getUserActiveBudget(user.id);
     if (!budget) routeHttpError(404, { error: 'No budget found' });
 
     const existing = await getAccountById(user.id, budget.id, accountId);

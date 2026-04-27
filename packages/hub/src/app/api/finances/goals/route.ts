@@ -1,5 +1,5 @@
 import { route, routeHttpError } from '@/lib/api/route';
-import { getUserBudgets, getAccounts, getTransactions } from '@my-hub/shared/services';
+import { getAccounts, getTransactions, getUserActiveBudget } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import type { GoalAccountDetails } from '@my-hub/shared/constants';
 
@@ -14,8 +14,7 @@ export interface GoalItem {
 }
 
 export const GET = route(async ({ user }) => {
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;

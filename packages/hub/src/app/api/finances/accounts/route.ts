@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { route, routeHttpError, created } from '@/lib/api/route';
 import {
-  getUserBudgets,
   getAccounts,
   getNetWorthHistory,
   createAccount,
   addTransaction,
+  getUserActiveBudget,
 } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
@@ -75,8 +75,7 @@ function flattenDetails(type: string, details: unknown): Partial<AccountItem> {
 }
 
 export const GET = route(async ({ user }) => {
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
@@ -115,8 +114,7 @@ export const GET = route(async ({ user }) => {
 });
 
 export const POST = route({ body: AccountCreateSchema })(async ({ user, body }) => {
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const balanceNum = body.openingBalance ?? 0;

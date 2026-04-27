@@ -58,22 +58,6 @@ export function SectionLabel({ children, className }: { children: React.ReactNod
   );
 }
 
-export function Pill({ icon, label, color }: { icon?: string; label: string; color: string }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-[20px] border px-2 py-[2px] text-[11px] font-medium"
-      style={{
-        background: color + '22',
-        border: `1px solid ${color}44`,
-        color,
-      }}
-    >
-      {icon && <span className="text-[10px]">{icon}</span>}
-      {label}
-    </span>
-  );
-}
-
 export function Bar({
   value,
   max,

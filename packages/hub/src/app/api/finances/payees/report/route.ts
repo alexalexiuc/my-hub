@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
-import { getUserBudgets, getPayees, getCategories, getTransactions } from '@my-hub/shared/services';
+import { getUserActiveBudget, getPayees, getCategories, getTransactions } from '@my-hub/shared/services';
 
 export interface PayeeReportItem {
   id: number;
@@ -33,8 +33,7 @@ export const GET = route({ query: z.object({ range: z.enum(['30d', '3m', 'ytd'])
 }) => {
   const { range } = query;
 
-  const budgets = await getUserBudgets(user.id);
-  const budget = budgets[0];
+  const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
