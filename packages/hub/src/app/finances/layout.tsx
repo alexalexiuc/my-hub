@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { FinancesSidebar } from './FinancesSidebar';
+import { FinancesBottomNav } from './FinancesBottomNav';
 import './finances.css';
 
 export default function FinancesLayout({ children }: { children: React.ReactNode }) {
@@ -22,8 +23,15 @@ export default function FinancesLayout({ children }: { children: React.ReactNode
 
       {/* Sidebar + page content */}
       <div className="flex flex-1 overflow-hidden">
-        <FinancesSidebar />
-        <div className="flex-1 overflow-y-auto px-7 pb-12 pt-5">{children}</div>
+        <div className="hidden md:contents">
+          <FinancesSidebar />
+        </div>
+        <div className="flex-1 overflow-y-auto px-7 pb-20 pt-5 md:pb-12">{children}</div>
+      </div>
+
+      {/* Mobile bottom nav — hidden at md and above */}
+      <div className="md:hidden">
+        <FinancesBottomNav />
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
+import { FinModalShell } from '../FinModalShell';
 import { Button, Input } from '@/components';
 import { Pill } from '../ui';
 import { categoryIconEmoji } from '../categoryIcons';
@@ -225,200 +226,190 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
   const isSubmitDisabled = !watch('amount') || !selAccId || (needsCategory && !selCatId) || isSubmitting;
 
   return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-[var(--fin-overlay)]"
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        className="flex max-h-[90vh] w-full max-w-[480px] flex-col gap-2.5 overflow-y-auto rounded-[14px] border border-[var(--fin-border)] bg-[var(--fin-card)] p-5"
-      >
-        <div className="text-base font-bold text-[var(--fin-text)]">New Transaction</div>
-
-        {!formData ? (
-          <div className="flex flex-col gap-2.5">
-            {[44, 52, 80, 60, 60].map((h, i) => (
-              <div
-                key={i}
-                className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)]"
-                style={{ height: h, opacity: 0.6 }}
-              />
+    <FinModalShell onClose={onClose} title="New Transaction" className="md:max-w-[480px]">
+      {!formData ? (
+        <div className="flex flex-col gap-2.5">
+          {[44, 52, 80, 60, 60].map((h, i) => (
+            <div
+              key={i}
+              className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)]"
+              style={{ height: h, opacity: 0.6 }}
+            />
+          ))}
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2.5">
+          {/* Type toggle */}
+          <div className="flex rounded-[9px] border border-[var(--fin-border)] bg-[var(--fin-card2)] p-[3px]">
+            {(['expense', 'income', 'transfer'] as TxType[]).map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setValue('txType', t)}
+                className={cn(
+                  'flex-1 cursor-pointer rounded-[7px] border-none py-[7px] text-xs capitalize',
+                  txType === t ? 'font-semibold' : 'bg-transparent text-[var(--fin-muted)]',
+                )}
+                style={{
+                  background: txType === t ? TYPE_COLORS[t] + '22' : undefined,
+                  color: txType === t ? TYPE_COLORS[t] : undefined,
+                  outline: txType === t ? `1px solid ${TYPE_COLORS[t]}44` : 'none',
+                }}
+              >
+                {t}
+              </button>
             ))}
           </div>
-        ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2.5">
-            {/* Type toggle */}
-            <div className="flex rounded-[9px] border border-[var(--fin-border)] bg-[var(--fin-card2)] p-[3px]">
-              {(['expense', 'income', 'transfer'] as TxType[]).map(t => (
+
+          {/* Payee */}
+          <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-[10px]">
+            <div className="mb-1 text-[10px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Payee</div>
+            <Input
+              {...register('payee')}
+              autoFocus
+              placeholder="e.g. Kaufland, Netflix…"
+              variant="ghost"
+              className="w-full text-[15px]"
+            />
+          </div>
+
+          {/* Autofill hint */}
+          {hasSuggestion && (
+            <div className="flex items-center gap-2 rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2 text-xs">
+              <span className="text-[var(--fin-subtle)]">↩</span>
+              <span className="text-[var(--fin-muted)]">Filled from past entries:</span>
+              {selectedCat && (
+                <Pill
+                  icon={categoryIconEmoji(selectedCat.icon)}
+                  label={selectedCat.name}
+                  color={selectedCat.color ?? 'var(--fin-accent)'}
+                />
+              )}
+              <span className="text-[var(--fin-subtle)]">·</span>
+              <span className="text-[11px] text-[var(--fin-muted)]">
+                {formData.accounts.find(a => a.id === selAccId)?.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelCatId(null);
+                  setAutofillDismissed(true);
+                }}
+                className="ml-auto border-none bg-transparent text-xs text-[var(--fin-subtle)]"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Amount */}
+          <div className="flex items-center gap-2 rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-4 py-3">
+            <span className="text-xl font-light text-[var(--fin-muted)]">
+              {(() => {
+                const acctCurrency = formData.accounts.find(a => a.id === selAccId)?.currency ?? formData.currency;
+                return acctCurrency === 'USD'
+                  ? '$'
+                  : acctCurrency === 'GBP'
+                    ? '£'
+                    : acctCurrency === 'EUR'
+                      ? '€'
+                      : acctCurrency;
+              })()}
+            </span>
+            <Input
+              {...register('amount')}
+              type="number"
+              placeholder="0.00"
+              variant="ghost"
+              className="flex-1 text-[28px] font-bold"
+              style={{ color: typeColor }}
+            />
+          </div>
+
+          {/* Account + Category (or To Account for transfer) */}
+          <div className="grid grid-cols-2 gap-2">
+            <AccountDropdown accounts={formData.accounts} selectedId={selAccId} onSelect={setSelAccId} />
+            {txType === 'transfer' ? (
+              <AccountDropdown
+                accounts={formData.accounts.filter(a => a.id !== selAccId)}
+                selectedId={selToAccId}
+                onSelect={setSelToAccId}
+              />
+            ) : (
+              <CategoryDropdown categories={formData.categories} selectedId={selCatId} onSelect={setSelCatId} />
+            )}
+          </div>
+
+          {/* Date + Notes */}
+          <div className="grid grid-cols-2 gap-2">
+            <FieldCard label="Date">
+              <Input
+                {...register('date')}
+                type="date"
+                variant="ghost"
+                className="w-full text-[13px] text-[var(--fin-text)]"
+              />
+            </FieldCard>
+            <FieldCard label="Notes">
+              <Input
+                {...register('note')}
+                placeholder="Optional…"
+                variant="ghost"
+                className="w-full text-[13px] text-[var(--fin-text)]"
+              />
+            </FieldCard>
+          </div>
+
+          {/* Category quick-pick */}
+          {txType !== 'transfer' && (
+            <div className="flex flex-wrap gap-[5px]">
+              {formData.categories.map(cat => (
                 <button
-                  key={t}
+                  key={cat.id}
                   type="button"
-                  onClick={() => setValue('txType', t)}
+                  onClick={() => setSelCatId(cat.id === selCatId ? null : cat.id)}
                   className={cn(
-                    'flex-1 cursor-pointer rounded-[7px] border-none py-[7px] text-xs capitalize',
-                    txType === t ? 'font-semibold' : 'bg-transparent text-[var(--fin-muted)]',
+                    'flex cursor-pointer items-center gap-1 rounded-[20px] px-2.5 py-[5px] text-[11px]',
+                    selCatId === cat.id ? 'font-semibold' : 'bg-[var(--fin-card2)] text-[var(--fin-muted)]',
                   )}
-                  style={{
-                    background: txType === t ? TYPE_COLORS[t] + '22' : undefined,
-                    color: txType === t ? TYPE_COLORS[t] : undefined,
-                    outline: txType === t ? `1px solid ${TYPE_COLORS[t]}44` : 'none',
-                  }}
+                  style={
+                    selCatId === cat.id
+                      ? {
+                          background: (cat.color ?? 'var(--fin-accent)') + '28',
+                          border: `1px solid ${(cat.color ?? 'var(--fin-accent)') + '66'}`,
+                          color: cat.color ?? 'var(--fin-accent)',
+                        }
+                      : { border: '1px solid var(--fin-border)' }
+                  }
                 >
-                  {t}
+                  <span>{categoryIconEmoji(cat.icon)}</span>
+                  {cat.name}
                 </button>
               ))}
             </div>
+          )}
 
-            {/* Payee */}
-            <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-[10px]">
-              <div className="mb-1 text-[10px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Payee</div>
-              <Input
-                {...register('payee')}
-                autoFocus
-                placeholder="e.g. Kaufland, Netflix…"
-                variant="ghost"
-                className="w-full text-[15px]"
-              />
-            </div>
-
-            {/* Autofill hint */}
-            {hasSuggestion && (
-              <div className="flex items-center gap-2 rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2 text-xs">
-                <span className="text-[var(--fin-subtle)]">↩</span>
-                <span className="text-[var(--fin-muted)]">Filled from past entries:</span>
-                {selectedCat && (
-                  <Pill
-                    icon={categoryIconEmoji(selectedCat.icon)}
-                    label={selectedCat.name}
-                    color={selectedCat.color ?? 'var(--fin-accent)'}
-                  />
-                )}
-                <span className="text-[var(--fin-subtle)]">·</span>
-                <span className="text-[11px] text-[var(--fin-muted)]">
-                  {formData.accounts.find(a => a.id === selAccId)?.name}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelCatId(null);
-                    setAutofillDismissed(true);
-                  }}
-                  className="ml-auto border-none bg-transparent text-xs text-[var(--fin-subtle)]"
-                >
-                  ✕
-                </button>
-              </div>
-            )}
-
-            {/* Amount */}
-            <div className="flex items-center gap-2 rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-4 py-3">
-              <span className="text-xl font-light text-[var(--fin-muted)]">
-                {(() => {
-                  const acctCurrency = formData.accounts.find(a => a.id === selAccId)?.currency ?? formData.currency;
-                  return acctCurrency === 'USD'
-                    ? '$'
-                    : acctCurrency === 'GBP'
-                      ? '£'
-                      : acctCurrency === 'EUR'
-                        ? '€'
-                        : acctCurrency;
-                })()}
-              </span>
-              <Input
-                {...register('amount')}
-                type="number"
-                placeholder="0.00"
-                variant="ghost"
-                className="flex-1 text-[28px] font-bold"
-                style={{ color: typeColor }}
-              />
-            </div>
-
-            {/* Account + Category (or To Account for transfer) */}
-            <div className="grid grid-cols-2 gap-2">
-              <AccountDropdown accounts={formData.accounts} selectedId={selAccId} onSelect={setSelAccId} />
-              {txType === 'transfer' ? (
-                <AccountDropdown
-                  accounts={formData.accounts.filter(a => a.id !== selAccId)}
-                  selectedId={selToAccId}
-                  onSelect={setSelToAccId}
-                />
-              ) : (
-                <CategoryDropdown categories={formData.categories} selectedId={selCatId} onSelect={setSelCatId} />
-              )}
-            </div>
-
-            {/* Date + Notes */}
-            <div className="grid grid-cols-2 gap-2">
-              <FieldCard label="Date">
-                <Input
-                  {...register('date')}
-                  type="date"
-                  variant="ghost"
-                  className="w-full text-[13px] text-[var(--fin-text)]"
-                />
-              </FieldCard>
-              <FieldCard label="Notes">
-                <Input
-                  {...register('note')}
-                  placeholder="Optional…"
-                  variant="ghost"
-                  className="w-full text-[13px] text-[var(--fin-text)]"
-                />
-              </FieldCard>
-            </div>
-
-            {/* Category quick-pick */}
-            {txType !== 'transfer' && (
-              <div className="flex flex-wrap gap-[5px]">
-                {formData.categories.map(cat => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setSelCatId(cat.id === selCatId ? null : cat.id)}
-                    className={cn(
-                      'flex cursor-pointer items-center gap-1 rounded-[20px] px-2.5 py-[5px] text-[11px]',
-                      selCatId === cat.id ? 'font-semibold' : 'bg-[var(--fin-card2)] text-[var(--fin-muted)]',
-                    )}
-                    style={
-                      selCatId === cat.id
-                        ? {
-                            background: (cat.color ?? 'var(--fin-accent)') + '28',
-                            border: `1px solid ${(cat.color ?? 'var(--fin-accent)') + '66'}`,
-                            color: cat.color ?? 'var(--fin-accent)',
-                          }
-                        : { border: '1px solid var(--fin-border)' }
-                    }
-                  >
-                    <span>{categoryIconEmoji(cat.icon)}</span>
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="mt-0.5 flex gap-2">
-              <Button type="button" variant="secondary" size="sm" className="flex-1" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                className="flex-[2]"
-                disabled={isSubmitDisabled}
-                loading={isSubmitting}
-                style={{
-                  background: isSubmitDisabled ? 'var(--fin-card3)' : typeColor,
-                  color: isSubmitDisabled ? 'var(--fin-subtle)' : 'var(--fin-on-solid)',
-                }}
-              >
-                {`Save ${txType.charAt(0).toUpperCase() + txType.slice(1)}`}
-              </Button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+          {/* Actions */}
+          <div className="mt-0.5 flex gap-2">
+            <Button type="button" variant="secondary" size="sm" className="flex-1" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              className="flex-[2]"
+              disabled={isSubmitDisabled}
+              loading={isSubmitting}
+              style={{
+                background: isSubmitDisabled ? 'var(--fin-card3)' : typeColor,
+                color: isSubmitDisabled ? 'var(--fin-subtle)' : 'var(--fin-on-solid)',
+              }}
+            >
+              {`Save ${txType.charAt(0).toUpperCase() + txType.slice(1)}`}
+            </Button>
+          </div>
+        </form>
+      )}
+    </FinModalShell>
   );
 }
