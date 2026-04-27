@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { AddTransactionModal } from './transactions/AddTransactionModal';
 
@@ -45,13 +46,10 @@ export function FinancesSidebar() {
   const isActive = (path: string) => (path === '/finances' ? pathname === '/finances' : pathname.startsWith(path));
 
   return (
-    <div
-      className="flex w-[200px] shrink-0 flex-col px-2.5 py-4"
-      style={{ background: 'var(--fin-card)', borderRight: `1px solid ${'var(--fin-border)'}` }}
-    >
-      <div className="mb-3 border-b px-2 pb-4 pt-1" style={{ borderColor: 'var(--fin-border)' }}>
-        <div className="text-base font-bold tracking-[-0.02em]" style={{ color: 'var(--fin-text)' }}>
-          {currency && <span style={{ color: 'var(--fin-accent)' }}>{currency} </span>}
+    <div className="flex w-[200px] shrink-0 flex-col px-2.5 py-4 bg-[var(--fin-card)] border-r border-[var(--fin-border)]">
+      <div className="mb-3 border-b border-[var(--fin-border)] px-2 pb-4 pt-1">
+        <div className="text-base font-bold tracking-[-0.02em] text-[var(--fin-text)]">
+          {currency && <span className="text-[var(--fin-accent)]">{currency} </span>}
           {budgetName ?? 'Finances'}
         </div>
       </div>
@@ -60,17 +58,16 @@ export function FinancesSidebar() {
         const active = isActive(path);
         return (
           <div key={id}>
-            {dividerBefore && <div className="mx-1 my-1.5 h-px" style={{ background: 'var(--fin-border)' }} />}
+            {dividerBefore && <div className="mx-1 my-1.5 h-px bg-[var(--fin-border)]" />}
             <button
               onClick={() => router.push(path)}
-              className="mb-0.5 flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-[9px] text-left text-[13px]"
-              style={{
-                background: active ? 'var(--fin-accent-d)' : 'transparent',
-                border: active ? `1px solid ${'var(--fin-accent)'}44` : '1px solid transparent',
-                color: active ? 'var(--fin-accent)' : 'var(--fin-muted)',
-                fontWeight: active ? 600 : 400,
-                cursor: 'pointer',
-              }}
+              className={cn(
+                'mb-0.5 flex w-full cursor-pointer items-center gap-2.5 rounded-[7px] px-2.5 py-[9px] text-left text-[13px]',
+                active
+                  ? 'bg-[var(--fin-accent-d)] text-[var(--fin-accent)] font-semibold'
+                  : 'bg-transparent text-[var(--fin-muted)]',
+              )}
+              style={{ border: active ? `1px solid var(--fin-accent)44` : '1px solid transparent' }}
             >
               {icon && <span className="text-[15px] leading-none">{icon}</span>}
               {label}
@@ -84,12 +81,7 @@ export function FinancesSidebar() {
       {showAddTx && <AddTransactionModal onClose={() => setShowAddTx(false)} onCreated={() => setShowAddTx(false)} />}
       <button
         onClick={() => setShowAddTx(true)}
-        className="flex items-center justify-center gap-1.5 rounded-lg border-none p-2.5 text-[13px] font-semibold"
-        style={{
-          background: 'var(--fin-accent)',
-          color: 'var(--fin-on-solid)',
-          cursor: 'pointer',
-        }}
+        className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border-none p-2.5 text-[13px] font-semibold bg-[var(--fin-accent)] text-[var(--fin-on-solid)]"
       >
         <span className="text-base">+</span> Add Transaction
       </button>

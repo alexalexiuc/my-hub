@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar, Sparkline } from '../ui';
 import { AddAccountModal } from './AddAccountModal';
@@ -33,27 +34,16 @@ function AccountCard({
 
   return (
     <Card onClick={onClick} className="cursor-pointer px-[14px] py-3">
-      <div
-        className="flex items-center justify-between"
-        style={{
-          marginBottom: hasExtra ? 10 : 0,
-        }}
-      >
+      <div className={cn('flex items-center justify-between', hasExtra ? 'mb-[10px]' : 'mb-0')}>
         <div className="flex items-center gap-2">
-          <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: 'var(--fin-muted)' }} />
+          <div className="h-2 w-2 shrink-0 rounded-full bg-[var(--fin-muted)]" />
           <div>
-            <div className="text-sm font-semibold" style={{ color: 'var(--fin-text)' }}>
-              {acc.name}
-            </div>
-            {acc.cardLastFour && (
-              <div className="text-[10px]" style={{ color: 'var(--fin-subtle)' }}>
-                •••• {acc.cardLastFour}
-              </div>
-            )}
+            <div className="text-sm font-semibold text-[var(--fin-text)]">{acc.name}</div>
+            {acc.cardLastFour && <div className="text-[10px] text-[var(--fin-subtle)]">•••• {acc.cardLastFour}</div>}
           </div>
         </div>
         <div className="text-right">
-          <div className="text-base font-bold" style={{ color: isLiability ? 'var(--fin-red)' : 'var(--fin-text)' }}>
+          <div className={cn('text-base font-bold', isLiability ? 'text-[var(--fin-red)]' : 'text-[var(--fin-text)]')}>
             {acc.type === 'loan' ? '-' : ''}
             {fmt(acc.balance, acc.currency)}
           </div>
@@ -63,10 +53,10 @@ function AccountCard({
       {acc.type === 'credit_card' && acc.creditLimit != null && (
         <div>
           <div className="mb-1 flex justify-between">
-            <span className="text-[10px]" style={{ color: 'var(--fin-muted)' }}>
+            <span className="text-[10px] text-[var(--fin-muted)]">
               Used {fmt(acc.balance, acc.currency)} of {fmt(acc.creditLimit, acc.currency)}
             </span>
-            <span className="text-[10px]" style={{ color: 'var(--fin-muted)' }}>
+            <span className="text-[10px] text-[var(--fin-muted)]">
               {Math.round((acc.balance / acc.creditLimit) * 100)}%
             </span>
           </div>
@@ -77,10 +67,10 @@ function AccountCard({
       {acc.type === 'goal' && acc.targetAmount != null && (
         <div>
           <div className="mb-1 flex justify-between">
-            <span className="text-[10px]" style={{ color: 'var(--fin-muted)' }}>
+            <span className="text-[10px] text-[var(--fin-muted)]">
               {fmt(acc.balance, acc.currency)} of {fmt(acc.targetAmount, acc.currency)}
             </span>
-            <span className="text-[10px]" style={{ color: 'var(--fin-green)' }}>
+            <span className="text-[10px] text-[var(--fin-green)]">
               {Math.round((acc.balance / acc.targetAmount) * 100)}%
             </span>
           </div>
@@ -91,32 +81,28 @@ function AccountCard({
       {acc.type === 'investment' && acc.deposited != null && (
         <div className="flex gap-4">
           <div>
-            <div className="text-[10px]" style={{ color: 'var(--fin-subtle)' }}>
-              Deposited
-            </div>
-            <div className="text-xs" style={{ color: 'var(--fin-muted)' }}>
-              {fmt(acc.deposited, acc.currency)}
-            </div>
+            <div className="text-[10px] text-[var(--fin-subtle)]">Deposited</div>
+            <div className="text-xs text-[var(--fin-muted)]">{fmt(acc.deposited, acc.currency)}</div>
           </div>
           <div>
-            <div className="text-[10px]" style={{ color: 'var(--fin-subtle)' }}>
-              P&L
-            </div>
+            <div className="text-[10px] text-[var(--fin-subtle)]">P&L</div>
             <div
-              className="text-xs"
-              style={{ color: acc.balance >= acc.deposited ? 'var(--fin-green)' : 'var(--fin-red)' }}
+              className={cn(
+                'text-xs',
+                acc.balance >= acc.deposited ? 'text-[var(--fin-green)]' : 'text-[var(--fin-red)]',
+              )}
             >
               {acc.balance >= acc.deposited ? '+' : '-'}
               {fmt(Math.abs(acc.balance - acc.deposited), acc.currency)}
             </div>
           </div>
           <div>
-            <div className="text-[10px]" style={{ color: 'var(--fin-subtle)' }}>
-              Return
-            </div>
+            <div className="text-[10px] text-[var(--fin-subtle)]">Return</div>
             <div
-              className="text-xs"
-              style={{ color: acc.balance >= acc.deposited ? 'var(--fin-green)' : 'var(--fin-red)' }}
+              className={cn(
+                'text-xs',
+                acc.balance >= acc.deposited ? 'text-[var(--fin-green)]' : 'text-[var(--fin-red)]',
+              )}
             >
               {acc.deposited > 0
                 ? `${acc.balance >= acc.deposited ? '+' : ''}${(((acc.balance - acc.deposited) / acc.deposited) * 100).toFixed(1)}%`
@@ -127,50 +113,36 @@ function AccountCard({
       )}
 
       {acc.type === 'tracking' && (
-        <div className="text-[10px]" style={{ color: 'var(--fin-subtle)' }}>
-          Manually tracked value · read-only
-        </div>
+        <div className="text-[10px] text-[var(--fin-subtle)]">Manually tracked value · read-only</div>
       )}
 
       {acc.type === 'borrowed_lent' && (
         <div className="mt-2 flex items-center justify-between">
           <div className="flex gap-3">
             <div>
-              <div className="text-[9px] uppercase tracking-[0.06em]" style={{ color: 'var(--fin-subtle)' }}>
-                Direction
-              </div>
+              <div className="text-[9px] uppercase tracking-[0.06em] text-[var(--fin-subtle)]">Direction</div>
               <div
-                className="text-xs font-semibold"
-                style={{ color: acc.direction === 'gave' ? 'var(--fin-green)' : 'var(--fin-amber)' }}
+                className={cn(
+                  'text-xs font-semibold',
+                  acc.direction === 'gave' ? 'text-[var(--fin-green)]' : 'text-[var(--fin-amber)]',
+                )}
               >
                 {acc.direction === 'gave' ? 'Lent' : 'Borrowed'}
               </div>
             </div>
             {acc.counterpartyName && (
               <div>
-                <div className="text-[9px] uppercase tracking-[0.06em]" style={{ color: 'var(--fin-subtle)' }}>
-                  With
-                </div>
-                <div className="text-xs" style={{ color: 'var(--fin-muted)' }}>
-                  {acc.counterpartyName}
-                </div>
+                <div className="text-[9px] uppercase tracking-[0.06em] text-[var(--fin-subtle)]">With</div>
+                <div className="text-xs text-[var(--fin-muted)]">{acc.counterpartyName}</div>
               </div>
             )}
             {acc.dueDate && (
               <div>
-                <div className="text-[9px] uppercase tracking-[0.06em]" style={{ color: 'var(--fin-subtle)' }}>
-                  Due
-                </div>
-                <div className="text-xs" style={{ color: 'var(--fin-amber)' }}>
-                  {acc.dueDate}
-                </div>
+                <div className="text-[9px] uppercase tracking-[0.06em] text-[var(--fin-subtle)]">Due</div>
+                <div className="text-xs text-[var(--fin-amber)]">{acc.dueDate}</div>
               </div>
             )}
-            {acc.settled && (
-              <div className="self-center text-[11px]" style={{ color: 'var(--fin-green)' }}>
-                ✓ Settled
-              </div>
-            )}
+            {acc.settled && <div className="self-center text-[11px] text-[var(--fin-green)]">✓ Settled</div>}
           </div>
           {!acc.settled && (
             <button
@@ -178,12 +150,8 @@ function AccountCard({
                 e.stopPropagation();
                 onSettle(acc.id);
               }}
-              className="cursor-pointer rounded-md border px-2.5 py-1 text-[11px] font-semibold"
-              style={{
-                background: 'var(--fin-teal-d)',
-                border: `1px solid ${'var(--fin-teal)'}44`,
-                color: 'var(--fin-teal)',
-              }}
+              className="cursor-pointer rounded-md border px-2.5 py-1 text-[11px] font-semibold bg-[var(--fin-teal-d)] text-[var(--fin-teal)]"
+              style={{ border: `1px solid var(--fin-teal)44` }}
             >
               Settle
             </button>
@@ -221,8 +189,8 @@ export default function AccountsPage() {
         {[80, 120, 100].map((h, i) => (
           <div
             key={i}
-            className="rounded-[10px] border"
-            style={{ height: h, background: 'var(--fin-card)', borderColor: 'var(--fin-border)', opacity: 0.6 }}
+            className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+            style={{ height: h, opacity: 0.6 }}
           />
         ))}
       </div>
@@ -237,17 +205,10 @@ export default function AccountsPage() {
   return (
     <div className="flex flex-col gap-[14px]">
       <div className="flex items-center justify-between">
-        <div className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: 'var(--fin-text)' }}>
-          Accounts
-        </div>
+        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Accounts</div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="cursor-pointer rounded-[20px] border px-3 py-1.5 text-[11px]"
-          style={{
-            background: 'var(--fin-card2)',
-            border: `1px solid ${'var(--fin-border)'}`,
-            color: 'var(--fin-muted)',
-          }}
+          className="cursor-pointer rounded-[20px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-1.5 text-[11px] text-[var(--fin-muted)]"
         >
           + New Account
         </button>
@@ -257,15 +218,13 @@ export default function AccountsPage() {
       <div
         className="flex items-center justify-between rounded-xl p-4"
         style={{
-          background: `linear-gradient(135deg, ${'var(--fin-accent)'}18, ${'var(--fin-violet)'}18)`,
-          border: `1px solid ${'var(--fin-accent)'}33`,
+          background: `linear-gradient(135deg, var(--fin-accent)18, var(--fin-violet)18)`,
+          border: `1px solid var(--fin-accent)33`,
         }}
       >
         <div>
-          <div className="mb-1 text-[11px]" style={{ color: 'var(--fin-muted)' }}>
-            Total Net Worth
-          </div>
-          <div className="text-[26px] font-bold tracking-[-0.02em]" style={{ color: 'var(--fin-text)' }}>
+          <div className="mb-1 text-[11px] text-[var(--fin-muted)]">Total Net Worth</div>
+          <div className="text-[26px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">
             {fmt(netWorth, currency)}
           </div>
         </div>
@@ -296,7 +255,7 @@ export default function AccountsPage() {
       })}
 
       {accounts.length === 0 && (
-        <div className="py-12 text-center text-[13px]" style={{ color: 'var(--fin-subtle)' }}>
+        <div className="py-12 text-center text-[13px] text-[var(--fin-subtle)]">
           No accounts yet. Add your first account to get started.
         </div>
       )}

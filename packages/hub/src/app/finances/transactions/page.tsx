@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { Card } from '../ui';
 import { AddTransactionModal } from './AddTransactionModal';
@@ -77,17 +78,11 @@ export default function TransactionsPage() {
   return (
     <div className="flex flex-col gap-[14px]">
       <div className="flex items-center justify-between">
-        <div className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: 'var(--fin-text)' }}>
-          Transactions
-        </div>
+        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Transactions</div>
         <button
           onClick={() => setShowModal(true)}
-          className="cursor-pointer rounded-[20px] border px-3 py-1.5 text-[11px] font-semibold"
-          style={{
-            background: 'var(--fin-accent-d)',
-            border: `1px solid ${'var(--fin-accent)'}44`,
-            color: 'var(--fin-accent)',
-          }}
+          className="cursor-pointer rounded-[20px] border px-3 py-1.5 text-[11px] font-semibold bg-[var(--fin-accent-d)] text-[var(--fin-accent)]"
+          style={{ border: `1px solid var(--fin-accent)44` }}
         >
           + Add
         </button>
@@ -101,13 +96,13 @@ export default function TransactionsPage() {
             <button
               key={key}
               onClick={() => setFilter(key)}
-              className="cursor-pointer rounded-[20px] px-3 py-[5px] text-[11px]"
-              style={{
-                background: active ? 'var(--fin-accent-d)' : 'var(--fin-card2)',
-                border: active ? `1px solid ${'var(--fin-accent)'}44` : `1px solid ${'var(--fin-border)'}`,
-                color: active ? 'var(--fin-accent)' : 'var(--fin-muted)',
-                fontWeight: active ? 600 : 400,
-              }}
+              className={cn(
+                'cursor-pointer rounded-[20px] px-3 py-[5px] text-[11px]',
+                active
+                  ? 'bg-[var(--fin-accent-d)] text-[var(--fin-accent)] font-semibold'
+                  : 'bg-[var(--fin-card2)] text-[var(--fin-muted)]',
+              )}
+              style={{ border: active ? `1px solid var(--fin-accent)44` : `1px solid var(--fin-border)` }}
             >
               {label}
             </button>
@@ -122,7 +117,7 @@ export default function TransactionsPage() {
               key={i}
               className="h-[58px]"
               style={{
-                borderBottom: `1px solid ${'var(--fin-border)'}22`,
+                borderBottom: `1px solid var(--fin-border)22`,
                 background: i % 2 === 0 ? 'var(--fin-card)' : 'transparent',
                 opacity: 0.5,
               }}
@@ -131,7 +126,7 @@ export default function TransactionsPage() {
         </div>
       ) : (
         <>
-          <Card style={{ padding: 14 }}>
+          <Card className="p-[14px]">
             <TransactionList transactions={data?.transactions ?? []} currency={currency} showAccount />
           </Card>
 
@@ -139,13 +134,10 @@ export default function TransactionsPage() {
             <button
               onClick={() => load(filter, false)}
               disabled={loadingMore}
-              className="w-full rounded-lg p-2.5 text-xs"
-              style={{
-                background: 'var(--fin-card2)',
-                border: `1px solid ${'var(--fin-border)'}`,
-                color: 'var(--fin-muted)',
-                cursor: loadingMore ? 'default' : 'pointer',
-              }}
+              className={cn(
+                'w-full rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] p-2.5 text-xs text-[var(--fin-muted)]',
+                loadingMore ? 'cursor-default' : 'cursor-pointer',
+              )}
             >
               {loadingMore ? 'Loading…' : 'Load more'}
             </button>

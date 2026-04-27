@@ -46,13 +46,10 @@ export function Card({
   );
 }
 
-export function SectionLabel({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+export function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div
-      className="mb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--fin-subtle)]"
-      style={{
-        ...style,
-      }}
+      className={cn('mb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--fin-subtle)]', className)}
     >
       {children}
     </div>
@@ -80,20 +77,20 @@ export function Bar({
   max,
   color,
   height = 6,
-  style,
+  className,
 }: {
   value: number;
   max: number;
   color?: string;
   height?: number;
-  style?: React.CSSProperties;
+  className?: string;
 }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   const barColor = pct >= 100 ? 'var(--fin-red)' : pct >= 80 ? 'var(--fin-amber)' : (color ?? 'var(--fin-green)');
   return (
     <div
-      className="overflow-hidden"
-      style={{ height, borderRadius: height / 2, background: 'var(--fin-card2)', ...style }}
+      className={cn('overflow-hidden', className)}
+      style={{ height, borderRadius: height / 2, background: 'var(--fin-card2)' }}
     >
       <div
         style={{
@@ -120,16 +117,10 @@ export function AmountText({
   sign?: boolean;
 }) {
   const isNeg = value < 0;
-  const color = sign ? (isNeg ? 'var(--fin-red)' : 'var(--fin-green)') : 'var(--fin-text)';
-  const sizes = { sm: 14, md: 18, lg: 28, xl: 36 };
+  const sizeClass = { sm: 'text-[14px]', md: 'text-[18px]', lg: 'text-[28px]', xl: 'text-[36px]' } as const;
+  const colorClass = sign ? (isNeg ? 'text-[var(--fin-red)]' : 'text-[var(--fin-green)]') : 'text-[var(--fin-text)]';
   return (
-    <span
-      className="font-semibold tabular-nums"
-      style={{
-        fontSize: sizes[size],
-        color,
-      }}
-    >
+    <span className={cn('font-semibold tabular-nums', sizeClass[size], colorClass)}>
       {sign ? (isNeg ? '-' : '+') : ''}
       {fmt(value, currency)}
     </span>
@@ -137,7 +128,7 @@ export function AmountText({
 }
 
 export function Divider() {
-  return <div className="my-[2px] h-px" style={{ background: 'var(--fin-border)' }} />;
+  return <div className="my-[2px] h-px bg-[var(--fin-border)]" />;
 }
 
 export function Sparkline({

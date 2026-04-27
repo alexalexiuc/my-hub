@@ -42,8 +42,8 @@ export default function GoalsPage() {
         {[80, 160, 160].map((h, i) => (
           <div
             key={i}
-            className="rounded-[10px] border"
-            style={{ height: h, background: 'var(--fin-card)', borderColor: 'var(--fin-border)', opacity: 0.6 }}
+            className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+            style={{ height: h, opacity: 0.6 }}
           />
         ))}
       </div>
@@ -71,19 +71,12 @@ export default function GoalsPage() {
         />
       )}
       <div className="flex items-center justify-between">
-        <div className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: 'var(--fin-text)' }}>
-          Goals
-        </div>
+        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Goals</div>
         <button
           onClick={() => {
             /* TODO: add goal form */
           }}
-          className="cursor-pointer rounded-[20px] border px-3 py-1.5 text-[11px]"
-          style={{
-            background: 'var(--fin-card2)',
-            border: `1px solid ${'var(--fin-border)'}`,
-            color: 'var(--fin-muted)',
-          }}
+          className="cursor-pointer rounded-[20px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-1.5 text-[11px] text-[var(--fin-muted)]"
         >
           + New Goal
         </button>
@@ -94,18 +87,14 @@ export default function GoalsPage() {
         <div
           className="rounded-xl p-4"
           style={{
-            background: `linear-gradient(135deg, ${'var(--fin-green)'}18, ${'var(--fin-card)'})`,
-            border: `1px solid ${'var(--fin-green)'}33`,
+            background: `linear-gradient(135deg, var(--fin-green)18, var(--fin-card))`,
+            border: `1px solid var(--fin-green)33`,
           }}
         >
-          <div className="mb-1 text-[11px]" style={{ color: 'var(--fin-muted)' }}>
-            Total saved across all goals
-          </div>
-          <div className="mb-1.5 text-[26px] font-bold" style={{ color: 'var(--fin-text)' }}>
-            {fmt(totalSaved, currency)}
-          </div>
-          <Bar value={totalSaved} max={totalTarget} color={'var(--fin-green)'} height={6} style={{ marginBottom: 6 }} />
-          <div className="text-[11px]" style={{ color: 'var(--fin-muted)' }}>
+          <div className="mb-1 text-[11px] text-[var(--fin-muted)]">Total saved across all goals</div>
+          <div className="mb-1.5 text-[26px] font-bold text-[var(--fin-text)]">{fmt(totalSaved, currency)}</div>
+          <Bar value={totalSaved} max={totalTarget} color={'var(--fin-green)'} height={6} className="mb-1.5" />
+          <div className="text-[11px] text-[var(--fin-muted)]">
             {fmt(totalSaved, currency)} of {fmt(totalTarget, currency)} · {overallPct}% overall
           </div>
         </div>
@@ -118,37 +107,21 @@ export default function GoalsPage() {
           <Card key={g.id} onClick={() => router.push(`/finances/accounts/${g.id}`)} className="cursor-pointer p-4">
             <div className="mb-3 flex items-start justify-between">
               <div>
-                <div className="mb-[3px] text-[15px] font-semibold" style={{ color: 'var(--fin-text)' }}>
-                  {g.name}
-                </div>
+                <div className="mb-[3px] text-[15px] font-semibold text-[var(--fin-text)]">{g.name}</div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold" style={{ color: 'var(--fin-text)' }}>
-                    {fmt(g.balance, g.currency)}
-                  </span>
-                  <span className="text-[11px]" style={{ color: 'var(--fin-subtle)' }}>
-                    of {fmt(g.targetAmount, g.currency)}
-                  </span>
+                  <span className="text-[13px] font-bold text-[var(--fin-text)]">{fmt(g.balance, g.currency)}</span>
+                  <span className="text-[11px] text-[var(--fin-subtle)]">of {fmt(g.targetAmount, g.currency)}</span>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xl font-bold" style={{ color: 'var(--fin-green)' }}>
-                  {pct}%
-                </div>
+                <div className="text-xl font-bold text-[var(--fin-green)]">{pct}%</div>
                 {g.projectedMonths != null && (
-                  <div className="mt-0.5 text-[10px]" style={{ color: 'var(--fin-subtle)' }}>
-                    ~{projectedDate(g.projectedMonths)}
-                  </div>
+                  <div className="mt-0.5 text-[10px] text-[var(--fin-subtle)]">~{projectedDate(g.projectedMonths)}</div>
                 )}
               </div>
             </div>
 
-            <Bar
-              value={g.balance}
-              max={g.targetAmount}
-              color={'var(--fin-green)'}
-              height={8}
-              style={{ marginBottom: 10 }}
-            />
+            <Bar value={g.balance} max={g.targetAmount} color={'var(--fin-green)'} height={8} className="mb-2.5" />
 
             <div className="flex gap-2">
               <button
@@ -156,11 +129,10 @@ export default function GoalsPage() {
                   e.stopPropagation();
                   setShowAddTx(true);
                 }}
-                className="flex-1 cursor-pointer rounded-lg border py-2 text-xs font-semibold"
+                className="flex-1 cursor-pointer rounded-lg border py-2 text-xs font-semibold text-[var(--fin-green)]"
                 style={{
-                  background: 'var(--fin-green)' + '22',
-                  border: `1px solid ${'var(--fin-green)'}44`,
-                  color: 'var(--fin-green)',
+                  background: 'var(--fin-green)22',
+                  border: `1px solid var(--fin-green)44`,
                 }}
               >
                 + Add Funds
@@ -170,12 +142,7 @@ export default function GoalsPage() {
                   e.stopPropagation();
                   router.push(`/finances/accounts/${g.id}`);
                 }}
-                className="cursor-pointer rounded-lg border px-[14px] py-2 text-xs"
-                style={{
-                  background: 'var(--fin-card2)',
-                  border: `1px solid ${'var(--fin-border)'}`,
-                  color: 'var(--fin-muted)',
-                }}
+                className="cursor-pointer rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-2 text-xs text-[var(--fin-muted)]"
               >
                 Edit
               </button>
@@ -185,7 +152,7 @@ export default function GoalsPage() {
       })}
 
       {goals.length === 0 && (
-        <div className="py-12 text-center text-[13px]" style={{ color: 'var(--fin-subtle)' }}>
+        <div className="py-12 text-center text-[13px] text-[var(--fin-subtle)]">
           No goals yet. Create a goal account to start saving.
         </div>
       )}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar, Pill, TYPE_META } from '../../ui';
 import { TransactionList } from '../../transactions/TransactionList';
@@ -60,46 +61,19 @@ function CorrectionModal({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
-      style={{
-        background: 'var(--fin-overlay)',
-      }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-[var(--fin-overlay)]"
     >
       <div
         onClick={e => e.stopPropagation()}
-        className="flex w-full max-w-[400px] flex-col gap-3 rounded-[14px] p-5"
-        style={{
-          background: 'var(--fin-card)',
-          border: `1px solid ${'var(--fin-border)'}`,
-        }}
+        className="flex w-full max-w-[400px] flex-col gap-3 rounded-[14px] border border-[var(--fin-border)] bg-[var(--fin-card)] p-5"
       >
-        <div className="text-base font-bold" style={{ color: 'var(--fin-text)' }}>
-          Balance Correction
-        </div>
+        <div className="text-base font-bold text-[var(--fin-text)]">Balance Correction</div>
 
         {/* Balance summary row */}
-        <div
-          className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[10px] px-[14px] py-3"
-          style={{
-            background: 'var(--fin-card2)',
-            border: `1px solid ${'var(--fin-border)'}`,
-          }}
-        >
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-3">
           <div>
-            <div
-              style={{
-                fontSize: 9,
-                color: 'var(--fin-subtle)',
-                textTransform: 'uppercase',
-                letterSpacing: '.07em',
-                marginBottom: 2,
-              }}
-            >
-              Current
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--fin-muted)' }}>
-              {fmt(currentBalance, currency)}
-            </div>
+            <div className="mb-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Current</div>
+            <div className="text-[15px] font-semibold text-[var(--fin-muted)]">{fmt(currentBalance, currency)}</div>
           </div>
           <div className="text-center">
             <div
@@ -113,37 +87,18 @@ function CorrectionModal({
             </div>
           </div>
           <div className="text-right">
+            <div className="mb-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">New</div>
             <div
-              style={{
-                fontSize: 9,
-                color: 'var(--fin-subtle)',
-                textTransform: 'uppercase',
-                letterSpacing: '.07em',
-                marginBottom: 2,
-              }}
+              className={cn('text-[15px] font-semibold', isZero ? 'text-[var(--fin-muted)]' : 'text-[var(--fin-text)]')}
             >
-              New
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: isZero ? 'var(--fin-muted)' : 'var(--fin-text)' }}>
               {isNaN(parsed) ? '—' : fmt(parsed, currency)}
             </div>
           </div>
         </div>
 
         {/* New balance input */}
-        <div
-          className="rounded-[10px] px-[14px] py-[10px]"
-          style={{ background: 'var(--fin-card2)', border: `1px solid ${'var(--fin-border)'}` }}
-        >
-          <div
-            style={{
-              fontSize: 9,
-              color: 'var(--fin-subtle)',
-              textTransform: 'uppercase',
-              letterSpacing: '.07em',
-              marginBottom: 4,
-            }}
-          >
+        <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-[10px]">
+          <div className="mb-1 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">
             Actual Balance ({currency})
           </div>
           <input
@@ -152,76 +107,28 @@ function CorrectionModal({
             placeholder={String(currentBalance)}
             value={newBalance}
             onChange={e => setNewBalance(e.target.value)}
-            style={{
-              width: '100%',
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: 'var(--fin-text)',
-              fontSize: 20,
-              fontWeight: 700,
-            }}
+            className="w-full border-none bg-transparent text-[20px] font-bold text-[var(--fin-text)] outline-none"
           />
         </div>
 
         {/* Date + Notes */}
         <div className="grid grid-cols-2 gap-2">
-          <div
-            className="rounded-[10px] px-3 py-[10px]"
-            style={{ background: 'var(--fin-card2)', border: `1px solid ${'var(--fin-border)'}` }}
-          >
-            <div
-              style={{
-                fontSize: 9,
-                color: 'var(--fin-subtle)',
-                textTransform: 'uppercase',
-                letterSpacing: '.07em',
-                marginBottom: 4,
-              }}
-            >
-              Date
-            </div>
+          <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-[10px]">
+            <div className="mb-1 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Date</div>
             <input
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
-              style={{
-                width: '100%',
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--fin-text)',
-                fontSize: 13,
-              }}
+              className="w-full border-none bg-transparent text-[13px] text-[var(--fin-text)] outline-none"
             />
           </div>
-          <div
-            className="rounded-[10px] px-3 py-[10px]"
-            style={{ background: 'var(--fin-card2)', border: `1px solid ${'var(--fin-border)'}` }}
-          >
-            <div
-              style={{
-                fontSize: 9,
-                color: 'var(--fin-subtle)',
-                textTransform: 'uppercase',
-                letterSpacing: '.07em',
-                marginBottom: 4,
-              }}
-            >
-              Notes
-            </div>
+          <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-[10px]">
+            <div className="mb-1 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Notes</div>
             <input
               placeholder="Balance Correction"
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              style={{
-                width: '100%',
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--fin-text)',
-                fontSize: 13,
-              }}
+              className="w-full border-none bg-transparent text-[13px] text-[var(--fin-text)] outline-none"
             />
           </div>
         </div>
@@ -230,25 +137,21 @@ function CorrectionModal({
         <div className="flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 rounded-lg border py-2.5 text-[13px] font-semibold"
-            style={{
-              background: 'var(--fin-card2)',
-              border: `1px solid ${'var(--fin-border)'}`,
-              color: 'var(--fin-muted)',
-              cursor: 'pointer',
-            }}
+            className="flex-1 cursor-pointer rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] py-2.5 text-[13px] font-semibold text-[var(--fin-muted)]"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={isZero || saving}
-            className="flex-[2] rounded-lg border-none py-2.5 text-[13px] font-bold"
+            className={cn(
+              'flex-[2] rounded-lg border-none py-2.5 text-[13px] font-bold',
+              isZero || saving
+                ? 'cursor-not-allowed text-[var(--fin-subtle)]'
+                : 'cursor-pointer text-[var(--fin-on-solid)]',
+            )}
             style={{
               background: isZero || saving ? 'var(--fin-card3)' : correctionColor,
-              border: 'none',
-              color: isZero || saving ? 'var(--fin-subtle)' : 'var(--fin-on-solid)',
-              cursor: isZero || saving ? 'not-allowed' : 'pointer',
               transition: 'background .15s',
             }}
           >
@@ -273,18 +176,16 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
     <div
       className="rounded-xl p-[18px]"
       style={{
-        background: `linear-gradient(135deg, ${meta.color}18, ${'var(--fin-card)'})`,
+        background: `linear-gradient(135deg, ${meta.color}18, var(--fin-card))`,
         border: `1px solid ${meta.color}33`,
       }}
     >
-      <div className="mb-1 text-[13px]" style={{ color: 'var(--fin-muted)' }}>
-        {acc.name}
-      </div>
+      <div className="mb-1 text-[13px] text-[var(--fin-muted)]">{acc.name}</div>
       <div
-        className="mb-2 text-[30px] font-bold tracking-[-0.02em]"
-        style={{
-          color: isLiability ? 'var(--fin-red)' : 'var(--fin-text)',
-        }}
+        className={cn(
+          'mb-2 text-[30px] font-bold tracking-[-0.02em]',
+          isLiability ? 'text-[var(--fin-red)]' : 'text-[var(--fin-text)]',
+        )}
       >
         {acc.type === 'loan' ? '-' : ''}
         {fmt(acc.balance, acc.currency)}
@@ -292,8 +193,8 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
 
       {acc.type === 'credit_card' && acc.creditLimit != null && (
         <div>
-          <Bar value={acc.balance} max={acc.creditLimit} color={meta.color} height={6} style={{ marginBottom: 6 }} />
-          <div style={{ fontSize: 11, color: 'var(--fin-muted)' }}>
+          <Bar value={acc.balance} max={acc.creditLimit} color={meta.color} height={6} className="mb-1.5" />
+          <div className="text-[11px] text-[var(--fin-muted)]">
             {fmt(acc.creditLimit - acc.balance, acc.currency)} available
             {' · '}Limit {fmt(acc.creditLimit, acc.currency)}
             {acc.statementDay != null ? ` · Statement day ${acc.statementDay}` : ''}
@@ -303,8 +204,8 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
 
       {acc.type === 'goal' && acc.targetAmount != null && (
         <div>
-          <Bar value={acc.balance} max={acc.targetAmount} color={meta.color} height={6} style={{ marginBottom: 6 }} />
-          <div style={{ fontSize: 11, color: 'var(--fin-muted)' }}>
+          <Bar value={acc.balance} max={acc.targetAmount} color={meta.color} height={6} className="mb-1.5" />
+          <div className="text-[11px] text-[var(--fin-muted)]">
             {fmt(acc.targetAmount - acc.balance, acc.currency)} to go · Target {fmt(acc.targetAmount, acc.currency)}
           </div>
         </div>
@@ -313,12 +214,12 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
       {acc.type === 'investment' && acc.deposited != null && (
         <div className="flex gap-5">
           <div>
-            <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>Deposited</div>
-            <div style={{ color: 'var(--fin-muted)' }}>{fmt(acc.deposited, acc.currency)}</div>
+            <div className="text-[10px] text-[var(--fin-subtle)]">Deposited</div>
+            <div className="text-[var(--fin-muted)]">{fmt(acc.deposited, acc.currency)}</div>
           </div>
           <div>
-            <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>Unrealised P&L</div>
-            <div style={{ color: acc.balance >= acc.deposited ? 'var(--fin-green)' : 'var(--fin-red)' }}>
+            <div className="text-[10px] text-[var(--fin-subtle)]">Unrealised P&L</div>
+            <div className={acc.balance >= acc.deposited ? 'text-[var(--fin-green)]' : 'text-[var(--fin-red)]'}>
               {acc.balance >= acc.deposited ? '+' : '-'}
               {fmt(Math.abs(acc.balance - acc.deposited), acc.currency)}
               {acc.deposited > 0 &&
@@ -332,14 +233,14 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
         <div className="flex gap-5">
           {acc.interestRate != null && (
             <div>
-              <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>Rate</div>
-              <div style={{ color: 'var(--fin-muted)' }}>{acc.interestRate}%</div>
+              <div className="text-[10px] text-[var(--fin-subtle)]">Rate</div>
+              <div className="text-[var(--fin-muted)]">{acc.interestRate}%</div>
             </div>
           )}
           {acc.principal > 0 && (
             <div>
-              <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>Paid off</div>
-              <div style={{ color: 'var(--fin-green)' }}>
+              <div className="text-[10px] text-[var(--fin-subtle)]">Paid off</div>
+              <div className="text-[var(--fin-green)]">
                 {Math.round(((acc.principal - acc.balance) / acc.principal) * 100)}%
               </div>
             </div>
@@ -351,9 +252,12 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
         <div className="flex gap-5">
           {acc.direction && (
             <div>
-              <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>Direction</div>
+              <div className="text-[10px] text-[var(--fin-subtle)]">Direction</div>
               <div
-                style={{ color: acc.direction === 'gave' ? 'var(--fin-green)' : 'var(--fin-amber)', fontWeight: 600 }}
+                className={cn(
+                  'font-semibold',
+                  acc.direction === 'gave' ? 'text-[var(--fin-green)]' : 'text-[var(--fin-amber)]',
+                )}
               >
                 {acc.direction === 'gave' ? 'Lent' : 'Borrowed'}
               </div>
@@ -361,21 +265,17 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
           )}
           {acc.counterpartyName && (
             <div>
-              <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>With</div>
-              <div style={{ color: 'var(--fin-muted)' }}>{acc.counterpartyName}</div>
+              <div className="text-[10px] text-[var(--fin-subtle)]">With</div>
+              <div className="text-[var(--fin-muted)]">{acc.counterpartyName}</div>
             </div>
           )}
           {acc.dueDate && (
             <div>
-              <div style={{ fontSize: 10, color: 'var(--fin-subtle)' }}>Due</div>
-              <div style={{ color: 'var(--fin-amber)' }}>{acc.dueDate}</div>
+              <div className="text-[10px] text-[var(--fin-subtle)]">Due</div>
+              <div className="text-[var(--fin-amber)]">{acc.dueDate}</div>
             </div>
           )}
-          {acc.settled && (
-            <div className="self-end text-xs" style={{ color: 'var(--fin-green)' }}>
-              ✓ Settled
-            </div>
-          )}
+          {acc.settled && <div className="self-end text-xs text-[var(--fin-green)]">✓ Settled</div>}
         </div>
       )}
     </div>
@@ -410,8 +310,8 @@ export default function AccountDetailPage() {
         {[44, 120, 300].map((h, i) => (
           <div
             key={i}
-            className="rounded-[10px] border"
-            style={{ height: h, background: 'var(--fin-card)', borderColor: 'var(--fin-border)', opacity: 0.6 }}
+            className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+            style={{ height: h, opacity: 0.6 }}
           />
         ))}
       </div>
@@ -428,12 +328,7 @@ export default function AccountDetailPage() {
       <div className="flex items-center gap-2.5">
         <button
           onClick={() => router.push('/finances/accounts')}
-          className="rounded-md border bg-transparent px-2.5 py-[5px] text-xs"
-          style={{
-            border: `1px solid ${'var(--fin-border)'}`,
-            color: 'var(--fin-muted)',
-            cursor: 'pointer',
-          }}
+          className="cursor-pointer rounded-md border border-[var(--fin-border)] bg-transparent px-2.5 py-[5px] text-xs text-[var(--fin-muted)]"
         >
           ← Back
         </button>
@@ -445,35 +340,22 @@ export default function AccountDetailPage() {
       {acc.type === 'loan' && (
         <button
           onClick={() => router.push(`/finances/accounts/${acc.id}/amortization`)}
-          className="flex w-full items-center justify-between rounded-lg px-[14px] py-[10px] text-left text-[13px]"
-          style={{
-            background: 'var(--fin-card2)',
-            border: `1px solid ${'var(--fin-border)'}`,
-            color: 'var(--fin-text)',
-            cursor: 'pointer',
-          }}
+          className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-[10px] text-left text-[13px] text-[var(--fin-text)]"
         >
           <span>View amortization schedule</span>
-          <span style={{ color: 'var(--fin-accent)' }}>→</span>
+          <span className="text-[var(--fin-accent)]">→</span>
         </button>
       )}
 
       {/* Transaction ledger */}
       <Card className="p-[14px]">
-        <SectionLabel style={{ marginBottom: 10 }}>Ledger</SectionLabel>
-
+        <SectionLabel className="mb-2.5">Ledger</SectionLabel>
         <TransactionList transactions={transactions} currency={acc.currency} />
       </Card>
 
       <button
         onClick={() => setCorrectionOpen(true)}
-        className="w-full rounded-lg px-[14px] py-2 text-xs"
-        style={{
-          background: 'var(--fin-card2)',
-          border: `1px solid ${'var(--fin-border)'}`,
-          color: 'var(--fin-muted)',
-          cursor: 'pointer',
-        }}
+        className="w-full cursor-pointer rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-2 text-xs text-[var(--fin-muted)]"
       >
         + Add Correction
       </button>

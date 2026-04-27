@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { fmt, Divider, Pill, CategoryIcon } from '../ui';
 import { categoryIconEmoji } from '../categoryIcons';
 
@@ -33,11 +34,7 @@ export function TransactionList({
   showAccount = false,
 }: TransactionListProps) {
   if (transactions.length === 0) {
-    return (
-      <div className="py-6 text-center text-[13px]" style={{ color: 'var(--fin-subtle)' }}>
-        {emptyMessage}
-      </div>
-    );
+    return <div className="py-6 text-center text-[13px] text-[var(--fin-subtle)]">{emptyMessage}</div>;
   }
 
   return (
@@ -48,8 +45,12 @@ export function TransactionList({
         const label = tx.isCorrection ? (tx.notes ?? 'Balance Correction') : (tx.payeeName ?? tx.notes ?? '—');
         const accountLabel =
           isTransfer && tx.toAccountName ? `${tx.accountName} → ${tx.toAccountName}` : tx.accountName;
-        const amountColor =
-          tx.type === 'income' ? 'var(--fin-green)' : isTransfer ? 'var(--fin-blue)' : 'var(--fin-red)';
+        const amountColorClass =
+          tx.type === 'income'
+            ? 'text-[var(--fin-green)]'
+            : isTransfer
+              ? 'text-[var(--fin-blue)]'
+              : 'text-[var(--fin-red)]';
 
         return (
           <div key={tx.id}>
@@ -59,33 +60,25 @@ export function TransactionList({
                 {tx.isCorrection ? '⚖' : isTransfer ? '↔' : categoryIconEmoji(tx.categoryIcon)}
               </CategoryIcon>
               {showAccount && accountLabel && (
-                <span className="shrink-0 text-[11px]" style={{ color: 'var(--fin-subtle)' }}>
-                  {accountLabel}
-                </span>
+                <span className="shrink-0 text-[11px] text-[var(--fin-subtle)]">{accountLabel}</span>
               )}
               {!isTransfer && (
                 <span
-                  className="shrink-0 text-[13px] font-medium"
-                  style={{
-                    color: tx.isCorrection ? 'var(--fin-amber)' : 'var(--fin-text)',
-                  }}
+                  className={cn(
+                    'shrink-0 text-[13px] font-medium',
+                    tx.isCorrection ? 'text-[var(--fin-amber)]' : 'text-[var(--fin-text)]',
+                  )}
                 >
                   {label}
                 </span>
               )}
               {tx.categoryName && <Pill label={tx.categoryName} color={catColor} />}
               <span className="flex-1" />
-              <span className="w-[72px] shrink-0 text-right text-[11px]" style={{ color: 'var(--fin-subtle)' }}>
-                {tx.date}
-              </span>
+              <span className="w-[72px] shrink-0 text-right text-[11px] text-[var(--fin-subtle)]">{tx.date}</span>
               <div className="w-20 shrink-0 text-right">
-                <div className="text-[13px] font-semibold" style={{ color: amountColor }}>
-                  {fmt(tx.amount, currency)}
-                </div>
+                <div className={cn('text-[13px] font-semibold', amountColorClass)}>{fmt(tx.amount, currency)}</div>
                 {tx.balanceAfter != null && (
-                  <div className="text-[10px]" style={{ color: 'var(--fin-subtle)' }}>
-                    {fmt(tx.balanceAfter, currency)}
-                  </div>
+                  <div className="text-[10px] text-[var(--fin-subtle)]">{fmt(tx.balanceAfter, currency)}</div>
                 )}
               </div>
             </div>

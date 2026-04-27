@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, CategoryIcon } from '../ui';
 
@@ -62,9 +63,7 @@ export default function BudgetPage() {
 
   return (
     <div className="flex flex-col gap-[14px]">
-      <div className="text-[22px] font-bold tracking-[-0.02em]" style={{ color: 'var(--fin-text)' }}>
-        Budget Report
-      </div>
+      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Budget Report</div>
 
       {/* Month picker */}
       <div className="flex flex-wrap gap-1.5">
@@ -74,13 +73,13 @@ export default function BudgetPage() {
             <button
               key={m.value}
               onClick={() => setSelectedMonth(m.value)}
-              className="cursor-pointer rounded-[20px] px-3 py-[5px] text-[11px]"
-              style={{
-                background: active ? 'var(--fin-accent-d)' : 'var(--fin-card2)',
-                border: active ? `1px solid ${'var(--fin-accent)'}44` : `1px solid ${'var(--fin-border)'}`,
-                color: active ? 'var(--fin-accent)' : 'var(--fin-muted)',
-                fontWeight: active ? 600 : 400,
-              }}
+              className={cn(
+                'cursor-pointer rounded-[20px] px-3 py-[5px] text-[11px]',
+                active
+                  ? 'bg-[var(--fin-accent-d)] text-[var(--fin-accent)] font-semibold'
+                  : 'bg-[var(--fin-card2)] text-[var(--fin-muted)]',
+              )}
+              style={{ border: active ? `1px solid var(--fin-accent)44` : `1px solid var(--fin-border)` }}
             >
               {m.label}
             </button>
@@ -93,8 +92,8 @@ export default function BudgetPage() {
           {[60, 300].map((h, i) => (
             <div
               key={i}
-              className="rounded-[10px] border"
-              style={{ height: h, background: 'var(--fin-card)', borderColor: 'var(--fin-border)', opacity: 0.6 }}
+              className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+              style={{ height: h, opacity: 0.6 }}
             />
           ))}
         </div>
@@ -117,14 +116,7 @@ export default function BudgetPage() {
                 },
               ].map(s => (
                 <Card key={s.label} className="px-3 py-2.5 text-center">
-                  <div
-                    className="mb-1 text-[9px] uppercase tracking-[0.08em]"
-                    style={{
-                      color: 'var(--fin-subtle)',
-                    }}
-                  >
-                    {s.label}
-                  </div>
+                  <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">{s.label}</div>
                   <div className="text-base font-bold" style={{ color: s.color }}>
                     {s.value}
                   </div>
@@ -134,7 +126,7 @@ export default function BudgetPage() {
 
             {/* Category bars */}
             <Card className="p-4">
-              <SectionLabel style={{ marginBottom: 12 }}>Categories vs Target</SectionLabel>
+              <SectionLabel className="mb-3">Categories vs Target</SectionLabel>
               <div className="flex flex-col gap-3">
                 {sortedCats.map(cat => {
                   const target = cat.monthlyTarget ?? 0;
@@ -147,39 +139,23 @@ export default function BudgetPage() {
                       <div className="mb-[5px] flex justify-between">
                         <div className="flex items-center gap-1.5">
                           <CategoryIcon color={cat.color} icon={cat.icon} size="sm" />
-                          <span className="text-[13px]" style={{ color: 'var(--fin-text)' }}>
-                            {cat.name}
-                          </span>
+                          <span className="text-[13px] text-[var(--fin-text)]">{cat.name}</span>
                         </div>
-                        <div
-                          className="flex items-center gap-1.5 text-[11px] text-right"
-                          style={{
-                            color: 'var(--fin-muted)',
-                          }}
-                        >
-                          <span style={{ color: over ? 'var(--fin-red)' : 'var(--fin-text)', fontWeight: 600 }}>
+                        <div className="flex items-center gap-1.5 text-right text-[11px] text-[var(--fin-muted)]">
+                          <span
+                            className={cn('font-semibold', over ? 'text-[var(--fin-red)]' : 'text-[var(--fin-text)]')}
+                          >
                             {fmt(cat.spent, currency)}
                           </span>
-                          {target > 0 && <span style={{ color: 'var(--fin-subtle)' }}>/ {fmt(target, currency)}</span>}
+                          {target > 0 && <span className="text-[var(--fin-subtle)]">/ {fmt(target, currency)}</span>}
                           {over && (
-                            <span
-                              className="rounded px-[5px] py-[1px] text-[10px]"
-                              style={{
-                                color: 'var(--fin-red)',
-                                background: 'var(--fin-red-d)',
-                              }}
-                            >
+                            <span className="rounded px-[5px] py-[1px] text-[10px] text-[var(--fin-red)] bg-[var(--fin-red-d)]">
                               +{fmt(cat.spent - target, currency)}
                             </span>
                           )}
                         </div>
                       </div>
-                      <div
-                        className="relative h-2 overflow-hidden rounded"
-                        style={{
-                          background: 'var(--fin-card2)',
-                        }}
-                      >
+                      <div className="relative h-2 overflow-hidden rounded bg-[var(--fin-card2)]">
                         <div
                           className="h-full rounded"
                           style={{
@@ -193,9 +169,7 @@ export default function BudgetPage() {
                   );
                 })}
                 {sortedCats.length === 0 && (
-                  <div className="py-4 text-center text-xs" style={{ color: 'var(--fin-subtle)' }}>
-                    No spending this month
-                  </div>
+                  <div className="py-4 text-center text-xs text-[var(--fin-subtle)]">No spending this month</div>
                 )}
               </div>
             </Card>
@@ -203,30 +177,17 @@ export default function BudgetPage() {
             {/* Over-budget alert */}
             {overBudget.length > 0 && (
               <div
-                className="rounded-[10px] px-[14px] py-3"
-                style={{
-                  background: 'var(--fin-red-d)',
-                  border: `1px solid ${'var(--fin-red)'}44`,
-                  borderRadius: 10,
-                  padding: '12px 14px',
-                }}
+                className="rounded-[10px] px-[14px] py-3 bg-[var(--fin-red-d)]"
+                style={{ border: `1px solid var(--fin-red)44` }}
               >
-                <div className="mb-1 text-xs font-semibold" style={{ color: 'var(--fin-red)' }}>
-                  Over budget
-                </div>
+                <div className="mb-1 text-xs font-semibold text-[var(--fin-red)]">Over budget</div>
                 {overBudget.map(c => (
-                  <div
-                    key={c.id}
-                    className="flex justify-between py-[2px] text-xs"
-                    style={{
-                      color: 'var(--fin-muted)',
-                    }}
-                  >
+                  <div key={c.id} className="flex justify-between py-[2px] text-xs text-[var(--fin-muted)]">
                     <span className="flex items-center gap-1.5">
                       <CategoryIcon color={c.color} icon={c.icon} size="sm" />
                       {c.name}
                     </span>
-                    <span style={{ color: 'var(--fin-red)' }}>
+                    <span className="text-[var(--fin-red)]">
                       +{fmt(c.spent - (c.monthlyTarget ?? 0), currency)} (
                       {Math.round(((c.spent - (c.monthlyTarget ?? 0)) / (c.monthlyTarget ?? 1)) * 100)}%)
                     </span>
