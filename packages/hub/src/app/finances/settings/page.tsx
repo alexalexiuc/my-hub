@@ -8,6 +8,7 @@ import { apiFetch } from '@/lib/utils';
 import { Button, Field, Input, Select } from '@/components';
 import { Card, SectionLabel } from '../ui';
 import { BudgetSettingsSchema, type BudgetSettingsValues } from '../finances-form.schema';
+import { ClaudePromptSection } from './ClaudePromptSection';
 
 interface Member {
   userId: string;
@@ -219,6 +220,9 @@ export default function FinancesSettingsPage() {
           </div>
         )}
       </Card>
+
+      {/* Claude prompt generator */}
+      <ClaudePromptSection budget={data.budget} />
 
       {/* Danger zone */}
       <Card className="p-[18px]" style={{ border: `1px solid var(--fin-red)33` }}>

@@ -2,10 +2,11 @@
  * Finance payee CRUD + usage stats
  * - upsertPayee(userId, budgetId, name) — insert-or-return, case-insensitive via normalizedName
  * - getPayees(userId, budgetId) — returns PayeeSuggestion[] ranked by this user's usage
+ * - getPayeesWithDescription(userId, budgetId) — returns all payees with id, name, and description (for MCP resource)
  * - deletePayee(userId, budgetId, payeeId) — hard delete
  * - incrementPayeeStats(tx, payeeId, userId, categoryId) — called inside transaction writes
  * - decrementPayeeStats(tx, payeeId, userId) — called inside transaction deletes
- * Types: PayeeSuggestion
+ * Types: PayeeSuggestion, PayeeWithDescription
  */
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -20,6 +21,12 @@ export interface PayeeSuggestion {
   useCount: number;
   lastUsedAt: string | null;
   recentCategoryId: number | null;
+}
+
+export interface PayeeWithDescription {
+  id: number;
+  name: string;
+  description: string | null;
 }
 
 export async function upsertPayee(userId: string, budgetId: number, name: string): Promise<FinancePayee> {
@@ -79,6 +86,20 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
   });
 
   return suggestions;
+}
+
+export async function getPayeesWithDescription(userId: string, budgetId: number): Promise<PayeeWithDescription[]> {
+  if (!(await verifyBudgetAccess(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const rows = await db
+    .select({ id: financePayees.id, name: financePayees.name, description: financePayees.description })
+    .from(financePayees)
+    .where(eq(financePayees.budgetId, budgetId))
+    .orderBy(asc(financePayees.name));
+
+  return rows;
 }
 
 export async function deletePayee(userId: string, budgetId: number, payeeId: number): Promise<void> {

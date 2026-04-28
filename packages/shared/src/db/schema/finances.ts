@@ -145,6 +145,8 @@ export const financePayees = pgTable(
     name: text('name').notNull(),
     // lower(trim(name)) — used for case-insensitive uniqueness check
     normalizedName: text('normalized_name').notNull(),
+    // Optional context for AI — e.g. "Main grocery supermarket", "Landlord — rent"
+    description: text('description'),
     // keyed by userId string; tracks per-user usage for ranked suggestions
     statsByUser: jsonb('stats_by_user').$type<Record<string, PayeeUserStats>>().notNull().default({}),
     createdAt: timestamp('created_at').notNull().defaultNow(),
