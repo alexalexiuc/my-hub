@@ -6,6 +6,7 @@ import {
   getTransactions,
   getNetWorthHistory,
   getUserActiveBudget,
+  getUserBudgets,
 } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import type { GoalAccountDetails } from '@my-hub/shared/constants';
@@ -14,7 +15,16 @@ import type { FinanceDashboardData } from './types';
 export const GET = route(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) {
-    return { hasBudget: false };
+    const allBudgets = await getUserBudgets(user.id);
+    return {
+      hasBudget: false,
+      availableBudgets: allBudgets.map(b => ({
+        id: b.id,
+        name: b.name,
+        defaultCurrency: b.defaultCurrency,
+        isOwner: b.createdByUserId === user.id,
+      })),
+    };
   }
 
   const budgetId = budget.id;

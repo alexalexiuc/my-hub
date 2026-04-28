@@ -1,4 +1,5 @@
 export type {
+  AvailableBudget,
   DashboardCategory,
   DashboardGoal,
   DashboardTransaction,
