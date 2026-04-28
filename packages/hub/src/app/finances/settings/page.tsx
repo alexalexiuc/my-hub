@@ -17,7 +17,7 @@ interface Member {
 }
 
 interface BudgetSettings {
-  budget: { id: number; name: string; defaultCurrency: string; createdByUserId: string };
+  budget: { id: number; name: string; defaultCurrency: string; createdByUserId: string; isOwner: boolean };
   members: Member[];
 }
 
@@ -29,6 +29,9 @@ export default function FinancesSettingsPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   const {
     register,
@@ -82,6 +85,26 @@ export default function FinancesSettingsPage() {
     }
   }
 
+  async function handleInviteMember() {
+    const email = inviteEmail.trim();
+    if (!email) return;
+    setInviting(true);
+    setInviteError(null);
+    try {
+      await apiFetch('/api/finances/budget/members', {
+        method: 'POST',
+        body: { email },
+        silentToast: true,
+      });
+      setInviteEmail('');
+      await load();
+    } catch {
+      setInviteError('User not found or already a member.');
+    } finally {
+      setInviting(false);
+    }
+  }
+
   if (!data) {
     return (
       <div className="mx-auto flex w-full max-w-[560px] flex-col gap-[14px]">
@@ -96,7 +119,7 @@ export default function FinancesSettingsPage() {
     );
   }
 
-  const isOwner = data.budget.createdByUserId !== undefined;
+  const { isOwner } = data.budget;
 
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-[18px]">
@@ -168,6 +191,33 @@ export default function FinancesSettingsPage() {
             );
           })}
         </div>
+
+        {isOwner && (
+          <div className="mt-4 border-t border-[var(--fin-border)] pt-4">
+            <div className="mb-1.5 text-[11px] text-[var(--fin-subtle)]">Invite member by email</div>
+            <div className="flex gap-2">
+              <Input
+                value={inviteEmail}
+                onChange={e => {
+                  setInviteEmail(e.target.value);
+                  setInviteError(null);
+                }}
+                placeholder="colleague@example.com"
+                className="flex-1 text-[13px]"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void handleInviteMember();
+                  }
+                }}
+              />
+              <Button size="sm" onClick={() => void handleInviteMember()} disabled={!inviteEmail.trim() || inviting}>
+                {inviting ? '…' : 'Invite'}
+              </Button>
+            </div>
+            {inviteError && <p className="mt-1 text-[11px] text-[var(--fin-red)]">{inviteError}</p>}
+          </div>
+        )}
       </Card>
 
       {/* Danger zone */}

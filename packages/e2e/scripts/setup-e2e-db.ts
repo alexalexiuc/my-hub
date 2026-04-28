@@ -8,6 +8,7 @@ import { findUserByEmail, createUserWithPassword, verifyUserEmail } from '@my-hu
 import { TEST_USER } from '../config';
 import { seedAuditLogFixtures } from '../seeds/audit-log.seed';
 import { seedSharedTripFixture } from '../seeds/travel.seed';
+import { seedSharedFinanceFixture } from '../seeds/finances.seed';
 
 // note: Use console.error for logging in this script so that logs are visible even if stdout is being captured by the test runner.
 async function runHubE2eSeeds(): Promise<void> {
@@ -25,6 +26,7 @@ async function runHubE2eSeeds(): Promise<void> {
   }
   await seedAuditLogFixtures(TEST_USER.email);
   await seedSharedTripFixture(TEST_USER.email);
+  await seedSharedFinanceFixture(TEST_USER.email);
   console.error('E2E Hub seeds applied for:', TEST_USER.email);
 }
 

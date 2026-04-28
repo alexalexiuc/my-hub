@@ -28,6 +28,7 @@ export const GET = route(async ({ user }) => {
       name: budget.name,
       defaultCurrency: budget.defaultCurrency,
       createdByUserId: budget.createdByUserId,
+      isOwner: budget.createdByUserId === user.id,
     },
     members: members.map(m => ({ userId: m.userId, email: m.email, name: m.name, joinedAt: m.joinedAt })),
   };

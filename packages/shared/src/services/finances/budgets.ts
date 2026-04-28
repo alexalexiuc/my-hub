@@ -7,6 +7,7 @@
  * - getBudgetMembers(userId, budgetId) — lists members (id, email, name, joinedAt) with access check
  * - updateBudget(userId, budgetId, data) — partial update; requires budget membership
  * - deleteBudget(userId, budgetId) — hard delete; requires budget membership
+ * - addBudgetMember(userId, budgetId, targetUserId) — adds a new member; requires budget membership; idempotent
  * - removeBudgetMember(userId, budgetId, targetUserId) — removes a member from the budget; requires membership; cannot remove creator
  * - deleteAllUserFinanceBudgets(userId) — bulk delete owned budgets + remove from shared memberships
  * - verifyBudgetAccess(userId, budgetId) — returns true if user is a budget member
@@ -134,6 +135,25 @@ export async function getBudgetMembers(userId: string, budgetId: number): Promis
     .from(financeBudgetMembers)
     .innerJoin(users, eq(users.id, financeBudgetMembers.userId))
     .where(eq(financeBudgetMembers.budgetId, budgetId));
+}
+
+export async function addBudgetMember(userId: string, budgetId: number, targetUserId: string): Promise<void> {
+  if (!(await verifyBudgetAccess(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const [existing] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(financeBudgetMembers)
+    .where(and(eq(financeBudgetMembers.userId, targetUserId), eq(financeBudgetMembers.budgetId, budgetId)));
+
+  if ((existing?.count ?? 0) > 0) return; // already a member — idempotent
+
+  await db.insert(financeBudgetMembers).values({ budgetId, userId: targetUserId });
+
+  // Invalidate caches
+  budgetAccessCache.delete(`${targetUserId}:${budgetId}`);
+  budgetsCache.delete(targetUserId);
 }
 
 export async function removeBudgetMember(userId: string, budgetId: number, targetUserId: string): Promise<void> {
