@@ -1,7 +1,8 @@
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getAccounts, getCategories } from '@my-hub/shared/services';
+import { transactionFormDataResponseSchema } from '../../contracts';
 
-export const GET = route(async ({ user }) => {
+export const GET = route({ response: transactionFormDataResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 

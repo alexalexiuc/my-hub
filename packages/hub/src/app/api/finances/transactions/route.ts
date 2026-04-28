@@ -11,6 +11,7 @@ import {
 } from '@my-hub/shared/services';
 import type { TransactionInsert } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
+import { transactionsListResponseSchema, transactionMutationResponseSchema } from '../contracts';
 const TransactionCreateSchema = z.object({
   type: z.enum(Object.values(TransactionTypes) as [string, ...string[]]),
   accountId: z.number().int().positive(),
@@ -30,7 +31,10 @@ const TransactionQuerySchema = z.object({
   offset: z.coerce.number().int().nonnegative().optional(),
 });
 
-export const GET = route({ query: TransactionQuerySchema })(async ({ user, query }) => {
+export const GET = route({ query: TransactionQuerySchema, response: transactionsListResponseSchema })(async ({
+  user,
+  query,
+}) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
@@ -61,7 +65,7 @@ export const GET = route({ query: TransactionQuerySchema })(async ({ user, query
     return {
       id: t.id,
       date: t.date,
-      amount: parseFloat(t.amount),
+      amount: t.amount,
       type: t.type,
       notes: t.notes ?? null,
       payeeName: payee?.name ?? null,
@@ -76,7 +80,10 @@ export const GET = route({ query: TransactionQuerySchema })(async ({ user, query
   return { transactions: items, currency: budget.defaultCurrency };
 });
 
-export const POST = route({ body: TransactionCreateSchema })(async ({ user, body }) => {
+export const POST = route({ body: TransactionCreateSchema, response: transactionMutationResponseSchema })(async ({
+  user,
+  body,
+}) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
@@ -92,8 +99,8 @@ export const POST = route({ body: TransactionCreateSchema })(async ({ user, body
     type: body.type as TransactionInsert['type'],
     accountId: body.accountId,
     toAccountId: body.toAccountId ?? null,
-    amount: String(body.amount),
-    exchangeRate: String(body.exchangeRate ?? 1),
+    amount: body.amount,
+    exchangeRate: body.exchangeRate ?? 1,
     date: body.date,
     categoryId: body.categoryId ?? null,
     payeeId,

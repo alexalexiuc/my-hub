@@ -1,12 +1,11 @@
 /**
  * Finance payee CRUD + usage stats
  * - upsertPayee(userId, budgetId, name) — insert-or-return, case-insensitive via normalizedName
- * - getPayees(userId, budgetId) — returns PayeeSuggestion[] ranked by this user's usage
- * - getPayeesWithDescription(userId, budgetId) — returns all payees with id, name, and description (for MCP resource)
+ * - getPayees(userId, budgetId) — returns all payees ranked by user usage; includes description and stats
  * - deletePayee(userId, budgetId, payeeId) — hard delete
  * - incrementPayeeStats(tx, payeeId, userId, categoryId) — called inside transaction writes
  * - decrementPayeeStats(tx, payeeId, userId) — called inside transaction deletes
- * Types: PayeeSuggestion, PayeeWithDescription
+ * Types: Payee
  */
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -15,18 +14,13 @@ import type { PayeeUserStats } from '../../db/schema/finances';
 import { verifyBudgetAccess } from './budgets';
 import type { FinancePayee } from '../../types';
 
-export interface PayeeSuggestion {
-  id: number;
-  name: string;
-  useCount: number;
-  lastUsedAt: string | null;
-  recentCategoryId: number | null;
-}
-
-export interface PayeeWithDescription {
+export interface Payee {
   id: number;
   name: string;
   description: string | null;
+  useCount: number;
+  lastUsedAt: string | null;
+  recentCategoryId: number | null;
 }
 
 export async function upsertPayee(userId: string, budgetId: number, name: string): Promise<FinancePayee> {
@@ -54,7 +48,7 @@ export async function upsertPayee(userId: string, budgetId: number, name: string
   return existing;
 }
 
-export async function getPayees(userId: string, budgetId: number): Promise<PayeeSuggestion[]> {
+export async function getPayees(userId: string, budgetId: number): Promise<Payee[]> {
   if (!(await verifyBudgetAccess(userId, budgetId))) {
     throw new Error('Budget not found');
   }
@@ -65,11 +59,12 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
     .where(eq(financePayees.budgetId, budgetId))
     .orderBy(asc(financePayees.name));
 
-  const suggestions: PayeeSuggestion[] = payees.map(p => {
+  const suggestions: Payee[] = payees.map(p => {
     const stats: PayeeUserStats | undefined = p.statsByUser[userId];
     return {
       id: p.id,
       name: p.name,
+      description: p.description,
       useCount: stats?.count ?? 0,
       lastUsedAt: stats?.lastUsedAt ?? null,
       recentCategoryId: stats?.lastUsedCategoryId ?? null,
@@ -86,20 +81,6 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
   });
 
   return suggestions;
-}
-
-export async function getPayeesWithDescription(userId: string, budgetId: number): Promise<PayeeWithDescription[]> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
-    throw new Error('Budget not found');
-  }
-
-  const rows = await db
-    .select({ id: financePayees.id, name: financePayees.name, description: financePayees.description })
-    .from(financePayees)
-    .where(eq(financePayees.budgetId, budgetId))
-    .orderBy(asc(financePayees.name));
-
-  return rows;
 }
 
 export async function deletePayee(userId: string, budgetId: number, payeeId: number): Promise<void> {

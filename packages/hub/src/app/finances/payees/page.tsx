@@ -4,12 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, Divider, CategoryIcon } from '../ui';
-import type { PayeeReportItem } from '@/app/api/finances/payees/report/route';
-
-interface PayeesData {
-  currency: string;
-  payees: PayeeReportItem[];
-}
+import type { PayeesReportResponse } from '@/app/api/finances/contracts';
 type Range = '30d' | '3m' | 'ytd';
 type SortKey = 'totalSpent' | 'txCount' | 'name';
 
@@ -22,13 +17,15 @@ const RANGES: { key: Range; label: string }[] = [
 export default function PayeesPage() {
   const [range, setRange] = useState<Range>('30d');
   const [sortBy, setSortBy] = useState<SortKey>('totalSpent');
-  const [data, setData] = useState<PayeesData | null>(null);
+  const [data, setData] = useState<PayeesReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (r: Range) => {
     setLoading(true);
     try {
-      const result = await apiFetch<PayeesData>(`/api/finances/payees/report?range=${r}`, { silentToast: true });
+      const result = await apiFetch<PayeesReportResponse>(`/api/finances/payees/report?range=${r}`, {
+        silentToast: true,
+      });
       setData(result);
     } finally {
       setLoading(false);

@@ -6,12 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import { fmt, Card, Bar } from '../ui';
 import { AddTransactionModal } from '../transactions/AddTransactionModal';
 import { AddGoalModal } from './AddGoalModal';
-import type { GoalItem } from '@/app/api/finances/goals/route';
-
-interface GoalsData {
-  currency: string;
-  goals: GoalItem[];
-}
+import type { GoalsResponse } from '@/app/api/finances/contracts';
 
 function projectedDate(months: number): string {
   const d = new Date();
@@ -21,13 +16,13 @@ function projectedDate(months: number): string {
 
 export default function GoalsPage() {
   const router = useRouter();
-  const [data, setData] = useState<GoalsData | null>(null);
+  const [data, setData] = useState<GoalsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddTx, setShowAddTx] = useState(false);
   const [showAddGoal, setShowAddGoal] = useState(false);
 
   const load = useCallback(async () => {
-    const result = await apiFetch<GoalsData>('/api/finances/goals', { silentToast: true });
+    const result = await apiFetch<GoalsResponse>('/api/finances/goals', { silentToast: true });
     setData(result);
     setLoading(false);
   }, []);

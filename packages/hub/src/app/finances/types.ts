@@ -6,4 +6,4 @@ export type {
   FinanceDashboardData,
   NoBudgetResponse,
   DashboardResponse,
-} from '../api/finances/dashboard/types';
+} from '../api/finances/contracts';

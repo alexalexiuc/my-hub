@@ -131,8 +131,8 @@ export async function getNetWorthHistory(userId: string, budgetId: number, limit
 
   return rows.reverse().map(r => ({
     month: r.month,
-    netWorth: parseFloat(r.netWorth),
-    totalAssets: parseFloat(r.totalAssets),
-    totalLiabilities: parseFloat(r.totalLiabilities),
+    netWorth: r.netWorth,
+    totalAssets: r.totalAssets,
+    totalLiabilities: r.totalLiabilities,
   }));
 }

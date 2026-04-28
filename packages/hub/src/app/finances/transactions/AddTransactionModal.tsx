@@ -10,31 +10,7 @@ import { FinModalShell } from '../FinModalShell';
 import { Button, Input, Pill } from '@/components';
 import { categoryIconEmoji } from '../categoryIcons';
 import { AddTransactionSchema, defaultAddTransactionValues, type AddTransactionValues } from '../finances-form.schema';
-
-interface AccountOption {
-  id: number;
-  name: string;
-  type: string;
-  currency: string;
-}
-interface CategoryOption {
-  id: number;
-  name: string;
-  icon: string | null;
-  color: string | null;
-}
-interface PayeeSuggestion {
-  id: number;
-  name: string;
-  useCount: number;
-  lastUsedAt: string | null;
-  recentCategoryId: number | null;
-}
-interface FormData {
-  currency: string;
-  accounts: AccountOption[];
-  categories: CategoryOption[];
-}
+import type { PayeesResponse, PayeeSuggestion, TransactionFormDataResponse } from '@/app/api/finances/contracts';
 
 type TxType = 'expense' | 'income' | 'transfer';
 
@@ -66,7 +42,7 @@ type AddTransactionModalProps = {
 };
 
 export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalProps) {
-  const [formData, setFormData] = useState<FormData | null>(null);
+  const [formData, setFormData] = useState<TransactionFormDataResponse | null>(null);
   const [payees, setPayees] = useState<PayeeSuggestion[]>([]);
   const [selCatId, setSelCatId] = useState<number | null>(null);
   const [selAccId, setSelAccId] = useState<number | null>(null);
@@ -102,8 +78,8 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
   const load = useCallback(async () => {
     // TODO: Considering local storage to make modal faster, if will be necessary
     const [fd, pd] = await Promise.all([
-      apiFetch<FormData>('/api/finances/transactions/form-data', { silentToast: true }),
-      apiFetch<{ payees: PayeeSuggestion[] }>('/api/finances/payees', { silentToast: true }),
+      apiFetch<TransactionFormDataResponse>('/api/finances/transactions/form-data', { silentToast: true }),
+      apiFetch<PayeesResponse>('/api/finances/payees', { silentToast: true }),
     ]);
     setFormData(fd);
     if (fd.accounts[0]) {
@@ -185,14 +161,14 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
           <div className="flex items-center gap-2 rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-4 py-3">
             <span className="text-xl font-light text-[var(--fin-muted)]">
               {(() => {
-                const acctCurrency = formData.accounts.find(a => a.id === selAccId)?.currency ?? formData.currency;
-                return acctCurrency === 'USD'
+                const budgetCurrency = formData.currency;
+                return budgetCurrency === 'USD'
                   ? '$'
-                  : acctCurrency === 'GBP'
+                  : budgetCurrency === 'GBP'
                     ? '£'
-                    : acctCurrency === 'EUR'
+                    : budgetCurrency === 'EUR'
                       ? '€'
-                      : acctCurrency;
+                      : budgetCurrency;
               })()}
             </span>
             <Input

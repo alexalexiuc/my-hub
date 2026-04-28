@@ -6,25 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import { AddButton, Card } from '../ui';
 import { AddTransactionModal } from './AddTransactionModal';
 import { TransactionList } from './TransactionList';
-
-interface TxItem {
-  id: number;
-  date: string;
-  amount: number;
-  type: string;
-  notes: string | null;
-  payeeName: string | null;
-  categoryName: string | null;
-  categoryColor: string | null;
-  categoryIcon: string | null;
-  accountName: string;
-  toAccountName: string | null;
-}
-
-interface ListData {
-  transactions: TxItem[];
-  currency: string;
-}
+import type { TransactionsListResponse } from '@/app/api/finances/contracts';
 
 type Filter = 'all' | 'expense' | 'income' | 'transfer';
 const FILTERS: { key: Filter; label: string }[] = [
@@ -37,7 +19,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 export default function TransactionsPage() {
   const [showModal, setShowModal] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
-  const [data, setData] = useState<ListData | null>(null);
+  const [data, setData] = useState<TransactionsListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
@@ -52,7 +34,9 @@ export default function TransactionsPage() {
       try {
         const q = new URLSearchParams({ limit: String(LIMIT), offset: String(off) });
         if (f !== 'all') q.set('type', f);
-        const result = await apiFetch<ListData>(`/api/finances/transactions?${q}`, { silentToast: true });
+        const result = await apiFetch<TransactionsListResponse>(`/api/finances/transactions?${q}`, {
+          silentToast: true,
+        });
         if (reset) {
           setData(result);
           setOffset(result.transactions.length);

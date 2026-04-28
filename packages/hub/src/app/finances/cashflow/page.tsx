@@ -4,27 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Divider, Bar } from '../ui';
-import type { ReportsData } from '@/app/api/finances/reports/route';
-
-interface CatRow {
-  id: number;
-  name: string;
-  icon: string | null;
-  color: string | null;
-  monthlyTarget: number | null;
-  spent: number;
-}
-interface CategoriesData {
-  currency: string;
-  totalSpent: number;
-  allCategories: CatRow[];
-}
+import type { ReportsData, CategoriesResponse } from '@/app/api/finances/contracts';
 
 type View = 'monthly' | 'breakdown';
 
 export default function CashflowPage() {
   const [data, setData] = useState<ReportsData | null>(null);
-  const [catData, setCatData] = useState<CategoriesData | null>(null);
+  const [catData, setCatData] = useState<CategoriesResponse | null>(null);
   const [view, setView] = useState<View>('monthly');
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +27,7 @@ export default function CashflowPage() {
 
   const loadCategories = useCallback(async () => {
     if (catData) return;
-    const result = await apiFetch<CategoriesData>(`/api/finances/categories?month=${currentMonth}`, {
+    const result = await apiFetch<CategoriesResponse>(`/api/finances/categories?month=${currentMonth}`, {
       silentToast: true,
     });
     setCatData(result);

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Divider, TYPE_META } from '../ui';
-import type { NetWorthData } from '@/app/api/finances/networth/route';
+import type { NetWorthData } from '@/app/api/finances/contracts';
 
 function NwChart({
   history,
@@ -157,7 +157,7 @@ export default function NetWorthPage() {
                       <div className="text-[13px] text-[var(--fin-text)]">{a.name}</div>
                       <div className="text-[10px] text-[var(--fin-subtle)]">{meta?.label ?? a.type}</div>
                     </div>
-                    <div className="text-sm font-semibold text-[var(--fin-text)]">{fmt(a.balance, a.currency)}</div>
+                    <div className="text-sm font-semibold text-[var(--fin-text)]">{fmt(a.balance, currency)}</div>
                   </div>
                 </div>
               );
@@ -185,7 +185,7 @@ export default function NetWorthPage() {
                       <div className="text-[13px] text-[var(--fin-text)]">{a.name}</div>
                       <div className="text-[10px] text-[var(--fin-subtle)]">{meta?.label ?? a.type}</div>
                     </div>
-                    <div className="text-sm font-semibold text-[var(--fin-red)]">-{fmt(a.balance, a.currency)}</div>
+                    <div className="text-sm font-semibold text-[var(--fin-red)]">-{fmt(a.balance, currency)}</div>
                   </div>
                 </div>
               );

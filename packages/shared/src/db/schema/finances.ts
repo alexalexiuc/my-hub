@@ -4,7 +4,6 @@ import {
   index,
   integer,
   jsonb,
-  numeric,
   pgTable,
   primaryKey,
   serial,
@@ -14,6 +13,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { users } from './users';
+import { numericCasted } from './numeric-casted';
 import type { AccountType, TransactionType, CategoryIcon } from '../../constants/finances';
 import type { TransactionDetails } from '../../types/transaction-details';
 
@@ -63,10 +63,10 @@ export const financeAccounts = pgTable(
     name: text('name').notNull(),
     type: text('type').$type<AccountType>().notNull(),
     currency: text('currency').notNull(),
-    openingBalance: numeric('opening_balance', { precision: 18, scale: 4 }).notNull().default('0'),
+    openingBalance: numericCasted('opening_balance', { precision: 18, scale: 4 }).notNull().default(0),
     // Running balance — updated on every transaction insert/update/delete.
     // For Investment/Tracking: manually-overridden current value.
-    balance: numeric('balance', { precision: 18, scale: 4 }).notNull().default('0'),
+    balance: numericCasted('balance', { precision: 18, scale: 4 }).notNull().default(0),
     archived: boolean('archived').notNull().default(false),
     // Type-specific fields — see BankAccountDetails, LoanAccountDetails, etc. in constants
     details: jsonb('details'),
@@ -114,7 +114,7 @@ export const financeCategories = pgTable(
     // Icon key — maps to a UI component via CategoryIcons constant in the Hub package
     icon: text('icon').$type<CategoryIcon>(),
     // Optional monthly spending target — nullable, no envelope-style allocation
-    monthlyTarget: numeric('monthly_target', { precision: 18, scale: 4 }),
+    monthlyTarget: numericCasted('monthly_target', { precision: 18, scale: 4 }),
     sortOrder: integer('sort_order').notNull().default(0),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -175,9 +175,9 @@ export const financeTransactions = pgTable(
     // Transfer destination — null for expense/income.
     toAccountId: integer('to_account_id').references(() => financeAccounts.id, { onDelete: 'restrict' }),
 
-    amount: numeric('amount', { precision: 18, scale: 4 }).notNull(), // in account currency
+    amount: numericCasted('amount', { precision: 18, scale: 4 }).notNull(), // in account currency
     // Exchange rate at insert time (account currency → budget default currency). 1.0 if same.
-    exchangeRate: numeric('exchange_rate', { precision: 18, scale: 8 }).notNull().default('1'),
+    exchangeRate: numericCasted('exchange_rate', { precision: 18, scale: 8 }).notNull().default(1),
 
     date: date('date').notNull(), // YYYY-MM-DD, user-visible date
     categoryId: integer('category_id').references(() => financeCategories.id, { onDelete: 'set null' }),
@@ -198,8 +198,8 @@ export const financeTransactions = pgTable(
     isCorrection: boolean('is_correction').notNull().default(false),
 
     // Ledger snapshots — balance of the account immediately after this transaction.
-    fromAccountBalanceAfter: numeric('from_account_balance_after', { precision: 18, scale: 4 }),
-    toAccountBalanceAfter: numeric('to_account_balance_after', { precision: 18, scale: 4 }),
+    fromAccountBalanceAfter: numericCasted('from_account_balance_after', { precision: 18, scale: 4 }),
+    toAccountBalanceAfter: numericCasted('to_account_balance_after', { precision: 18, scale: 4 }),
 
     // Owner — always assigned from session in the service layer, never from client input.
     addedByUserId: uuid('added_by_user_id')
@@ -231,7 +231,7 @@ export const financeCurrencyRates = pgTable(
     fromCurrency: text('from_currency').notNull(),
     toCurrency: text('to_currency').notNull(),
     date: date('date').notNull(), // YYYY-MM-DD
-    rate: numeric('rate', { precision: 18, scale: 8 }).notNull(),
+    rate: numericCasted('rate', { precision: 18, scale: 8 }).notNull(),
     fetchedAt: timestamp('fetched_at').notNull().defaultNow(),
   },
   table => ({
@@ -250,9 +250,9 @@ export const financeNetWorthSnapshots = pgTable(
       .notNull()
       .references(() => financeBudgets.id, { onDelete: 'cascade' }),
     month: text('month').notNull(), // YYYY-MM
-    totalAssets: numeric('total_assets', { precision: 18, scale: 4 }).notNull(),
-    totalLiabilities: numeric('total_liabilities', { precision: 18, scale: 4 }).notNull(),
-    netWorth: numeric('net_worth', { precision: 18, scale: 4 }).notNull(),
+    totalAssets: numericCasted('total_assets', { precision: 18, scale: 4 }).notNull(),
+    totalLiabilities: numericCasted('total_liabilities', { precision: 18, scale: 4 }).notNull(),
+    netWorth: numericCasted('net_worth', { precision: 18, scale: 4 }).notNull(),
     // Full per-account breakdown for history drilldown
     breakdown: jsonb('breakdown').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),

@@ -48,6 +48,7 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 | TR-09 | `FinancesBottomNav` renders the FAB above the tab bar using `−mt-5` lift so the circle visually floats above the nav strip, consistent with the reference design.                   |
 | TR-10 | z-index layering: modal overlay `z-[1000]`, bottom nav `z-[900]`; sheets rendered inside the overlay do not conflict with the nav bar.                                              |
 | TR-11 | Metadata chips used across finances pages are rendered via the shared `Pill` component (`src/components/Pill.tsx`), which supports both passive badges and optional click handling. |
+| TR-12 | Finances API routes declare response Zod schemas via `route({ response: ... })` and finance UI callers use shared inferred response types from `src/app/api/finances/contracts.ts`. |
 
 ---
 
@@ -70,4 +71,5 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 - [x] Cancel buttons and successful submissions still close the modal and refresh data correctly.
 - [x] Desktop sidebar "Add Transaction" button continues to open the transaction modal.
 - [x] Finance metadata chips render through the shared `Pill` component without regressing existing styling.
+- [x] Finances API responses are validated against shared Zod response schemas and finance UI uses the inferred shared response types.
 - [x] Lint and typecheck pass without errors after all changes.

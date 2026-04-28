@@ -2,18 +2,10 @@ import { route, routeHttpError } from '@/lib/api/route';
 import { getAccounts, getTransactions, getUserActiveBudget } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import type { GoalAccountDetails } from '@my-hub/shared/constants';
+import { goalsResponseSchema } from '../contracts';
+import type { GoalItem } from '../contracts';
 
-export interface GoalItem {
-  id: number;
-  name: string;
-  currency: string;
-  balance: number;
-  targetAmount: number;
-  monthlyAvg: number;
-  projectedMonths: number | null;
-}
-
-export const GET = route(async ({ user }) => {
+export const GET = route({ response: goalsResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
@@ -39,19 +31,27 @@ export const GET = route(async ({ user }) => {
   const inflowByGoal = new Map<number, number>();
   for (const t of recentTxns) {
     if (t.toAccountId != null && goalIds.has(t.toAccountId)) {
-      inflowByGoal.set(t.toAccountId, (inflowByGoal.get(t.toAccountId) ?? 0) + parseFloat(t.amount));
+      inflowByGoal.set(t.toAccountId, (inflowByGoal.get(t.toAccountId) ?? 0) + t.amount);
     }
   }
 
   const goals: GoalItem[] = goalAccounts.map(a => {
     const details = a.details as GoalAccountDetails | null;
     const targetAmount = details?.targetAmount ?? 0;
-    const balance = parseFloat(a.balance);
+    const { balance } = a;
     const totalInflow = inflowByGoal.get(a.id) ?? 0;
     const monthlyAvg = Math.round((totalInflow / 3) * 100) / 100;
     const remaining = targetAmount - balance;
     const projectedMonths = monthlyAvg > 0 && remaining > 0 ? Math.ceil(remaining / monthlyAvg) : null;
-    return { id: a.id, name: a.name, currency: a.currency, balance, targetAmount, monthlyAvg, projectedMonths };
+    return {
+      id: a.id,
+      name: a.name,
+      currency: budget.defaultCurrency,
+      balance,
+      targetAmount,
+      monthlyAvg,
+      projectedMonths,
+    };
   });
 
   return { currency: budget.defaultCurrency, goals };

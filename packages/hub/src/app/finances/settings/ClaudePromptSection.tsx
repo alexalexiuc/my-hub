@@ -4,49 +4,19 @@ import { useState, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { Button } from '@/components';
 import { Card, SectionLabel } from '../ui';
-
-interface AccountItem {
-  id: number;
-  name: string;
-  type: string;
-  currency: string;
-  cardLastFour?: string;
-  cardName?: string;
-  targetAmount?: number;
-}
-
-interface CategoryItem {
-  id: number;
-  name: string;
-  groupId: number | null;
-}
-
-interface GroupRow {
-  id: number;
-  name: string;
-  categories: CategoryItem[];
-}
-
-interface AccountsData {
-  accounts: AccountItem[];
-}
-
-interface CategoriesData {
-  groups: GroupRow[];
-  ungrouped: CategoryItem[];
-}
-
-interface BudgetInfo {
-  id: number;
-  name: string;
-  defaultCurrency: string;
-}
+import type {
+  AccountsListData,
+  BudgetInfo,
+  CategoriesResponse,
+  CategoryGroup,
+  CategoryRow,
+} from '@/app/api/finances/contracts';
 
 function buildPrompt(
   budget: BudgetInfo,
-  accounts: AccountItem[],
-  groups: GroupRow[],
-  ungrouped: CategoryItem[],
+  accounts: AccountsListData['accounts'],
+  groups: CategoryGroup[],
+  ungrouped: CategoryRow[],
 ): string {
   const lines: string[] = [];
   lines.push(`Budget: ${budget.name} (ID: ${budget.id}) | Currency: ${budget.defaultCurrency}`);
@@ -98,8 +68,8 @@ export function ClaudePromptSection({ budget }: ClaudePromptSectionProps) {
     setLoading(true);
     try {
       const [accountsData, categoriesData] = await Promise.all([
-        apiFetch<AccountsData>('/api/finances/accounts', { silentToast: true }),
-        apiFetch<CategoriesData>('/api/finances/categories', { silentToast: true }),
+        apiFetch<AccountsListData>('/api/finances/accounts', { silentToast: true }),
+        apiFetch<CategoriesResponse>('/api/finances/categories', { silentToast: true }),
       ]);
       const text = buildPrompt(budget, accountsData.accounts, categoriesData.groups, categoriesData.ungrouped);
       setPrompt(text);

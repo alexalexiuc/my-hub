@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { z } from 'zod';
 import { route } from './route';
 
 const { mockGetAuthUser, mockWriteApiLog } = vi.hoisted(() => ({
@@ -42,5 +43,25 @@ describe('route()', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true, isAnonymous: true });
+  });
+
+  it('returns 500 when response payload does not match response schema', async () => {
+    mockGetAuthUser.mockResolvedValue({ id: 'u1', name: 'Test', email: 'test@example.com' });
+
+    const handler = route({ response: z.object({ ok: z.literal(true) }) })(async () => ({ ok: false }));
+    const response = await handler(new Request('https://hub.local/api/strict'));
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: 'Internal Server Error' });
+  });
+
+  it('returns 200 when response payload matches response schema', async () => {
+    mockGetAuthUser.mockResolvedValue({ id: 'u1', name: 'Test', email: 'test@example.com' });
+
+    const handler = route({ response: z.object({ ok: z.literal(true) }) })(async () => ({ ok: true }));
+    const response = await handler(new Request('https://hub.local/api/strict'));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
   });
 });

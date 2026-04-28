@@ -9,6 +9,7 @@ import {
 } from '@my-hub/shared/services';
 import { CategoryIcons } from '@my-hub/shared/constants';
 import type { CategoryIcon } from '@my-hub/shared/constants';
+import { categoriesResponseSchema, categoryMutationResponseSchema } from '../contracts';
 
 const CategoryCreateSchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
@@ -29,7 +30,10 @@ const CategoryQuerySchema = z.object({
     .optional(),
 });
 
-export const GET = route({ query: CategoryQuerySchema })(async ({ user, query }) => {
+export const GET = route({ query: CategoryQuerySchema, response: categoriesResponseSchema })(async ({
+  user,
+  query,
+}) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
@@ -51,7 +55,7 @@ export const GET = route({ query: CategoryQuerySchema })(async ({ user, query })
   const spentByCategory = new Map<number, number>();
   for (const t of expenseTxns) {
     if (t.categoryId != null) {
-      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + parseFloat(t.amount));
+      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.amount);
     }
   }
 
@@ -60,7 +64,7 @@ export const GET = route({ query: CategoryQuerySchema })(async ({ user, query })
     name: c.name,
     icon: c.icon ?? null,
     color: c.color ?? null,
-    monthlyTarget: c.monthlyTarget != null ? parseFloat(c.monthlyTarget) : null,
+    monthlyTarget: c.monthlyTarget ?? null,
     spent: spentByCategory.get(c.id) ?? 0,
     groupId: c.groupId ?? null,
     sortOrder: c.sortOrder,
@@ -86,7 +90,10 @@ export const GET = route({ query: CategoryQuerySchema })(async ({ user, query })
   };
 });
 
-export const POST = route({ body: CategoryCreateSchema })(async ({ user, body }) => {
+export const POST = route({ body: CategoryCreateSchema, response: categoryMutationResponseSchema })(async ({
+  user,
+  body,
+}) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
@@ -94,7 +101,7 @@ export const POST = route({ body: CategoryCreateSchema })(async ({ user, body })
     name: body.name.trim(),
     icon: (body.icon as CategoryIcon | null | undefined) ?? null,
     color: body.color ?? null,
-    monthlyTarget: body.monthlyTarget != null ? String(body.monthlyTarget) : null,
+    monthlyTarget: body.monthlyTarget ?? null,
     groupId: body.groupId ?? null,
     sortOrder: body.sortOrder ?? 0,
   });
