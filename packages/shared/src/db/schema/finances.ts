@@ -42,6 +42,7 @@ export const financeBudgetMembers = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     joinedAt: timestamp('joined_at').notNull().defaultNow(),
+    isActive: boolean('is_active').notNull().default(false),
   },
   table => ({
     pk: primaryKey({ columns: [table.budgetId, table.userId] }),

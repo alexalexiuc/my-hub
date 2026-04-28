@@ -1,17 +1,18 @@
 /**
  * Finance budget CRUD and access-control queries
- * - createBudget(userId, data) — creates a budget and adds the creator as its first member
- * - getUserBudgets(userId) — lists all budgets the user is a member of
- * - getUserActiveBudget(userId) — returns user's active budget
+ * - createBudget(userId, data) — creates a budget and adds the creator as its first member (isActive: true)
+ * - getUserBudgets(userId) — lists all budgets the user is a member of, with isActive status per user
+ * - getUserActiveBudget(userId) — returns the user's active budget (isActive: true), null if none
+ * - setActiveBudget(userId, budgetId) — deactivates all user memberships, activates the specified one
  * - getBudgetById(userId, budgetId) — single budget with access check, null if not found or no access
  * - getBudgetMembers(userId, budgetId) — lists members (id, email, name, joinedAt) with access check
  * - updateBudget(userId, budgetId, data) — partial update; requires budget membership
  * - deleteBudget(userId, budgetId) — hard delete; requires budget membership
- * - addBudgetMember(userId, budgetId, targetUserId) — adds a new member; requires budget membership; idempotent
+ * - addBudgetMember(userId, budgetId, targetUserId) — adds a new member (inactive); requires budget membership; idempotent
  * - removeBudgetMember(userId, budgetId, targetUserId) — removes a member from the budget; requires membership; cannot remove creator
  * - deleteAllUserFinanceBudgets(userId) — bulk delete owned budgets + remove from shared memberships
  * - verifyBudgetAccess(userId, budgetId) — returns true if user is a budget member
- * Types: BudgetInsert, BudgetUpdate
+ * Types: BudgetInsert, BudgetUpdate, UserBudget
  */
 import { and, eq, sql } from 'drizzle-orm';
 import { PromiseCacheX } from 'promise-cachex';
@@ -22,10 +23,15 @@ import { omitNullish } from '../../utils';
 import type { FinanceBudget, NewFinanceBudget } from '../../types';
 
 const budgetAccessCache = new PromiseCacheX<boolean>({ ttl: 300_000 });
-const budgetsCache = new PromiseCacheX<FinanceBudget[]>({ ttl: 300_000 });
+const budgetsCache = new PromiseCacheX<UserBudget[]>({ ttl: 300_000 });
 
 export type BudgetInsert = Omit<NewFinanceBudget, 'id' | 'createdByUserId' | 'createdAt' | 'updatedAt'>;
 export type BudgetUpdate = Partial<Pick<BudgetInsert, 'name' | 'defaultCurrency'>>;
+
+/** Budget enriched with the requesting user's membership status. */
+export interface UserBudget extends FinanceBudget {
+  isActive: boolean;
+}
 
 export async function verifyBudgetAccess(userId: string, budgetId: number): Promise<boolean> {
   return budgetAccessCache.get(`${userId}:${budgetId}`, async () => {
@@ -46,7 +52,9 @@ export async function createBudget(userId: string, data: BudgetInsert): Promise<
 
   if (!budget) throw new Error('Insert did not return a row');
 
-  await db.insert(financeBudgetMembers).values({ budgetId: budget.id, userId });
+  // Deactivate any existing active memberships so only one budget is active at a time
+  await db.update(financeBudgetMembers).set({ isActive: false }).where(eq(financeBudgetMembers.userId, userId));
+  await db.insert(financeBudgetMembers).values({ budgetId: budget.id, userId, isActive: true });
 
   // Invalidate caches
   budgetsCache.delete(userId);
@@ -55,7 +63,7 @@ export async function createBudget(userId: string, data: BudgetInsert): Promise<
   return budget;
 }
 
-export async function getUserBudgets(userId: string): Promise<FinanceBudget[]> {
+export async function getUserBudgets(userId: string): Promise<UserBudget[]> {
   return budgetsCache.get(userId, async () => {
     return db
       .select({
@@ -65,6 +73,7 @@ export async function getUserBudgets(userId: string): Promise<FinanceBudget[]> {
         createdByUserId: financeBudgets.createdByUserId,
         createdAt: financeBudgets.createdAt,
         updatedAt: financeBudgets.updatedAt,
+        isActive: financeBudgetMembers.isActive,
       })
       .from(financeBudgets)
       .innerJoin(financeBudgetMembers, eq(financeBudgetMembers.budgetId, financeBudgets.id))
@@ -74,8 +83,23 @@ export async function getUserBudgets(userId: string): Promise<FinanceBudget[]> {
 
 export async function getUserActiveBudget(userId: string): Promise<FinanceBudget | null> {
   const budgets = await getUserBudgets(userId);
-  // for now we will only operate with a single budget per user, so just return the first one.
-  return budgets[0] ?? null;
+  return budgets.find(b => b.isActive) ?? null;
+}
+
+export async function setActiveBudget(userId: string, budgetId: number): Promise<void> {
+  if (!(await verifyBudgetAccess(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  // Deactivate all memberships for this user, then activate the chosen one
+  await db.update(financeBudgetMembers).set({ isActive: false }).where(eq(financeBudgetMembers.userId, userId));
+
+  await db
+    .update(financeBudgetMembers)
+    .set({ isActive: true })
+    .where(and(eq(financeBudgetMembers.userId, userId), eq(financeBudgetMembers.budgetId, budgetId)));
+
+  budgetsCache.delete(userId);
 }
 
 export async function getBudgetById(userId: string, budgetId: number): Promise<FinanceBudget | null> {
@@ -149,7 +173,8 @@ export async function addBudgetMember(userId: string, budgetId: number, targetUs
 
   if ((existing?.count ?? 0) > 0) return; // already a member — idempotent
 
-  await db.insert(financeBudgetMembers).values({ budgetId, userId: targetUserId });
+  // New members start inactive; they can activate via setActiveBudget
+  await db.insert(financeBudgetMembers).values({ budgetId, userId: targetUserId, isActive: false });
 
   // Invalidate caches
   budgetAccessCache.delete(`${targetUserId}:${budgetId}`);

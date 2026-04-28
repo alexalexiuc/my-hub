@@ -1,0 +1,1 @@
+ALTER TABLE "finance_budget_members" ADD COLUMN "is_active" boolean DEFAULT false NOT NULL;
