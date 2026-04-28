@@ -18,7 +18,8 @@ import type {
   BorrowedLentAccountDetails,
   CashAccountDetails,
 } from '@my-hub/shared/constants';
-import type { AccountItem, AccountsListData } from '@/app/finances/accounts/types';
+import { accountsListResponseSchema, accountMutationResponseSchema } from '../contracts';
+import type { AccountItem, AccountsListData } from '../contracts';
 const AccountCreateSchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
   type: z.enum(Object.values(AccountTypes) as [string, ...string[]], { error: 'Invalid account type' }),
@@ -74,7 +75,7 @@ function flattenDetails(type: string, details: unknown): Partial<AccountItem> {
   }
 }
 
-export const GET = route(async ({ user }) => {
+export const GET = route({ response: accountsListResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
@@ -88,13 +89,13 @@ export const GET = route(async ({ user }) => {
 
   let netWorth = 0;
   const accounts: AccountItem[] = rawAccounts.map(a => {
-    const bal = parseFloat(a.balance);
+    const bal = a.balance;
     netWorth += liabilityTypes.has(a.type) ? -bal : bal;
     return {
       id: a.id,
       name: a.name,
       type: a.type,
-      currency: a.currency,
+      currency: budget.defaultCurrency,
       balance: bal,
       archived: a.archived,
       ...flattenDetails(a.type, a.details),
@@ -113,19 +114,21 @@ export const GET = route(async ({ user }) => {
   return data;
 });
 
-export const POST = route({ body: AccountCreateSchema })(async ({ user, body }) => {
+export const POST = route({ body: AccountCreateSchema, response: accountMutationResponseSchema })(async ({
+  user,
+  body,
+}) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const balanceNum = body.openingBalance ?? 0;
-  const balStr = balanceNum.toFixed(4);
 
   const account = await createAccount(user.id, budget.id, {
     name: body.name.trim(),
     type: body.type as AccountType,
     currency: body.currency.trim().toUpperCase(),
-    openingBalance: balStr,
-    balance: balStr,
+    openingBalance: balanceNum,
+    balance: balanceNum,
     archived: false,
     details: body.details ?? null,
   });
@@ -135,8 +138,8 @@ export const POST = route({ body: AccountCreateSchema })(async ({ user, body }) 
       type: balanceNum > 0 ? 'income' : 'expense',
       accountId: account.id,
       toAccountId: null,
-      amount: String(Math.abs(balanceNum)),
-      exchangeRate: '1',
+      amount: Math.abs(balanceNum),
+      exchangeRate: 1,
       date: new Date().toISOString().slice(0, 10),
       categoryId: null,
       payeeId: null,

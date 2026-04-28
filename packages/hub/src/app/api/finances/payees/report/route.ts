@@ -1,17 +1,8 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getPayees, getCategories, getTransactions } from '@my-hub/shared/services';
-
-export interface PayeeReportItem {
-  id: number;
-  name: string;
-  txCount: number;
-  totalSpent: number;
-  lastDate: string;
-  categoryName: string | null;
-  categoryColor: string | null;
-  categoryIcon: string | null;
-}
+import { payeesReportResponseSchema } from '../../contracts';
+import type { PayeeReportItem } from '../../contracts';
 
 function getFromDate(range: string): string {
   const now = new Date();
@@ -27,10 +18,10 @@ function getFromDate(range: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-export const GET = route({ query: z.object({ range: z.enum(['30d', '3m', 'ytd']).default('30d') }) })(async ({
-  user,
-  query,
-}) => {
+export const GET = route({
+  query: z.object({ range: z.enum(['30d', '3m', 'ytd']).default('30d') }),
+  response: payeesReportResponseSchema,
+})(async ({ user, query }) => {
   const { range } = query;
 
   const budget = await getUserActiveBudget(user.id);
@@ -61,13 +52,13 @@ export const GET = route({ query: z.object({ range: z.enum(['30d', '3m', 'ytd'])
     if (!existing) {
       agg.set(t.payeeId, {
         txCount: 1,
-        totalSpent: parseFloat(t.amount),
+        totalSpent: t.amount,
         lastDate: t.date,
         lastCategoryId: t.categoryId ?? null,
       });
     } else {
       existing.txCount++;
-      existing.totalSpent += parseFloat(t.amount);
+      existing.totalSpent += t.amount;
       if (t.date > existing.lastDate) {
         existing.lastDate = t.date;
         existing.lastCategoryId = t.categoryId ?? null;

@@ -15,12 +15,12 @@ import {
   getCategories,
   getGroups,
   getTransactionById,
-  getPayeesWithDescription,
+  getPayees,
   getCurrencyRate,
 } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
 import type { TransactionInsert } from '@my-hub/shared/services';
-import { currentDateString } from '@my-hub/shared/utils';
+import { currentDateString, omitUndefined } from '@my-hub/shared/utils';
 
 // ─── add_transactions ─────────────────────────────────────────────────────────
 
@@ -31,21 +31,39 @@ const TransactionExtrasSchema = z.object({
   cardHint: z.string().optional(),
 });
 
-const TransactionItemSchema = z.object({
-  type: z.enum(['expense', 'income', 'transfer']),
-  amount: z.number().positive(),
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
-  accountId: z.number().int().positive(),
-  toAccountId: z.number().int().positive().optional(),
-  categoryId: z.number().int().positive().optional(),
-  payeeName: z.string().min(1).optional(),
-  notes: z.string().min(1),
-  isCorrection: z.boolean().optional(),
-  extras: TransactionExtrasSchema.optional(),
-});
+const TransactionItemSchema = z
+  .object({
+    type: z.enum(['expense', 'income', 'transfer']),
+    amount: z.number().positive(),
+    date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+    accountId: z.number().int().positive(),
+    toAccountId: z.number().int().positive().optional(),
+    categoryId: z.number().int().positive().optional(),
+    payeeName: z.string().min(1).optional(),
+    notes: z.string().min(1),
+    isCorrection: z.boolean().optional(),
+    extras: TransactionExtrasSchema.optional(),
+  })
+  .superRefine((item, ctx) => {
+    if (item.type === 'transfer' && item.toAccountId == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['toAccountId'],
+        message: 'toAccountId is required for transfer transactions',
+      });
+    }
+
+    if (item.type !== 'transfer' && item.toAccountId != null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['toAccountId'],
+        message: 'toAccountId can only be set for transfer transactions',
+      });
+    }
+  });
 
 export const AddTransactionsSchema = z.object({
   transactions: z.array(TransactionItemSchema).min(1).max(50),
@@ -76,7 +94,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
       const duplicate = await checkDuplicateTransaction(userId, budget.id, {
         accountId: item.accountId,
         date,
-        amount: String(item.amount),
+        amount: item.amount,
         payeeId,
       });
 
@@ -91,7 +109,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
 
       const txData: TransactionInsert = {
         type: item.type,
-        amount: String(item.amount),
+        amount: item.amount,
         date,
         accountId: item.accountId,
         toAccountId: item.toAccountId ?? null,
@@ -99,7 +117,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         payeeId,
         notes: item.notes,
         isCorrection: item.isCorrection ?? false,
-        exchangeRate: String(exchangeRate),
+        exchangeRate,
         extras: item.extras
           ? {
               kind: 'base',
@@ -152,6 +170,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
 
 export const UpdateTransactionSchema = z.object({
   transactionId: z.number().int().positive(),
+  type: z.enum(['expense', 'income', 'transfer']).optional(),
   amount: z.number().positive().optional(),
   date: z
     .string()
@@ -176,6 +195,24 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
   if (!existing) throw new Error('Transaction not found');
   if (existing.addedByUserId !== userId) throw new Error('You can only edit your own transactions');
 
+  const nextType = input.type ?? existing.type;
+  const nextToAccountId = input.toAccountId !== undefined ? input.toAccountId : existing.toAccountId;
+
+  if (nextType === 'transfer' && nextToAccountId == null) {
+    throw new Error('Transfer transactions require toAccountId');
+  }
+
+  if (nextType !== 'transfer' && input.toAccountId !== undefined) {
+    throw new Error('toAccountId can only be set for transfer transactions');
+  }
+
+  const toAccountIdForUpdate =
+    input.toAccountId !== undefined
+      ? input.toAccountId
+      : input.type !== undefined && input.type !== 'transfer'
+        ? null
+        : undefined;
+
   // Resolve payee if name provided
   let payeeId: number | undefined;
   if (input.payeeName !== undefined) {
@@ -183,25 +220,27 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
     payeeId = payee.id;
   }
 
-  const updateData = {
-    ...(input.amount !== undefined ? { amount: String(input.amount) } : {}),
-    ...(input.date !== undefined ? { date: input.date } : {}),
-    ...(input.accountId !== undefined ? { accountId: input.accountId } : {}),
-    ...(input.toAccountId !== undefined ? { toAccountId: input.toAccountId } : {}),
-    ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
-    ...(payeeId !== undefined ? { payeeId } : {}),
-    ...(input.notes !== undefined ? { notes: input.notes } : {}),
-    ...(input.isCorrection !== undefined ? { isCorrection: input.isCorrection } : {}),
-  };
+  const updateData = omitUndefined({
+    type: input.type,
+    amount: input.amount,
+    date: input.date,
+    accountId: input.accountId,
+    toAccountId: toAccountIdForUpdate,
+    categoryId: input.categoryId,
+    payeeId,
+    notes: input.notes,
+    isCorrection: input.isCorrection,
+  });
 
   const updated = await updateTransaction(userId, budget.id, input.transactionId, updateData);
+  const resolvedAccount = await getAccountById(userId, budget.id, updated.accountId);
 
   return toolResponse({
     index: 0,
     transactionId: updated.id,
     fromAccountBalanceAfter: updated.fromAccountBalanceAfter,
     ...(updated.toAccountBalanceAfter != null ? { toAccountBalanceAfter: updated.toAccountBalanceAfter } : {}),
-    resolvedAccount: String(updated.accountId),
+    resolvedAccount: resolvedAccount?.name ?? String(updated.accountId),
     resolvedCategory: updated.categoryId != null ? String(updated.categoryId) : null,
     resolvedPayee: input.payeeName ?? null,
   });
@@ -243,7 +282,7 @@ export const QueryTransactionsSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
-  isCorrection: z.boolean().optional(),
+  includeCorrections: z.boolean().optional(),
   search: z.string().optional(),
   limit: z.number().int().min(1).max(200).optional(),
   offset: z.number().int().min(0).optional(),
@@ -256,16 +295,28 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema.s
   if (!budget) throw new Error('No active budget.');
 
   // Resolve payee name to ID if provided
+  let payeeId: number | undefined = undefined;
+  if (input.payeeName !== undefined) {
+    const payeesAll = await getPayees(userId, budget.id);
+    const match = payeesAll.find(p => p.name.toLowerCase() === input.payeeName!.toLowerCase());
+    if (!match) {
+      return toolResponse({ transactions: [], total: 0 });
+    }
+
+    payeeId = match.id;
+  }
+
   let categoryId: number | null | undefined = undefined;
   if (input.categoryId !== undefined) categoryId = input.categoryId;
 
   const opts = {
     accountId: input.accountId,
     categoryId,
+    payeeId,
     type: input.type as (typeof TransactionTypes)[keyof typeof TransactionTypes] | undefined,
     fromDate: input.dateFrom,
     toDate: input.dateTo,
-    includeCorrections: input.isCorrection,
+    includeCorrections: input.includeCorrections,
     search: input.search,
     limit: input.limit ?? 50,
     offset: input.offset ?? 0,
@@ -280,7 +331,7 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema.s
   const [accounts, categories, payees] = await Promise.all([
     getAccounts(userId, budget.id, { includeArchived: true }),
     getCategories(userId, budget.id),
-    getPayeesWithDescription(userId, budget.id),
+    getPayees(userId, budget.id),
   ]);
 
   const accountMap = new Map(accounts.map(a => [a.id, a]));

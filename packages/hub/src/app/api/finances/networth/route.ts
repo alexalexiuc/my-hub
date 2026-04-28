@@ -1,21 +1,12 @@
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getAccounts, getNetWorthHistory } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
+import { netWorthResponseSchema } from '../contracts';
+import type { NetWorthData } from '../contracts';
 
 const LIABILITY_TYPES = new Set<string>([AccountTypes.Loan, AccountTypes.CreditCard]);
 
-export interface NetWorthData {
-  currency: string;
-  netWorth: number;
-  totalAssets: number;
-  totalLiabilities: number;
-  assets: { id: number; name: string; type: string; balance: number; currency: string }[];
-  liabilities: { id: number; name: string; type: string; balance: number; currency: string }[];
-  history: { month: string; label: string; totalAssets: number; totalLiabilities: number; netWorth: number }[];
-  deltaVsLastMonth: number | null;
-}
-
-export const GET = route(async ({ user }) => {
+export const GET = route({ response: netWorthResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
@@ -31,8 +22,8 @@ export const GET = route(async ({ user }) => {
   const liabilities: NetWorthData['liabilities'] = [];
 
   for (const a of accounts) {
-    const bal = parseFloat(a.balance);
-    const item = { id: a.id, name: a.name, type: a.type, balance: bal, currency: a.currency };
+    const bal = a.balance;
+    const item = { id: a.id, name: a.name, type: a.type, balance: bal, currency: budget.defaultCurrency };
     if (LIABILITY_TYPES.has(a.type)) {
       totalLiabilities += bal;
       liabilities.push(item);

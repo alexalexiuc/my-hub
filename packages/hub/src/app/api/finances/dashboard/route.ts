@@ -10,9 +10,10 @@ import {
 } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import type { GoalAccountDetails } from '@my-hub/shared/constants';
-import type { FinanceDashboardData } from './types';
+import { dashboardResponseSchema } from '../contracts';
+import type { FinanceDashboardData } from '../contracts';
 
-export const GET = route(async ({ user }) => {
+export const GET = route({ response: dashboardResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) {
     const allBudgets = await getUserBudgets(user.id);
@@ -48,26 +49,26 @@ export const GET = route(async ({ user }) => {
   const liabilityTypes = new Set<string>([AccountTypes.Loan, AccountTypes.CreditCard]);
   let netWorth = 0;
   for (const acc of accounts) {
-    const bal = parseFloat(acc.balance);
+    const bal = acc.balance;
     netWorth += liabilityTypes.has(acc.type) ? -bal : bal;
   }
 
   // Monthly totals
-  const monthlyExpense = expenseTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0);
-  const monthlyIncome = incomeTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+  const monthlyExpense = expenseTxns.reduce((sum, t) => sum + t.amount, 0);
+  const monthlyIncome = incomeTxns.reduce((sum, t) => sum + t.amount, 0);
 
   // Spending per category this month
   const spentByCategory = new Map<number, number>();
   for (const t of expenseTxns) {
     if (t.categoryId != null) {
-      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + parseFloat(t.amount));
+      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.amount);
     }
   }
 
   // Top categories that have a monthly target
   const budgetCategories = categories
     .filter(c => c.monthlyTarget != null)
-    .sort((a, b) => parseFloat(b.monthlyTarget!) - parseFloat(a.monthlyTarget!))
+    .sort((a, b) => b.monthlyTarget! - a.monthlyTarget!)
     .slice(0, 4)
     .map(c => ({
       id: c.id,
@@ -75,7 +76,7 @@ export const GET = route(async ({ user }) => {
       icon: c.icon ?? null,
       color: c.color ?? null,
       spent: spentByCategory.get(c.id) ?? 0,
-      target: parseFloat(c.monthlyTarget!),
+      target: c.monthlyTarget!,
     }));
 
   // Goals — accounts of type 'goal'
@@ -86,7 +87,7 @@ export const GET = route(async ({ user }) => {
       return {
         id: a.id,
         name: a.name,
-        balance: parseFloat(a.balance),
+        balance: a.balance,
         target: details?.targetAmount ?? 0,
       };
     })
@@ -102,7 +103,7 @@ export const GET = route(async ({ user }) => {
     return {
       id: t.id,
       date: t.date,
-      amount: parseFloat(t.amount),
+      amount: t.amount,
       type: t.type,
       notes: t.notes ?? null,
       payeeName: payee?.name ?? null,

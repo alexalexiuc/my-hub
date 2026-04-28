@@ -1,6 +1,6 @@
 import { ResourceHandler } from '../../shared/types';
 import { resourceResponse } from '../../shared/resourcesUtils';
-import { getUserActiveBudget, getPayeesWithDescription } from '@my-hub/shared/services';
+import { getUserActiveBudget, getPayees } from '@my-hub/shared/services';
 
 export const getFinancesPayeesResource: ResourceHandler = async (uri, context) => {
   const { userId } = context;
@@ -10,7 +10,7 @@ export const getFinancesPayeesResource: ResourceHandler = async (uri, context) =
     return resourceResponse(uri, { error: 'No active budget.' });
   }
 
-  const payees = await getPayeesWithDescription(userId, budget.id);
+  const payees = await getPayees(userId, budget.id);
 
   return resourceResponse(uri, { payees });
 };

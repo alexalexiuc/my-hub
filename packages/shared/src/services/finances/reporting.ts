@@ -98,7 +98,7 @@ export async function getBudgetProgress(
     const groupName = cat.groupId ? groupMap.get(cat.groupId) : null;
     const displayName = groupName ? `${groupName} > ${cat.name}` : cat.name;
     const spent = spendMap.get(cat.id) ?? 0;
-    const target = cat.monthlyTarget ? parseFloat(cat.monthlyTarget) : null;
+    const target = cat.monthlyTarget ?? null;
 
     if (target !== null) totalBudgeted += target;
     totalSpent += spent;
@@ -110,7 +110,7 @@ export async function getBudgetProgress(
       id: cat.id,
       name: cat.name,
       displayName,
-      monthlyTarget: cat.monthlyTarget,
+      monthlyTarget: cat.monthlyTarget != null ? String(cat.monthlyTarget) : null,
       spent: String(spent),
       remainingBudget,
       percentUsed,
@@ -501,14 +501,14 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
   let totalLiabilities = 0;
 
   for (const acct of accounts) {
-    const balance = parseFloat(acct.balance);
+    const { balance } = acct;
     const rate = await getCurrencyRate(acct.currency, budget.defaultCurrency, today);
     const balanceDefault = balance * rate;
 
     const entry: AccountNetWorth = {
       id: acct.id,
       name: acct.name,
-      balance: acct.balance,
+      balance: String(balance),
       currency: acct.currency,
       balanceInDefaultCurrency: String(balanceDefault),
     };
@@ -543,7 +543,9 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
     .orderBy(sql`${financeNetWorthSnapshots.month} desc`)
     .limit(12);
 
-  const history: NetWorthHistoryEntry[] = snapshots.reverse().map(s => ({ month: s.month, netWorth: s.netWorth }));
+  const history: NetWorthHistoryEntry[] = snapshots
+    .reverse()
+    .map(s => ({ month: s.month, netWorth: String(s.netWorth) }));
 
   return {
     currency: budget.defaultCurrency,

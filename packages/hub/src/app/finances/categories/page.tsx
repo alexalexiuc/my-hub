@@ -6,31 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar, Divider, CategoryIcon } from '../ui';
 import { AddCategoryModal } from './AddCategoryModal';
 import { AddGroupModal } from './AddGroupModal';
-
-interface CategoryRow {
-  id: number;
-  name: string;
-  icon: string | null;
-  color: string | null;
-  monthlyTarget: number | null;
-  spent: number;
-  groupId: number | null;
-  sortOrder: number;
-}
-interface GroupRow {
-  id: number;
-  name: string;
-  sortOrder: number;
-  categories: CategoryRow[];
-}
-interface CategoriesData {
-  currency: string;
-  month: string;
-  groups: GroupRow[];
-  ungrouped: CategoryRow[];
-  totalSpent: number;
-  allCategories: CategoryRow[];
-}
+import type { CategoriesResponse, CategoryGroup, CategoryRow } from '@/app/api/finances/contracts';
 
 function lastNMonths(n: number): { label: string; value: string }[] {
   const result = [];
@@ -45,7 +21,7 @@ function lastNMonths(n: number): { label: string; value: string }[] {
   return result;
 }
 
-function groupColor(group: GroupRow): string {
+function groupColor(group: CategoryGroup): string {
   return group.categories.find(c => c.color)?.color ?? 'var(--fin-muted)';
 }
 
@@ -101,7 +77,7 @@ function GroupSection({
   currency,
   onAddCategory,
 }: {
-  group: GroupRow;
+  group: CategoryGroup;
   currency: string;
   onAddCategory: (groupId: number) => void;
 }) {
@@ -157,7 +133,7 @@ function GroupSection({
 export default function CategoriesPage() {
   const months = lastNMonths(3);
   const [selectedMonth, setSelectedMonth] = useState(months[0]!.value);
-  const [data, setData] = useState<CategoriesData | null>(null);
+  const [data, setData] = useState<CategoriesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showAddGroup, setShowAddGroup] = useState(false);
@@ -167,7 +143,9 @@ export default function CategoriesPage() {
   const load = useCallback(async (month: string) => {
     setLoading(true);
     try {
-      const result = await apiFetch<CategoriesData>(`/api/finances/categories?month=${month}`, { silentToast: true });
+      const result = await apiFetch<CategoriesResponse>(`/api/finances/categories?month=${month}`, {
+        silentToast: true,
+      });
       setData(result);
     } finally {
       setLoading(false);

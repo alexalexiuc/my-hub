@@ -9,25 +9,32 @@ import {
   getUserActiveBudget,
 } from '@my-hub/shared/services';
 import type { BorrowedLentAccountDetails } from '@my-hub/shared/constants';
-import type { AccountItem, AccountDetailData, AccountTransaction } from '@/app/finances/accounts/types';
+import { accountDetailResponseSchema, accountMutationResponseSchema } from '../../contracts';
+import type { AccountItem, AccountDetailData, AccountTransaction } from '../../contracts';
 const AccountPatchSchema = z.object({
   action: z.literal('settle'),
 });
 
-function flattenAccount(a: NonNullable<Awaited<ReturnType<typeof getAccountById>>>): AccountItem {
+function flattenAccount(
+  a: NonNullable<Awaited<ReturnType<typeof getAccountById>>>,
+  budgetCurrency: string,
+): AccountItem {
   const details = a.details as Record<string, unknown> | null;
   return {
     id: a.id,
     name: a.name,
     type: a.type,
-    currency: a.currency,
-    balance: parseFloat(a.balance),
+    currency: budgetCurrency,
+    balance: a.balance,
     archived: a.archived,
     ...(details ?? {}),
   } as AccountItem;
 }
 
-export const GET = route({ params: z.object({ id: z.coerce.number().int().positive() }) })(async ({ user, params }) => {
+export const GET = route({
+  params: z.object({ id: z.coerce.number().int().positive() }),
+  response: accountDetailResponseSchema,
+})(async ({ user, params }) => {
   const accountId = params.id;
 
   const budget = await getUserActiveBudget(user.id);
@@ -44,7 +51,7 @@ export const GET = route({ params: z.object({ id: z.coerce.number().int().positi
 
   if (!rawAccount) routeHttpError(404, { error: 'Account not found' });
 
-  const account = flattenAccount(rawAccount);
+  const account = flattenAccount(rawAccount, budget.defaultCurrency);
   const categoryMap = new Map(categories.map(c => [c.id, c]));
   const payeeMap = new Map(payees.map(p => [p.id, p]));
 
@@ -56,14 +63,14 @@ export const GET = route({ params: z.object({ id: z.coerce.number().int().positi
     return {
       id: t.id,
       date: t.date,
-      amount: parseFloat(t.amount),
+      amount: t.amount,
       type: t.type,
       notes: t.notes ?? null,
       payeeName: payee?.name ?? null,
       categoryName: cat?.name ?? null,
       categoryColor: cat?.color ?? null,
       categoryIcon: cat?.icon ?? null,
-      balanceAfter: rawBal != null ? parseFloat(rawBal) : null,
+      balanceAfter: rawBal != null ? rawBal : null,
       isCorrection: t.isCorrection,
     };
   });
@@ -72,24 +79,26 @@ export const GET = route({ params: z.object({ id: z.coerce.number().int().positi
   return data;
 });
 
-export const PATCH = route({ params: z.object({ id: z.coerce.number().int().positive() }), body: AccountPatchSchema })(
-  async ({ user, params, body }) => {
-    const accountId = params.id;
+export const PATCH = route({
+  params: z.object({ id: z.coerce.number().int().positive() }),
+  body: AccountPatchSchema,
+  response: accountMutationResponseSchema,
+})(async ({ user, params, body }) => {
+  const accountId = params.id;
 
-    const budget = await getUserActiveBudget(user.id);
-    if (!budget) routeHttpError(404, { error: 'No budget found' });
+  const budget = await getUserActiveBudget(user.id);
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
 
-    const existing = await getAccountById(user.id, budget.id, accountId);
-    if (!existing) routeHttpError(404, { error: 'Account not found' });
+  const existing = await getAccountById(user.id, budget.id, accountId);
+  if (!existing) routeHttpError(404, { error: 'Account not found' });
 
-    if (body.action === 'settle') {
-      const currentDetails = (existing.details ?? {}) as BorrowedLentAccountDetails;
-      const updated = await updateAccount(user.id, budget.id, accountId, {
-        details: { ...currentDetails, settled: true },
-      });
-      return { account: updated };
-    }
+  if (body.action === 'settle') {
+    const currentDetails = (existing.details ?? {}) as BorrowedLentAccountDetails;
+    const updated = await updateAccount(user.id, budget.id, accountId, {
+      details: { ...currentDetails, settled: true },
+    });
+    return { account: updated };
+  }
 
-    routeHttpError(400, { error: 'Unknown action' });
-  },
-);
+  routeHttpError(400, { error: 'Unknown action' });
+});

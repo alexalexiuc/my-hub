@@ -7,6 +7,7 @@ import {
   removeBudgetMember,
   getUserActiveBudget,
 } from '@my-hub/shared/services';
+import { budgetDetailResponseSchema, budgetMutationResponseSchema, okResponseSchema } from '../contracts';
 const BudgetUpdateSchema = z.object({
   name: z.string().trim().min(1).optional(),
   defaultCurrency: z.string().trim().optional(),
@@ -16,7 +17,7 @@ const BudgetDeleteSchema = z.object({
   removeMemberUserId: z.string().optional(),
 });
 
-export const GET = route(async ({ user }) => {
+export const GET = route({ response: budgetDetailResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
@@ -34,7 +35,10 @@ export const GET = route(async ({ user }) => {
   };
 });
 
-export const PATCH = route({ body: BudgetUpdateSchema })(async ({ user, body }) => {
+export const PATCH = route({ body: BudgetUpdateSchema, response: budgetMutationResponseSchema })(async ({
+  user,
+  body,
+}) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
@@ -46,7 +50,7 @@ export const PATCH = route({ body: BudgetUpdateSchema })(async ({ user, body }) 
   return { budget: updated };
 });
 
-export const DELETE = route({ body: BudgetDeleteSchema })(async ({ user, body }) => {
+export const DELETE = route({ body: BudgetDeleteSchema, response: okResponseSchema })(async ({ user, body }) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 

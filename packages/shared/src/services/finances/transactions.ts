@@ -1,7 +1,7 @@
 /**
  * Finance transaction CRUD
  * - addTransaction(userId, budgetId, data) — inserts a transaction; updates account balances and payee stats
- * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (date range, account, category, type, search, isCorrection)
+ * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (accountId, categoryId, type, fromDate, toDate, includeCorrections, search, limit, offset)
  * - getTransactionById(userId, budgetId, transactionId) — single transaction with access check
  * - updateTransaction(userId, budgetId, transactionId, data) — partial update; recomputes account balances; adjusts payee stats when payeeId changes
  * - deleteTransaction(userId, budgetId, transactionId) — hard delete; reverses account balance effects; decrements payee stats
@@ -43,6 +43,7 @@ export type TransactionUpdate = Partial<
 export interface GetTransactionsOpts {
   accountId?: number;
   categoryId?: number | null;
+  payeeId?: number | null;
   type?: TransactionType;
   fromDate?: string;
   toDate?: string;
@@ -55,7 +56,7 @@ export interface GetTransactionsOpts {
 export interface DuplicateCheckOpts {
   accountId: number;
   date: string;
-  amount: string;
+  amount: number;
   payeeId: number | null;
 }
 
@@ -68,7 +69,11 @@ export async function addTransaction(
     throw new Error('Budget not found');
   }
 
-  const amt = parseFloat(data.amount);
+  if (data.type === TransactionTypes.Transfer && data.toAccountId == null) {
+    throw new Error('Transfer transactions require a destination account (toAccountId)');
+  }
+
+  const amt = Math.round(data.amount * 10000) / 10000;
 
   return db.transaction(async tx => {
     const [fromAccount] = await tx
@@ -79,13 +84,11 @@ export async function addTransaction(
     if (!fromAccount) throw new Error('Account not found');
 
     const fromBalanceAfter =
-      data.type === TransactionTypes.Income
-        ? parseFloat(fromAccount.balance) + amt
-        : parseFloat(fromAccount.balance) - amt;
+      data.type === TransactionTypes.Income ? fromAccount.balance + amt : fromAccount.balance - amt;
 
     await tx
       .update(financeAccounts)
-      .set({ balance: String(fromBalanceAfter), updatedAt: new Date() })
+      .set({ balance: fromBalanceAfter, updatedAt: new Date() })
       .where(and(eq(financeAccounts.id, data.accountId), eq(financeAccounts.budgetId, budgetId)));
 
     let toBalanceAfter: number | null = null;
@@ -98,12 +101,12 @@ export async function addTransaction(
 
       if (!toAccount) throw new Error('Destination account not found');
 
-      const exchangeRate = parseFloat(data.exchangeRate ?? '1');
-      toBalanceAfter = parseFloat(toAccount.balance) + amt * exchangeRate;
+      const exchangeRate = data.exchangeRate ?? 1;
+      toBalanceAfter = toAccount.balance + amt * exchangeRate;
 
       await tx
         .update(financeAccounts)
-        .set({ balance: String(toBalanceAfter), updatedAt: new Date() })
+        .set({ balance: toBalanceAfter, updatedAt: new Date() })
         .where(and(eq(financeAccounts.id, data.toAccountId), eq(financeAccounts.budgetId, budgetId)));
     }
 
@@ -113,8 +116,8 @@ export async function addTransaction(
         ...data,
         budgetId,
         addedByUserId: userId,
-        fromAccountBalanceAfter: String(fromBalanceAfter),
-        toAccountBalanceAfter: toBalanceAfter != null ? String(toBalanceAfter) : null,
+        fromAccountBalanceAfter: fromBalanceAfter,
+        toAccountBalanceAfter: toBalanceAfter,
       })
       .returning();
 
@@ -148,6 +151,11 @@ export async function getTransactions(
     conditions.push(isNull(financeTransactions.categoryId));
   } else if (opts.categoryId !== undefined) {
     conditions.push(eq(financeTransactions.categoryId, opts.categoryId));
+  }
+  if (opts.payeeId === null) {
+    conditions.push(isNull(financeTransactions.payeeId));
+  } else if (opts.payeeId !== undefined) {
+    conditions.push(eq(financeTransactions.payeeId, opts.payeeId));
   }
   if (opts.type !== undefined) {
     conditions.push(eq(financeTransactions.type, opts.type));
@@ -202,6 +210,11 @@ export async function countTransactions(
   } else if (opts.categoryId !== undefined) {
     conditions.push(eq(financeTransactions.categoryId, opts.categoryId));
   }
+  if (opts.payeeId === null) {
+    conditions.push(isNull(financeTransactions.payeeId));
+  } else if (opts.payeeId !== undefined) {
+    conditions.push(eq(financeTransactions.payeeId, opts.payeeId));
+  }
   if (opts.type !== undefined) {
     conditions.push(eq(financeTransactions.type, opts.type));
   }
@@ -235,11 +248,12 @@ export async function checkDuplicateTransaction(
     throw new Error('Budget not found');
   }
 
+  const normalizedAmount = Math.round(opts.amount * 10000) / 10000;
   const conditions = [
     eq(financeTransactions.budgetId, budgetId),
     eq(financeTransactions.accountId, opts.accountId),
     eq(financeTransactions.date, opts.date),
-    eq(financeTransactions.amount, opts.amount),
+    eq(financeTransactions.amount, normalizedAmount),
   ];
 
   if (opts.payeeId === null) {
@@ -293,8 +307,8 @@ export async function updateTransaction(
     if (!existing) throw new Error('Transaction not found');
 
     // ── Reverse old balance effect ─────────────────────────────────────────
-    const oldAmt = parseFloat(existing.amount);
-    const oldExRate = parseFloat(existing.exchangeRate ?? '1');
+    const oldAmt = existing.amount;
+    const oldExRate = existing.exchangeRate ?? 1;
 
     const [oldFromAcct] = await tx
       .select({ balance: financeAccounts.balance })
@@ -303,13 +317,11 @@ export async function updateTransaction(
     if (!oldFromAcct) throw new Error('Source account not found');
 
     const oldFromBalanceRestored =
-      existing.type === TransactionTypes.Income
-        ? parseFloat(oldFromAcct.balance) - oldAmt
-        : parseFloat(oldFromAcct.balance) + oldAmt;
+      existing.type === TransactionTypes.Income ? oldFromAcct.balance - oldAmt : oldFromAcct.balance + oldAmt;
 
     await tx
       .update(financeAccounts)
-      .set({ balance: String(oldFromBalanceRestored), updatedAt: new Date() })
+      .set({ balance: oldFromBalanceRestored, updatedAt: new Date() })
       .where(and(eq(financeAccounts.id, existing.accountId), eq(financeAccounts.budgetId, budgetId)));
 
     if (existing.type === TransactionTypes.Transfer && existing.toAccountId != null) {
@@ -318,10 +330,10 @@ export async function updateTransaction(
         .from(financeAccounts)
         .where(and(eq(financeAccounts.id, existing.toAccountId), eq(financeAccounts.budgetId, budgetId)));
       if (oldToAcct) {
-        const oldToBalanceRestored = parseFloat(oldToAcct.balance) - oldAmt * oldExRate;
+        const oldToBalanceRestored = oldToAcct.balance - oldAmt * oldExRate;
         await tx
           .update(financeAccounts)
-          .set({ balance: String(oldToBalanceRestored), updatedAt: new Date() })
+          .set({ balance: oldToBalanceRestored, updatedAt: new Date() })
           .where(and(eq(financeAccounts.id, existing.toAccountId), eq(financeAccounts.budgetId, budgetId)));
       }
     }
@@ -330,8 +342,13 @@ export async function updateTransaction(
     const newType = data.type ?? existing.type;
     const newAccountId = data.accountId ?? existing.accountId;
     const newToAccountId = data.toAccountId !== undefined ? data.toAccountId : existing.toAccountId;
-    const newAmt = data.amount !== undefined ? parseFloat(data.amount) : oldAmt;
-    const newExRate = data.exchangeRate !== undefined ? parseFloat(data.exchangeRate) : oldExRate;
+
+    if (newType === TransactionTypes.Transfer && newToAccountId == null) {
+      throw new Error('Transfer transactions require a destination account (toAccountId)');
+    }
+
+    const newAmt = data.amount !== undefined ? data.amount : oldAmt;
+    const newExRate = data.exchangeRate !== undefined ? data.exchangeRate : oldExRate;
 
     const [newFromAcct] = await tx
       .select({ balance: financeAccounts.balance })
@@ -340,13 +357,11 @@ export async function updateTransaction(
     if (!newFromAcct) throw new Error('New source account not found');
 
     const newFromBalanceAfter =
-      newType === TransactionTypes.Income
-        ? parseFloat(newFromAcct.balance) + newAmt
-        : parseFloat(newFromAcct.balance) - newAmt;
+      newType === TransactionTypes.Income ? newFromAcct.balance + newAmt : newFromAcct.balance - newAmt;
 
     await tx
       .update(financeAccounts)
-      .set({ balance: String(newFromBalanceAfter), updatedAt: new Date() })
+      .set({ balance: newFromBalanceAfter, updatedAt: new Date() })
       .where(and(eq(financeAccounts.id, newAccountId), eq(financeAccounts.budgetId, budgetId)));
 
     let newToBalanceAfter: number | null = null;
@@ -357,10 +372,10 @@ export async function updateTransaction(
         .from(financeAccounts)
         .where(and(eq(financeAccounts.id, newToAccountId), eq(financeAccounts.budgetId, budgetId)));
       if (!newToAcct) throw new Error('New destination account not found');
-      newToBalanceAfter = parseFloat(newToAcct.balance) + newAmt * newExRate;
+      newToBalanceAfter = newToAcct.balance + newAmt * newExRate;
       await tx
         .update(financeAccounts)
-        .set({ balance: String(newToBalanceAfter), updatedAt: new Date() })
+        .set({ balance: newToBalanceAfter, updatedAt: new Date() })
         .where(and(eq(financeAccounts.id, newToAccountId), eq(financeAccounts.budgetId, budgetId)));
     }
 
@@ -369,8 +384,8 @@ export async function updateTransaction(
       .update(financeTransactions)
       .set({
         ...omitNullish(data),
-        fromAccountBalanceAfter: String(newFromBalanceAfter),
-        toAccountBalanceAfter: newToBalanceAfter != null ? String(newToBalanceAfter) : null,
+        fromAccountBalanceAfter: newFromBalanceAfter,
+        toAccountBalanceAfter: newToBalanceAfter,
         updatedAt: new Date(),
       })
       .where(and(eq(financeTransactions.id, transactionId), eq(financeTransactions.budgetId, budgetId)))
@@ -415,8 +430,8 @@ export async function deleteTransaction(
     if (!existing) throw new Error('Transaction not found');
 
     // Reverse balance effect on source/from account
-    const amt = parseFloat(existing.amount);
-    const exRate = parseFloat(existing.exchangeRate ?? '1');
+    const amt = existing.amount;
+    const exRate = existing.exchangeRate ?? 1;
 
     const [fromAcct] = await tx
       .select({ balance: financeAccounts.balance })
@@ -426,13 +441,11 @@ export async function deleteTransaction(
     if (!fromAcct) throw new Error('Account not found');
 
     const fromBalanceAfter =
-      existing.type === TransactionTypes.Income
-        ? parseFloat(fromAcct.balance) - amt
-        : parseFloat(fromAcct.balance) + amt;
+      existing.type === TransactionTypes.Income ? fromAcct.balance - amt : fromAcct.balance + amt;
 
     await tx
       .update(financeAccounts)
-      .set({ balance: String(fromBalanceAfter), updatedAt: new Date() })
+      .set({ balance: fromBalanceAfter, updatedAt: new Date() })
       .where(and(eq(financeAccounts.id, existing.accountId), eq(financeAccounts.budgetId, budgetId)));
 
     if (existing.type === TransactionTypes.Transfer && existing.toAccountId != null) {
@@ -441,10 +454,10 @@ export async function deleteTransaction(
         .from(financeAccounts)
         .where(and(eq(financeAccounts.id, existing.toAccountId), eq(financeAccounts.budgetId, budgetId)));
       if (toAcct) {
-        const toBalanceAfter = parseFloat(toAcct.balance) - amt * exRate;
+        const toBalanceAfter = toAcct.balance - amt * exRate;
         await tx
           .update(financeAccounts)
-          .set({ balance: String(toBalanceAfter), updatedAt: new Date() })
+          .set({ balance: toBalanceAfter, updatedAt: new Date() })
           .where(and(eq(financeAccounts.id, existing.toAccountId), eq(financeAccounts.budgetId, budgetId)));
       }
     }

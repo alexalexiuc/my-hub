@@ -4,21 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, CategoryIcon } from '../ui';
-
-interface CatRow {
-  id: number;
-  name: string;
-  icon: string | null;
-  color: string | null;
-  monthlyTarget: number | null;
-  spent: number;
-}
-interface CategoriesData {
-  currency: string;
-  month: string;
-  allCategories: CatRow[];
-  totalSpent: number;
-}
+import type { CategoriesResponse } from '@/app/api/finances/contracts';
 
 function lastNMonths(n: number) {
   return Array.from({ length: n }, (_, i) => {
@@ -35,13 +21,15 @@ function lastNMonths(n: number) {
 export default function BudgetPage() {
   const months = lastNMonths(4);
   const [selectedMonth, setSelectedMonth] = useState(months[0]!.value);
-  const [data, setData] = useState<CategoriesData | null>(null);
+  const [data, setData] = useState<CategoriesResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (month: string) => {
     setLoading(true);
     try {
-      const result = await apiFetch<CategoriesData>(`/api/finances/categories?month=${month}`, { silentToast: true });
+      const result = await apiFetch<CategoriesResponse>(`/api/finances/categories?month=${month}`, {
+        silentToast: true,
+      });
       setData(result);
     } finally {
       setLoading(false);

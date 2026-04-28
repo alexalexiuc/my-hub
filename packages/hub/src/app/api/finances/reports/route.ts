@@ -1,23 +1,12 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getTransactions, getNetWorthHistory } from '@my-hub/shared/services';
+import { reportsResponseSchema } from '../contracts';
+import type { ReportsData, CashflowMonth } from '../contracts';
 
 const ReportsQuerySchema = z.object({
   months: z.coerce.number().int().positive().max(12).optional(),
 });
-
-export interface CashflowMonth {
-  month: string; // short label e.g. "Jan"
-  value: string; // YYYY-MM
-  income: number;
-  expense: number;
-}
-
-export interface ReportsData {
-  currency: string;
-  cashflow: CashflowMonth[];
-  netWorthHistory: { month: string; label: string; netWorth: number }[];
-}
 
 function addMonths(date: Date, n: number): Date {
   const d = new Date(date);
@@ -25,7 +14,7 @@ function addMonths(date: Date, n: number): Date {
   return d;
 }
 
-export const GET = route({ query: ReportsQuerySchema })(async ({ user, query }) => {
+export const GET = route({ query: ReportsQuerySchema, response: reportsResponseSchema })(async ({ user, query }) => {
   const months = Math.min(query.months ?? 6, 12);
 
   const budget = await getUserActiveBudget(user.id);
@@ -53,12 +42,12 @@ export const GET = route({ query: ReportsQuerySchema })(async ({ user, query }) 
   for (const t of expenseTxns) {
     const key = t.date.slice(0, 7);
     const entry = monthMap.get(key);
-    if (entry) entry.expense += parseFloat(t.amount);
+    if (entry) entry.expense += t.amount;
   }
   for (const t of incomeTxns) {
     const key = t.date.slice(0, 7);
     const entry = monthMap.get(key);
-    if (entry) entry.income += parseFloat(t.amount);
+    if (entry) entry.income += t.amount;
   }
 
   const cashflow: CashflowMonth[] = Array.from(monthMap.entries()).map(([value, totals]) => ({

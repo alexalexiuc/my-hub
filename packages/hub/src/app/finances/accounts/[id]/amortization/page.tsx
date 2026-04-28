@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar } from '../../../ui';
-import type { AmortizationData } from '@/app/api/finances/accounts/[id]/amortization/route';
+import type { AmortizationData } from '@/app/api/finances/contracts';
 
 export default function AmortizationPage() {
   const router = useRouter();

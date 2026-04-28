@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { route, created } from '@/lib/api/route';
 import { createBudget, getUserBudgets, setActiveBudget } from '@my-hub/shared/services';
+import { budgetsListResponseSchema, budgetCreateResponseSchema, okResponseSchema } from '../contracts';
 
 const BudgetCreateSchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
@@ -11,7 +12,7 @@ const SetActiveBudgetSchema = z.object({
   activeBudgetId: z.number().int().positive(),
 });
 
-export const GET = route(async ({ user }) => {
+export const GET = route({ response: budgetsListResponseSchema })(async ({ user }) => {
   const budgets = await getUserBudgets(user.id);
   return {
     budgets: budgets.map(b => ({
@@ -24,7 +25,10 @@ export const GET = route(async ({ user }) => {
   };
 });
 
-export const POST = route({ body: BudgetCreateSchema })(async ({ user, body }) => {
+export const POST = route({ body: BudgetCreateSchema, response: budgetCreateResponseSchema })(async ({
+  user,
+  body,
+}) => {
   const budget = await createBudget(user.id, {
     name: body.name.trim(),
     defaultCurrency: (body.defaultCurrency ?? 'EUR').trim().toUpperCase(),
@@ -33,7 +37,7 @@ export const POST = route({ body: BudgetCreateSchema })(async ({ user, body }) =
   return created({ budget });
 });
 
-export const PATCH = route({ body: SetActiveBudgetSchema })(async ({ user, body }) => {
+export const PATCH = route({ body: SetActiveBudgetSchema, response: okResponseSchema })(async ({ user, body }) => {
   await setActiveBudget(user.id, body.activeBudgetId);
   return { ok: true };
 });

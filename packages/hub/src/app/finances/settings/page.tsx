@@ -9,24 +9,13 @@ import { Button, Field, Input, Select } from '@/components';
 import { Card, SectionLabel } from '../ui';
 import { BudgetSettingsSchema, type BudgetSettingsValues } from '../finances-form.schema';
 import { ClaudePromptSection } from './ClaudePromptSection';
-
-interface Member {
-  userId: string;
-  email: string;
-  name: string | null;
-  joinedAt: string;
-}
-
-interface BudgetSettings {
-  budget: { id: number; name: string; defaultCurrency: string; createdByUserId: string; isOwner: boolean };
-  members: Member[];
-}
+import type { BudgetDetailResponse } from '@/app/api/finances/contracts';
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'MDL', 'RON', 'CHF', 'JPY', 'CAD', 'AUD'];
 
 export default function FinancesSettingsPage() {
   const router = useRouter();
-  const [data, setData] = useState<BudgetSettings | null>(null);
+  const [data, setData] = useState<BudgetDetailResponse | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
@@ -45,7 +34,7 @@ export default function FinancesSettingsPage() {
   });
 
   const load = useCallback(async () => {
-    const result = await apiFetch<BudgetSettings>('/api/finances/budget', { silentToast: true });
+    const result = await apiFetch<BudgetDetailResponse>('/api/finances/budget', { silentToast: true });
     setData(result);
     reset({ name: result.budget.name, defaultCurrency: result.budget.defaultCurrency });
   }, [reset]);

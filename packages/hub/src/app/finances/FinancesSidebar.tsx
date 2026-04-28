@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { AddTransactionModal } from './transactions/AddTransactionModal';
+import type { BudgetDetailResponse } from '@/app/api/finances/contracts';
 
 interface NavItem {
   id: string;
@@ -35,7 +36,7 @@ export function FinancesSidebar() {
   const [currency, setCurrency] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch<{ budget: { name: string; defaultCurrency: string } }>('/api/finances/budget', { silentToast: true })
+    apiFetch<BudgetDetailResponse>('/api/finances/budget', { silentToast: true })
       .then(res => {
         setBudgetName(res.budget.name);
         setCurrency(res.budget.defaultCurrency);

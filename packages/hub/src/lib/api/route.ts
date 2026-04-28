@@ -50,17 +50,20 @@ type RouteSchemas<
   TParams extends ZodType | undefined = undefined,
   TBody extends ZodType | undefined = undefined,
   TQuery extends ZodType | undefined = undefined,
+  TResponse extends ZodType | undefined = undefined,
 > = {
   params?: TParams;
   body?: TBody;
   query?: TQuery;
+  response?: TResponse;
 };
 
 type ProtectedRouteOptions<
   TParams extends ZodType | undefined = undefined,
   TBody extends ZodType | undefined = undefined,
   TQuery extends ZodType | undefined = undefined,
-> = RouteSchemas<TParams, TBody, TQuery> & {
+  TResponse extends ZodType | undefined = undefined,
+> = RouteSchemas<TParams, TBody, TQuery, TResponse> & {
   public?: false;
 };
 
@@ -68,7 +71,8 @@ type PublicRouteOptions<
   TParams extends ZodType | undefined = undefined,
   TBody extends ZodType | undefined = undefined,
   TQuery extends ZodType | undefined = undefined,
-> = RouteSchemas<TParams, TBody, TQuery> & {
+  TResponse extends ZodType | undefined = undefined,
+> = RouteSchemas<TParams, TBody, TQuery, TResponse> & {
   public: true;
 };
 
@@ -76,6 +80,7 @@ type AnyRouteOptions = {
   params?: ZodType;
   body?: ZodType;
   query?: ZodType;
+  response?: ZodType;
   public?: boolean;
 };
 
@@ -124,15 +129,47 @@ function toResponse(result: RouteResult): Response {
   return NextResponse.json(result);
 }
 
+async function validateJsonResponse(response: Response, schema: ZodType): Promise<string | null> {
+  let payload: unknown;
+
+  if ([204, 205, 304].includes(response.status)) {
+    payload = undefined;
+  } else {
+    const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+    if (!contentType.includes('application/json') && !contentType.includes('+json')) {
+      return 'Response schema validation requires a JSON response';
+    }
+
+    const bodyText = await response.clone().text();
+    if (!bodyText.trim()) {
+      payload = undefined;
+    } else {
+      try {
+        payload = JSON.parse(bodyText);
+      } catch {
+        return 'Response body is not valid JSON';
+      }
+    }
+  }
+
+  const parsed = schema.safeParse(payload);
+  if (!parsed.success) {
+    return formatZodError(parsed.error);
+  }
+
+  return null;
+}
+
 function createRouteHandler<
   TParams extends ZodType | undefined,
   TBody extends ZodType | undefined,
   TQuery extends ZodType | undefined,
+  TResponse extends ZodType | undefined,
   TPublic extends boolean,
 >(
   handler: (ctx: RouteContext<TParams, TBody, TQuery, TPublic>) => MaybePromise<RouteResult>,
   options?:
-    | (RouteSchemas<TParams, TBody, TQuery> & {
+    | (RouteSchemas<TParams, TBody, TQuery, TResponse> & {
         public?: TPublic;
       })
     | null,
@@ -200,6 +237,15 @@ function createRouteHandler<
       }
 
       const response = toResponse(await handler(ctx as RouteContext<TParams, TBody, TQuery, TPublic>));
+
+      if (options?.response) {
+        const responseValidationError = await validateJsonResponse(response, options.response);
+        if (responseValidationError) {
+          await log(500, `Invalid response payload: ${responseValidationError}`, userId);
+          return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        }
+      }
+
       void log(response.status, undefined, userId);
       return response;
     } catch (err) {
@@ -224,8 +270,9 @@ export function route<
   TParams extends ZodType | undefined = undefined,
   TBody extends ZodType | undefined = undefined,
   TQuery extends ZodType | undefined = undefined,
+  TResponse extends ZodType | undefined = undefined,
 >(
-  options: ProtectedRouteOptions<TParams, TBody, TQuery>,
+  options: ProtectedRouteOptions<TParams, TBody, TQuery, TResponse>,
 ): (handler: (ctx: RouteContext<TParams, TBody, TQuery, false>) => MaybePromise<RouteResult>) => NextRouteHandler;
 
 /** Route handler with Zod validation and public auth mode — call with options, then pass the handler. */
@@ -233,8 +280,9 @@ export function route<
   TParams extends ZodType | undefined = undefined,
   TBody extends ZodType | undefined = undefined,
   TQuery extends ZodType | undefined = undefined,
+  TResponse extends ZodType | undefined = undefined,
 >(
-  options: PublicRouteOptions<TParams, TBody, TQuery>,
+  options: PublicRouteOptions<TParams, TBody, TQuery, TResponse>,
 ): (handler: (ctx: RouteContext<TParams, TBody, TQuery, true>) => MaybePromise<RouteResult>) => NextRouteHandler;
 
 export function route(

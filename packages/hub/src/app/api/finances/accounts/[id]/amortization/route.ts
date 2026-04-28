@@ -2,30 +2,8 @@ import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getAccountById, getUserActiveBudget } from '@my-hub/shared/services';
 import type { LoanAccountDetails } from '@my-hub/shared/constants';
-
-export interface ScheduleRow {
-  n: number;
-  date: string;
-  principalPart: number;
-  interestPart: number;
-  balance: number;
-  paid: boolean;
-  current: boolean;
-}
-
-export interface AmortizationData {
-  accountId: number;
-  name: string;
-  currency: string;
-  currentBalance: number;
-  principal: number;
-  interestRate: number;
-  termMonths: number;
-  monthlyPayment: number;
-  startDate: string;
-  nextPaymentDate: string;
-  rows: ScheduleRow[];
-}
+import { amortizationResponseSchema } from '../../../contracts';
+import type { AmortizationData, ScheduleRow } from '../../../contracts';
 
 function addMonths(date: Date, months: number): Date {
   const d = new Date(date);
@@ -37,7 +15,10 @@ function toDateStr(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-export const GET = route({ params: z.object({ id: z.string() }) })(async ({ user, params }) => {
+export const GET = route({
+  params: z.object({ id: z.string() }),
+  response: amortizationResponseSchema,
+})(async ({ user, params }) => {
   const accountId = Number(params.id);
   if (isNaN(accountId)) routeHttpError(400, { error: 'Invalid id' });
 
@@ -50,7 +31,7 @@ export const GET = route({ params: z.object({ id: z.string() }) })(async ({ user
 
   const details = account.details as LoanAccountDetails;
   const { principal, interestRate, termMonths, startDate } = details;
-  const currentBalance = parseFloat(account.balance);
+  const currentBalance = account.balance;
 
   // Monthly payment
   const r = interestRate / 100 / 12;
@@ -94,7 +75,7 @@ export const GET = route({ params: z.object({ id: z.string() }) })(async ({ user
   const data: AmortizationData = {
     accountId,
     name: account.name,
-    currency: account.currency,
+    currency: budget.defaultCurrency,
     currentBalance,
     principal,
     interestRate,
