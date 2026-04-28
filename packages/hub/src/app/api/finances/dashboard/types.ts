@@ -40,8 +40,16 @@ export interface FinanceDashboardData {
   recentTransactions: DashboardTransaction[];
 }
 
+export interface AvailableBudget {
+  id: number;
+  name: string;
+  defaultCurrency: string;
+  isOwner: boolean;
+}
+
 export interface NoBudgetResponse {
   hasBudget: false;
+  availableBudgets: AvailableBudget[];
 }
 
 export type DashboardResponse = FinanceDashboardData | NoBudgetResponse;

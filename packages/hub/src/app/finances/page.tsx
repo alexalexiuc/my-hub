@@ -5,12 +5,14 @@ import { useSession } from 'next-auth/react';
 import { apiFetch } from '@/lib/utils';
 import { DashboardScreen } from './DashboardScreen';
 import { CreateBudgetScreen } from './CreateBudgetScreen';
-import type { DashboardResponse, FinanceDashboardData } from './types';
+import { BudgetSelectorScreen } from './BudgetSelectorScreen';
+import type { DashboardResponse, FinanceDashboardData, NoBudgetResponse } from './types';
 
 export default function FinancesPage() {
   const { data: session } = useSession();
   const [response, setResponse] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -48,7 +50,30 @@ export default function FinancesPage() {
   }
 
   if (!response || !response.hasBudget) {
-    return <CreateBudgetScreen onCreated={load} />;
+    const noBudget = response as NoBudgetResponse | null;
+    const available = noBudget?.availableBudgets ?? [];
+
+    if (!showCreate && available.length > 0) {
+      return (
+        <BudgetSelectorScreen
+          budgets={available}
+          onActivated={() => {
+            setShowCreate(false);
+            void load();
+          }}
+          onCreateNew={() => setShowCreate(true)}
+        />
+      );
+    }
+
+    return (
+      <CreateBudgetScreen
+        onCreated={() => {
+          setShowCreate(false);
+          void load();
+        }}
+      />
+    );
   }
 
   const data = response as FinanceDashboardData;
