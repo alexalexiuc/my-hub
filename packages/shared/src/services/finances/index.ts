@@ -3,3 +3,5 @@ export * from './accounts';
 export * from './categories';
 export * from './transactions';
 export * from './payees';
+export * from './currency';
+export * from './reporting';

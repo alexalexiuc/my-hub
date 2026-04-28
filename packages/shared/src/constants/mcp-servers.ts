@@ -4,6 +4,7 @@
 export const McpServerName = {
   Apiary: 'apiary',
   Calories: 'calories',
+  Finances: 'finances',
   Products: 'products',
   Travel: 'travel',
   Todo: 'todo',
@@ -13,6 +14,7 @@ export type McpServerName = (typeof McpServerName)[keyof typeof McpServerName];
 export const mcpServerNameValues = [
   McpServerName.Apiary,
   McpServerName.Calories,
+  McpServerName.Finances,
   McpServerName.Products,
   McpServerName.Travel,
   McpServerName.Todo,
