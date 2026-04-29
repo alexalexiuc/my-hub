@@ -20,7 +20,7 @@ import {
 import type { AccountType, TransactionType } from '../../constants/finances';
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
 import { verifyBudgetAccess, getBudgetById } from './budgets';
-import { getCurrencyRate } from './currency';
+import { getExchangeRate } from './exchangeRates';
 import { currentDateString } from '../../utils';
 
 // ─── Budget Progress ──────────────────────────────────────────────────────────
@@ -502,7 +502,7 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
 
   for (const acct of accounts) {
     const { balance } = acct;
-    const rate = await getCurrencyRate(acct.currency, budget.defaultCurrency, today);
+    const rate = await getExchangeRate(acct.currency, budget.defaultCurrency, today);
     const balanceDefault = balance * rate;
 
     const entry: AccountNetWorth = {

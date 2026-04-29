@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
     timerRef.current = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
-          clearInterval(timerRef.current!);
+          if (timerRef.current) clearInterval(timerRef.current);
           return 0;
         }
         return prev - 1;

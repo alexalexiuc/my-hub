@@ -3,10 +3,13 @@ import type { HubAuthExtra } from '../../shared/types';
 import {
   AddTransactionsSchema,
   UpdateTransactionSchema,
+  addTransactionsTool,
   queryTransactionsTool,
   updateTransactionTool,
 } from './transactions';
 import {
+  addTransaction,
+  checkDuplicateTransaction,
   getUserActiveBudget,
   getTransactionById,
   updateTransaction,
@@ -14,6 +17,8 @@ import {
   getPayees,
   getTransactions,
   countTransactions,
+  getCategories,
+  getBudgetProgress,
 } from '@my-hub/shared/services';
 
 vi.mock('@my-hub/shared/services', () => ({
@@ -31,7 +36,8 @@ vi.mock('@my-hub/shared/services', () => ({
   getGroups: vi.fn(),
   getTransactionById: vi.fn(),
   getPayees: vi.fn(),
-  getCurrencyRate: vi.fn(),
+  getExchangeRate: vi.fn(),
+  getBudgetProgress: vi.fn(),
 }));
 
 const context: HubAuthExtra = {
@@ -74,6 +80,204 @@ describe('finances transaction schemas', () => {
     });
 
     expect(parsed.success).toBe(true);
+  });
+
+  it('accepts extras without kind for receipt details', () => {
+    const parsed = AddTransactionsSchema.safeParse({
+      transactions: [
+        {
+          type: 'expense',
+          amount: 42,
+          accountId: 1,
+          notes: 'Groceries',
+          extras: {
+            rawInput: 'Milk 2x, Bread 1x',
+            items: [{ name: 'Milk', quantity: 2, totalPrice: 20 }],
+          },
+        },
+      ],
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+});
+
+describe('addTransactionsTool', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getUserActiveBudget).mockResolvedValue({ id: 1, defaultCurrency: 'USD' } as never);
+    vi.mocked(getAccountById).mockResolvedValue({ id: 1, name: 'Checking', currency: 'USD' } as never);
+    vi.mocked(getCategories).mockResolvedValue([] as never);
+    vi.mocked(checkDuplicateTransaction).mockResolvedValue(null as never);
+    vi.mocked(addTransaction).mockResolvedValue({
+      id: 123,
+      fromAccountBalanceAfter: 950,
+      toAccountBalanceAfter: null,
+    } as never);
+  });
+
+  it('stores null extras when none are provided', async () => {
+    await addTransactionsTool(
+      {
+        transactions: [
+          {
+            type: 'expense',
+            amount: 50,
+            accountId: 1,
+            notes: 'Lunch',
+            date: '2026-04-28',
+          },
+        ],
+      },
+      context,
+    );
+
+    expect(addTransaction).toHaveBeenCalledWith('user-1', 1, expect.objectContaining({ extras: null, notes: 'Lunch' }));
+  });
+
+  it('infers receipt extras kind when receipt fields are present', async () => {
+    await addTransactionsTool(
+      {
+        transactions: [
+          {
+            type: 'expense',
+            amount: 80,
+            accountId: 1,
+            notes: 'Groceries',
+            date: '2026-04-28',
+            extras: {
+              rawInput: 'Milk x2, Bread x1',
+              receiptNumber: 'R-100',
+              items: [{ name: 'Milk', quantity: 2, totalPrice: 20 }],
+            },
+          },
+        ],
+      },
+      context,
+    );
+
+    expect(addTransaction).toHaveBeenCalledWith(
+      'user-1',
+      1,
+      expect.objectContaining({
+        extras: expect.objectContaining({
+          kind: 'receipt',
+          source: 'mcp',
+          receiptNumber: 'R-100',
+        }),
+      }),
+    );
+  });
+
+  it('returns category budget progress for categories with monthly targets', async () => {
+    vi.mocked(getCategories).mockResolvedValue([{ id: 10, monthlyTarget: 300 }] as never);
+    vi.mocked(getBudgetProgress).mockResolvedValue({
+      month: '2026-04',
+      totalBudgeted: '300',
+      totalSpent: '150',
+      categories: [
+        {
+          id: 10,
+          name: 'Groceries',
+          displayName: 'Groceries',
+          monthlyTarget: '300',
+          spent: '150',
+          remainingBudget: '150',
+          percentUsed: 50,
+        },
+      ],
+    } as never);
+
+    const result = await addTransactionsTool(
+      {
+        transactions: [
+          {
+            type: 'expense',
+            amount: 20,
+            accountId: 1,
+            categoryId: 10,
+            notes: 'Market',
+            date: '2026-04-28',
+          },
+        ],
+      },
+      context,
+    );
+
+    const payload = parseToolPayload(result) as {
+      results: Array<{
+        categoryBudgetProgress?: {
+          month: string;
+          monthlyTarget: string;
+          spentSoFar: string;
+        };
+      }>;
+    };
+
+    expect(payload.results[0]?.categoryBudgetProgress).toEqual({
+      month: '2026-04',
+      monthlyTarget: '300',
+      spentSoFar: '150',
+    });
+    expect(getBudgetProgress).toHaveBeenCalledWith('user-1', 1, '2026-04');
+  });
+
+  it('passes transfer payload and relies on shared service for FX resolution', async () => {
+    vi.mocked(getUserActiveBudget).mockResolvedValue({ id: 1, defaultCurrency: 'USD' } as never);
+    vi.mocked(getAccountById).mockResolvedValue({ id: 1, name: 'EUR Account', currency: 'EUR' } as never);
+
+    await addTransactionsTool(
+      {
+        transactions: [
+          {
+            type: 'transfer',
+            amount: 100,
+            accountId: 1,
+            toAccountId: 2,
+            notes: 'Move funds',
+            date: '2026-04-28',
+          },
+        ],
+      },
+      context,
+    );
+
+    expect(addTransaction).toHaveBeenCalledWith(
+      'user-1',
+      1,
+      expect.objectContaining({
+        type: 'transfer',
+        accountId: 1,
+        toAccountId: 2,
+      }),
+    );
+  });
+
+  it('includes original amount currency in extras for shared conversion', async () => {
+    await addTransactionsTool(
+      {
+        transactions: [
+          {
+            type: 'expense',
+            amount: 100,
+            currency: 'eur',
+            accountId: 1,
+            notes: 'Taxi',
+            date: '2026-04-28',
+          },
+        ],
+      },
+      context,
+    );
+
+    expect(addTransaction).toHaveBeenCalledWith(
+      'user-1',
+      1,
+      expect.objectContaining({
+        amount: 100,
+        amountCurrency: 'EUR',
+      }),
+    );
   });
 });
 

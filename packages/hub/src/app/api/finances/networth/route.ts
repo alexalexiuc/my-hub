@@ -23,7 +23,7 @@ export const GET = route({ response: netWorthResponseSchema })(async ({ user }) 
 
   for (const a of accounts) {
     const bal = a.balance;
-    const item = { id: a.id, name: a.name, type: a.type, balance: bal, currency: budget.defaultCurrency };
+    const item = { id: a.id, name: a.name, type: a.type, balance: bal, currency: a.currency };
     if (LIABILITY_TYPES.has(a.type)) {
       totalLiabilities += bal;
       liabilities.push(item);

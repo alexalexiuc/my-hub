@@ -25,9 +25,12 @@ export async function createMcpClient(baseUrl: string, path: string, token: stri
  * Parses the JSON text from the first content item of an MCP tool result.
  * All tools in this project return `{ content: [{ type: 'text', text: JSON }] }`.
  */
+type McpContentItem = { type: string; text?: string };
+
 export function parseToolResult<T = unknown>(result: Awaited<ReturnType<Client['callTool']>>): T {
-  const item = result.content[0];
-  if (!item || item.type !== 'text') {
+  const { content } = result as { content: McpContentItem[] };
+  const item = content[0];
+  if (!item || item.type !== 'text' || item.text === undefined) {
     throw new Error(`Unexpected MCP content type: ${item?.type ?? 'none'}`);
   }
   return JSON.parse(item.text) as T;

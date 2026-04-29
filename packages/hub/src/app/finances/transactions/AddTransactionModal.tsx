@@ -11,6 +11,7 @@ import { Button, Input, Pill } from '@/components';
 import { categoryIconEmoji } from '../categoryIcons';
 import { AddTransactionSchema, defaultAddTransactionValues, type AddTransactionValues } from '../finances-form.schema';
 import type { PayeesResponse, PayeeSuggestion, TransactionFormDataResponse } from '@/app/api/finances/contracts';
+import { getCurrencySymbol } from '@my-hub/shared/utils';
 
 type TxType = 'expense' | 'income' | 'transfer';
 
@@ -159,18 +160,7 @@ export function AddTransactionModal({ onClose, onCreated }: AddTransactionModalP
 
           {/* Amount */}
           <div className="flex items-center gap-2 rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-4 py-3">
-            <span className="text-xl font-light text-[var(--fin-muted)]">
-              {(() => {
-                const budgetCurrency = formData.currency;
-                return budgetCurrency === 'USD'
-                  ? '$'
-                  : budgetCurrency === 'GBP'
-                    ? '£'
-                    : budgetCurrency === 'EUR'
-                      ? '€'
-                      : budgetCurrency;
-              })()}
-            </span>
+            <span className="text-xl font-light text-[var(--fin-muted)]">{getCurrencySymbol(formData.currency)}</span>
             <Input
               {...register('amount')}
               autoFocus

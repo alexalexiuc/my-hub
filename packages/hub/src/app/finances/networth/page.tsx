@@ -157,7 +157,7 @@ export default function NetWorthPage() {
                       <div className="text-[13px] text-[var(--fin-text)]">{a.name}</div>
                       <div className="text-[10px] text-[var(--fin-subtle)]">{meta?.label ?? a.type}</div>
                     </div>
-                    <div className="text-sm font-semibold text-[var(--fin-text)]">{fmt(a.balance, currency)}</div>
+                    <div className="text-sm font-semibold text-[var(--fin-text)]">{fmt(a.balance, a.currency)}</div>
                   </div>
                 </div>
               );
@@ -185,7 +185,7 @@ export default function NetWorthPage() {
                       <div className="text-[13px] text-[var(--fin-text)]">{a.name}</div>
                       <div className="text-[10px] text-[var(--fin-subtle)]">{meta?.label ?? a.type}</div>
                     </div>
-                    <div className="text-sm font-semibold text-[var(--fin-red)]">-{fmt(a.balance, currency)}</div>
+                    <div className="text-sm font-semibold text-[var(--fin-red)]">-{fmt(a.balance, a.currency)}</div>
                   </div>
                 </div>
               );

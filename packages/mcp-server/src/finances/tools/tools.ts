@@ -28,10 +28,17 @@ const financeTools = [
     name: 'finances_add_transactions',
     description:
       'Record one or more transactions (expenses, income, or transfers) in a single call. ' +
-      'Accepts an array so Claude can submit a full batch parsed from a bank screenshot in one step. ' +
+      'Accepts an array so a full batch parsed from a bank screenshot can be submitted in one step. ' +
       'Each item is processed independently — a duplicate warning on one does not block the others. ' +
       'Always populate the notes field with a plain-language summary of the transaction. ' +
-      'The tool automatically detects possible duplicates and includes a warning in the result if found.',
+      'The tool automatically detects possible duplicates and includes a warning in the result if found. ' +
+      '\n\nExtras field guidance:\n' +
+      '- extras is optional. Provide it only when you have meaningful structured metadata beyond the core transaction fields. ' +
+      '- For receipt transactions, populate extras.items with the line items that are clearly visible on the receipt. ' +
+      '  Only include items you can actually read — do not guess, infer, or fabricate entries that are not visible. ' +
+      '  If line items are partially illegible or absent, omit the items array entirely. ' +
+      '- extras.taxAmount, tipAmount, discountAmount should only be set when those values are explicitly shown on the receipt. ' +
+      '- extras.rawInput should contain the original text or description the transaction was parsed from.',
     inputSchema: AddTransactionsSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: addTransactionsTool,

@@ -46,7 +46,7 @@ export const GET = route({ response: goalsResponseSchema })(async ({ user }) => 
     return {
       id: a.id,
       name: a.name,
-      currency: budget.defaultCurrency,
+      currency: a.currency,
       balance,
       targetAmount,
       monthlyAvg,

@@ -16,7 +16,7 @@ import {
   getGroups,
   getTransactionById,
   getPayees,
-  getCurrencyRate,
+  getBudgetProgress,
 } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
 import type { TransactionInsert } from '@my-hub/shared/services';
@@ -24,17 +24,44 @@ import { currentDateString, omitUndefined } from '@my-hub/shared/utils';
 
 // ─── add_transactions ─────────────────────────────────────────────────────────
 
-const TransactionExtrasSchema = z.object({
+const BaseExtrasSchema = z.object({
   source: z.literal('mcp').optional(),
   autofillConfidence: z.number().min(0).max(1).optional(),
   rawInput: z.string().optional(),
   cardHint: z.string().optional(),
 });
 
+const ReceiptLineItemSchema = z.object({
+  name: z.string().min(1),
+  quantity: z.number().positive().optional(),
+  unit: z.string().optional(),
+  unitPrice: z.number().positive().optional(),
+  totalPrice: z.number().positive().optional(),
+  categoryHint: z.string().optional(),
+});
+
+// Optional structured metadata for AI-assisted inserts.
+// The server infers kind: receipt when any receipt-specific fields are present,
+// otherwise manual.
+const TransactionExtrasSchema = BaseExtrasSchema.extend({
+  payeeAddress: z.string().optional(),
+  receiptNumber: z.string().optional(),
+  taxAmount: z.number().optional(),
+  tipAmount: z.number().optional(),
+  discountAmount: z.number().optional(),
+  items: z.array(ReceiptLineItemSchema).optional(),
+  extra: z.record(z.string(), z.unknown()).optional(),
+});
+
 const TransactionItemSchema = z
   .object({
     type: z.enum(['expense', 'income', 'transfer']),
     amount: z.number().positive(),
+    currency: z
+      .string()
+      .trim()
+      .regex(/^[A-Za-z]{3}$/)
+      .optional(),
     date: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -50,7 +77,7 @@ const TransactionItemSchema = z
   .superRefine((item, ctx) => {
     if (item.type === 'transfer' && item.toAccountId == null) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['toAccountId'],
         message: 'toAccountId is required for transfer transactions',
       });
@@ -58,7 +85,7 @@ const TransactionItemSchema = z
 
     if (item.type !== 'transfer' && item.toAccountId != null) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['toAccountId'],
         message: 'toAccountId can only be set for transfer transactions',
       });
@@ -76,6 +103,16 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
   if (!budget) throw new Error('No active budget. Set an active budget in the Hub first.');
 
   const results = [];
+  let categoryTargetsById: Map<number, number | null> | null = null;
+
+  const getCategoryTargetsById = async (): Promise<Map<number, number | null>> => {
+    if (categoryTargetsById == null) {
+      const categories = await getCategories(userId, budget.id);
+      categoryTargetsById = new Map(categories.map(category => [category.id, category.monthlyTarget ?? null]));
+    }
+
+    return categoryTargetsById;
+  };
 
   for (let i = 0; i < input.transactions.length; i++) {
     const item = input.transactions[i]!;
@@ -98,14 +135,57 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         payeeId,
       });
 
-      // Resolve exchange rate when account currency != budget default currency
       const account = await getAccountById(userId, budget.id, item.accountId);
       if (!account) throw new Error(`Account ${item.accountId} not found`);
 
-      const exchangeRate =
-        account.currency !== budget.defaultCurrency
-          ? await getCurrencyRate(account.currency, budget.defaultCurrency, date)
-          : 1;
+      const amountCurrency = item.currency?.toUpperCase();
+
+      const hasReceiptDetails =
+        item.extras != null &&
+        (item.extras.payeeAddress != null ||
+          item.extras.receiptNumber != null ||
+          item.extras.taxAmount != null ||
+          item.extras.tipAmount != null ||
+          item.extras.discountAmount != null ||
+          item.extras.items != null);
+
+      const hasBaseDetails =
+        item.extras != null &&
+        (item.extras.source != null ||
+          item.extras.autofillConfidence != null ||
+          item.extras.rawInput != null ||
+          item.extras.cardHint != null ||
+          item.extras.extra != null ||
+          amountCurrency != null);
+
+      let inferredExtras: TransactionInsert['extras'] = null;
+      if ((item.extras != null && (hasReceiptDetails || hasBaseDetails)) || amountCurrency != null) {
+        if (hasReceiptDetails) {
+          inferredExtras = omitUndefined({
+            kind: 'receipt',
+            source: item.extras?.source ?? 'mcp',
+            autofillConfidence: item.extras?.autofillConfidence,
+            rawInput: item.extras?.rawInput,
+            cardHint: item.extras?.cardHint,
+            payeeAddress: item.extras?.payeeAddress,
+            receiptNumber: item.extras?.receiptNumber,
+            taxAmount: item.extras?.taxAmount,
+            tipAmount: item.extras?.tipAmount,
+            discountAmount: item.extras?.discountAmount,
+            items: item.extras?.items,
+            extra: item.extras?.extra,
+          }) as TransactionInsert['extras'];
+        } else {
+          inferredExtras = omitUndefined({
+            kind: 'manual',
+            source: item.extras?.source ?? 'mcp',
+            autofillConfidence: item.extras?.autofillConfidence,
+            rawInput: item.extras?.rawInput,
+            cardHint: item.extras?.cardHint,
+            extra: item.extras?.extra,
+          }) as TransactionInsert['extras'];
+        }
+      }
 
       const txData: TransactionInsert = {
         type: item.type,
@@ -117,16 +197,8 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         payeeId,
         notes: item.notes,
         isCorrection: item.isCorrection ?? false,
-        exchangeRate,
-        extras: item.extras
-          ? {
-              kind: 'base',
-              source: item.extras.source ?? 'mcp',
-              autofillConfidence: item.extras.autofillConfidence,
-              rawInput: item.extras.rawInput,
-              cardHint: item.extras.cardHint,
-            }
-          : { kind: 'base', source: 'mcp' },
+        amountCurrency,
+        extras: inferredExtras,
       };
 
       const tx = await addTransaction(userId, budget.id, txData);
@@ -152,6 +224,25 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
           matchedAmount: duplicate.amount,
           matchedPayee: item.payeeName ?? null,
         };
+      }
+
+      if (item.categoryId != null) {
+        const targetsById = await getCategoryTargetsById();
+        const monthlyTarget = targetsById.get(item.categoryId) ?? null;
+
+        if (monthlyTarget != null) {
+          const month = date.slice(0, 7);
+          const budgetProgress = await getBudgetProgress(userId, budget.id, month);
+          const categoryProgress = budgetProgress.categories.find(category => category.id === item.categoryId);
+
+          if (categoryProgress?.monthlyTarget != null) {
+            result.categoryBudgetProgress = {
+              month,
+              monthlyTarget: categoryProgress.monthlyTarget,
+              spentSoFar: categoryProgress.spent,
+            };
+          }
+        }
       }
 
       results.push(result);

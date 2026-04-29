@@ -10,17 +10,20 @@
  */
 import { and, desc, eq, gte, ilike, isNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { financeAccounts, financeTransactions } from '../../db/schema/finances';
+import { financeAccounts, financeBudgets, financeTransactions } from '../../db/schema/finances';
 import { omitNullish } from '../../utils';
 import { verifyBudgetAccess } from './budgets';
 import { incrementPayeeStats, decrementPayeeStats } from './payees';
+import { getExchangeRate } from './exchangeRates';
 import type { FinanceTransaction, NewFinanceTransaction } from '../../types';
 import { TransactionTypes, type TransactionType } from '../../constants/finances';
 
 export type TransactionInsert = Omit<
   NewFinanceTransaction,
   'id' | 'budgetId' | 'addedByUserId' | 'createdAt' | 'updatedAt'
->;
+> & {
+  amountCurrency?: string;
+};
 export type TransactionUpdate = Partial<
   Pick<
     TransactionInsert,
@@ -29,6 +32,7 @@ export type TransactionUpdate = Partial<
     | 'toAccountId'
     | 'amount'
     | 'exchangeRate'
+    | 'toExchangeRate'
     | 'date'
     | 'categoryId'
     | 'payeeId'
@@ -60,6 +64,16 @@ export interface DuplicateCheckOpts {
   payeeId: number | null;
 }
 
+function normalizeCurrency(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toUpperCase();
+  return normalized.length === 3 ? normalized : null;
+}
+
+function getOriginalCurrencyFromExtras(extras: TransactionInsert['extras']): string | null {
+  return normalizeCurrency(extras?.conversion?.originalCurrency);
+}
+
 export async function addTransaction(
   userId: string,
   budgetId: number,
@@ -74,17 +88,55 @@ export async function addTransaction(
   }
 
   const amt = Math.round(data.amount * 10000) / 10000;
+  const { amountCurrency, ...dbData } = data;
 
   return db.transaction(async tx => {
+    const [budget] = await tx
+      .select({ defaultCurrency: financeBudgets.defaultCurrency })
+      .from(financeBudgets)
+      .where(eq(financeBudgets.id, budgetId));
+    if (!budget) throw new Error('Budget not found');
+
     const [fromAccount] = await tx
-      .select({ balance: financeAccounts.balance })
+      .select({ balance: financeAccounts.balance, currency: financeAccounts.currency })
       .from(financeAccounts)
       .where(and(eq(financeAccounts.id, data.accountId), eq(financeAccounts.budgetId, budgetId)));
 
     if (!fromAccount) throw new Error('Account not found');
 
+    const originalCurrency = normalizeCurrency(amountCurrency) ?? getOriginalCurrencyFromExtras(data.extras);
+    let effectiveAmount = amt;
+    let resolvedExtras = data.extras;
+
+    if (originalCurrency != null) {
+      const originalToAccountRate =
+        originalCurrency !== fromAccount.currency
+          ? await getExchangeRate(originalCurrency, fromAccount.currency, data.date)
+          : 1;
+      effectiveAmount = Math.round(amt * originalToAccountRate * 10000) / 10000;
+      resolvedExtras = {
+        ...(data.extras ?? { kind: 'base' }),
+        conversion: {
+          ...(data.extras?.conversion ?? {}),
+          originalAmount: amt,
+          originalCurrency,
+          accountCurrency: fromAccount.currency,
+          originalToAccountRate,
+          convertedAmount: effectiveAmount,
+        },
+      } as TransactionInsert['extras'];
+    }
+
+    const resolvedExchangeRate =
+      data.exchangeRate ??
+      (fromAccount.currency !== budget.defaultCurrency
+        ? await getExchangeRate(fromAccount.currency, budget.defaultCurrency, data.date)
+        : 1);
+
     const fromBalanceAfter =
-      data.type === TransactionTypes.Income ? fromAccount.balance + amt : fromAccount.balance - amt;
+      data.type === TransactionTypes.Income
+        ? fromAccount.balance + effectiveAmount
+        : fromAccount.balance - effectiveAmount;
 
     await tx
       .update(financeAccounts)
@@ -92,17 +144,24 @@ export async function addTransaction(
       .where(and(eq(financeAccounts.id, data.accountId), eq(financeAccounts.budgetId, budgetId)));
 
     let toBalanceAfter: number | null = null;
+    let resolvedToExchangeRate = data.toExchangeRate ?? null;
 
     if (data.type === TransactionTypes.Transfer && data.toAccountId != null) {
       const [toAccount] = await tx
-        .select({ balance: financeAccounts.balance })
+        .select({ balance: financeAccounts.balance, currency: financeAccounts.currency })
         .from(financeAccounts)
         .where(and(eq(financeAccounts.id, data.toAccountId), eq(financeAccounts.budgetId, budgetId)));
 
       if (!toAccount) throw new Error('Destination account not found');
 
-      const exchangeRate = data.exchangeRate ?? 1;
-      toBalanceAfter = toAccount.balance + amt * exchangeRate;
+      if (resolvedToExchangeRate == null) {
+        resolvedToExchangeRate =
+          fromAccount.currency !== toAccount.currency
+            ? await getExchangeRate(fromAccount.currency, toAccount.currency, data.date)
+            : 1;
+      }
+
+      toBalanceAfter = toAccount.balance + effectiveAmount * resolvedToExchangeRate;
 
       await tx
         .update(financeAccounts)
@@ -113,7 +172,11 @@ export async function addTransaction(
     const [row] = await tx
       .insert(financeTransactions)
       .values({
-        ...data,
+        ...dbData,
+        amount: effectiveAmount,
+        exchangeRate: resolvedExchangeRate,
+        toExchangeRate: resolvedToExchangeRate,
+        extras: resolvedExtras,
         budgetId,
         addedByUserId: userId,
         fromAccountBalanceAfter: fromBalanceAfter,
@@ -169,7 +232,7 @@ export async function getTransactions(
   if (!opts.includeCorrections) {
     conditions.push(eq(financeTransactions.isCorrection, false));
   }
-  if (opts.search !== undefined) {
+  if (opts.search !== undefined && opts.search.trim() !== '') {
     conditions.push(ilike(financeTransactions.notes, `%${opts.search}%`));
   }
 
@@ -227,7 +290,7 @@ export async function countTransactions(
   if (!opts.includeCorrections) {
     conditions.push(eq(financeTransactions.isCorrection, false));
   }
-  if (opts.search !== undefined) {
+  if (opts.search !== undefined && opts.search.trim() !== '') {
     conditions.push(ilike(financeTransactions.notes, `%${opts.search}%`));
   }
 
@@ -308,7 +371,7 @@ export async function updateTransaction(
 
     // ── Reverse old balance effect ─────────────────────────────────────────
     const oldAmt = existing.amount;
-    const oldExRate = existing.exchangeRate ?? 1;
+    const oldToExRate = existing.toExchangeRate ?? 1;
 
     const [oldFromAcct] = await tx
       .select({ balance: financeAccounts.balance })
@@ -330,7 +393,7 @@ export async function updateTransaction(
         .from(financeAccounts)
         .where(and(eq(financeAccounts.id, existing.toAccountId), eq(financeAccounts.budgetId, budgetId)));
       if (oldToAcct) {
-        const oldToBalanceRestored = oldToAcct.balance - oldAmt * oldExRate;
+        const oldToBalanceRestored = oldToAcct.balance - oldAmt * oldToExRate;
         await tx
           .update(financeAccounts)
           .set({ balance: oldToBalanceRestored, updatedAt: new Date() })
@@ -341,14 +404,14 @@ export async function updateTransaction(
     // ── Apply new balance effect ───────────────────────────────────────────
     const newType = data.type ?? existing.type;
     const newAccountId = data.accountId ?? existing.accountId;
-    const newToAccountId = data.toAccountId !== undefined ? data.toAccountId : existing.toAccountId;
+    const newToAccountId = data.toAccountId ?? existing.toAccountId;
 
     if (newType === TransactionTypes.Transfer && newToAccountId == null) {
       throw new Error('Transfer transactions require a destination account (toAccountId)');
     }
 
-    const newAmt = data.amount !== undefined ? data.amount : oldAmt;
-    const newExRate = data.exchangeRate !== undefined ? data.exchangeRate : oldExRate;
+    const newAmt = data.amount ?? oldAmt;
+    const newToExRate = data.toExchangeRate ?? oldToExRate;
 
     const [newFromAcct] = await tx
       .select({ balance: financeAccounts.balance })
@@ -372,7 +435,7 @@ export async function updateTransaction(
         .from(financeAccounts)
         .where(and(eq(financeAccounts.id, newToAccountId), eq(financeAccounts.budgetId, budgetId)));
       if (!newToAcct) throw new Error('New destination account not found');
-      newToBalanceAfter = newToAcct.balance + newAmt * newExRate;
+      newToBalanceAfter = newToAcct.balance + newAmt * newToExRate;
       await tx
         .update(financeAccounts)
         .set({ balance: newToBalanceAfter, updatedAt: new Date() })
@@ -416,7 +479,7 @@ export async function deleteTransaction(
   userId: string,
   budgetId: number,
   transactionId: number,
-): Promise<{ accountBalanceAfter: string }> {
+): Promise<{ accountBalanceAfter: number }> {
   if (!(await verifyBudgetAccess(userId, budgetId))) {
     throw new Error('Budget not found');
   }
@@ -431,7 +494,7 @@ export async function deleteTransaction(
 
     // Reverse balance effect on source/from account
     const amt = existing.amount;
-    const exRate = existing.exchangeRate ?? 1;
+    const toExRate = existing.toExchangeRate ?? 1;
 
     const [fromAcct] = await tx
       .select({ balance: financeAccounts.balance })
@@ -454,7 +517,7 @@ export async function deleteTransaction(
         .from(financeAccounts)
         .where(and(eq(financeAccounts.id, existing.toAccountId), eq(financeAccounts.budgetId, budgetId)));
       if (toAcct) {
-        const toBalanceAfter = toAcct.balance - amt * exRate;
+        const toBalanceAfter = toAcct.balance - amt * toExRate;
         await tx
           .update(financeAccounts)
           .set({ balance: toBalanceAfter, updatedAt: new Date() })
@@ -470,6 +533,6 @@ export async function deleteTransaction(
       await decrementPayeeStats(tx, existing.payeeId, userId);
     }
 
-    return { accountBalanceAfter: String(fromBalanceAfter) };
+    return { accountBalanceAfter: fromBalanceAfter };
   });
 }

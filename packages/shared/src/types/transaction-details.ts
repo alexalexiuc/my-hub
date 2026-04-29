@@ -3,6 +3,23 @@
 // Use TransactionDetails as the root; extend for each entry type.
 // Use BaseTransactionDetails for types without a dedicated shape yet.
 
+export interface TransactionConversionMeta {
+  // User-entered amount before conversion (for example amount from receipt abroad).
+  originalAmount?: number;
+  // ISO 4217 currency of originalAmount (for example EUR, USD, RON).
+  originalCurrency?: string;
+  // Account currency that ledger amount was converted into.
+  accountCurrency?: string;
+  // FX rate used to convert originalAmount -> accountCurrency.
+  originalToAccountRate?: number;
+  // Final amount stored in ledger/account currency.
+  convertedAmount?: number;
+}
+
+export interface TransactionExtra {
+  [key: string]: unknown;
+}
+
 export interface TransactionDetails {
   readonly kind: string;
   // Entry channel — where the transaction arrived from: 'mcp' | 'hub' | 'import'
@@ -13,8 +30,12 @@ export interface TransactionDetails {
   cardHint?: string;
   // Confidence score (0–1) when category/payee was auto-suggested
   autofillConfidence?: number;
-  /** Open bag — AI may add any extra fields it considers relevant. */
-  extra?: Record<string, unknown>;
+  // Optional typed conversion metadata for foreign-currency entries.
+  conversion?: TransactionConversionMeta;
+  /**
+   * Optional metadata bag for ad-hoc fields not modeled explicitly.
+   */
+  extra?: TransactionExtra;
 }
 
 // Manual entry — minimal metadata, no line items expected.
@@ -25,7 +46,6 @@ export interface ManualTransactionDetails extends TransactionDetails {
 // Receipt scan — AI-populated from a photo or OCR'd bill.
 export interface ReceiptTransactionDetails extends TransactionDetails {
   readonly kind: 'receipt';
-  payeeName?: string;
   payeeAddress?: string;
   receiptNumber?: string;
   taxAmount?: number;
