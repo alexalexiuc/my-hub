@@ -11,20 +11,18 @@ import {
 import type { BorrowedLentAccountDetails } from '@my-hub/shared/constants';
 import { accountDetailResponseSchema, accountMutationResponseSchema } from '../../contracts';
 import type { AccountItem, AccountDetailData, AccountTransaction } from '../../contracts';
+import { FinanceAccount } from '@my-hub/shared/types';
 const AccountPatchSchema = z.object({
   action: z.literal('settle'),
 });
 
-function flattenAccount(
-  a: NonNullable<Awaited<ReturnType<typeof getAccountById>>>,
-  budgetCurrency: string,
-): AccountItem {
+function flattenAccount(a: FinanceAccount): AccountItem {
   const details = a.details as Record<string, unknown> | null;
   return {
     id: a.id,
     name: a.name,
     type: a.type,
-    currency: budgetCurrency,
+    currency: a.currency,
     balance: a.balance,
     archived: a.archived,
     ...(details ?? {}),
@@ -51,7 +49,7 @@ export const GET = route({
 
   if (!rawAccount) routeHttpError(404, { error: 'Account not found' });
 
-  const account = flattenAccount(rawAccount, budget.defaultCurrency);
+  const account = flattenAccount(rawAccount);
   const categoryMap = new Map(categories.map(c => [c.id, c]));
   const payeeMap = new Map(payees.map(p => [p.id, p]));
 

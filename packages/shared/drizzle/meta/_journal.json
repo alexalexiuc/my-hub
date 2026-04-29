@@ -218,6 +218,13 @@
       "when": 1777409813313,
       "tag": "0031_lying_solo",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1777445713564,
+      "tag": "0032_living_mattie_franklin",
+      "breakpoints": true
     }
   ]
 }

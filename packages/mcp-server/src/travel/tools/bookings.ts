@@ -103,7 +103,7 @@ export const TravelAddReservationFromTextSchema = TravelAddReservationFromTextIn
 
   if (!input.origin) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['origin'],
       message: `origin is required for transport bookingType "${bookingType}".`,
     });
@@ -111,7 +111,7 @@ export const TravelAddReservationFromTextSchema = TravelAddReservationFromTextIn
 
   if (!input.destination) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['destination'],
       message: `destination is required for transport bookingType "${bookingType}".`,
     });

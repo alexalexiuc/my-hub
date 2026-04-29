@@ -176,8 +176,15 @@ export const financeTransactions = pgTable(
     toAccountId: integer('to_account_id').references(() => financeAccounts.id, { onDelete: 'restrict' }),
 
     amount: numericCasted('amount', { precision: 18, scale: 4 }).notNull(), // in account currency
-    // Exchange rate at insert time (account currency → budget default currency). 1.0 if same.
+    // Reporting rate: source account currency → budget default currency. 1.0 if same.
+    // Used to convert amounts to a common currency for net-worth and cashflow reports.
+    // Never used to compute the credited amount for transfer destinations — use toExchangeRate for that.
     exchangeRate: numericCasted('exchange_rate', { precision: 18, scale: 8 }).notNull().default(1),
+    // Transfer FX rate: source account currency → destination account currency.
+    // Only meaningful for Transfer transactions where the two accounts have different currencies.
+    // Null for expense/income transactions. 1.0 for same-currency transfers.
+    // toBalanceAfter = toAccount.balance + amount * toExchangeRate
+    toExchangeRate: numericCasted('to_exchange_rate', { precision: 18, scale: 8 }),
 
     date: date('date').notNull(), // YYYY-MM-DD, user-visible date
     categoryId: integer('category_id').references(() => financeCategories.id, { onDelete: 'set null' }),

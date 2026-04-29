@@ -95,7 +95,7 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
       id: a.id,
       name: a.name,
       type: a.type,
-      currency: budget.defaultCurrency,
+      currency: a.currency,
       balance: bal,
       archived: a.archived,
       ...flattenDetails(a.type, a.details),

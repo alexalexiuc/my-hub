@@ -1,6 +1,6 @@
 import postgres from 'postgres';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import * as schema from './schema/';
+import { drizzle, PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import * as schema from './schema';
 import { sharedEnvConfig } from '../config/env';
 
 function createDb() {
@@ -10,7 +10,7 @@ function createDb() {
   return drizzle(client, { schema });
 }
 
-type DbClient = ReturnType<typeof createDb>;
+type DbClient = PostgresJsDatabase<typeof schema>;
 
 // Cache a single DB client for the process lifetime.
 let dbInstance: DbClient | undefined;

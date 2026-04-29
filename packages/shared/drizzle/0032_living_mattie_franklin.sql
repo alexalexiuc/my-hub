@@ -1,0 +1,1 @@
+ALTER TABLE "finance_transactions" ADD COLUMN "to_exchange_rate" numeric(18, 8);

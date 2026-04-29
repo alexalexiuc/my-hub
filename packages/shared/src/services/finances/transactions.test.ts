@@ -9,10 +9,12 @@ vi.mock('../../db/client.js', () => ({
 }));
 vi.mock('./budgets.js', () => ({ verifyBudgetAccess: vi.fn() }));
 vi.mock('./payees.js', () => ({ incrementPayeeStats: vi.fn(), decrementPayeeStats: vi.fn() }));
+vi.mock('./exchangeRates.js', () => ({ getExchangeRate: vi.fn() }));
 
 import { db } from '../../db/client.js';
 import { verifyBudgetAccess } from './budgets.js';
 import { incrementPayeeStats, decrementPayeeStats } from './payees.js';
+import { getExchangeRate } from './exchangeRates.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -68,6 +70,10 @@ function getUpdateSetCall(tx: ReturnType<typeof makeTx>, callIndex: number) {
   return (tx.update.mock.results[callIndex]!.value as { set: ReturnType<typeof vi.fn> }).set;
 }
 
+function getInsertValuesCall(tx: ReturnType<typeof makeTx>) {
+  return (tx.insert.mock.results[0]!.value as { values: ReturnType<typeof vi.fn> }).values;
+}
+
 function makeTransaction(overrides: Record<string, unknown> = {}) {
   return {
     id: 1,
@@ -98,6 +104,7 @@ describe('addTransaction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(verifyBudgetAccess).mockResolvedValue(true);
+    vi.mocked(getExchangeRate).mockResolvedValue(1);
   });
 
   it('throws if budget not found', async () => {
@@ -144,7 +151,7 @@ describe('addTransaction', () => {
 
   it('deducts amount from source account on expense', async () => {
     const insertedRow = makeTransaction({ fromAccountBalanceAfter: 900 });
-    const tx = makeTx([[{ balance: 1000 }]], insertedRow);
+    const tx = makeTx([[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }]], insertedRow);
     useTx(tx);
 
     const result = await addTransaction('user-1', 1, {
@@ -170,7 +177,7 @@ describe('addTransaction', () => {
 
   it('credits source account on income', async () => {
     const insertedRow = makeTransaction({ type: 'income', fromAccountBalanceAfter: 1100 });
-    const tx = makeTx([[{ balance: 1000 }]], insertedRow);
+    const tx = makeTx([[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }]], insertedRow);
     useTx(tx);
 
     await addTransaction('user-1', 1, {
@@ -200,8 +207,11 @@ describe('addTransaction', () => {
       fromAccountBalanceAfter: 900,
       toAccountBalanceAfter: 600,
     });
-    // select[0] = fromAccount, select[1] = toAccount
-    const tx = makeTx([[{ balance: 1000 }], [{ balance: 500 }]], insertedRow);
+    // select[0] = budget, select[1] = fromAccount, select[2] = toAccount
+    const tx = makeTx(
+      [[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }], [{ balance: 500, currency: 'USD' }]],
+      insertedRow,
+    );
     useTx(tx);
 
     await addTransaction('user-1', 1, {
@@ -210,6 +220,7 @@ describe('addTransaction', () => {
       toAccountId: 20,
       amount: 100,
       exchangeRate: 1,
+      toExchangeRate: 1,
       date: '2026-04-28',
       categoryId: null,
       payeeId: null,
@@ -228,8 +239,11 @@ describe('addTransaction', () => {
 
   it('applies exchange rate when crediting destination on transfer', async () => {
     const insertedRow = makeTransaction({ type: 'transfer', toAccountId: 20 });
-    // 100 EUR transferred at rate 1.1 → destination gets 110 USD
-    const tx = makeTx([[{ balance: 1000 }], [{ balance: 500 }]], insertedRow);
+    // 100 EUR transferred at destination rate 1.1 → destination gets 110 USD
+    const tx = makeTx(
+      [[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'EUR' }], [{ balance: 500, currency: 'USD' }]],
+      insertedRow,
+    );
     useTx(tx);
 
     await addTransaction('user-1', 1, {
@@ -238,6 +252,7 @@ describe('addTransaction', () => {
       toAccountId: 20,
       amount: 100,
       exchangeRate: 1.1,
+      toExchangeRate: 1.1,
       date: '2026-04-28',
       categoryId: null,
       payeeId: null,
@@ -252,9 +267,85 @@ describe('addTransaction', () => {
     expect(getUpdateSetCall(tx, 1)).toHaveBeenCalledWith(expect.objectContaining({ balance: 610 }));
   });
 
+  it('resolves reporting and transfer rates when not provided', async () => {
+    const insertedRow = makeTransaction({ type: 'transfer', toAccountId: 20 });
+    const tx = makeTx(
+      [[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'EUR' }], [{ balance: 500, currency: 'RON' }]],
+      insertedRow,
+    );
+    useTx(tx);
+    vi.mocked(getExchangeRate)
+      .mockResolvedValueOnce(1.08 as never) // EUR -> USD
+      .mockResolvedValueOnce(4.95 as never); // EUR -> RON
+
+    await addTransaction('user-1', 1, {
+      type: 'transfer',
+      accountId: 10,
+      toAccountId: 20,
+      amount: 100,
+      date: '2026-04-28',
+      categoryId: null,
+      payeeId: null,
+      notes: null,
+      extras: null,
+      isCorrection: false,
+      fromAccountBalanceAfter: 0,
+      toAccountBalanceAfter: null,
+    });
+
+    expect(getExchangeRate).toHaveBeenNthCalledWith(1, 'EUR', 'USD', '2026-04-28');
+    expect(getExchangeRate).toHaveBeenNthCalledWith(2, 'EUR', 'RON', '2026-04-28');
+    expect(getInsertValuesCall(tx)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        exchangeRate: 1.08,
+        toExchangeRate: 4.95,
+      }),
+    );
+  });
+
+  it('converts amount from amountCurrency into account currency', async () => {
+    const insertedRow = makeTransaction({ type: 'expense' });
+    const tx = makeTx([[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }]], insertedRow);
+    useTx(tx);
+    vi.mocked(getExchangeRate).mockResolvedValueOnce(1.2 as never); // EUR -> USD
+
+    await addTransaction('user-1', 1, {
+      type: 'expense',
+      accountId: 10,
+      toAccountId: null,
+      amount: 100,
+      date: '2026-04-28',
+      categoryId: null,
+      payeeId: null,
+      notes: 'Trip expense',
+      amountCurrency: 'EUR',
+      extras: null,
+      isCorrection: false,
+      fromAccountBalanceAfter: 0,
+      toAccountBalanceAfter: null,
+    });
+
+    expect(getExchangeRate).toHaveBeenCalledWith('EUR', 'USD', '2026-04-28');
+    expect(getUpdateSetCall(tx, 0)).toHaveBeenCalledWith(expect.objectContaining({ balance: 880 }));
+    expect(getInsertValuesCall(tx)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 120,
+        extras: expect.objectContaining({
+          conversion: expect.objectContaining({
+            originalAmount: 100,
+            originalCurrency: 'EUR',
+            accountCurrency: 'USD',
+            originalToAccountRate: 1.2,
+            convertedAmount: 120,
+          }),
+        }),
+      }),
+    );
+  });
+
   it('increments payee stats when payeeId is provided', async () => {
     const insertedRow = makeTransaction({ payeeId: 5, categoryId: 3 });
-    const tx = makeTx([[{ balance: 1000 }]], insertedRow);
+    const tx = makeTx([[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }]], insertedRow);
     useTx(tx);
     vi.mocked(incrementPayeeStats).mockResolvedValue(undefined);
 
@@ -279,7 +370,7 @@ describe('addTransaction', () => {
 
   it('skips payee stats when payeeId is null', async () => {
     const insertedRow = makeTransaction();
-    const tx = makeTx([[{ balance: 1000 }]], insertedRow);
+    const tx = makeTx([[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }]], insertedRow);
     useTx(tx);
 
     await addTransaction('user-1', 1, {
@@ -417,7 +508,7 @@ describe('deleteTransaction', () => {
 
     // Reverse expense: 900 + 100 = 1000
     expect(getUpdateSetCall(tx, 0)).toHaveBeenCalledWith(expect.objectContaining({ balance: 1000 }));
-    expect(result).toEqual({ accountBalanceAfter: '1000' });
+    expect(result).toEqual({ accountBalanceAfter: 1000 });
   });
 
   it('reverses source balance on income delete', async () => {
@@ -429,7 +520,7 @@ describe('deleteTransaction', () => {
 
     // Reverse income: 1200 - 200 = 1000
     expect(getUpdateSetCall(tx, 0)).toHaveBeenCalledWith(expect.objectContaining({ balance: 1000 }));
-    expect(result).toEqual({ accountBalanceAfter: '1000' });
+    expect(result).toEqual({ accountBalanceAfter: 1000 });
   });
 
   it('reverses both account balances on transfer delete', async () => {

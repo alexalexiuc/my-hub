@@ -21,7 +21,6 @@ const TransactionCreateSchema = z.object({
   categoryId: z.number().int().positive().nullable().optional(),
   payeeName: z.string().optional(),
   notes: z.string().optional(),
-  exchangeRate: z.number().optional(),
   isCorrection: z.boolean().optional(),
 });
 
@@ -100,7 +99,6 @@ export const POST = route({ body: TransactionCreateSchema, response: transaction
     accountId: body.accountId,
     toAccountId: body.toAccountId ?? null,
     amount: body.amount,
-    exchangeRate: body.exchangeRate ?? 1,
     date: body.date,
     categoryId: body.categoryId ?? null,
     payeeId,
