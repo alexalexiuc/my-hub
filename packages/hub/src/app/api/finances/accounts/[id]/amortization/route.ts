@@ -75,7 +75,7 @@ export const GET = route({
   const data: AmortizationData = {
     accountId,
     name: account.name,
-    currency: budget.defaultCurrency,
+    currency: account.currency,
     currentBalance,
     principal,
     interestRate,
