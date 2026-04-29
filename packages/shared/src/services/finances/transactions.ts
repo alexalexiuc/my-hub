@@ -405,19 +405,40 @@ export async function updateTransaction(
     const newType = data.type ?? existing.type;
     const newAccountId = data.accountId ?? existing.accountId;
     const newToAccountId = data.toAccountId ?? existing.toAccountId;
+    const newDate = data.date ?? existing.date;
 
     if (newType === TransactionTypes.Transfer && newToAccountId == null) {
       throw new Error('Transfer transactions require a destination account (toAccountId)');
     }
 
-    const newAmt = data.amount ?? oldAmt;
-    const newToExRate = data.toExchangeRate ?? oldToExRate;
+    const newAmt = data.amount != null ? Math.round(data.amount * 10000) / 10000 : oldAmt;
 
     const [newFromAcct] = await tx
-      .select({ balance: financeAccounts.balance })
+      .select({ balance: financeAccounts.balance, currency: financeAccounts.currency })
       .from(financeAccounts)
       .where(and(eq(financeAccounts.id, newAccountId), eq(financeAccounts.budgetId, budgetId)));
     if (!newFromAcct) throw new Error('New source account not found');
+
+    // Re-resolve exchangeRate only when account/date changed and caller did not provide an explicit rate.
+    const fromFxChanged = data.exchangeRate === undefined && (data.accountId !== undefined || data.date !== undefined);
+
+    let budgetDefaultCurrency: string | null = null;
+    if (fromFxChanged) {
+      const [budget] = await tx
+        .select({ defaultCurrency: financeBudgets.defaultCurrency })
+        .from(financeBudgets)
+        .where(eq(financeBudgets.id, budgetId));
+      if (!budget) throw new Error('Budget not found');
+      budgetDefaultCurrency = budget.defaultCurrency;
+    }
+
+    const resolvedExchangeRate =
+      data.exchangeRate ??
+      (fromFxChanged
+        ? newFromAcct.currency !== budgetDefaultCurrency
+          ? await getExchangeRate(newFromAcct.currency, budgetDefaultCurrency!, newDate)
+          : 1
+        : existing.exchangeRate);
 
     const newFromBalanceAfter =
       newType === TransactionTypes.Income ? newFromAcct.balance + newAmt : newFromAcct.balance - newAmt;
@@ -428,14 +449,28 @@ export async function updateTransaction(
       .where(and(eq(financeAccounts.id, newAccountId), eq(financeAccounts.budgetId, budgetId)));
 
     let newToBalanceAfter: number | null = null;
+    let resolvedToExchangeRate: number | null = null;
 
     if (newType === TransactionTypes.Transfer && newToAccountId != null) {
       const [newToAcct] = await tx
-        .select({ balance: financeAccounts.balance })
+        .select({ balance: financeAccounts.balance, currency: financeAccounts.currency })
         .from(financeAccounts)
         .where(and(eq(financeAccounts.id, newToAccountId), eq(financeAccounts.budgetId, budgetId)));
       if (!newToAcct) throw new Error('New destination account not found');
-      newToBalanceAfter = newToAcct.balance + newAmt * newToExRate;
+
+      // Re-resolve toExchangeRate only when account/date changed and caller did not provide an explicit rate.
+      const toFxChanged =
+        data.toExchangeRate === undefined &&
+        (data.accountId !== undefined || data.toAccountId !== undefined || data.date !== undefined);
+      resolvedToExchangeRate =
+        data.toExchangeRate ??
+        (toFxChanged
+          ? newFromAcct.currency !== newToAcct.currency
+            ? await getExchangeRate(newFromAcct.currency, newToAcct.currency, newDate)
+            : 1
+          : (existing.toExchangeRate ?? 1));
+
+      newToBalanceAfter = newToAcct.balance + newAmt * resolvedToExchangeRate;
       await tx
         .update(financeAccounts)
         .set({ balance: newToBalanceAfter, updatedAt: new Date() })
@@ -447,6 +482,9 @@ export async function updateTransaction(
       .update(financeTransactions)
       .set({
         ...omitNullish(data),
+        amount: newAmt,
+        exchangeRate: resolvedExchangeRate,
+        toExchangeRate: resolvedToExchangeRate,
         fromAccountBalanceAfter: newFromBalanceAfter,
         toAccountBalanceAfter: newToBalanceAfter,
         updatedAt: new Date(),
