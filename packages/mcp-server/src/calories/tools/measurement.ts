@@ -44,6 +44,9 @@ export const logMeasurementTool: ToolHandler<typeof LogMeasurementSchema.shape> 
     throw new Error(`Unknown measurement type "${input.type}". Available types: ${types.map(t => t.key).join(', ')}`);
   }
 
+  const [previousRow] = await getMeasurements(userId, { typeKey: measurementType.key, limit: 1 });
+  const previousMeasurement = previousRow ? rowToMeasurementEntry(previousRow) : null;
+
   const today = localDateString(context.timezone);
   const row = await logMeasurement({
     userId,
@@ -60,6 +63,7 @@ export const logMeasurementTool: ToolHandler<typeof LogMeasurementSchema.shape> 
     value: row.value,
     unit: measurementType.unit,
     date: row.date,
+    previousMeasurement,
   });
 };
 
