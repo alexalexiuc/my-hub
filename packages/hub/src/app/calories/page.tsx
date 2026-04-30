@@ -12,6 +12,7 @@ import { GoalProgressCard } from './GoalProgressCard';
 import { MacroChart } from './MacroChart';
 import { MealsSection } from './MealsSection';
 import { MeasurementsSection } from './MeasurementsSection';
+import { AutomationApiSection } from './AutomationApiSection';
 import { ProfileCard } from './ProfileCard';
 import { WeeklyChart } from './WeeklyChart';
 import { WeightChart } from './WeightChart';
@@ -199,6 +200,9 @@ export default function CaloriesDashboardPage() {
 
       {/* Settings (profile) — at the bottom */}
       <ProfileCard profile={profile} latestMeasurements={latestMeasurements} onUpdated={loadData} />
+
+      {/* Automation API key management */}
+      <AutomationApiSection userId={profile?.userId} initialKey={profile?.automationApiKey} />
     </main>
   );
 }

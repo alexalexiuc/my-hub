@@ -1,7 +1,12 @@
 import { pgTable, serial, text, timestamp, real, uuid, index } from 'drizzle-orm/pg-core';
-import type { MeasurementTypeKey } from '../../constants/measurements';
-export { MeasurementTypes, measurementTypeKeys } from '../../constants/measurements';
-export type { MeasurementTypeKey } from '../../constants/measurements';
+import type { MeasurementTypeKey, MeasurementEntrySource } from '../../constants/measurements';
+export {
+  MeasurementTypes,
+  measurementTypeKeys,
+  MeasurementEntrySources,
+  measurementEntrySourceValues,
+} from '../../constants/measurements';
+export type { MeasurementTypeKey, MeasurementEntrySource } from '../../constants/measurements';
 import { users } from './users';
 
 // ---------------------------------------------------------------------------
@@ -30,6 +35,7 @@ export const bodyMeasurements = pgTable(
     date: text('date').notNull(), // YYYY-MM-DD
     value: real('value').notNull(),
     notes: text('notes'),
+    entrySource: text('entry_source').notNull().default('hub').$type<MeasurementEntrySource>(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   table => ({

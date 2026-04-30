@@ -2,12 +2,15 @@ import { z } from 'zod';
 import { route, routeHttpError, created } from '@/lib/api/route';
 import { getMeasurements, logMeasurement, getMeasurementTypeByKey } from '@my-hub/shared/services';
 import type { MeasurementTypeKey } from '@my-hub/shared/types';
+import type { MeasurementEntrySource } from '@my-hub/shared/types';
+import { MeasurementEntrySources } from '@my-hub/shared/constants';
 
 const GetQuerySchema = z.object({
   type: z.string().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   limit: z.coerce.number().int().positive().default(100),
+  entrySource: z.enum(MeasurementEntrySources).optional(),
 });
 
 const PostBodySchema = z.object({
@@ -28,6 +31,7 @@ export const GET = route({ query: GetQuerySchema })(async ({ user, query }) => {
     dateFrom: query.dateFrom,
     dateTo: query.dateTo,
     limit: query.limit,
+    entrySource: query.entrySource as MeasurementEntrySource | undefined,
   });
   return { measurements };
 });

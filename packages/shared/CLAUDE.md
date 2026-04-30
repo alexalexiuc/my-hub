@@ -44,6 +44,21 @@
 | `exchangeRates.ts` | Exchange-rate orchestration: getExchangeRate (in-memory promise cache + DB exact hit + external API fetch + DB persist + recent-row fallback)                                                                                                                                                                                                                                                                                            |
 | `reporting.ts`     | Read-only finance reporting aggregations: getBudgetProgress, getCashflowSummary, getSpendingByPayee, getSpendingAggregates, getNetWorthSummary                                                                                                                                                                                                                                                                                           |
 
+## Service inventory — `src/services/measurements/`
+
+| File              | What's inside                                                                                                                                                                                                                                                                      |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `measurements.ts` | Body measurement CRUD: `logMeasurement` (single insert), `logMeasurementsBatch` (batch insert with shared `createdAt` + `entrySource`), `getMeasurements` (filtered by typeKey/date/entrySource), `getLatestMeasurementsPerType`, `deleteMeasurement`, `deleteAllUserMeasurements` |
+| `types.ts`        | Measurement type lookups: `getMeasurementTypes`, `getMeasurementTypeByKey`                                                                                                                                                                                                         |
+
+## Service inventory — `src/services/calories/`
+
+| File             | What's inside                                                                                                                                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `profile.ts`     | Calorie profile CRUD: `getCalorieProfile`, `upsertCalorieProfile`, `deleteCalorieProfile`, `deleteAllUserCalorieProfiles`, `generateCaloriesAutomationKey` (generates + persists 64-char hex automation API key) |
+| `meals.ts`       | Meal log CRUD: `logMeal`, `getMeals`, `getMealsForDate`, `getMealsForDateRange`, `updateMeal`, `deleteMeal`, `deleteAllUserMeals`                                                                                |
+| `report-data.ts` | Aggregated report queries: `fetchWeeklyReportCaloriesData`, `fetchMonthlyReportCaloriesData`                                                                                                                     |
+
 ## Keeping the inventory current
 
 When you **modify or add** any file under `src/utils/` or `src/services/`:
