@@ -45,6 +45,10 @@ export const logMeasurementTool: ToolHandler<typeof LogMeasurementSchema.shape> 
   }
 
   const today = localDateString(context.timezone);
+
+  const previousRows = await getMeasurements(userId, { typeKey: measurementType.key, limit: 1 });
+  const previousRow = previousRows[0] ?? null;
+
   const row = await logMeasurement({
     userId,
     typeKey: measurementType.key,
@@ -60,6 +64,7 @@ export const logMeasurementTool: ToolHandler<typeof LogMeasurementSchema.shape> 
     value: row.value,
     unit: measurementType.unit,
     date: row.date,
+    previousMeasurement: previousRow ? rowToMeasurementEntry(previousRow) : null,
   });
 };
 
