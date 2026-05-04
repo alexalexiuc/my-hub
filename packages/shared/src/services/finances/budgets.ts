@@ -131,6 +131,9 @@ export async function updateBudget(userId: string, budgetId: number, data: Budge
     .returning();
 
   if (!row) throw new Error('Update did not return a row');
+
+  budgetsCache.delete(userId);
+
   return row;
 }
 
@@ -139,7 +142,18 @@ export async function deleteBudget(userId: string, budgetId: number): Promise<vo
     throw new Error('Budget not found');
   }
 
+  // Snapshot members before deletion so we can invalidate their caches after
+  const members = await db
+    .select({ userId: financeBudgetMembers.userId })
+    .from(financeBudgetMembers)
+    .where(eq(financeBudgetMembers.budgetId, budgetId));
+
   await db.delete(financeBudgets).where(eq(financeBudgets.id, budgetId));
+
+  for (const m of members) {
+    budgetsCache.delete(m.userId);
+    budgetAccessCache.delete(`${m.userId}:${budgetId}`);
+  }
 }
 
 export interface BudgetMember {

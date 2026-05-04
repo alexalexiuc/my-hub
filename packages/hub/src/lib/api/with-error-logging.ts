@@ -1,4 +1,5 @@
 import { putLog } from '@my-hub/shared/services';
+import { logger } from '@my-hub/shared/utils';
 import { NextResponse } from 'next/server';
 import type { ZodError } from 'zod';
 
@@ -42,6 +43,10 @@ export async function writeApiLog(
   error?: string,
   options?: ErrorLoggingOptions,
 ) {
+  // if error, log to console too
+  if (error) {
+    logger.error(`[api-log] ${req.method} ${req.url} failed with error: ${error}`);
+  }
   try {
     const url = new URL(req.url);
     await putLog({

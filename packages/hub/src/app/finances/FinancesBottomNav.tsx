@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { apiFetch } from '@/lib/utils';
 import { PlusOutlineIcon } from '@/components/icons';
 import { TransactionModal } from './transactions/TransactionModal';
+import type { BudgetDetailResponse } from '@/app/api/finances/contracts';
 
 const LEFT_ITEMS = [
   { id: 'dashboard', icon: '◈', label: 'Home', path: '/finances' },
@@ -89,6 +91,21 @@ export function FinancesBottomNav({ className }: FinancesBottomNavProps) {
   const router = useRouter();
   const [showAddTx, setShowAddTx] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [hasBudget, setHasBudget] = useState<boolean | null>(null);
+
+  const fetchBudget = useCallback(() => {
+    apiFetch<BudgetDetailResponse>('/api/finances/budget', { silentToast: true })
+      .then(() => setHasBudget(true))
+      .catch(() => setHasBudget(false));
+  }, []);
+
+  useEffect(() => {
+    fetchBudget();
+    window.addEventListener('finances:budget-changed', fetchBudget);
+    return () => window.removeEventListener('finances:budget-changed', fetchBudget);
+  }, [fetchBudget]);
+
+  if (hasBudget === false) return null;
 
   const isActive = (path: string) => (path === '/finances' ? pathname === '/finances' : pathname.startsWith(path));
   const moreIsActive = MORE_ITEMS.some(item => pathname.startsWith(item.path));

@@ -29,6 +29,7 @@ export function CreateBudgetScreen({ onCreated }: CreateBudgetScreenProps) {
       body: { name: values.name.trim(), defaultCurrency: values.defaultCurrency },
       silentToast: true,
     });
+    window.dispatchEvent(new CustomEvent('finances:budget-changed'));
     onCreated();
   }
 

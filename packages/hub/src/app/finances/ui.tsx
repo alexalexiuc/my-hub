@@ -33,6 +33,7 @@ export function Card({
 }) {
   return (
     <div
+      data-card
       onClick={onClick}
       className={cn(
         'rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)] px-4 py-[14px] transition-colors',

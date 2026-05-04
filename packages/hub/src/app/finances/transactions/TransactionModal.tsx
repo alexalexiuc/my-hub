@@ -231,6 +231,7 @@ export function TransactionModal({
               {...register('amount')}
               autoFocus={!isEdit}
               type="number"
+              step="any"
               placeholder="0.00"
               variant="ghost"
               className="flex-1 text-[28px] font-bold"

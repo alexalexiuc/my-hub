@@ -19,6 +19,7 @@ export const GET = route({ response: budgetsListResponseSchema })(async ({ user 
       id: b.id,
       name: b.name,
       defaultCurrency: b.defaultCurrency,
+      createdByUserId: b.createdByUserId,
       isOwner: b.createdByUserId === user.id,
       isActive: b.isActive,
     })),

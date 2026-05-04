@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
@@ -34,22 +34,35 @@ export function FinancesSidebar() {
   const [showAddTx, setShowAddTx] = useState(false);
   const [budgetName, setBudgetName] = useState<string | null>(null);
   const [currency, setCurrency] = useState<string | null>(null);
+  const [hasBudget, setHasBudget] = useState<boolean | null>(null);
 
-  useEffect(() => {
+  const fetchBudget = useCallback(() => {
     apiFetch<BudgetDetailResponse>('/api/finances/budget', { silentToast: true })
       .then(res => {
         setBudgetName(res.budget.name);
         setCurrency(res.budget.defaultCurrency);
+        setHasBudget(true);
       })
-      .catch(() => {});
+      .catch(() => setHasBudget(false));
   }, []);
+
+  useEffect(() => {
+    fetchBudget();
+    window.addEventListener('finances:budget-changed', fetchBudget);
+    return () => window.removeEventListener('finances:budget-changed', fetchBudget);
+  }, [fetchBudget]);
+
+  if (hasBudget === false) return null;
 
   const isActive = (path: string) => (path === '/finances' ? pathname === '/finances' : pathname.startsWith(path));
 
   return (
     <div className="flex w-[200px] shrink-0 flex-col px-2.5 py-4 bg-[var(--fin-card)] border-r border-[var(--fin-border)]">
       <div className="mb-3 border-b border-[var(--fin-border)] px-2 pb-4 pt-1">
-        <div className="text-base font-bold tracking-[-0.02em] text-[var(--fin-text)]">
+        <div
+          data-testid="sidebar-budget-name"
+          className="text-base font-bold tracking-[-0.02em] text-[var(--fin-text)]"
+        >
           {currency && <span className="text-[var(--fin-accent)]">{currency} </span>}
           {budgetName ?? 'Finances'}
         </div>

@@ -80,194 +80,206 @@ test.describe('Finances', () => {
 
     // ── 4. Dashboard appears (net worth + this month cards) ───────────────────
     await expect(page.getByText('This Month')).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText('Net Worth')).toBeVisible();
+    await expect(page.locator('[data-card]').filter({ hasText: 'Net Worth' })).toBeVisible();
     await expect(page.getByText('Create your budget')).not.toBeVisible();
   });
 
   /**
    * Full finances journey: accounts, transactions, categories, goals, settings.
    * Covers all main navigation paths (the "district") of the finances feature.
+   * Tests run serially and share the same budget created in the first test.
    */
-  test('full finances journey: accounts, transactions, categories, goals, settings', async ({ page }) => {
-    await deleteFinances(page);
-
-    const budgetName = uniqueName('E2E Journey Budget');
-
-    // ── 1. Create budget ──────────────────────────────────────────────────────
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-    await createBudgetViaUI(page, budgetName);
-
-    // Dashboard is shown after budget creation (sidebar re-fetches on full reload only;
-    // verifying dashboard content is sufficient to confirm the budget was activated).
-    await expect(page.getByText('This Month')).toBeVisible({ timeout: 30_000 });
-
-    // ── 2. Accounts: add bank account ─────────────────────────────────────────
-    await page.getByRole('button', { name: 'Accounts' }).click();
-    await page.waitForLoadState('networkidle');
-
-    await page.getByTitle('Add account').click();
-    const addAccountModal = page.getByText('New Account');
-    await expect(addAccountModal).toBeVisible();
+  test.describe('full finances journey: accounts, transactions, categories, goals, settings', () => {
+    test.describe.configure({ mode: 'serial' });
 
     const bankAccountName = uniqueName('Main Checking');
-    // Use exact: true to avoid matching "Card Name (optional)" which also contains "Name"
-    await page.getByLabel('Name', { exact: true }).fill(bankAccountName);
-    // Type defaults to bank — opening balance
-    await page.getByLabel('Opening Balance').fill('1500');
-    await page.getByRole('button', { name: 'Create Account' }).click();
-    await page.waitForLoadState('networkidle');
-
-    await expect(page.getByText(bankAccountName)).toBeVisible();
-
-    // ── 3. Accounts: add credit card ─────────────────────────────────────────
-    await page.getByTitle('Add account').click();
     const ccName = uniqueName('Visa Card');
-    await page.getByLabel('Name', { exact: true }).fill(ccName);
-    await page.getByLabel('Type').selectOption('credit_card');
-    await page.getByLabel('Credit Limit').fill('5000');
-    await page.getByLabel('Opening Balance').fill('200');
-    await page.getByRole('button', { name: 'Create Account' }).click();
-    await page.waitForLoadState('networkidle');
-
-    await expect(page.getByText(ccName)).toBeVisible();
-    // Credit card shows progress bar (used / limit)
-    await expect(page.getByText(/Used/i)).toBeVisible();
-
-    // ── 4. Accounts: add goal account ────────────────────────────────────────
-    await page.getByTitle('Add account').click();
     const goalName = uniqueName('Emergency Fund');
-    await page.getByLabel('Name', { exact: true }).fill(goalName);
-    await page.getByLabel('Type').selectOption('goal');
-    await page.getByLabel('Target Amount').fill('10000');
-    await page.getByLabel('Opening Balance').fill('500');
-    await page.getByRole('button', { name: 'Create Account' }).click();
-    await page.waitForLoadState('networkidle');
-
-    await expect(page.getByText(goalName)).toBeVisible();
-
-    // ── 5. Account detail: click bank account to open detail page ────────────
-    // Get the bank account ID via API
-    const accountsRes = await page.request.get('/api/finances/accounts');
-    const accountsData = (await accountsRes.json()) as { accounts: Array<{ id: number; name: string }> };
-    const bankAcc = accountsData.accounts.find(a => a.name === bankAccountName);
-    expect(bankAcc).toBeTruthy();
-
-    await page.goto(`/finances/accounts/${bankAcc!.id}`);
-    await page.waitForLoadState('networkidle');
-
-    // Detail page shows account name and initial balance transaction
-    await expect(page.getByText(bankAccountName)).toBeVisible();
-    await expect(page.getByText('Initial Balance')).toBeVisible();
-
-    // ── 6. Transactions: add expense ─────────────────────────────────────────
-    await page.getByRole('button', { name: 'Transactions' }).click();
-    await page.waitForLoadState('networkidle');
-
-    await page.getByTitle('Add transaction').click();
-    await expect(page.getByText('New Transaction')).toBeVisible();
-
-    // Default type is expense — fill in amount, account, and payee
-    await page.getByPlaceholder('0.00').fill('45.50');
-    // Select account (required to enable Save); first "Choose…" button in the grid
-    await page.getByRole('button', { name: 'Choose…' }).first().click();
-    await page.getByRole('button', { name: bankAccountName }).first().click();
-    await page.getByPlaceholder('e.g. Kaufland, Netflix…').fill('Supermarket');
-    await page.getByRole('button', { name: 'Save Expense' }).click();
-    await page.waitForLoadState('networkidle');
-
-    // Expense appears in the list
-    await expect(page.getByText('Supermarket')).toBeVisible();
-
-    // ── 7. Transactions: payee autocomplete — pill and fuzzy-search suggestions ─
-    // "Supermarket" was just saved, so it should appear as a most-used pill and
-    // as a fuzzy-search result when typing a partial name.
-    await page.getByTitle('Add transaction').click();
-    await expect(page.getByText('New Transaction')).toBeVisible();
-
-    // Most-used payee pill appears without typing anything
-    await expect(page.getByRole('button', { name: 'Supermarket' })).toBeVisible();
-
-    // Fuzzy search: typing a prefix narrows the dropdown
-    await page.getByPlaceholder('e.g. Kaufland, Netflix…').fill('Super');
-    await expect(page.getByRole('button', { name: 'Supermarket' }).first()).toBeVisible();
-
-    // Clicking the suggestion fills the payee field
-    await page.getByRole('button', { name: 'Supermarket' }).first().click();
-    await expect(page.getByPlaceholder('e.g. Kaufland, Netflix…')).toHaveValue('Supermarket');
-
-    // Close modal without saving
-    await page.getByRole('button', { name: 'Cancel' }).click();
-
-    // ── 8. Transactions: add income ──────────────────────────────────────────
-    await page.getByTitle('Add transaction').click();
-    await expect(page.getByText('New Transaction')).toBeVisible();
-
-    await page.getByRole('button', { name: 'income', exact: true }).click();
-    await page.getByPlaceholder('0.00').fill('2000');
-    await page.getByRole('button', { name: 'Choose…' }).first().click();
-    await page.getByRole('button', { name: bankAccountName }).first().click();
-    await page.getByPlaceholder('e.g. Kaufland, Netflix…').fill('Employer');
-    await page.getByRole('button', { name: 'Save Income' }).click();
-    await page.waitForLoadState('networkidle');
-
-    await expect(page.getByText('Employer')).toBeVisible();
-
-    // ── 9. Transactions: filter by type ──────────────────────────────────────
-    await page.getByRole('button', { name: 'Expenses', exact: true }).click();
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByText('Supermarket')).toBeVisible();
-    await expect(page.getByText('Employer')).not.toBeVisible();
-
-    await page.getByRole('button', { name: 'Income', exact: true }).click();
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByText('Employer')).toBeVisible();
-    await expect(page.getByText('Supermarket')).not.toBeVisible();
-
-    await page.getByRole('button', { name: 'All', exact: true }).click();
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByText('Supermarket')).toBeVisible();
-    await expect(page.getByText('Employer')).toBeVisible();
-
-    // ── 10. Categories: add group then category ───────────────────────────────
-    await page.getByRole('button', { name: 'Categories' }).click();
-    await page.waitForLoadState('networkidle');
-
-    // Open new item menu
-    await page.getByRole('button', { name: '+ New' }).click();
-    await page.getByText('📂 New Group').click();
-
     const groupName = uniqueName('Living Expenses');
-    await page.getByLabel('Name').fill(groupName);
-    await page.getByRole('button', { name: 'Create Group' }).click();
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByText(groupName)).toBeVisible();
-
-    // Add category inside the group
-    await page.getByRole('button', { name: '+ New' }).click();
-    await page.getByText('🏷 New Category').click();
-
     const catName = uniqueName('Groceries');
-    await page.getByLabel('Name').fill(catName);
-    await page.getByLabel('Monthly Target').fill('400');
-    await page.getByRole('button', { name: 'Create Category' }).click();
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByText(catName)).toBeVisible();
-    // Shows "Target" label
-    await expect(page.getByText(/Target.*\/mo/)).toBeVisible();
 
-    // ── 11. Goals: verify goal account appears on goals page ─────────────────
-    await page.getByRole('button', { name: 'Goals' }).click();
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByText(goalName)).toBeVisible();
+    test('create budget', async ({ page }) => {
+      await deleteFinances(page);
+      await page.reload();
+      await page.waitForLoadState('networkidle');
+      await createBudgetViaUI(page, uniqueName('E2E Journey Budget'));
 
-    // ── 12. Dashboard: verify monthly figures shown ──────────────────────────
-    await page.getByRole('button', { name: 'Dashboard' }).click();
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByText('Net Worth')).toBeVisible();
-    await expect(page.getByText('This Month')).toBeVisible();
-    await expect(page.getByText('Income')).toBeVisible();
-    await expect(page.getByText('Expenses')).toBeVisible();
+      // Dashboard is shown after budget creation (sidebar re-fetches on full reload only;
+      // verifying dashboard content is sufficient to confirm the budget was activated).
+      await expect(page.getByText('This Month')).toBeVisible({ timeout: 30_000 });
+    });
+
+    test('accounts: add bank account, credit card, and goal', async ({ page }) => {
+      // ── 1. Add bank account ───────────────────────────────────────────────
+      await page.getByRole('button', { name: 'Accounts' }).click();
+      await page.waitForLoadState('networkidle');
+
+      await page.getByTitle('Add account').click();
+      await expect(page.getByText('New Account')).toBeVisible();
+
+      // Use exact: true to avoid matching "Card Name (optional)" which also contains "Name"
+      await page.getByLabel('Name', { exact: true }).fill(bankAccountName);
+      // Type defaults to bank — opening balance
+      await page.getByLabel('Opening Balance').fill('1500');
+      await page.getByRole('button', { name: 'Create Account' }).click();
+      await page.waitForLoadState('networkidle');
+
+      await expect(page.getByText(bankAccountName)).toBeVisible();
+
+      // ── 2. Add credit card ────────────────────────────────────────────────
+      await page.getByTitle('Add account').click();
+      await page.getByLabel('Name', { exact: true }).fill(ccName);
+      await page.getByLabel('Type').selectOption('credit_card');
+      await page.getByLabel('Credit Limit').fill('5000');
+      await page.getByLabel('Opening Balance').fill('200');
+      await page.getByRole('button', { name: 'Create Account' }).click();
+      await page.waitForLoadState('networkidle');
+
+      await expect(page.getByText(ccName)).toBeVisible();
+      // Credit card shows progress bar (used / limit)
+      await expect(page.getByText(/Used/i)).toBeVisible();
+
+      // ── 3. Add goal account ───────────────────────────────────────────────
+      await page.getByTitle('Add account').click();
+      await page.getByLabel('Name', { exact: true }).fill(goalName);
+      await page.getByLabel('Type').selectOption('goal');
+      await page.getByLabel('Target Amount').fill('10000');
+      await page.getByLabel('Opening Balance').fill('500');
+      await page.getByRole('button', { name: 'Create Account' }).click();
+      await page.waitForLoadState('networkidle');
+
+      await expect(page.getByText(goalName)).toBeVisible();
+    });
+
+    test('account detail: shows initial balance transaction', async ({ page }) => {
+      const accountsRes = await page.request.get('/api/finances/accounts');
+      const accountsData = (await accountsRes.json()) as { accounts: Array<{ id: number; name: string }> };
+      const bankAcc = accountsData.accounts.find(a => a.name === bankAccountName);
+      expect(bankAcc).toBeTruthy();
+
+      await page.goto(`/finances/accounts/${bankAcc!.id}`);
+      await page.waitForLoadState('networkidle');
+
+      await expect(page.getByText(bankAccountName)).toBeVisible();
+      await expect(page.getByTitle('Initial Balance')).toBeVisible();
+    });
+
+    test('transactions: add expense and payee autocomplete', async ({ page }) => {
+      await page.getByRole('button', { name: 'Transactions' }).click();
+      await page.waitForLoadState('networkidle');
+
+      // ── 1. Add expense ────────────────────────────────────────────────────
+      await page.getByTitle('Add transaction').click();
+      await expect(page.getByText('New Transaction')).toBeVisible();
+
+      // Default type is expense — fill in amount, account, and payee
+      await page.getByPlaceholder('0.00').fill('45.50');
+      // Select account (required to enable Save); first "Choose…" button in the grid
+      await page.getByRole('button', { name: 'Choose…' }).first().click();
+      await page.getByRole('button', { name: bankAccountName }).first().click();
+      await page.getByPlaceholder('e.g. Kaufland, Netflix…').fill('Supermarket');
+      await page.getByRole('button', { name: 'Save Expense' }).click();
+      await page.waitForLoadState('networkidle');
+
+      await expect(page.getByTitle('Supermarket')).toBeVisible();
+
+      // ── 2. Payee autocomplete: pill and fuzzy-search suggestions ──────────
+      // "Supermarket" was just saved, so it should appear as a most-used pill and
+      // as a fuzzy-search result when typing a partial name.
+      await page.getByTitle('Add transaction').click();
+      await expect(page.getByText('New Transaction')).toBeVisible();
+
+      // Most-used payee pill appears without typing anything
+      await expect(page.getByRole('button', { name: 'Supermarket' })).toBeVisible();
+
+      // Fuzzy search: typing a prefix narrows the dropdown
+      await page.getByPlaceholder('e.g. Kaufland, Netflix…').fill('Super');
+      await expect(page.getByRole('button', { name: 'Supermarket' }).first()).toBeVisible();
+
+      // Clicking the suggestion fills the payee field
+      await page.getByRole('button', { name: 'Supermarket' }).first().click();
+      await expect(page.getByPlaceholder('e.g. Kaufland, Netflix…')).toHaveValue('Supermarket');
+
+      // Close modal without saving
+      await page.getByRole('button', { name: 'Cancel' }).click();
+    });
+
+    test('transactions: add income and filter by type', async ({ page }) => {
+      await page.getByRole('button', { name: 'Transactions' }).click();
+      await page.waitForLoadState('networkidle');
+
+      // ── 1. Add income ─────────────────────────────────────────────────────
+      await page.getByTitle('Add transaction').click();
+      await expect(page.getByText('New Transaction')).toBeVisible();
+
+      await page.getByRole('button', { name: 'income', exact: true }).click();
+      await page.getByPlaceholder('0.00').fill('2000');
+      await page.getByRole('button', { name: 'Choose…' }).first().click();
+      await page.getByRole('button', { name: bankAccountName }).first().click();
+      await page.getByPlaceholder('e.g. Kaufland, Netflix…').fill('Employer');
+      await page.getByRole('button', { name: 'Save Income' }).click();
+      await page.waitForLoadState('networkidle');
+
+      await expect(page.getByTitle('Employer')).toBeVisible();
+
+      // ── 2. Filter by type ─────────────────────────────────────────────────
+      await page.getByRole('button', { name: 'Expenses', exact: true }).click();
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByTitle('Supermarket')).toBeVisible();
+      await expect(page.getByTitle('Employer')).not.toBeVisible();
+
+      await page.getByRole('button', { name: 'Income', exact: true }).click();
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByTitle('Employer')).toBeVisible();
+      await expect(page.getByTitle('Supermarket')).not.toBeVisible();
+
+      await page.getByRole('button', { name: 'All', exact: true }).click();
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByTitle('Supermarket')).toBeVisible();
+      await expect(page.getByTitle('Employer')).toBeVisible();
+    });
+
+    test('categories: add group and category', async ({ page }) => {
+      await page.getByRole('button', { name: 'Categories' }).click();
+      await page.waitForLoadState('networkidle');
+
+      // ── 1. Add group via the "+ New Group" button at the bottom of the page ─
+      await page.getByRole('button', { name: '+ New Group' }).click();
+      await expect(page.getByText('New Group', { exact: true })).toBeVisible();
+
+      await page.getByLabel('Name').fill(groupName);
+      await page.getByRole('button', { name: 'Create' }).click();
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(groupName)).toBeVisible();
+
+      // ── 2. Add category via the group's "+ Add" button ────────────────────
+      await page.getByRole('button', { name: '+ Add', exact: true }).click();
+      await expect(page.getByText('New Category')).toBeVisible();
+
+      await page.getByLabel('Name').fill(catName);
+      await page.getByTitle('Groceries').click(); // select 🛒 icon
+      await page.getByLabel('Monthly Target (optional)').fill('400');
+      await page.getByRole('button', { name: 'Create' }).click();
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(catName)).toBeVisible();
+      // Shows "Target amount/mo" label in the category row
+      await expect(page.getByText(/Target.*\/mo/)).toBeVisible();
+    });
+
+    test('goals: goal account appears on goals page', async ({ page }) => {
+      await page.getByRole('button', { name: 'Goals' }).click();
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(goalName)).toBeVisible();
+    });
+
+    test('dashboard: monthly income and expense figures shown', async ({ page }) => {
+      await page.getByRole('button', { name: 'Dashboard' }).click();
+      await page.waitForLoadState('networkidle');
+      await expect(page.locator('[data-card]').filter({ hasText: 'Net Worth' })).toBeVisible();
+      await expect(page.getByText('This Month')).toBeVisible();
+      await expect(page.getByText('Income')).toBeVisible();
+      await expect(page.getByText('Expenses')).toBeVisible();
+    });
   });
 
   /**
@@ -293,17 +305,13 @@ test.describe('Finances', () => {
     // Fill amount
     await page.getByPlaceholder('0.00').fill('250');
 
-    // Select from account — dropdowns are non-searchable (renders as buttons, not inputs)
-    const accFieldCard = page
-      .locator('text=Account')
-      .locator('xpath=ancestor::div[contains(@class,"rounded")]')
-      .first();
-    await accFieldCard.getByRole('button').first().click(); // opens Account dropdown
+    // Select from account — FinancialDropdown with searchable=false renders a button trigger.
+    // Scope via the exact FieldCard label so "To Account" is not matched.
+    await page.getByText('Account', { exact: true }).locator('..').getByRole('button').click();
     await page.getByRole('button', { name: fromAcc.name }).first().click();
 
     // Select to account
-    const toAccCard = page.getByText('To Account').locator('xpath=ancestor::div[contains(@class,"rounded")]').first();
-    await toAccCard.getByRole('button').first().click(); // opens To Account dropdown
+    await page.getByText('To Account', { exact: true }).locator('..').getByRole('button').click();
     await page.getByRole('button', { name: toAcc.name }).first().click();
 
     const saveResponsePromise = page.waitForResponse(
@@ -333,7 +341,7 @@ test.describe('Finances', () => {
     await page.waitForLoadState('networkidle');
 
     // ── 1. Owner sees themselves with Owner badge ─────────────────────────────
-    await expect(page.getByText('Budget Settings')).toBeVisible();
+    await expect(page.getByText('Settings').first()).toBeVisible();
     const membersCard = page.getByText('Members').locator('xpath=ancestor::div[contains(@class,"rounded")]').first();
     await expect(membersCard.getByText('Owner')).toBeVisible();
 
@@ -367,29 +375,18 @@ test.describe('Finances', () => {
   });
 
   /**
-   * Budget settings: rename budget and delete budget.
+   * Budget settings: delete budget (two-step confirmation).
    * Deletion redirects to /finances which shows the CreateBudgetScreen again.
    */
-  test('budget settings: rename budget and delete budget redirects to create screen', async ({ page }) => {
+  test('budget settings: delete budget redirects to create screen', async ({ page }) => {
     await deleteFinances(page);
-    const originalName = uniqueName('Budget To Rename');
-    await createBudgetViaAPI(page, originalName);
+    await createBudgetViaAPI(page, uniqueName('Budget To Delete'));
 
     await page.goto('/finances/settings');
     // Wait for settings to fully load — first access may trigger compilation in dev mode
-    await expect(page.getByText('Budget Settings')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('Settings').first()).toBeVisible({ timeout: 30_000 });
 
-    // ── 1. Rename the budget ──────────────────────────────────────────────────
-    const updatedName = `${originalName} Updated`;
-    const nameInput = page.getByLabel('Budget name');
-    await nameInput.fill(updatedName);
-    await page.getByRole('button', { name: 'Save changes' }).click();
-    await page.waitForLoadState('networkidle');
-
-    // Verify the form reflects the saved name (sidebar only updates on full page reload)
-    await expect(page.getByLabel('Budget name')).toHaveValue(updatedName, { timeout: 10_000 });
-
-    // ── 2. Delete the budget (two-step confirmation) ──────────────────────────
+    // ── 1. Delete the budget (two-step confirmation) ──────────────────────────
     await page.getByRole('button', { name: 'Delete budget…' }).click();
     await expect(page.getByText('Are you sure? All data will be permanently deleted.')).toBeVisible();
 
@@ -459,6 +456,57 @@ test.describe('Finances', () => {
   });
 
   /**
+   * Budgets section on the settings page: create a new budget using the inline form,
+   * verify it becomes the active budget and the sidebar name updates, then switch
+   * back to the original budget and verify the sidebar reflects the change.
+   */
+  test('budgets section: create new budget, make active, sidebar updates', async ({ page }) => {
+    const alphaName = uniqueName('Budget Alpha');
+    const betaName = uniqueName('Budget Beta');
+
+    await deleteFinances(page);
+    await createBudgetViaAPI(page, alphaName);
+
+    await page.goto('/finances/settings');
+    await page.waitForLoadState('networkidle');
+
+    // ── 1. Alpha is active — visible in budgets list and in sidebar ───────────
+    // "Active" badge only appears in the budgets list row (not the sidebar), so it's unambiguous
+    await expect(page.getByText('Active')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('sidebar-budget-name')).toContainText(alphaName);
+
+    // ── 2. Create Beta via the inline "New budget" form ───────────────────────
+    await page.getByRole('button', { name: '+ New budget' }).click();
+    await expect(page.getByPlaceholder('e.g. Household, Personal…')).toBeVisible();
+    await page.getByPlaceholder('e.g. Household, Personal…').fill(betaName);
+
+    const createResponsePromise = page.waitForResponse(
+      res => res.url().includes('/api/finances/budgets') && res.request().method() === 'POST',
+    );
+    await page.getByRole('button', { name: 'Create budget' }).click();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBe(201);
+
+    // ── 3. Creating a budget activates it — sidebar should switch to Beta ─────
+    // Wait for the inline form to close (confirms submit completed) then check sidebar
+    await expect(page.getByPlaceholder('e.g. Household, Personal…')).not.toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('sidebar-budget-name')).toContainText(betaName, { timeout: 10_000 });
+
+    // ── 4. Make Alpha active again — sidebar should switch back ───────────────
+    const activateResponsePromise = page.waitForResponse(
+      res => res.url().includes('/api/finances/budgets') && res.request().method() === 'PATCH',
+    );
+    // Only Alpha has the "Make active" button at this point
+    await page.getByRole('button', { name: 'Make active' }).click();
+    const activateResponse = await activateResponsePromise;
+    expect(activateResponse.status()).toBe(200);
+
+    await expect(page.getByTestId('sidebar-budget-name')).toContainText(alphaName, { timeout: 10_000 });
+    // Beta now has the "Make active" button; Alpha shows "Active" badge
+    await expect(page.getByRole('button', { name: 'Make active' })).toHaveCount(1);
+  });
+
+  /**
    * Seeded shared budget fixture: the test user is a MEMBER (not owner) of a shared
    * budget created by the seed. Verifies that the shared budget appears accessible
    * but the user cannot see the invite form (non-owner restriction).
@@ -483,7 +531,7 @@ test.describe('Finances', () => {
         await page.goto('/finances/settings');
         await page.waitForLoadState('networkidle');
 
-        await expect(page.getByText('Budget Settings')).toBeVisible();
+        await expect(page.getByText('Settings').first()).toBeVisible();
         // Non-owner: no invite input visible
         await expect(page.getByPlaceholder('colleague@example.com')).not.toBeVisible();
         // Budget name shown

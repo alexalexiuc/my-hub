@@ -83,7 +83,7 @@ export const accountItemSchema = z
     dueDate: z.string().optional(),
     settled: z.boolean().optional(),
   })
-  .passthrough();
+  .loose();
 
 export const accountsListResponseSchema = z.object({
   currency: z.string(),
@@ -112,7 +112,7 @@ export const accountDetailResponseSchema = z.object({
 });
 
 export const accountMutationResponseSchema = z.object({
-  account: z.object({ id: z.number().int() }).passthrough(),
+  account: z.object({ id: z.number().int() }).loose(),
 });
 
 export const scheduleRowSchema = z.object({
@@ -155,7 +155,7 @@ export const budgetInfoSchema = z
     isOwner: z.boolean(),
     isActive: z.boolean().optional(),
   })
-  .passthrough();
+  .loose();
 
 export const budgetDetailResponseSchema = z.object({
   budget: budgetInfoSchema,
@@ -210,14 +210,14 @@ export const categoryMutationResponseSchema = z
     id: z.number().int(),
     name: z.string(),
   })
-  .passthrough();
+  .loose();
 
 export const groupMutationResponseSchema = z
   .object({
     id: z.number().int(),
     name: z.string(),
   })
-  .passthrough();
+  .loose();
 
 export const goalItemSchema = z.object({
   id: z.number().int(),
@@ -305,7 +305,7 @@ export const transactionsListResponseSchema = z.object({
 });
 
 export const transactionMutationResponseSchema = z.object({
-  transaction: z.object({ id: z.number().int() }).passthrough(),
+  transaction: z.object({ id: z.number().int() }).loose(),
   listItem: transactionListItemSchema.optional(),
 });
 
