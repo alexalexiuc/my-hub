@@ -225,6 +225,13 @@
       "when": 1777445713564,
       "tag": "0032_living_mattie_franklin",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1777898261829,
+      "tag": "0033_zippy_stick",
+      "breakpoints": true
     }
   ]
 }

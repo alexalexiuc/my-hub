@@ -1,8 +1,12 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route } from '@/lib/api/route';
 import { generateCaloriesAutomationKey } from '@my-hub/shared/services';
 
-export const POST = withAuth(async ({ user }) => {
+const GenerateAutomationKeyResponseSchema = z.object({
+  automationApiKey: z.string(),
+});
+
+export const POST = route({ response: GenerateAutomationKeyResponseSchema })(async ({ user }) => {
   const automationApiKey = await generateCaloriesAutomationKey(user.id);
-  return NextResponse.json({ automationApiKey });
+  return { automationApiKey };
 });
