@@ -232,6 +232,13 @@
       "when": 1777898261829,
       "tag": "0033_zippy_stick",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1777900149707,
+      "tag": "0034_spicy_morg",
+      "breakpoints": true
     }
   ]
 }

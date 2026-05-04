@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getMeasurementTypes } from '@my-hub/shared/services';
+import { measurementTypeDefinitions } from '@my-hub/shared/constants';
 import { DeleteMealSchema, deleteMealTool, GetMealsSchema, getMealsTool, LogMealSchema, logMealTool } from './meals';
 import { defineTool, toolResponse, withUserIdCheck } from '../../shared/toolsUtils';
 import { UpdateProfileSchema, updateProfileTool } from './profile';
@@ -99,8 +99,7 @@ const caloriesTools = [
     description: 'List all available measurement types with their units (weight in kg, height in cm, etc.)',
     annotations: { readOnlyHint: true },
     callback: async () => {
-      const types = await getMeasurementTypes();
-      return toolResponse(types.map(t => ({ key: t.key, label: t.label, unit: t.unit })));
+      return toolResponse(measurementTypeDefinitions.map(t => ({ key: t.key, label: t.label, unit: t.unit })));
     },
   }),
   defineTool({

@@ -49,7 +49,7 @@
 | File              | What's inside                                                                                                                                                                                                                                                                      |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `measurements.ts` | Body measurement CRUD: `logMeasurement` (single insert), `logMeasurementsBatch` (batch insert with shared `createdAt` + `entrySource`), `getMeasurements` (filtered by typeKey/date/entrySource), `getLatestMeasurementsPerType`, `deleteMeasurement`, `deleteAllUserMeasurements` |
-| `types.ts`        | Measurement type lookups: `getMeasurementTypes`, `getMeasurementTypeByKey`                                                                                                                                                                                                         |
+| `types.ts`        | Measurement type lookups: `findMeasurementTypeByKey`                                                                                                                                                                                                                               |
 
 ## Service inventory — `src/services/calories/`
 

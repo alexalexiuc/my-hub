@@ -90,7 +90,6 @@ route redirects to `/calories`.
 | GET    | `/api/calories/measurements?type=`    | Returns body measurements with filters        |
 | POST   | `/api/calories/measurements`          | Logs a new body measurement                   |
 | DELETE | `/api/calories/measurements/[id]`     | Deletes a body measurement by ID              |
-| GET    | `/api/calories/measurement-types`     | Returns all available measurement types       |
 
 ---
 

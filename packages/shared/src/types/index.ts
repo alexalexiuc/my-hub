@@ -1,5 +1,5 @@
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
-import type { MeasurementTypeKey, MeasurementEntrySource } from '../constants/measurements';
+import type { MeasurementTypeDefinition, MeasurementTypeKey, MeasurementEntrySource } from '../constants/measurements';
 import type {
   users,
   oauthClients,
@@ -7,7 +7,6 @@ import type {
   mcpServers,
   calorieProfiles,
   mealLogs,
-  measurementTypes,
   bodyMeasurements,
   apiRequestLogs,
   todos,
@@ -52,8 +51,8 @@ export type MealLog = InferSelectModel<typeof mealLogs>;
 export type NewMealLog = InferInsertModel<typeof mealLogs>;
 
 // Body Measurements
-export type MeasurementType = InferSelectModel<typeof measurementTypes>;
-export type NewMeasurementType = InferInsertModel<typeof measurementTypes>;
+export type MeasurementType = MeasurementTypeDefinition;
+export type NewMeasurementType = MeasurementTypeDefinition;
 export type BodyMeasurement = InferSelectModel<typeof bodyMeasurements>;
 export type NewBodyMeasurement = InferInsertModel<typeof bodyMeasurements>;
 export type { MeasurementTypeKey, MeasurementEntrySource };

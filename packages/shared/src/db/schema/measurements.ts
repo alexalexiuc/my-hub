@@ -12,14 +12,6 @@ import { users } from './users';
 // ---------------------------------------------------------------------------
 // Body Measurements tables
 // ---------------------------------------------------------------------------
-/** Lookup table for measurement types (weight, height, neck, etc.) */
-export const measurementTypes = pgTable('measurement_types', {
-  key: text('key').$type<MeasurementTypeKey>().primaryKey(), // e.g. 'weight', 'height', 'neck'
-  label: text('label').notNull(), // e.g. 'Weight', 'Height', 'Neck circumference'
-  unit: text('unit').notNull(), // e.g. 'kg', 'cm', '%'
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-});
-
 /** Time-series body measurements per user */
 export const bodyMeasurements = pgTable(
   'body_measurements',
@@ -28,10 +20,7 @@ export const bodyMeasurements = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id),
-    typeKey: text('type_key')
-      .$type<MeasurementTypeKey>()
-      .notNull()
-      .references(() => measurementTypes.key),
+    typeKey: text('type_key').$type<MeasurementTypeKey>().notNull(),
     date: text('date').notNull(), // YYYY-MM-DD
     value: real('value').notNull(),
     notes: text('notes'),

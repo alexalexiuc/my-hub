@@ -39,16 +39,16 @@ PostgreSQL on the self-hosted platform.
 
 ## Technical Requirements
 
-| ID    | Requirement                                                                                                                                                                                    |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TR-01 | Implementation lives in `packages/mcp-server/src/calories/` — `server.ts` wires tools; `tools/` contains `profile.ts`, `meals.ts`, `summary.ts`, and `measurements.ts`.                        |
-| TR-02 | DB schema uses four tables: `calorie_profiles` (age, sex, activity, goal), `meal_logs`, `measurement_types` (lookup with key/label/unit), and `body_measurements` (time-series per user+type). |
-| TR-03 | Access is protected by OAuth 2.1 PKCE; `mcpAuthHandler` validates the Bearer token and attaches `userId` to the request.                                                                       |
-| TR-04 | All DB queries go through `packages/shared/src/services/calories/` and `packages/shared/src/services/measurements/` — no raw Drizzle in `mcp-server`.                                          |
-| TR-05 | MCP transport uses `WebStandardStreamableHTTPServerTransport` in stateless mode (new server instance per POST).                                                                                |
-| TR-06 | `measurement_types` is a lookup table pre-seeded with: `weight` (kg), `height` (cm), `neck` (cm), `waist` (cm), `hips` (cm), `chest` (cm), `bicep` (cm), `body_fat` (%). Seeded via migration. |
-| TR-07 | `calories_get_profile` and TDEE-dependent summary tools must call `getLatestMeasurementsPerType(userId)` and pass the latest `height`/`weight` values to `calculateTDEE`.                      |
-| TR-08 | Date defaults for calorie daily/history flows must use the authenticated user's stored timezone when available (falling back to server-local behavior only when timezone is unset/invalid).    |
+| ID    | Requirement                                                                                                                                                                                                              |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| TR-01 | Implementation lives in `packages/mcp-server/src/calories/` — `server.ts` wires tools; `tools/` contains `profile.ts`, `meals.ts`, `summary.ts`, and `measurements.ts`.                                                  |
+| TR-02 | DB schema uses three tables: `calorie_profiles` (age, sex, activity, goal), `meal_logs`, and `body_measurements` (time-series per user+type). Measurement type metadata (key/label/unit) is defined in shared constants. |
+| TR-03 | Access is protected by OAuth 2.1 PKCE; `mcpAuthHandler` validates the Bearer token and attaches `userId` to the request.                                                                                                 |
+| TR-04 | All DB queries go through `packages/shared/src/services/calories/` and `packages/shared/src/services/measurements/` — no raw Drizzle in `mcp-server`.                                                                    |
+| TR-05 | MCP transport uses `WebStandardStreamableHTTPServerTransport` in stateless mode (new server instance per POST).                                                                                                          |
+| TR-06 | Measurement types are defined in `packages/shared/src/constants/measurements.ts` as a constant list of `{ key, label, unit }` objects (e.g. `weight`/kg, `height`/cm, `body_fat`/%), consumed by Hub and MCP services.   |
+| TR-07 | `calories_get_profile` and TDEE-dependent summary tools must call `getLatestMeasurementsPerType(userId)` and pass the latest `height`/`weight` values to `calculateTDEE`.                                                |
+| TR-08 | Date defaults for calorie daily/history flows must use the authenticated user's stored timezone when available (falling back to server-local behavior only when timezone is unset/invalid).                              |
 
 ---
 

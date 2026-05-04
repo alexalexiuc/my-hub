@@ -40,3 +40,6 @@
 - [ ] Add auto versioning
 - [ ] Discover areas that can benefit from caching
 - [ ] IMPORTANT: Change how time sensitive records are added. (calories, expenses) We should save an additional column with hte timestamp sent from the device, and use that for all queries and display, instead of computing the timestamp & user's timezone setting, because if record will be added from a different timezone, then data will be corrupted. Important remark - When data is added through MCP, we need to be sure that AI model is aware of actual time and instruct it to send time of the device. A sanity check should also be performed in the MCP server to verify that the sent timestamp is not too far in the future or past, to prevent abuse or errors. This change will ensure that all time-sensitive data is stored and displayed correctly according to the actual time it was recorded, regardless of the user's timezone or where they are when adding the data.
+- [ ] Add generic for body and query to the apiFetch function
+- [ ] Add route() wrapper to all api routes with zod schemas
+- [ ] Update all apiFetch() function calls with schema types

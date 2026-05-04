@@ -11,9 +11,10 @@
  */
 import { and, desc, eq, between } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { bodyMeasurements, measurementTypes } from '../../db/schema/measurements';
+import { bodyMeasurements } from '../../db/schema/measurements';
 import type { MeasurementTypeKey, MeasurementEntrySource } from '../../db/schema/measurements';
 import type { BodyMeasurement, NewBodyMeasurement } from '../../types';
+import { measurementTypeDefinitionsByKey } from '../../constants';
 
 export interface GetMeasurementsFilter {
   typeKey?: MeasurementTypeKey;
@@ -26,6 +27,16 @@ export interface GetMeasurementsFilter {
 export interface MeasurementWithType extends BodyMeasurement {
   typeLabel: string;
   typeUnit: string;
+}
+
+function withTypeMetadata(row: BodyMeasurement): MeasurementWithType {
+  const type = measurementTypeDefinitionsByKey[row.typeKey];
+  return {
+    ...row,
+    value: roundMeasurementValue(row.value),
+    typeLabel: type.label,
+    typeUnit: type.unit,
+  };
 }
 
 /** Rounds a measurement value to 4 decimal places to avoid IEEE 754 floating-point artifacts. */
@@ -96,16 +107,13 @@ export async function getMeasurements(
       notes: bodyMeasurements.notes,
       entrySource: bodyMeasurements.entrySource,
       createdAt: bodyMeasurements.createdAt,
-      typeLabel: measurementTypes.label,
-      typeUnit: measurementTypes.unit,
     })
     .from(bodyMeasurements)
-    .innerJoin(measurementTypes, eq(bodyMeasurements.typeKey, measurementTypes.key))
     .where(and(...conditions))
     .orderBy(desc(bodyMeasurements.date), desc(bodyMeasurements.createdAt))
     .limit(limit);
 
-  return rows.map(row => ({ ...row, value: roundMeasurementValue(row.value) }));
+  return rows.map(withTypeMetadata);
 }
 
 /** Returns the latest measurement value for each type the user has recorded */
@@ -120,11 +128,8 @@ export async function getLatestMeasurementsPerType(userId: string): Promise<Meas
       notes: bodyMeasurements.notes,
       entrySource: bodyMeasurements.entrySource,
       createdAt: bodyMeasurements.createdAt,
-      typeLabel: measurementTypes.label,
-      typeUnit: measurementTypes.unit,
     })
     .from(bodyMeasurements)
-    .innerJoin(measurementTypes, eq(bodyMeasurements.typeKey, measurementTypes.key))
     .where(eq(bodyMeasurements.userId, userId))
     .orderBy(desc(bodyMeasurements.date), desc(bodyMeasurements.createdAt));
 
@@ -134,7 +139,7 @@ export async function getLatestMeasurementsPerType(userId: string): Promise<Meas
   for (const row of allRows) {
     if (!seen.has(row.typeKey)) {
       seen.add(row.typeKey);
-      latest.push({ ...row, value: roundMeasurementValue(row.value) });
+      latest.push(withTypeMetadata(row));
     }
   }
   return latest;
