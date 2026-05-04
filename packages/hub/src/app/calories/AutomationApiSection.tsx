@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { SectionCard, Button } from '@/components';
+import { SectionCard, Button, DisclosureToggle } from '@/components';
+import { measurementTypeKeys } from '@my-hub/shared/constants';
 
 type AutomationApiSectionProps = {
   userId: string | undefined;
@@ -12,9 +13,9 @@ type AutomationApiSectionProps = {
 export function AutomationApiSection({ userId, initialKey }: AutomationApiSectionProps) {
   const [automationKey, setAutomationKey] = useState<string | null>(initialKey ?? null);
   const [showKey, setShowKey] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [instructionsOpenSignal, setInstructionsOpenSignal] = useState(0);
 
   async function generateKey() {
     setIsGenerating(true);
@@ -25,7 +26,7 @@ export function AutomationApiSection({ userId, initialKey }: AutomationApiSectio
       });
       setAutomationKey(data.automationApiKey);
       setShowKey(true);
-      setShowInstructions(true);
+      setInstructionsOpenSignal(v => v + 1);
     } finally {
       setIsGenerating(false);
     }
@@ -85,17 +86,7 @@ export function AutomationApiSection({ userId, initialKey }: AutomationApiSectio
             </button>
           </div>
 
-          {/* Instructions toggle */}
-          <button
-            type="button"
-            className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors flex items-center gap-1"
-            onClick={() => setShowInstructions(v => !v)}
-          >
-            <span>{showInstructions ? '▼' : '▶'}</span>
-            <span>API instructions</span>
-          </button>
-
-          {showInstructions && (
+          <DisclosureToggle label="API instructions" openSignal={instructionsOpenSignal}>
             <div className="space-y-3 rounded-lg border border-zinc-700 bg-zinc-900 p-4 text-xs">
               {/* Endpoint URL */}
               <div>
@@ -150,11 +141,15 @@ export function AutomationApiSection({ userId, initialKey }: AutomationApiSectio
 
               {/* Available types hint */}
               <p className="text-zinc-600">
-                Available <code>typeKey</code> values: <code>weight</code>, <code>height</code>, <code>waist</code>,{' '}
-                <code>hips</code>, <code>chest</code>, <code>neck</code>, <code>bicep</code>, <code>body_fat</code>
+                Available:{' '}
+                {measurementTypeKeys.map(t => (
+                  <code key={t} className="font-mono">
+                    {t}{' '}
+                  </code>
+                ))}
               </p>
             </div>
-          )}
+          </DisclosureToggle>
         </div>
       )}
     </SectionCard>

@@ -3,6 +3,7 @@ export { BookingTypeIcon } from './BookingTypeIcon';
 export { Button } from './Button';
 export { Checkbox } from './Checkbox';
 export { ColorPicker } from './ColorPicker';
+export { DisclosureToggle } from './DisclosureToggle';
 export { Field } from './Field';
 export { FilePicker } from './FilePicker';
 export { IconButton } from './IconButton';

@@ -21,7 +21,7 @@ const paramsSchema = z.object({
 
 const bodySchema = z.union([
   itemSchema,
-  z.array(itemSchema).length(1, { message: 'At least one measurement is required' }),
+  z.array(itemSchema).min(1, { message: 'At least one measurement is required' }),
 ]);
 
 export const POST = route({ public: true, params: paramsSchema, body: bodySchema })(async ({ req, params, body }) => {

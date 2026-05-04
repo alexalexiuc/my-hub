@@ -30,7 +30,7 @@ export interface MeasurementWithType extends BodyMeasurement {
 }
 
 function withTypeMetadata(row: BodyMeasurement): MeasurementWithType {
-  const type = measurementTypeDefinitionsByKey[row.typeKey];
+  const type = measurementTypeDefinitionsByKey[row.typeKey] || { label: row.typeKey, unit: '' };
   return {
     ...row,
     value: roundMeasurementValue(row.value),

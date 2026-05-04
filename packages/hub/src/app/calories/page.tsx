@@ -200,7 +200,7 @@ export default function CaloriesDashboardPage() {
       <ProfileCard profile={profile} latestMeasurements={latestMeasurements} onUpdated={loadData} />
 
       {/* Automation API key management */}
-      <AutomationApiSection userId={profile?.userId} initialKey={profile?.automationApiKey} />
+      {profile && <AutomationApiSection userId={profile.userId} initialKey={profile.automationApiKey} />}
     </main>
   );
 }
