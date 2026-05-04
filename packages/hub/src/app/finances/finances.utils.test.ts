@@ -20,7 +20,7 @@ describe('sortBudgets', () => {
       makeBudget({ id: 2, name: 'Beta', isActive: true }),
     ];
     const result = sortBudgets(budgets);
-    expect(result[0].id).toBe(2);
+    expect(result[0]!.id).toBe(2);
   });
 
   it('sorts remaining budgets alphabetically by name', () => {
@@ -40,7 +40,7 @@ describe('sortBudgets', () => {
       makeBudget({ id: 3, name: 'Middle', isActive: true }),
     ];
     const result = sortBudgets(budgets);
-    expect(result[0].name).toBe('Middle');
+    expect(result[0]!.name).toBe('Middle');
     expect(result.slice(1).map(b => b.name)).toEqual(['Alpha', 'Zebra']);
   });
 
