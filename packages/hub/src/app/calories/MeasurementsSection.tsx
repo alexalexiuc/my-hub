@@ -87,6 +87,11 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
                 <span className="text-sm font-normal text-zinc-400 ml-1">{m.typeUnit}</span>
               </p>
               <p className="text-xs text-zinc-500 mt-0.5">{m.date}</p>
+              {m.entrySource !== 'hub' && (
+                <span className="inline-block mt-1 rounded px-1.5 py-0.5 text-[10px] font-medium bg-indigo-950/60 border border-indigo-800/50 text-indigo-400 uppercase tracking-wide">
+                  {m.entrySource}
+                </span>
+              )}
               <Button
                 variant="ghost"
                 size="xs"

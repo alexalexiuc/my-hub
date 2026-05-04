@@ -26,6 +26,7 @@ export const calorieProfiles = pgTable('calorie_profiles', {
   goalCarbs: real('goal_carbs'), // optional daily carbs target in grams
   goalFat: real('goal_fat'), // optional daily fat target in grams
   notes: text('notes'),
+  automationApiKey: text('automation_api_key'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

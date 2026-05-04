@@ -152,6 +152,7 @@ services:
       - 'traefik.http.routers.mcp-staging.rule=Host(`staging.mcp.alexiuc.dev`)'
       - 'traefik.http.routers.mcp-staging.entrypoints=websecure'
       - 'traefik.http.routers.mcp-staging.tls.certresolver=letsencrypt'
+      - 'traefik.http.routers.mcp-staging.middlewares=secure-headers@file,rate-limit@file'
       - 'traefik.http.services.mcp-staging.loadbalancer.server.port=3001'
 
   # ---------------------------------------------------------------------------
@@ -204,6 +205,7 @@ services:
       - 'traefik.http.routers.hub-staging.rule=Host(`staging.hub.alexiuc.dev`)'
       - 'traefik.http.routers.hub-staging.entrypoints=websecure'
       - 'traefik.http.routers.hub-staging.tls.certresolver=letsencrypt'
+      - 'traefik.http.routers.hub-staging.middlewares=secure-headers@file,rate-limit@file'
       - 'traefik.http.services.hub-staging.loadbalancer.server.port=3000'
 
 volumes:

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch, ApiError } from '@/lib/utils';
 import Link from 'next/link';
-import type { CalorieProfile, MealLog, MeasurementType } from '@my-hub/shared/types';
+import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { calculateCalorieTargets, dateToString, getCurrentWeekDays } from '@my-hub/shared/utils';
 import { IconButton, PageHeader } from '@/components';
@@ -12,9 +12,11 @@ import { GoalProgressCard } from './GoalProgressCard';
 import { MacroChart } from './MacroChart';
 import { MealsSection } from './MealsSection';
 import { MeasurementsSection } from './MeasurementsSection';
+import { AutomationApiSection } from './AutomationApiSection';
 import { ProfileCard } from './ProfileCard';
 import { WeeklyChart } from './WeeklyChart';
 import { WeightChart } from './WeightChart';
+import { measurementTypeDefinitions } from '@my-hub/shared/constants';
 
 export default function CaloriesDashboardPage() {
   const [profile, setProfile] = useState<CalorieProfile | null>(null);
@@ -22,7 +24,6 @@ export default function CaloriesDashboardPage() {
   const [meals, setMeals] = useState<MealLog[]>([]);
   const [weeklyMeals, setWeeklyMeals] = useState<MealLog[]>([]);
   const [weightHistory, setWeightHistory] = useState<MeasurementWithType[]>([]);
-  const [measurementTypes, setMeasurementTypes] = useState<MeasurementType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,10 +48,9 @@ export default function CaloriesDashboardPage() {
   const loadData = useCallback(async () => {
     try {
       const date = selectedDateRef.current;
-      const [profileData, mealsData, typesData, weeklyData, weightData] = await Promise.all([
+      const [profileData, mealsData, weeklyData, weightData] = await Promise.all([
         apiFetch<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>('/api/calories/profile'),
         apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date, limit: 100 } }),
-        apiFetch<{ types: MeasurementType[] }>('/api/calories/measurement-types'),
         apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { dateFrom: weekStart, dateTo: today } }),
         apiFetch<{ measurements: MeasurementWithType[] }>('/api/calories/measurements', {
           query: { type: 'weight', limit: 30 },
@@ -62,7 +62,6 @@ export default function CaloriesDashboardPage() {
       if (selectedDateRef.current === date) {
         setMeals(mealsData.meals);
       }
-      setMeasurementTypes(typesData.types);
       setWeeklyMeals(weeklyData.meals);
       setWeightHistory(weightData.measurements);
     } catch (e) {
@@ -193,12 +192,15 @@ export default function CaloriesDashboardPage() {
       {/* Measurements */}
       <MeasurementsSection
         latestMeasurements={latestMeasurements}
-        measurementTypes={measurementTypes}
+        measurementTypes={measurementTypeDefinitions}
         onChanged={loadData}
       />
 
       {/* Settings (profile) — at the bottom */}
       <ProfileCard profile={profile} latestMeasurements={latestMeasurements} onUpdated={loadData} />
+
+      {/* Automation API key management */}
+      <AutomationApiSection userId={profile?.userId} initialKey={profile?.automationApiKey} />
     </main>
   );
 }

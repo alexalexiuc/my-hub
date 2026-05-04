@@ -1,3 +1,14 @@
+/**
+ * Calorie profile service.
+ *
+ * Exports:
+ *   getCalorieProfile              — fetch a user's calorie profile
+ *   upsertCalorieProfile           — create or update a calorie profile
+ *   deleteCalorieProfile           — delete a calorie profile
+ *   deleteAllUserCalorieProfiles   — bulk delete all profiles for a user
+ *   generateCaloriesAutomationKey  — generate and persist a new automation API key
+ */
+import { randomBytes } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { calorieProfiles } from '../../db/schema/calories';
@@ -47,4 +58,14 @@ export async function upsertCalorieProfile(userId: string, updates: ProfileUpdat
     .returning();
   if (!row) throw new Error('Insert did not return a row');
   return row;
+}
+
+/**
+ * Generates a new 64-char hex automation API key, persists it to the user's
+ * calorie profile, and returns it. Overwrites any previously set key.
+ */
+export async function generateCaloriesAutomationKey(userId: string): Promise<string> {
+  const key = randomBytes(32).toString('hex');
+  await upsertCalorieProfile(userId, { automationApiKey: key });
+  return key;
 }

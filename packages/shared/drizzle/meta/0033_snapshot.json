@@ -1,6 +1,6 @@
 {
-  "id": "20c73621-2c36-461d-a09d-b217e3e5eca3",
-  "prevId": "2d0cb1f4-d1ad-4f4e-a7f5-5d0bde535d3f",
+  "id": "6b7b06fa-e585-4662-ad3b-4c926d5fb70e",
+  "prevId": "d3bad1bb-8821-4a0e-bafb-96fff094a127",
   "version": "6",
   "dialect": "postgresql",
   "tables": {
@@ -431,6 +431,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "automation_api_key": {
+          "name": "automation_api_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -653,6 +659,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "entry_source": {
+          "name": "entry_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'hub'"
         },
         "created_at": {
           "name": "created_at",
@@ -2859,14 +2872,14 @@
           "type": "numeric(18, 4)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'0'"
+          "default": 0
         },
         "balance": {
           "name": "balance",
           "type": "numeric(18, 4)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'0'"
+          "default": 0
         },
         "archived": {
           "name": "archived",
@@ -2952,6 +2965,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {
@@ -3419,6 +3439,25 @@
           "primaryKey": false,
           "notNull": true
         },
+        "normalized_name": {
+          "name": "normalized_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stats_by_user": {
+          "name": "stats_by_user",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -3428,13 +3467,20 @@
         }
       },
       "indexes": {
-        "uq_finance_payees_budget_name": {
-          "name": "uq_finance_payees_budget_name",
+        "uq_finance_payees_budget_norm": {
+          "name": "uq_finance_payees_budget_norm",
           "columns": [
             "budget_id",
-            "name"
+            "normalized_name"
           ],
           "isUnique": true
+        },
+        "idx_finance_payees_budget": {
+          "name": "idx_finance_payees_budget",
+          "columns": [
+            "budget_id"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -3500,7 +3546,13 @@
           "type": "numeric(18, 8)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'1'"
+          "default": 1
+        },
+        "to_exchange_rate": {
+          "name": "to_exchange_rate",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": false
         },
         "date": {
           "name": "date",
@@ -3722,6 +3774,7 @@
       "values": [
         "apiary",
         "calories",
+        "finances",
         "products",
         "travel",
         "todo"
