@@ -365,7 +365,7 @@ describe('addTransaction', () => {
       toAccountBalanceAfter: null,
     });
 
-    expect(incrementPayeeStats).toHaveBeenCalledWith(tx, 5, 'user-1', 3);
+    expect(incrementPayeeStats).toHaveBeenCalledWith(tx, 5, 'user-1', 3, 10);
   });
 
   it('skips payee stats when payeeId is null', async () => {
@@ -460,7 +460,7 @@ describe('updateTransaction', () => {
     await updateTransaction('user-1', 1, 1, { payeeId: 7 });
 
     expect(decrementPayeeStats).toHaveBeenCalledWith(tx, 5, 'user-1');
-    expect(incrementPayeeStats).toHaveBeenCalledWith(tx, 7, 'user-1', 3);
+    expect(incrementPayeeStats).toHaveBeenCalledWith(tx, 7, 'user-1', 3, 10);
   });
 
   it('increments payee stats on category change without payee change', async () => {
@@ -473,7 +473,7 @@ describe('updateTransaction', () => {
     await updateTransaction('user-1', 1, 1, { categoryId: 8 });
 
     expect(decrementPayeeStats).not.toHaveBeenCalled();
-    expect(incrementPayeeStats).toHaveBeenCalledWith(tx, 5, 'user-1', 8);
+    expect(incrementPayeeStats).toHaveBeenCalledWith(tx, 5, 'user-1', 8, 10);
   });
 });
 

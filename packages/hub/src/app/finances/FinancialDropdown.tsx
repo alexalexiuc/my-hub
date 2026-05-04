@@ -29,6 +29,8 @@ export type FinancialDropdownProps = {
   closeOnSelect?: boolean;
   /** Enable fuzzy search on the option value. Pass `true` for defaults or `{ threshold }` to tune. */
   fuse?: boolean | { threshold: number };
+  /** When false, renders a clickable label instead of an input — no filtering, shows all options. Defaults to true. */
+  searchable?: boolean;
   createOption?: FinancialDropdownCreateOption;
   clearable?: boolean;
   onClear?: () => void;
@@ -50,6 +52,7 @@ export function FinancialDropdown({
   maxResults,
   closeOnSelect = true,
   fuse,
+  searchable = true,
   createOption,
   clearable = false,
   onClear,
@@ -73,7 +76,7 @@ export function FinancialDropdown({
   const results = useMemo(() => {
     let matches: DropdownOption[];
 
-    if (!trimmedQuery) {
+    if (!searchable || !trimmedQuery) {
       matches = options;
     } else if (fuseInstance) {
       matches = fuseInstance.search(trimmedQuery).map(result => result.item);
@@ -83,7 +86,7 @@ export function FinancialDropdown({
     }
 
     return typeof maxResults === 'number' ? matches.slice(0, maxResults) : matches;
-  }, [trimmedQuery, options, fuseInstance, maxResults]);
+  }, [searchable, trimmedQuery, options, fuseInstance, maxResults]);
 
   const showCreateOption = useMemo(() => {
     if (!createOption) return false;
@@ -124,25 +127,55 @@ export function FinancialDropdown({
   return (
     <div ref={rootRef} className="relative">
       <div className="relative">
-        <Input
-          {...inputProps}
-          value={query}
-          onChange={event => {
-            inputProps?.onChange?.(event);
-            onQueryChange(event.target.value);
-          }}
-          onFocus={event => {
-            inputProps?.onFocus?.(event);
-            setOpen(true);
-          }}
-          autoComplete={inputProps?.autoComplete ?? 'off'}
-          autoCorrect={inputProps?.autoCorrect ?? 'off'}
-          autoCapitalize={inputProps?.autoCapitalize ?? 'none'}
-          spellCheck={inputProps?.spellCheck ?? false}
-          placeholder={placeholder}
-          variant="ghost"
-          className={cn('w-full text-[15px]', canClear && 'pr-7', inputClassName)}
-        />
+        {searchable ? (
+          <Input
+            {...inputProps}
+            value={query}
+            onChange={event => {
+              inputProps?.onChange?.(event);
+              onQueryChange(event.target.value);
+            }}
+            onFocus={event => {
+              inputProps?.onFocus?.(event);
+              setOpen(true);
+            }}
+            autoComplete={inputProps?.autoComplete ?? 'off'}
+            autoCorrect={inputProps?.autoCorrect ?? 'off'}
+            autoCapitalize={inputProps?.autoCapitalize ?? 'none'}
+            spellCheck={inputProps?.spellCheck ?? false}
+            placeholder={placeholder}
+            variant="ghost"
+            className={cn('w-full text-[15px]', canClear && 'pr-7', inputClassName)}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpen(prev => !prev)}
+            className={cn(
+              'flex w-full cursor-pointer items-center justify-between gap-1 bg-transparent text-left',
+              canClear && 'pr-7',
+              inputClassName,
+            )}
+          >
+            <span className="truncate">{query || <span className="text-[var(--fin-subtle)]">{placeholder}</span>}</span>
+            <svg
+              className="ml-1 shrink-0 text-[var(--fin-subtle)]"
+              width="10"
+              height="10"
+              viewBox="0 0 10 10"
+              fill="none"
+              style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 150ms' }}
+            >
+              <path
+                d="M1 3l4 4 4-4"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        )}
 
         {canClear && (
           <button

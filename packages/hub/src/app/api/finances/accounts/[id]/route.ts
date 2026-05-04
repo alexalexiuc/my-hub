@@ -12,9 +12,16 @@ import type { BorrowedLentAccountDetails } from '@my-hub/shared/constants';
 import { accountDetailResponseSchema, accountMutationResponseSchema } from '../../contracts';
 import type { AccountItem, AccountDetailData, AccountTransaction } from '../../contracts';
 import { FinanceAccount } from '@my-hub/shared/types';
-const AccountPatchSchema = z.object({
-  action: z.literal('settle'),
-});
+const AccountPatchSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('settle') }),
+  z.object({ action: z.literal('archive') }),
+  z.object({ action: z.literal('unarchive') }),
+  z.object({
+    action: z.literal('edit'),
+    name: z.string().trim().min(1),
+    details: z.record(z.string(), z.unknown()).nullable().optional(),
+  }),
+]);
 
 function flattenAccount(a: FinanceAccount): AccountItem {
   const details = a.details as Record<string, unknown> | null;
@@ -94,7 +101,25 @@ export const PATCH = route({
     const currentDetails = (existing.details ?? {}) as BorrowedLentAccountDetails;
     const updated = await updateAccount(user.id, budget.id, accountId, {
       details: { ...currentDetails, settled: true },
+      archived: true,
     });
+    return { account: updated };
+  }
+
+  if (body.action === 'archive') {
+    const updated = await updateAccount(user.id, budget.id, accountId, { archived: true });
+    return { account: updated };
+  }
+
+  if (body.action === 'unarchive') {
+    const updated = await updateAccount(user.id, budget.id, accountId, { archived: false });
+    return { account: updated };
+  }
+
+  if (body.action === 'edit') {
+    const patch: Parameters<typeof updateAccount>[3] = { name: body.name };
+    if (body.details !== undefined) patch.details = body.details ?? null;
+    const updated = await updateAccount(user.id, budget.id, accountId, patch);
     return { account: updated };
   }
 

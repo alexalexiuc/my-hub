@@ -47,7 +47,7 @@ export const PATCH = route({ body: BudgetUpdateSchema, response: budgetMutationR
     ...(body.defaultCurrency ? { defaultCurrency: body.defaultCurrency.trim().toUpperCase() } : {}),
   });
 
-  return { budget: updated };
+  return { budget: { ...updated, isOwner: updated.createdByUserId === user.id } };
 });
 
 export const DELETE = route({ body: BudgetDeleteSchema, response: okResponseSchema })(async ({ user, body }) => {

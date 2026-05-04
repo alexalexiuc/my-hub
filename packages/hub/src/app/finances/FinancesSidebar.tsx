@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
-import { AddTransactionModal } from './transactions/AddTransactionModal';
+import { TransactionModal } from './transactions/TransactionModal';
 import type { BudgetDetailResponse } from '@/app/api/finances/contracts';
 
 interface NavItem {
@@ -79,7 +79,9 @@ export function FinancesSidebar() {
 
       <div className="flex-1" />
 
-      {showAddTx && <AddTransactionModal onClose={() => setShowAddTx(false)} onCreated={() => setShowAddTx(false)} />}
+      {showAddTx && (
+        <TransactionModal onCloseAction={() => setShowAddTx(false)} onSavedAction={() => setShowAddTx(false)} />
+      )}
       <button
         onClick={() => setShowAddTx(true)}
         className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border-none p-2.5 text-[13px] font-semibold bg-[var(--fin-accent)] text-[var(--fin-on-solid)]"

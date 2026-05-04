@@ -4,9 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { AddButton, Card } from '../ui';
-import { AddTransactionModal } from './AddTransactionModal';
+import { TransactionModal } from './TransactionModal';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { TransactionList } from './TransactionList';
-import type { TransactionsListResponse } from '@/app/api/finances/contracts';
+import type {
+  TransactionListItem,
+  TransactionMutationResponse,
+  TransactionsListResponse,
+} from '@/app/api/finances/contracts';
 
 type Filter = 'all' | 'expense' | 'income' | 'transfer';
 const FILTERS: { key: Filter; label: string }[] = [
@@ -16,8 +21,27 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'transfer', label: 'Transfers' },
 ];
 
+function matchesFilter(filter: Filter, transaction: TransactionListItem) {
+  return filter === 'all' || transaction.type === filter;
+}
+
+function sortTransactions(transactions: TransactionListItem[]) {
+  return [...transactions].sort((left, right) => {
+    if (left.date !== right.date) {
+      return right.date.localeCompare(left.date);
+    }
+    return right.id - left.id;
+  });
+}
+
+function upsertTransaction(transactions: TransactionListItem[], transaction: TransactionListItem) {
+  return sortTransactions([transaction, ...transactions.filter(item => item.id !== transaction.id)]);
+}
+
 export default function TransactionsPage() {
-  const [showModal, setShowModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [data, setData] = useState<TransactionsListResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,11 +83,31 @@ export default function TransactionsPage() {
 
   const currency = data?.currency ?? 'EUR';
 
+  function handleCreated(result?: TransactionMutationResponse) {
+    setShowAddModal(false);
+
+    if (!result?.listItem) {
+      load(filter, true);
+      return;
+    }
+
+    if (!matchesFilter(filter, result.listItem)) {
+      return;
+    }
+
+    setData(prev => {
+      if (!prev) return prev;
+      const transactions = upsertTransaction(prev.transactions, result.listItem!);
+      return { ...prev, transactions };
+    });
+    setOffset(prev => prev + 1);
+  }
+
   return (
     <div className="flex flex-col gap-[14px]">
       <div className="flex items-center justify-between">
         <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Transactions</div>
-        <AddButton onClick={() => setShowModal(true)} title="Add transaction" />
+        <AddButton onClick={() => setShowAddModal(true)} title="Add transaction" />
       </div>
 
       {/* Type filter */}
@@ -105,7 +149,13 @@ export default function TransactionsPage() {
       ) : (
         <>
           <Card className="p-[14px]">
-            <TransactionList transactions={data?.transactions ?? []} currency={currency} showAccount />
+            <TransactionList
+              transactions={data?.transactions ?? []}
+              currency={currency}
+              showAccount
+              onEdit={id => setEditId(id)}
+              onDelete={id => setPendingDeleteId(id)}
+            />
           </Card>
 
           {hasMore && (
@@ -122,11 +172,26 @@ export default function TransactionsPage() {
           )}
         </>
       )}
-      {showModal && (
-        <AddTransactionModal
-          onClose={() => setShowModal(false)}
-          onCreated={() => {
-            setShowModal(false);
+
+      {showAddModal && <TransactionModal onCloseAction={() => setShowAddModal(false)} onSavedAction={handleCreated} />}
+
+      {editId !== null && (
+        <TransactionModal
+          editId={editId}
+          onCloseAction={() => setEditId(null)}
+          onSavedAction={() => {
+            setEditId(null);
+            load(filter, true);
+          }}
+        />
+      )}
+
+      {pendingDeleteId !== null && (
+        <ConfirmDeleteModal
+          transactionId={pendingDeleteId}
+          onClose={() => setPendingDeleteId(null)}
+          onDeleted={() => {
+            setPendingDeleteId(null);
             load(filter, true);
           }}
         />

@@ -81,6 +81,7 @@ function GroupSection({
   currency: string;
   onAddCategory: (groupId: number) => void;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
   const color = groupColor(group);
   const groupSpent = group.categories.reduce((s, c) => s + c.spent, 0);
   const groupTarget = group.categories.reduce((s, c) => s + (c.monthlyTarget ?? 0), 0);
@@ -89,10 +90,14 @@ function GroupSection({
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between px-1 py-[6px]">
-        <div className="flex items-center gap-2">
+        <button
+          onClick={() => setCollapsed(v => !v)}
+          className="flex cursor-pointer items-center gap-2 border-none bg-transparent p-0"
+        >
           <div style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
           <span className="text-[13px] font-semibold text-[var(--fin-text)]">{group.name}</span>
-        </div>
+          <span className="text-[10px] text-[var(--fin-subtle)]">{collapsed ? '▶' : '▾'}</span>
+        </button>
         <div className="flex items-center gap-2">
           {groupTarget > 0 && (
             <span className="text-[11px] text-[var(--fin-subtle)]">
@@ -115,17 +120,19 @@ function GroupSection({
           </button>
         </div>
       </div>
-      <Card className="py-[6px]">
-        {group.categories.map((cat, i) => (
-          <div key={cat.id}>
-            {i > 0 && <Divider />}
-            <CatRow cat={cat} currency={currency} />
-          </div>
-        ))}
-        {group.categories.length === 0 && (
-          <div className="p-[14px] text-center text-xs text-[var(--fin-subtle)]">No categories in this group</div>
-        )}
-      </Card>
+      {!collapsed && (
+        <Card className="py-[6px]">
+          {group.categories.map((cat, i) => (
+            <div key={cat.id}>
+              {i > 0 && <Divider />}
+              <CatRow cat={cat} currency={currency} />
+            </div>
+          ))}
+          {group.categories.length === 0 && (
+            <div className="p-[14px] text-center text-xs text-[var(--fin-subtle)]">No categories in this group</div>
+          )}
+        </Card>
+      )}
     </div>
   );
 }
@@ -138,7 +145,6 @@ export default function CategoriesPage() {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showAddGroup, setShowAddGroup] = useState(false);
   const [addCategoryGroupId, setAddCategoryGroupId] = useState<number | null>(null);
-  const [showNewMenu, setShowNewMenu] = useState(false);
 
   const load = useCallback(async (month: string) => {
     setLoading(true);
@@ -159,7 +165,6 @@ export default function CategoriesPage() {
   function openAddCategory(groupId?: number) {
     setAddCategoryGroupId(groupId ?? null);
     setShowAddCategory(true);
-    setShowNewMenu(false);
   }
 
   function handleCreated() {
@@ -170,39 +175,7 @@ export default function CategoriesPage() {
 
   return (
     <div className="flex flex-col gap-[14px]">
-      <div className="flex items-center justify-between">
-        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Categories</div>
-        <div className="relative">
-          <button
-            onClick={() => setShowNewMenu(v => !v)}
-            className="cursor-pointer rounded-[20px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-1.5 text-[11px] text-[var(--fin-muted)]"
-          >
-            + New
-          </button>
-          {showNewMenu && (
-            <div className="absolute right-0 top-[calc(100%+6px)] z-[100] min-w-[150px] rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)] p-1">
-              {[
-                {
-                  label: '📂 New Group',
-                  action: () => {
-                    setShowNewMenu(false);
-                    setShowAddGroup(true);
-                  },
-                },
-                { label: '🏷 New Category', action: () => openAddCategory() },
-              ].map(item => (
-                <button
-                  key={item.label}
-                  onClick={item.action}
-                  className="block w-full cursor-pointer rounded-[7px] border-none bg-transparent px-3 py-2 text-left text-xs text-[var(--fin-text)] hover:bg-[var(--fin-card2)]"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Categories</div>
 
       {/* Month filter */}
       <div className="flex gap-1.5">
@@ -287,6 +260,12 @@ export default function CategoriesPage() {
             {data.groups.map(group => (
               <GroupSection key={group.id} group={group} currency={data.currency} onAddCategory={openAddCategory} />
             ))}
+            <button
+              onClick={() => setShowAddGroup(true)}
+              className="cursor-pointer rounded-md border border-dashed border-[var(--fin-border)] bg-transparent px-3 py-[5px] text-[11px] text-[var(--fin-subtle)]"
+            >
+              + New Group
+            </button>
 
             {/* Ungrouped */}
             {data.ungrouped.length > 0 && (

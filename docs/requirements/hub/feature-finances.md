@@ -35,21 +35,23 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 
 ## Technical Requirements
 
-| ID    | Requirement                                                                                                                                                                                      |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| TR-01 | Mobile bottom nav is implemented as `FinancesBottomNav` (`src/app/finances/FinancesBottomNav.tsx`), a `'use client'` component using `usePathname` and `useRouter`.                              |
-| TR-02 | `FinancesBottomNav` is rendered only below the `md` breakpoint (`hidden` inside `FinancesBottomNav`'s outer div + `md:hidden` wrapper in layout).                                                |
-| TR-03 | The desktop `FinancesSidebar` is hidden below `md` via a `hidden md:contents` wrapper in `layout.tsx`; its internal implementation is unchanged.                                                 |
-| TR-04 | A shared `FinModalShell` component (`src/app/finances/FinModalShell.tsx`) handles the responsive modal/sheet wrapper, title, overlay, and outside-click handling.                                |
-| TR-05 | `FinModalShell` uses Tailwind responsive classes only — `items-end` on mobile, `md:items-center md:justify-center` on desktop; no inline `style` props for layout.                               |
-| TR-06 | Each creation modal passes a `className="md:max-w-[Npx]"` prop to `FinModalShell` to preserve its desktop card width.                                                                            |
-| TR-07 | All form logic, schema validation, and API calls inside each creation modal remain unchanged.                                                                                                    |
-| TR-08 | Bottom-nav FAB shadow uses `--fin-accent` colour with 40% opacity to match the accent palette.                                                                                                   |
-| TR-09 | `FinancesBottomNav` renders the FAB above the tab bar using `−mt-5` lift so the circle visually floats above the nav strip, consistent with the reference design.                                |
-| TR-10 | z-index layering: modal overlay `z-[1000]`, bottom nav `z-[900]`; sheets rendered inside the overlay do not conflict with the nav bar.                                                           |
-| TR-11 | Metadata chips used across finances pages are rendered via the shared `Pill` component (`src/components/Pill.tsx`), which supports both passive badges and optional click handling.              |
-| TR-12 | Finances API routes declare response Zod schemas via `route({ response: ... })` and finance UI callers use shared inferred response types from `src/app/api/finances/contracts.ts`.              |
-| TR-13 | Transaction creation must derive `exchangeRate` and `toExchangeRate` in the shared service from account currencies and transaction date; client POST payload does not need exchange-rate fields. |
+| ID    | Requirement                                                                                                                                                                                                |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TR-01 | Mobile bottom nav is implemented as `FinancesBottomNav` (`src/app/finances/FinancesBottomNav.tsx`), a `'use client'` component using `usePathname` and `useRouter`.                                        |
+| TR-02 | `FinancesBottomNav` is rendered only below the `md` breakpoint (`hidden` inside `FinancesBottomNav`'s outer div + `md:hidden` wrapper in layout).                                                          |
+| TR-03 | The desktop `FinancesSidebar` is hidden below `md` via a `hidden md:contents` wrapper in `layout.tsx`; its internal implementation is unchanged.                                                           |
+| TR-04 | A shared `FinModalShell` component (`src/app/finances/FinModalShell.tsx`) handles the responsive modal/sheet wrapper, title, overlay, and outside-click handling.                                          |
+| TR-05 | `FinModalShell` uses Tailwind responsive classes only — `items-end` on mobile, `md:items-center md:justify-center` on desktop; no inline `style` props for layout.                                         |
+| TR-06 | Each creation modal passes a `className="md:max-w-[Npx]"` prop to `FinModalShell` to preserve its desktop card width.                                                                                      |
+| TR-07 | All form logic, schema validation, and API calls inside each creation modal remain unchanged.                                                                                                              |
+| TR-08 | Bottom-nav FAB shadow uses `--fin-accent` colour with 40% opacity to match the accent palette.                                                                                                             |
+| TR-09 | `FinancesBottomNav` renders the FAB above the tab bar using `−mt-5` lift so the circle visually floats above the nav strip, consistent with the reference design.                                          |
+| TR-10 | z-index layering: modal overlay `z-[1000]`, bottom nav `z-[900]`; sheets rendered inside the overlay do not conflict with the nav bar.                                                                     |
+| TR-11 | Metadata chips used across finances pages are rendered via the shared `Pill` component (`src/components/Pill.tsx`), which supports both passive badges and optional click handling.                        |
+| TR-12 | Finances API routes declare response Zod schemas via `route({ response: ... })` and finance UI callers use shared inferred response types from `src/app/api/finances/contracts.ts`.                        |
+| TR-13 | Transaction creation must derive `exchangeRate` and `toExchangeRate` in the shared service from account currencies and transaction date; client POST payload does not need exchange-rate fields.           |
+| TR-14 | The transactions list API must include balance-correction entries and expose an `isCorrection` flag so the UI can render corrections distinctly from regular income/expense rows.                          |
+| TR-15 | When a transaction is created from a view that already renders a transaction list, the Hub UI should update that visible list locally from the successful POST response instead of forcing a full refetch. |
 
 ---
 
@@ -74,4 +76,6 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 - [x] Finance metadata chips render through the shared `Pill` component without regressing existing styling.
 - [x] Finances API responses are validated against shared Zod response schemas and finance UI uses the inferred shared response types.
 - [x] Creating a transaction without exchange-rate fields still stores correct reporting and transfer exchange rates based on account currencies and transaction date.
+- [x] Balance-correction entries appear in the transactions list and retain their correction-specific styling.
+- [x] Creating a transaction from the transactions page or account ledger updates the visible list immediately without a full reload.
 - [x] Lint and typecheck pass without errors after all changes.

@@ -34,7 +34,7 @@ export const POST = route({ body: BudgetCreateSchema, response: budgetCreateResp
     defaultCurrency: (body.defaultCurrency ?? 'EUR').trim().toUpperCase(),
   });
 
-  return created({ budget });
+  return created({ budget: { ...budget, isOwner: true, isActive: true } });
 });
 
 export const PATCH = route({ body: SetActiveBudgetSchema, response: okResponseSchema })(async ({ user, body }) => {

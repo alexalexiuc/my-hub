@@ -3,7 +3,7 @@
  * - upsertPayee(userId, budgetId, name) — insert-or-return, case-insensitive via normalizedName
  * - getPayees(userId, budgetId) — returns all payees ranked by user usage; includes description and stats
  * - deletePayee(userId, budgetId, payeeId) — hard delete
- * - incrementPayeeStats(tx, payeeId, userId, categoryId) — called inside transaction writes
+ * - incrementPayeeStats(tx, payeeId, userId, categoryId, accountId?) — called inside transaction writes
  * - decrementPayeeStats(tx, payeeId, userId) — called inside transaction deletes
  * Types: Payee
  */
@@ -21,6 +21,7 @@ export interface Payee {
   useCount: number;
   lastUsedAt: string | null;
   recentCategoryId: number | null;
+  recentAccountId: number | null;
 }
 
 export async function upsertPayee(userId: string, budgetId: number, name: string): Promise<FinancePayee> {
@@ -68,6 +69,7 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
       useCount: stats?.count ?? 0,
       lastUsedAt: stats?.lastUsedAt ?? null,
       recentCategoryId: stats?.lastUsedCategoryId ?? null,
+      recentAccountId: stats?.lastUsedAccountId ?? null,
     };
   });
 
@@ -100,15 +102,22 @@ export async function incrementPayeeStats(
   payeeId: number,
   userId: string,
   categoryId: number | null,
+  accountId: number | null = null,
 ): Promise<void> {
   const [payee] = await tx.select().from(financePayees).where(eq(financePayees.id, payeeId));
   if (!payee) return;
 
-  const stats: PayeeUserStats = payee.statsByUser[userId] ?? { count: 0, lastUsedAt: null, lastUsedCategoryId: null };
+  const stats: PayeeUserStats = payee.statsByUser[userId] ?? {
+    count: 0,
+    lastUsedAt: null,
+    lastUsedCategoryId: null,
+    lastUsedAccountId: null,
+  };
   const updated: PayeeUserStats = {
     count: stats.count + 1,
     lastUsedAt: new Date().toISOString(),
     lastUsedCategoryId: categoryId,
+    lastUsedAccountId: accountId,
   };
 
   await tx

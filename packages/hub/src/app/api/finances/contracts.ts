@@ -240,6 +240,7 @@ export const payeeSuggestionSchema = z.object({
   useCount: z.number().int(),
   lastUsedAt: z.string().nullable(),
   recentCategoryId: z.number().int().nullable(),
+  recentAccountId: z.number().int().nullable(),
 });
 
 export const payeesResponseSchema = z.object({
@@ -287,6 +288,7 @@ export const transactionListItemSchema = z.object({
   date: z.string(),
   amount: z.number(),
   type: z.string(),
+  isCorrection: z.boolean(),
   notes: z.string().nullable(),
   payeeName: z.string().nullable(),
   categoryName: z.string().nullable(),
@@ -294,6 +296,7 @@ export const transactionListItemSchema = z.object({
   categoryIcon: categoryIconSchema,
   accountName: z.string(),
   toAccountName: z.string().nullable(),
+  addedByInitials: z.string().nullable(),
 });
 
 export const transactionsListResponseSchema = z.object({
@@ -303,6 +306,7 @@ export const transactionsListResponseSchema = z.object({
 
 export const transactionMutationResponseSchema = z.object({
   transaction: z.object({ id: z.number().int() }).passthrough(),
+  listItem: transactionListItemSchema.optional(),
 });
 
 export const transactionFormAccountSchema = z.object({
@@ -324,6 +328,20 @@ export const transactionFormDataResponseSchema = z.object({
   currency: z.string(),
   accounts: z.array(transactionFormAccountSchema),
   categories: z.array(transactionFormCategorySchema),
+});
+
+export const transactionDetailSchema = z.object({
+  id: z.number().int(),
+  type: z.string(),
+  accountId: z.number().int(),
+  toAccountId: z.number().int().nullable(),
+  categoryId: z.number().int().nullable(),
+  payeeId: z.number().int().nullable(),
+  payeeName: z.string().nullable(),
+  amount: z.number(),
+  date: z.string(),
+  notes: z.string().nullable(),
+  isCorrection: z.boolean(),
 });
 
 export const netWorthItemSchema = z.object({
@@ -390,6 +408,8 @@ export type ReportsNetWorthPoint = z.infer<typeof reportsNetWorthPointSchema>;
 export type ReportsData = z.infer<typeof reportsResponseSchema>;
 export type TransactionListItem = z.infer<typeof transactionListItemSchema>;
 export type TransactionsListResponse = z.infer<typeof transactionsListResponseSchema>;
+export type TransactionMutationResponse = z.infer<typeof transactionMutationResponseSchema>;
 export type TransactionFormDataResponse = z.infer<typeof transactionFormDataResponseSchema>;
 
 export type NetWorthData = z.infer<typeof netWorthResponseSchema>;
+export type TransactionDetail = z.infer<typeof transactionDetailSchema>;

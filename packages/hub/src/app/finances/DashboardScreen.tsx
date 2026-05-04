@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar, Divider, Sparkline, CategoryIcon } from './ui';
-import { AddTransactionModal } from './transactions/AddTransactionModal';
+import { TransactionModal } from './transactions/TransactionModal';
 import { TransactionList } from './transactions/TransactionList';
 import type { FinanceDashboardData } from './types';
 
@@ -36,7 +36,9 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
 
   return (
     <div className="flex flex-col gap-[14px]">
-      {showAddTx && <AddTransactionModal onClose={() => setShowAddTx(false)} onCreated={() => setShowAddTx(false)} />}
+      {showAddTx && (
+        <TransactionModal onCloseAction={() => setShowAddTx(false)} onSavedAction={() => setShowAddTx(false)} />
+      )}
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

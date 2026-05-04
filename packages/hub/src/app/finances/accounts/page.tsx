@@ -121,6 +121,7 @@ export default function AccountsPage() {
   const [data, setData] = useState<AccountsListData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const load = useCallback(async () => {
     const result = await apiFetch<AccountsListData>('/api/finances/accounts', { silentToast: true });
@@ -144,7 +145,9 @@ export default function AccountsPage() {
   if (!data) return null;
 
   const { currency, netWorth, netWorthHistory, accounts } = data;
-  const byType = (type: string) => accounts.filter(a => a.type === type);
+  const activeAccounts = accounts.filter(a => !a.archived);
+  const archivedAccounts = accounts.filter(a => a.archived);
+  const byType = (type: string) => activeAccounts.filter(a => a.type === type);
 
   return (
     <div className="flex flex-col gap-[14px]">
@@ -178,9 +181,34 @@ export default function AccountsPage() {
         );
       })}
 
-      {accounts.length === 0 && (
+      {activeAccounts.length === 0 && archivedAccounts.length === 0 && (
         <div className="py-12 text-center text-[13px] text-[var(--fin-subtle)]">
           No accounts yet. Add your first account to get started.
+        </div>
+      )}
+
+      {archivedAccounts.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowArchived(v => !v)}
+            className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-[10px] text-left text-[13px] text-[var(--fin-muted)]"
+          >
+            <span className={cn('transition-transform', showArchived ? 'rotate-90' : 'rotate-0')}>▶</span>
+            <span>Archived accounts ({archivedAccounts.length})</span>
+          </button>
+          {showArchived && (
+            <div className="mt-2 flex flex-col gap-2">
+              {archivedAccounts.map(acc => (
+                <AccountCard
+                  key={acc.id}
+                  acc={acc}
+                  currency={currency}
+                  onSettle={handleSettle}
+                  onClick={() => router.push(`/finances/accounts/${acc.id}`)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

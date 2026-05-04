@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { AddTransactionModal } from './transactions/AddTransactionModal';
+import { PlusOutlineIcon } from '@/components/icons';
+import { TransactionModal } from './transactions/TransactionModal';
 
 const LEFT_ITEMS = [
   { id: 'dashboard', icon: '◈', label: 'Home', path: '/finances' },
@@ -94,7 +95,9 @@ export function FinancesBottomNav({ className }: FinancesBottomNavProps) {
 
   return (
     <>
-      {showAddTx && <AddTransactionModal onClose={() => setShowAddTx(false)} onCreated={() => setShowAddTx(false)} />}
+      {showAddTx && (
+        <TransactionModal onCloseAction={() => setShowAddTx(false)} onSavedAction={() => setShowAddTx(false)} />
+      )}
       {showMore && <MoreSheet onClose={() => setShowMore(false)} />}
       <div
         className={cn(
@@ -132,8 +135,8 @@ export function FinancesBottomNav({ className }: FinancesBottomNavProps) {
           onClick={() => setShowAddTx(true)}
           className="flex flex-1 cursor-pointer flex-col items-center border-none bg-transparent pt-1"
         >
-          <div className="-mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--fin-accent)] text-2xl font-light text-[var(--fin-on-solid)] shadow-[0_4px_12px_rgba(167,139,250,0.4)]">
-            +
+          <div className="-mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--fin-accent)] text-[var(--fin-on-solid)] shadow-[0_4px_12px_rgba(167,139,250,0.4)]">
+            <PlusOutlineIcon className="size-5" />
           </div>
           <span className="mt-1 text-[9px] text-[var(--fin-subtle)]">Add</span>
         </button>

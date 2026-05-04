@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { apiFetch } from '@/lib/utils';
 import { DashboardScreen } from './DashboardScreen';
@@ -13,16 +13,21 @@ export default function FinancesPage() {
   const [response, setResponse] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  // Tracks the latest load invocation so stale responses (e.g. from React Strict
+  // Mode's second effect run) do not overwrite a fresher result.
+  const loadIdRef = useRef(0);
 
   const load = useCallback(async () => {
+    const loadId = ++loadIdRef.current;
     setLoading(true);
     try {
       const result = await apiFetch<DashboardResponse>('/api/finances/dashboard', {
         silentToast: true,
       });
+      if (loadId !== loadIdRef.current) return;
       setResponse(result);
     } finally {
-      setLoading(false);
+      if (loadId === loadIdRef.current) setLoading(false);
     }
   }, []);
 

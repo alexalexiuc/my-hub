@@ -160,6 +160,92 @@ export function formToAccountDetails(values: AddAccountValues): object | null {
   }
 }
 
+// --- Edit Account ---
+
+export const EditAccountSchema = AddAccountSchema.omit({ openingBalance: true, type: true });
+export type EditAccountValues = z.infer<typeof EditAccountSchema>;
+
+export function accountToEditValues(acc: {
+  name: string;
+  type: string;
+  creditLimit?: number;
+  statementDay?: number;
+  cardLastFour?: string;
+  cardName?: string;
+  targetAmount?: number;
+  deposited?: number;
+  principal?: number;
+  interestRate?: number;
+  termMonths?: number;
+  startDate?: string;
+  linkedItemName?: string;
+  counterpartyName?: string;
+  direction?: string;
+  dueDate?: string;
+}): EditAccountValues {
+  return {
+    name: acc.name,
+    creditLimit: String(acc.creditLimit ?? ''),
+    statementDay: String(acc.statementDay ?? ''),
+    cardLastFour: acc.cardLastFour ?? '',
+    cardName: acc.cardName ?? '',
+    bankCardLastFour: acc.type === AccountTypes.Bank ? (acc.cardLastFour ?? '') : '',
+    bankCardName: acc.type === AccountTypes.Bank ? (acc.cardName ?? '') : '',
+    targetAmount: String(acc.targetAmount ?? ''),
+    deposited: String(acc.deposited ?? '0'),
+    principal: String(acc.principal ?? ''),
+    interestRate: String(acc.interestRate ?? ''),
+    termMonths: String(acc.termMonths ?? ''),
+    loanStartDate: acc.startDate ?? '',
+    linkedItemName: acc.linkedItemName ?? '',
+    counterpartyName: acc.counterpartyName ?? '',
+    direction: acc.direction ?? LentDirections.Gave,
+    dueDate: acc.dueDate ?? '',
+  };
+}
+
+export function formToEditDetails(
+  type: string,
+  values: EditAccountValues,
+  preserved: { settled?: boolean } = {},
+): object | null {
+  switch (type) {
+    case AccountTypes.Bank:
+      return {
+        ...(values.bankCardLastFour ? { cardLastFour: values.bankCardLastFour } : {}),
+        ...(values.bankCardName ? { cardName: values.bankCardName } : {}),
+      };
+    case AccountTypes.CreditCard:
+      return {
+        creditLimit: parseFloat(values.creditLimit) || 0,
+        statementDay: parseInt(values.statementDay) || 1,
+        ...(values.cardLastFour ? { cardLastFour: values.cardLastFour } : {}),
+        ...(values.cardName ? { cardName: values.cardName } : {}),
+      };
+    case AccountTypes.Goal:
+      return { targetAmount: parseFloat(values.targetAmount) || 0 };
+    case AccountTypes.Investment:
+      return { deposited: parseFloat(values.deposited) || 0 };
+    case AccountTypes.Loan:
+      return {
+        principal: parseFloat(values.principal) || 0,
+        interestRate: parseFloat(values.interestRate) || 0,
+        termMonths: parseInt(values.termMonths) || 0,
+        startDate: values.loanStartDate || new Date().toISOString().slice(0, 10),
+        ...(values.linkedItemName ? { linkedItemName: values.linkedItemName } : {}),
+      };
+    case AccountTypes.BorrowedLent:
+      return {
+        counterpartyName: values.counterpartyName,
+        direction: values.direction,
+        ...(values.dueDate ? { dueDate: values.dueDate } : {}),
+        settled: preserved.settled ?? false,
+      };
+    default:
+      return null;
+  }
+}
+
 // --- Create Budget ---
 
 export const CreateBudgetSchema = z.object({

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, Bar } from '../ui';
-import { AddTransactionModal } from '../transactions/AddTransactionModal';
+import { TransactionModal } from '../transactions/TransactionModal';
 import { AddGoalModal } from './AddGoalModal';
 import type { GoalsResponse } from '@/app/api/finances/contracts';
 
@@ -18,8 +18,8 @@ export default function GoalsPage() {
   const router = useRouter();
   const [data, setData] = useState<GoalsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showAddTx, setShowAddTx] = useState(false);
   const [showAddGoal, setShowAddGoal] = useState(false);
+  const [addFundsGoal, setAddFundsGoal] = useState<{ id: number; name: string } | null>(null);
 
   const load = useCallback(async () => {
     const result = await apiFetch<GoalsResponse>('/api/finances/goals', { silentToast: true });
@@ -54,7 +54,16 @@ export default function GoalsPage() {
 
   return (
     <div className="flex flex-col gap-[14px]">
-      {showAddTx && <AddTransactionModal onClose={() => setShowAddTx(false)} onCreated={() => setShowAddTx(false)} />}
+      {addFundsGoal && (
+        <TransactionModal
+          onCloseAction={() => setAddFundsGoal(null)}
+          onSavedAction={() => setAddFundsGoal(null)}
+          initialType="transfer"
+          lockedType
+          prefilledToAccountId={addFundsGoal.id}
+          prefilledToAccountName={addFundsGoal.name}
+        />
+      )}
       {showAddGoal && (
         <AddGoalModal
           defaultCurrency={currency}
@@ -68,9 +77,7 @@ export default function GoalsPage() {
       <div className="flex items-center justify-between">
         <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Goals</div>
         <button
-          onClick={() => {
-            /* TODO: add goal form */
-          }}
+          onClick={() => setShowAddGoal(true)}
           className="cursor-pointer rounded-[20px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-1.5 text-[11px] text-[var(--fin-muted)]"
         >
           + New Goal
@@ -99,7 +106,7 @@ export default function GoalsPage() {
       {goals.map(g => {
         const pct = g.targetAmount > 0 ? Math.round((g.balance / g.targetAmount) * 100) : 0;
         return (
-          <Card key={g.id} onClick={() => router.push(`/finances/accounts/${g.id}`)} className="cursor-pointer p-4">
+          <Card key={g.id} onClick={() => router.push(`/finances/goals/${g.id}`)} className="cursor-pointer p-4">
             <div className="mb-3 flex items-start justify-between">
               <div>
                 <div className="mb-[3px] text-[15px] font-semibold text-[var(--fin-text)]">{g.name}</div>
@@ -122,7 +129,7 @@ export default function GoalsPage() {
               <button
                 onClick={e => {
                   e.stopPropagation();
-                  setShowAddTx(true);
+                  setAddFundsGoal({ id: g.id, name: g.name });
                 }}
                 className="flex-1 cursor-pointer rounded-lg border py-2 text-xs font-semibold text-[var(--fin-green)]"
                 style={{
@@ -135,7 +142,7 @@ export default function GoalsPage() {
               <button
                 onClick={e => {
                   e.stopPropagation();
-                  router.push(`/finances/accounts/${g.id}`);
+                  router.push(`/finances/goals/${g.id}`);
                 }}
                 className="cursor-pointer rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-2 text-xs text-[var(--fin-muted)]"
               >

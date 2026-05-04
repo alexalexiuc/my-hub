@@ -83,14 +83,14 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
   const liabilityTypes = new Set<string>([AccountTypes.Loan, AccountTypes.CreditCard]);
 
   const [rawAccounts, nwHistory] = await Promise.all([
-    getAccounts(user.id, budgetId),
+    getAccounts(user.id, budgetId, { includeArchived: true }),
     getNetWorthHistory(user.id, budgetId, 6),
   ]);
 
   let netWorth = 0;
   const accounts: AccountItem[] = rawAccounts.map(a => {
     const bal = a.balance;
-    netWorth += liabilityTypes.has(a.type) ? -bal : bal;
+    if (!a.archived) netWorth += liabilityTypes.has(a.type) ? -bal : bal;
     return {
       id: a.id,
       name: a.name,

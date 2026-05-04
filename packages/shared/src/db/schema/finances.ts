@@ -133,6 +133,7 @@ export interface PayeeUserStats {
   count: number;
   lastUsedAt: string | null;
   lastUsedCategoryId: number | null;
+  lastUsedAccountId: number | null;
 }
 
 export const financePayees = pgTable(
