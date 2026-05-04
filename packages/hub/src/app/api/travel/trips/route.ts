@@ -1,15 +1,28 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
-import { formatZodError } from '@/lib/api/with-error-logging';
+import { z } from 'zod';
+import { route, routeHttpError, created } from '@/lib/api/route';
 import { createTrip, getAccessibleTrips, getTripBookingRangesByTripIds } from '@my-hub/shared/services';
 import { parseAndValidateDate } from '@/lib/api/date-validation';
-import { TripCreateSchema } from '@my-hub/shared/schemas';
 
-export const GET = withAuth(async ({ user }) => {
+const hexColorSchema = z
+  .string()
+  .regex(/^#[0-9A-F]{6}$/i, 'Must be a hex color (#RRGGBB)')
+  .optional();
+
+const TripCreateSchema = z.object({
+  name: z.string().trim().min(1, 'name is required'),
+  destination: z.string().nullable().optional(),
+  color: hexColorSchema,
+  startAt: z.string().optional(),
+  endAt: z.string().optional(),
+  notes: z.string().optional(),
+  coverImageUrl: z.string().optional(),
+});
+
+export const GET = route(async ({ user }) => {
   const accessibleTrips = await getAccessibleTrips(user.id);
   const ranges = await getTripBookingRangesByTripIds(accessibleTrips.map(item => item.trip.id));
 
-  return NextResponse.json({
+  return {
     trips: accessibleTrips.map(item => ({
       ...item.trip,
       ownerUserId: item.ownerUserId,
@@ -20,39 +33,25 @@ export const GET = withAuth(async ({ user }) => {
       permission: item.permission,
     })),
     bookingRanges: ranges,
-  });
+  };
 });
 
-export const POST = withAuth(async ({ req, user }) => {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
+export const POST = route({ body: TripCreateSchema })(async ({ user, body }) => {
+  const { date: startAt, error: startAtError } = parseAndValidateDate(body.startAt, 'startAt');
+  if (startAtError) routeHttpError(400, { error: startAtError });
 
-  const parsed = TripCreateSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
-  }
-
-  const { data } = parsed;
-
-  const { date: startAt, error: startAtError } = parseAndValidateDate(data.startAt, 'startAt');
-  if (startAtError) return NextResponse.json({ error: startAtError }, { status: 400 });
-
-  const { date: endAt, error: endAtError } = parseAndValidateDate(data.endAt, 'endAt');
-  if (endAtError) return NextResponse.json({ error: endAtError }, { status: 400 });
+  const { date: endAt, error: endAtError } = parseAndValidateDate(body.endAt, 'endAt');
+  if (endAtError) routeHttpError(400, { error: endAtError });
 
   const trip = await createTrip(user.id, {
-    name: data.name,
-    color: data.color,
-    destination: data.destination?.trim() || null,
+    name: body.name,
+    color: body.color,
+    destination: body.destination?.trim() || null,
     startAt,
     endAt,
-    notes: data.notes ?? null,
+    notes: body.notes ?? null,
     coverImageUrl: null,
   });
 
-  return NextResponse.json({ trip }, { status: 201 });
+  return created({ trip });
 });

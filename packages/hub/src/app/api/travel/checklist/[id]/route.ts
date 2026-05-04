@@ -1,40 +1,25 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import { deleteChecklistItem, updateChecklistItem } from '@my-hub/shared/services';
-
-export const PATCH = withAuth<{ id: string }>(async ({ req, user, params }) => {
-  const { id } = await params;
-  const itemId = Number(id);
-  if (!Number.isInteger(itemId) || itemId <= 0) {
-    return NextResponse.json({ error: 'Invalid item id' }, { status: 400 });
-  }
-
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const item = await updateChecklistItem(user.id, itemId, {
-    title: typeof body.title === 'string' ? body.title.trim() : undefined,
-    done: typeof body.done === 'boolean' ? body.done : undefined,
-  });
-
-  if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
-
-  return NextResponse.json({ item });
+const ChecklistUpdateSchema = z.object({
+  title: z.string().trim().min(1).optional(),
+  done: z.boolean().optional(),
 });
 
-export const DELETE = withAuth<{ id: string }>(async ({ user, params }) => {
-  const { id } = await params;
-  const itemId = Number(id);
-  if (!Number.isInteger(itemId) || itemId <= 0) {
-    return NextResponse.json({ error: 'Invalid item id' }, { status: 400 });
-  }
+export const PATCH = route({
+  params: z.object({ id: z.coerce.number().int().positive() }),
+  body: ChecklistUpdateSchema,
+})(async ({ user, params, body }) => {
+  const item = await updateChecklistItem(user.id, params.id, { title: body.title, done: body.done });
+  if (!item) routeHttpError(404, { error: 'Item not found' });
+  return { item };
+});
 
-  const item = await deleteChecklistItem(user.id, itemId);
-  if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
-
-  return NextResponse.json({ item });
+export const DELETE = route({ params: z.object({ id: z.coerce.number().int().positive() }) })(async ({
+  user,
+  params,
+}) => {
+  const item = await deleteChecklistItem(user.id, params.id);
+  if (!item) routeHttpError(404, { error: 'Item not found' });
+  return { item };
 });

@@ -4,10 +4,11 @@ if (process.env.E2E_DATABASE_URL && !process.env.DATABASE_URL) {
   process.env.DATABASE_URL = process.env.E2E_DATABASE_URL;
 }
 
-import { findUserByEmail, createUserWithPassword, verifyUserEmail } from '@my-hub/shared/services';
+import { findUserByEmail, createUserWithPassword, verifyUserEmail, findOrCreateUser } from '@my-hub/shared/services';
 import { TEST_USER } from '../config';
 import { seedAuditLogFixtures } from '../seeds/audit-log.seed';
 import { seedSharedTripFixture } from '../seeds/travel.seed';
+import { seedSharedFinanceFixture } from '../seeds/finances.seed';
 
 // note: Use console.error for logging in this script so that logs are visible even if stdout is being captured by the test runner.
 async function runHubE2eSeeds(): Promise<void> {
@@ -23,8 +24,13 @@ async function runHubE2eSeeds(): Promise<void> {
     await verifyUserEmail(existing.id);
     console.error('E2E Hub user email marked as verified:', TEST_USER.email);
   }
+  // Ensure the finances invite test user exists — registration now requires an invite token,
+  // so the test's ensureUserExists helper would get a 403. Seeding here ensures it gets a 409.
+  await findOrCreateUser('e2e-finances-invite@test.local', 'Finance Invite');
+
   await seedAuditLogFixtures(TEST_USER.email);
   await seedSharedTripFixture(TEST_USER.email);
+  await seedSharedFinanceFixture(TEST_USER.email);
   console.error('E2E Hub seeds applied for:', TEST_USER.email);
 }
 

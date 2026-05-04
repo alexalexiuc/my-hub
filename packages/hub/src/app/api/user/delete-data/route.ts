@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route } from '@/lib/api/route';
 import {
   deleteAllUserMeals,
   deleteAllUserMeasurements,
@@ -13,33 +13,19 @@ import {
   deleteAllUserTripPlaces,
   deleteAllUserTripBookings,
   deleteAllUserTrips,
+  deleteAllUserFinanceBudgets,
 } from '@my-hub/shared/services';
 
-type Feature = 'meals' | 'measurements' | 'calories_profile' | 'todos' | 'my_travels';
+type Feature = 'meals' | 'measurements' | 'calories_profile' | 'todos' | 'my_travels' | 'finances';
 
-const SUPPORTED_FEATURES: Feature[] = ['meals', 'measurements', 'calories_profile', 'todos', 'my_travels'];
+const SUPPORTED_FEATURES = ['meals', 'measurements', 'calories_profile', 'todos', 'my_travels', 'finances'] as const;
 
-export const POST = withAuth(async ({ req, user }) => {
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
+const PostBodySchema = z.object({
+  features: z.array(z.enum(SUPPORTED_FEATURES)).min(1),
+});
 
+export const POST = route({ body: PostBodySchema })(async ({ user, body }) => {
   const { features } = body;
-  if (!Array.isArray(features) || features.length === 0) {
-    return NextResponse.json({ error: 'features array is required' }, { status: 400 });
-  }
-
-  const invalid = features.filter(f => !SUPPORTED_FEATURES.includes(f as Feature));
-  if (invalid.length > 0) {
-    return NextResponse.json(
-      { error: `Unsupported features: ${invalid.join(', ')}. Supported: ${SUPPORTED_FEATURES.join(', ')}` },
-      { status: 400 },
-    );
-  }
-
   const results: Record<string, unknown> = {};
 
   for (const feature of features as Feature[]) {
@@ -62,6 +48,11 @@ export const POST = withAuth(async ({ req, user }) => {
       case 'todos': {
         const count = await deleteAllUserTodos(user.id);
         results.todos = { deleted: count };
+        break;
+      }
+      case 'finances': {
+        await deleteAllUserFinanceBudgets(user.id);
+        results.finances = { deleted: true };
         break;
       }
       case 'my_travels': {
@@ -94,5 +85,5 @@ export const POST = withAuth(async ({ req, user }) => {
     }
   }
 
-  return NextResponse.json({ results });
+  return { results };
 });

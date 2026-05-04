@@ -90,9 +90,10 @@ By default, `apiFetch` now shows global toasts:
 
 Only add a local `try/catch` when the component needs status-specific behavior (for example, custom `401` UI state).
 
-## Utility: `cn`
+## Styling rules
 
-Use `cn` from `@/lib/utils` (wraps `clsx` + `twMerge`) for joining Tailwind class names:
+- **Always prefer `className` with Tailwind utility classes** for all visual styling. Do not use inline `style` props unless Tailwind cannot express the value — for example, a dynamic colour derived at runtime (`style={{ color: userPickedHex }}`), a CSS custom property, or a `calc()` expression that requires a runtime value.
+- Use `cn` from `@/lib/utils` (wraps `clsx` + `twMerge`) for joining Tailwind class names:
 
 ```ts
 import { cn } from '@/lib/utils';

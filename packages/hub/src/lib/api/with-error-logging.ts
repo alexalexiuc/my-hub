@@ -1,4 +1,5 @@
 import { putLog } from '@my-hub/shared/services';
+import { logger } from '@my-hub/shared/utils';
 import { NextResponse } from 'next/server';
 import type { ZodError } from 'zod';
 
@@ -35,13 +36,17 @@ function getClientIp(req: Request): string | undefined {
   return realIp || undefined;
 }
 
-async function writeApiLog(
+export async function writeApiLog(
   req: Request,
   statusCode: number,
   durationMs: number,
   error?: string,
   options?: ErrorLoggingOptions,
 ) {
+  // if error, log to console too
+  if (error) {
+    logger.error(`[api-log] ${req.method} ${req.url} failed with error: ${error}`);
+  }
   try {
     const url = new URL(req.url);
     await putLog({

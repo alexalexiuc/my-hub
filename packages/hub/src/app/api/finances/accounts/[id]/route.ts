@@ -1,0 +1,127 @@
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
+import {
+  getAccountById,
+  getCategories,
+  getPayees,
+  getTransactions,
+  updateAccount,
+  getUserActiveBudget,
+} from '@my-hub/shared/services';
+import type { BorrowedLentAccountDetails } from '@my-hub/shared/constants';
+import { accountDetailResponseSchema, accountMutationResponseSchema } from '../../contracts';
+import type { AccountItem, AccountDetailData, AccountTransaction } from '../../contracts';
+import { FinanceAccount } from '@my-hub/shared/types';
+const AccountPatchSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('settle') }),
+  z.object({ action: z.literal('archive') }),
+  z.object({ action: z.literal('unarchive') }),
+  z.object({
+    action: z.literal('edit'),
+    name: z.string().trim().min(1),
+    details: z.record(z.string(), z.unknown()).nullable().optional(),
+  }),
+]);
+
+function flattenAccount(a: FinanceAccount): AccountItem {
+  const details = a.details as Record<string, unknown> | null;
+  return {
+    id: a.id,
+    name: a.name,
+    type: a.type,
+    currency: a.currency,
+    balance: a.balance,
+    archived: a.archived,
+    ...(details ?? {}),
+  } as AccountItem;
+}
+
+export const GET = route({
+  params: z.object({ id: z.coerce.number().int().positive() }),
+  response: accountDetailResponseSchema,
+})(async ({ user, params }) => {
+  const accountId = params.id;
+
+  const budget = await getUserActiveBudget(user.id);
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
+
+  const budgetId = budget.id;
+
+  const [rawAccount, categories, payees, rawTxns] = await Promise.all([
+    getAccountById(user.id, budgetId, accountId),
+    getCategories(user.id, budgetId),
+    getPayees(user.id, budgetId),
+    getTransactions(user.id, budgetId, { accountId, limit: 50, includeCorrections: true }),
+  ]);
+
+  if (!rawAccount) routeHttpError(404, { error: 'Account not found' });
+
+  const account = flattenAccount(rawAccount);
+  const categoryMap = new Map(categories.map(c => [c.id, c]));
+  const payeeMap = new Map(payees.map(p => [p.id, p]));
+
+  const transactions: AccountTransaction[] = rawTxns.map(t => {
+    const cat = t.categoryId != null ? categoryMap.get(t.categoryId) : undefined;
+    const payee = t.payeeId != null ? payeeMap.get(t.payeeId) : undefined;
+    const isSource = t.accountId === accountId;
+    const rawBal = isSource ? t.fromAccountBalanceAfter : t.toAccountBalanceAfter;
+    return {
+      id: t.id,
+      date: t.date,
+      amount: t.amount,
+      type: t.type,
+      notes: t.notes ?? null,
+      payeeName: payee?.name ?? null,
+      categoryName: cat?.name ?? null,
+      categoryColor: cat?.color ?? null,
+      categoryIcon: cat?.icon ?? null,
+      balanceAfter: rawBal != null ? rawBal : null,
+      isCorrection: t.isCorrection,
+    };
+  });
+
+  const data: AccountDetailData = { account, transactions };
+  return data;
+});
+
+export const PATCH = route({
+  params: z.object({ id: z.coerce.number().int().positive() }),
+  body: AccountPatchSchema,
+  response: accountMutationResponseSchema,
+})(async ({ user, params, body }) => {
+  const accountId = params.id;
+
+  const budget = await getUserActiveBudget(user.id);
+  if (!budget) routeHttpError(404, { error: 'No budget found' });
+
+  const existing = await getAccountById(user.id, budget.id, accountId);
+  if (!existing) routeHttpError(404, { error: 'Account not found' });
+
+  if (body.action === 'settle') {
+    const currentDetails = (existing.details ?? {}) as BorrowedLentAccountDetails;
+    const updated = await updateAccount(user.id, budget.id, accountId, {
+      details: { ...currentDetails, settled: true },
+      archived: true,
+    });
+    return { account: updated };
+  }
+
+  if (body.action === 'archive') {
+    const updated = await updateAccount(user.id, budget.id, accountId, { archived: true });
+    return { account: updated };
+  }
+
+  if (body.action === 'unarchive') {
+    const updated = await updateAccount(user.id, budget.id, accountId, { archived: false });
+    return { account: updated };
+  }
+
+  if (body.action === 'edit') {
+    const patch: Parameters<typeof updateAccount>[3] = { name: body.name };
+    if (body.details !== undefined) patch.details = body.details ?? null;
+    const updated = await updateAccount(user.id, budget.id, accountId, patch);
+    return { account: updated };
+  }
+
+  routeHttpError(400, { error: 'Unknown action' });
+});

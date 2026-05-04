@@ -9,7 +9,6 @@ export default defineConfig({
     'services/index': 'src/services/index.ts',
     'utils/index': 'src/utils/index.ts',
     'constants/index': 'src/constants/index.ts',
-    'schemas/index': 'src/schemas/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,

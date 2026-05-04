@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { route } from '@/lib/api/route';
 import {
   deleteAllUserMeals,
   deleteAllUserMeasurements,
@@ -22,13 +21,14 @@ import {
   deleteAllUserTripPlaces,
   deleteAllUserTripBookings,
   deleteAllUserTrips,
+  deleteAllUserFinanceBudgets,
 } from '@my-hub/shared/services';
 
 /**
  * DELETE all data for the authenticated user across every feature.
  * Useful for e2e test cleanup and for the "nuke everything" UI action.
  */
-export const POST = withAuth(async ({ user }) => {
+export const POST = route(async ({ user }) => {
   const [
     meals,
     measurements,
@@ -51,6 +51,7 @@ export const POST = withAuth(async ({ user }) => {
     tripPlaces,
     tripBookings,
     trips,
+    finances,
   ] = await Promise.all([
     deleteAllUserMeals(user.id),
     deleteAllUserMeasurements(user.id),
@@ -73,9 +74,10 @@ export const POST = withAuth(async ({ user }) => {
     deleteAllUserTripPlaces(user.id),
     deleteAllUserTripBookings(user.id),
     deleteAllUserTrips(user.id),
+    deleteAllUserFinanceBudgets(user.id),
   ]);
 
-  return NextResponse.json({
+  return {
     results: {
       meals,
       measurements,
@@ -98,6 +100,7 @@ export const POST = withAuth(async ({ user }) => {
       tripPlaces,
       tripBookings,
       trips,
+      finances,
     },
-  });
+  };
 });

@@ -1,25 +1,19 @@
 import { NextResponse } from 'next/server';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import { travelFilesConfig } from '@/lib/travel-files-config';
 import { getTripDocumentById } from '@my-hub/shared/services';
 
 export const runtime = 'nodejs';
 
-export const GET = withAuth<{ id: string }>(async ({ user, params }) => {
-  const { id } = await params;
-  const documentId = Number(id);
-
-  if (!Number.isInteger(documentId) || documentId <= 0) {
-    return NextResponse.json({ error: 'Invalid document id' }, { status: 400 });
-  }
-
-  const document = await getTripDocumentById(user.id, documentId);
-  if (!document) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+export const GET = route({ params: z.object({ id: z.coerce.number().int().positive() }) })(async ({ user, params }) => {
+  const document = await getTripDocumentById(user.id, params.id);
+  if (!document) routeHttpError(404, { error: 'Document not found' });
 
   if (!document.storagePath) {
-    return NextResponse.json({ error: 'Document is a link-only entry and has no uploaded file' }, { status: 400 });
+    routeHttpError(400, { error: 'Document is a link-only entry and has no uploaded file' });
   }
 
   const root = travelFilesConfig.storageRoot;

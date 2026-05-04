@@ -4,7 +4,6 @@ import {
   index,
   integer,
   jsonb,
-  numeric,
   pgTable,
   primaryKey,
   serial,
@@ -14,37 +13,41 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { users } from './users';
-import type {
-  AccountType,
-  TransactionType,
-  TransactionExtras,
-  CategoryIcon,
-} from '../../constants/finances';
+import { numericCasted } from './numeric-casted';
+import type { AccountType, TransactionType, CategoryIcon } from '../../constants/finances';
+import type { TransactionDetails } from '../../types/transaction-details';
 
 // ─── Budget (household) ───────────────────────────────────────────────────
 
 export const financeBudgets = pgTable('finance_budgets', {
-  id:              serial('id').primaryKey(),
-  name:            text('name').notNull(),
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
   defaultCurrency: text('default_currency').notNull().default('MDL'),
   // The user who created the budget — informational, does not imply elevated permissions.
   // All permission logic is driven by financeBudgetMembers.
-  createdByUserId: uuid('created_by_user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
-  createdAt:       timestamp('created_at').notNull().defaultNow(),
-  updatedAt:       timestamp('updated_at').notNull().defaultNow(),
+  createdByUserId: uuid('created_by_user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'restrict' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 export const financeBudgetMembers = pgTable(
   'finance_budget_members',
   {
-    budgetId: integer('budget_id').notNull().references(() => financeBudgets.id, { onDelete: 'cascade' }),
-    userId:   uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    budgetId: integer('budget_id')
+      .notNull()
+      .references(() => financeBudgets.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     joinedAt: timestamp('joined_at').notNull().defaultNow(),
+    isActive: boolean('is_active').notNull().default(false),
   },
   table => ({
-    pk:          primaryKey({ columns: [table.budgetId, table.userId] }),
+    pk: primaryKey({ columns: [table.budgetId, table.userId] }),
     budgetIdIdx: index('idx_finance_budget_members_budget').on(table.budgetId),
-    userIdIdx:   index('idx_finance_budget_members_user').on(table.userId),
+    userIdIdx: index('idx_finance_budget_members_user').on(table.userId),
   }),
 );
 
@@ -53,24 +56,26 @@ export const financeBudgetMembers = pgTable(
 export const financeAccounts = pgTable(
   'finance_accounts',
   {
-    id:             serial('id').primaryKey(),
-    budgetId:       integer('budget_id').notNull().references(() => financeBudgets.id, { onDelete: 'cascade' }),
-    name:           text('name').notNull(),
-    type:           text('type').$type<AccountType>().notNull(),
-    currency:       text('currency').notNull(),
-    openingBalance: numeric('opening_balance', { precision: 18, scale: 4 }).notNull().default('0'),
+    id: serial('id').primaryKey(),
+    budgetId: integer('budget_id')
+      .notNull()
+      .references(() => financeBudgets.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    type: text('type').$type<AccountType>().notNull(),
+    currency: text('currency').notNull(),
+    openingBalance: numericCasted('opening_balance', { precision: 18, scale: 4 }).notNull().default(0),
     // Running balance — updated on every transaction insert/update/delete.
     // For Investment/Tracking: manually-overridden current value.
-    balance:        numeric('balance', { precision: 18, scale: 4 }).notNull().default('0'),
-    archived:       boolean('archived').notNull().default(false),
+    balance: numericCasted('balance', { precision: 18, scale: 4 }).notNull().default(0),
+    archived: boolean('archived').notNull().default(false),
     // Type-specific fields — see BankAccountDetails, LoanAccountDetails, etc. in constants
-    details:        jsonb('details'),
-    createdAt:      timestamp('created_at').notNull().defaultNow(),
-    updatedAt:      timestamp('updated_at').notNull().defaultNow(),
+    details: jsonb('details'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   table => ({
     budgetIdIdx: index('idx_finance_accounts_budget').on(table.budgetId),
-    typeIdx:     index('idx_finance_accounts_type').on(table.type),
+    typeIdx: index('idx_finance_accounts_type').on(table.type),
   }),
 );
 
@@ -79,9 +84,11 @@ export const financeAccounts = pgTable(
 export const financeGroups = pgTable(
   'finance_groups',
   {
-    id:        serial('id').primaryKey(),
-    budgetId:  integer('budget_id').notNull().references(() => financeBudgets.id, { onDelete: 'cascade' }),
-    name:      text('name').notNull(),
+    id: serial('id').primaryKey(),
+    budgetId: integer('budget_id')
+      .notNull()
+      .references(() => financeBudgets.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
     sortOrder: integer('sort_order').notNull().default(0),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -96,39 +103,58 @@ export const financeGroups = pgTable(
 export const financeCategories = pgTable(
   'finance_categories',
   {
-    id:       serial('id').primaryKey(),
-    budgetId: integer('budget_id').notNull().references(() => financeBudgets.id, { onDelete: 'cascade' }),
-    name:     text('name').notNull(),
+    id: serial('id').primaryKey(),
+    budgetId: integer('budget_id')
+      .notNull()
+      .references(() => financeBudgets.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
     // null = ungrouped
-    groupId:       integer('group_id').references(() => financeGroups.id, { onDelete: 'set null' }),
-    color:         text('color'),
+    groupId: integer('group_id').references(() => financeGroups.id, { onDelete: 'set null' }),
+    color: text('color'),
     // Icon key — maps to a UI component via CategoryIcons constant in the Hub package
-    icon:          text('icon').$type<CategoryIcon>(),
+    icon: text('icon').$type<CategoryIcon>(),
     // Optional monthly spending target — nullable, no envelope-style allocation
-    monthlyTarget: numeric('monthly_target', { precision: 18, scale: 4 }),
-    sortOrder:     integer('sort_order').notNull().default(0),
-    createdAt:     timestamp('created_at').notNull().defaultNow(),
-    updatedAt:     timestamp('updated_at').notNull().defaultNow(),
+    monthlyTarget: numericCasted('monthly_target', { precision: 18, scale: 4 }),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   table => ({
     budgetIdIdx: index('idx_finance_categories_budget').on(table.budgetId),
-    groupIdIdx:  index('idx_finance_categories_group').on(table.groupId),
+    groupIdIdx: index('idx_finance_categories_group').on(table.groupId),
   }),
 );
 
-// ─── Merchants ────────────────────────────────────────────────────────────
-// Normalised merchant list — powers autofill suggestions and spending-by-merchant reports.
+// ─── Payees ───────────────────────────────────────────────────────────────
+// Normalised payee list — powers autofill suggestions and spending-by-payee reports.
+// Unique by (budgetId, normalizedName) for case-insensitive duplicate prevention.
 
-export const financeMerchants = pgTable(
-  'finance_merchants',
+export interface PayeeUserStats {
+  count: number;
+  lastUsedAt: string | null;
+  lastUsedCategoryId: number | null;
+  lastUsedAccountId: number | null;
+}
+
+export const financePayees = pgTable(
+  'finance_payees',
   {
-    id:        serial('id').primaryKey(),
-    budgetId:  integer('budget_id').notNull().references(() => financeBudgets.id, { onDelete: 'cascade' }),
-    name:      text('name').notNull(),
+    id: serial('id').primaryKey(),
+    budgetId: integer('budget_id')
+      .notNull()
+      .references(() => financeBudgets.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    // lower(trim(name)) — used for case-insensitive uniqueness check
+    normalizedName: text('normalized_name').notNull(),
+    // Optional context for AI — e.g. "Main grocery supermarket", "Landlord — rent"
+    description: text('description'),
+    // keyed by userId string; tracks per-user usage for ranked suggestions
+    statsByUser: jsonb('stats_by_user').$type<Record<string, PayeeUserStats>>().notNull().default({}),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   table => ({
-    budgetNameUniq: uniqueIndex('uq_finance_merchants_budget_name').on(table.budgetId, table.name),
+    budgetNormUniq: uniqueIndex('uq_finance_payees_budget_norm').on(table.budgetId, table.normalizedName),
+    budgetIdx: index('idx_finance_payees_budget').on(table.budgetId),
   }),
 );
 
@@ -137,31 +163,42 @@ export const financeMerchants = pgTable(
 export const financeTransactions = pgTable(
   'finance_transactions',
   {
-    id:       serial('id').primaryKey(),
-    budgetId: integer('budget_id').notNull().references(() => financeBudgets.id, { onDelete: 'cascade' }),
-    type:     text('type').$type<TransactionType>().notNull(),
+    id: serial('id').primaryKey(),
+    budgetId: integer('budget_id')
+      .notNull()
+      .references(() => financeBudgets.id, { onDelete: 'cascade' }),
+    type: text('type').$type<TransactionType>().notNull(),
 
     // For expense/income: the account. For transfer: the source account.
-    accountId:   integer('account_id').notNull().references(() => financeAccounts.id, { onDelete: 'restrict' }),
+    accountId: integer('account_id')
+      .notNull()
+      .references(() => financeAccounts.id, { onDelete: 'restrict' }),
     // Transfer destination — null for expense/income.
     toAccountId: integer('to_account_id').references(() => financeAccounts.id, { onDelete: 'restrict' }),
 
-    amount:      numeric('amount', { precision: 18, scale: 4 }).notNull(), // in account currency
-    // Exchange rate at insert time (account currency → budget default currency). 1.0 if same.
-    exchangeRate: numeric('exchange_rate', { precision: 18, scale: 8 }).notNull().default('1'),
+    amount: numericCasted('amount', { precision: 18, scale: 4 }).notNull(), // in account currency
+    // Reporting rate: source account currency → budget default currency. 1.0 if same.
+    // Used to convert amounts to a common currency for net-worth and cashflow reports.
+    // Never used to compute the credited amount for transfer destinations — use toExchangeRate for that.
+    exchangeRate: numericCasted('exchange_rate', { precision: 18, scale: 8 }).notNull().default(1),
+    // Transfer FX rate: source account currency → destination account currency.
+    // Only meaningful for Transfer transactions where the two accounts have different currencies.
+    // Null for expense/income transactions. 1.0 for same-currency transfers.
+    // toBalanceAfter = toAccount.balance + amount * toExchangeRate
+    toExchangeRate: numericCasted('to_exchange_rate', { precision: 18, scale: 8 }),
 
-    date:       date('date').notNull(),    // YYYY-MM-DD, user-visible date
+    date: date('date').notNull(), // YYYY-MM-DD, user-visible date
     categoryId: integer('category_id').references(() => financeCategories.id, { onDelete: 'set null' }),
-    merchantId: integer('merchant_id').references(() => financeMerchants.id,  { onDelete: 'set null' }),
+    payeeId: integer('payee_id').references(() => financePayees.id, { onDelete: 'set null' }),
 
     // Human-readable note — shown in UI, indexed for search.
     // AI entries are encouraged to populate this with a plain-language summary.
     notes: text('notes'),
 
     // Structured metadata — optionally populated by MCP/AI at insert time.
-    // See TransactionExtras interface in constants for typed fields.
+    // See TransactionDetails in src/types/transaction-details.ts for typed shapes.
     // Human-entered transactions will typically leave this null.
-    extras: jsonb('extras').$type<TransactionExtras>(),
+    extras: jsonb('extras').$type<TransactionDetails>(),
 
     // Marks balance-correction entries (e.g. reconciliation adjustments).
     // Corrections are excluded from spending reports and cashflow summaries
@@ -169,23 +206,25 @@ export const financeTransactions = pgTable(
     isCorrection: boolean('is_correction').notNull().default(false),
 
     // Ledger snapshots — balance of the account immediately after this transaction.
-    fromAccountBalanceAfter: numeric('from_account_balance_after', { precision: 18, scale: 4 }),
-    toAccountBalanceAfter:   numeric('to_account_balance_after',   { precision: 18, scale: 4 }),
+    fromAccountBalanceAfter: numericCasted('from_account_balance_after', { precision: 18, scale: 4 }),
+    toAccountBalanceAfter: numericCasted('to_account_balance_after', { precision: 18, scale: 4 }),
 
     // Owner — always assigned from session in the service layer, never from client input.
-    addedByUserId: uuid('added_by_user_id').notNull().references(() => users.id, { onDelete: 'restrict' }),
+    addedByUserId: uuid('added_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
 
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   table => ({
-    budgetIdIdx:   index('idx_finance_txns_budget').on(table.budgetId),
-    accountIdIdx:  index('idx_finance_txns_account').on(table.accountId),
-    toAccountIdx:  index('idx_finance_txns_to_account').on(table.toAccountId),
-    dateIdx:       index('idx_finance_txns_date').on(table.date),
-    categoryIdx:   index('idx_finance_txns_category').on(table.categoryId),
-    merchantIdx:   index('idx_finance_txns_merchant').on(table.merchantId),
-    addedByIdx:    index('idx_finance_txns_added_by').on(table.addedByUserId),
+    budgetIdIdx: index('idx_finance_txns_budget').on(table.budgetId),
+    accountIdIdx: index('idx_finance_txns_account').on(table.accountId),
+    toAccountIdx: index('idx_finance_txns_to_account').on(table.toAccountId),
+    dateIdx: index('idx_finance_txns_date').on(table.date),
+    categoryIdx: index('idx_finance_txns_category').on(table.categoryId),
+    payeeIdx: index('idx_finance_txns_payee').on(table.payeeId),
+    addedByIdx: index('idx_finance_txns_added_by').on(table.addedByUserId),
     // Composite — most common query pattern: budget + date range
     budgetDateIdx: index('idx_finance_txns_budget_date').on(table.budgetId, table.date),
   }),
@@ -198,10 +237,10 @@ export const financeCurrencyRates = pgTable(
   'finance_currency_rates',
   {
     fromCurrency: text('from_currency').notNull(),
-    toCurrency:   text('to_currency').notNull(),
-    date:         date('date').notNull(),  // YYYY-MM-DD
-    rate:         numeric('rate', { precision: 18, scale: 8 }).notNull(),
-    fetchedAt:    timestamp('fetched_at').notNull().defaultNow(),
+    toCurrency: text('to_currency').notNull(),
+    date: date('date').notNull(), // YYYY-MM-DD
+    rate: numericCasted('rate', { precision: 18, scale: 8 }).notNull(),
+    fetchedAt: timestamp('fetched_at').notNull().defaultNow(),
   },
   table => ({
     pk: primaryKey({ columns: [table.fromCurrency, table.toCurrency, table.date] }),
@@ -214,18 +253,20 @@ export const financeCurrencyRates = pgTable(
 export const financeNetWorthSnapshots = pgTable(
   'finance_net_worth_snapshots',
   {
-    id:               serial('id').primaryKey(),
-    budgetId:         integer('budget_id').notNull().references(() => financeBudgets.id, { onDelete: 'cascade' }),
-    month:            text('month').notNull(), // YYYY-MM
-    totalAssets:      numeric('total_assets',      { precision: 18, scale: 4 }).notNull(),
-    totalLiabilities: numeric('total_liabilities', { precision: 18, scale: 4 }).notNull(),
-    netWorth:         numeric('net_worth',          { precision: 18, scale: 4 }).notNull(),
+    id: serial('id').primaryKey(),
+    budgetId: integer('budget_id')
+      .notNull()
+      .references(() => financeBudgets.id, { onDelete: 'cascade' }),
+    month: text('month').notNull(), // YYYY-MM
+    totalAssets: numericCasted('total_assets', { precision: 18, scale: 4 }).notNull(),
+    totalLiabilities: numericCasted('total_liabilities', { precision: 18, scale: 4 }).notNull(),
+    netWorth: numericCasted('net_worth', { precision: 18, scale: 4 }).notNull(),
     // Full per-account breakdown for history drilldown
-    breakdown:        jsonb('breakdown').notNull(),
-    createdAt:        timestamp('created_at').notNull().defaultNow(),
+    breakdown: jsonb('breakdown').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   table => ({
     budgetMonthUniq: uniqueIndex('uq_finance_net_worth_budget_month').on(table.budgetId, table.month),
-    budgetIdIdx:     index('idx_finance_net_worth_budget').on(table.budgetId),
+    budgetIdIdx: index('idx_finance_net_worth_budget').on(table.budgetId),
   }),
 );

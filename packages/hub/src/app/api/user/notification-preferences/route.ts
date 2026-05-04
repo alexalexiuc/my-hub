@@ -1,26 +1,21 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { route } from '@/lib/api/route';
 import { getUserSubscriptions, setSubscription, NOTIFICATION_SUBSCRIPTIONS } from '@my-hub/shared/services';
 import type { SubscriptionKey } from '@my-hub/shared/services';
+import { z } from 'zod';
 
-const validKeys = new Set<string>(NOTIFICATION_SUBSCRIPTIONS.map(s => s.key));
+const validKeys = NOTIFICATION_SUBSCRIPTIONS.map(s => s.key) as [string, ...string[]];
 
-export const GET = withAuth(async ({ user }) => {
-  const subscriptions = await getUserSubscriptions(user.id);
-  return NextResponse.json({ subscriptions });
+const NotificationPreferencePutSchema = z.object({
+  key: z.enum(validKeys, { error: 'Invalid subscription key' }),
+  subscribed: z.boolean(),
 });
 
-export const PUT = withAuth(async ({ req, user }) => {
-  const body = await req.json();
-  const { key, subscribed } = body as { key: string; subscribed: unknown };
+export const GET = route(async ({ user }) => {
+  const subscriptions = await getUserSubscriptions(user.id);
+  return { subscriptions };
+});
 
-  if (typeof key !== 'string' || !validKeys.has(key)) {
-    return NextResponse.json({ error: 'Invalid subscription key' }, { status: 400 });
-  }
-  if (typeof subscribed !== 'boolean') {
-    return NextResponse.json({ error: 'subscribed must be a boolean' }, { status: 400 });
-  }
-
-  await setSubscription(user.id, key as SubscriptionKey, subscribed);
-  return NextResponse.json({ ok: true });
+export const PUT = route({ body: NotificationPreferencePutSchema })(async ({ user, body }) => {
+  await setSubscription(user.id, body.key as SubscriptionKey, body.subscribed);
+  return { ok: true };
 });

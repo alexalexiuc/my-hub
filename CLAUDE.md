@@ -58,8 +58,10 @@ When a feature spans multiple layers, change in this order:
 - For data-only changes (seeds, backfills, one-off SQL, extensions), generate an empty custom migration via `pnpm --filter shared drizzle-kit generate --custom --name=<description>` and fill in the SQL manually. Never hand-write schema migrations.
 - All DB queries belong in `packages/shared/src/services/` under a domain subfolder. Never write raw Drizzle calls in `mcp-server` or `hub`.
 - Any table with a user-linked ownership column (for example `user_id`, `owner_user_id`, or `shared_with_user_id`) must expose a `deleteAllUser*` function from `packages/shared/src/services/`, and `packages/hub/src/app/api/user/delete-all/route.ts` (`POST`) must call it so the Profile "Delete all my data" action clears all user data. For cases with complex ownership rules (for example, `shared_with_user_id` can contain multiple users), the `deleteAllUser*` function should delete only rows where the user is the owner (`user_id`), and null out the user from shared ownership columns (`shared_with_user_id`) in rows they don't own.
-- Use `real()` columns (not `numeric`) for all decimal/float values — avoids string↔number conversions at the JS boundary.
+- Use `real()` columns (not `numeric`) for decimal/float values by default — avoids string↔number conversions at the JS boundary.
+- Exception: finance money/exchange-rate fields currently use `numeric(18,4|8)` via `numericCasted` in `packages/shared/src/db/schema/finances.ts` to preserve fixed-scale precision while still exposing JS `number` values in the app layer.
 - Use `omitNullish()` from `@my-hub/shared/utils` instead of writing `if (val != null)` guards per property.
+- Never build patch/update objects with conditional spread fragments (for example, `...(x !== undefined ? { x } : {})`). This pattern is hard to scan and easy to get wrong. Build a plain object and pass it through `omitUndefined()` or `omitNullish()` from `@my-hub/shared/utils`.
 - Keep hub-only UI logic out of `shared`.
 - Keep Fastify/MCP transport code out of `hub`.
 - Document every new runtime variable in the relevant `.env.example` and in the root `.env.example` if Docker uses it.

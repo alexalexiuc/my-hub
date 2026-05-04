@@ -80,60 +80,55 @@ export type NewApiaryLog = InferInsertModel<typeof apiaryLogs>;
 export type ApiaryTask = InferSelectModel<typeof apiaryTasks>;
 export type NewApiaryTask = InferInsertModel<typeof apiaryTasks>;
 
-// Travel — base shape shared by all trip_bookings.details objects.
-// Use BookingDetails as the discriminated-union root; extend it for each booking type.
-// Use BaseBookingDetails for booking types that do not yet have a dedicated shape.
-export interface BookingDetails {
-  readonly kind: string;
-  source?: string;
-  rawText?: string;
-  /** Open bag — AI may add any extra fields it considers relevant. */
-  extra?: Record<string, unknown>;
-}
+// Travel — booking details discriminated union
+export type {
+  BookingDetails,
+  FlightDetails,
+  TransportLocation,
+  TransportDetails,
+  BaseBookingDetails,
+} from './booking-details';
 
-// Travel — flight metadata stored in trip_bookings.details (user-provided / AI-extracted fallback)
-export interface FlightDetails extends BookingDetails {
-  readonly kind: 'flight';
-  flightNumber?: string;
-  seat?: string;
-  originIata?: string;
-  destinationIata?: string;
-  terminal?: string;
-  gate?: string;
-  aircraftType?: string;
-}
+// Finances — transaction details discriminated union
+export type {
+  TransactionDetails,
+  ManualTransactionDetails,
+  ReceiptTransactionDetails,
+  ReceiptLineItem,
+  BaseTransactionDetails,
+} from './transaction-details';
 
-// Travel — location for transport bookings (train, bus, ferry, taxi, transfer, car, rental_car)
-export interface TransportLocation {
-  name: string;
-  address?: string;
-  iataCode?: string;
-  uicCode?: string;
-  googlePlaceId?: string;
-  lat?: number;
-  lng?: number;
-}
-
-// Travel — transport booking details stored in trip_bookings.details
-export interface TransportDetails extends BookingDetails {
-  readonly kind: 'transport';
-  origin: TransportLocation;
-  destination: TransportLocation;
-  serviceNumber?: string;
-  seat?: string;
-  class?: string;
-  vehicleType?: string;
-  meetingPoint?: string;
-  vesselName?: string;
-  cabin?: string;
-  distanceKm?: number;
-}
-
-// Travel — fallback shape for booking types without a dedicated details interface yet.
-// kind: 'base' signals that only the common BookingDetails fields are expected.
-export interface BaseBookingDetails extends BookingDetails {
-  readonly kind: 'base';
-}
+// Finances — table row types
+import type {
+  financeBudgets,
+  financeBudgetMembers,
+  financeAccounts,
+  financeGroups,
+  financeCategories,
+  financePayees,
+  financeTransactions,
+  financeCurrencyRates,
+  financeNetWorthSnapshots,
+} from '../db/schema/finances';
+export type { PayeeUserStats } from '../db/schema/finances';
+export type FinanceBudget = InferSelectModel<typeof financeBudgets>;
+export type NewFinanceBudget = InferInsertModel<typeof financeBudgets>;
+export type FinanceBudgetMember = InferSelectModel<typeof financeBudgetMembers>;
+export type NewFinanceBudgetMember = InferInsertModel<typeof financeBudgetMembers>;
+export type FinanceAccount = InferSelectModel<typeof financeAccounts>;
+export type NewFinanceAccount = InferInsertModel<typeof financeAccounts>;
+export type FinanceGroup = InferSelectModel<typeof financeGroups>;
+export type NewFinanceGroup = InferInsertModel<typeof financeGroups>;
+export type FinanceCategory = InferSelectModel<typeof financeCategories>;
+export type NewFinanceCategory = InferInsertModel<typeof financeCategories>;
+export type FinancePayee = InferSelectModel<typeof financePayees>;
+export type NewFinancePayee = InferInsertModel<typeof financePayees>;
+export type FinanceTransaction = InferSelectModel<typeof financeTransactions>;
+export type NewFinanceTransaction = InferInsertModel<typeof financeTransactions>;
+export type FinanceCurrencyRate = InferSelectModel<typeof financeCurrencyRates>;
+export type NewFinanceCurrencyRate = InferInsertModel<typeof financeCurrencyRates>;
+export type FinanceNetWorthSnapshot = InferSelectModel<typeof financeNetWorthSnapshots>;
+export type NewFinanceNetWorthSnapshot = InferInsertModel<typeof financeNetWorthSnapshots>;
 
 // Travel
 export type FlightData = InferSelectModel<typeof flightData>;

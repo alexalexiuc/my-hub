@@ -17,7 +17,10 @@ export async function seedAuditLogFixtures(userEmail: string): Promise<void> {
     .delete(apiRequestLogs)
     .where(and(eq(apiRequestLogs.userId, user.id), like(apiRequestLogs.path, `${SEED_PATH_PREFIX}%`)));
 
-  const now = new Date();
+  // Shift 'now' 1 hour into the future so seeded rows always appear at the top of
+  // the audit-log table (ordered desc by createdAt) regardless of how many real hub
+  // entries accumulate during the test session.
+  const now = new Date(Date.now() + 60 * 60 * 1000);
 
   await db.insert(apiRequestLogs).values([
     {

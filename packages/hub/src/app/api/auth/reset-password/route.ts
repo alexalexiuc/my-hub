@@ -1,28 +1,13 @@
-import { NextResponse } from 'next/server';
 import { consumePasswordResetToken } from '@my-hub/shared/services';
-import { ResetPasswordSchema } from '@my-hub/shared/schemas';
-import { withErrorLogging, formatZodError } from '@/lib/api/with-error-logging';
+import { ResetPasswordSchema } from '@/lib/schemas/auth';
+import { route, routeHttpError } from '@/lib/api/route';
 
-async function resetPasswordHandler(req: Request) {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const parsed = ResetPasswordSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
-  }
-
-  const ok = await consumePasswordResetToken(parsed.data.token, parsed.data.password);
+export const POST = route({ public: true, body: ResetPasswordSchema })(async ({ body }) => {
+  const ok = await consumePasswordResetToken(body.token, body.password);
 
   if (!ok) {
-    return NextResponse.json({ error: 'Reset link is invalid or has expired' }, { status: 400 });
+    return routeHttpError(400, 'Reset link is invalid or has expired');
   }
 
-  return NextResponse.json({ ok: true });
-}
-
-export const POST = withErrorLogging(resetPasswordHandler);
+  return { ok: true };
+});

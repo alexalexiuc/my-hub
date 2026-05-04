@@ -1,40 +1,32 @@
-import { NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api/with-auth';
+import { z } from 'zod';
+import { route, routeHttpError } from '@/lib/api/route';
 import { findUserById, updateUserProfile } from '@my-hub/shared/services';
 import { COUNTRIES, TIMEZONES } from '@my-hub/shared/constants';
-import { UpdateUserProfileSchema } from '@my-hub/shared/schemas';
-import { withErrorLogging, formatZodError } from '@/lib/api/with-error-logging';
+
+const UpdateUserProfileSchema = z.object({
+  name: z.string().trim().max(100).nullish(),
+  country: z.string().nullish(),
+  timezone: z.string().nullish(),
+});
 
 const VALID_COUNTRIES = new Set(COUNTRIES.map(c => c.value));
 const VALID_TIMEZONES = new Set(TIMEZONES.map(t => t.value));
 
-export const GET = withAuth(async ({ user }) => {
+export const GET = route(async ({ user }) => {
   const record = await findUserById(user.id);
-  if (!record) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!record) routeHttpError(404, { error: 'Not found' });
   const { passwordHash: _ph, googleId: _gi, ...publicFields } = record;
-  return NextResponse.json({ user: publicFields });
+  return { user: publicFields };
 });
 
-const putHandler = withAuth(async ({ req, user }) => {
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const parsed = UpdateUserProfileSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
-  }
-
-  const { name, country, timezone } = parsed.data;
+export const PUT = route({ body: UpdateUserProfileSchema })(async ({ user, body }) => {
+  const { name, country, timezone } = body;
 
   if (country != null && country !== '' && !VALID_COUNTRIES.has(country)) {
-    return NextResponse.json({ error: 'Invalid country code' }, { status: 400 });
+    routeHttpError(400, { error: 'Invalid country code' });
   }
   if (timezone != null && timezone !== '' && !VALID_TIMEZONES.has(timezone)) {
-    return NextResponse.json({ error: 'Invalid timezone' }, { status: 400 });
+    routeHttpError(400, { error: 'Invalid timezone' });
   }
 
   const patch: { name?: string | null; country?: string | null; timezone?: string | null } = {};
@@ -44,7 +36,5 @@ const putHandler = withAuth(async ({ req, user }) => {
 
   const updated = await updateUserProfile(user.id, patch);
   const { passwordHash: _ph, googleId: _gi, ...publicFields } = updated;
-  return NextResponse.json({ user: publicFields });
+  return { user: publicFields };
 });
-
-export const PUT = withErrorLogging(putHandler);
