@@ -24,7 +24,7 @@ import {
   financeCategories,
   financePayees,
 } from '../../db/schema/finances';
-import { omitNullish } from '../../utils';
+import { omitUndefined } from '../../utils';
 import { shiftMonthStr, toUTCDateStr } from '../../utils/dates';
 import { verifyBudgetAccess } from './budgets';
 import { getExchangeRate } from './exchangeRates';
@@ -211,7 +211,7 @@ export async function updateMonthlyPlan(
   patch: { availableAmount?: number; incomeAccountId?: number | null },
 ): Promise<FinanceMonthlyPlan> {
   await verifyBudgetAccess(userId, budgetId);
-  const updatePatch = omitNullish({ ...patch, updatedAt: new Date() });
+  const updatePatch = omitUndefined({ ...patch, updatedAt: new Date() });
 
   const rows = await db
     .update(financeMonthlyPlans)
@@ -322,7 +322,7 @@ export async function updatePlanItem(
 ): Promise<FinanceMonthlyPlanItem> {
   await verifyBudgetAccess(userId, budgetId);
   return db.transaction(tx =>
-    applyItemPatchInTx(tx, budgetId, itemId, () => omitNullish({ updatedAt: new Date(), ...data })),
+    applyItemPatchInTx(tx, budgetId, itemId, () => omitUndefined({ updatedAt: new Date(), ...data })),
   );
 }
 
@@ -346,12 +346,14 @@ export async function togglePlanItemAssigned(
 ): Promise<FinanceMonthlyPlanItem> {
   await verifyBudgetAccess(userId, budgetId);
   return db.transaction(tx =>
-    applyItemPatchInTx(tx, budgetId, itemId, existing => ({
-      isAssigned,
-      assignedAmount: isAssigned ? existing.amount : 0,
-      assignedTransactionId: isAssigned ? undefined : null,
-      updatedAt: new Date(),
-    })),
+    applyItemPatchInTx(tx, budgetId, itemId, existing =>
+      omitUndefined({
+        isAssigned,
+        assignedAmount: isAssigned ? existing.amount : 0,
+        assignedTransactionId: isAssigned ? undefined : null,
+        updatedAt: new Date(),
+      }),
+    ),
   );
 }
 
@@ -446,44 +448,67 @@ async function applyTransactionDeltaToPlan(
 
   const month = transaction.date.slice(0, 7); // YYYY-MM
 
-  const plan = await getMonthlyPlan(userId, budgetId, month);
-  if (!plan) return; // no plan for this month, nothing to update
+  let updatedPlanForCache: FinanceMonthlyPlan | undefined;
 
-  if (
-    plan.incomeAccountId !== null &&
-    ((transaction.type === TransactionTypes.Income && transaction.accountId === plan.incomeAccountId) ||
-      (transaction.type === TransactionTypes.Transfer && transaction.toAccountId === plan.incomeAccountId))
-  ) {
-    await updateMonthlyPlan(userId, budgetId, plan.id, { availableAmount: plan.availableAmount + amountDelta });
-  }
+  await db.transaction(async tx => {
+    const planRows = await tx
+      .select()
+      .from(financeMonthlyPlans)
+      .where(and(eq(financeMonthlyPlans.budgetId, budgetId), eq(financeMonthlyPlans.month, month)))
+      .limit(1);
 
-  const items = await db.select().from(financeMonthlyPlanItems).where(eq(financeMonthlyPlanItems.planId, plan.id));
+    const plan = planRows[0];
+    if (!plan) return; // no plan for this month, nothing to update
 
-  for (const item of items) {
-    if (!doesItemMatchTransaction(item, transaction)) continue;
+    if (
+      plan.incomeAccountId !== null &&
+      ((transaction.type === TransactionTypes.Income && transaction.accountId === plan.incomeAccountId) ||
+        (transaction.type === TransactionTypes.Transfer && transaction.toAccountId === plan.incomeAccountId))
+    ) {
+      const updatedPlanRows = await tx
+        .update(financeMonthlyPlans)
+        .set({
+          availableAmount: sql`${financeMonthlyPlans.availableAmount} + ${amountDelta}`,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(financeMonthlyPlans.id, plan.id), eq(financeMonthlyPlans.budgetId, budgetId)))
+        .returning();
 
-    // Keep manual/other assignment states stable: only force isAssigned from
-    // threshold when this transaction is the attribution source for the row.
-    const wasAttributedToThisTx = item.assignedTransactionId === transaction.id;
-    const nextAssignedAmount = Math.max(0, item.assignedAmount + amountDelta);
-    const thresholdDone = nextAssignedAmount >= item.amount;
-    const nextIsAssigned = wasAttributedToThisTx ? thresholdDone : item.isAssigned || thresholdDone;
-    const nextAssignedTransactionId =
-      amountDelta > 0
-        ? transaction.id
-        : wasAttributedToThisTx && nextAssignedAmount === 0
-          ? null
-          : item.assignedTransactionId;
+      updatedPlanForCache = updatedPlanRows[0];
+    }
 
-    await db
-      .update(financeMonthlyPlanItems)
-      .set({
-        assignedAmount: nextAssignedAmount,
-        isAssigned: nextIsAssigned,
-        assignedTransactionId: nextAssignedTransactionId,
-        updatedAt: new Date(),
-      })
-      .where(eq(financeMonthlyPlanItems.id, item.id));
+    const items = await tx.select().from(financeMonthlyPlanItems).where(eq(financeMonthlyPlanItems.planId, plan.id));
+
+    for (const item of items) {
+      if (!doesItemMatchTransaction(item, transaction)) continue;
+
+      // Keep manual/other assignment states stable: only force isAssigned from
+      // threshold when this transaction is the attribution source for the row.
+      const wasAttributedToThisTx = item.assignedTransactionId === transaction.id;
+      const nextAssignedAmount = Math.max(0, item.assignedAmount + amountDelta);
+      const thresholdDone = nextAssignedAmount >= item.amount;
+      const nextIsAssigned = wasAttributedToThisTx ? thresholdDone : item.isAssigned || thresholdDone;
+      const nextAssignedTransactionId =
+        amountDelta > 0
+          ? transaction.id
+          : wasAttributedToThisTx && nextAssignedAmount === 0
+            ? null
+            : item.assignedTransactionId;
+
+      await tx
+        .update(financeMonthlyPlanItems)
+        .set({
+          assignedAmount: nextAssignedAmount,
+          isAssigned: nextIsAssigned,
+          assignedTransactionId: nextAssignedTransactionId,
+          updatedAt: new Date(),
+        })
+        .where(eq(financeMonthlyPlanItems.id, item.id));
+    }
+  });
+
+  if (updatedPlanForCache) {
+    monthlyPlanCache.set(`${budgetId}-${updatedPlanForCache.month}`, updatedPlanForCache);
   }
 }
 

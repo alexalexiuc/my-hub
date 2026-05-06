@@ -11,8 +11,8 @@ vi.mock('./budgets.js', () => ({ verifyBudgetAccess: vi.fn() }));
 vi.mock('./payees.js', () => ({ incrementPayeeStats: vi.fn(), decrementPayeeStats: vi.fn() }));
 vi.mock('./exchangeRates.js', () => ({ getExchangeRate: vi.fn() }));
 vi.mock('./monthly-plans.js', () => ({
-  tryAutoMatchPlanItems: vi.fn(),
-  reconcileAutoMatchPlanItemsForTransactionUpdate: vi.fn(),
+  tryAutoMatchPlanItems: vi.fn().mockResolvedValue(undefined),
+  reconcileAutoMatchPlanItemsForTransactionUpdate: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { db } from '../../db/client.js';

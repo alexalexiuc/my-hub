@@ -213,6 +213,7 @@ describe('computeSummary', () => {
 describe('tryAutoMatchPlanItems', () => {
   beforeEach(() => {
     chainMocked(db).mockReset();
+    chainMocked(db).transaction.mockImplementation(async callback => callback(db as any));
     vi.resetAllMocks();
   });
 
@@ -323,6 +324,7 @@ describe('tryAutoMatchPlanItems', () => {
 describe('reconcileAutoMatchPlanItemsForTransactionUpdate', () => {
   beforeEach(() => {
     chainMocked(db).mockReset();
+    chainMocked(db).transaction.mockImplementation(async callback => callback(db as any));
     vi.resetAllMocks();
   });
 

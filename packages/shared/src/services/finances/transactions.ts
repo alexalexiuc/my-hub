@@ -194,7 +194,9 @@ export async function addTransaction(
     return row;
   });
 
-  await tryAutoMatchPlanItems(userId, budgetId, result);
+  tryAutoMatchPlanItems(userId, budgetId, result).catch(err => {
+    console.error('Error auto-matching plan items after transaction insert:', err);
+  });
   return result;
 }
 
@@ -518,7 +520,9 @@ export async function updateTransaction(
     return { row, previous: existing };
   });
 
-  await reconcileAutoMatchPlanItemsForTransactionUpdate(userId, budgetId, result.previous, result.row);
+  reconcileAutoMatchPlanItemsForTransactionUpdate(userId, budgetId, result.previous, result.row).catch(err => {
+    console.error('Error reconciling auto-matched plan items after transaction update:', err);
+  });
   return result.row;
 }
 
