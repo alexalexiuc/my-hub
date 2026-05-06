@@ -57,8 +57,8 @@ describe('getPayees sort order', () => {
 
     const result = await getPayees('user-1', 1);
 
-    expect(result[0].name).toBe('Beta');
-    expect(result[1].name).toBe('Alpha');
+    expect(result[0]?.name).toBe('Beta');
+    expect(result[1]?.name).toBe('Alpha');
   });
 
   it('places payee with more recent lastUsedAt first when useCount is tied', async () => {
@@ -74,8 +74,8 @@ describe('getPayees sort order', () => {
 
     const result = await getPayees('user-1', 1);
 
-    expect(result[0].name).toBe('Beta');
-    expect(result[1].name).toBe('Alpha');
+    expect(result[0]?.name).toBe('Beta');
+    expect(result[1]?.name).toBe('Alpha');
   });
 
   it('places payee with a lastUsedAt before payee with null', async () => {
@@ -91,8 +91,8 @@ describe('getPayees sort order', () => {
 
     const result = await getPayees('user-1', 1);
 
-    expect(result[0].name).toBe('Beta');
-    expect(result[1].name).toBe('Alpha');
+    expect(result[0]?.name).toBe('Beta');
+    expect(result[1]?.name).toBe('Alpha');
   });
 
   it('sorts alphabetically by name when useCount and lastUsedAt are both tied/null', async () => {
