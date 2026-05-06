@@ -17,45 +17,53 @@ type FinancialDropdownCreateOption = {
   className?: string;
 };
 
-export type FinancialDropdownProps = {
+type FinancialDropdownBaseProps = {
   options: DropdownOption[];
-  query: string;
-  onQueryChange: (value: string) => void;
-  onSelect: (item: DropdownOption) => void;
+  /** ID of the selected option. The display label is derived from `options`. */
+  value?: string | number;
+  onChange: (item: DropdownOption | null) => void;
   renderOption?: (item: DropdownOption) => React.ReactNode;
   placeholder?: string;
   noResultsText?: string;
   maxResults?: number;
-  closeOnSelect?: boolean;
-  /** Enable fuzzy search on the option value. Pass `true` for defaults or `{ threshold }` to tune. */
-  fuse?: boolean | { threshold: number };
-  /** When false, renders a clickable label instead of an input — no filtering, shows all options. Defaults to true. */
-  searchable?: boolean;
+  closeOnChange?: boolean;
   createOption?: FinancialDropdownCreateOption;
   clearable?: boolean;
-  onClear?: () => void;
   clearAriaLabel?: string;
   inputClassName?: string;
   menuClassName?: string;
   optionClassName?: string;
-  inputProps?: Omit<React.ComponentPropsWithoutRef<'input'>, 'value' | 'placeholder'>;
 };
+
+type FinancialDropdownSearchableProps = FinancialDropdownBaseProps & {
+  searchable?: true;
+  /** Enable fuzzy search on the option value. Pass `true` for defaults or `{ threshold }` to tune. */
+  fuse?: boolean | { threshold: number };
+  inputProps?: Omit<React.ComponentPropsWithoutRef<'input'>, 'value' | 'placeholder' | 'onChange'>;
+};
+
+type FinancialDropdownNonSearchableProps = FinancialDropdownBaseProps & {
+  /** When false, renders a clickable label instead of an input — no filtering, shows all options. */
+  searchable: false;
+  fuse?: never;
+  inputProps?: never;
+};
+
+export type FinancialDropdownProps = FinancialDropdownSearchableProps | FinancialDropdownNonSearchableProps;
 
 export function FinancialDropdown({
   options,
-  query,
-  onQueryChange,
-  onSelect,
+  value,
+  onChange,
   renderOption,
   placeholder,
   noResultsText,
   maxResults,
-  closeOnSelect = true,
+  closeOnChange = true,
   fuse,
   searchable = true,
   createOption,
   clearable = false,
-  onClear,
   clearAriaLabel = 'Clear selection',
   inputClassName,
   menuClassName,
@@ -65,13 +73,22 @@ export function FinancialDropdown({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
+  const selectedLabel = String(options.find(o => o.id === value)?.value ?? '');
+  const [searchQuery, setSearchQuery] = useState('');
+  const displayValue = searchQuery || selectedLabel;
+
+  function closeDropdown() {
+    setOpen(false);
+    setSearchQuery('');
+  }
+
   const fuseInstance = useMemo(() => {
     if (!fuse || options.length === 0) return null;
     const threshold = typeof fuse === 'object' ? fuse.threshold : 0.35;
     return new Fuse(options, { keys: ['value'], threshold });
   }, [fuse, options]);
 
-  const trimmedQuery = query.trim();
+  const trimmedQuery = searchQuery.trim();
 
   const results = useMemo(() => {
     let matches: DropdownOption[];
@@ -98,18 +115,18 @@ export function FinancialDropdown({
     return !options.some(item => String(item.value).trim().toLowerCase() === trimmedQuery.toLowerCase());
   }, [createOption, trimmedQuery, options]);
 
-  const canClear = clearable && trimmedQuery.length > 0;
+  const canClear = clearable && value != null;
 
   useEffect(() => {
     function handlePointerOutside(event: MouseEvent | TouchEvent) {
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setOpen(false);
+        closeDropdown();
       }
     }
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setOpen(false);
+        closeDropdown();
       }
     }
 
@@ -130,11 +147,8 @@ export function FinancialDropdown({
         {searchable ? (
           <Input
             {...inputProps}
-            value={query}
-            onChange={event => {
-              inputProps?.onChange?.(event);
-              onQueryChange(event.target.value);
-            }}
+            value={displayValue}
+            onChange={event => setSearchQuery(event.target.value)}
             onFocus={event => {
               inputProps?.onFocus?.(event);
               setOpen(true);
@@ -157,7 +171,9 @@ export function FinancialDropdown({
               inputClassName,
             )}
           >
-            <span className="truncate">{query || <span className="text-[var(--fin-subtle)]">{placeholder}</span>}</span>
+            <span className="truncate">
+              {selectedLabel || <span className="text-[var(--fin-subtle)]">{placeholder}</span>}
+            </span>
             <svg
               className="ml-1 shrink-0 text-[var(--fin-subtle)]"
               width="10"
@@ -184,12 +200,8 @@ export function FinancialDropdown({
             title={clearAriaLabel}
             onMouseDown={event => {
               event.preventDefault();
-              if (onClear) {
-                onClear();
-              } else {
-                onQueryChange('');
-              }
-              setOpen(false);
+              onChange(null);
+              closeDropdown();
             }}
             className="absolute right-0 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-[14px] text-[var(--fin-red)] hover:bg-[var(--fin-red-d)]"
           >
@@ -211,8 +223,9 @@ export function FinancialDropdown({
               type="button"
               onMouseDown={event => {
                 event.preventDefault();
-                onSelect(item);
-                if (closeOnSelect) {
+                onChange(item);
+                setSearchQuery('');
+                if (closeOnChange) {
                   setOpen(false);
                 }
               }}
@@ -235,7 +248,7 @@ export function FinancialDropdown({
               onMouseDown={event => {
                 event.preventDefault();
                 createOption.onCreate(trimmedQuery);
-                setOpen(false);
+                closeDropdown();
               }}
               className={cn(
                 'flex w-full items-center gap-1.5 border-none bg-transparent px-3 py-[8px] text-left text-[13px] text-[var(--fin-accent)] hover:bg-[var(--fin-card3)]',

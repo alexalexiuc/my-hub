@@ -166,7 +166,7 @@ export async function getCashflowSummary(
         eq(financeTransactions.isCorrection, false),
         gte(financeTransactions.date, dateFrom),
         lte(financeTransactions.date, dateTo),
-        sql`${financeTransactions.type} in ('expense', 'income')`,
+        sql`${financeTransactions.type} in (${TransactionTypes.Expense}, ${TransactionTypes.Income})`,
       ),
     )
     .groupBy(financeTransactions.type, sql`to_char(${financeTransactions.date}::date, 'YYYY-MM')`);

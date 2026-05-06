@@ -55,7 +55,7 @@ const TransactionExtrasSchema = BaseExtrasSchema.extend({
 
 const TransactionItemSchema = z
   .object({
-    type: z.enum(['expense', 'income', 'transfer']),
+    type: z.enum(TransactionTypes),
     amount: z.number().positive(),
     currency: z
       .string()
@@ -75,7 +75,7 @@ const TransactionItemSchema = z
     extras: TransactionExtrasSchema.optional(),
   })
   .superRefine((item, ctx) => {
-    if (item.type === 'transfer' && item.toAccountId == null) {
+    if (item.type === TransactionTypes.Transfer && item.toAccountId == null) {
       ctx.addIssue({
         code: 'custom',
         path: ['toAccountId'],
@@ -83,7 +83,7 @@ const TransactionItemSchema = z
       });
     }
 
-    if (item.type !== 'transfer' && item.toAccountId != null) {
+    if (item.type !== TransactionTypes.Transfer && item.toAccountId != null) {
       ctx.addIssue({
         code: 'custom',
         path: ['toAccountId'],
@@ -261,7 +261,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
 
 export const UpdateTransactionSchema = z.object({
   transactionId: z.number().int().positive(),
-  type: z.enum(['expense', 'income', 'transfer']).optional(),
+  type: z.enum(TransactionTypes).optional(),
   amount: z.number().positive().optional(),
   date: z
     .string()
@@ -289,18 +289,18 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
   const nextType = input.type ?? existing.type;
   const nextToAccountId = input.toAccountId !== undefined ? input.toAccountId : existing.toAccountId;
 
-  if (nextType === 'transfer' && nextToAccountId == null) {
+  if (nextType === TransactionTypes.Transfer && nextToAccountId == null) {
     throw new Error('Transfer transactions require toAccountId');
   }
 
-  if (nextType !== 'transfer' && input.toAccountId !== undefined) {
+  if (nextType !== TransactionTypes.Transfer && input.toAccountId !== undefined) {
     throw new Error('toAccountId can only be set for transfer transactions');
   }
 
   const toAccountIdForUpdate =
     input.toAccountId !== undefined
       ? input.toAccountId
-      : input.type !== undefined && input.type !== 'transfer'
+      : input.type !== undefined && input.type !== TransactionTypes.Transfer
         ? null
         : undefined;
 
@@ -364,7 +364,7 @@ export const QueryTransactionsSchema = z.object({
   accountId: z.number().int().positive().optional(),
   categoryId: z.number().int().positive().optional(),
   payeeName: z.string().optional(),
-  type: z.enum(['expense', 'income', 'transfer']).optional(),
+  type: z.enum(TransactionTypes).optional(),
   dateFrom: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)

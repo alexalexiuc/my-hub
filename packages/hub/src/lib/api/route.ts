@@ -7,6 +7,10 @@ import { formatZodError, writeApiLog } from './with-error-logging';
 
 type MaybePromise<T> = T | Promise<T>;
 
+type HandlerResult<TResponse extends ZodType | undefined> = TResponse extends ZodType
+  ? z.infer<TResponse> | Response
+  : RouteResult;
+
 type RouteJsonValue = string | number | boolean | null | object | unknown[];
 
 export type RouteResult = Response | RouteJsonValue;
@@ -273,7 +277,9 @@ export function route<
   TResponse extends ZodType | undefined = undefined,
 >(
   options: ProtectedRouteOptions<TParams, TBody, TQuery, TResponse>,
-): (handler: (ctx: RouteContext<TParams, TBody, TQuery, false>) => MaybePromise<RouteResult>) => NextRouteHandler;
+): (
+  handler: (ctx: RouteContext<TParams, TBody, TQuery, false>) => MaybePromise<HandlerResult<TResponse>>,
+) => NextRouteHandler;
 
 /** Route handler with Zod validation and public auth mode — call with options, then pass the handler. */
 export function route<
@@ -283,7 +289,9 @@ export function route<
   TResponse extends ZodType | undefined = undefined,
 >(
   options: PublicRouteOptions<TParams, TBody, TQuery, TResponse>,
-): (handler: (ctx: RouteContext<TParams, TBody, TQuery, true>) => MaybePromise<RouteResult>) => NextRouteHandler;
+): (
+  handler: (ctx: RouteContext<TParams, TBody, TQuery, true>) => MaybePromise<HandlerResult<TResponse>>,
+) => NextRouteHandler;
 
 export function route(
   schemasOrHandler: AnyRouteOptions | ((ctx: any) => MaybePromise<RouteResult>),

@@ -3,6 +3,7 @@ import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getTransactions, getNetWorthHistory } from '@my-hub/shared/services';
 import { reportsResponseSchema } from '../contracts';
 import type { ReportsData, CashflowMonth } from '../contracts';
+import { TransactionTypes } from '@my-hub/shared/constants';
 
 const ReportsQuerySchema = z.object({
   months: z.coerce.number().int().positive().max(12).optional(),
@@ -27,8 +28,8 @@ export const GET = route({ query: ReportsQuerySchema, response: reportsResponseS
   const toDate = now.toISOString().slice(0, 10);
 
   const [expenseTxns, incomeTxns, nwHistory] = await Promise.all([
-    getTransactions(user.id, budgetId, { type: 'expense', fromDate, toDate, limit: 5000 }),
-    getTransactions(user.id, budgetId, { type: 'income', fromDate, toDate, limit: 5000 }),
+    getTransactions(user.id, budgetId, { type: TransactionTypes.Expense, fromDate, toDate, limit: 5000 }),
+    getTransactions(user.id, budgetId, { type: TransactionTypes.Income, fromDate, toDate, limit: 5000 }),
     getNetWorthHistory(user.id, budgetId, months),
   ]);
 

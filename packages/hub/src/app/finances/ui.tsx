@@ -51,9 +51,7 @@ export function Card({
 
 export function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div
-      className={cn('mb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--fin-subtle)]', className)}
-    >
+    <div className={cn('mb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--fin-subtle)]', className)}>
       {children}
     </div>
   );

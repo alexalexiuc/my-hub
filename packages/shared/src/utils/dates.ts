@@ -16,6 +16,8 @@
  * - getLastMonthStart(referenceDate?) — first day of the previous month at UTC midnight
  * - isoWeekAndYear(d) — { week, year } ISO week number and week-year for a UTC date
  * - monthLabel(monthStart) — "Month YYYY" string from a UTC month-start date
+ * - shiftMonthStr(month, delta) — shift a YYYY-MM string by delta months, returns YYYY-MM
+ * - formatMonthStr(month) — format a YYYY-MM string as "Month YYYY"
  * - weekLabel(weekStart) — "Week W, YYYY" string from an ISO week-start date
  * - calendarDays(startAt, endAt) — array of YYYY-MM-DD strings for each day start→end inclusive
  * - formatDayHeading(dateStr) — YYYY-MM-DD → locale short heading e.g. "Mon, 1 Jan"
@@ -46,7 +48,7 @@ export function isValidDate(d: unknown): d is Date {
  * Formats a Date object as a YYYY-MM-DD string using the environment's local time.
  * Use this wherever a calendar date string is needed from a local Date value.
  */
-export function dateToString(d: Date): string {
+export function dateToString(d: Date = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
@@ -192,6 +194,22 @@ export function addMonths(d: Date, n: number): Date {
 /** Formats a UTC month-start date as "Month YYYY" in English. */
 export function monthLabel(monthStart: Date): string {
   return monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
+/**
+ * Shifts a YYYY-MM string by delta months and returns a new YYYY-MM string.
+ * e.g. shiftMonthStr('2026-01', -1) → '2025-12'
+ */
+export function shiftMonthStr(month: string, delta: number): string {
+  const [y, m] = month.split('-').map(Number);
+  const d = addMonths(new Date(Date.UTC(y ?? 2000, (m ?? 1) - 1, 1)), delta);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Formats a YYYY-MM string as "Month YYYY", e.g. '2026-05' → 'May 2026'. */
+export function formatMonthStr(month: string): string {
+  const [y, m] = month.split('-').map(Number);
+  return monthLabel(new Date(Date.UTC(y ?? 2000, (m ?? 1) - 1, 1)));
 }
 
 /** Returns the start (Monday) of the previous ISO week at UTC midnight. */

@@ -1,3 +1,4 @@
+import { AccountTypes, TransactionTypes } from '@my-hub/shared/constants';
 import { z } from 'zod';
 
 const categoryIconSchema = z.string().nullable();
@@ -23,7 +24,7 @@ export const dashboardTransactionSchema = z.object({
   id: z.number().int(),
   date: z.string(),
   amount: z.number(),
-  type: z.string(),
+  type: z.enum(TransactionTypes),
   notes: z.string().nullable(),
   payeeName: z.string().nullable(),
   categoryName: z.string().nullable(),
@@ -63,7 +64,8 @@ export const accountItemSchema = z
   .object({
     id: z.number().int(),
     name: z.string(),
-    type: z.string(),
+    description: z.string().nullable().optional(),
+    type: z.enum(AccountTypes),
     currency: z.string(),
     balance: z.number(),
     archived: z.boolean(),
@@ -96,7 +98,7 @@ export const accountTransactionSchema = z.object({
   id: z.number().int(),
   date: z.string(),
   amount: z.number(),
-  type: z.string(),
+  type: z.enum(TransactionTypes),
   notes: z.string().nullable(),
   payeeName: z.string().nullable(),
   categoryName: z.string().nullable(),
@@ -287,7 +289,7 @@ export const transactionListItemSchema = z.object({
   id: z.number().int(),
   date: z.string(),
   amount: z.number(),
-  type: z.string(),
+  type: z.enum(TransactionTypes),
   isCorrection: z.boolean(),
   notes: z.string().nullable(),
   payeeName: z.string().nullable(),
@@ -312,7 +314,7 @@ export const transactionMutationResponseSchema = z.object({
 export const transactionFormAccountSchema = z.object({
   id: z.number().int(),
   name: z.string(),
-  type: z.string(),
+  type: z.enum(AccountTypes),
   currency: z.string(),
 });
 
@@ -332,7 +334,7 @@ export const transactionFormDataResponseSchema = z.object({
 
 export const transactionDetailSchema = z.object({
   id: z.number().int(),
-  type: z.string(),
+  type: z.enum(TransactionTypes),
   accountId: z.number().int(),
   toAccountId: z.number().int().nullable(),
   categoryId: z.number().int().nullable(),
@@ -347,7 +349,7 @@ export const transactionDetailSchema = z.object({
 export const netWorthItemSchema = z.object({
   id: z.number().int(),
   name: z.string(),
-  type: z.string(),
+  type: z.enum(AccountTypes),
   balance: z.number(),
   currency: z.string(),
 });
@@ -413,3 +415,53 @@ export type TransactionFormDataResponse = z.infer<typeof transactionFormDataResp
 
 export type NetWorthData = z.infer<typeof netWorthResponseSchema>;
 export type TransactionDetail = z.infer<typeof transactionDetailSchema>;
+
+// ─── Monthly Plan ──────────────────────────────────────────────────────────
+
+export const monthlyPlanItemSchema = z.object({
+  id: z.number().int(),
+  planId: z.number().int(),
+  name: z.string(),
+  amount: z.number(),
+  currency: z.string(),
+  categoryId: z.number().int().nullable(),
+  merchantId: z.number().int().nullable(),
+  linkedAccountId: z.number().int().nullable(),
+  assignedAmount: z.number(),
+  isAssigned: z.boolean(),
+  assignedTransactionId: z.number().int().nullable(),
+  sortOrder: z.number().int(),
+  notes: z.string().nullable(),
+  categoryName: z.string().nullable(),
+  merchantName: z.string().nullable(),
+  linkedAccountName: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const monthlyPlanSummarySchema = z.object({
+  planned: z.number(),
+  remainingPotential: z.number(),
+  remainingReal: z.number(),
+  assignedCount: z.number().int(),
+  totalCount: z.number().int(),
+});
+
+export const monthlyPlanResponseSchema = z.object({
+  planId: z.number().int(),
+  month: z.string(),
+  availableAmount: z.number(),
+  incomeAccountId: z.number().int().nullable(),
+  currency: z.string(),
+  items: z.array(monthlyPlanItemSchema),
+  summary: monthlyPlanSummarySchema,
+  nextMonthExists: z.boolean(),
+});
+
+export const monthlyPlanItemMutationSchema = z.object({
+  item: monthlyPlanItemSchema,
+});
+
+export type MonthlyPlanItem = z.infer<typeof monthlyPlanItemSchema>;
+export type MonthlyPlanSummary = z.infer<typeof monthlyPlanSummarySchema>;
+export type MonthlyPlanResponse = z.infer<typeof monthlyPlanResponseSchema>;

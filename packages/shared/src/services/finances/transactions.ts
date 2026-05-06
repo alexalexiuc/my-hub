@@ -13,6 +13,7 @@ import { db } from '../../db/client';
 import { financeAccounts, financeBudgets, financeTransactions } from '../../db/schema/finances';
 import { omitNullish } from '../../utils';
 import { verifyBudgetAccess } from './budgets';
+import { reconcileAutoMatchPlanItemsForTransactionUpdate, tryAutoMatchPlanItems } from './monthly-plans';
 import { incrementPayeeStats, decrementPayeeStats } from './payees';
 import { getExchangeRate } from './exchangeRates';
 import type { FinanceTransaction, NewFinanceTransaction } from '../../types';
@@ -90,7 +91,7 @@ export async function addTransaction(
   const amt = Math.round(data.amount * 10000) / 10000;
   const { amountCurrency, ...dbData } = data;
 
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const [budget] = await tx
       .select({ defaultCurrency: financeBudgets.defaultCurrency })
       .from(financeBudgets)
@@ -192,6 +193,9 @@ export async function addTransaction(
 
     return row;
   });
+
+  await tryAutoMatchPlanItems(userId, budgetId, result);
+  return result;
 }
 
 export async function getTransactions(
@@ -361,7 +365,7 @@ export async function updateTransaction(
     throw new Error('Budget not found');
   }
 
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const [existing] = await tx
       .select()
       .from(financeTransactions)
@@ -511,8 +515,11 @@ export async function updateTransaction(
       await incrementPayeeStats(tx, newPayeeId, userId, data.categoryId ?? null, accountId);
     }
 
-    return row;
+    return { row, previous: existing };
   });
+
+  await reconcileAutoMatchPlanItemsForTransactionUpdate(userId, budgetId, result.previous, result.row);
+  return result.row;
 }
 
 export async function deleteTransaction(

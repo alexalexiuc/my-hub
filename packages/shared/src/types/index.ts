@@ -108,6 +108,8 @@ import type {
   financeTransactions,
   financeCurrencyRates,
   financeNetWorthSnapshots,
+  financeMonthlyPlans,
+  financeMonthlyPlanItems,
 } from '../db/schema/finances';
 export type { PayeeUserStats } from '../db/schema/finances';
 export type FinanceBudget = InferSelectModel<typeof financeBudgets>;
@@ -128,6 +130,10 @@ export type FinanceCurrencyRate = InferSelectModel<typeof financeCurrencyRates>;
 export type NewFinanceCurrencyRate = InferInsertModel<typeof financeCurrencyRates>;
 export type FinanceNetWorthSnapshot = InferSelectModel<typeof financeNetWorthSnapshots>;
 export type NewFinanceNetWorthSnapshot = InferInsertModel<typeof financeNetWorthSnapshots>;
+export type FinanceMonthlyPlan = InferSelectModel<typeof financeMonthlyPlans>;
+export type NewFinanceMonthlyPlan = InferInsertModel<typeof financeMonthlyPlans>;
+export type FinanceMonthlyPlanItem = InferSelectModel<typeof financeMonthlyPlanItems>;
+export type NewFinanceMonthlyPlanItem = InferInsertModel<typeof financeMonthlyPlanItems>;
 
 // Travel
 export type FlightData = InferSelectModel<typeof flightData>;

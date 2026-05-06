@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
+import { omitUndefined } from '@my-hub/shared/utils';
 import {
   getBudgetMembers,
   updateBudget,
@@ -8,9 +9,10 @@ import {
   getUserActiveBudget,
 } from '@my-hub/shared/services';
 import { budgetDetailResponseSchema, budgetMutationResponseSchema, okResponseSchema } from '../contracts';
+import { supportedCurrencySchema } from '../currency.schema';
 const BudgetUpdateSchema = z.object({
   name: z.string().trim().min(1).optional(),
-  defaultCurrency: z.string().trim().optional(),
+  defaultCurrency: supportedCurrencySchema.optional(),
 });
 
 const BudgetDeleteSchema = z.object({
@@ -31,7 +33,7 @@ export const GET = route({ response: budgetDetailResponseSchema })(async ({ user
       createdByUserId: budget.createdByUserId,
       isOwner: budget.createdByUserId === user.id,
     },
-    members: members.map(m => ({ userId: m.userId, email: m.email, name: m.name, joinedAt: m.joinedAt })),
+    members: members.map(m => ({ userId: m.userId, email: m.email, name: m.name, joinedAt: m.joinedAt.toISOString() })),
   };
 });
 
@@ -42,10 +44,14 @@ export const PATCH = route({ body: BudgetUpdateSchema, response: budgetMutationR
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
-  const updated = await updateBudget(user.id, budget.id, {
-    ...(body.name ? { name: body.name.trim() } : {}),
-    ...(body.defaultCurrency ? { defaultCurrency: body.defaultCurrency.trim().toUpperCase() } : {}),
-  });
+  const updated = await updateBudget(
+    user.id,
+    budget.id,
+    omitUndefined({
+      name: body.name?.trim(),
+      defaultCurrency: body.defaultCurrency,
+    }),
+  );
 
   return { budget: { ...updated, isOwner: updated.createdByUserId === user.id } };
 });

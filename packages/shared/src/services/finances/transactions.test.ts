@@ -10,11 +10,16 @@ vi.mock('../../db/client.js', () => ({
 vi.mock('./budgets.js', () => ({ verifyBudgetAccess: vi.fn() }));
 vi.mock('./payees.js', () => ({ incrementPayeeStats: vi.fn(), decrementPayeeStats: vi.fn() }));
 vi.mock('./exchangeRates.js', () => ({ getExchangeRate: vi.fn() }));
+vi.mock('./monthly-plans.js', () => ({
+  tryAutoMatchPlanItems: vi.fn(),
+  reconcileAutoMatchPlanItemsForTransactionUpdate: vi.fn(),
+}));
 
 import { db } from '../../db/client.js';
 import { verifyBudgetAccess } from './budgets.js';
 import { incrementPayeeStats, decrementPayeeStats } from './payees.js';
 import { getExchangeRate } from './exchangeRates.js';
+import { TransactionTypes } from '../../constants';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -78,7 +83,7 @@ function makeTransaction(overrides: Record<string, unknown> = {}) {
   return {
     id: 1,
     budgetId: 1,
-    type: 'expense',
+    type: TransactionTypes.Expense,
     accountId: 10,
     toAccountId: null,
     amount: 100,
@@ -112,7 +117,7 @@ describe('addTransaction', () => {
 
     await expect(
       addTransaction('user-1', 1, {
-        type: 'expense',
+        type: TransactionTypes.Expense,
         accountId: 10,
         toAccountId: null,
         amount: 50,
@@ -132,7 +137,7 @@ describe('addTransaction', () => {
   it('throws if transfer has no destination account', async () => {
     await expect(
       addTransaction('user-1', 1, {
-        type: 'transfer',
+        type: TransactionTypes.Transfer,
         accountId: 10,
         toAccountId: null,
         amount: 50,
@@ -155,7 +160,7 @@ describe('addTransaction', () => {
     useTx(tx);
 
     const result = await addTransaction('user-1', 1, {
-      type: 'expense',
+      type: TransactionTypes.Expense,
       accountId: 10,
       toAccountId: null,
       amount: 100,
@@ -176,12 +181,12 @@ describe('addTransaction', () => {
   });
 
   it('credits source account on income', async () => {
-    const insertedRow = makeTransaction({ type: 'income', fromAccountBalanceAfter: 1100 });
+    const insertedRow = makeTransaction({ type: TransactionTypes.Income, fromAccountBalanceAfter: 1100 });
     const tx = makeTx([[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }]], insertedRow);
     useTx(tx);
 
     await addTransaction('user-1', 1, {
-      type: 'income',
+      type: TransactionTypes.Income,
       accountId: 10,
       toAccountId: null,
       amount: 100,
@@ -202,7 +207,7 @@ describe('addTransaction', () => {
 
   it('updates both accounts on transfer', async () => {
     const insertedRow = makeTransaction({
-      type: 'transfer',
+      type: TransactionTypes.Transfer,
       toAccountId: 20,
       fromAccountBalanceAfter: 900,
       toAccountBalanceAfter: 600,
@@ -215,7 +220,7 @@ describe('addTransaction', () => {
     useTx(tx);
 
     await addTransaction('user-1', 1, {
-      type: 'transfer',
+      type: TransactionTypes.Transfer,
       accountId: 10,
       toAccountId: 20,
       amount: 100,
@@ -238,7 +243,7 @@ describe('addTransaction', () => {
   });
 
   it('applies exchange rate when crediting destination on transfer', async () => {
-    const insertedRow = makeTransaction({ type: 'transfer', toAccountId: 20 });
+    const insertedRow = makeTransaction({ type: TransactionTypes.Transfer, toAccountId: 20 });
     // 100 EUR transferred at destination rate 1.1 → destination gets 110 USD
     const tx = makeTx(
       [[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'EUR' }], [{ balance: 500, currency: 'USD' }]],
@@ -247,7 +252,7 @@ describe('addTransaction', () => {
     useTx(tx);
 
     await addTransaction('user-1', 1, {
-      type: 'transfer',
+      type: TransactionTypes.Transfer,
       accountId: 10,
       toAccountId: 20,
       amount: 100,
@@ -268,7 +273,7 @@ describe('addTransaction', () => {
   });
 
   it('resolves reporting and transfer rates when not provided', async () => {
-    const insertedRow = makeTransaction({ type: 'transfer', toAccountId: 20 });
+    const insertedRow = makeTransaction({ type: TransactionTypes.Transfer, toAccountId: 20 });
     const tx = makeTx(
       [[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'EUR' }], [{ balance: 500, currency: 'RON' }]],
       insertedRow,
@@ -279,7 +284,7 @@ describe('addTransaction', () => {
       .mockResolvedValueOnce(4.95 as never); // EUR -> RON
 
     await addTransaction('user-1', 1, {
-      type: 'transfer',
+      type: TransactionTypes.Transfer,
       accountId: 10,
       toAccountId: 20,
       amount: 100,
@@ -304,13 +309,13 @@ describe('addTransaction', () => {
   });
 
   it('converts amount from amountCurrency into account currency', async () => {
-    const insertedRow = makeTransaction({ type: 'expense' });
+    const insertedRow = makeTransaction({ type: TransactionTypes.Expense });
     const tx = makeTx([[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }]], insertedRow);
     useTx(tx);
     vi.mocked(getExchangeRate).mockResolvedValueOnce(1.2 as never); // EUR -> USD
 
     await addTransaction('user-1', 1, {
-      type: 'expense',
+      type: TransactionTypes.Expense,
       accountId: 10,
       toAccountId: null,
       amount: 100,
@@ -350,7 +355,7 @@ describe('addTransaction', () => {
     vi.mocked(incrementPayeeStats).mockResolvedValue(undefined);
 
     await addTransaction('user-1', 1, {
-      type: 'expense',
+      type: TransactionTypes.Expense,
       accountId: 10,
       toAccountId: null,
       amount: 50,
@@ -374,7 +379,7 @@ describe('addTransaction', () => {
     useTx(tx);
 
     await addTransaction('user-1', 1, {
-      type: 'expense',
+      type: TransactionTypes.Expense,
       accountId: 10,
       toAccountId: null,
       amount: 50,
@@ -408,20 +413,20 @@ describe('updateTransaction', () => {
   });
 
   it('throws if updating type to transfer without a destination account', async () => {
-    const existing = makeTransaction({ type: 'expense', toAccountId: null });
+    const existing = makeTransaction({ type: TransactionTypes.Expense, toAccountId: null });
     // select[0] = existing transaction
     // select[1] = oldFromAcct (to reverse old balance)
     // select[2] = newFromAcct (to apply new balance)
     const tx = makeTx([[existing], [{ balance: 900 }], [{ balance: 900 }]]);
     useTx(tx);
 
-    await expect(updateTransaction('user-1', 1, 1, { type: 'transfer' })).rejects.toThrow(
+    await expect(updateTransaction('user-1', 1, 1, { type: TransactionTypes.Transfer })).rejects.toThrow(
       'Transfer transactions require a destination account (toAccountId)',
     );
   });
 
   it('reverses old balance and applies new amount on expense update', async () => {
-    const existing = makeTransaction({ type: 'expense', accountId: 10, amount: 100, toAccountId: null });
+    const existing = makeTransaction({ type: TransactionTypes.Expense, accountId: 10, amount: 100, toAccountId: null });
     const updatedRow = makeTransaction({ amount: 200, fromAccountBalanceAfter: 800 });
     // select[0] = existing tx, select[1] = oldFromAcct, select[2] = newFromAcct
     const tx = makeTx([[existing], [{ balance: 900 }], [{ balance: 900 }]], updatedRow);
@@ -436,8 +441,8 @@ describe('updateTransaction', () => {
   });
 
   it('reverses old balance and applies new amount on income update', async () => {
-    const existing = makeTransaction({ type: 'income', accountId: 10, amount: 100, toAccountId: null });
-    const updatedRow = makeTransaction({ type: 'income', amount: 50, fromAccountBalanceAfter: 950 });
+    const existing = makeTransaction({ type: TransactionTypes.Income, accountId: 10, amount: 100, toAccountId: null });
+    const updatedRow = makeTransaction({ type: TransactionTypes.Income, amount: 50, fromAccountBalanceAfter: 950 });
     const tx = makeTx([[existing], [{ balance: 1100 }], [{ balance: 1100 }]], updatedRow);
     useTx(tx);
 
@@ -500,7 +505,7 @@ describe('deleteTransaction', () => {
   });
 
   it('reverses source balance on expense delete', async () => {
-    const existing = makeTransaction({ type: 'expense', accountId: 10, amount: 100, toAccountId: null });
+    const existing = makeTransaction({ type: TransactionTypes.Expense, accountId: 10, amount: 100, toAccountId: null });
     const tx = makeTx([[existing], [{ balance: 900 }]]);
     useTx(tx);
 
@@ -512,7 +517,7 @@ describe('deleteTransaction', () => {
   });
 
   it('reverses source balance on income delete', async () => {
-    const existing = makeTransaction({ type: 'income', accountId: 10, amount: 200, toAccountId: null });
+    const existing = makeTransaction({ type: TransactionTypes.Income, accountId: 10, amount: 200, toAccountId: null });
     const tx = makeTx([[existing], [{ balance: 1200 }]]);
     useTx(tx);
 
@@ -525,7 +530,7 @@ describe('deleteTransaction', () => {
 
   it('reverses both account balances on transfer delete', async () => {
     const existing = makeTransaction({
-      type: 'transfer',
+      type: TransactionTypes.Transfer,
       accountId: 10,
       toAccountId: 20,
       amount: 100,

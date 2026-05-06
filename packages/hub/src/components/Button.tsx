@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 import { SpinnerIcon } from './icons';
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'transparent';
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
@@ -15,6 +15,7 @@ const variants: Record<Variant, string> = {
   secondary: 'border border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700',
   danger: 'bg-red-600 text-white hover:bg-red-500',
   ghost: 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800',
+  transparent: 'bg-transparent',
 };
 
 const sizes = {

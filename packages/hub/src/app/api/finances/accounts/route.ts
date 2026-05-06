@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { route, routeHttpError, created } from '@/lib/api/route';
+import { supportedCurrencySchema } from '../currency.schema';
 import {
   getAccounts,
   getNetWorthHistory,
@@ -7,7 +8,7 @@ import {
   addTransaction,
   getUserActiveBudget,
 } from '@my-hub/shared/services';
-import { AccountTypes } from '@my-hub/shared/constants';
+import { AccountTypes, TransactionTypes } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
 import type {
   BankAccountDetails,
@@ -22,8 +23,9 @@ import { accountsListResponseSchema, accountMutationResponseSchema } from '../co
 import type { AccountItem, AccountsListData } from '../contracts';
 const AccountCreateSchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
+  description: z.string().trim().optional(),
   type: z.enum(Object.values(AccountTypes) as [string, ...string[]], { error: 'Invalid account type' }),
-  currency: z.string().trim().min(1, 'currency is required'),
+  currency: supportedCurrencySchema,
   openingBalance: z.number().optional(),
   details: z.record(z.string(), z.unknown()).nullable().optional(),
 });
@@ -94,6 +96,7 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
     return {
       id: a.id,
       name: a.name,
+      description: a.description ?? null,
       type: a.type,
       currency: a.currency,
       balance: bal,
@@ -125,8 +128,9 @@ export const POST = route({ body: AccountCreateSchema, response: accountMutation
 
   const account = await createAccount(user.id, budget.id, {
     name: body.name.trim(),
+    description: body.description?.trim() || null,
     type: body.type as AccountType,
-    currency: body.currency.trim().toUpperCase(),
+    currency: body.currency,
     openingBalance: balanceNum,
     balance: balanceNum,
     archived: false,
@@ -135,7 +139,7 @@ export const POST = route({ body: AccountCreateSchema, response: accountMutation
 
   if (balanceNum !== 0) {
     await addTransaction(user.id, budget.id, {
-      type: balanceNum > 0 ? 'income' : 'expense',
+      type: balanceNum > 0 ? TransactionTypes.Income : TransactionTypes.Expense,
       accountId: account.id,
       toAccountId: null,
       amount: Math.abs(balanceNum),

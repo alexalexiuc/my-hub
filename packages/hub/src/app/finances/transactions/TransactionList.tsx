@@ -6,6 +6,7 @@ import { PencilIcon, TrashIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { fmt, Divider, CategoryIcon } from '../ui';
 import { categoryIconEmoji } from '../categoryIcons';
+import { TransactionTypes } from '@my-hub/shared/constants';
 
 export interface TransactionItem {
   id: number;
@@ -176,7 +177,7 @@ export function TransactionList({
       </div>
 
       {transactions.map((tx, i) => {
-        const isTransfer = tx.type === 'transfer';
+        const isTransfer = tx.type === TransactionTypes.Transfer;
         const catColor = tx.categoryColor ?? (tx.isCorrection ? 'var(--fin-amber)' : 'var(--fin-muted)');
 
         // Payee col: for transfers show "From ↔ To", for corrections show label, else payeeName
@@ -200,7 +201,7 @@ export function TransactionList({
             : (tx.payeeName ?? '—');
 
         const amountColorClass =
-          tx.type === 'income'
+          tx.type === TransactionTypes.Income
             ? 'text-[var(--fin-green)]'
             : isTransfer
               ? 'text-[var(--fin-blue)]'

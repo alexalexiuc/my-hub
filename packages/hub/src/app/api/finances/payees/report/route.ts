@@ -3,6 +3,7 @@ import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getPayees, getCategories, getTransactions } from '@my-hub/shared/services';
 import { payeesReportResponseSchema } from '../../contracts';
 import type { PayeeReportItem } from '../../contracts';
+import { TransactionTypes } from '@my-hub/shared/constants';
 
 function getFromDate(range: string): string {
   const now = new Date();
@@ -34,7 +35,7 @@ export const GET = route({
   const [payees, categories, txns] = await Promise.all([
     getPayees(user.id, budgetId),
     getCategories(user.id, budgetId),
-    getTransactions(user.id, budgetId, { type: 'expense', fromDate, toDate, limit: 2000 }),
+    getTransactions(user.id, budgetId, { type: TransactionTypes.Expense, fromDate, toDate, limit: 2000 }),
   ]);
 
   const payeeMap = new Map(payees.map(p => [p.id, p]));

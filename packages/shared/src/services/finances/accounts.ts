@@ -24,7 +24,10 @@ export interface NetWorthSnapshot {
 
 export type AccountInsert = Omit<NewFinanceAccount, 'id' | 'budgetId' | 'createdAt' | 'updatedAt'>;
 export type AccountUpdate = Partial<
-  Pick<AccountInsert, 'name' | 'type' | 'currency' | 'openingBalance' | 'balance' | 'archived' | 'details'>
+  Pick<
+    AccountInsert,
+    'name' | 'description' | 'type' | 'currency' | 'openingBalance' | 'balance' | 'archived' | 'details'
+  >
 >;
 
 export interface GetAccountsOpts {

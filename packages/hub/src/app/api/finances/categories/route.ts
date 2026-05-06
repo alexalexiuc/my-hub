@@ -7,7 +7,7 @@ import {
   createCategory,
   getUserActiveBudget,
 } from '@my-hub/shared/services';
-import { CategoryIcons } from '@my-hub/shared/constants';
+import { CategoryIcons, TransactionTypes } from '@my-hub/shared/constants';
 import type { CategoryIcon } from '@my-hub/shared/constants';
 import { categoriesResponseSchema, categoryMutationResponseSchema } from '../contracts';
 
@@ -49,7 +49,7 @@ export const GET = route({ query: CategoryQuerySchema, response: categoriesRespo
   const [groups, categories, expenseTxns] = await Promise.all([
     getGroups(user.id, budgetId),
     getCategories(user.id, budgetId),
-    getTransactions(user.id, budgetId, { type: 'expense', fromDate, toDate, limit: 2000 }),
+    getTransactions(user.id, budgetId, { type: TransactionTypes.Expense, fromDate, toDate, limit: 2000 }),
   ]);
 
   const spentByCategory = new Map<number, number>();

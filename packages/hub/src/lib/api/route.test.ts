@@ -48,6 +48,7 @@ describe('route()', () => {
   it('returns 500 when response payload does not match response schema', async () => {
     mockGetAuthUser.mockResolvedValue({ id: 'u1', name: 'Test', email: 'test@example.com' });
 
+    // @ts-expect-error intentionally returning wrong type to verify runtime 500 response
     const handler = route({ response: z.object({ ok: z.literal(true) }) })(async () => ({ ok: false }));
     const response = await handler(new Request('https://hub.local/api/strict'));
 
