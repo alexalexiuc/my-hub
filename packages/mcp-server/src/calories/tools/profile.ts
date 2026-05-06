@@ -1,6 +1,6 @@
 import { ToolHandler } from '../../shared/types';
 import { upsertCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shared/services';
-import { omitNullish } from '@my-hub/shared/utils';
+import { omitUndefined } from '@my-hub/shared/utils';
 import { z } from 'zod';
 import { toolResponse } from '../../shared/toolsUtils';
 import { rowToProfile, profileToTargets } from '../models/profile';
@@ -77,7 +77,7 @@ export const UpdateProfileSchema = z.object({
 export const updateProfileTool: ToolHandler<typeof UpdateProfileSchema.shape> = async (input, context) => {
   const { userId } = context;
 
-  const updates: Record<string, unknown> = omitNullish({
+  const updates: Record<string, unknown> = omitUndefined({
     age: input.age,
     sex: input.sex,
     heightCm: input.heightCm,

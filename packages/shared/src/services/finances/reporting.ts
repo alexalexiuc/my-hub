@@ -19,7 +19,7 @@ import {
 } from '../../db/schema/finances';
 import type { AccountType, TransactionType } from '../../constants/finances';
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
-import { verifyBudgetAccess, getBudgetById } from './budgets';
+import { hasAccessToBudget, getBudgetById } from './budgets';
 import { getExchangeRate } from './exchangeRates';
 import { currentDateString } from '../../utils';
 
@@ -47,7 +47,7 @@ export async function getBudgetProgress(
   budgetId: number,
   month?: string,
 ): Promise<BudgetProgressResult> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -149,7 +149,7 @@ export async function getCashflowSummary(
   dateFrom: string,
   dateTo: string,
 ): Promise<CashflowSummaryResult> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -234,7 +234,7 @@ export async function getSpendingByPayee(
   dateTo: string,
   limit = 20,
 ): Promise<SpendingByPayeeResult> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -306,7 +306,7 @@ export async function getSpendingAggregates(
   budgetId: number,
   opts: SpendingAggregatesOpts,
 ): Promise<SpendingAggregatesResult> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -481,7 +481,7 @@ export interface NetWorthSummaryResult {
 const LIABILITY_TYPES: AccountType[] = [AccountTypes.Loan, AccountTypes.CreditCard, AccountTypes.BorrowedLent];
 
 export async function getNetWorthSummary(userId: string, budgetId: number): Promise<NetWorthSummaryResult> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 

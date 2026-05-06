@@ -11,7 +11,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { financePayees } from '../../db/schema/finances';
 import type { PayeeUserStats } from '../../db/schema/finances';
-import { verifyBudgetAccess } from './budgets';
+import { hasAccessToBudget } from './budgets';
 import type { FinancePayee } from '../../types';
 
 export interface Payee {
@@ -25,7 +25,7 @@ export interface Payee {
 }
 
 export async function upsertPayee(userId: string, budgetId: number, name: string): Promise<FinancePayee> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -50,7 +50,7 @@ export async function upsertPayee(userId: string, budgetId: number, name: string
 }
 
 export async function getPayees(userId: string, budgetId: number): Promise<Payee[]> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -86,7 +86,7 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
 }
 
 export async function deletePayee(userId: string, budgetId: number, payeeId: number): Promise<void> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 

@@ -16,7 +16,7 @@ vi.mock('./monthly-plans.js', () => ({
 }));
 
 import { db } from '../../db/client.js';
-import { verifyBudgetAccess } from './budgets.js';
+import { hasAccessToBudget } from './budgets.js';
 import { incrementPayeeStats, decrementPayeeStats } from './payees.js';
 import { getExchangeRate } from './exchangeRates.js';
 import { TransactionTypes } from '../../constants';
@@ -108,12 +108,12 @@ function makeTransaction(overrides: Record<string, unknown> = {}) {
 describe('addTransaction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(verifyBudgetAccess).mockResolvedValue(true);
+    vi.mocked(hasAccessToBudget).mockResolvedValue(true);
     vi.mocked(getExchangeRate).mockResolvedValue(1);
   });
 
   it('throws if budget not found', async () => {
-    vi.mocked(verifyBudgetAccess).mockResolvedValue(false);
+    vi.mocked(hasAccessToBudget).mockResolvedValue(false);
 
     await expect(
       addTransaction('user-1', 1, {
@@ -403,11 +403,11 @@ describe('addTransaction', () => {
 describe('updateTransaction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(verifyBudgetAccess).mockResolvedValue(true);
+    vi.mocked(hasAccessToBudget).mockResolvedValue(true);
   });
 
   it('throws if budget not found', async () => {
-    vi.mocked(verifyBudgetAccess).mockResolvedValue(false);
+    vi.mocked(hasAccessToBudget).mockResolvedValue(false);
 
     await expect(updateTransaction('user-1', 1, 1, { amount: 50 })).rejects.toThrow('Budget not found');
   });
@@ -487,11 +487,11 @@ describe('updateTransaction', () => {
 describe('deleteTransaction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(verifyBudgetAccess).mockResolvedValue(true);
+    vi.mocked(hasAccessToBudget).mockResolvedValue(true);
   });
 
   it('throws if budget not found', async () => {
-    vi.mocked(verifyBudgetAccess).mockResolvedValue(false);
+    vi.mocked(hasAccessToBudget).mockResolvedValue(false);
 
     await expect(deleteTransaction('user-1', 1, 1)).rejects.toThrow('Budget not found');
   });

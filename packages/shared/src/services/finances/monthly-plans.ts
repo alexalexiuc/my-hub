@@ -26,7 +26,7 @@ import {
 } from '../../db/schema/finances';
 import { omitUndefined } from '../../utils';
 import { shiftMonthStr, toUTCDateStr } from '../../utils/dates';
-import { verifyBudgetAccess } from './budgets';
+import { enforceBudgetAccess } from './budgets';
 import { getExchangeRate } from './exchangeRates';
 import type { FinanceMonthlyPlan, FinanceMonthlyPlanItem, FinanceTransaction } from '../../types';
 import { PromiseCacheX } from 'promise-cachex';
@@ -130,7 +130,8 @@ export async function getMonthlyPlan(
   budgetId: number,
   month: string,
 ): Promise<FinanceMonthlyPlan | undefined> {
-  await verifyBudgetAccess(userId, budgetId);
+  await enforceBudgetAccess(userId, budgetId);
+
   return monthlyPlanCache.get(`${budgetId}-${month}`, async () => {
     const rows = await db
       .select()
@@ -147,7 +148,8 @@ export async function createMonthlyPlan(
   month: string,
   availableAmount = 0,
 ): Promise<FinanceMonthlyPlan> {
-  await verifyBudgetAccess(userId, budgetId);
+  await enforceBudgetAccess(userId, budgetId);
+
   const rows = await db.insert(financeMonthlyPlans).values({ budgetId, month, availableAmount }).returning();
   monthlyPlanCache.set(`${budgetId}-${month}`, rows[0]);
   if (!rows[0]) throw new Error('Failed to create monthly plan');
@@ -163,7 +165,7 @@ export async function getOrCreateMonthlyPlan(
   budgetId: number,
   month: string,
 ): Promise<FinanceMonthlyPlan> {
-  await verifyBudgetAccess(userId, budgetId);
+  await enforceBudgetAccess(userId, budgetId);
 
   const existing = await getMonthlyPlan(userId, budgetId, month);
 
@@ -173,7 +175,7 @@ export async function getOrCreateMonthlyPlan(
 }
 
 export async function getMonthlyPlanFull(userId: string, budgetId: number, month: string): Promise<MonthlyPlanFull> {
-  await verifyBudgetAccess(userId, budgetId);
+  await enforceBudgetAccess(userId, budgetId);
 
   const plan = await getOrCreateMonthlyPlan(userId, budgetId, month);
 
@@ -210,7 +212,7 @@ export async function updateMonthlyPlan(
   planId: number,
   patch: { availableAmount?: number; incomeAccountId?: number | null },
 ): Promise<FinanceMonthlyPlan> {
-  await verifyBudgetAccess(userId, budgetId);
+  await enforceBudgetAccess(userId, budgetId);
   const updatePatch = omitUndefined({ ...patch, updatedAt: new Date() });
 
   const rows = await db
@@ -229,7 +231,7 @@ export async function addPlanItem(
   planId: number,
   data: PlanItemInsert,
 ): Promise<FinanceMonthlyPlanItem> {
-  await verifyBudgetAccess(userId, budgetId);
+  await enforceBudgetAccess(userId, budgetId);
 
   const planRows = await db
     .select({ id: financeMonthlyPlans.id })
@@ -320,14 +322,14 @@ export async function updatePlanItem(
   itemId: number,
   data: PlanItemUpdate,
 ): Promise<FinanceMonthlyPlanItem> {
-  await verifyBudgetAccess(userId, budgetId);
+  await enforceBudgetAccess(userId, budgetId);
   return db.transaction(tx =>
     applyItemPatchInTx(tx, budgetId, itemId, () => omitUndefined({ updatedAt: new Date(), ...data })),
   );
 }
 
 export async function deletePlanItem(userId: string, budgetId: number, itemId: number): Promise<void> {
-  await verifyBudgetAccess(userId, budgetId);
+  await enforceBudgetAccess(userId, budgetId);
   await db
     .delete(financeMonthlyPlanItems)
     .where(
@@ -344,7 +346,7 @@ export async function togglePlanItemAssigned(
   itemId: number,
   isAssigned: boolean,
 ): Promise<FinanceMonthlyPlanItem> {
-  await verifyBudgetAccess(userId, budgetId);
+  await enforceBudgetAccess(userId, budgetId);
   return db.transaction(tx =>
     applyItemPatchInTx(tx, budgetId, itemId, existing =>
       omitUndefined({
@@ -358,7 +360,7 @@ export async function togglePlanItemAssigned(
 }
 
 export async function bulkAssignAll(userId: string, budgetId: number, planId: number): Promise<void> {
-  await verifyBudgetAccess(userId, budgetId);
+  await enforceBudgetAccess(userId, budgetId);
 
   // Set assignedAmount = amount for every item so "paid" = "planned"
   await db
@@ -381,7 +383,7 @@ export async function copyToNextMonth(
   budgetId: number,
   month: string,
 ): Promise<{ created: boolean; targetMonth: string }> {
-  await verifyBudgetAccess(userId, budgetId);
+  await enforceBudgetAccess(userId, budgetId);
 
   const nextMonthString = shiftMonthStr(month, 1);
 
@@ -439,7 +441,6 @@ export function doesItemMatchTransaction(
 }
 
 async function applyTransactionDeltaToPlan(
-  userId: string,
   budgetId: number,
   transaction: AutoMatchTx,
   amountDelta: number,
@@ -522,6 +523,8 @@ export async function reconcileAutoMatchPlanItemsForTransactionUpdate(
   before: AutoMatchTx,
   after: AutoMatchTx,
 ): Promise<void> {
+  await enforceBudgetAccess(userId, budgetId);
+
   if (
     before.type === after.type &&
     before.accountId === after.accountId &&
@@ -533,8 +536,8 @@ export async function reconcileAutoMatchPlanItemsForTransactionUpdate(
     return;
   }
 
-  await applyTransactionDeltaToPlan(userId, budgetId, before, -before.amount);
-  await applyTransactionDeltaToPlan(userId, budgetId, after, after.amount);
+  await applyTransactionDeltaToPlan(budgetId, before, -before.amount);
+  await applyTransactionDeltaToPlan(budgetId, after, after.amount);
 }
 
 /**
@@ -551,5 +554,6 @@ export async function reconcileAutoMatchPlanItemsForTransactionUpdate(
  * Already-done items (isAssigned = true AND assignedAmount >= amount) are skipped.
  */
 export async function tryAutoMatchPlanItems(userId: string, budgetId: number, transaction: AutoMatchTx): Promise<void> {
-  await applyTransactionDeltaToPlan(userId, budgetId, transaction, transaction.amount);
+  await enforceBudgetAccess(userId, budgetId);
+  await applyTransactionDeltaToPlan(budgetId, transaction, transaction.amount);
 }

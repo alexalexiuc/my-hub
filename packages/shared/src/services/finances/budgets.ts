@@ -11,7 +11,8 @@
  * - addBudgetMember(userId, budgetId, targetUserId) — adds a new member (inactive); requires budget membership; idempotent
  * - removeBudgetMember(userId, budgetId, targetUserId) — removes a member from the budget; requires membership; cannot remove creator
  * - deleteAllUserFinanceBudgets(userId) — bulk delete owned budgets + remove from shared memberships
- * - verifyBudgetAccess(userId, budgetId) — returns true if user is a budget member
+ * - hasAccessToBudget(userId, budgetId) — returns true if user is a budget member
+ * - enforceBudgetAccess(userId, budgetId) — throws if user is not a budget member
  * Types: BudgetInsert, BudgetUpdate, UserBudget
  */
 import { and, eq, sql } from 'drizzle-orm';
@@ -19,7 +20,7 @@ import { PromiseCacheX } from 'promise-cachex';
 import { db } from '../../db/client';
 import { financeBudgets, financeBudgetMembers } from '../../db/schema/finances';
 import { users } from '../../db/schema/users';
-import { omitNullish } from '../../utils';
+import { omitUndefined } from '../../utils';
 import type { FinanceBudget, NewFinanceBudget } from '../../types';
 
 const budgetAccessCache = new PromiseCacheX<boolean>({ ttl: 300_000 });
@@ -33,7 +34,8 @@ export interface UserBudget extends FinanceBudget {
   isActive: boolean;
 }
 
-export async function verifyBudgetAccess(userId: string, budgetId: number): Promise<boolean> {
+/** Returns true if the user has access to the specified budget. */
+export async function hasAccessToBudget(userId: string, budgetId: number): Promise<boolean> {
   return budgetAccessCache.get(`${userId}:${budgetId}`, async () => {
     const [row] = await db
       .select({ count: sql<number>`count(*)` })
@@ -42,6 +44,13 @@ export async function verifyBudgetAccess(userId: string, budgetId: number): Prom
 
     return (row?.count ?? 0) > 0;
   });
+}
+
+/** Throws if the user does not have access to the specified budget. */
+export async function enforceBudgetAccess(userId: string, budgetId: number): Promise<void> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
 }
 
 export async function createBudget(userId: string, data: BudgetInsert): Promise<FinanceBudget> {
@@ -87,9 +96,7 @@ export async function getUserActiveBudget(userId: string): Promise<FinanceBudget
 }
 
 export async function setActiveBudget(userId: string, budgetId: number): Promise<void> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
-    throw new Error('Budget not found');
-  }
+  await enforceBudgetAccess(userId, budgetId);
 
   // Deactivate all memberships for this user, then activate the chosen one
   await db.update(financeBudgetMembers).set({ isActive: false }).where(eq(financeBudgetMembers.userId, userId));
@@ -120,13 +127,11 @@ export async function getBudgetById(userId: string, budgetId: number): Promise<F
 }
 
 export async function updateBudget(userId: string, budgetId: number, data: BudgetUpdate): Promise<FinanceBudget> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
-    throw new Error('Budget not found');
-  }
+  await enforceBudgetAccess(userId, budgetId);
 
   const [row] = await db
     .update(financeBudgets)
-    .set({ ...omitNullish(data), updatedAt: new Date() })
+    .set({ ...omitUndefined(data), updatedAt: new Date() })
     .where(eq(financeBudgets.id, budgetId))
     .returning();
 
@@ -138,9 +143,7 @@ export async function updateBudget(userId: string, budgetId: number, data: Budge
 }
 
 export async function deleteBudget(userId: string, budgetId: number): Promise<void> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
-    throw new Error('Budget not found');
-  }
+  await enforceBudgetAccess(userId, budgetId);
 
   // Snapshot members before deletion so we can invalidate their caches after
   const members = await db
@@ -164,9 +167,7 @@ export interface BudgetMember {
 }
 
 export async function getBudgetMembers(userId: string, budgetId: number): Promise<BudgetMember[]> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
-    throw new Error('Budget not found');
-  }
+  await enforceBudgetAccess(userId, budgetId);
 
   return db
     .select({ userId: users.id, email: users.email, name: users.name, joinedAt: financeBudgetMembers.joinedAt })
@@ -176,9 +177,7 @@ export async function getBudgetMembers(userId: string, budgetId: number): Promis
 }
 
 export async function addBudgetMember(userId: string, budgetId: number, targetUserId: string): Promise<void> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
-    throw new Error('Budget not found');
-  }
+  await enforceBudgetAccess(userId, budgetId);
 
   const [existing] = await db
     .select({ count: sql<number>`count(*)` })
@@ -196,9 +195,7 @@ export async function addBudgetMember(userId: string, budgetId: number, targetUs
 }
 
 export async function removeBudgetMember(userId: string, budgetId: number, targetUserId: string): Promise<void> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
-    throw new Error('Budget not found');
-  }
+  await enforceBudgetAccess(userId, budgetId);
 
   const [budget] = await db
     .select({ createdByUserId: financeBudgets.createdByUserId })

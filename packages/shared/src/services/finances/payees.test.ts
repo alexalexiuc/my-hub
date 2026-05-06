@@ -13,7 +13,7 @@ vi.mock('../../db/client.js', () => ({
 vi.mock('./budgets.js', () => ({ verifyBudgetAccess: vi.fn() }));
 
 import { db } from '../../db/client.js';
-import { verifyBudgetAccess } from './budgets.js';
+import { hasAccessToBudget } from './budgets.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -41,7 +41,7 @@ function makeSelectChain(rows: unknown[]) {
 describe('getPayees sort order', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(verifyBudgetAccess).mockResolvedValue(true);
+    vi.mocked(hasAccessToBudget).mockResolvedValue(true);
   });
 
   it('places payee with higher useCount first', async () => {

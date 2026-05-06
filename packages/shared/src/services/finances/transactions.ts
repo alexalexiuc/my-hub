@@ -11,8 +11,8 @@
 import { and, desc, eq, gte, ilike, isNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { financeAccounts, financeBudgets, financeTransactions } from '../../db/schema/finances';
-import { omitNullish } from '../../utils';
-import { verifyBudgetAccess } from './budgets';
+import { omitUndefined } from '../../utils';
+import { hasAccessToBudget } from './budgets';
 import { reconcileAutoMatchPlanItemsForTransactionUpdate, tryAutoMatchPlanItems } from './monthly-plans';
 import { incrementPayeeStats, decrementPayeeStats } from './payees';
 import { getExchangeRate } from './exchangeRates';
@@ -80,7 +80,7 @@ export async function addTransaction(
   budgetId: number,
   data: TransactionInsert,
 ): Promise<FinanceTransaction> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -205,7 +205,7 @@ export async function getTransactions(
   budgetId: number,
   opts: GetTransactionsOpts = {},
 ): Promise<FinanceTransaction[]> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -263,7 +263,7 @@ export async function countTransactions(
   budgetId: number,
   opts: GetTransactionsOpts = {},
 ): Promise<number> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -313,7 +313,7 @@ export async function checkDuplicateTransaction(
   budgetId: number,
   opts: DuplicateCheckOpts,
 ): Promise<FinanceTransaction | null> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -345,7 +345,7 @@ export async function getTransactionById(
   budgetId: number,
   transactionId: number,
 ): Promise<FinanceTransaction | null> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -363,7 +363,7 @@ export async function updateTransaction(
   transactionId: number,
   data: TransactionUpdate,
 ): Promise<FinanceTransaction> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -487,7 +487,7 @@ export async function updateTransaction(
     const [row] = await tx
       .update(financeTransactions)
       .set({
-        ...omitNullish(data),
+        ...omitUndefined(data),
         amount: newAmt,
         exchangeRate: resolvedExchangeRate,
         toExchangeRate: resolvedToExchangeRate,
@@ -531,7 +531,7 @@ export async function deleteTransaction(
   budgetId: number,
   transactionId: number,
 ): Promise<{ accountBalanceAfter: number }> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
