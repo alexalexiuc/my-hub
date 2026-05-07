@@ -194,6 +194,7 @@ export async function addTransaction(
     return row;
   });
 
+  // Sync with monthly plan is nice to have, but we don't want to fail the whole transaction if it errors out.
   syncTransactionWithPlan(userId, budgetId, null, result).catch(err => {
     logger.error('Error syncing plan items after transaction insert:', err);
   });
@@ -520,6 +521,7 @@ export async function updateTransaction(
     return { row, previous: existing };
   });
 
+  // Sync with monthly plan is nice to have, but we don't want to fail the whole transaction if it errors out.
   syncTransactionWithPlan(userId, budgetId, result.previous, result.row).catch(err => {
     logger.error('Error syncing plan items after transaction update:', err);
   });
@@ -587,6 +589,7 @@ export async function deleteTransaction(
     return { accountBalanceAfter: fromBalanceAfter, deleted: existing };
   });
 
+  // Sync with monthly plan is nice to have, but we don't want to fail the whole transaction if it errors out.
   syncTransactionWithPlan(userId, budgetId, result.deleted, null).catch(err => {
     logger.error('Error syncing plan items after transaction delete:', err);
   });

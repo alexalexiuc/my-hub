@@ -292,8 +292,18 @@ export async function updateMonthlyPlan(
 export async function addPlanItem(
   userId: string,
   planId: number,
+  data: PlanItemInsert[],
+): Promise<FinanceMonthlyPlanItem[]>;
+export async function addPlanItem(
+  userId: string,
+  planId: number,
+  data: PlanItemInsert,
+): Promise<FinanceMonthlyPlanItem>;
+export async function addPlanItem(
+  userId: string,
+  planId: number,
   data: PlanItemInsert | PlanItemInsert[],
-): Promise<FinanceMonthlyPlanItem> {
+): Promise<FinanceMonthlyPlanItem | FinanceMonthlyPlanItem[]> {
   await enforceMonthlyPlanAccess(userId, planId);
 
   const rows = await db
@@ -314,7 +324,7 @@ export async function addPlanItem(
     )
     .returning();
   if (!rows[0]) throw new Error('Failed to create plan item');
-  return rows[0];
+  return Array.isArray(data) ? rows : rows[0];
 }
 
 export async function updatePlanItem(
@@ -336,9 +346,6 @@ export async function updatePlanItem(
   const assignedTransactionId =
     data.isAssigned === false && data.assignedTransactionId === undefined ? null : data.assignedTransactionId;
 
-  const isAssignedValue =
-    data.isAssigned === undefined ? sql`${assignedAmount} >= ${financeMonthlyPlanItems.amount}` : data.isAssigned;
-
   const rows = await tx
     .update(financeMonthlyPlanItems)
     .set(
@@ -347,14 +354,27 @@ export async function updatePlanItem(
         ...data,
         assignedAmount,
         assignedTransactionId,
-        isAssigned: isAssignedValue,
       }),
     )
     .where(eq(financeMonthlyPlanItems.id, itemId))
     .returning();
 
   if (!rows[0]) throw new Error('Plan item not found');
-  return rows[0];
+
+  let result = rows[0];
+  await Promise.all(
+    rows.map(async row => {
+      if (!row.isAssigned && row.amount > 0 && row.assignedAmount >= row.amount) {
+        await tx
+          .update(financeMonthlyPlanItems)
+          .set({ isAssigned: true })
+          .where(eq(financeMonthlyPlanItems.id, row.id));
+        if (row.id === result.id) result = { ...result, isAssigned: true };
+      }
+    }),
+  );
+
+  return result;
 }
 
 export async function deletePlanItem(userId: string, itemId: number): Promise<void> {
@@ -406,8 +426,6 @@ export async function copyToNextMonth(
         categoryId: item.categoryId,
         merchantId: item.merchantId,
         linkedAccountId: item.linkedAccountId,
-        assignedAmount: 0,
-        isAssigned: false,
         sortOrder: item.sortOrder,
         notes: item.notes,
       })),
@@ -484,9 +502,8 @@ export async function syncTransactionWithPlan(
   )
     return;
 
-  const transaction = after ?? before;
-
-  await db.transaction(async tx =>
-    applyDeltaInTx(tx, userId, budgetId, transaction!, (after?.amount || 0) - (before?.amount || 0)),
-  );
+  await db.transaction(async tx => {
+    if (before) await applyDeltaInTx(tx, userId, budgetId, before, -before.amount);
+    if (after) await applyDeltaInTx(tx, userId, budgetId, after, after.amount);
+  });
 }

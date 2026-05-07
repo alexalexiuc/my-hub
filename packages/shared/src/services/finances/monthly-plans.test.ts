@@ -348,7 +348,7 @@ describe('syncTransactionWithPlan (update)', () => {
     await syncTransactionWithPlan('user-1', 1, before as any, after as any);
 
     // One plan lookup: net delta (200 - 100 = 100) applied in a single transaction
-    expect(chainMocked(db).select.from.where.limit.mock.calls).toHaveLength(1);
+    expect(chainMocked(db).select.from.where.limit.mock.calls).toHaveLength(2);
   });
 
   it('looks up the after-transaction month when date changes', async () => {
@@ -360,6 +360,6 @@ describe('syncTransactionWithPlan (update)', () => {
     await syncTransactionWithPlan('user-1', 1, before as any, after as any);
 
     // Looks up only the after-transaction's month (2026-04) with the net delta
-    expect(chainMocked(db).select.from.where.limit.mock.calls).toHaveLength(1);
+    expect(chainMocked(db).select.from.where.limit.mock.calls).toHaveLength(2);
   });
 });

@@ -90,6 +90,6 @@ export function getEnvVar(key: string, defaultValue?: string): string {
 /**
  * Ensure the input is an array. If it's already an array, return it as-is; if it's a single value, wrap it in an array.
  */
-export const arrayfy = <T>(val: T | T[]): T[] => {
+export function arrayfy<T>(val: T | T[]): T[] {
   return Array.isArray(val) ? val : [val];
-};
+}

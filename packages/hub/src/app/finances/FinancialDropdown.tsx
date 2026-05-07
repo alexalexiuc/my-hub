@@ -75,7 +75,8 @@ export function FinancialDropdown({
 
   const selectedLabel = String(options.find(o => o.id === value)?.value ?? '');
   const [searchQuery, setSearchQuery] = useState('');
-  const displayValue = searchQuery || selectedLabel;
+  const displayValue = open ? searchQuery : selectedLabel;
+  const inputPlaceholder = open && selectedLabel ? selectedLabel : placeholder;
 
   function closeDropdown() {
     setOpen(false);
@@ -151,13 +152,14 @@ export function FinancialDropdown({
             onChange={event => setSearchQuery(event.target.value)}
             onFocus={event => {
               inputProps?.onFocus?.(event);
+              setSearchQuery('');
               setOpen(true);
             }}
             autoComplete={inputProps?.autoComplete ?? 'off'}
             autoCorrect={inputProps?.autoCorrect ?? 'off'}
             autoCapitalize={inputProps?.autoCapitalize ?? 'none'}
             spellCheck={inputProps?.spellCheck ?? false}
-            placeholder={placeholder}
+            placeholder={inputPlaceholder}
             variant="ghost"
             className={cn('w-full text-[15px]', canClear && 'pr-7', inputClassName)}
           />
