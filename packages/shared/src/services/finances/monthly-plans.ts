@@ -359,22 +359,19 @@ export async function updatePlanItem(
     .where(eq(financeMonthlyPlanItems.id, itemId))
     .returning();
 
-  if (!rows[0]) throw new Error('Plan item not found');
+  const [row] = rows;
+  if (!row) throw new Error('Plan item not found');
 
-  let result = rows[0];
-  await Promise.all(
-    rows.map(async row => {
-      if (!row.isAssigned && row.amount > 0 && row.assignedAmount >= row.amount) {
-        await tx
-          .update(financeMonthlyPlanItems)
-          .set({ isAssigned: true })
-          .where(eq(financeMonthlyPlanItems.id, row.id));
-        if (row.id === result.id) result = { ...result, isAssigned: true };
-      }
-    }),
-  );
+  if (data.isAssigned === undefined && row.amount > 0) {
+    const newIsAssigned = row.assignedAmount >= row.amount;
+    await tx
+      .update(financeMonthlyPlanItems)
+      .set({ isAssigned: newIsAssigned })
+      .where(eq(financeMonthlyPlanItems.id, row.id));
+    return { ...row, isAssigned: newIsAssigned };
+  }
 
-  return result;
+  return row;
 }
 
 export async function deletePlanItem(userId: string, itemId: number): Promise<void> {

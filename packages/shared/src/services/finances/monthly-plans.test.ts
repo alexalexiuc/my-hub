@@ -301,7 +301,7 @@ describe('syncTransactionWithPlan (insert)', () => {
     const tx = makeAutoMatchTx({ categoryId: 7, amount: 0 });
     await syncTransactionWithPlan('user-1', 1, null, tx as any);
 
-    expect(chainMocked(db).update.mock.calls).toHaveLength(1);
+    expect(chainMocked(db).update.mock.calls).toHaveLength(2);
     // @ts-ignore - ignored in test
     const [[setArg]] = chainMocked(db).update.set.mock.calls;
     expect(setArg).toMatchObject({ assignedAmount: 200 }); // 200 + 0 = 200
