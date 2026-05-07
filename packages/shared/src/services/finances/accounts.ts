@@ -11,8 +11,8 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { financeAccounts, financeNetWorthSnapshots } from '../../db/schema/finances';
-import { omitNullish } from '../../utils';
-import { verifyBudgetAccess } from './budgets';
+import { omitUndefined } from '../../utils';
+import { hasAccessToBudget } from './budgets';
 import type { FinanceAccount, NewFinanceAccount } from '../../types';
 
 export interface NetWorthSnapshot {
@@ -24,7 +24,10 @@ export interface NetWorthSnapshot {
 
 export type AccountInsert = Omit<NewFinanceAccount, 'id' | 'budgetId' | 'createdAt' | 'updatedAt'>;
 export type AccountUpdate = Partial<
-  Pick<AccountInsert, 'name' | 'type' | 'currency' | 'openingBalance' | 'balance' | 'archived' | 'details'>
+  Pick<
+    AccountInsert,
+    'name' | 'description' | 'type' | 'currency' | 'openingBalance' | 'balance' | 'archived' | 'details'
+  >
 >;
 
 export interface GetAccountsOpts {
@@ -32,7 +35,7 @@ export interface GetAccountsOpts {
 }
 
 export async function createAccount(userId: string, budgetId: number, data: AccountInsert): Promise<FinanceAccount> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -50,7 +53,7 @@ export async function getAccounts(
   budgetId: number,
   opts: GetAccountsOpts = {},
 ): Promise<FinanceAccount[]> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -70,7 +73,7 @@ export async function getAccountById(
   budgetId: number,
   accountId: number,
 ): Promise<FinanceAccount | null> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -88,13 +91,13 @@ export async function updateAccount(
   accountId: number,
   data: AccountUpdate,
 ): Promise<FinanceAccount> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
   const [row] = await db
     .update(financeAccounts)
-    .set({ ...omitNullish(data), updatedAt: new Date() })
+    .set({ ...omitUndefined(data), updatedAt: new Date() })
     .where(and(eq(financeAccounts.id, accountId), eq(financeAccounts.budgetId, budgetId)))
     .returning();
 
@@ -103,7 +106,7 @@ export async function updateAccount(
 }
 
 export async function deleteAccount(userId: string, budgetId: number, accountId: number): Promise<void> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -113,7 +116,7 @@ export async function deleteAccount(userId: string, budgetId: number, accountId:
 }
 
 export async function getNetWorthHistory(userId: string, budgetId: number, limit = 6): Promise<NetWorthSnapshot[]> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 

@@ -38,6 +38,7 @@ Break out a separate test only when it genuinely cannot share state with the mai
 - **Comment each logical phase** with a short `// ── N. Phase name` header so the test is scannable at a glance.
 - **Scope locators to sections** using `page.getByRole('heading', { name: '...' }).locator('xpath=ancestor::section[1]')` to avoid cross-section selector collisions when multiple similar controls exist on the page.
 - **Prefer role-based locators** (`getByRole`, `getByPlaceholder`, `getByLabel`) over CSS class selectors. Use CSS only when no semantic alternative exists, and keep it scoped.
+- **Use `data-layout` to disambiguate responsive duplicates.** When a component renders both a desktop and a mobile variant (controlled by Tailwind responsive classes), both are in the DOM simultaneously and generic locators will match twice. Scope to the layout you mean: `page.locator('[data-layout="desktop"]').getByText('Savings Transfer')`. Prefer the desktop variant in tests unless the scenario is specifically testing the mobile view.
 
 ## Helpers
 

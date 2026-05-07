@@ -10,7 +10,7 @@
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { tripCompanions } from '../../db/schema/travel';
-import { omitNullish } from '../../utils';
+import { omitUndefined } from '../../utils';
 import type { NewTripCompanion, TripCompanion } from '../../types';
 import { verifyTripOwnership } from './trips';
 
@@ -54,7 +54,7 @@ export async function updateTripCompanion(
   const [row] = await db
     .update(tripCompanions)
     .set({
-      ...omitNullish(data),
+      ...omitUndefined(data),
       updatedAt: new Date(),
     })
     .where(and(eq(tripCompanions.userId, userId), eq(tripCompanions.id, companionId)))

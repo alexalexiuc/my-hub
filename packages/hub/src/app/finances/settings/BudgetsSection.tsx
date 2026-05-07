@@ -5,11 +5,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import { Button, Field, Input, Select } from '@/components';
+import { SupportedCurrencies } from '@my-hub/shared/constants';
 import { Card, SectionLabel } from '../ui';
 import { CreateBudgetSchema, defaultCreateBudgetValues, type CreateBudgetValues } from '../finances-form.schema';
 import type { BudgetInfo, BudgetsListResponse } from '@/app/api/finances/contracts';
-
-const CURRENCIES = ['EUR', 'USD', 'GBP', 'MDL', 'RON', 'CHF', 'JPY', 'CAD', 'AUD'];
 
 type BudgetsSectionProps = {
   onChanged: () => void;
@@ -124,7 +123,7 @@ export function BudgetsSection({ onChanged }: BudgetsSectionProps) {
           </Field>
           <Field label="Default currency">
             <Select {...register('defaultCurrency')}>
-              {CURRENCIES.map(c => (
+              {SupportedCurrencies.map(c => (
                 <option key={c} value={c}>
                   {c}
                 </option>

@@ -5,9 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import { Button, Field, Input, Select } from '@/components';
 import { Card } from './ui';
+import { SupportedCurrencies } from '@my-hub/shared/constants';
 import { CreateBudgetSchema, defaultCreateBudgetValues, type CreateBudgetValues } from './finances-form.schema';
-
-const COMMON_CURRENCIES = ['EUR', 'USD', 'GBP', 'MDL', 'RON', 'UAH'];
 
 type CreateBudgetScreenProps = {
   onCreated: () => void;
@@ -52,7 +51,7 @@ export function CreateBudgetScreen({ onCreated }: CreateBudgetScreenProps) {
 
           <Field label="Default currency">
             <Select {...register('defaultCurrency')}>
-              {COMMON_CURRENCIES.map(c => (
+              {SupportedCurrencies.map(c => (
                 <option key={c} value={c}>
                   {c}
                 </option>

@@ -12,13 +12,14 @@ import type {
   TransactionMutationResponse,
   TransactionsListResponse,
 } from '@/app/api/finances/contracts';
+import { TransactionType, TransactionTypes } from '@my-hub/shared/constants';
 
-type Filter = 'all' | 'expense' | 'income' | 'transfer';
+type Filter = 'all' | TransactionType;
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'expense', label: 'Expenses' },
-  { key: 'income', label: 'Income' },
-  { key: 'transfer', label: 'Transfers' },
+  { key: TransactionTypes.Expense, label: 'Expenses' },
+  { key: TransactionTypes.Income, label: 'Income' },
+  { key: TransactionTypes.Transfer, label: 'Transfers' },
 ];
 
 function matchesFilter(filter: Filter, transaction: TransactionListItem) {

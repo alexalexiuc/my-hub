@@ -5,10 +5,10 @@ import { tasks } from '../src/poll.js';
 const taskName = process.argv[2];
 
 if (!taskName) {
-  console.log('Usage: pnpm run-task <task-name>\n');
-  console.log('Available tasks:');
+  logger.info('Usage: pnpm run-task <task-name>\n');
+  logger.info('Available tasks:');
   for (const t of tasks) {
-    console.log(`  ${t.name}  (cron: ${t.cron})`);
+    logger.info(`  ${t.name}  (cron: ${t.cron})`);
   }
   process.exit(0);
 }
@@ -16,8 +16,8 @@ if (!taskName) {
 const task = tasks.find(t => t.name === taskName);
 
 if (!task) {
-  console.error(`Unknown task: "${taskName}"`);
-  console.error(`Available: ${tasks.map(t => t.name).join(', ')}`);
+  logger.error(`Unknown task: "${taskName}"`);
+  logger.error(`Available: ${tasks.map(t => t.name).join(', ')}`);
   process.exit(1);
 }
 

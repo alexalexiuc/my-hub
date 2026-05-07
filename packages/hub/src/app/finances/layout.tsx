@@ -23,14 +23,14 @@ export default function FinancesLayout({ children }: { children: React.ReactNode
 
       {/* Sidebar + page content */}
       <div className="flex flex-1 overflow-hidden">
-        <div className="hidden md:contents">
+        <div data-layout="desktop" className="hidden md:contents">
           <FinancesSidebar />
         </div>
         <div className="flex-1 overflow-y-auto px-7 pb-20 pt-5 md:pb-12">{children}</div>
       </div>
 
       {/* Mobile bottom nav — hidden at md and above */}
-      <div className="md:hidden">
+      <div data-layout="mobile" className="md:hidden">
         <FinancesBottomNav />
       </div>
     </div>

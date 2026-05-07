@@ -18,6 +18,7 @@ const RIGHT_ITEMS = [{ id: 'categories', icon: '⬡', label: 'Categories', path:
 const MORE_ITEMS = [
   { id: 'transactions', icon: '↕', label: 'Transactions', path: '/finances/transactions' },
   { id: 'goals', icon: '◎', label: 'Goals', path: '/finances/goals' },
+  { id: 'monthly-plan', icon: '⊟', label: 'Monthly Plan', path: '/finances/monthly-plan' },
   { id: 'budget', icon: '▦', label: 'Budget', path: '/finances/budget' },
   { id: 'cashflow', icon: '⟳', label: 'Cashflow', path: '/finances/cashflow' },
   { id: 'payees', icon: '◉', label: 'Payees', path: '/finances/payees' },

@@ -9,6 +9,7 @@ import {
   getUserActiveBudget,
 } from '@my-hub/shared/services';
 import type { BorrowedLentAccountDetails } from '@my-hub/shared/constants';
+import type { AccountUpdate } from '@my-hub/shared/services';
 import { accountDetailResponseSchema, accountMutationResponseSchema } from '../../contracts';
 import type { AccountItem, AccountDetailData, AccountTransaction } from '../../contracts';
 import { FinanceAccount } from '@my-hub/shared/types';
@@ -19,6 +20,7 @@ const AccountPatchSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('edit'),
     name: z.string().trim().min(1),
+    description: z.string().trim().nullable().optional(),
     details: z.record(z.string(), z.unknown()).nullable().optional(),
   }),
 ]);
@@ -28,6 +30,7 @@ function flattenAccount(a: FinanceAccount): AccountItem {
   return {
     id: a.id,
     name: a.name,
+    description: a.description ?? null,
     type: a.type,
     currency: a.currency,
     balance: a.balance,
@@ -117,7 +120,8 @@ export const PATCH = route({
   }
 
   if (body.action === 'edit') {
-    const patch: Parameters<typeof updateAccount>[3] = { name: body.name };
+    const patch: AccountUpdate = { name: body.name };
+    if (body.description !== undefined) patch.description = body.description ?? null;
     if (body.details !== undefined) patch.details = body.details ?? null;
     const updated = await updateAccount(user.id, budget.id, accountId, patch);
     return { account: updated };

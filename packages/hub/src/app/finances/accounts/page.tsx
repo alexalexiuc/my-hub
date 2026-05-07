@@ -14,13 +14,13 @@ import type { AccountsListData, AccountItem } from './types';
 
 const ACCOUNT_GROUPS = [
   { key: 'bank', label: 'Bank', icon: '🏦' },
-  { key: 'investment', label: 'Investments', icon: '📈' },
-  { key: 'credit_card', label: 'Credit Cards', icon: '💳' },
-  { key: 'loan', label: 'Loans', icon: '🏷' },
-  { key: 'goal', label: 'Goals', icon: '🎯' },
   { key: 'cash', label: 'Cash', icon: '💵' },
-  { key: 'tracking', label: 'Tracking', icon: '👁' },
+  { key: 'credit_card', label: 'Credit Cards', icon: '💳' },
+  { key: 'goal', label: 'Goals', icon: '🎯' },
+  { key: 'loan', label: 'Loans', icon: '🏷' },
   { key: 'borrowed_lent', label: 'Borrowed/Lent', icon: '🤝' },
+  { key: 'investment', label: 'Investments', icon: '📈' },
+  { key: 'tracking', label: 'Tracking', icon: '👁' },
 ] as const;
 
 function AccountCard({

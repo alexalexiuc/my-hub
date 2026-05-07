@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import { FinModalShell } from '../FinModalShell';
 import { Button, Field, Input, Select } from '@/components';
-import { AccountTypes, LentDirections } from '@my-hub/shared/constants';
+import { AccountTypes, LentDirections, ACCOUNT_TYPE_DESCRIPTIONS } from '@my-hub/shared/constants';
 import {
   AddAccountSchema,
   defaultAddAccountValues,
@@ -48,6 +48,7 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
       method: 'POST',
       body: {
         name: values.name,
+        description: values.description.trim() || undefined,
         type: values.type,
         currency: defaultCurrency.trim().toUpperCase(),
         openingBalance: parseFloat(values.openingBalance) || 0,
@@ -66,6 +67,16 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
 
         <Field label="Type">
           <Select {...register('type')} options={ACCOUNT_TYPE_OPTIONS} />
+        </Field>
+
+        {type && ACCOUNT_TYPE_DESCRIPTIONS[type as keyof typeof ACCOUNT_TYPE_DESCRIPTIONS] && (
+          <p className="-mt-1 text-[11px] leading-[1.5] text-[var(--fin-subtle)]">
+            {ACCOUNT_TYPE_DESCRIPTIONS[type as keyof typeof ACCOUNT_TYPE_DESCRIPTIONS]}
+          </p>
+        )}
+
+        <Field label="Description (optional)">
+          <Input {...register('description')} placeholder="e.g. Main salary account" />
         </Field>
 
         <Field label="Opening Balance">

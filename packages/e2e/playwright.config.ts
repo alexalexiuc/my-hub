@@ -34,6 +34,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: AUTH_FILE,
+        launchOptions: {
+          args: ['--disable-gpu', '--disable-software-rasterizer', '--disable-dev-shm-usage'],
+        },
       },
       dependencies: ['setup'],
     },

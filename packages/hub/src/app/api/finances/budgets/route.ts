@@ -2,10 +2,11 @@ import { z } from 'zod';
 import { route, created } from '@/lib/api/route';
 import { createBudget, getUserBudgets, setActiveBudget } from '@my-hub/shared/services';
 import { budgetsListResponseSchema, budgetCreateResponseSchema, okResponseSchema } from '../contracts';
+import { supportedCurrencySchema } from '../currency.schema';
 
 const BudgetCreateSchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
-  defaultCurrency: z.string().trim().optional(),
+  defaultCurrency: supportedCurrencySchema.optional(),
 });
 
 const SetActiveBudgetSchema = z.object({
@@ -32,7 +33,7 @@ export const POST = route({ body: BudgetCreateSchema, response: budgetCreateResp
 }) => {
   const budget = await createBudget(user.id, {
     name: body.name.trim(),
-    defaultCurrency: (body.defaultCurrency ?? 'EUR').trim().toUpperCase(),
+    defaultCurrency: body.defaultCurrency ?? 'EUR',
   });
 
   return created({ budget: { ...budget, isOwner: true, isActive: true } });

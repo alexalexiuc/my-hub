@@ -19,9 +19,9 @@ import {
 } from '../../db/schema/finances';
 import type { AccountType, TransactionType } from '../../constants/finances';
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
-import { verifyBudgetAccess, getBudgetById } from './budgets';
+import { hasAccessToBudget, getBudgetById } from './budgets';
 import { getExchangeRate } from './exchangeRates';
-import { currentDateString } from '../../utils';
+import { currentDateString, dateToString } from '../../utils';
 
 // ─── Budget Progress ──────────────────────────────────────────────────────────
 
@@ -47,11 +47,11 @@ export async function getBudgetProgress(
   budgetId: number,
   month?: string,
 ): Promise<BudgetProgressResult> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
-  const targetMonth = month ?? currentDateString().slice(0, 7); // YYYY-MM
+  const targetMonth = month ?? dateToString(new Date(), 'YYYY-MM'); // YYYY-MM
   const dateFrom = `${targetMonth}-01`;
   // Last day of month: first day of next month minus one day
   const [year, mon] = targetMonth.split('-').map(Number);
@@ -149,7 +149,7 @@ export async function getCashflowSummary(
   dateFrom: string,
   dateTo: string,
 ): Promise<CashflowSummaryResult> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -166,7 +166,7 @@ export async function getCashflowSummary(
         eq(financeTransactions.isCorrection, false),
         gte(financeTransactions.date, dateFrom),
         lte(financeTransactions.date, dateTo),
-        sql`${financeTransactions.type} in ('expense', 'income')`,
+        sql`${financeTransactions.type} in (${TransactionTypes.Expense}, ${TransactionTypes.Income})`,
       ),
     )
     .groupBy(financeTransactions.type, sql`to_char(${financeTransactions.date}::date, 'YYYY-MM')`);
@@ -234,7 +234,7 @@ export async function getSpendingByPayee(
   dateTo: string,
   limit = 20,
 ): Promise<SpendingByPayeeResult> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -306,7 +306,7 @@ export async function getSpendingAggregates(
   budgetId: number,
   opts: SpendingAggregatesOpts,
 ): Promise<SpendingAggregatesResult> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -481,7 +481,7 @@ export interface NetWorthSummaryResult {
 const LIABILITY_TYPES: AccountType[] = [AccountTypes.Loan, AccountTypes.CreditCard, AccountTypes.BorrowedLent];
 
 export async function getNetWorthSummary(userId: string, budgetId: number): Promise<NetWorthSummaryResult> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 

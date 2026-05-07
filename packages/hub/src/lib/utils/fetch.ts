@@ -1,3 +1,5 @@
+import { logger } from '@my-hub/shared/utils';
+
 type QueryParams = Record<string, string | number | boolean | null | undefined>;
 
 interface ApiFetchOptions {
@@ -83,7 +85,7 @@ export async function apiFetch<T = undefined>(path: string, options?: ApiFetchOp
       const err = (await res.json()) as { error?: string; message?: string };
       message = err.error ?? err.message ?? message;
     } catch {
-      console.warn('Failed to parse error response as JSON');
+      logger.warn('Failed to parse error response as JSON');
     }
 
     if (!silentToast) {

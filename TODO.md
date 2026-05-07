@@ -43,3 +43,4 @@
 - [ ] Add generic for body and query to the apiFetch function
 - [ ] Add route() wrapper to all api routes with zod schemas
 - [ ] Update all apiFetch() function calls with schema types
+- [ ] Organize logging to be in a single place, not scattered around. log function in route.ts should receive error object as is.

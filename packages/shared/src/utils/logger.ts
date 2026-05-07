@@ -12,7 +12,7 @@ function ts(): string {
 
 export const logger = {
   info: (...args: unknown[]): void => {
-    console.log(`[${ts()}]`, ...args);
+    console.info(`[${ts()}]`, ...args);
   },
   warn: (...args: unknown[]): void => {
     console.warn(`[${ts()}]`, ...args);

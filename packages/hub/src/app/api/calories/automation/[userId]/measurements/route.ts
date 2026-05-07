@@ -4,6 +4,7 @@ import { created, route, routeHttpError } from '@/lib/api/route';
 import { getCalorieProfile } from '@my-hub/shared/services';
 import { logMeasurementsBatch } from '@my-hub/shared/services';
 import { measurementTypeKeys } from '@my-hub/shared/constants';
+import { arrayfy } from '@my-hub/shared/utils';
 
 const itemSchema = z.object({
   typeKey: z.enum(measurementTypeKeys),
@@ -48,9 +49,7 @@ export const POST = route({ public: true, params: paramsSchema, body: bodySchema
     routeHttpError(401, { error: 'Unauthorized' });
   }
 
-  const items = Array.isArray(body) ? body : [body];
-
-  const measurements = await logMeasurementsBatch(userId, items, 'automation');
+  const measurements = await logMeasurementsBatch(userId, arrayfy(body), 'automation');
 
   return created({ measurements });
 });

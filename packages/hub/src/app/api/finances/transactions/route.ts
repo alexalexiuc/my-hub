@@ -70,7 +70,7 @@ const TransactionCreateSchema = z.object({
 });
 
 const TransactionQuerySchema = z.object({
-  type: z.enum(Object.values(TransactionTypes) as [string, ...string[]]).optional(),
+  type: z.enum(TransactionTypes).optional(),
   limit: z.coerce.number().int().positive().max(200).optional(),
   offset: z.coerce.number().int().nonnegative().optional(),
 });
@@ -91,7 +91,7 @@ export const GET = route({ query: TransactionQuerySchema, response: transactions
     getCategories(user.id, budgetId),
     getPayees(user.id, budgetId),
     getTransactions(user.id, budgetId, {
-      type: query.type as 'expense' | 'income' | 'transfer' | undefined,
+      type: query.type,
       includeCorrections: true,
       limit,
       offset,

@@ -61,6 +61,7 @@ export const financeAccounts = pgTable(
       .notNull()
       .references(() => financeBudgets.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
+    description: text('description'),
     type: text('type').$type<AccountType>().notNull(),
     currency: text('currency').notNull(),
     openingBalance: numericCasted('opening_balance', { precision: 18, scale: 4 }).notNull().default(0),
@@ -244,6 +245,74 @@ export const financeCurrencyRates = pgTable(
   },
   table => ({
     pk: primaryKey({ columns: [table.fromCurrency, table.toCurrency, table.date] }),
+  }),
+);
+
+// ─── Monthly plan ─────────────────────────────────────────────────────────
+// One row per budget per month. The availableAmount field is the income figure used for
+// that specific month's plan, stored here so the plan is self-contained.
+
+export const financeMonthlyPlans = pgTable(
+  'finance_monthly_plans',
+  {
+    id: serial('id').primaryKey(),
+    budgetId: integer('budget_id')
+      .notNull()
+      .references(() => financeBudgets.id, { onDelete: 'cascade' }),
+    month: text('month').notNull(), // YYYY-MM
+    availableAmount: numericCasted('available_amount', { precision: 18, scale: 4 }).notNull(),
+    // Optional account used to auto-add monthly available funds from income transactions.
+    incomeAccountId: integer('income_account_id').references(() => financeAccounts.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  table => ({
+    budgetMonthUniq: uniqueIndex('uq_finance_monthly_plan_budget_month').on(table.budgetId, table.month),
+    budgetIdIdx: index('idx_finance_monthly_plans_budget').on(table.budgetId),
+  }),
+);
+
+// One planned expense/transfer/savings line per row within a monthly plan.
+
+export const financeMonthlyPlanItems = pgTable(
+  'finance_monthly_plan_items',
+  {
+    id: serial('id').primaryKey(),
+    planId: integer('plan_id')
+      .notNull()
+      .references(() => financeMonthlyPlans.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    // Planned amount in `currency` below.
+    amount: numericCasted('amount', { precision: 18, scale: 4 }).notNull(),
+    currency: text('currency').notNull(),
+    // Category link — drives auto-match: when an expense transaction with this
+    // categoryId is recorded in the same month, assignedAmount increases by the
+    // transaction amount. Cosmetic if linkedAccountId is also set (both must match).
+    categoryId: integer('category_id').references(() => financeCategories.id, { onDelete: 'set null' }),
+    // Informational payee link — no longer used for auto-matching.
+    merchantId: integer('merchant_id').references(() => financePayees.id, { onDelete: 'set null' }),
+    // Account link — drives auto-match: when a transfer transaction with
+    // toAccountId = this value is recorded in the same month, assignedAmount increases.
+    linkedAccountId: integer('linked_account_id').references(() => financeAccounts.id, {
+      onDelete: 'set null',
+    }),
+    // Accumulated amount paid/transferred this month across all matching transactions.
+    // When assignedAmount >= amount the item is automatically marked done.
+    assignedAmount: numericCasted('assigned_amount', { precision: 18, scale: 4 }).notNull().default(0),
+    // Manual done flag — also auto-set true when assignedAmount >= amount.
+    isAssigned: boolean('is_assigned').notNull().default(false),
+    // Last matching transaction that contributed to assignedAmount (informational).
+    assignedTransactionId: integer('assigned_transaction_id').references(() => financeTransactions.id, {
+      onDelete: 'set null',
+    }),
+    sortOrder: integer('sort_order').notNull().default(0),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  table => ({
+    planIdIdx: index('idx_finance_plan_items_plan').on(table.planId),
+    linkedAccountIdx: index('idx_finance_plan_items_linked_account').on(table.linkedAccountId),
   }),
 );
 

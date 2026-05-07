@@ -29,6 +29,10 @@ export const Ghost: Story = {
   args: { variant: 'ghost' },
 };
 
+export const Transparent: Story = {
+  args: { variant: 'transparent' },
+};
+
 export const Small: Story = {
   args: { size: 'sm' },
 };

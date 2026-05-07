@@ -8,7 +8,7 @@ import {
   getUserActiveBudget,
   getUserBudgets,
 } from '@my-hub/shared/services';
-import { AccountTypes } from '@my-hub/shared/constants';
+import { AccountTypes, TransactionTypes } from '@my-hub/shared/constants';
 import type { GoalAccountDetails } from '@my-hub/shared/constants';
 import { dashboardResponseSchema } from '../contracts';
 import type { FinanceDashboardData } from '../contracts';
@@ -39,8 +39,18 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
     getAccounts(user.id, budgetId),
     getCategories(user.id, budgetId),
     getPayees(user.id, budgetId),
-    getTransactions(user.id, budgetId, { type: 'expense', fromDate: monthStart, toDate: today, limit: 2000 }),
-    getTransactions(user.id, budgetId, { type: 'income', fromDate: monthStart, toDate: today, limit: 2000 }),
+    getTransactions(user.id, budgetId, {
+      type: TransactionTypes.Expense,
+      fromDate: monthStart,
+      toDate: today,
+      limit: 2000,
+    }),
+    getTransactions(user.id, budgetId, {
+      type: TransactionTypes.Income,
+      fromDate: monthStart,
+      toDate: today,
+      limit: 2000,
+    }),
     getTransactions(user.id, budgetId, { limit: 5 }),
     getNetWorthHistory(user.id, budgetId, 6),
   ]);

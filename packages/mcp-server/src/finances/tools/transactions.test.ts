@@ -20,6 +20,7 @@ import {
   getCategories,
   getBudgetProgress,
 } from '@my-hub/shared/services';
+import { TransactionTypes } from '@my-hub/shared/constants';
 
 vi.mock('@my-hub/shared/services', () => ({
   getUserActiveBudget: vi.fn(),
@@ -62,7 +63,7 @@ describe('finances transaction schemas', () => {
     const parsed = AddTransactionsSchema.safeParse({
       transactions: [
         {
-          type: 'transfer',
+          type: TransactionTypes.Transfer,
           amount: 125,
           accountId: 1,
           notes: 'Move funds',
@@ -76,7 +77,7 @@ describe('finances transaction schemas', () => {
   it('accepts type updates in update schema', () => {
     const parsed = UpdateTransactionSchema.safeParse({
       transactionId: 10,
-      type: 'income',
+      type: TransactionTypes.Income,
     });
 
     expect(parsed.success).toBe(true);
@@ -86,7 +87,7 @@ describe('finances transaction schemas', () => {
     const parsed = AddTransactionsSchema.safeParse({
       transactions: [
         {
-          type: 'expense',
+          type: TransactionTypes.Expense,
           amount: 42,
           accountId: 1,
           notes: 'Groceries',
@@ -121,7 +122,7 @@ describe('addTransactionsTool', () => {
       {
         transactions: [
           {
-            type: 'expense',
+            type: TransactionTypes.Expense,
             amount: 50,
             accountId: 1,
             notes: 'Lunch',
@@ -140,7 +141,7 @@ describe('addTransactionsTool', () => {
       {
         transactions: [
           {
-            type: 'expense',
+            type: TransactionTypes.Expense,
             amount: 80,
             accountId: 1,
             notes: 'Groceries',
@@ -192,7 +193,7 @@ describe('addTransactionsTool', () => {
       {
         transactions: [
           {
-            type: 'expense',
+            type: TransactionTypes.Expense,
             amount: 20,
             accountId: 1,
             categoryId: 10,
@@ -230,7 +231,7 @@ describe('addTransactionsTool', () => {
       {
         transactions: [
           {
-            type: 'transfer',
+            type: TransactionTypes.Transfer,
             amount: 100,
             accountId: 1,
             toAccountId: 2,
@@ -246,7 +247,7 @@ describe('addTransactionsTool', () => {
       'user-1',
       1,
       expect.objectContaining({
-        type: 'transfer',
+        type: TransactionTypes.Transfer,
         accountId: 1,
         toAccountId: 2,
       }),
@@ -258,7 +259,7 @@ describe('addTransactionsTool', () => {
       {
         transactions: [
           {
-            type: 'expense',
+            type: TransactionTypes.Expense,
             amount: 100,
             currency: 'eur',
             accountId: 1,
@@ -291,7 +292,7 @@ describe('updateTransactionTool', () => {
     vi.mocked(getTransactionById).mockResolvedValue({
       id: 10,
       budgetId: 1,
-      type: 'expense',
+      type: TransactionTypes.Expense,
       accountId: 1,
       toAccountId: null,
       amount: 50,
@@ -313,7 +314,7 @@ describe('updateTransactionTool', () => {
       updateTransactionTool(
         {
           transactionId: 10,
-          type: 'transfer',
+          type: TransactionTypes.Transfer,
           amount: undefined,
           date: undefined,
           accountId: undefined,
@@ -334,7 +335,7 @@ describe('updateTransactionTool', () => {
     vi.mocked(getTransactionById).mockResolvedValue({
       id: 10,
       budgetId: 1,
-      type: 'expense',
+      type: TransactionTypes.Expense,
       accountId: 1,
       toAccountId: null,
       amount: 50,
@@ -390,7 +391,7 @@ describe('updateTransactionTool', () => {
     vi.mocked(getTransactionById).mockResolvedValue({
       id: 10,
       budgetId: 1,
-      type: 'transfer',
+      type: TransactionTypes.Transfer,
       accountId: 1,
       toAccountId: 5,
       amount: 200,
@@ -421,7 +422,7 @@ describe('updateTransactionTool', () => {
     await updateTransactionTool(
       {
         transactionId: 10,
-        type: 'expense',
+        type: TransactionTypes.Expense,
         amount: undefined,
         date: undefined,
         accountId: undefined,

@@ -8,10 +8,10 @@
  * Types: Payee
  */
 import { and, asc, eq } from 'drizzle-orm';
-import { db } from '../../db/client';
+import { db, DbTx } from '../../db/client';
 import { financePayees } from '../../db/schema/finances';
 import type { PayeeUserStats } from '../../db/schema/finances';
-import { verifyBudgetAccess } from './budgets';
+import { hasAccessToBudget } from './budgets';
 import type { FinancePayee } from '../../types';
 
 export interface Payee {
@@ -25,7 +25,7 @@ export interface Payee {
 }
 
 export async function upsertPayee(userId: string, budgetId: number, name: string): Promise<FinancePayee> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -50,7 +50,7 @@ export async function upsertPayee(userId: string, budgetId: number, name: string
 }
 
 export async function getPayees(userId: string, budgetId: number): Promise<Payee[]> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -86,7 +86,7 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
 }
 
 export async function deletePayee(userId: string, budgetId: number, payeeId: number): Promise<void> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -98,7 +98,7 @@ export async function deletePayee(userId: string, budgetId: number, payeeId: num
  * Call this after inserting a transaction that has a payeeId.
  */
 export async function incrementPayeeStats(
-  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  tx: DbTx,
   payeeId: number,
   userId: string,
   categoryId: number | null,
@@ -130,11 +130,7 @@ export async function incrementPayeeStats(
  * Decrements usage stats for a payee inside an open DB transaction.
  * Call this when deleting a transaction that had a payeeId.
  */
-export async function decrementPayeeStats(
-  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
-  payeeId: number,
-  userId: string,
-): Promise<void> {
+export async function decrementPayeeStats(tx: DbTx, payeeId: number, userId: string): Promise<void> {
   const [payee] = await tx.select().from(financePayees).where(eq(financePayees.id, payeeId));
   if (!payee) return;
 

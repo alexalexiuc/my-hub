@@ -20,7 +20,7 @@ import { PromiseCacheX } from 'promise-cachex';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
 import { tripBookings, tripShares, trips } from '../../db/schema/travel';
-import { deriveTripStatus, omitNullish } from '../../utils';
+import { deriveTripStatus, omitUndefined } from '../../utils';
 import type { NewTrip, Trip, TripSharePermission, TripWithStatus } from '../../types';
 import { TripSharePermissions } from '../../constants';
 
@@ -141,7 +141,7 @@ export async function updateTrip(userId: string, tripId: number, data: TripUpdat
   const [row] = await db
     .update(trips)
     .set({
-      ...omitNullish(data),
+      ...omitUndefined(data),
       updatedAt: new Date(),
     })
     .where(and(eq(trips.userId, userId), eq(trips.id, tripId)))

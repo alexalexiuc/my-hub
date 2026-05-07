@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AccountTypes, LentDirections } from '@my-hub/shared/constants';
+import { AccountTypes, LentDirections, SupportedCurrencies, TransactionTypes } from '@my-hub/shared/constants';
 
 // --- Add Group ---
 
@@ -72,6 +72,7 @@ export function formToCategoryBody(values: AddCategoryValues) {
 
 export const AddAccountSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
+  description: z.string(),
   type: z.string(),
   openingBalance: z.string(),
   // Credit Card
@@ -102,6 +103,7 @@ export type AddAccountValues = z.infer<typeof AddAccountSchema>;
 
 export const defaultAddAccountValues: AddAccountValues = {
   name: '',
+  description: '',
   type: AccountTypes.Bank,
   openingBalance: '0',
   creditLimit: '',
@@ -167,6 +169,7 @@ export type EditAccountValues = z.infer<typeof EditAccountSchema>;
 
 export function accountToEditValues(acc: {
   name: string;
+  description?: string | null;
   type: string;
   creditLimit?: number;
   statementDay?: number;
@@ -185,6 +188,7 @@ export function accountToEditValues(acc: {
 }): EditAccountValues {
   return {
     name: acc.name,
+    description: acc.description ?? '',
     creditLimit: String(acc.creditLimit ?? ''),
     statementDay: String(acc.statementDay ?? ''),
     cardLastFour: acc.cardLastFour ?? '',
@@ -250,7 +254,7 @@ export function formToEditDetails(
 
 export const CreateBudgetSchema = z.object({
   name: z.string().trim().min(1, 'Budget name is required'),
-  defaultCurrency: z.string().min(1),
+  defaultCurrency: z.enum(SupportedCurrencies),
 });
 
 export type CreateBudgetValues = z.infer<typeof CreateBudgetSchema>;
@@ -264,15 +268,81 @@ export const defaultCreateBudgetValues: CreateBudgetValues = {
 
 export const BudgetSettingsSchema = z.object({
   name: z.string().trim().min(1, 'Budget name is required'),
-  defaultCurrency: z.string().min(1),
+  defaultCurrency: z.enum(SupportedCurrencies),
 });
 
 export type BudgetSettingsValues = z.infer<typeof BudgetSettingsSchema>;
 
+// --- Add Plan Item ---
+
+export const AddPlanItemSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required'),
+  amount: z
+    .string()
+    .min(1, 'Amount is required')
+    .refine(v => !isNaN(parseFloat(v)), 'Must be a number'),
+  currency: z.string(),
+  linkedAccountId: z.string(),
+  categoryId: z.string(),
+});
+
+export type AddPlanItemValues = z.infer<typeof AddPlanItemSchema>;
+
+// --- Edit Plan Item ---
+
+export const EditPlanItemSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required'),
+  amount: z
+    .string()
+    .min(1, 'Amount is required')
+    .refine(v => !isNaN(parseFloat(v)) && parseFloat(v) > 0, 'Must be a positive number'),
+  currency: z.enum(SupportedCurrencies),
+  linkedAccountId: z.string(),
+  categoryId: z.string(),
+  assignedAmount: z.string(),
+});
+
+export type EditPlanItemValues = z.infer<typeof EditPlanItemSchema>;
+
+export function planItemToEditValues(
+  item: {
+    name: string;
+    amount: number;
+    currency: string;
+    linkedAccountId: number | null;
+    categoryId: number | null;
+    assignedAmount: number;
+  },
+  fallbackCurrency: string,
+): EditPlanItemValues {
+  const currency = SupportedCurrencies.includes(item.currency as (typeof SupportedCurrencies)[number])
+    ? (item.currency as (typeof SupportedCurrencies)[number])
+    : (fallbackCurrency as (typeof SupportedCurrencies)[number]);
+  return {
+    name: item.name,
+    amount: String(item.amount),
+    currency,
+    linkedAccountId: item.linkedAccountId != null ? String(item.linkedAccountId) : '',
+    categoryId: item.categoryId != null ? String(item.categoryId) : '',
+    assignedAmount: String(item.assignedAmount),
+  };
+}
+
+export function formToEditPlanItem(values: EditPlanItemValues) {
+  return {
+    name: values.name.trim(),
+    amount: parseFloat(values.amount),
+    currency: values.currency,
+    linkedAccountId: values.linkedAccountId ? parseInt(values.linkedAccountId, 10) : null,
+    categoryId: values.categoryId ? parseInt(values.categoryId, 10) : null,
+    assignedAmount: parseFloat(values.assignedAmount) || 0,
+  };
+}
+
 // --- Add Transaction ---
 
 export const AddTransactionSchema = z.object({
-  txType: z.enum(['expense', 'income', 'transfer']),
+  txType: z.enum(TransactionTypes),
   payee: z.string(),
   amount: z.string().min(1, 'Amount is required'),
   date: z.string().min(1),
@@ -282,7 +352,7 @@ export const AddTransactionSchema = z.object({
 export type AddTransactionValues = z.infer<typeof AddTransactionSchema>;
 
 export const defaultAddTransactionValues: AddTransactionValues = {
-  txType: 'expense',
+  txType: TransactionTypes.Expense,
   payee: '',
   amount: '',
   date: new Date().toISOString().slice(0, 10),

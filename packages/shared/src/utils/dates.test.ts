@@ -15,6 +15,7 @@ import {
   isoWeekAndYear,
   weekLabel,
   calendarDays,
+  dateToString,
 } from './dates';
 
 beforeEach(() => {
@@ -259,5 +260,19 @@ describe('calendarDays', () => {
     const start = new Date('2026-03-05T00:00:00.000Z');
     const end = new Date('2026-03-01T00:00:00.000Z');
     expect(calendarDays(start, end)).toEqual([]);
+  });
+});
+
+describe('dateToString', () => {
+  it('formats date as YYYY-MM-DD by default', () => {
+    expect(dateToString(new Date('2026-03-23T00:00:00.000Z'))).toBe('2026-03-23');
+  });
+
+  it('formats date as MM/DD/YYYY', () => {
+    expect(dateToString(new Date('2026-03-23T00:00:00.000Z'), 'MM/DD/YYYY')).toBe('03/23/2026');
+  });
+
+  it('formats date as YYYY-MM', () => {
+    expect(dateToString(new Date('2026-03-23T00:00:00.000Z'), 'YYYY-MM')).toBe('2026-03');
   });
 });

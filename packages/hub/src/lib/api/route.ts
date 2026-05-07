@@ -4,8 +4,14 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-user';
 import { formatZodError, writeApiLog } from './with-error-logging';
+import { logger } from '@my-hub/shared/utils';
+import { hubEnvConfig } from '@/config/env';
 
 type MaybePromise<T> = T | Promise<T>;
+
+type HandlerResult<TResponse extends ZodType | undefined> = TResponse extends ZodType
+  ? z.infer<TResponse> | Response
+  : RouteResult;
 
 type RouteJsonValue = string | number | boolean | null | object | unknown[];
 
@@ -179,6 +185,7 @@ function createRouteHandler<
     let userId: string | undefined;
     const log = (statusCode: number, error?: string, userId?: string) =>
       writeApiLog(req, statusCode, Date.now() - start, error, userId ? { userId } : undefined).catch(() => {});
+    const payloads: Record<string, unknown> = {};
 
     try {
       const isPublicRoute = options?.public === true;
@@ -208,6 +215,7 @@ function createRouteHandler<
           return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
         }
         ctx.params = parsed.data;
+        payloads.params = parsed.data;
       }
 
       if (options?.body) {
@@ -224,6 +232,7 @@ function createRouteHandler<
           return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
         }
         ctx.body = parsed.data;
+        payloads.body = parsed.data;
       }
 
       if (options?.query) {
@@ -234,6 +243,7 @@ function createRouteHandler<
           return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
         }
         ctx.query = parsed.data;
+        payloads.query = parsed.data;
       }
 
       const response = toResponse(await handler(ctx as RouteContext<TParams, TBody, TQuery, TPublic>));
@@ -256,7 +266,8 @@ function createRouteHandler<
 
       const message = err instanceof Error ? err.message : 'Unknown server error';
       await log(500, message, userId);
-      console.error(`[api] ${req.method} ${req.url} failed`, err);
+      logger.error(`[api] ${req.method} ${req.url} failed`, err);
+      if (hubEnvConfig.PRINT_PAYLOADS) logger.error('[api] request payloads:', JSON.stringify(payloads));
       return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
   };
@@ -273,7 +284,9 @@ export function route<
   TResponse extends ZodType | undefined = undefined,
 >(
   options: ProtectedRouteOptions<TParams, TBody, TQuery, TResponse>,
-): (handler: (ctx: RouteContext<TParams, TBody, TQuery, false>) => MaybePromise<RouteResult>) => NextRouteHandler;
+): (
+  handler: (ctx: RouteContext<TParams, TBody, TQuery, false>) => MaybePromise<HandlerResult<TResponse>>,
+) => NextRouteHandler;
 
 /** Route handler with Zod validation and public auth mode — call with options, then pass the handler. */
 export function route<
@@ -283,7 +296,9 @@ export function route<
   TResponse extends ZodType | undefined = undefined,
 >(
   options: PublicRouteOptions<TParams, TBody, TQuery, TResponse>,
-): (handler: (ctx: RouteContext<TParams, TBody, TQuery, true>) => MaybePromise<RouteResult>) => NextRouteHandler;
+): (
+  handler: (ctx: RouteContext<TParams, TBody, TQuery, true>) => MaybePromise<HandlerResult<TResponse>>,
+) => NextRouteHandler;
 
 export function route(
   schemasOrHandler: AnyRouteOptions | ((ctx: any) => MaybePromise<RouteResult>),

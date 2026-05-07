@@ -17,6 +17,9 @@ export const TransactionTypes = {
 } as const;
 export type TransactionType = (typeof TransactionTypes)[keyof typeof TransactionTypes];
 
+export const SupportedCurrencies = ['EUR', 'USD', 'GBP', 'MDL', 'RON', 'UAH', 'CHF', 'JPY', 'CAD', 'AUD'] as const;
+export type SupportedCurrency = (typeof SupportedCurrencies)[number];
+
 export const LentDirections = {
   Gave: 'gave',
   Received: 'received',
@@ -59,6 +62,16 @@ export const CategoryIcons = {
   // Misc
   Tag: 'tag',
   MoreHorizontal: 'more_horizontal',
+  // Personal & lifestyle
+  Dumbbell: 'dumbbell',
+  PawPrint: 'paw_print',
+  Baby: 'baby',
+  Scissors: 'scissors',
+  // Finance & obligations
+  Receipt: 'receipt',
+  Fuel: 'fuel',
+  Shield: 'shield',
+  Landmark: 'landmark',
 } as const;
 export type CategoryIcon = (typeof CategoryIcons)[keyof typeof CategoryIcons];
 
@@ -104,3 +117,29 @@ export interface CashAccountDetails {
 export interface GoalAccountDetails {
   targetAmount: number;
 }
+
+// ---- Account type metadata ----
+
+/** Human-readable description shown in the Add Account form. */
+export const ACCOUNT_TYPE_DESCRIPTIONS: Record<AccountType, string> = {
+  [AccountTypes.Bank]: 'Checking or savings account at a bank. Tracks day-to-day spending and deposits.',
+  [AccountTypes.Cash]: 'Physical cash you hold. Great for tracking wallet or petty-cash balances.',
+  [AccountTypes.CreditCard]: 'Credit card with a revolving limit. Tracks statement balance and available credit.',
+  [AccountTypes.Investment]: 'Brokerage, pension, or crypto portfolio. Tracks current value vs. amount deposited.',
+  [AccountTypes.Loan]:
+    'Mortgage, car loan, or instalment plan. Tracks remaining principal and generates a repayment schedule.',
+  [AccountTypes.Goal]: 'Savings pot with a target amount. Progress bar shows how close you are to your goal.',
+  [AccountTypes.Tracking]: 'Read-only account for assets you want to include in net worth (e.g. a car or property).',
+  [AccountTypes.BorrowedLent]: 'Tracks money you lent to or borrowed from someone, with optional due date.',
+};
+
+/**
+ * Account types that can be selected as the source account for expense or income transactions.
+ * Investment, Loan, Goal, and BorrowedLent accounts are excluded because they represent
+ * non-transactional balances — money flows in/out via transfers, not direct expense/income entries.
+ */
+export const EXPENSE_ACCOUNT_TYPES = new Set<AccountType>([
+  AccountTypes.Bank,
+  AccountTypes.Cash,
+  AccountTypes.CreditCard,
+]);

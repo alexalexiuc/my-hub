@@ -10,6 +10,7 @@ import { TransactionList } from '../transactions/TransactionList';
 import { EditAccountModal } from './EditAccountModal';
 import type { AccountDetailData, AccountItem } from './types';
 import type { TransactionMutationResponse } from '@/app/api/finances/contracts';
+import { TransactionType, TransactionTypes } from '@my-hub/shared/constants';
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -54,7 +55,7 @@ function CorrectionModal({
       const result = await apiFetch<TransactionMutationResponse>('/api/finances/transactions', {
         method: 'POST',
         body: {
-          type: correction > 0 ? 'income' : 'expense',
+          type: correction > 0 ? TransactionTypes.Income : TransactionTypes.Expense,
           accountId,
           amount: Math.abs(correction),
           date,
@@ -429,7 +430,7 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
                 id: result.transaction.id,
                 date: tx.date as string,
                 amount: tx.amount as number,
-                type: tx.type as string,
+                type: tx.type as TransactionType,
                 notes: (tx.notes as string | null | undefined) ?? null,
                 payeeName: null,
                 categoryName: null,

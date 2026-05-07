@@ -18,13 +18,12 @@ import type {
   TransactionMutationResponse,
 } from '@/app/api/finances/contracts';
 import { getCurrencySymbol } from '@my-hub/shared/utils';
+import { EXPENSE_ACCOUNT_TYPES, TransactionType, TransactionTypes } from '@my-hub/shared/constants';
 
-type TxType = 'expense' | 'income' | 'transfer';
-
-const TYPE_COLORS: Record<TxType, string> = {
-  expense: 'var(--fin-red)',
-  income: 'var(--fin-green)',
-  transfer: 'var(--fin-blue)',
+const TYPE_COLORS: Record<TransactionType, string> = {
+  [TransactionTypes.Expense]: 'var(--fin-red)',
+  [TransactionTypes.Income]: 'var(--fin-green)',
+  [TransactionTypes.Transfer]: 'var(--fin-blue)',
 };
 
 function FieldCard({ label, children }: { label: string; children: React.ReactNode }) {
@@ -41,7 +40,7 @@ type TransactionModalProps = {
   onSavedAction: (result?: TransactionMutationResponse) => void;
   /** When provided the modal opens in edit mode, pre-populated with that transaction's data. */
   editId?: number;
-  initialType?: TxType;
+  initialType?: TransactionType;
   lockedType?: boolean;
   prefilledToAccountId?: number;
   prefilledToAccountName?: string;
@@ -63,9 +62,7 @@ export function TransactionModal({
   const [selCatId, setSelCatId] = useState<number | null>(null);
   const [selAccId, setSelAccId] = useState<number | null>(null);
   const [selToAccId, setSelToAccId] = useState<number | null>(prefilledToAccountId ?? null);
-  const [accQuery, setAccQuery] = useState('');
-  const [toAccQuery, setToAccQuery] = useState('');
-  const [catQuery, setCatQuery] = useState('');
+  const [selPayeeId, setSelPayeeId] = useState<number | null>(null);
 
   const mostUsedPayees = useMemo(() => {
     return [...payees]
@@ -85,11 +82,10 @@ export function TransactionModal({
     formState: { isSubmitting },
   } = useForm<AddTransactionValues>({
     resolver: zodResolver(AddTransactionSchema),
-    defaultValues: { ...defaultAddTransactionValues, txType: initialType ?? 'expense' },
+    defaultValues: { ...defaultAddTransactionValues, txType: initialType ?? TransactionTypes.Expense },
   });
 
   const txType = watch('txType');
-  const payeeQuery = watch('payee');
 
   const load = useCallback(async () => {
     const [fd, pd, detail] = await Promise.all([
@@ -104,26 +100,21 @@ export function TransactionModal({
     if (pd) setPayees(pd.payees);
 
     if (detail) {
-      setValue('txType', detail.type as TxType);
+      setValue('txType', detail.type);
       setValue('amount', String(detail.amount));
       setValue('date', detail.date);
       setValue('payee', detail.payeeName ?? '');
       setValue('note', detail.notes ?? '');
+      setSelPayeeId(detail.payeeId ?? null);
 
       setSelAccId(detail.accountId);
-      const acc = fd.accounts.find(a => a.id === detail.accountId);
-      if (acc) setAccQuery(acc.name);
 
       if (detail.toAccountId != null) {
         setSelToAccId(detail.toAccountId);
-        const toAcc = fd.accounts.find(a => a.id === detail.toAccountId);
-        if (toAcc) setToAccQuery(toAcc.name);
       }
 
       if (detail.categoryId != null) {
         setSelCatId(detail.categoryId);
-        const cat = fd.categories.find(c => c.id === detail.categoryId);
-        if (cat) setCatQuery(`${categoryIconEmoji(cat.icon)} ${cat.name}`.trim());
       }
     }
   }, [editId, isEdit, setValue]);
@@ -134,16 +125,14 @@ export function TransactionModal({
 
   function selectPayee(p: PayeeSuggestion) {
     setValue('payee', p.name);
+    setSelPayeeId(p.id);
     if (p.recentCategoryId != null && formData) {
       setSelCatId(p.recentCategoryId);
-      const cat = formData.categories.find(c => c.id === p.recentCategoryId);
-      if (cat) setCatQuery(`${categoryIconEmoji(cat.icon)} ${cat.name}`.trim());
     }
     if (p.recentAccountId != null && formData) {
       const acc = formData.accounts.find(a => a.id === p.recentAccountId);
       if (acc) {
         setSelAccId(acc.id);
-        setAccQuery(acc.name);
       }
     }
   }
@@ -152,14 +141,15 @@ export function TransactionModal({
 
   async function onSubmit(values: AddTransactionValues) {
     if (!selAccId) return;
+    if (txType === TransactionTypes.Expense && !selCatId) return;
     const body = {
       type: values.txType,
       accountId: selAccId,
       // Always send toAccountId so edits that change type from transfer→expense clear it
-      toAccountId: txType === 'transfer' ? selToAccId : null,
+      toAccountId: txType === TransactionTypes.Transfer ? selToAccId : null,
       amount: parseFloat(values.amount),
       date: values.date,
-      categoryId: txType === 'transfer' ? null : selCatId,
+      categoryId: txType === TransactionTypes.Transfer ? null : selCatId,
       payeeName: values.payee.trim() || undefined,
       notes: values.note.trim() || undefined,
     };
@@ -180,7 +170,8 @@ export function TransactionModal({
     }
   }
 
-  const isSubmitDisabled = !watch('amount') || !selAccId || isSubmitting;
+  const isSubmitDisabled =
+    !watch('amount') || !selAccId || (txType === TransactionTypes.Expense && !selCatId) || isSubmitting;
 
   return (
     <FinModalShell
@@ -203,7 +194,7 @@ export function TransactionModal({
           {/* Type toggle — hidden when type is locked */}
           {!lockedType && (
             <div className="flex rounded-[9px] border border-[var(--fin-border)] bg-[var(--fin-card2)] p-[3px]">
-              {(['expense', 'income', 'transfer'] as TxType[]).map(t => (
+              {([TransactionTypes.Expense, TransactionTypes.Income, TransactionTypes.Transfer] as const).map(t => (
                 <button
                   key={t}
                   type="button"
@@ -240,19 +231,23 @@ export function TransactionModal({
           </div>
 
           {/* Payee — hidden for transfers */}
-          {txType !== 'transfer' && (
+          {txType !== TransactionTypes.Transfer && (
             <>
               <FinancialDropdown
                 options={payees.map(p => ({ id: p.id, value: p.name }))}
-                query={payeeQuery}
-                onQueryChange={v => setValue('payee', v)}
-                onSelect={item => {
-                  const full = payees.find(p => p.id === item.id);
+                value={selPayeeId ?? undefined}
+                onChange={item => {
+                  const full = payees.find(p => p.id === item?.id);
                   if (full) selectPayee(full);
                 }}
                 fuse
                 placeholder="e.g. Kaufland, Netflix…"
-                createOption={{ onCreate: name => setValue('payee', name) }}
+                createOption={{
+                  onCreate: name => {
+                    setValue('payee', name);
+                    setSelPayeeId(null);
+                  },
+                }}
               />
               {mostUsedPayees.length > 0 && (
                 <div className="mt-1 flex flex-wrap gap-2">
@@ -269,12 +264,13 @@ export function TransactionModal({
             <FieldCard label="Account">
               <FinancialDropdown
                 searchable={false}
-                options={formData.accounts.map(a => ({ id: a.id, value: a.name }))}
-                query={accQuery}
-                onQueryChange={setAccQuery}
-                onSelect={item => {
-                  setSelAccId(item.id as number);
-                  setAccQuery(String(item.value));
+                options={(txType === TransactionTypes.Expense
+                  ? formData.accounts.filter(a => EXPENSE_ACCOUNT_TYPES.has(a.type as never))
+                  : formData.accounts
+                ).map(a => ({ id: a.id, value: a.name }))}
+                value={selAccId ?? undefined}
+                onChange={item => {
+                  setSelAccId(item ? (item.id as number) : null);
                 }}
                 renderOption={item => {
                   const acc = formData.accounts.find(a => a.id === item.id);
@@ -290,7 +286,7 @@ export function TransactionModal({
               />
             </FieldCard>
 
-            {txType === 'transfer' ? (
+            {txType === TransactionTypes.Transfer ? (
               <FieldCard label="To Account">
                 {prefilledToAccountId != null ? (
                   <div className="py-0.5 text-[13px] font-medium text-[var(--fin-text)]">{prefilledToAccountName}</div>
@@ -298,11 +294,9 @@ export function TransactionModal({
                   <FinancialDropdown
                     searchable={false}
                     options={formData.accounts.filter(a => a.id !== selAccId).map(a => ({ id: a.id, value: a.name }))}
-                    query={toAccQuery}
-                    onQueryChange={setToAccQuery}
-                    onSelect={item => {
-                      setSelToAccId(item.id as number);
-                      setToAccQuery(String(item.value));
+                    value={selToAccId ?? undefined}
+                    onChange={item => {
+                      setSelToAccId(item ? (item.id as number) : null);
                     }}
                     renderOption={item => {
                       const acc = formData.accounts.find(a => a.id === item.id);
@@ -326,12 +320,11 @@ export function TransactionModal({
                     id: c.id,
                     value: `${categoryIconEmoji(c.icon)} ${c.name}`.trim(),
                   }))}
-                  query={catQuery}
-                  onQueryChange={setCatQuery}
-                  onSelect={item => {
-                    setSelCatId(item.id as number);
-                    setCatQuery(String(item.value));
+                  value={selCatId ?? undefined}
+                  onChange={item => {
+                    setSelCatId(item ? (item.id as number) : null);
                   }}
+                  clearable={txType !== TransactionTypes.Expense}
                   noResultsText="No categories yet — add one in the Categories tab."
                   placeholder="⬡ Choose…"
                   inputClassName="border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"

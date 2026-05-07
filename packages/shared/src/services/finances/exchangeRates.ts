@@ -24,7 +24,7 @@ function buildApiUrls(fromCurrencyLower: string, date: string): string[] {
   ];
 }
 
-function parseApiRate(payload: unknown, fromCurrencyLower: string, toCurrencyLower: string): number | null {
+export function parseApiRate(payload: unknown, fromCurrencyLower: string, toCurrencyLower: string): number | null {
   if (!payload || typeof payload !== 'object') return null;
 
   const root = payload as Record<string, unknown>;

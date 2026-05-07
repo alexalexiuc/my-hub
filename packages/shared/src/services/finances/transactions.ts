@@ -11,8 +11,9 @@
 import { and, desc, eq, gte, ilike, isNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { financeAccounts, financeBudgets, financeTransactions } from '../../db/schema/finances';
-import { omitNullish } from '../../utils';
-import { verifyBudgetAccess } from './budgets';
+import { logger, omitUndefined } from '../../utils';
+import { hasAccessToBudget } from './budgets';
+import { syncTransactionWithPlan } from './monthly-plans';
 import { incrementPayeeStats, decrementPayeeStats } from './payees';
 import { getExchangeRate } from './exchangeRates';
 import type { FinanceTransaction, NewFinanceTransaction } from '../../types';
@@ -79,7 +80,7 @@ export async function addTransaction(
   budgetId: number,
   data: TransactionInsert,
 ): Promise<FinanceTransaction> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -90,7 +91,7 @@ export async function addTransaction(
   const amt = Math.round(data.amount * 10000) / 10000;
   const { amountCurrency, ...dbData } = data;
 
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const [budget] = await tx
       .select({ defaultCurrency: financeBudgets.defaultCurrency })
       .from(financeBudgets)
@@ -192,6 +193,12 @@ export async function addTransaction(
 
     return row;
   });
+
+  // Sync with monthly plan is nice to have, but we don't want to fail the whole transaction if it errors out.
+  syncTransactionWithPlan(userId, budgetId, null, result).catch(err => {
+    logger.error('Error syncing plan items after transaction insert:', err);
+  });
+  return result;
 }
 
 export async function getTransactions(
@@ -199,7 +206,7 @@ export async function getTransactions(
   budgetId: number,
   opts: GetTransactionsOpts = {},
 ): Promise<FinanceTransaction[]> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -257,7 +264,7 @@ export async function countTransactions(
   budgetId: number,
   opts: GetTransactionsOpts = {},
 ): Promise<number> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -307,7 +314,7 @@ export async function checkDuplicateTransaction(
   budgetId: number,
   opts: DuplicateCheckOpts,
 ): Promise<FinanceTransaction | null> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -339,7 +346,7 @@ export async function getTransactionById(
   budgetId: number,
   transactionId: number,
 ): Promise<FinanceTransaction | null> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -357,11 +364,11 @@ export async function updateTransaction(
   transactionId: number,
   data: TransactionUpdate,
 ): Promise<FinanceTransaction> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const [existing] = await tx
       .select()
       .from(financeTransactions)
@@ -481,7 +488,7 @@ export async function updateTransaction(
     const [row] = await tx
       .update(financeTransactions)
       .set({
-        ...omitNullish(data),
+        ...omitUndefined(data),
         amount: newAmt,
         exchangeRate: resolvedExchangeRate,
         toExchangeRate: resolvedToExchangeRate,
@@ -511,8 +518,14 @@ export async function updateTransaction(
       await incrementPayeeStats(tx, newPayeeId, userId, data.categoryId ?? null, accountId);
     }
 
-    return row;
+    return { row, previous: existing };
   });
+
+  // Sync with monthly plan is nice to have, but we don't want to fail the whole transaction if it errors out.
+  syncTransactionWithPlan(userId, budgetId, result.previous, result.row).catch(err => {
+    logger.error('Error syncing plan items after transaction update:', err);
+  });
+  return result.row;
 }
 
 export async function deleteTransaction(
@@ -520,11 +533,11 @@ export async function deleteTransaction(
   budgetId: number,
   transactionId: number,
 ): Promise<{ accountBalanceAfter: number }> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const [existing] = await tx
       .select()
       .from(financeTransactions)
@@ -573,6 +586,13 @@ export async function deleteTransaction(
       await decrementPayeeStats(tx, existing.payeeId, userId);
     }
 
-    return { accountBalanceAfter: fromBalanceAfter };
+    return { accountBalanceAfter: fromBalanceAfter, deleted: existing };
   });
+
+  // Sync with monthly plan is nice to have, but we don't want to fail the whole transaction if it errors out.
+  syncTransactionWithPlan(userId, budgetId, result.deleted, null).catch(err => {
+    logger.error('Error syncing plan items after transaction delete:', err);
+  });
+
+  return { accountBalanceAfter: result.accountBalanceAfter };
 }

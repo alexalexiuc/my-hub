@@ -9,6 +9,7 @@ import {
   getSpendingAggregates,
   getNetWorthSummary,
 } from '@my-hub/shared/services';
+import { TransactionTypes } from '@my-hub/shared/constants';
 
 // ─── get_budget_progress ──────────────────────────────────────────────────────
 
@@ -69,7 +70,7 @@ export const GetSpendingAggregatesSchema = z.object({
   groupBy: z.enum(['category', 'payee', 'account', 'month', 'type']),
   accountId: z.number().int().positive().optional(),
   categoryId: z.number().int().positive().optional(),
-  type: z.enum(['expense', 'income', 'transfer']).optional(),
+  type: z.enum(TransactionTypes).optional(),
 });
 
 export const getSpendingAggregatesTool: ToolHandler<typeof GetSpendingAggregatesSchema.shape> = async (

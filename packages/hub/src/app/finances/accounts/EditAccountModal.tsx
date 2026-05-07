@@ -34,7 +34,12 @@ export function EditAccountModal({ acc, onClose, onSaved }: EditAccountModalProp
     const details = formToEditDetails(acc.type, values, { settled: acc.settled });
     await apiFetch(`/api/finances/accounts/${acc.id}`, {
       method: 'PATCH',
-      body: { action: 'edit', name: values.name, ...(details !== null ? { details } : {}) },
+      body: {
+        action: 'edit',
+        name: values.name,
+        description: values.description.trim() || null,
+        ...(details !== null ? { details } : {}),
+      },
     });
     onSaved();
   }
@@ -44,6 +49,10 @@ export function EditAccountModal({ acc, onClose, onSaved }: EditAccountModalProp
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <Field label="Name">
           <Input {...register('name')} autoFocus />
+        </Field>
+
+        <Field label="Description (optional)">
+          <Input {...register('description')} placeholder="e.g. Main salary account" />
         </Field>
 
         {acc.type === AccountTypes.CreditCard && (

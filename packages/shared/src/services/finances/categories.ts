@@ -16,8 +16,8 @@
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { financeCategories, financeGroups } from '../../db/schema/finances';
-import { omitNullish } from '../../utils';
-import { verifyBudgetAccess } from './budgets';
+import { omitUndefined } from '../../utils';
+import { hasAccessToBudget } from './budgets';
 import type { FinanceCategory, FinanceGroup, NewFinanceCategory, NewFinanceGroup } from '../../types';
 
 export type GroupInsert = Omit<NewFinanceGroup, 'id' | 'budgetId' | 'createdAt' | 'updatedAt'>;
@@ -31,7 +31,7 @@ export type CategoryUpdate = Partial<
 // ─── Groups ───────────────────────────────────────────────────────────────────
 
 export async function createGroup(userId: string, budgetId: number, data: GroupInsert): Promise<FinanceGroup> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -45,7 +45,7 @@ export async function createGroup(userId: string, budgetId: number, data: GroupI
 }
 
 export async function getGroups(userId: string, budgetId: number): Promise<FinanceGroup[]> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -62,13 +62,13 @@ export async function updateGroup(
   groupId: number,
   data: GroupUpdate,
 ): Promise<FinanceGroup> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
   const [row] = await db
     .update(financeGroups)
-    .set({ ...omitNullish(data), updatedAt: new Date() })
+    .set({ ...omitUndefined(data), updatedAt: new Date() })
     .where(and(eq(financeGroups.id, groupId), eq(financeGroups.budgetId, budgetId)))
     .returning();
 
@@ -77,7 +77,7 @@ export async function updateGroup(
 }
 
 export async function deleteGroup(userId: string, budgetId: number, groupId: number): Promise<void> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -87,7 +87,7 @@ export async function deleteGroup(userId: string, budgetId: number, groupId: num
 // ─── Categories ───────────────────────────────────────────────────────────────
 
 export async function createCategory(userId: string, budgetId: number, data: CategoryInsert): Promise<FinanceCategory> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -101,7 +101,7 @@ export async function createCategory(userId: string, budgetId: number, data: Cat
 }
 
 export async function getCategories(userId: string, budgetId: number): Promise<FinanceCategory[]> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -117,7 +117,7 @@ export async function getCategoryById(
   budgetId: number,
   categoryId: number,
 ): Promise<FinanceCategory | null> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
@@ -135,13 +135,13 @@ export async function updateCategory(
   categoryId: number,
   data: CategoryUpdate,
 ): Promise<FinanceCategory> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
   const [row] = await db
     .update(financeCategories)
-    .set({ ...omitNullish(data), updatedAt: new Date() })
+    .set({ ...omitUndefined(data), updatedAt: new Date() })
     .where(and(eq(financeCategories.id, categoryId), eq(financeCategories.budgetId, budgetId)))
     .returning();
 
@@ -150,7 +150,7 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(userId: string, budgetId: number, categoryId: number): Promise<void> {
-  if (!(await verifyBudgetAccess(userId, budgetId))) {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 

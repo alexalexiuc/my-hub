@@ -24,7 +24,7 @@ A **Next.js dashboard** (`hub`) lets you view and manage all your data in one pl
 
 ## Tech stack
 
-- **Runtime**: Node.js 22+, TypeScript (ESM, strict)
+- **Runtime**: Node.js 24+, TypeScript (ESM, strict)
 - **MCP**: `@modelcontextprotocol/sdk` 1.x
 - **API server**: Fastify
 - **Frontend**: Next.js 16 App Router, React 18, Tailwind CSS, Recharts
@@ -38,7 +38,7 @@ A **Next.js dashboard** (`hub`) lets you view and manage all your data in one pl
 
 ### Prerequisites
 
-- Node.js 22+, pnpm 9+
+- Node.js 24+, pnpm 9+
 - Docker & Docker Compose (for the database)
 - A PostgreSQL 18 instance **or** use the local Compose stack
 
