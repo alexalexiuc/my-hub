@@ -11,6 +11,10 @@ vi.mock('@/lib/auth-user', () => ({
   getAuthUser: mockGetAuthUser,
 }));
 
+vi.mock('@/config/env', () => ({
+  hubEnvConfig: { PRINT_PAYLOADS: false },
+}));
+
 vi.mock('./with-error-logging', async () => {
   const actual = await vi.importActual<typeof import('./with-error-logging')>('./with-error-logging');
   return {

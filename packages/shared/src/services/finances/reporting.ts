@@ -21,7 +21,7 @@ import type { AccountType, TransactionType } from '../../constants/finances';
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
 import { hasAccessToBudget, getBudgetById } from './budgets';
 import { getExchangeRate } from './exchangeRates';
-import { currentDateString } from '../../utils';
+import { currentDateString, dateToString } from '../../utils';
 
 // ─── Budget Progress ──────────────────────────────────────────────────────────
 
@@ -51,7 +51,7 @@ export async function getBudgetProgress(
     throw new Error('Budget not found');
   }
 
-  const targetMonth = month ?? currentDateString().slice(0, 7); // YYYY-MM
+  const targetMonth = month ?? dateToString(new Date(), 'YYYY-MM'); // YYYY-MM
   const dateFrom = `${targetMonth}-01`;
   // Last day of month: first day of next month minus one day
   const [year, mon] = targetMonth.split('-').map(Number);

@@ -2,12 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { chainMocked } from 'chain-mock';
-import {
-  doesItemMatchTransaction,
-  computeSummary,
-  tryAutoMatchPlanItems,
-  reconcileAutoMatchPlanItemsForTransactionUpdate,
-} from './monthly-plans';
+import { doesItemMatchTransaction, computeSummary, syncTransactionWithPlan } from './monthly-plans';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -16,7 +11,7 @@ vi.mock('../../db/client.js', async () => {
   return { db: chainMock() };
 });
 vi.mock('./exchangeRates.js', () => ({ getExchangeRate: vi.fn() }));
-vi.mock('./budgets.js', () => ({ verifyBudgetAccess: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('./budgets.js', () => ({ enforceBudgetAccess: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('promise-cachex', () => ({
   PromiseCacheX: class {
     get(_key: string, factory: () => Promise<unknown>) {
@@ -208,9 +203,9 @@ describe('computeSummary', () => {
   });
 });
 
-// ─── tryAutoMatchPlanItems ────────────────────────────────────────────────────
+// ─── syncTransactionWithPlan (insert) ────────────────────────────────────────
 
-describe('tryAutoMatchPlanItems', () => {
+describe('syncTransactionWithPlan (insert)', () => {
   beforeEach(() => {
     chainMocked(db).mockReset();
     chainMocked(db).transaction.mockImplementation(async callback => callback(db as any));
@@ -220,7 +215,7 @@ describe('tryAutoMatchPlanItems', () => {
   it('returns immediately when no plan exists for the transaction month', async () => {
     chainMocked(db).select.from.where.limit.mockResolvedValue([]);
 
-    await tryAutoMatchPlanItems('user-1', 1, makeAutoMatchTx() as any);
+    await syncTransactionWithPlan('user-1', 1, null, makeAutoMatchTx() as any);
 
     expect(chainMocked(db).update.mock.calls).toHaveLength(0);
   });
@@ -235,7 +230,7 @@ describe('tryAutoMatchPlanItems', () => {
     chainMocked(db).update.set.where.returning.mockResolvedValue([plan] as any);
 
     const tx = makeAutoMatchTx({ type: TransactionTypes.Income, accountId: 20, amount: 500 });
-    await tryAutoMatchPlanItems('user-1', 1, tx as any);
+    await syncTransactionWithPlan('user-1', 1, null, tx as any);
 
     // @ts-ignore - ignored in test
     const [[setArg]] = chainMocked(db).update.set.mock.calls;
@@ -250,7 +245,7 @@ describe('tryAutoMatchPlanItems', () => {
     chainMocked(db).select.from.where.mockResolvedValue([item]);
 
     const tx = makeAutoMatchTx({ type: TransactionTypes.Income, accountId: 99, amount: 500 });
-    await tryAutoMatchPlanItems('user-1', 1, tx as any);
+    await syncTransactionWithPlan('user-1', 1, null, tx as any);
 
     expect(chainMocked(db).update.mock.calls).toHaveLength(0);
   });
@@ -261,49 +256,55 @@ describe('tryAutoMatchPlanItems', () => {
 
     chainMocked(db).select.from.where.limit.mockResolvedValue([plan]);
     chainMocked(db).select.from.where.mockResolvedValue([item]);
-    chainMocked(db).update.set.where.mockResolvedValue([] as any);
+    chainMocked(db).select.from.innerJoin.where.limit.mockResolvedValue([{ budgetId: 1 }]);
+    chainMocked(db).update.set.where.returning.mockResolvedValue([{ ...item, assignedAmount: 300 }] as any);
 
     const tx = makeAutoMatchTx({ type: TransactionTypes.Expense, categoryId: 7, amount: 200 });
-    await tryAutoMatchPlanItems('user-1', 1, tx as any);
+    await syncTransactionWithPlan('user-1', 1, null, tx as any);
 
     // @ts-ignore - ignored in test
     const [[setArg]] = chainMocked(db).update.set.mock.calls;
     expect(setArg).toMatchObject({ assignedAmount: 300 }); // 100 + 200
   });
 
-  it('sets isAssigned to true when assignedAmount crosses the planned threshold', async () => {
+  it('updates plan item when assignedAmount exceeds the planned threshold', async () => {
     const plan = makePlan({ id: 1, incomeAccountId: null });
     const item = makePlanItem({ categoryId: 7, linkedAccountId: null, assignedAmount: 400, amount: 500 });
 
     chainMocked(db).select.from.where.limit.mockResolvedValue([plan]);
     chainMocked(db).select.from.where.mockResolvedValue([item]);
-    chainMocked(db).update.set.where.mockResolvedValue([] as any);
+    chainMocked(db).select.from.innerJoin.where.limit.mockResolvedValue([{ budgetId: 1 }]);
+    chainMocked(db).update.set.where.returning.mockResolvedValue([{ ...item, assignedAmount: 600 }] as any);
 
     const tx = makeAutoMatchTx({ categoryId: 7, amount: 200 }); // 400 + 200 = 600 >= 500
-    await tryAutoMatchPlanItems('user-1', 1, tx as any);
+    await syncTransactionWithPlan('user-1', 1, null, tx as any);
 
     const [[setArg]] = chainMocked(db).update.set.mock.calls;
-    expect(setArg).toMatchObject({ isAssigned: true });
+    expect(setArg).toMatchObject({ assignedAmount: 600 }); // isAssigned is computed as a SQL expression by the DB
   });
 
-  it('clears assignedTransactionId when delta reduces it to 0 and tx was attribution source', async () => {
+  it('processes plan item even when delta is zero', async () => {
     const plan = makePlan({ id: 1, incomeAccountId: null });
     const item = makePlanItem({
       categoryId: 7,
       linkedAccountId: null,
       assignedAmount: 200,
       amount: 500,
-      assignedTransactionId: 10, // same as tx.id
     });
 
     chainMocked(db).select.from.where.limit.mockResolvedValue([plan]);
     chainMocked(db).select.from.where.mockResolvedValue([item]);
+    chainMocked(db).select.from.innerJoin.where.limit.mockResolvedValue([{ budgetId: 1 }]);
+    chainMocked(db).update.set.where.returning.mockResolvedValue([{ ...item }] as any);
 
-    // amount=0 → applyTransactionDeltaToPlan returns early (amountDelta === 0)
-    const tx = makeAutoMatchTx({ id: 10, categoryId: 7, amount: 0 });
-    await tryAutoMatchPlanItems('user-1', 1, tx as any);
+    // amount=0 → delta is 0, but updatePlanItem is still called (no early return)
+    const tx = makeAutoMatchTx({ categoryId: 7, amount: 0 });
+    await syncTransactionWithPlan('user-1', 1, null, tx as any);
 
-    expect(chainMocked(db).update.mock.calls).toHaveLength(0);
+    expect(chainMocked(db).update.mock.calls).toHaveLength(1);
+    // @ts-ignore - ignored in test
+    const [[setArg]] = chainMocked(db).update.set.mock.calls;
+    expect(setArg).toMatchObject({ assignedAmount: 200 }); // 200 + 0 = 200
   });
 
   it('skips non-matching item (no linkedAccountId, no categoryId)', async () => {
@@ -313,15 +314,15 @@ describe('tryAutoMatchPlanItems', () => {
     chainMocked(db).select.from.where.limit.mockResolvedValue([plan]);
     chainMocked(db).select.from.where.mockResolvedValue([item]);
 
-    await tryAutoMatchPlanItems('user-1', 1, makeAutoMatchTx() as any);
+    await syncTransactionWithPlan('user-1', 1, null, makeAutoMatchTx() as any);
 
     expect(chainMocked(db).update.mock.calls).toHaveLength(0);
   });
 });
 
-// ─── reconcileAutoMatchPlanItemsForTransactionUpdate ─────────────────────────
+// ─── syncTransactionWithPlan (update) ────────────────────────────────────────
 
-describe('reconcileAutoMatchPlanItemsForTransactionUpdate', () => {
+describe('syncTransactionWithPlan (update)', () => {
   beforeEach(() => {
     chainMocked(db).mockReset();
     chainMocked(db).transaction.mockImplementation(async callback => callback(db as any));
@@ -331,34 +332,34 @@ describe('reconcileAutoMatchPlanItemsForTransactionUpdate', () => {
   it('does nothing when all fields are identical', async () => {
     const tx = makeAutoMatchTx();
 
-    await reconcileAutoMatchPlanItemsForTransactionUpdate('user-1', 1, tx as any, { ...tx } as any);
+    await syncTransactionWithPlan('user-1', 1, tx as any, { ...tx } as any);
 
     expect(chainMocked(db).select.mock.calls).toHaveLength(0);
     expect(chainMocked(db).update.mock.calls).toHaveLength(0);
   });
 
-  it('reverses old delta and applies new delta when amount changes', async () => {
-    // No plan → both applyTransactionDeltaToPlan calls hit DB for plan lookup only
+  it('applies net delta in a single transaction when amount changes', async () => {
+    // No plan → applyDeltaInTx hits DB for plan lookup only, then returns early
     chainMocked(db).select.from.where.limit.mockResolvedValue([]);
 
     const before = makeAutoMatchTx({ amount: 100 });
     const after = makeAutoMatchTx({ amount: 200 });
 
-    await reconcileAutoMatchPlanItemsForTransactionUpdate('user-1', 1, before as any, after as any);
+    await syncTransactionWithPlan('user-1', 1, before as any, after as any);
 
-    // Two plan lookups: one for the reversal (-before.amount), one for the new (+after.amount)
-    expect(chainMocked(db).select.from.where.limit.mock.calls).toHaveLength(2);
+    // One plan lookup: net delta (200 - 100 = 100) applied in a single transaction
+    expect(chainMocked(db).select.from.where.limit.mock.calls).toHaveLength(1);
   });
 
-  it('targets the correct months when date changes', async () => {
+  it('looks up the after-transaction month when date changes', async () => {
     chainMocked(db).select.from.where.limit.mockResolvedValue([]);
 
     const before = makeAutoMatchTx({ date: '2026-03-10', amount: 100 });
     const after = makeAutoMatchTx({ date: '2026-04-10', amount: 100 });
 
-    await reconcileAutoMatchPlanItemsForTransactionUpdate('user-1', 1, before as any, after as any);
+    await syncTransactionWithPlan('user-1', 1, before as any, after as any);
 
-    // Should have looked up plans for both months
-    expect(chainMocked(db).select.from.where.limit.mock.calls).toHaveLength(2);
+    // Looks up only the after-transaction's month (2026-04) with the net delta
+    expect(chainMocked(db).select.from.where.limit.mock.calls).toHaveLength(1);
   });
 });

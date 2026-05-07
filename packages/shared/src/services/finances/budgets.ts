@@ -20,7 +20,7 @@ import { PromiseCacheX } from 'promise-cachex';
 import { db } from '../../db/client';
 import { financeBudgets, financeBudgetMembers } from '../../db/schema/finances';
 import { users } from '../../db/schema/users';
-import { omitUndefined } from '../../utils';
+import { logger, omitUndefined } from '../../utils';
 import type { FinanceBudget, NewFinanceBudget } from '../../types';
 
 const budgetAccessCache = new PromiseCacheX<boolean>({ ttl: 300_000 });
@@ -49,6 +49,7 @@ export async function hasAccessToBudget(userId: string, budgetId: number): Promi
 /** Throws if the user does not have access to the specified budget. */
 export async function enforceBudgetAccess(userId: string, budgetId: number): Promise<void> {
   if (!(await hasAccessToBudget(userId, budgetId))) {
+    logger.warn(`Unauthorized access attempt by user ${userId} to budget ${budgetId}`);
     throw new Error('Budget not found');
   }
 }

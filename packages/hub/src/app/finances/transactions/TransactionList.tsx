@@ -212,7 +212,7 @@ export function TransactionList({
             {i > 0 && <Divider />}
 
             {/* ── Mobile row (< md) — SwipeRow ── */}
-            <div className="md:hidden">
+            <div data-layout="mobile" className="md:hidden">
               <SwipeRow
                 isOpen={openRowId === tx.id}
                 onOpen={() => setOpenRowId(tx.id)}
@@ -261,7 +261,7 @@ export function TransactionList({
             </div>
 
             {/* ── Desktop row (md+) ── */}
-            <div className="group relative hidden md:flex items-center gap-3 py-1.5">
+            <div data-layout="desktop" className="group relative hidden md:flex items-center gap-3 py-1.5">
               {/* Icon */}
               <CategoryIcon color={catColor} size="sm">
                 {tx.isCorrection ? '⚖' : isTransfer ? '↔' : categoryIconEmoji(tx.categoryIcon)}

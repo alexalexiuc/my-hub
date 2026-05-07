@@ -1,21 +1,23 @@
 /**
  * Finance monthly plan service
+ * - getMonthlyPlan(userId, budgetId, month, tx?) — fetch plan row for a given YYYY-MM month, returns undefined if not found
+ * - createMonthlyPlan(userId, budgetId, month, availableAmount?) — create a new plan row for the given month
  * - checkMonthlyPlanExists(userId, budgetId, month) — returns true if a plan row exists for that month (without creating one)
  * - getOrCreateMonthlyPlan(userId, budgetId, month) — fetch or create the plan row for a given YYYY-MM month
  * - getMonthlyPlanFull(userId, budgetId, month) — plan + items + computed summary (planned, remaining potential/real, progress)
- * - updateMonthlyPlan(userId, budgetId, planId, patch) — update plan metadata (availableAmount and/or incomeAccountId)
- * - addPlanItem(userId, budgetId, planId, data) — append a new line item to the plan
- * - updatePlanItem(userId, budgetId, itemId, data) — partial update of a plan item
- * - deletePlanItem(userId, budgetId, itemId) — hard delete a plan item
- * - togglePlanItemAssigned(userId, budgetId, itemId, isAssigned) — manual done/undone override
- * - bulkAssignAll(userId, budgetId, planId) — mark all items in the plan as assigned
+ * - computeSummary(plan, items, budgetCurrency) — compute planned/remaining/assigned summary in budget currency
+ * - updateMonthlyPlan(userId, budgetId, planId, patch) — update plan metadata (availableAmount, amountToAdd, and/or incomeAccountId)
+ * - addPlanItem(userId, planId, data) — append a new line item (or array of items) to the plan
+ * - updatePlanItem(userId, itemId, data, tx?) — partial update of a plan item; accepts an optional Drizzle tx for use inside transactions
+ * - deletePlanItem(userId, itemId) — hard delete a plan item
+ * - bulkAssignAll(userId, planId) — mark all unassigned items in the plan as assigned
  * - copyToNextMonth(userId, budgetId, month) — create next month's plan from current; amounts copied as-is; no-op if already exists
- * - tryAutoMatchPlanItems(userId, budgetId, transaction) — called after transaction insert to auto-assign matching items and auto-add income into monthly available funds for the selected income account
- * - reconcileAutoMatchPlanItemsForTransactionUpdate(userId, budgetId, before, after) — reverses old transaction effect then applies new one so plan availableAmount/assigned amounts stay consistent on transaction edits
+ * - doesItemMatchTransaction(item, transaction) — returns true if a plan item's linkedAccountId/categoryId matches a transaction
+ * - syncTransactionWithPlan(userId, budgetId, before, after) — syncs plan items and availableAmount when a transaction is created, updated, or deleted
  * Types: PlanItemInsert, PlanItemUpdate, MonthlyPlanFull, MonthlyPlanSummary, PlanItemWithMeta
  */
-import { and, eq, inArray, sql } from 'drizzle-orm';
-import { db } from '../../db/client';
+import { and, eq, sql } from 'drizzle-orm';
+import { db, DbOrTx, DbTx } from '../../db/client';
 import {
   financeBudgets,
   financeMonthlyPlans,
@@ -24,7 +26,7 @@ import {
   financeCategories,
   financePayees,
 } from '../../db/schema/finances';
-import { omitUndefined } from '../../utils';
+import { arrayfy, logger, omitUndefined } from '../../utils';
 import { shiftMonthStr, toUTCDateStr } from '../../utils/dates';
 import { enforceBudgetAccess } from './budgets';
 import { getExchangeRate } from './exchangeRates';
@@ -33,6 +35,7 @@ import { PromiseCacheX } from 'promise-cachex';
 import { TransactionTypes } from '../../constants/finances';
 
 const monthlyPlanCache = new PromiseCacheX<FinanceMonthlyPlan | undefined>({ ttl: 1000 * 60 * 60 }); // 1 hour cache for plan fetches
+const monthlyPlanAccessCache = new PromiseCacheX<number | undefined>({ ttl: 1000 * 60 * 60 }); // 1 hour cache for plan item fetches
 
 export type PlanItemInsert = {
   name: string;
@@ -49,7 +52,7 @@ export type PlanItemUpdate = Partial<
   Pick<
     PlanItemInsert,
     'name' | 'amount' | 'currency' | 'categoryId' | 'merchantId' | 'linkedAccountId' | 'sortOrder' | 'notes'
-  > & { assignedAmount: number }
+  > & { assignedAmount: number; isAssigned: boolean; assignedTransactionId: number | null }
 >;
 
 export interface MonthlyPlanSummary {
@@ -73,11 +76,46 @@ export interface MonthlyPlanFull {
   currency: string;
 }
 
-type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type AutoMatchTx = Pick<
   FinanceTransaction,
   'id' | 'type' | 'accountId' | 'toAccountId' | 'categoryId' | 'amount' | 'date'
 >;
+
+/** Checks if the user has access to a specific plan item */
+async function enforcePlanItemAccess(userId: string, itemId: number, tx: DbOrTx = db): Promise<void> {
+  const budgetId = await monthlyPlanAccessCache.get(`${userId}-item-${itemId}`, async () => {
+    const rows = await tx
+      .select({ budgetId: financeMonthlyPlans.budgetId })
+      .from(financeMonthlyPlanItems)
+      .innerJoin(financeMonthlyPlans, eq(financeMonthlyPlanItems.planId, financeMonthlyPlans.id))
+      .where(eq(financeMonthlyPlanItems.id, itemId))
+      .limit(1);
+    return rows[0]?.budgetId;
+  });
+
+  if (budgetId === undefined) {
+    logger.warn(`Unauthorized access attempt by user ${userId} to plan item ${itemId}`);
+    throw new Error('Plan item not found');
+  }
+  await enforceBudgetAccess(userId, budgetId);
+}
+
+async function enforceMonthlyPlanAccess(userId: string, planId: number, tx: DbOrTx = db): Promise<void> {
+  const budgetId = await monthlyPlanAccessCache.get(`${userId}-plan-${planId}`, async () => {
+    const rows = await tx
+      .select({ budgetId: financeMonthlyPlans.budgetId })
+      .from(financeMonthlyPlans)
+      .where(eq(financeMonthlyPlans.id, planId))
+      .limit(1);
+    return rows[0]?.budgetId;
+  });
+
+  if (budgetId === undefined) {
+    logger.warn(`Unauthorized access attempt by user ${userId} to monthly plan ${planId}`);
+    throw new Error('Monthly plan not found');
+  }
+  await enforceBudgetAccess(userId, budgetId);
+}
 
 export async function computeSummary(
   plan: FinanceMonthlyPlan,
@@ -129,11 +167,12 @@ export async function getMonthlyPlan(
   userId: string,
   budgetId: number,
   month: string,
+  tx: DbOrTx = db,
 ): Promise<FinanceMonthlyPlan | undefined> {
   await enforceBudgetAccess(userId, budgetId);
 
   return monthlyPlanCache.get(`${budgetId}-${month}`, async () => {
-    const rows = await db
+    const rows = await tx
       .select()
       .from(financeMonthlyPlans)
       .where(and(eq(financeMonthlyPlans.budgetId, budgetId), eq(financeMonthlyPlans.month, month)))
@@ -174,6 +213,10 @@ export async function getOrCreateMonthlyPlan(
   return createMonthlyPlan(userId, budgetId, month);
 }
 
+/**
+ * Fetches the monthly plan along with its items and computed summary.
+ * If the plan for the given month doesn't exist, it will be created with an availableAmount of 0.
+ */
 export async function getMonthlyPlanFull(userId: string, budgetId: number, month: string): Promise<MonthlyPlanFull> {
   await enforceBudgetAccess(userId, budgetId);
 
@@ -206,19 +249,40 @@ export async function getMonthlyPlanFull(userId: string, budgetId: number, month
   return { plan, items, summary, currency: budgetCurrency };
 }
 
+/**
+ * Updates a monthly plan
+ * if availableAmount is provided, it will be set as the new available amount (can be used to directly set next month's funds based on this month's remainingPotential)
+ * if amountToAdd is provided, it will be added to the existing available amount (can be used to add this month's remainingReal as next month's available funds in the copyToNextMonth flow without needing to compute the new total on the client)
+ * if both are provided, availableAmount takes precedence and amountToAdd is ignored
+ * incomeAccountId can be updated separately to change which account's transactions are auto-matched to plan items and included in the plan summary calculations
+ */
 export async function updateMonthlyPlan(
   userId: string,
   budgetId: number,
   planId: number,
-  patch: { availableAmount?: number; incomeAccountId?: number | null },
+  patch: { availableAmount?: number; incomeAccountId?: number | null; amountToAdd?: number },
+  tx: DbOrTx = db,
 ): Promise<FinanceMonthlyPlan> {
-  await enforceBudgetAccess(userId, budgetId);
-  const updatePatch = omitUndefined({ ...patch, updatedAt: new Date() });
+  await enforceMonthlyPlanAccess(userId, planId, tx);
 
-  const rows = await db
+  const { availableAmount, incomeAccountId, amountToAdd } = patch;
+  const a =
+    availableAmount !== undefined
+      ? availableAmount
+      : amountToAdd !== undefined
+        ? sql`${financeMonthlyPlans.availableAmount} + ${amountToAdd}`
+        : undefined;
+
+  const rows = await tx
     .update(financeMonthlyPlans)
-    .set(updatePatch)
-    .where(and(eq(financeMonthlyPlans.id, planId), eq(financeMonthlyPlans.budgetId, budgetId)))
+    .set(
+      omitUndefined({
+        incomeAccountId,
+        availableAmount: a,
+        updatedAt: new Date(),
+      }),
+    )
+    .where(and(eq(financeMonthlyPlans.id, planId)))
     .returning();
   if (!rows[0]) throw new Error('Plan not found');
   monthlyPlanCache.set(`${budgetId}-${rows[0].month}`, rows[0]);
@@ -227,155 +291,85 @@ export async function updateMonthlyPlan(
 
 export async function addPlanItem(
   userId: string,
-  budgetId: number,
   planId: number,
-  data: PlanItemInsert,
+  data: PlanItemInsert | PlanItemInsert[],
 ): Promise<FinanceMonthlyPlanItem> {
-  await enforceBudgetAccess(userId, budgetId);
-
-  const planRows = await db
-    .select({ id: financeMonthlyPlans.id })
-    .from(financeMonthlyPlans)
-    .where(and(eq(financeMonthlyPlans.id, planId), eq(financeMonthlyPlans.budgetId, budgetId)))
-    .limit(1);
-  if (!planRows[0]) throw new Error('Plan not found');
+  await enforceMonthlyPlanAccess(userId, planId);
 
   const rows = await db
     .insert(financeMonthlyPlanItems)
-    .values({
-      planId,
-      name: data.name,
-      amount: data.amount,
-      currency: data.currency,
-      categoryId: data.categoryId ?? null,
-      merchantId: data.merchantId ?? null,
-      linkedAccountId: data.linkedAccountId ?? null,
-      assignedAmount: 0,
-      sortOrder: data.sortOrder ?? 0,
-      notes: data.notes ?? null,
-    })
+    .values(
+      arrayfy(data).map(i => ({
+        planId,
+        name: i.name,
+        amount: i.amount,
+        currency: i.currency,
+        categoryId: i.categoryId,
+        merchantId: i.merchantId,
+        linkedAccountId: i.linkedAccountId,
+        assignedAmount: 0,
+        sortOrder: i.sortOrder ?? 0,
+        notes: i.notes,
+      })),
+    )
     .returning();
   if (!rows[0]) throw new Error('Failed to create plan item');
   return rows[0];
 }
 
-function getPlanIdsSubquery(budgetId: number) {
-  return db
-    .select({ id: financeMonthlyPlans.id })
-    .from(financeMonthlyPlans)
-    .where(eq(financeMonthlyPlans.budgetId, budgetId));
-}
-
-type ExistingItemWithMonth = Pick<
-  FinanceMonthlyPlanItem,
-  'id' | 'linkedAccountId' | 'assignedAmount' | 'amount' | 'currency'
-> & { month: string };
-
-/**
- * Fetches item, applies patch, returns updated row. Used by updatePlanItem and
- * togglePlanItemAssigned to avoid duplicating the pattern.
- * makePatch receives the current DB row and returns the fields to set.
- */
-async function applyItemPatchInTx(
-  tx: DbTx,
-  budgetId: number,
-  itemId: number,
-  makePatch: (existing: ExistingItemWithMonth) => Record<string, unknown>,
-): Promise<FinanceMonthlyPlanItem> {
-  const existingRows = await tx
-    .select({
-      id: financeMonthlyPlanItems.id,
-      linkedAccountId: financeMonthlyPlanItems.linkedAccountId,
-      assignedAmount: financeMonthlyPlanItems.assignedAmount,
-      amount: financeMonthlyPlanItems.amount,
-      currency: financeMonthlyPlanItems.currency,
-      month: financeMonthlyPlans.month,
-    })
-    .from(financeMonthlyPlanItems)
-    .innerJoin(financeMonthlyPlans, eq(financeMonthlyPlanItems.planId, financeMonthlyPlans.id))
-    .where(and(eq(financeMonthlyPlanItems.id, itemId), eq(financeMonthlyPlans.budgetId, budgetId)))
-    .limit(1);
-
-  const existing = existingRows[0];
-  if (!existing) throw new Error('Plan item not found');
-
-  const updatedRows = await tx
-    .update(financeMonthlyPlanItems)
-    .set(makePatch(existing))
-    .where(
-      and(
-        eq(financeMonthlyPlanItems.id, itemId),
-        inArray(financeMonthlyPlanItems.planId, getPlanIdsSubquery(budgetId)),
-      ),
-    )
-    .returning();
-
-  const updated = updatedRows[0];
-  if (!updated) throw new Error('Plan item not found');
-
-  return updated;
-}
-
 export async function updatePlanItem(
   userId: string,
-  budgetId: number,
   itemId: number,
   data: PlanItemUpdate,
+  tx: DbOrTx = db,
 ): Promise<FinanceMonthlyPlanItem> {
-  await enforceBudgetAccess(userId, budgetId);
-  return db.transaction(tx =>
-    applyItemPatchInTx(tx, budgetId, itemId, () => omitUndefined({ updatedAt: new Date(), ...data })),
-  );
-}
+  await enforcePlanItemAccess(userId, itemId, tx);
 
-export async function deletePlanItem(userId: string, budgetId: number, itemId: number): Promise<void> {
-  await enforceBudgetAccess(userId, budgetId);
-  await db
-    .delete(financeMonthlyPlanItems)
-    .where(
-      and(
-        eq(financeMonthlyPlanItems.id, itemId),
-        inArray(financeMonthlyPlanItems.planId, getPlanIdsSubquery(budgetId)),
-      ),
-    );
-}
+  // When toggling assigned without an explicit amount: copy the planned amount column (avoids a read).
+  // When marking as not assigned: zero out and clear the auto-match attribution.
+  const assignedAmount =
+    data.isAssigned === true && data.assignedAmount === undefined
+      ? sql`${financeMonthlyPlanItems.amount}`
+      : data.isAssigned === false && data.assignedAmount === undefined
+        ? 0
+        : data.assignedAmount;
+  const assignedTransactionId =
+    data.isAssigned === false && data.assignedTransactionId === undefined ? null : data.assignedTransactionId;
 
-export async function togglePlanItemAssigned(
-  userId: string,
-  budgetId: number,
-  itemId: number,
-  isAssigned: boolean,
-): Promise<FinanceMonthlyPlanItem> {
-  await enforceBudgetAccess(userId, budgetId);
-  return db.transaction(tx =>
-    applyItemPatchInTx(tx, budgetId, itemId, existing =>
+  const isAssignedValue =
+    data.isAssigned === undefined ? sql`${assignedAmount} >= ${financeMonthlyPlanItems.amount}` : data.isAssigned;
+
+  const rows = await tx
+    .update(financeMonthlyPlanItems)
+    .set(
       omitUndefined({
-        isAssigned,
-        assignedAmount: isAssigned ? existing.amount : 0,
-        assignedTransactionId: isAssigned ? undefined : null,
         updatedAt: new Date(),
+        ...data,
+        assignedAmount,
+        assignedTransactionId,
+        isAssigned: isAssignedValue,
       }),
-    ),
-  );
+    )
+    .where(eq(financeMonthlyPlanItems.id, itemId))
+    .returning();
+
+  if (!rows[0]) throw new Error('Plan item not found');
+  return rows[0];
 }
 
-export async function bulkAssignAll(userId: string, budgetId: number, planId: number): Promise<void> {
-  await enforceBudgetAccess(userId, budgetId);
+export async function deletePlanItem(userId: string, itemId: number): Promise<void> {
+  await enforcePlanItemAccess(userId, itemId);
+  await db.delete(financeMonthlyPlanItems).where(eq(financeMonthlyPlanItems.id, itemId));
+  monthlyPlanAccessCache.delete(`${userId}-item-${itemId}`);
+}
 
-  // Set assignedAmount = amount for every item so "paid" = "planned"
+export async function bulkAssignAll(userId: string, planId: number): Promise<void> {
+  await enforceMonthlyPlanAccess(userId, planId);
+
   await db
     .update(financeMonthlyPlanItems)
-    .set({
-      isAssigned: true,
-      assignedAmount: sql`${financeMonthlyPlanItems.amount}`,
-      updatedAt: sql`now()`,
-    })
-    .where(
-      and(
-        eq(financeMonthlyPlanItems.planId, planId),
-        inArray(financeMonthlyPlanItems.planId, getPlanIdsSubquery(budgetId)),
-      ),
-    );
+    .set({ isAssigned: true, assignedAmount: sql`${financeMonthlyPlanItems.amount}`, updatedAt: new Date() })
+    .where(and(eq(financeMonthlyPlanItems.planId, planId), eq(financeMonthlyPlanItems.isAssigned, false)));
 }
 
 export async function copyToNextMonth(
@@ -402,11 +396,11 @@ export async function copyToNextMonth(
     .orderBy(financeMonthlyPlanItems.sortOrder, financeMonthlyPlanItems.id);
 
   if (items.length) {
-    await db.insert(financeMonthlyPlanItems).values(
+    await addPlanItem(
+      userId,
+      nextPlan.id,
       items.map(item => ({
-        planId: nextPlan.id,
         name: item.name,
-        // Always carry the planned amount forward — user edits what changed
         amount: item.amount,
         currency: item.currency,
         categoryId: item.categoryId,
@@ -414,7 +408,6 @@ export async function copyToNextMonth(
         linkedAccountId: item.linkedAccountId,
         assignedAmount: 0,
         isAssigned: false,
-        assignedTransactionId: null,
         sortOrder: item.sortOrder,
         notes: item.notes,
       })),
@@ -440,120 +433,60 @@ export function doesItemMatchTransaction(
   return categoryMatches;
 }
 
-async function applyTransactionDeltaToPlan(
+async function applyDeltaInTx(
+  tx: DbTx,
+  userId: string,
   budgetId: number,
   transaction: AutoMatchTx,
   amountDelta: number,
 ): Promise<void> {
-  if (amountDelta === 0) return;
+  const month = transaction.date.slice(0, 7);
+  const plan = await getMonthlyPlan(userId, budgetId, month, tx);
+  if (!plan) return;
 
-  const month = transaction.date.slice(0, 7); // YYYY-MM
+  if (
+    plan.incomeAccountId !== null &&
+    ((transaction.type === TransactionTypes.Income && transaction.accountId === plan.incomeAccountId) ||
+      (transaction.type === TransactionTypes.Transfer && transaction.toAccountId === plan.incomeAccountId))
+  ) {
+    await updateMonthlyPlan(userId, budgetId, plan.id, { amountToAdd: amountDelta }, tx);
+  }
 
-  let updatedPlanForCache: FinanceMonthlyPlan | undefined;
-
-  await db.transaction(async tx => {
-    const planRows = await tx
-      .select()
-      .from(financeMonthlyPlans)
-      .where(and(eq(financeMonthlyPlans.budgetId, budgetId), eq(financeMonthlyPlans.month, month)))
-      .limit(1);
-
-    const plan = planRows[0];
-    if (!plan) return; // no plan for this month, nothing to update
-
-    if (
-      plan.incomeAccountId !== null &&
-      ((transaction.type === TransactionTypes.Income && transaction.accountId === plan.incomeAccountId) ||
-        (transaction.type === TransactionTypes.Transfer && transaction.toAccountId === plan.incomeAccountId))
-    ) {
-      const updatedPlanRows = await tx
-        .update(financeMonthlyPlans)
-        .set({
-          availableAmount: sql`${financeMonthlyPlans.availableAmount} + ${amountDelta}`,
-          updatedAt: new Date(),
-        })
-        .where(and(eq(financeMonthlyPlans.id, plan.id), eq(financeMonthlyPlans.budgetId, budgetId)))
-        .returning();
-
-      updatedPlanForCache = updatedPlanRows[0];
-    }
-
-    const items = await tx.select().from(financeMonthlyPlanItems).where(eq(financeMonthlyPlanItems.planId, plan.id));
-
-    for (const item of items) {
-      if (!doesItemMatchTransaction(item, transaction)) continue;
-
-      // Keep manual/other assignment states stable: only force isAssigned from
-      // threshold when this transaction is the attribution source for the row.
-      const wasAttributedToThisTx = item.assignedTransactionId === transaction.id;
-      const nextAssignedAmount = Math.max(0, item.assignedAmount + amountDelta);
-      const thresholdDone = nextAssignedAmount >= item.amount;
-      const nextIsAssigned = wasAttributedToThisTx ? thresholdDone : item.isAssigned || thresholdDone;
-      const nextAssignedTransactionId =
-        amountDelta > 0
-          ? transaction.id
-          : wasAttributedToThisTx && nextAssignedAmount === 0
-            ? null
-            : item.assignedTransactionId;
-
-      await tx
-        .update(financeMonthlyPlanItems)
-        .set({
-          assignedAmount: nextAssignedAmount,
-          isAssigned: nextIsAssigned,
-          assignedTransactionId: nextAssignedTransactionId,
-          updatedAt: new Date(),
-        })
-        .where(eq(financeMonthlyPlanItems.id, item.id));
-    }
-  });
-
-  if (updatedPlanForCache) {
-    monthlyPlanCache.set(`${budgetId}-${updatedPlanForCache.month}`, updatedPlanForCache);
+  const items = await tx.select().from(financeMonthlyPlanItems).where(eq(financeMonthlyPlanItems.planId, plan.id));
+  for (const item of items) {
+    if (!doesItemMatchTransaction(item, transaction)) continue;
+    await updatePlanItem(userId, item.id, { assignedAmount: item.assignedAmount + amountDelta }, tx);
   }
 }
 
 /**
- * Reconciles monthly-plan effects for an edited transaction by first removing
- * the old contribution and then applying the new one.
+ * Syncs plan items and available amount when a transaction is created, updated, or deleted.
+ * Pass before=null for inserts, after=null for deletes, both for updates.
+ * Both deltas run in a single DB transaction so partial failure is impossible.
  */
-export async function reconcileAutoMatchPlanItemsForTransactionUpdate(
+export async function syncTransactionWithPlan(
   userId: string,
   budgetId: number,
-  before: AutoMatchTx,
-  after: AutoMatchTx,
+  before: AutoMatchTx | null,
+  after: AutoMatchTx | null,
 ): Promise<void> {
   await enforceBudgetAccess(userId, budgetId);
 
   if (
+    before &&
+    after &&
     before.type === after.type &&
     before.accountId === after.accountId &&
     before.toAccountId === after.toAccountId &&
     before.categoryId === after.categoryId &&
     before.date === after.date &&
     before.amount === after.amount
-  ) {
+  )
     return;
-  }
 
-  await applyTransactionDeltaToPlan(budgetId, before, -before.amount);
-  await applyTransactionDeltaToPlan(budgetId, after, after.amount);
-}
+  const transaction = after ?? before;
 
-/**
- * Called after a transaction is inserted. Finds unfinished plan items
- * for the same budget+month and accumulates assignedAmount from the transaction.
- *
- * Match rules (per item):
- *   - linkedAccountId only  → match if transaction.toAccountId = linkedAccountId
- *   - categoryId only        → match if transaction.categoryId = categoryId
- *   - both set               → BOTH must match
- *   - neither set            → no auto-match
- *
- * When assignedAmount crosses the planned amount the item is auto-marked done.
- * Already-done items (isAssigned = true AND assignedAmount >= amount) are skipped.
- */
-export async function tryAutoMatchPlanItems(userId: string, budgetId: number, transaction: AutoMatchTx): Promise<void> {
-  await enforceBudgetAccess(userId, budgetId);
-  await applyTransactionDeltaToPlan(budgetId, transaction, transaction.amount);
+  await db.transaction(async tx =>
+    applyDeltaInTx(tx, userId, budgetId, transaction!, (after?.amount || 0) - (before?.amount || 0)),
+  );
 }

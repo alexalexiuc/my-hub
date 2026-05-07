@@ -4,6 +4,7 @@ import { getUserActiveBudget, getTransactions, getNetWorthHistory } from '@my-hu
 import { reportsResponseSchema } from '../contracts';
 import type { ReportsData, CashflowMonth } from '../contracts';
 import { TransactionTypes } from '@my-hub/shared/constants';
+import { dateToString } from '@my-hub/shared/utils';
 
 const ReportsQuerySchema = z.object({
   months: z.coerce.number().int().positive().max(12).optional(),
@@ -41,12 +42,12 @@ export const GET = route({ query: ReportsQuerySchema, response: reportsResponseS
   }
 
   for (const t of expenseTxns) {
-    const key = t.date.slice(0, 7);
+    const key = dateToString(new Date(t.date), 'YYYY-MM');
     const entry = monthMap.get(key);
     if (entry) entry.expense += t.amount;
   }
   for (const t of incomeTxns) {
-    const key = t.date.slice(0, 7);
+    const key = dateToString(new Date(t.date), 'YYYY-MM');
     const entry = monthMap.get(key);
     if (entry) entry.income += t.amount;
   }

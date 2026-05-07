@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { route, routeHttpError, noContent } from '@/lib/api/route';
-import { getUserActiveBudget, updatePlanItem, deletePlanItem, togglePlanItemAssigned } from '@my-hub/shared/services';
+import { route, noContent } from '@/lib/api/route';
+import { updatePlanItem, deletePlanItem } from '@my-hub/shared/services';
 import { monthlyPlanItemMutationSchema } from '../../../../contracts';
 import { supportedCurrencySchema } from '../../../../currency.schema';
 
 const ParamsSchema = z.object({
   month: z.string().regex(/^\d{4}-\d{2}$/),
-  id: z.string(),
+  id: z.coerce.number(),
 });
 
 const ItemUpdateSchema = z.object({
@@ -35,30 +35,11 @@ function serializeItem(item: Awaited<ReturnType<typeof updatePlanItem>>) {
 
 export const PATCH = route({ params: ParamsSchema, body: ItemUpdateSchema, response: monthlyPlanItemMutationSchema })(
   async ({ user, params, body }) => {
-    const budget = await getUserActiveBudget(user.id);
-    if (!budget) routeHttpError(404, { error: 'No budget found' });
-
-    const itemId = parseInt(params.id, 10);
-    if (isNaN(itemId)) routeHttpError(400, { error: 'Invalid item id' });
-
-    if (body.isAssigned !== undefined) {
-      const item = await togglePlanItemAssigned(user.id, budget.id, itemId, body.isAssigned);
-      return { item: serializeItem(item) };
-    }
-
-    const { isAssigned: _dropped, ...rest } = body;
-    const item = await updatePlanItem(user.id, budget.id, itemId, rest);
-    return { item: serializeItem(item) };
+    return { item: serializeItem(await updatePlanItem(user.id, params.id, body)) };
   },
 );
 
 export const DELETE = route({ params: ParamsSchema })(async ({ user, params }) => {
-  const budget = await getUserActiveBudget(user.id);
-  if (!budget) routeHttpError(404, { error: 'No budget found' });
-
-  const itemId = parseInt(params.id, 10);
-  if (isNaN(itemId)) routeHttpError(400, { error: 'Invalid item id' });
-
-  await deletePlanItem(user.id, budget.id, itemId);
+  await deletePlanItem(user.id, params.id);
   return noContent();
 });

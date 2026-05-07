@@ -32,3 +32,5 @@ export const db = new Proxy({} as DbClient, {
 }) as DbClient;
 
 export type Db = DbClient;
+export type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type DbOrTx = typeof db | DbTx;

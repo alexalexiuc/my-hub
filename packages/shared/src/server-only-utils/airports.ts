@@ -1,4 +1,5 @@
 import airportsJson from 'airports-data/airports.json' with { type: 'json' };
+import { logger } from '../utils';
 
 interface AirportEntry {
   iata: string | null;
@@ -30,7 +31,7 @@ for (const entry of Object.values(airportsJson) as AirportEntry[]) {
 export function timezoneFromIata(iata: string): string | null {
   const timezone = iataMap.get(iata.toUpperCase())?.tz ?? null;
   if (timezone === null) {
-    console.warn(`Timezone not found for IATA code: ${iata}`);
+    logger.warn(`Timezone not found for IATA code: ${iata}`);
   }
   return timezone;
 }

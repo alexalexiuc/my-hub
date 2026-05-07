@@ -42,10 +42,12 @@ export function PlanItemRow({ item, currency, onToggle, onDelete, onEdit }: Plan
 
   return (
     <>
+      {/* Desktop View */}
       <div
+        data-layout="desktop"
         onClick={onEdit}
         className={cn(
-          'group hidden cursor-pointer grid-cols-[1fr_8rem_8rem_15rem_3rem] items-center gap-3 border-b border-[var(--fin-border)] px-4 py-3 transition-opacity hover:bg-[var(--fin-card2)] md:grid',
+          'group hidden md:grid cursor-pointer grid-cols-[1fr_8rem_8rem_15rem_3rem] items-center gap-3 border-b border-[var(--fin-border)] px-4 py-3 transition-opacity hover:bg-[var(--fin-card2)]',
           isDone && 'opacity-50',
         )}
       >
@@ -115,7 +117,9 @@ export function PlanItemRow({ item, currency, onToggle, onDelete, onEdit }: Plan
         </div>
       </div>
 
+      {/* Mobile View */}
       <div
+        data-layout="mobile"
         className={cn(
           'rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-3 transition-opacity md:hidden',
           isDone && 'opacity-50',

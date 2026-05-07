@@ -23,7 +23,7 @@ export const POST = route({ params: ParamsSchema, body: ItemCreateSchema, respon
     if (!budget) routeHttpError(404, { error: 'No budget found' });
 
     const full = await getMonthlyPlanFull(user.id, budget.id, params.month);
-    const item = await addPlanItem(user.id, budget.id, full.plan.id, {
+    const item = await addPlanItem(user.id, full.plan.id, {
       name: body.name,
       amount: body.amount,
       currency: body.currency,

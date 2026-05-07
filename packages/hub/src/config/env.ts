@@ -71,4 +71,8 @@ export const hubEnvConfig = {
   get E2E_TEST_EMAILS() {
     return parseEmails(getEnvVar('E2E_TEST_EMAILS', ''));
   },
+  /** When true, log parsed request payloads (params/body/query) on route errors. Never enable in production. */
+  get PRINT_PAYLOADS() {
+    return getEnvVar('PRINT_PAYLOADS', 'false') === 'true';
+  },
 };

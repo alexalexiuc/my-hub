@@ -89,7 +89,7 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
   return (
     <>
       {/* Desktop */}
-      <div className="mb-5 hidden items-center justify-between md:flex">
+      <div data-layout="desktop" className="mb-5 hidden items-center justify-between md:flex">
         <div>
           <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--fin-subtle)]">
             Monthly Plan
@@ -108,7 +108,7 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
       </div>
 
       {/* Mobile */}
-      <div className="mb-4 md:hidden">
+      <div data-layout="mobile" className="mb-4 md:hidden">
         <SectionLabel>Monthly Plan</SectionLabel>
         <div className="mb-3 flex items-center justify-between rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2.5">
           {navIcon(-1, true)}

@@ -61,7 +61,7 @@ export async function writeApiLog(
       error,
     });
   } catch (logErr) {
-    console.error('[api-log] failed to persist request log', logErr);
+    logger.error('[api-log] failed to persist request log', logErr);
   }
 }
 
@@ -89,13 +89,13 @@ export function withErrorLogging<TRequest extends Request = Request, TParams ext
         : await (handler as (req: TRequest) => MaybePromise<Response>)(req);
 
       writeApiLog(req, response.status, Date.now() - start, undefined, options).catch(logErr => {
-        console.error('[api-log] failed to persist request log', logErr);
+        logger.error('[api-log] failed to persist request log', logErr);
       });
       return response;
     } catch (err) {
       const errorMessage = toErrorMessage(err);
       await writeApiLog(req, 500, Date.now() - start, errorMessage, options);
-      console.error(`[api] ${req.method} ${req.url} failed`, err);
+      logger.error(`[api] ${req.method} ${req.url} failed`, err);
 
       return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }

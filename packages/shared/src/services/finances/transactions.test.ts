@@ -7,12 +7,11 @@ import { addTransaction, updateTransaction, deleteTransaction } from './transact
 vi.mock('../../db/client.js', () => ({
   db: { transaction: vi.fn() },
 }));
-vi.mock('./budgets.js', () => ({ verifyBudgetAccess: vi.fn() }));
+vi.mock('./budgets.js', () => ({ hasAccessToBudget: vi.fn() }));
 vi.mock('./payees.js', () => ({ incrementPayeeStats: vi.fn(), decrementPayeeStats: vi.fn() }));
 vi.mock('./exchangeRates.js', () => ({ getExchangeRate: vi.fn() }));
 vi.mock('./monthly-plans.js', () => ({
-  tryAutoMatchPlanItems: vi.fn().mockResolvedValue(undefined),
-  reconcileAutoMatchPlanItemsForTransactionUpdate: vi.fn().mockResolvedValue(undefined),
+  syncTransactionWithPlan: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { db } from '../../db/client.js';

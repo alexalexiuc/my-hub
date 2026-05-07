@@ -10,7 +10,7 @@ vi.mock('../../db/client.js', () => ({
     update: vi.fn(),
   },
 }));
-vi.mock('./budgets.js', () => ({ verifyBudgetAccess: vi.fn() }));
+vi.mock('./budgets.js', () => ({ hasAccessToBudget: vi.fn() }));
 
 import { db } from '../../db/client.js';
 import { hasAccessToBudget } from './budgets.js';

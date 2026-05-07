@@ -16,7 +16,7 @@ async function ensureUserExists(page: Page, email: string, password: string, nam
 
 /** Wipe all finances data for the authenticated test user. */
 async function deleteFinances(page: Page) {
-  await page.request.post('/api/user/delete-all');
+  await page.request.post('/api/user/delete-data', { data: { features: ['finances'] } });
 }
 
 /** Create a budget via the UI form (assumes no budget exists yet). */
@@ -35,6 +35,14 @@ async function createBudgetViaAPI(page: Page, name: string, currency = 'EUR') {
   expect(res.status()).toBe(201);
   const body = (await res.json()) as { budget: { id: number } };
   return body.budget.id;
+}
+
+/** Create a category via the API. */
+async function createCategoryViaAPI(page: Page, name: string): Promise<number> {
+  const res = await page.request.post('/api/finances/categories', { data: { name } });
+  expect(res.status()).toBe(201);
+  const body = (await res.json()) as { id: number };
+  return body.id;
 }
 
 /** Create an account via the API. */
@@ -165,6 +173,10 @@ test.describe('Finances', () => {
     });
 
     test('transactions: add expense and payee autocomplete', async ({ page }) => {
+      // Expense form requires a category — create one via API before opening the modal
+      const expenseCatName = uniqueName('Shopping');
+      await createCategoryViaAPI(page, expenseCatName);
+
       await page.getByRole('button', { name: 'Transactions' }).click();
       await page.waitForLoadState('networkidle');
 
@@ -172,12 +184,16 @@ test.describe('Finances', () => {
       await page.getByTitle('Add transaction').click();
       await expect(page.getByText('New Transaction')).toBeVisible();
 
-      // Default type is expense — fill in amount, account, and payee
+      // Default type is expense — fill in amount, account, category, and payee
       await page.getByPlaceholder('0.00').fill('45.50');
-      // Select account (required to enable Save); first "Choose…" button in the grid
-      await page.getByRole('button', { name: 'Choose…' }).first().click();
+      // Select account
+      await page.getByText('Account', { exact: true }).locator('..').getByRole('button').click();
       await page.getByRole('button', { name: bankAccountName }).first().click();
+      // Select category (required for expenses)
+      await page.getByText('Category', { exact: true }).locator('..').getByRole('button').click();
+      await page.getByRole('button', { name: expenseCatName }).first().click();
       await page.getByPlaceholder('e.g. Kaufland, Netflix…').fill('Supermarket');
+      await page.getByRole('button', { name: 'Create "Supermarket"' }).click();
       await page.getByRole('button', { name: 'Save Expense' }).click();
       await page.waitForLoadState('networkidle');
 
@@ -217,6 +233,7 @@ test.describe('Finances', () => {
       await page.getByRole('button', { name: 'Choose…' }).first().click();
       await page.getByRole('button', { name: bankAccountName }).first().click();
       await page.getByPlaceholder('e.g. Kaufland, Netflix…').fill('Employer');
+      await page.getByRole('button', { name: 'Create "Employer"' }).click();
       await page.getByRole('button', { name: 'Save Income' }).click();
       await page.waitForLoadState('networkidle');
 

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { omitNullish, omitUndefined, trimOrNull, extractEnvVars, getEnvVar } from './objects';
+import { omitNullish, omitUndefined, trimOrNull, extractEnvVars, getEnvVar, arrayfy } from './objects';
 
 describe('omitNullish', () => {
   it('removes null values', () => {
@@ -164,5 +164,19 @@ describe('getEnvVar', () => {
   it('throws an error if the environment variable is not set and no default value is provided', () => {
     delete process.env.TEST_VAR9;
     expect(() => getEnvVar('TEST_VAR9')).toThrow('Environment variable TEST_VAR9 is required');
+  });
+});
+
+describe('arrayfy', () => {
+  it('returns the same array if the input is already an array', () => {
+    const input = [1, 2, 3];
+    expect(arrayfy(input)).toBe(input);
+  });
+
+  it('wraps a non-array value in an array', () => {
+    expect(arrayfy(5)).toEqual([5]);
+    expect(arrayfy('hello')).toEqual(['hello']);
+    const obj = { a: 1 };
+    expect(arrayfy(obj)).toEqual([obj]);
   });
 });

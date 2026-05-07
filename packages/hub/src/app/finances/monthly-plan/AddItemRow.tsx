@@ -136,6 +136,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
             disabled={!isValid || isSubmitting}
             loading={isSubmitting}
             size="xs"
+            aria-label="Add plan item"
             className="flex-1 bg-[var(--fin-accent)] hover:bg-[var(--fin-accent)] md:w-full md:flex-none"
           >
             Add

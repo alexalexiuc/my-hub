@@ -9,6 +9,6 @@ export const POST = route({ params: ParamsSchema })(async ({ user, params }) => 
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const full = await getMonthlyPlanFull(user.id, budget.id, params.month);
-  await bulkAssignAll(user.id, budget.id, full.plan.id);
+  await bulkAssignAll(user.id, full.plan.id);
   return { ok: true };
 });

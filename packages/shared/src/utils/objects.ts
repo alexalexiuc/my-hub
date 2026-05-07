@@ -5,6 +5,7 @@
  * - trimOrNull(val) — trim a string and return null for empty; pass-through undefined as undefined
  * - extractEnvVars(keys, ignoreMissing) — extract specified env vars into an object, with optional missing key handling
  * - getEnvVar(key, defaultValue) — get an env var with optional default and error handling
+ * - arrayfy(val) — ensure the value is an array, wrapping in an array if it's not already
  */
 
 /**
@@ -85,3 +86,10 @@ export function getEnvVar(key: string, defaultValue?: string): string {
   }
   return value;
 }
+
+/**
+ * Ensure the input is an array. If it's already an array, return it as-is; if it's a single value, wrap it in an array.
+ */
+export const arrayfy = <T>(val: T | T[]): T[] => {
+  return Array.isArray(val) ? val : [val];
+};

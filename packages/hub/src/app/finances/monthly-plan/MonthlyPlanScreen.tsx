@@ -11,9 +11,10 @@ import { PlanItemRow } from './PlanItemRow';
 import { AddItemRow, type NewItemState } from './AddItemRow';
 import { EditPlanItemModal } from './EditPlanItemModal';
 import { fmtNum } from './monthly-plan.utils';
+import { dateToString } from '@my-hub/shared/utils';
 
-export function MonthlyPlanScreen({ initialMonth }: { initialMonth: string }) {
-  const [month, setMonth] = useState(initialMonth);
+export function MonthlyPlanScreen() {
+  const [month, setMonth] = useState(dateToString(new Date(), 'YYYY-MM'));
   const [data, setData] = useState<MonthlyPlanResponse | null>(null);
   const [formData, setFormData] = useState<TransactionFormDataResponse | null>(null);
   const [loading, setLoading] = useState(true);

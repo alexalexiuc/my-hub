@@ -44,12 +44,17 @@ export function isValidDate(d: unknown): d is Date {
   return d instanceof Date && !isNaN(d.getTime());
 }
 
+type SupportedDateFormat = 'YYYY-MM-DD' | 'MM/DD/YYYY' | 'YYYY-MM';
+
 /**
  * Formats a Date object as a YYYY-MM-DD string using the environment's local time.
  * Use this wherever a calendar date string is needed from a local Date value.
  */
-export function dateToString(d: Date = new Date()): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export function dateToString(d: Date = new Date(), format: SupportedDateFormat = 'YYYY-MM-DD'): string {
+  const YYYY = String(d.getFullYear()).padStart(4, '0');
+  const MM = String(d.getMonth() + 1).padStart(2, '0');
+  const DD = String(d.getDate()).padStart(2, '0');
+  return format.replace('YYYY', YYYY).replace('MM', MM).replace('DD', DD);
 }
 
 /** Returns today's date string (YYYY-MM-DD) in the provided timezone. */

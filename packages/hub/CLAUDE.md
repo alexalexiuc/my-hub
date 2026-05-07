@@ -18,6 +18,28 @@
 - Reusable components go to `src/components/` — never duplicate inline.
 - Named exports only, no default exports for components.
 
+## Responsive layout duplicates
+
+When a component renders two variants of the same content (one for desktop, one for mobile) using Tailwind's responsive visibility classes (`hidden md:block`, `md:hidden`, etc.), add a `data-layout` attribute to the outermost element of each variant so that tests and tooling can unambiguously target one layout:
+
+```tsx
+{
+  /* Desktop */
+}
+<div data-layout="desktop" className="hidden md:grid ...">
+  ...
+</div>;
+
+{
+  /* Mobile */
+}
+<div data-layout="mobile" className="... md:hidden">
+  ...
+</div>;
+```
+
+Apply `data-layout` at the element that carries the `hidden`/responsive class, not deeper inside it.
+
 ## Page size rule
 
 **Pages must not exceed ~300 lines.** When a page grows beyond this, split it into co-located section components in the same directory.

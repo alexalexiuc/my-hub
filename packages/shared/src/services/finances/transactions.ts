@@ -11,9 +11,9 @@
 import { and, desc, eq, gte, ilike, isNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { financeAccounts, financeBudgets, financeTransactions } from '../../db/schema/finances';
-import { omitUndefined } from '../../utils';
+import { logger, omitUndefined } from '../../utils';
 import { hasAccessToBudget } from './budgets';
-import { reconcileAutoMatchPlanItemsForTransactionUpdate, tryAutoMatchPlanItems } from './monthly-plans';
+import { syncTransactionWithPlan } from './monthly-plans';
 import { incrementPayeeStats, decrementPayeeStats } from './payees';
 import { getExchangeRate } from './exchangeRates';
 import type { FinanceTransaction, NewFinanceTransaction } from '../../types';
@@ -194,8 +194,8 @@ export async function addTransaction(
     return row;
   });
 
-  tryAutoMatchPlanItems(userId, budgetId, result).catch(err => {
-    console.error('Error auto-matching plan items after transaction insert:', err);
+  syncTransactionWithPlan(userId, budgetId, null, result).catch(err => {
+    logger.error('Error syncing plan items after transaction insert:', err);
   });
   return result;
 }
@@ -520,8 +520,8 @@ export async function updateTransaction(
     return { row, previous: existing };
   });
 
-  reconcileAutoMatchPlanItemsForTransactionUpdate(userId, budgetId, result.previous, result.row).catch(err => {
-    console.error('Error reconciling auto-matched plan items after transaction update:', err);
+  syncTransactionWithPlan(userId, budgetId, result.previous, result.row).catch(err => {
+    logger.error('Error syncing plan items after transaction update:', err);
   });
   return result.row;
 }
@@ -535,7 +535,7 @@ export async function deleteTransaction(
     throw new Error('Budget not found');
   }
 
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const [existing] = await tx
       .select()
       .from(financeTransactions)
@@ -584,6 +584,12 @@ export async function deleteTransaction(
       await decrementPayeeStats(tx, existing.payeeId, userId);
     }
 
-    return { accountBalanceAfter: fromBalanceAfter };
+    return { accountBalanceAfter: fromBalanceAfter, deleted: existing };
   });
+
+  syncTransactionWithPlan(userId, budgetId, result.deleted, null).catch(err => {
+    logger.error('Error syncing plan items after transaction delete:', err);
+  });
+
+  return { accountBalanceAfter: result.accountBalanceAfter };
 }
