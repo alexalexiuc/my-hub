@@ -32,7 +32,6 @@ export const ICON_OPTIONS: { value: CategoryIcon; emoji: string; label: string }
   { value: CategoryIcons.Fuel, emoji: '⛽', label: 'Fuel' },
   { value: CategoryIcons.Shield, emoji: '🛡️', label: 'Insurance' },
   { value: CategoryIcons.Landmark, emoji: '🏛️', label: 'Taxes' },
-  { value: CategoryIcons.MoreHorizontal, emoji: '•••', label: 'Misc' },
   { value: CategoryIcons.Drama, emoji: '🎭', label: 'Entertainment' },
   { value: CategoryIcons.HelpCircle, emoji: '⁉️', label: 'Unknown' },
   { value: CategoryIcons.Pants, emoji: '👖', label: 'Pants' },
@@ -50,6 +49,7 @@ export const ICON_OPTIONS: { value: CategoryIcon; emoji: string; label: string }
   { value: CategoryIcons.Wine, emoji: '🍷', label: 'Drinks' },
   { value: CategoryIcons.Hospital, emoji: '🏥', label: 'Medical' },
   { value: CategoryIcons.Tag, emoji: '🏷', label: 'Other' },
+  { value: CategoryIcons.MoreHorizontal, emoji: '•••', label: 'Misc' },
 ];
 
 /** Maps every CategoryIcon value to a display emoji. */
