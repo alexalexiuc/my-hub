@@ -14,7 +14,7 @@ WORKDIR /app
 ENV CI=true
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-  pnpm install -r --offline
+  pnpm install -r
 
 # Build-time placeholder values for required env vars.
 # Next.js static analysis loads route modules during `next build`, which triggers
