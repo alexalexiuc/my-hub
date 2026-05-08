@@ -82,7 +82,7 @@ export function TripMapInner({ mapData }: TripMapInnerProps) {
       <div
         ref={containerRef}
         data-testid="trip-map-container"
-        style={{ height: '320px', width: '100%', borderRadius: '0.5rem' }}
+        style={{ height: '320px', width: '100%', borderRadius: '0.5rem', overflow: 'hidden' }}
       />
     </>
   );

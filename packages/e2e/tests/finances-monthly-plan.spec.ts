@@ -87,14 +87,36 @@ async function createPlanItemViaAPI(
   return body.item.id;
 }
 
-async function getPlanForMonth(page: Page, month: string) {
+type MonthlyPlan = {
+  availableAmount: number;
+  incomeAccountId: number | null;
+  items: Array<{ id: number; name: string; amount: number; assignedAmount: number; isAssigned: boolean }>;
+  summary: { assignedCount: number; totalCount: number; planned: number };
+};
+
+async function getPlanForMonth(page: Page, month: string): Promise<MonthlyPlan> {
   const res = await page.request.get(`/api/finances/monthly-plans/${month}`);
-  return res.json() as Promise<{
-    availableAmount: number;
-    incomeAccountId: number | null;
-    items: Array<{ id: number; name: string; amount: number; assignedAmount: number; isAssigned: boolean }>;
-    summary: { assignedCount: number; totalCount: number; planned: number };
-  }>;
+  return res.json() as Promise<MonthlyPlan>;
+}
+
+/**
+ * Polls the monthly plan until `predicate` returns true or the timeout is reached.
+ * Needed when a plan mutation is fire-and-forget on the server side (the HTTP response
+ * returns before the background sync commits to the DB).
+ */
+async function pollPlanUntil(
+  page: Page,
+  month: string,
+  predicate: (plan: MonthlyPlan) => boolean,
+  { intervalMs = 300, timeoutMs = 5000 }: { intervalMs?: number; timeoutMs?: number } = {},
+): Promise<MonthlyPlan> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const plan = await getPlanForMonth(page, month);
+    if (predicate(plan)) return plan;
+    await new Promise(r => setTimeout(r, intervalMs));
+  }
+  return getPlanForMonth(page, month);
 }
 
 test.describe('Finances — Monthly Plan', () => {
@@ -481,7 +503,11 @@ test.describe('Finances — Monthly Plan', () => {
       // ── 3. Edit transaction amount down — item should revert to partial ───
       await editTransactionViaAPI(page, txnId, { amount: 100 });
 
-      plan = await getPlanForMonth(page, planMonth);
+      // Sync is fire-and-forget on the server — poll until the background commit lands.
+      plan = await pollPlanUntil(page, planMonth, p => {
+        const item = p.items.find(i => i.name === 'Reconcile Test');
+        return item?.assignedAmount === 100;
+      });
       const updatedItem = plan.items.find(i => i.name === 'Reconcile Test');
       expect(updatedItem?.assignedAmount).toBe(100);
       expect(updatedItem?.isAssigned).toBe(false);
