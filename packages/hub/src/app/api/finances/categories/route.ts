@@ -18,7 +18,7 @@ const CategoryCreateSchema = z.object({
     .nullable()
     .optional(),
   color: z.string().optional(),
-  monthlyTarget: z.number().nonnegative().optional(),
+  monthlyTarget: z.number().nonnegative().nullable().optional(),
   groupId: z.number().int().positive().nullable().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
 });

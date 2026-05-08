@@ -7,13 +7,15 @@
  * - deleteGroup(userId, budgetId, groupId) — hard delete; categories become ungrouped
  * Categories:
  * - createCategory(userId, budgetId, data) — creates a category
- * - getCategories(userId, budgetId) — lists all categories for a budget
+ * - getCategories(userId, budgetId) — lists active (non-archived) categories for a budget
  * - getCategoryById(userId, budgetId, categoryId) — single category with access check
  * - updateCategory(userId, budgetId, categoryId, data) — partial update
  * - deleteCategory(userId, budgetId, categoryId) — hard delete
+ * - archiveCategory(userId, budgetId, categoryId) — soft-delete: sets archivedAt
+ * - unarchiveCategory(userId, budgetId, categoryId) — clears archivedAt
  * Types: GroupInsert, GroupUpdate, CategoryInsert, CategoryUpdate
  */
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { financeCategories, financeGroups } from '../../db/schema/finances';
 import { omitUndefined } from '../../utils';
@@ -108,7 +110,7 @@ export async function getCategories(userId: string, budgetId: number): Promise<F
   return db
     .select()
     .from(financeCategories)
-    .where(eq(financeCategories.budgetId, budgetId))
+    .where(and(eq(financeCategories.budgetId, budgetId), isNull(financeCategories.archivedAt)))
     .orderBy(asc(financeCategories.sortOrder), asc(financeCategories.name));
 }
 
@@ -157,4 +159,38 @@ export async function deleteCategory(userId: string, budgetId: number, categoryI
   await db
     .delete(financeCategories)
     .where(and(eq(financeCategories.id, categoryId), eq(financeCategories.budgetId, budgetId)));
+}
+
+export async function archiveCategory(userId: string, budgetId: number, categoryId: number): Promise<FinanceCategory> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const [row] = await db
+    .update(financeCategories)
+    .set({ archivedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(financeCategories.id, categoryId), eq(financeCategories.budgetId, budgetId)))
+    .returning();
+
+  if (!row) throw new Error('Category not found');
+  return row;
+}
+
+export async function unarchiveCategory(
+  userId: string,
+  budgetId: number,
+  categoryId: number,
+): Promise<FinanceCategory> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const [row] = await db
+    .update(financeCategories)
+    .set({ archivedAt: null, updatedAt: new Date() })
+    .where(and(eq(financeCategories.id, categoryId), eq(financeCategories.budgetId, budgetId)))
+    .returning();
+
+  if (!row) throw new Error('Category not found');
+  return row;
 }

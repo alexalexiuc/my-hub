@@ -143,3 +143,12 @@ export const EXPENSE_ACCOUNT_TYPES = new Set<AccountType>([
   AccountTypes.Cash,
   AccountTypes.CreditCard,
 ]);
+
+export const TransactionSources = {
+  hub: 'hub',
+  mcp: 'mcp',
+  automation: 'automation',
+  import: 'import',
+} as const;
+export type TransactionSource = (typeof TransactionSources)[keyof typeof TransactionSources];
+export const transactionSourceValues = Object.values(TransactionSources) as TransactionSource[];

@@ -68,6 +68,27 @@ export function formToCategoryBody(values: AddCategoryValues) {
   };
 }
 
+// --- Edit Category (reuses same fields as Add) ---
+
+export const EditCategorySchema = AddCategorySchema;
+export type EditCategoryValues = AddCategoryValues;
+
+export function categoryToEditValues(cat: {
+  name: string;
+  icon: string | null;
+  color: string | null;
+  monthlyTarget: number | null;
+  groupId: number | null;
+}): EditCategoryValues {
+  return {
+    name: cat.name,
+    icon: cat.icon ?? '',
+    color: cat.color ?? '#6ee7b7',
+    monthlyTarget: cat.monthlyTarget != null ? String(cat.monthlyTarget) : '',
+    groupId: cat.groupId != null ? String(cat.groupId) : '',
+  };
+}
+
 // --- Add Account ---
 
 export const AddAccountSchema = z.object({

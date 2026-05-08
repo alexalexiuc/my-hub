@@ -14,7 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from './users';
 import { numericCasted } from './numeric-casted';
-import type { AccountType, TransactionType, CategoryIcon } from '../../constants/finances';
+import type { AccountType, TransactionType, CategoryIcon, TransactionSource } from '../../constants/finances';
 import type { TransactionDetails } from '../../types/transaction-details';
 
 // ─── Budget (household) ───────────────────────────────────────────────────
@@ -117,6 +117,7 @@ export const financeCategories = pgTable(
     // Optional monthly spending target — nullable, no envelope-style allocation
     monthlyTarget: numericCasted('monthly_target', { precision: 18, scale: 4 }),
     sortOrder: integer('sort_order').notNull().default(0),
+    archivedAt: timestamp('archived_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -209,6 +210,9 @@ export const financeTransactions = pgTable(
     // Ledger snapshots — balance of the account immediately after this transaction.
     fromAccountBalanceAfter: numericCasted('from_account_balance_after', { precision: 18, scale: 4 }),
     toAccountBalanceAfter: numericCasted('to_account_balance_after', { precision: 18, scale: 4 }),
+
+    // Tracks which surface created this transaction: 'hub', 'mcp', 'automation', 'import'.
+    source: text('source').$type<TransactionSource>().notNull().default('hub'),
 
     // Owner — always assigned from session in the service layer, never from client input.
     addedByUserId: uuid('added_by_user_id')

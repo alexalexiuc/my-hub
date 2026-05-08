@@ -197,6 +197,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         payeeId,
         notes: item.notes,
         isCorrection: item.isCorrection ?? false,
+        source: 'mcp',
         amountCurrency,
         extras: inferredExtras,
       };

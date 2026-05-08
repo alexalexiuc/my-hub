@@ -45,6 +45,30 @@ async function createCategoryViaAPI(page: Page, name: string): Promise<number> {
   return body.id;
 }
 
+/** Create a group via the API. */
+async function createGroupViaAPI(page: Page, name: string): Promise<number> {
+  const res = await page.request.post('/api/finances/groups', { data: { name } });
+  expect(res.status()).toBe(201);
+  const body = (await res.json()) as { id: number };
+  return body.id;
+}
+
+/** Add an expense transaction via the API (requires an existing account and category). */
+async function createTransactionViaAPI(
+  page: Page,
+  accountId: number,
+  categoryId: number,
+  amount = 50,
+): Promise<number> {
+  const date = new Date().toISOString().slice(0, 10);
+  const res = await page.request.post('/api/finances/transactions', {
+    data: { type: 'expense', accountId, categoryId, amount, date },
+  });
+  expect(res.status()).toBe(201);
+  const body = (await res.json()) as { transaction: { id: number } };
+  return body.transaction.id;
+}
+
 /** Create an account via the API. */
 async function createAccount(
   page: Page,
@@ -269,8 +293,8 @@ test.describe('Finances', () => {
       await page.waitForLoadState('networkidle');
       await expect(page.getByText(groupName)).toBeVisible();
 
-      // ── 2. Add category via the group's "+ Add" button ────────────────────
-      await page.getByRole('button', { name: '+ Add', exact: true }).click();
+      // ── 2. Add category via the group's "+ Add category" button (inside the card) ─
+      await page.getByRole('button', { name: '+ Add category', exact: true }).click();
       await expect(page.getByText('New Category')).toBeVisible();
 
       await page.getByLabel('Name').fill(catName);
@@ -297,6 +321,159 @@ test.describe('Finances', () => {
       await expect(page.getByText('Income')).toBeVisible();
       await expect(page.getByText('Expenses')).toBeVisible();
     });
+
+    test('categories: edit group name inline and edit category details', async ({ page }) => {
+      await page.getByRole('button', { name: 'Categories' }).click();
+      await page.waitForLoadState('networkidle');
+
+      // ── 1. Rename the group via inline edit ───────────────────────────────────
+      // force: true bypasses the opacity-0 on the hover-revealed edit button
+      await page.getByRole('button', { name: `Edit group ${groupName}` }).click({ force: true });
+
+      // Input appears pre-filled with the current group name; it's the only textbox visible
+      const editedGroupName = `${groupName} Renamed`;
+      const nameInput = page.getByRole('textbox').first();
+      await nameInput.clear();
+      await nameInput.fill(editedGroupName);
+
+      const renameResponsePromise = page.waitForResponse(
+        res => res.url().includes('/api/finances/groups/') && res.request().method() === 'PATCH',
+      );
+      await nameInput.press('Enter');
+      const renameResponse = await renameResponsePromise;
+      expect(renameResponse.status()).toBe(200);
+
+      // Renamed label is visible; old name is gone
+      await expect(page.getByText(editedGroupName)).toBeVisible();
+      await expect(page.getByText(groupName, { exact: true })).not.toBeVisible();
+
+      // ── 2. Edit the category via the pencil icon ─────────────────────────────
+      await page.getByRole('button', { name: `Edit category ${catName}` }).click({ force: true });
+
+      await expect(page.getByText('Edit Category')).toBeVisible();
+
+      // Update the monthly target to 600
+      await page.getByLabel('Monthly Target (optional)').clear();
+      await page.getByLabel('Monthly Target (optional)').fill('600');
+
+      const patchResponsePromise = page.waitForResponse(
+        res => res.url().includes('/api/finances/categories/') && res.request().method() === 'PATCH',
+      );
+      await page.getByRole('button', { name: 'Save' }).click();
+      const patchResponse = await patchResponsePromise;
+      expect(patchResponse.status()).toBe(200);
+
+      await page.waitForLoadState('networkidle');
+
+      // Updated target label appears in the category row
+      await expect(page.getByText(/Target.*600.*\/mo/)).toBeVisible();
+    });
+  });
+
+  /**
+   * Category lifecycle: archive vs hard-delete.
+   * A category that has transactions is archived (soft-deleted) when removed;
+   * a category with no transactions is permanently deleted.
+   * Both cases should make the category disappear from the active categories list.
+   */
+  test('categories: archive when used in transactions, delete when unused', async ({ page }) => {
+    await deleteFinances(page);
+    await createBudgetViaAPI(page, uniqueName('Archive Test Budget'));
+
+    const bank = await createAccount(page, { name: 'Test Bank', type: 'bank', openingBalance: 1000 });
+    const usedCatName = uniqueName('Used Category');
+    const unusedCatName = uniqueName('Unused Category');
+
+    const usedCatId = await createCategoryViaAPI(page, usedCatName);
+    await createCategoryViaAPI(page, unusedCatName);
+
+    // Give usedCat a transaction so the DELETE will archive rather than hard-delete
+    await createTransactionViaAPI(page, bank.id, usedCatId);
+
+    await page.goto('/finances/categories');
+    await page.waitForLoadState('networkidle');
+
+    // Both categories visible — the name can appear in both the spend legend and the row,
+    // so use .first() to avoid strict-mode violations.
+    await expect(page.getByText(usedCatName).first()).toBeVisible();
+    await expect(page.getByText(unusedCatName).first()).toBeVisible();
+
+    // ── 1. Delete the category that has a transaction → should be archived ────────
+    // force: true bypasses the opacity-0 state of the hover-revealed button.
+    page.once('dialog', dialog => dialog.accept());
+    await page.getByRole('button', { name: `Delete category ${usedCatName}` }).click({ force: true });
+
+    const archiveResponsePromise = page.waitForResponse(
+      res => res.url().includes('/api/finances/categories/') && res.request().method() === 'DELETE',
+    );
+    const archiveResponse = await archiveResponsePromise;
+    expect(archiveResponse.status()).toBe(200);
+    const archiveBody = (await archiveResponse.json()) as { action: string };
+    expect(archiveBody.action).toBe('archived');
+
+    await page.waitForLoadState('networkidle');
+    // Archived category no longer visible in the active list
+    await expect(page.getByText(usedCatName)).not.toBeVisible();
+
+    // ── 2. Delete the category that has no transactions → should be hard-deleted ──
+    page.once('dialog', dialog => dialog.accept());
+    await page.getByRole('button', { name: `Delete category ${unusedCatName}` }).click({ force: true });
+
+    const deleteResponsePromise = page.waitForResponse(
+      res => res.url().includes('/api/finances/categories/') && res.request().method() === 'DELETE',
+    );
+    const deleteResponse = await deleteResponsePromise;
+    expect(deleteResponse.status()).toBe(200);
+    const deleteBody = (await deleteResponse.json()) as { action: string };
+    expect(deleteBody.action).toBe('deleted');
+
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByText(unusedCatName)).not.toBeVisible();
+  });
+
+  /**
+   * Group lifecycle: delete group moves its categories to ungrouped.
+   * The group header disappears; the category reappears in the Ungrouped section.
+   */
+  test('categories: delete group moves its categories to ungrouped', async ({ page }) => {
+    await deleteFinances(page);
+    await createBudgetViaAPI(page, uniqueName('Group Delete Budget'));
+
+    const groupNameToDelete = uniqueName('Temp Group');
+    const catInGroup = uniqueName('Category In Group');
+
+    const gid = await createGroupViaAPI(page, groupNameToDelete);
+    // Create category assigned to the group
+    const res = await page.request.post('/api/finances/categories', {
+      data: { name: catInGroup, groupId: gid },
+    });
+    expect(res.status()).toBe(201);
+
+    await page.goto('/finances/categories');
+    await page.waitForLoadState('networkidle');
+
+    // Group and its category are visible
+    await expect(page.getByText(groupNameToDelete)).toBeVisible();
+    await expect(page.getByText(catInGroup)).toBeVisible();
+
+    // ── Delete the group (force: true bypasses opacity-0 on hover-revealed button) ─
+    page.once('dialog', dialog => dialog.accept());
+    await page.getByRole('button', { name: `Delete group ${groupNameToDelete}` }).click({ force: true });
+
+    const deleteResponsePromise = page.waitForResponse(
+      res => res.url().includes('/api/finances/groups/') && res.request().method() === 'DELETE',
+    );
+    const deleteResponse = await deleteResponsePromise;
+    expect(deleteResponse.status()).toBe(200);
+
+    await page.waitForLoadState('networkidle');
+
+    // Group header is gone
+    await expect(page.getByText(groupNameToDelete)).not.toBeVisible();
+
+    // Category moved to Ungrouped section
+    await expect(page.getByText('Ungrouped')).toBeVisible();
+    await expect(page.getByText(catInGroup)).toBeVisible();
   });
 
   /**

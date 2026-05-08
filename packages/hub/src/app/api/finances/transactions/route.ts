@@ -141,6 +141,7 @@ export const POST = route({ body: TransactionCreateSchema, response: transaction
     payeeId,
     notes: body.notes?.trim() || null,
     isCorrection: body.isCorrection === true,
+    source: 'hub',
     fromAccountBalanceAfter: null,
     toAccountBalanceAfter: null,
     extras: null,
