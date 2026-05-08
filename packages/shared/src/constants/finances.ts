@@ -72,6 +72,27 @@ export const CategoryIcons = {
   Fuel: 'fuel',
   Shield: 'shield',
   Landmark: 'landmark',
+  // Entertainment & activities
+  Drama: 'drama',
+  HelpCircle: 'help_circle',
+  // Clothing
+  Shirt: 'shirt',
+  // Transport
+  SquareParking: 'square_parking',
+  Truck: 'truck',
+  // Home & cleaning
+  Sparkles: 'sparkles',
+  // Travel & lifestyle
+  Backpack: 'backpack',
+  Palmtree: 'palmtree',
+  // Tech & devices
+  Laptop: 'laptop',
+  Bot: 'bot',
+  Smartphone: 'smartphone',
+  // Finance
+  Euro: 'euro',
+  Building2: 'building_2',
+  Coins: 'coins',
 } as const;
 export type CategoryIcon = (typeof CategoryIcons)[keyof typeof CategoryIcons];
 

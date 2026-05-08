@@ -34,6 +34,20 @@ export const ICON_OPTIONS: { value: CategoryIcon; emoji: string; label: string }
   { value: CategoryIcons.Shield, emoji: '🛡️', label: 'Insurance' },
   { value: CategoryIcons.Landmark, emoji: '🏛️', label: 'Taxes' },
   { value: CategoryIcons.MoreHorizontal, emoji: '•••', label: 'Misc' },
+  { value: CategoryIcons.Drama, emoji: '🎭', label: 'Entertainment' },
+  { value: CategoryIcons.HelpCircle, emoji: '⁉️', label: 'Unknown' },
+  { value: CategoryIcons.Shirt, emoji: '👖', label: 'Clothing' },
+  { value: CategoryIcons.SquareParking, emoji: '🅿️', label: 'Parking' },
+  { value: CategoryIcons.Truck, emoji: '🚙', label: 'SUV' },
+  { value: CategoryIcons.Sparkles, emoji: '🧹', label: 'Cleaning' },
+  { value: CategoryIcons.Backpack, emoji: '🎒', label: 'School' },
+  { value: CategoryIcons.Laptop, emoji: '💻', label: 'Laptop' },
+  { value: CategoryIcons.Bot, emoji: '🤖', label: 'AI / Tech' },
+  { value: CategoryIcons.Smartphone, emoji: '📱', label: 'Phone' },
+  { value: CategoryIcons.Palmtree, emoji: '🏝️', label: 'Vacation' },
+  { value: CategoryIcons.Euro, emoji: '💶', label: 'Euro' },
+  { value: CategoryIcons.Building2, emoji: '🏦', label: 'Bank' },
+  { value: CategoryIcons.Coins, emoji: '🪙', label: 'Coins' },
 ];
 
 /** Maps every CategoryIcon value to a display emoji. */
