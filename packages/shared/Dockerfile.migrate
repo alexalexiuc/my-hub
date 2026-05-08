@@ -14,7 +14,7 @@ WORKDIR /app
 ENV CI=true
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-  pnpm install -r --offline --filter @my-hub/shared
+  pnpm install -r --filter @my-hub/shared
 
 WORKDIR /app/packages/shared
 CMD ["pnpm", "db:migrate"]
