@@ -76,7 +76,7 @@ export const CategoryIcons = {
   Drama: 'drama',
   HelpCircle: 'help_circle',
   // Clothing
-  Shirt: 'shirt',
+  Pants: 'pants',
   // Transport
   SquareParking: 'square_parking',
   Truck: 'truck',
@@ -93,6 +93,10 @@ export const CategoryIcons = {
   Euro: 'euro',
   Building2: 'building_2',
   Coins: 'coins',
+  // Food & drink (extras)
+  Wine: 'wine',
+  // Health (extras)
+  Hospital: 'hospital',
 } as const;
 export type CategoryIcon = (typeof CategoryIcons)[keyof typeof CategoryIcons];
 
