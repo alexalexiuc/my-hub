@@ -7,6 +7,8 @@
     "build": "next build",
     "build:clear": "rimraf dist .next",
     "start": "next start",
+    "start:standalone": "bash scripts/start-hub-standalone.sh",
+    "start:standalone:skip-build": "bash scripts/start-hub-standalone.sh --skip-build",
     "lint": "pnpm exec eslint .",
     "typecheck": "tsc --noEmit",
     "test": "pnpm run test:unit",
