@@ -2,8 +2,10 @@
 
 import { cn } from '@/lib/utils';
 import { categoryIconEmoji } from './categoryIcons';
-import { Button } from '@/components';
+import { Button, IconButton } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons/PlusOutlineIcon';
+import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon } from '@/components/icons';
+import { shiftMonthStr, formatMonthStr } from '@my-hub/shared/utils';
 
 // ─── Currency formatter ───────────────────────────────────────────────────────
 export function fmt(value: number, currency = 'EUR') {
@@ -273,5 +275,40 @@ export function AddButton({ onClick, title }: AddButtonProps) {
       <PlusOutlineIcon className="size-3" />
       {title}
     </Button>
+  );
+}
+
+// ─── MonthCarousel component ─────────────────────────────────────────────────
+type MonthCarouselProps = {
+  month: string;
+  onNavigate: (m: string) => void;
+  className?: string;
+  labelClassName?: string;
+};
+
+const MONTH_LABEL_WIDTH = 160; // px, enough for longest month name
+
+export function MonthCarousel({ month, onNavigate, className, labelClassName }: MonthCarouselProps) {
+  return (
+    <div className={cn('flex items-center gap-3', className)}>
+      <IconButton
+        label="Previous month"
+        icon={<ChevronLeftOutlineIcon />}
+        onClick={() => onNavigate(shiftMonthStr(month, -1))}
+        className="bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)]"
+      />
+      <h2
+        className={cn('text-[22px] font-bold tracking-tight text-[var(--fin-text)] text-center', labelClassName)}
+        style={{ minWidth: MONTH_LABEL_WIDTH, maxWidth: MONTH_LABEL_WIDTH, width: MONTH_LABEL_WIDTH }}
+      >
+        {formatMonthStr(month)}
+      </h2>
+      <IconButton
+        label="Next month"
+        icon={<ChevronRightOutlineIcon />}
+        onClick={() => onNavigate(shiftMonthStr(month, 1))}
+        className="bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)]"
+      />
+    </div>
   );
 }

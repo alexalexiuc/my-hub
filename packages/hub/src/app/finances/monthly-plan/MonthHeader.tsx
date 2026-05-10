@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import { cn, apiFetch } from '@/lib/utils';
-import { Button, IconButton } from '@/components';
-import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon } from '@/components/icons';
-import { SectionLabel } from '../ui';
-import { shiftMonthStr, formatMonthStr } from '@my-hub/shared/utils';
+import { Button } from '@/components';
+import { SectionLabel, MonthCarousel } from '../ui';
 
 type MonthHeaderProps = {
   month: string;
@@ -73,19 +71,6 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
     </Button>
   );
 
-  const navIcon = (dir: -1 | 1, mobile?: boolean) => (
-    <IconButton
-      label={dir === -1 ? 'Previous month' : 'Next month'}
-      icon={dir === -1 ? <ChevronLeftOutlineIcon /> : <ChevronRightOutlineIcon />}
-      onClick={() => onNavigate(shiftMonthStr(month, dir))}
-      className={
-        mobile
-          ? 'rounded-full border border-[var(--fin-border)] bg-transparent text-[var(--fin-muted)] hover:bg-transparent'
-          : 'bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)]'
-      }
-    />
-  );
-
   return (
     <>
       {/* Desktop */}
@@ -94,11 +79,7 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
           <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--fin-subtle)]">
             Monthly Plan
           </div>
-          <div className="flex items-center gap-3">
-            {navIcon(-1)}
-            <h2 className="text-[22px] font-bold tracking-tight text-[var(--fin-text)]">{formatMonthStr(month)}</h2>
-            {navIcon(1)}
-          </div>
+          <MonthCarousel month={month} onNavigate={onNavigate} />
         </div>
         <div className="flex items-center gap-2">
           {!nextMonthExists && copyNextBtn('hover:border-[var(--fin-accent)] hover:text-[var(--fin-accent)]')}
@@ -111,11 +92,12 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
       <div data-layout="mobile" className="mb-4 md:hidden">
         <SectionLabel>Monthly Plan</SectionLabel>
         <div className="mb-3 flex items-center justify-between rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2.5">
-          {navIcon(-1, true)}
-          <h2 className="text-[32px] font-bold leading-none tracking-tight text-[var(--fin-text)]">
-            {formatMonthStr(month)}
-          </h2>
-          {navIcon(1, true)}
+          <MonthCarousel
+            month={month}
+            onNavigate={onNavigate}
+            className="flex-1 justify-between"
+            labelClassName="text-[32px] font-bold leading-none tracking-tight"
+          />
         </div>
         <div className="flex items-center gap-2">
           {!nextMonthExists && copyNextBtn()}

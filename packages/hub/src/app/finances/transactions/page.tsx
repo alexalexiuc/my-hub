@@ -13,6 +13,8 @@ import type {
   TransactionsListResponse,
 } from '@/app/api/finances/contracts';
 import { TransactionType, TransactionTypes } from '@my-hub/shared/constants';
+import { MonthCarousel } from '../ui';
+import { dateToString } from '@my-hub/shared/utils';
 
 type Filter = 'all' | TransactionType;
 const FILTERS: { key: Filter; label: string }[] = [
@@ -39,11 +41,16 @@ function upsertTransaction(transactions: TransactionListItem[], transaction: Tra
   return sortTransactions([transaction, ...transactions.filter(item => item.id !== transaction.id)]);
 }
 
+function currentMonthStr(): string {
+  return dateToString().slice(0, 7);
+}
+
 export default function TransactionsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
+  const [month, setMonth] = useState(currentMonthStr);
   const [data, setData] = useState<TransactionsListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -52,13 +59,14 @@ export default function TransactionsPage() {
   const LIMIT = 50;
 
   const load = useCallback(
-    async (f: Filter, reset = true) => {
+    async (f: Filter, m: string, reset = true) => {
       const off = reset ? 0 : offset;
       if (reset) setLoading(true);
       else setLoadingMore(true);
       try {
         const q = new URLSearchParams({ limit: String(LIMIT), offset: String(off) });
         if (f !== 'all') q.set('type', f);
+        q.set('month', m);
         const result = await apiFetch<TransactionsListResponse>(`/api/finances/transactions?${q}`, {
           silentToast: true,
         });
@@ -79,8 +87,8 @@ export default function TransactionsPage() {
   );
 
   useEffect(() => {
-    load(filter, true);
-  }, [filter]);
+    load(filter, month, true);
+  }, [filter, month]);
 
   const currency = data?.currency ?? 'EUR';
 
@@ -88,7 +96,7 @@ export default function TransactionsPage() {
     setShowAddModal(false);
 
     if (!result?.listItem) {
-      load(filter, true);
+      load(filter, month, true);
       return;
     }
 
@@ -106,9 +114,26 @@ export default function TransactionsPage() {
 
   return (
     <div className="flex flex-col gap-[14px]">
-      <div className="flex items-center justify-between">
-        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Transactions</div>
+      {/* Desktop header */}
+      <div className="hidden items-center justify-between md:flex">
+        <MonthCarousel month={month} onNavigate={setMonth} />
         <AddButton onClick={() => setShowAddModal(true)} title="Add transaction" />
+      </div>
+
+      {/* Mobile header */}
+      <div className="md:hidden">
+        <div className="mb-2 flex items-center justify-between rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2.5">
+          <MonthCarousel
+            month={month}
+            onNavigate={setMonth}
+            className="flex-1 justify-between"
+            labelClassName="text-[32px] font-bold leading-none tracking-tight"
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Transactions</div>
+          <AddButton onClick={() => setShowAddModal(true)} title="Add transaction" />
+        </div>
       </div>
 
       {/* Type filter */}
@@ -161,7 +186,7 @@ export default function TransactionsPage() {
 
           {hasMore && (
             <button
-              onClick={() => load(filter, false)}
+              onClick={() => load(filter, month, false)}
               disabled={loadingMore}
               className={cn(
                 'w-full rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] p-2.5 text-xs text-[var(--fin-muted)]',
@@ -182,7 +207,7 @@ export default function TransactionsPage() {
           onCloseAction={() => setEditId(null)}
           onSavedAction={() => {
             setEditId(null);
-            load(filter, true);
+            load(filter, month, true);
           }}
         />
       )}
@@ -193,7 +218,7 @@ export default function TransactionsPage() {
           onClose={() => setPendingDeleteId(null)}
           onDeleted={() => {
             setPendingDeleteId(null);
-            load(filter, true);
+            load(filter, month, true);
           }}
         />
       )}
