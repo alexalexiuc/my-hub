@@ -185,6 +185,7 @@ export const categoryRowSchema = z.object({
   name: z.string(),
   icon: categoryIconSchema,
   color: categoryColorSchema,
+  notes: z.string().nullable(),
   monthlyTarget: z.number().nullable(),
   spent: z.number(),
   groupId: z.number().int().nullable(),
@@ -194,6 +195,7 @@ export const categoryRowSchema = z.object({
 export const categoryGroupSchema = z.object({
   id: z.number().int(),
   name: z.string(),
+  notes: z.string().nullable(),
   sortOrder: z.number().int(),
   categories: z.array(categoryRowSchema),
 });
@@ -239,6 +241,8 @@ export const goalsResponseSchema = z.object({
 export const payeeSuggestionSchema = z.object({
   id: z.number().int(),
   name: z.string(),
+  alias: z.string().nullable(),
+  description: z.string().nullable(),
   useCount: z.number().int(),
   lastUsedAt: z.string().nullable(),
   recentCategoryId: z.number().int().nullable(),

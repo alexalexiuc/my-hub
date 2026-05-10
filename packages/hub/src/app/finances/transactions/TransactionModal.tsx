@@ -17,7 +17,7 @@ import type {
   TransactionDetail,
   TransactionMutationResponse,
 } from '@/app/api/finances/contracts';
-import { getCurrencySymbol } from '@my-hub/shared/utils';
+import { getCurrencySymbol, isPayeeRequired } from '@my-hub/shared/utils';
 import { EXPENSE_ACCOUNT_TYPES, TransactionType, TransactionTypes } from '@my-hub/shared/constants';
 
 const TYPE_COLORS: Record<TransactionType, string> = {
@@ -86,6 +86,7 @@ export function TransactionModal({
   });
 
   const txType = watch('txType');
+  const payeeRequired = isPayeeRequired(txType);
 
   const load = useCallback(async () => {
     const [fd, pd, detail] = await Promise.all([
@@ -231,7 +232,7 @@ export function TransactionModal({
           </div>
 
           {/* Payee — hidden for transfers */}
-          {txType !== TransactionTypes.Transfer && (
+          {payeeRequired && (
             <>
               <FinancialDropdown
                 options={payees.map(p => ({ id: p.id, value: p.name }))}

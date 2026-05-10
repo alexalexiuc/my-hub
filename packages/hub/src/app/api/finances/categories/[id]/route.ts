@@ -10,6 +10,7 @@ import {
 import { CategoryIcons } from '@my-hub/shared/constants';
 import type { CategoryIcon } from '@my-hub/shared/constants';
 import { categoryMutationResponseSchema } from '../../contracts';
+import { trimOrNull } from '@my-hub/shared/utils';
 
 const CategoryUpdateSchema = z.object({
   name: z.string().trim().min(1, 'name is required').optional(),
@@ -18,6 +19,7 @@ const CategoryUpdateSchema = z.object({
     .nullable()
     .optional(),
   color: z.string().nullable().optional(),
+  notes: z.string().trim().nullable().optional(),
   monthlyTarget: z.number().nonnegative().nullable().optional(),
   groupId: z.number().int().positive().nullable().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
@@ -36,9 +38,10 @@ export const PATCH = route({
   const category = await updateCategory(user.id, budget.id, params.id, {
     name: body.name,
     icon: body.icon !== undefined ? ((body.icon as CategoryIcon | null) ?? null) : undefined,
-    color: body.color !== undefined ? body.color : undefined,
-    monthlyTarget: body.monthlyTarget !== undefined ? body.monthlyTarget : undefined,
-    groupId: body.groupId !== undefined ? body.groupId : undefined,
+    color: body.color,
+    notes: trimOrNull(body.notes),
+    monthlyTarget: body.monthlyTarget,
+    groupId: body.groupId,
     sortOrder: body.sortOrder,
   });
 

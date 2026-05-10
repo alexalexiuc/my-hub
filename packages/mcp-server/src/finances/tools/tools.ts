@@ -29,6 +29,7 @@ const financeTools = [
     description:
       'Record one or more transactions (expenses, income, or transfers) in a single call. ' +
       'Accepts an array so a full batch parsed from a bank screenshot can be submitted in one step. ' +
+      'If payeeName matches an existing canonical payee alias, the existing payee is reused instead of creating a duplicate. ' +
       'Each item is processed independently — a duplicate warning on one does not block the others. ' +
       'Always populate the notes field with a plain-language summary of the transaction. ' +
       'The tool automatically detects possible duplicates and includes a warning in the result if found. ' +
@@ -65,6 +66,7 @@ const financeTools = [
     name: 'finances_query_transactions',
     description:
       'Search and list transactions with optional filters. Returns resolved account, category, and payee names inline. ' +
+      'payeeName matching is alias-aware for existing payees. ' +
       'Correction transactions are excluded by default. Supports pagination via limit/offset.',
     inputSchema: QueryTransactionsSchema.shape,
     annotations: { readOnlyHint: true },

@@ -10,11 +10,11 @@ import {
 import {
   addTransaction,
   checkDuplicateTransaction,
+  findPayeeByNameOrAlias,
   getUserActiveBudget,
   getTransactionById,
   updateTransaction,
   getAccountById,
-  getPayees,
   getTransactions,
   countTransactions,
   getCategories,
@@ -30,13 +30,13 @@ vi.mock('@my-hub/shared/services', () => ({
   getTransactions: vi.fn(),
   countTransactions: vi.fn(),
   checkDuplicateTransaction: vi.fn(),
+  findPayeeByNameOrAlias: vi.fn(),
   upsertPayee: vi.fn(),
   getAccountById: vi.fn(),
   getAccounts: vi.fn(),
   getCategories: vi.fn(),
   getGroups: vi.fn(),
   getTransactionById: vi.fn(),
-  getPayees: vi.fn(),
   getExchangeRate: vi.fn(),
   getBudgetProgress: vi.fn(),
 }));
@@ -446,7 +446,7 @@ describe('queryTransactionsTool', () => {
   });
 
   it('returns empty result when payee name is not found', async () => {
-    vi.mocked(getPayees).mockResolvedValue([{ id: 1, name: 'Supermarket' }] as never);
+    vi.mocked(findPayeeByNameOrAlias).mockResolvedValue(null as never);
 
     const result = await queryTransactionsTool(
       {
@@ -466,6 +466,7 @@ describe('queryTransactionsTool', () => {
     const payload = parseToolPayload(result) as { transactions: unknown[]; total: number };
 
     expect(payload).toEqual({ transactions: [], total: 0 });
+    expect(findPayeeByNameOrAlias).toHaveBeenCalledWith('user-1', 1, 'Unknown Payee');
     expect(getTransactions).not.toHaveBeenCalled();
     expect(countTransactions).not.toHaveBeenCalled();
   });

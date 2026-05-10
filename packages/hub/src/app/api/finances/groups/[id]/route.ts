@@ -2,9 +2,11 @@ import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, updateGroup, deleteGroup } from '@my-hub/shared/services';
 import { groupMutationResponseSchema } from '../../contracts';
+import { trimOrNull } from '@my-hub/shared/utils';
 
 const GroupUpdateSchema = z.object({
   name: z.string().trim().min(1, 'name is required').optional(),
+  notes: z.string().trim().nullable().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
 });
 
@@ -17,6 +19,7 @@ export const PATCH = route({ body: GroupUpdateSchema, params: IdParamSchema, res
 
     const group = await updateGroup(user.id, budget.id, params.id, {
       name: body.name,
+      notes: trimOrNull(body.notes),
       sortOrder: body.sortOrder,
     });
 

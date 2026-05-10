@@ -6,10 +6,10 @@ import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar, Divider, CategoryIcon } from '../ui';
 import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
-import { Input } from '@/components';
 import { AddCategoryModal } from './AddCategoryModal';
 import { AddGroupModal } from './AddGroupModal';
 import { EditCategoryModal } from './EditCategoryModal';
+import { EditGroupModal } from './EditGroupModal';
 import { categoryToEditValues } from '../finances-form.schema';
 import type { CategoriesResponse, CategoryGroup, CategoryRow } from '@/app/api/finances/contracts';
 
@@ -109,6 +109,7 @@ function GroupSection({
   group,
   currency,
   onAddCategory,
+  onEditGroup,
   onEditCategory,
   onDeleteCategory,
   onChanged,
@@ -116,38 +117,16 @@ function GroupSection({
   group: CategoryGroup;
   currency: string;
   onAddCategory: (groupId: number) => void;
+  onEditGroup: (group: CategoryGroup) => void;
   onEditCategory: (cat: CategoryRow) => void;
   onDeleteCategory: (cat: CategoryRow) => void;
   onChanged: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(group.name);
-  const [saving, setSaving] = useState(false);
   const color = groupColor(group);
   const groupSpent = group.categories.reduce((s, c) => s + c.spent, 0);
   const groupTarget = group.categories.reduce((s, c) => s + (c.monthlyTarget ?? 0), 0);
   const groupPct = groupTarget > 0 ? Math.min(100, Math.round((groupSpent / groupTarget) * 100)) : null;
-
-  async function saveGroupName() {
-    const trimmed = editName.trim();
-    if (!trimmed || trimmed === group.name) {
-      setEditing(false);
-      return;
-    }
-    setSaving(true);
-    try {
-      await apiFetch(`/api/finances/groups/${group.id}`, {
-        method: 'PATCH',
-        body: { name: trimmed },
-        silentToast: true,
-      });
-      onChanged();
-    } finally {
-      setSaving(false);
-      setEditing(false);
-    }
-  }
 
   async function deleteGroup() {
     if (!window.confirm(`Delete group "${group.name}"? Categories in this group will become ungrouped.`)) return;
@@ -160,52 +139,31 @@ function GroupSection({
       <div className="group/header mb-1.5 flex items-center justify-between px-1 py-[6px]">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
-          {editing ? (
-            <Input
-              value={editName}
-              onChange={e => setEditName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') saveGroupName();
-                if (e.key === 'Escape') {
-                  setEditing(false);
-                  setEditName(group.name);
-                }
-              }}
-              onBlur={saveGroupName}
-              disabled={saving}
-              autoFocus
-              className="h-6 w-full max-w-[180px] py-0 text-[13px] font-semibold"
-            />
-          ) : (
-            <>
+          <>
+            <button
+              onClick={() => setCollapsed(v => !v)}
+              className="flex cursor-pointer items-center gap-1 border-none bg-transparent p-0"
+            >
+              <span className="text-[13px] font-semibold text-[var(--fin-text)]">{group.name}</span>
+              <span className="text-[10px] text-[var(--fin-subtle)]">{collapsed ? '▶' : '▾'}</span>
+            </button>
+            <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/header:opacity-100">
               <button
-                onClick={() => setCollapsed(v => !v)}
-                className="flex cursor-pointer items-center gap-1 border-none bg-transparent p-0"
+                aria-label={`Edit group ${group.name}`}
+                onClick={() => onEditGroup(group)}
+                className="cursor-pointer rounded p-0.5 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
               >
-                <span className="text-[13px] font-semibold text-[var(--fin-text)]">{group.name}</span>
-                <span className="text-[10px] text-[var(--fin-subtle)]">{collapsed ? '▶' : '▾'}</span>
+                <PencilIcon className="size-[11px]" />
               </button>
-              <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/header:opacity-100">
-                <button
-                  aria-label={`Edit group ${group.name}`}
-                  onClick={() => {
-                    setEditing(true);
-                    setEditName(group.name);
-                  }}
-                  className="cursor-pointer rounded p-0.5 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
-                >
-                  <PencilIcon className="size-[11px]" />
-                </button>
-                <button
-                  aria-label={`Delete group ${group.name}`}
-                  onClick={deleteGroup}
-                  className="cursor-pointer rounded p-0.5 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-red-400"
-                >
-                  <TrashOutlineIcon className="size-[11px]" />
-                </button>
-              </div>
-            </>
-          )}
+              <button
+                aria-label={`Delete group ${group.name}`}
+                onClick={deleteGroup}
+                className="cursor-pointer rounded p-0.5 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-red-400"
+              >
+                <TrashOutlineIcon className="size-[11px]" />
+              </button>
+            </div>
+          </>
         </div>
         <div className="flex items-center gap-2">
           {groupTarget > 0 && (
@@ -256,6 +214,7 @@ export default function CategoriesPage() {
   const [showAddGroup, setShowAddGroup] = useState(false);
   const [addCategoryGroupId, setAddCategoryGroupId] = useState<number | null>(null);
   const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null);
+  const [editingGroup, setEditingGroup] = useState<CategoryGroup | null>(null);
 
   const load = useCallback(async (month: string) => {
     setLoading(true);
@@ -387,6 +346,7 @@ export default function CategoriesPage() {
                 group={group}
                 currency={data.currency}
                 onAddCategory={openAddCategory}
+                onEditGroup={setEditingGroup}
                 onEditCategory={setEditingCategory}
                 onDeleteCategory={handleDeleteCategory}
                 onChanged={() => load(selectedMonth)}
@@ -437,6 +397,18 @@ export default function CategoriesPage() {
       )}
 
       {showAddGroup && <AddGroupModal onClose={() => setShowAddGroup(false)} onCreated={handleCreated} />}
+
+      {editingGroup && (
+        <EditGroupModal
+          groupId={editingGroup.id}
+          initialValues={{ name: editingGroup.name, notes: editingGroup.notes ?? '' }}
+          onClose={() => setEditingGroup(null)}
+          onSaved={() => {
+            setEditingGroup(null);
+            load(selectedMonth);
+          }}
+        />
+      )}
 
       {editingCategory && (
         <EditCategoryModal

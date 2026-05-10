@@ -34,7 +34,7 @@ interface CreatedClient extends OAuthClientRow {
 
 const MCP_BASE_URL = process.env.NEXT_PUBLIC_MCP_URL ?? 'https://mcp.alexiuc.dev';
 
-const SERVER_META: Record<string, { label: string; path: string; description: string; active: boolean }> = {
+const SERVER_META: Record<McpServerName, { label: string; path: string; description: string; active: boolean }> = {
   calories: {
     label: 'Calories',
     path: '/api/calories/mcp',
@@ -63,6 +63,12 @@ const SERVER_META: Record<string, { label: string; path: string; description: st
     label: 'Travel',
     path: '/api/travel/mcp',
     description: 'Trip planning, itinerary management, travel document storage',
+    active: true,
+  },
+  finances: {
+    label: 'Finances',
+    path: '/api/finances/mcp',
+    description: 'Financial management, budgeting, expense tracking',
     active: true,
   },
 };

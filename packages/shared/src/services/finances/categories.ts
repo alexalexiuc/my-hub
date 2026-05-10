@@ -23,11 +23,11 @@ import { hasAccessToBudget } from './budgets';
 import type { FinanceCategory, FinanceGroup, NewFinanceCategory, NewFinanceGroup } from '../../types';
 
 export type GroupInsert = Omit<NewFinanceGroup, 'id' | 'budgetId' | 'createdAt' | 'updatedAt'>;
-export type GroupUpdate = Partial<Pick<GroupInsert, 'name' | 'sortOrder'>>;
+export type GroupUpdate = Partial<Pick<GroupInsert, 'name' | 'notes' | 'sortOrder'>>;
 
 export type CategoryInsert = Omit<NewFinanceCategory, 'id' | 'budgetId' | 'createdAt' | 'updatedAt'>;
 export type CategoryUpdate = Partial<
-  Pick<CategoryInsert, 'name' | 'groupId' | 'color' | 'icon' | 'monthlyTarget' | 'sortOrder'>
+  Pick<CategoryInsert, 'name' | 'groupId' | 'color' | 'icon' | 'notes' | 'monthlyTarget' | 'sortOrder'>
 >;
 
 // ─── Groups ───────────────────────────────────────────────────────────────────

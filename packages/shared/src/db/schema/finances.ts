@@ -90,6 +90,7 @@ export const financeGroups = pgTable(
       .notNull()
       .references(() => financeBudgets.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
+    notes: text('notes'),
     sortOrder: integer('sort_order').notNull().default(0),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -114,6 +115,7 @@ export const financeCategories = pgTable(
     color: text('color'),
     // Icon key — maps to a UI component via CategoryIcons constant in the Hub package
     icon: text('icon').$type<CategoryIcon>(),
+    notes: text('notes'),
     // Optional monthly spending target — nullable, no envelope-style allocation
     monthlyTarget: numericCasted('monthly_target', { precision: 18, scale: 4 }),
     sortOrder: integer('sort_order').notNull().default(0),
@@ -146,6 +148,7 @@ export const financePayees = pgTable(
       .notNull()
       .references(() => financeBudgets.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
+    alias: text('alias'),
     // lower(trim(name)) — used for case-insensitive uniqueness check
     normalizedName: text('normalized_name').notNull(),
     // Optional context for AI — e.g. "Main grocery supermarket", "Landlord — rent"

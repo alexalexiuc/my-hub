@@ -25,7 +25,7 @@ const financeResources = [
     name: 'finances-payees',
     uri: 'finances://payees',
     description:
-      'Full payee list for the active budget with optional AI descriptions. ' +
+      'Full payee list for the active budget with optional aliases and AI descriptions. ' +
       'Use to match payee names when recording transactions.',
     mimeType: 'application/json',
     callback: getFinancesPayeesResource,

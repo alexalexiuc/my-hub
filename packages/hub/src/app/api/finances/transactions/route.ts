@@ -12,6 +12,7 @@ import {
 } from '@my-hub/shared/services';
 import type { TransactionInsert } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
+import { isPayeeRequired } from '@my-hub/shared/utils';
 import type { TransactionListItem } from '../contracts';
 import { transactionsListResponseSchema, transactionMutationResponseSchema } from '../contracts';
 
@@ -126,9 +127,8 @@ export const POST = route({ body: TransactionCreateSchema, response: transaction
   const budgetId = budget.id;
 
   let payeeId: number | null = null;
-  if (body.payeeName?.trim()) {
-    const payee = await upsertPayee(user.id, budgetId, body.payeeName.trim());
-    payeeId = payee.id;
+  if (isPayeeRequired(body.type as TransactionInsert['type']) && body.payeeName?.trim()) {
+    payeeId = (await upsertPayee(user.id, budgetId, body.payeeName.trim())).id;
   }
 
   const data: TransactionInsert = {

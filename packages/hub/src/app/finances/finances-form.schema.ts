@@ -5,11 +5,12 @@ import { AccountTypes, LentDirections, SupportedCurrencies, TransactionTypes } f
 
 export const AddGroupSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
+  notes: z.string(),
 });
 
 export type AddGroupValues = z.infer<typeof AddGroupSchema>;
 
-export const defaultAddGroupValues: AddGroupValues = { name: '' };
+export const defaultAddGroupValues: AddGroupValues = { name: '', notes: '' };
 
 // --- Add Goal ---
 
@@ -42,6 +43,7 @@ export const AddCategorySchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   icon: z.string().min(1, 'Icon is required'),
   color: z.string().min(1),
+  notes: z.string(),
   monthlyTarget: z.string(),
   groupId: z.string(),
 });
@@ -53,6 +55,7 @@ export function defaultAddCategoryValues(defaultGroupId?: number | null): AddCat
     name: '',
     icon: '',
     color: '#6ee7b7',
+    notes: '',
     monthlyTarget: '',
     groupId: defaultGroupId != null ? String(defaultGroupId) : '',
   };
@@ -63,6 +66,7 @@ export function formToCategoryBody(values: AddCategoryValues) {
     name: values.name.trim(),
     icon: values.icon,
     color: values.color,
+    notes: values.notes.trim() || null,
     monthlyTarget: values.monthlyTarget ? parseFloat(values.monthlyTarget) : null,
     groupId: values.groupId ? parseInt(values.groupId) : null,
   };
@@ -77,6 +81,7 @@ export function categoryToEditValues(cat: {
   name: string;
   icon: string | null;
   color: string | null;
+  notes: string | null;
   monthlyTarget: number | null;
   groupId: number | null;
 }): EditCategoryValues {
@@ -84,6 +89,7 @@ export function categoryToEditValues(cat: {
     name: cat.name,
     icon: cat.icon ?? '',
     color: cat.color ?? '#6ee7b7',
+    notes: cat.notes ?? '',
     monthlyTarget: cat.monthlyTarget != null ? String(cat.monthlyTarget) : '',
     groupId: cat.groupId != null ? String(cat.groupId) : '',
   };

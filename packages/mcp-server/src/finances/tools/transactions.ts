@@ -9,7 +9,9 @@ import {
   getTransactions,
   countTransactions,
   checkDuplicateTransaction,
+  findPayeeByNameOrAlias,
   upsertPayee,
+  resolvePayeeIdByNameOrAlias,
   getAccountById,
   getAccounts,
   getCategories,
@@ -20,7 +22,7 @@ import {
 } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
 import type { TransactionInsert } from '@my-hub/shared/services';
-import { currentDateString, omitUndefined } from '@my-hub/shared/utils';
+import { currentDateString, isPayeeRequired, omitUndefined } from '@my-hub/shared/utils';
 
 // ─── add_transactions ─────────────────────────────────────────────────────────
 
@@ -120,11 +122,22 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
     try {
       const date = item.date ?? currentDateString();
 
-      // Resolve payee
+      // Resolve payee (block if not found)
       let payeeId: number | null = null;
-      if (item.payeeName) {
-        const payee = await upsertPayee(userId, budget.id, item.payeeName);
-        payeeId = payee.id;
+      if (isPayeeRequired(item.type) && item.payeeName) {
+        const resolvedPayeeId = await resolvePayeeIdByNameOrAlias(userId, budget.id, item.payeeName);
+        if (resolvedPayeeId === undefined) {
+          return toolResponse({
+            error: {
+              code: 'payee_not_found',
+              message: `Payee not found: ${item.payeeName}`,
+              normalizedName: item.payeeName.trim().toLowerCase(),
+              requirePayeeCreation: true,
+            },
+          });
+        }
+
+        payeeId = resolvedPayeeId;
       }
 
       // Duplicate check
@@ -306,10 +319,18 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
         : undefined;
 
   // Resolve payee if name provided
-  let payeeId: number | undefined;
-  if (input.payeeName !== undefined) {
-    const payee = await upsertPayee(userId, budget.id, input.payeeName);
-    payeeId = payee.id;
+  let payeeId: number | null | undefined;
+  if (!isPayeeRequired(nextType)) {
+    payeeId = null;
+  } else if (input.payeeName !== undefined) {
+    if (input.payeeName.trim()) {
+      const payee =
+        (await findPayeeByNameOrAlias(userId, budget.id, input.payeeName)) ??
+        (await upsertPayee(userId, budget.id, input.payeeName));
+      payeeId = payee.id;
+    } else {
+      payeeId = undefined;
+    }
   }
 
   const updateData = omitUndefined({
@@ -389,8 +410,7 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema.s
   // Resolve payee name to ID if provided
   let payeeId: number | undefined = undefined;
   if (input.payeeName !== undefined) {
-    const payeesAll = await getPayees(userId, budget.id);
-    const match = payeesAll.find(p => p.name.toLowerCase() === input.payeeName!.toLowerCase());
+    const match = await findPayeeByNameOrAlias(userId, budget.id, input.payeeName);
     if (!match) {
       return toolResponse({ transactions: [], total: 0 });
     }

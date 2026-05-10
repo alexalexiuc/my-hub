@@ -11,7 +11,7 @@
 ## Summary
 
 The Finances feature provides personal budget tracking, account management, transaction logging,
-category/group organisation, goals tracking, and reporting — all accessed through a shared
+category/group organisation, payee-aware transaction matching, goals tracking, and reporting — all accessed through a shared
 finances layout with sidebar navigation on desktop and bottom-tab navigation on mobile.
 
 ---
@@ -57,6 +57,10 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 | TR-18 | Monthly Plan item rendering must be mobile-specific below `md`: desktop keeps the table row layout, while mobile uses dedicated stacked item cards optimized for narrow viewports.                                                             |
 | TR-19 | Monthly Plan Add Item row must use `react-hook-form` and shared finances input controls (`Input`, `FinancialDropdown`) rather than raw HTML inputs/selects.                                                                                    |
 | TR-20 | Finance API request-body schemas that accept currency fields (`defaultCurrency`, account `currency`, monthly-plan item `currency`) must validate against the shared supported currency list (reject unknown currency codes).                   |
+| TR-21 | Finance payees must support an optional single-string `alias`, and shared payee resolution used by MCP transaction flows must match by canonical payee name or alias before creating a new payee.                                              |
+| TR-22 | Finance categories and groups must support optional `notes` fields, and the Hub category/group create and edit flows must allow users to view and update those notes.                                                                          |
+| TR-23 | Payee-required logic must be centralized in shared utilities (`isPayeeRequired`) and reused by both Hub transaction UI and MCP transaction tools, so transfer transactions consistently bypass payee handling.                                 |
+| TR-24 | The Hub Payees page must allow editing payee metadata (name, alias, description) via an edit modal and persist changes through the finances payees API.                                                                                        |
 
 ---
 
@@ -89,3 +93,7 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 - [x] On mobile monthly plan screens, plan items render as dedicated card components (not compressed desktop table rows).
 - [x] Monthly Plan Add Item uses `react-hook-form` with shared Input/Dropdown controls and a supported-currency dropdown.
 - [x] Finance API body schemas reject unsupported currencies for budget/account/monthly-plan write endpoints.
+- [x] MCP finance transaction flows reuse an existing payee when `payeeName` matches either the canonical payee name or its configured alias.
+- [x] Category and group add/edit flows in Hub persist optional notes without changing the transaction-entry UX.
+- [x] Shared payee-required logic is reused by Hub and MCP so transfer transaction flows do not attempt payee selection/resolution.
+- [x] The Hub Payees page allows editing payee name, alias, and description through an edit modal.

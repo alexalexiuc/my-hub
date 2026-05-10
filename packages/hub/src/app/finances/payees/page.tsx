@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, Divider, CategoryIcon } from '../ui';
-import type { PayeesReportResponse } from '@/app/api/finances/contracts';
+import type { PayeesReportResponse, PayeesResponse, PayeeSuggestion } from '@/app/api/finances/contracts';
+import { EditPayeeModal } from './EditPayeeModal';
 type Range = '30d' | '3m' | 'ytd';
 type SortKey = 'totalSpent' | 'txCount' | 'name';
 
@@ -18,6 +19,8 @@ export default function PayeesPage() {
   const [range, setRange] = useState<Range>('30d');
   const [sortBy, setSortBy] = useState<SortKey>('totalSpent');
   const [data, setData] = useState<PayeesReportResponse | null>(null);
+  const [payeesById, setPayeesById] = useState<Map<number, PayeeSuggestion>>(new Map());
+  const [editingPayee, setEditingPayee] = useState<PayeeSuggestion | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (r: Range) => {
@@ -32,9 +35,20 @@ export default function PayeesPage() {
     }
   }, []);
 
+  const loadPayees = useCallback(async () => {
+    const result = await apiFetch<PayeesResponse>('/api/finances/payees', {
+      silentToast: true,
+    });
+    setPayeesById(new Map(result.payees.map(payee => [payee.id, payee])));
+  }, []);
+
   useEffect(() => {
     load(range);
   }, [range, load]);
+
+  useEffect(() => {
+    loadPayees();
+  }, [loadPayees]);
 
   const currency = data?.currency ?? 'EUR';
   const sorted = [...(data?.payees ?? [])].sort((a, b) => {
@@ -104,6 +118,9 @@ export default function PayeesPage() {
 
           {sorted.map((p, i) => {
             const catColor = p.categoryColor ?? 'var(--fin-muted)';
+            const fullPayee = payeesById.get(p.id);
+            const alias = fullPayee?.alias?.trim() || null;
+            const description = fullPayee?.description?.trim() || null;
             return (
               <div key={p.id}>
                 {i > 0 && <Divider />}
@@ -111,9 +128,37 @@ export default function PayeesPage() {
                   <div className="flex items-center gap-2.5">
                     <CategoryIcon color={catColor} icon={p.categoryIcon} size="lg" />
                     <div>
-                      <div className="text-[13px] font-medium text-[var(--fin-text)]">{p.name}</div>
-                      <div className="text-[10px] text-[var(--fin-subtle)]">
+                      <div className="flex items-center gap-2">
+                        <div className="text-[13px] font-medium text-[var(--fin-text)]">{p.name}</div>
+                        {alias && (
+                          <span
+                            className="rounded-full border px-1.5 py-[1px] text-[9px] uppercase tracking-[0.06em] text-[var(--fin-subtle)]"
+                            style={{ borderColor: 'var(--fin-border)', background: 'var(--fin-card2)' }}
+                          >
+                            Alias: {alias}
+                          </span>
+                        )}
+                        {description && (
+                          <span
+                            className="max-w-[260px] truncate rounded-full border px-1.5 py-[1px] text-[9px] text-[var(--fin-subtle)]"
+                            style={{ borderColor: 'var(--fin-border)', background: 'var(--fin-card2)' }}
+                            title={description}
+                          >
+                            Description: {description}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-[var(--fin-subtle)]">
                         {p.categoryName ? `${p.categoryName} · ` : ''}Last: {p.lastDate}
+                        <button
+                          type="button"
+                          className="cursor-pointer text-[var(--fin-accent)] hover:underline"
+                          onClick={() => {
+                            if (fullPayee) setEditingPayee(fullPayee);
+                          }}
+                        >
+                          Edit
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -126,6 +171,17 @@ export default function PayeesPage() {
             );
           })}
         </Card>
+      )}
+
+      {editingPayee && (
+        <EditPayeeModal
+          payee={editingPayee}
+          onClose={() => setEditingPayee(null)}
+          onSaved={async () => {
+            setEditingPayee(null);
+            await Promise.all([loadPayees(), load(range)]);
+          }}
+        />
       )}
     </div>
   );

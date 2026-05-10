@@ -1,0 +1,83 @@
+'use client';
+
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { apiFetch } from '@/lib/utils';
+import { FinModalShell } from '../FinModalShell';
+import { Button, Field, Input, Textarea } from '@/components';
+import type { PayeeSuggestion } from '@/app/api/finances/contracts';
+
+const EditPayeeSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required'),
+  alias: z.string(),
+  description: z.string(),
+});
+
+type EditPayeeValues = z.infer<typeof EditPayeeSchema>;
+
+type EditPayeeModalProps = {
+  payee: PayeeSuggestion;
+  onClose: () => void;
+  onSaved: () => void;
+};
+
+export function EditPayeeModal({ payee, onClose, onSaved }: EditPayeeModalProps) {
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting, errors },
+  } = useForm<EditPayeeValues>({
+    resolver: zodResolver(EditPayeeSchema),
+    defaultValues: {
+      name: payee.name,
+      alias: payee.alias ?? '',
+      description: payee.description ?? '',
+    },
+  });
+
+  async function onSubmit(values: EditPayeeValues) {
+    await apiFetch(`/api/finances/payees/${payee.id}`, {
+      method: 'PATCH',
+      body: {
+        name: values.name,
+        alias: values.alias.trim() || null,
+        description: values.description.trim() || null,
+      },
+    });
+    onSaved();
+  }
+
+  return (
+    <FinModalShell onClose={onClose} title="Edit Payee" className="md:max-w-[420px]">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+        <Field label="Name">
+          <Input {...register('name')} autoFocus placeholder="e.g. Kaufland" />
+          {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name.message}</p>}
+        </Field>
+
+        <Field label="Alias (optional)">
+          <Input {...register('alias')} placeholder="e.g. SRL name or trade name" />
+        </Field>
+
+        <Field label="Description (optional)">
+          <Textarea
+            {...register('description')}
+            rows={3}
+            className="resize-none"
+            placeholder="Helpful context for matching this payee"
+          />
+        </Field>
+
+        <div className="mt-1 flex justify-end gap-2">
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" size="sm" loading={isSubmitting}>
+            Save
+          </Button>
+        </div>
+      </form>
+    </FinModalShell>
+  );
+}

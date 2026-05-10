@@ -10,6 +10,7 @@ import {
 import { CategoryIcons, TransactionTypes } from '@my-hub/shared/constants';
 import type { CategoryIcon } from '@my-hub/shared/constants';
 import { categoriesResponseSchema, categoryMutationResponseSchema } from '../contracts';
+import { trimOrNull } from '@my-hub/shared/utils';
 
 const CategoryCreateSchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
@@ -18,6 +19,7 @@ const CategoryCreateSchema = z.object({
     .nullable()
     .optional(),
   color: z.string().optional(),
+  notes: z.string().trim().nullable().optional(),
   monthlyTarget: z.number().nonnegative().nullable().optional(),
   groupId: z.number().int().positive().nullable().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
@@ -64,6 +66,7 @@ export const GET = route({ query: CategoryQuerySchema, response: categoriesRespo
     name: c.name,
     icon: c.icon ?? null,
     color: c.color ?? null,
+    notes: c.notes ?? null,
     monthlyTarget: c.monthlyTarget ?? null,
     spent: spentByCategory.get(c.id) ?? 0,
     groupId: c.groupId ?? null,
@@ -73,6 +76,7 @@ export const GET = route({ query: CategoryQuerySchema, response: categoriesRespo
   const groupRows = groups.map(g => ({
     id: g.id,
     name: g.name,
+    notes: g.notes ?? null,
     sortOrder: g.sortOrder,
     categories: catRows.filter(c => c.groupId === g.id).sort((a, b) => a.sortOrder - b.sortOrder),
   }));
@@ -101,6 +105,7 @@ export const POST = route({ body: CategoryCreateSchema, response: categoryMutati
     name: body.name.trim(),
     icon: (body.icon as CategoryIcon | null | undefined) ?? null,
     color: body.color ?? null,
+    notes: trimOrNull(body.notes) ?? null,
     monthlyTarget: body.monthlyTarget ?? null,
     groupId: body.groupId ?? null,
     sortOrder: body.sortOrder ?? 0,

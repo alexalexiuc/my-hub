@@ -1,13 +1,16 @@
 /**
  * Finance payee CRUD + usage stats
- * - upsertPayee(userId, budgetId, name) — insert-or-return, case-insensitive via normalizedName
- * - getPayees(userId, budgetId) — returns all payees ranked by user usage; includes description and stats
+ * - findPayeeByNameOrAlias(userId, budgetId, name) — resolves a payee by canonical name or alias
+ * - upsertPayee(userId, budgetId, name) — insert-or-return, case-insensitive via normalizedName/alias matching
+ * - resolvePayeeIdByNameOrAlias(userId, budgetId, name) — resolves payee id or undefined
+ * - updatePayee(userId, budgetId, payeeId, patch) — updates payee name/alias/description
+ * - getPayees(userId, budgetId) — returns all payees ranked by user usage; includes alias, description, and stats
  * - deletePayee(userId, budgetId, payeeId) — hard delete
  * - incrementPayeeStats(tx, payeeId, userId, categoryId, accountId?) — called inside transaction writes
  * - decrementPayeeStats(tx, payeeId, userId) — called inside transaction deletes
  * Types: Payee
  */
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, ilike, or } from 'drizzle-orm';
 import { db, DbTx } from '../../db/client';
 import { financePayees } from '../../db/schema/finances';
 import type { PayeeUserStats } from '../../db/schema/finances';
@@ -17,6 +20,7 @@ import type { FinancePayee } from '../../types';
 export interface Payee {
   id: number;
   name: string;
+  alias: string | null;
   description: string | null;
   useCount: number;
   lastUsedAt: string | null;
@@ -24,29 +28,115 @@ export interface Payee {
   recentAccountId: number | null;
 }
 
+export interface PayeeUpdate {
+  name?: string;
+  alias?: string | null;
+  description?: string | null;
+}
+
+function normalizePayeeName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+export async function findPayeeByNameOrAlias(
+  userId: string,
+  budgetId: number,
+  name: string,
+): Promise<FinancePayee | null> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const trimmedName = name.trim();
+  if (!trimmedName) return null;
+
+  const normalizedName = normalizePayeeName(trimmedName);
+
+  const [existing] = await db
+    .select()
+    .from(financePayees)
+    .where(
+      and(
+        eq(financePayees.budgetId, budgetId),
+        or(eq(financePayees.normalizedName, normalizedName), ilike(financePayees.alias, trimmedName)),
+      ),
+    )
+    .limit(1);
+
+  return existing ?? null;
+}
+
 export async function upsertPayee(userId: string, budgetId: number, name: string): Promise<FinancePayee> {
   if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
-  const normalizedName = name.toLowerCase().trim();
   const trimmedName = name.trim();
+  const normalizedName = normalizePayeeName(trimmedName);
+
+  const existing = await findPayeeByNameOrAlias(userId, budgetId, trimmedName);
+  if (existing) return existing;
 
   const [row] = await db
     .insert(financePayees)
-    .values({ budgetId, name: trimmedName, normalizedName, statsByUser: {} })
+    .values({ budgetId, name: trimmedName, alias: null, normalizedName, statsByUser: {} })
     .onConflictDoNothing()
     .returning();
 
   if (row) return row;
 
-  const [existing] = await db
-    .select()
-    .from(financePayees)
-    .where(and(eq(financePayees.budgetId, budgetId), eq(financePayees.normalizedName, normalizedName)));
+  const fallback = await findPayeeByNameOrAlias(userId, budgetId, trimmedName);
+  if (!fallback) throw new Error('Payee upsert failed');
+  return fallback;
+}
 
-  if (!existing) throw new Error('Payee upsert failed');
-  return existing;
+export async function resolvePayeeIdByNameOrAlias(
+  userId: string,
+  budgetId: number,
+  name: string,
+): Promise<number | undefined> {
+  const trimmedName = name.trim();
+  if (!trimmedName) return undefined;
+
+  const payee = await findPayeeByNameOrAlias(userId, budgetId, trimmedName);
+  return payee?.id;
+}
+
+export async function updatePayee(
+  userId: string,
+  budgetId: number,
+  payeeId: number,
+  patch: PayeeUpdate,
+): Promise<FinancePayee> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const changes: Partial<typeof financePayees.$inferInsert> = {};
+  if (patch.name !== undefined) {
+    const trimmed = patch.name.trim();
+    if (!trimmed) throw new Error('Payee name is required');
+    changes.name = trimmed;
+    changes.normalizedName = normalizePayeeName(trimmed);
+  }
+  if (patch.alias !== undefined) {
+    changes.alias = patch.alias?.trim() || null;
+  }
+  if (patch.description !== undefined) {
+    changes.description = patch.description?.trim() || null;
+  }
+
+  const [updated] = await db
+    .update(financePayees)
+    .set(changes)
+    .where(and(eq(financePayees.id, payeeId), eq(financePayees.budgetId, budgetId)))
+    .returning();
+
+  if (!updated) {
+    throw new Error('Payee not found');
+  }
+
+  return updated;
 }
 
 export async function getPayees(userId: string, budgetId: number): Promise<Payee[]> {
@@ -65,6 +155,7 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
     return {
       id: p.id,
       name: p.name,
+      alias: p.alias,
       description: p.description,
       useCount: stats?.count ?? 0,
       lastUsedAt: stats?.lastUsedAt ?? null,

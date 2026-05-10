@@ -5,33 +5,38 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import { FinModalShell } from '../FinModalShell';
 import { Button, Field, Input, Textarea } from '@/components';
-import { AddGroupSchema, defaultAddGroupValues, type AddGroupValues } from '../finances-form.schema';
+import { AddGroupSchema, type AddGroupValues } from '../finances-form.schema';
 
-type AddGroupModalProps = {
+export type EditGroupModalProps = {
+  groupId: number;
+  initialValues: AddGroupValues;
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
 };
 
-export function AddGroupModal({ onClose, onCreated }: AddGroupModalProps) {
+export function EditGroupModal({ groupId, initialValues, onClose, onSaved }: EditGroupModalProps) {
   const {
     register,
     handleSubmit,
     formState: { isSubmitting },
   } = useForm<AddGroupValues>({
     resolver: zodResolver(AddGroupSchema),
-    defaultValues: defaultAddGroupValues,
+    defaultValues: initialValues,
   });
 
   async function onSubmit(values: AddGroupValues) {
-    await apiFetch('/api/finances/groups', {
-      method: 'POST',
-      body: { name: values.name, notes: values.notes.trim() || null },
+    await apiFetch(`/api/finances/groups/${groupId}`, {
+      method: 'PATCH',
+      body: {
+        name: values.name,
+        notes: values.notes.trim() || null,
+      },
     });
-    onCreated();
+    onSaved();
   }
 
   return (
-    <FinModalShell onClose={onClose} title="New Group" className="md:max-w-[360px]">
+    <FinModalShell onClose={onClose} title="Edit Group" className="md:max-w-[360px]">
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <Field label="Name">
           <Input {...register('name')} placeholder="e.g. Living Expenses" autoFocus />
@@ -51,7 +56,7 @@ export function AddGroupModal({ onClose, onCreated }: AddGroupModalProps) {
             Cancel
           </Button>
           <Button type="submit" size="sm" loading={isSubmitting}>
-            Create
+            Save
           </Button>
         </div>
       </form>

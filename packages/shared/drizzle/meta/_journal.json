@@ -253,6 +253,13 @@
       "when": 1778236252100,
       "tag": "0036_past_prima",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1778393689525,
+      "tag": "0037_omniscient_kid_colt",
+      "breakpoints": true
     }
   ]
 }

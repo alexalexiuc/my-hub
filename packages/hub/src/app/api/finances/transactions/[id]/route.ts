@@ -68,7 +68,11 @@ export const PATCH = route({
 
   let payeeId: number | null | undefined = undefined;
   if (body.payeeName !== undefined) {
-    payeeId = body.payeeName.trim() ? (await upsertPayee(user.id, budgetId, body.payeeName.trim())).id : null;
+    if (body.payeeName.trim()) {
+      payeeId = (await upsertPayee(user.id, budgetId, body.payeeName.trim())).id;
+    } else {
+      payeeId = null;
+    }
   }
 
   const update: TransactionUpdate = omitUndefined({
