@@ -20,7 +20,7 @@ import { supportedCurrencySchema } from '../../shared/schemas';
 
 export const UpsertAccountSchema = z.object({
   id: z.number().int().positive().optional().describe('Omit to create a new account.'),
-  name: z.string().min(1).optional().describe('Account display name. Required when creating.'),
+  name: z.string().trim().min(1).optional().describe('Account display name. Required when creating.'),
   type: z
     .enum(AccountTypes)
     .optional()
