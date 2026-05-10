@@ -437,19 +437,20 @@ describe.sequential('finances — merge_payees', () => {
   });
 
   it('merges two payees successfully when they exist', async () => {
-    // First get context to find real payees
+    // First get context to find dedicated e2e payees only
     const contextResult = await client.callTool({
       name: 'finances_list_context',
       arguments: {},
     });
     const context = parseToolResult<ListContextResult>(contextResult);
+    const e2ePayees = context.payees.filter(payee => payee.name.startsWith('[e2e:'));
 
-    if (context.payees.length < 2) {
-      console.log('Not enough payees to test merge, skipping');
+    if (e2ePayees.length < 2) {
+      console.log('Not enough dedicated e2e payees to test merge safely, skipping');
       return;
     }
 
-    const [target, ...sources] = context.payees;
+    const [target, ...sources] = e2ePayees;
     const sourceIds = sources.slice(0, 1).map(p => p.id);
 
     const runId = Date.now().toString(36);
