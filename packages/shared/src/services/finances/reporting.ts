@@ -37,8 +37,8 @@ export interface CategoryProgress {
 
 export interface BudgetProgressResult {
   month: string;
-  totalBudgeted: string;
-  totalSpent: string;
+  totalBudgeted: number;
+  totalSpent: number;
   categories: CategoryProgress[];
 }
 
@@ -119,8 +119,8 @@ export async function getBudgetProgress(
 
   return {
     month: targetMonth,
-    totalBudgeted: String(totalBudgeted),
-    totalSpent: String(totalSpent),
+    totalBudgeted,
+    totalSpent,
     categories: categoryProgress,
   };
 }
@@ -129,17 +129,17 @@ export async function getBudgetProgress(
 
 export interface MonthCashflow {
   month: string;
-  income: string;
-  expenses: string;
-  net: string;
+  income: number;
+  expenses: number;
+  net: number;
 }
 
 export interface CashflowSummaryResult {
   dateFrom: string;
   dateTo: string;
-  totalIncome: string;
-  totalExpenses: string;
-  net: string;
+  totalIncome: number;
+  totalExpenses: number;
+  net: number;
   byMonth: MonthCashflow[];
 }
 
@@ -197,17 +197,17 @@ export async function getCashflowSummary(
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([month, data]) => ({
       month,
-      income: String(data.income),
-      expenses: String(data.expenses),
-      net: String(data.income - data.expenses),
+      income: data.income,
+      expenses: data.expenses,
+      net: data.income - data.expenses,
     }));
 
   return {
     dateFrom,
     dateTo,
-    totalIncome: String(totalIncome),
-    totalExpenses: String(totalExpenses),
-    net: String(totalIncome - totalExpenses),
+    totalIncome,
+    totalExpenses,
+    net: totalIncome - totalExpenses,
     byMonth,
   };
 }
@@ -218,7 +218,7 @@ export interface PayeeSpending {
   payeeId: number;
   name: string;
   transactionCount: number;
-  totalSpent: string;
+  totalSpent: number;
 }
 
 export interface SpendingByPayeeResult {
@@ -268,7 +268,7 @@ export async function getSpendingByPayee(
       payeeId: r.payeeId!,
       name: r.name ?? 'Unknown',
       transactionCount: r.count,
-      totalSpent: r.total ?? '0',
+      totalSpent: parseFloat(r.total ?? '0'),
     })),
   };
 }
@@ -281,8 +281,8 @@ export interface AggregateGroup {
   key: string;
   id?: number;
   transactionCount: number;
-  total: string;
-  average: string;
+  total: number;
+  average: number;
 }
 
 export interface SpendingAggregatesOpts {
@@ -349,8 +349,8 @@ export async function getSpendingAggregates(
         key: r.name ?? '(uncategorized)',
         id: r.id ?? undefined,
         transactionCount: r.count,
-        total: String(total),
-        average: r.count > 0 ? String(total / r.count) : '0',
+        total,
+        average: r.count > 0 ? total / r.count : 0,
       };
     });
   } else if (opts.groupBy === 'payee') {
@@ -373,8 +373,8 @@ export async function getSpendingAggregates(
         key: r.name ?? '(no payee)',
         id: r.id ?? undefined,
         transactionCount: r.count,
-        total: String(total),
-        average: r.count > 0 ? String(total / r.count) : '0',
+        total,
+        average: r.count > 0 ? total / r.count : 0,
       };
     });
   } else if (opts.groupBy === 'account') {
@@ -397,8 +397,8 @@ export async function getSpendingAggregates(
         key: r.name ?? 'Unknown',
         id: r.id,
         transactionCount: r.count,
-        total: String(total),
-        average: r.count > 0 ? String(total / r.count) : '0',
+        total,
+        average: r.count > 0 ? total / r.count : 0,
       };
     });
   } else if (opts.groupBy === 'month') {
@@ -418,8 +418,8 @@ export async function getSpendingAggregates(
       return {
         key: r.month,
         transactionCount: r.count,
-        total: String(total),
-        average: r.count > 0 ? String(total / r.count) : '0',
+        total,
+        average: r.count > 0 ? total / r.count : 0,
       };
     });
   } else {
@@ -440,8 +440,8 @@ export async function getSpendingAggregates(
       return {
         key: r.type,
         transactionCount: r.count,
-        total: String(total),
-        average: r.count > 0 ? String(total / r.count) : '0',
+        total,
+        average: r.count > 0 ? total / r.count : 0,
       };
     });
   }
@@ -454,26 +454,26 @@ export async function getSpendingAggregates(
 export interface AccountNetWorth {
   id: number;
   name: string;
-  balance: string;
+  balance: number;
   currency: string;
-  balanceInDefaultCurrency: string;
+  balanceInDefaultCurrency: number;
 }
 
 export interface NetWorthByType {
-  total: string;
+  total: number;
   accounts: AccountNetWorth[];
 }
 
 export interface NetWorthHistoryEntry {
   month: string;
-  netWorth: string;
+  netWorth: number;
 }
 
 export interface NetWorthSummaryResult {
   currency: string;
-  netWorth: string;
-  totalAssets: string;
-  totalLiabilities: string;
+  netWorth: number;
+  totalAssets: number;
+  totalLiabilities: number;
   byType: Partial<Record<AccountType, NetWorthByType>>;
   history: NetWorthHistoryEntry[];
 }
@@ -508,13 +508,13 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
     const entry: AccountNetWorth = {
       id: acct.id,
       name: acct.name,
-      balance: String(balance),
+      balance,
       currency: acct.currency,
-      balanceInDefaultCurrency: String(balanceDefault),
+      balanceInDefaultCurrency: balanceDefault,
     };
 
     if (!byType[acct.type]) {
-      byType[acct.type] = { total: '0', accounts: [] };
+      byType[acct.type] = { total: 0, accounts: [] };
     }
     byType[acct.type]!.accounts.push(entry);
 
@@ -529,8 +529,8 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
   // Compute per-type totals
   for (const type of Object.keys(byType) as AccountType[]) {
     const group = byType[type]!;
-    const total = group.accounts.reduce((sum, a) => sum + parseFloat(a.balanceInDefaultCurrency), 0);
-    group.total = String(total);
+    const total = group.accounts.reduce((sum, a) => sum + a.balanceInDefaultCurrency, 0);
+    group.total = total;
   }
 
   const netWorth = totalAssets - totalLiabilities;
@@ -543,15 +543,13 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
     .orderBy(sql`${financeNetWorthSnapshots.month} desc`)
     .limit(12);
 
-  const history: NetWorthHistoryEntry[] = snapshots
-    .reverse()
-    .map(s => ({ month: s.month, netWorth: String(s.netWorth) }));
+  const history: NetWorthHistoryEntry[] = snapshots.reverse().map(s => ({ month: s.month, netWorth: s.netWorth }));
 
   return {
     currency: budget.defaultCurrency,
-    netWorth: String(netWorth),
-    totalAssets: String(totalAssets),
-    totalLiabilities: String(totalLiabilities),
+    netWorth,
+    totalAssets,
+    totalLiabilities,
     byType,
     history,
   };

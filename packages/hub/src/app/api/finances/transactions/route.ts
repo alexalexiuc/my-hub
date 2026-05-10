@@ -72,6 +72,10 @@ const TransactionCreateSchema = z.object({
 
 const TransactionQuerySchema = z.object({
   type: z.enum(TransactionTypes).optional(),
+  month: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/)
+    .optional(),
   limit: z.coerce.number().int().positive().max(200).optional(),
   offset: z.coerce.number().int().nonnegative().optional(),
 });
@@ -87,12 +91,17 @@ export const GET = route({ query: TransactionQuerySchema, response: transactions
   const limit = Math.min(query.limit ?? 50, 200);
   const offset = query.offset ?? 0;
 
+  const fromDate = query.month ? `${query.month}-01` : undefined;
+  const toDate = query.month ? `${query.month}-31` : undefined;
+
   const [accounts, categories, payees, txns, members] = await Promise.all([
     getAccounts(user.id, budgetId),
     getCategories(user.id, budgetId),
     getPayees(user.id, budgetId),
     getTransactions(user.id, budgetId, {
       type: query.type,
+      fromDate,
+      toDate,
       includeCorrections: true,
       limit,
       offset,

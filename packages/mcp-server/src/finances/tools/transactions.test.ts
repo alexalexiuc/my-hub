@@ -174,16 +174,16 @@ describe('addTransactionsTool', () => {
     vi.mocked(getCategories).mockResolvedValue([{ id: 10, monthlyTarget: 300 }] as never);
     vi.mocked(getBudgetProgress).mockResolvedValue({
       month: '2026-04',
-      totalBudgeted: '300',
-      totalSpent: '150',
+      totalBudgeted: 300,
+      totalSpent: 150,
       categories: [
         {
           id: 10,
           name: 'Groceries',
           displayName: 'Groceries',
-          monthlyTarget: '300',
-          spent: '150',
-          remainingBudget: '150',
+          monthlyTarget: 300,
+          spent: 150,
+          remainingBudget: 150,
           percentUsed: 50,
         },
       ],
@@ -210,6 +210,7 @@ describe('addTransactionsTool', () => {
         categoryBudgetProgress?: {
           month: string;
           monthlyTarget: string;
+          remaining: string;
           spentSoFar: string;
         };
       }>;
@@ -217,8 +218,9 @@ describe('addTransactionsTool', () => {
 
     expect(payload.results[0]?.categoryBudgetProgress).toEqual({
       month: '2026-04',
-      monthlyTarget: '300',
-      spentSoFar: '150',
+      monthlyTarget: 300,
+      remaining: 150,
+      spentSoFar: 150,
     });
     expect(getBudgetProgress).toHaveBeenCalledWith('user-1', 1, '2026-04');
   });
