@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { defineResource, withUserIdCheckResource } from '../../shared/toolsUtils';
+import { defineResource, wrapResourceHandler } from '../../shared/toolsUtils';
 import { getSummaryResource } from './summary';
 import { getHivesResource } from './hives';
 import { getTasksResource } from './tasks';
@@ -34,7 +34,7 @@ export function registerApiaryResources(server: McpServer): void {
       resource.name,
       resource.uri,
       { description: resource.description, mimeType: resource.mimeType },
-      withUserIdCheckResource(resource.callback),
+      wrapResourceHandler(resource.callback),
     );
   }
 }

@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { ToolHandler } from '../../shared/types';
 import { deleteMeasurement, getMeasurements, logMeasurement } from '@my-hub/shared/services';
 import { measurementTypeDefinitionsByKey, measurementTypeKeys } from '@my-hub/shared/constants';
@@ -77,7 +78,7 @@ export const deleteMeasurementTool: ToolHandler<typeof DeleteMeasurementSchema.s
   const { userId } = context;
   const deleted = await deleteMeasurement(input.id, userId);
   if (!deleted) {
-    throw new Error(`Measurement with id ${input.id} not found.`);
+    throw new HandledError(`Measurement with id ${input.id} not found.`);
   }
   return toolResponse({ deleted: true, id: input.id });
 };

@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { FinancesSidebar } from './FinancesSidebar';
 import { FinancesBottomNav } from './FinancesBottomNav';
-import './finances.css';
 
 export default function FinancesLayout({ children }: { children: React.ReactNode }) {
   return (

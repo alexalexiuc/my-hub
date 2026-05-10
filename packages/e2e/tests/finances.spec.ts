@@ -205,7 +205,7 @@ test.describe('Finances', () => {
       await page.waitForLoadState('networkidle');
 
       // ── 1. Add expense ────────────────────────────────────────────────────
-      await page.getByTitle('Add transaction').click();
+      await page.getByTitle('Add transaction').first().click();
       await expect(page.getByText('New Transaction')).toBeVisible();
 
       // Default type is expense — fill in amount, account, category, and payee
@@ -226,7 +226,7 @@ test.describe('Finances', () => {
       // ── 2. Payee autocomplete: pill and fuzzy-search suggestions ──────────
       // "Supermarket" was just saved, so it should appear as a most-used pill and
       // as a fuzzy-search result when typing a partial name.
-      await page.getByTitle('Add transaction').click();
+      await page.getByTitle('Add transaction').first().click();
       await expect(page.getByText('New Transaction')).toBeVisible();
 
       // Most-used payee pill appears without typing anything
@@ -249,7 +249,7 @@ test.describe('Finances', () => {
       await page.waitForLoadState('networkidle');
 
       // ── 1. Add income ─────────────────────────────────────────────────────
-      await page.getByTitle('Add transaction').click();
+      await page.getByTitle('Add transaction').first().click();
       await expect(page.getByText('New Transaction')).toBeVisible();
 
       await page.getByRole('button', { name: 'income', exact: true }).click();
@@ -490,7 +490,7 @@ test.describe('Finances', () => {
     await page.goto('/finances/transactions');
     await page.waitForLoadState('networkidle');
 
-    await page.getByTitle('Add transaction').click();
+    await page.getByTitle('Add transaction').first().click();
     await expect(page.getByText('New Transaction')).toBeVisible();
 
     // Select transfer type

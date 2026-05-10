@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { z } from 'zod';
 import { ToolHandler } from '../../shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -107,7 +108,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
   const { userId } = context;
 
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget. Set an active budget in the Hub first.');
+  if (!budget) throw new HandledError('No active budget. Set an active budget in the Hub first.');
 
   const results = [];
   let categoryTargetsById: Map<number, number | null> | null = null;
@@ -159,7 +160,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
       });
 
       const account = await getAccountById(userId, budget.id, item.accountId);
-      if (!account) throw new Error(`Account ${item.accountId} not found`);
+      if (!account) throw new HandledError(`Account ${item.accountId} not found`);
 
       const amountCurrency = item.currency?.toUpperCase();
 
@@ -325,22 +326,22 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
   const { userId } = context;
 
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget.');
+  if (!budget) throw new HandledError('No active budget.');
 
   // Fetch existing to verify ownership
   const existing = await getTransactionById(userId, budget.id, input.transactionId);
-  if (!existing) throw new Error('Transaction not found');
-  if (existing.addedByUserId !== userId) throw new Error('You can only edit your own transactions');
+  if (!existing) throw new HandledError('Transaction not found');
+  if (existing.addedByUserId !== userId) throw new HandledError('You can only edit your own transactions');
 
   const nextType = input.type ?? existing.type;
   const nextToAccountId = input.toAccountId !== undefined ? input.toAccountId : existing.toAccountId;
 
   if (nextType === TransactionTypes.Transfer && nextToAccountId == null) {
-    throw new Error('Transfer transactions require toAccountId');
+    throw new HandledError('Transfer transactions require toAccountId');
   }
 
   if (nextType !== TransactionTypes.Transfer && input.toAccountId !== undefined) {
-    throw new Error('toAccountId can only be set for transfer transactions');
+    throw new HandledError('toAccountId can only be set for transfer transactions');
   }
 
   const toAccountIdForUpdate =
@@ -446,11 +447,11 @@ export const deleteTransactionTool: ToolHandler<typeof DeleteTransactionSchema.s
   const { userId } = context;
 
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget.');
+  if (!budget) throw new HandledError('No active budget.');
 
   const existing = await getTransactionById(userId, budget.id, input.transactionId);
-  if (!existing) throw new Error('Transaction not found');
-  if (existing.addedByUserId !== userId) throw new Error('You can only delete your own transactions');
+  if (!existing) throw new HandledError('Transaction not found');
+  if (existing.addedByUserId !== userId) throw new HandledError('You can only delete your own transactions');
 
   const result = await deleteTransaction(userId, budget.id, input.transactionId);
 
@@ -482,7 +483,7 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema.s
   const { userId } = context;
 
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget.');
+  if (!budget) throw new HandledError('No active budget.');
 
   // Resolve payee name to ID if provided
   let payeeId: number | undefined = undefined;

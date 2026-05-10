@@ -156,6 +156,8 @@ export function CaloriesWidget() {
   return (
     <SectionCard
       title="Calories"
+      titleHref="/calories"
+      titleHoverClass="hover:text-orange-400"
       className="border-orange-800/50 bg-gradient-to-br from-orange-950/40 to-zinc-900"
       action={
         <button

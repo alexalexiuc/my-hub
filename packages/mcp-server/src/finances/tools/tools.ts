@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { defineTool, withUserIdCheck } from '../../shared/toolsUtils';
+import { defineTool, wrapToolHandler } from '../../shared/toolsUtils';
 import {
   AddTransactionsSchema,
   UpdateTransactionSchema,
@@ -198,7 +198,7 @@ export function registerFinancesTools(server: McpServer): void {
         inputSchema: tool.inputSchema,
         annotations: tool.annotations,
       },
-      withUserIdCheck(tool.callback),
+      wrapToolHandler(tool.callback),
     );
   }
 }

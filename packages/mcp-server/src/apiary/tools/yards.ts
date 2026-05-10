@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { z } from 'zod';
 import { ToolHandler } from '../../shared/types';
 import { getApiaryYards, createApiaryYard, updateApiaryYard } from '@my-hub/shared/services';
@@ -42,6 +43,6 @@ export const updateYardTool: ToolHandler<typeof UpdateYardSchema.shape> = async 
     input.yardId,
     omitNullish({ name: input.name, location: input.location, notes: input.notes, isActive: input.isActive }),
   );
-  if (!yard) throw new Error(`Yard with id ${input.yardId} not found`);
+  if (!yard) throw new HandledError(`Yard with id ${input.yardId} not found`);
   return toolResponse(yard);
 };

@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { ToolHandler } from '../../shared/types';
 import { z } from 'zod';
 import { deleteTripDay, getTripDays, upsertTripDay } from '@my-hub/shared/services';
@@ -56,7 +57,7 @@ export const travelDeleteDayNoteTool: ToolHandler<typeof TravelDeleteDayNoteSche
   const { userId } = context;
 
   const removed = await deleteTripDay(userId, input.id);
-  if (!removed) throw new Error(`Day note ${input.id} not found or already removed.`);
+  if (!removed) throw new HandledError(`Day note ${input.id} not found or already removed.`);
 
   return toolResponse({ message: 'Day note deleted.', id: removed.id, date: removed.date });
 };

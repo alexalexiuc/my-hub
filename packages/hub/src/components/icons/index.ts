@@ -36,3 +36,5 @@ export { UserPlusOutlineIcon } from './UserPlusOutlineIcon';
 export { CheckOutlineIcon } from './CheckOutlineIcon';
 export { TrashOutlineIcon } from './TrashOutlineIcon';
 export { SpinnerIcon } from './SpinnerIcon';
+export { EyeOutlineIcon } from './EyeOutlineIcon';
+export { EyeOffOutlineIcon } from './EyeOffOutlineIcon';

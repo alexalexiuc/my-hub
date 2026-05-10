@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { z } from 'zod';
 import { addTodo, getTodos, markTodoDone } from '@my-hub/shared/services';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -22,7 +23,7 @@ export const addTodoTool: ToolHandler<typeof AddTodoSchema.shape> = async (input
 export const markDoneTool: ToolHandler<typeof MarkDoneSchema.shape> = async (input, context) => {
   const { userId } = context;
   const todo = await markTodoDone(userId, input.id);
-  if (!todo) throw new Error(`Todo with id ${input.id} not found`);
+  if (!todo) throw new HandledError(`Todo with id ${input.id} not found`);
   return toolResponse(todo);
 };
 

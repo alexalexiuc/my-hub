@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { z } from 'zod';
 import { ToolHandler } from '../../shared/types';
 import {
@@ -67,6 +68,6 @@ export const moveHivesTool: ToolHandler<typeof MoveHivesSchema.shape> = async (i
 export const getYardBriefingTool: ToolHandler<typeof GetYardBriefingSchema.shape> = async (input, context) => {
   const { userId } = context;
   const briefing = await getApiaryYardBriefing(userId, input.yardId);
-  if (!briefing) throw new Error(`Yard with id ${input.yardId} not found`);
+  if (!briefing) throw new HandledError(`Yard with id ${input.yardId} not found`);
   return toolResponse(briefing);
 };

@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { z } from 'zod';
 import { ToolHandler } from '../../shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -11,7 +12,7 @@ export const listContextTool: ToolHandler<typeof ListContextSchema.shape> = asyn
   const { userId } = context;
 
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget. Set an active budget in the Hub first.');
+  if (!budget) throw new HandledError('No active budget. Set an active budget in the Hub first.');
 
   const [accounts, categories, groups, payees] = await Promise.all([
     getAccounts(userId, budget.id, { includeArchived: true }),

@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { measurementTypeDefinitions } from '@my-hub/shared/constants';
 import { DeleteMealSchema, deleteMealTool, GetMealsSchema, getMealsTool, LogMealSchema, logMealTool } from './meals';
-import { defineTool, toolResponse, withUserIdCheck } from '../../shared/toolsUtils';
+import { defineTool, toolResponse, wrapToolHandler } from '../../shared/toolsUtils';
 import { UpdateProfileSchema, updateProfileTool } from './profile';
 import { GetDailySummarySchema, getDailySummaryTool } from './summary';
 import { GetHistorySchema, getHistoryTool } from './history';
@@ -122,7 +122,7 @@ export function registerCaloriesTools(server: McpServer): void {
         outputSchema: tool.outputSchema,
         annotations: tool.annotations,
       },
-      withUserIdCheck(tool.callback),
+      wrapToolHandler(tool.callback),
     );
   }
 }

@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { z } from 'zod';
 import { ToolHandler } from '../../shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -23,7 +24,7 @@ export const GetBudgetProgressSchema = z.object({
 export const getBudgetProgressTool: ToolHandler<typeof GetBudgetProgressSchema.shape> = async (input, context) => {
   const { userId } = context;
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget.');
+  if (!budget) throw new HandledError('No active budget.');
 
   const result = await getBudgetProgress(userId, budget.id, input.month);
   return toolResponse(result);
@@ -39,7 +40,7 @@ export const GetCashflowSummarySchema = z.object({
 export const getCashflowSummaryTool: ToolHandler<typeof GetCashflowSummarySchema.shape> = async (input, context) => {
   const { userId } = context;
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget.');
+  if (!budget) throw new HandledError('No active budget.');
 
   const result = await getCashflowSummary(userId, budget.id, input.dateFrom, input.dateTo);
   return toolResponse(result);
@@ -56,7 +57,7 @@ export const GetSpendingByPayeeSchema = z.object({
 export const getSpendingByPayeeTool: ToolHandler<typeof GetSpendingByPayeeSchema.shape> = async (input, context) => {
   const { userId } = context;
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget.');
+  if (!budget) throw new HandledError('No active budget.');
 
   const result = await getSpendingByPayee(userId, budget.id, input.dateFrom, input.dateTo, input.limit);
   return toolResponse(result);
@@ -79,7 +80,7 @@ export const getSpendingAggregatesTool: ToolHandler<typeof GetSpendingAggregates
 ) => {
   const { userId } = context;
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget.');
+  if (!budget) throw new HandledError('No active budget.');
 
   const result = await getSpendingAggregates(userId, budget.id, {
     dateFrom: input.dateFrom,
@@ -99,7 +100,7 @@ export const GetNetWorthSummarySchema = z.object({});
 export const getNetWorthSummaryTool: ToolHandler<typeof GetNetWorthSummarySchema.shape> = async (_input, context) => {
   const { userId } = context;
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget.');
+  if (!budget) throw new HandledError('No active budget.');
 
   const result = await getNetWorthSummary(userId, budget.id);
   return toolResponse(result);

@@ -19,7 +19,7 @@ export function FinModalShell({ onClose, title, children, className }: FinModalS
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[1000] flex items-end bg-[var(--fin-overlay)] md:items-center md:justify-center md:p-4"
+      className="finances-theme fixed inset-0 z-[1000] flex items-end bg-[var(--fin-overlay)] md:items-center md:justify-center md:p-4"
     >
       <div
         onClick={e => e.stopPropagation()}

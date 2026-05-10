@@ -1,13 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { McpServerName } from '@my-hub/shared/constants';
 import type { HubExtraParam, RequestExtraParam, ResourceHandler, ToolHandler } from './types';
-import {
-  getHubAuthExtra,
-  requireHubAuthExtra,
-  toolResponse,
-  withUserIdCheck,
-  withUserIdCheckResource,
-} from './toolsUtils';
+import { getHubAuthExtra, requireHubAuthExtra, toolResponse, wrapToolHandler, wrapResourceHandler } from './toolsUtils';
 
 function buildExtra(
   overrides?: Partial<Record<'userId' | 'email' | 'clientId' | 'serverName' | 'timezone', unknown>>,
@@ -99,13 +93,13 @@ describe('requireHubAuthExtra', () => {
   });
 });
 
-describe('withUserIdCheckResource', () => {
+describe('wrapResourceHandler', () => {
   it('injects context and forwards uri+extra', async () => {
     const cb: ResourceHandler = vi.fn(async uri => ({
       contents: [{ uri: String(uri), mimeType: 'application/json', text: '{}' }],
     }));
 
-    const wrapped = withUserIdCheckResource(cb);
+    const wrapped = wrapResourceHandler(cb);
     const extra = buildRequestExtra();
     const uri = new URL('travel://trips');
 
@@ -125,20 +119,20 @@ describe('withUserIdCheckResource', () => {
     );
   });
 
-  it('throws when auth is invalid', async () => {
+  it('rejects when auth is invalid', async () => {
     const cb: ResourceHandler = vi.fn(async () => ({ contents: [] }));
-    const wrapped = withUserIdCheckResource(cb);
+    const wrapped = wrapResourceHandler(cb);
     const uri = new URL('travel://trips');
 
-    expect(() => wrapped(uri, buildRequestExtra({ userId: '' }))).toThrow('Authentication required');
+    await expect(wrapped(uri, buildRequestExtra({ userId: '' }))).rejects.toThrow('Authentication required');
     expect(cb).not.toHaveBeenCalled();
   });
 });
 
-describe('withUserIdCheck', () => {
+describe('wrapToolHandler', () => {
   it('supports two-argument sdk callback style (input, extra)', async () => {
     const cb: ToolHandler = vi.fn(async () => toolResponse({ ok: true }));
-    const wrapped = withUserIdCheck(cb);
+    const wrapped = wrapToolHandler(cb);
     const extra = buildRequestExtra();
     const input = { tripId: 7 };
 
@@ -160,7 +154,7 @@ describe('withUserIdCheck', () => {
 
   it('supports single-argument sdk callback style (extra only)', async () => {
     const cb: ToolHandler<undefined> = vi.fn(async () => toolResponse({ ok: true }));
-    const wrapped = withUserIdCheck(cb);
+    const wrapped = wrapToolHandler(cb);
     const extra = buildRequestExtra();
 
     await (wrapped as unknown as (extraArg: RequestExtraParam) => Promise<unknown>)(extra);
@@ -179,13 +173,13 @@ describe('withUserIdCheck', () => {
     );
   });
 
-  it('throws when auth is invalid', async () => {
+  it('rejects when auth is invalid', async () => {
     const cb: ToolHandler = vi.fn(async () => toolResponse({ ok: true }));
-    const wrapped = withUserIdCheck(cb);
+    const wrapped = wrapToolHandler(cb);
 
-    expect(() =>
+    await expect(
       (wrapped as unknown as (extraArg: RequestExtraParam) => Promise<unknown>)(buildRequestExtra({ userId: '' })),
-    ).toThrow('Authentication required');
+    ).rejects.toThrow('Authentication required');
     expect(cb).not.toHaveBeenCalled();
   });
 });

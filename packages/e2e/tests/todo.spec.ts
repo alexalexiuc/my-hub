@@ -51,28 +51,4 @@ test.describe('Todo', () => {
       .click();
     await expect(page.getByText('All caught up!')).toBeVisible({ timeout: 5_000 });
   });
-
-  /**
-   * Kept separate: navigates to the home page to verify the Todo tile link,
-   * which is a different page context from /todo.
-   */
-  test('home page has a Todo tile', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('link', { name: /todo/i })).toBeVisible();
-
-    // ── 1. Empty state ────────────────────────────────────────────────────────
-    await expect(page.getByText('All caught up!')).toBeVisible({ timeout: 5_000 });
-
-    // ── 2. Add an item ──────────────────────────────────────────────────────
-    await addTodo(page, 'Write tests');
-    await expect(page.getByText('Write tests')).toBeVisible({ timeout: 5_000 });
-
-    // ── 3. Mark item done → back to empty state ──────────────────────────────
-    await page
-      .getByRole('button', { name: /mark done/i })
-      .first()
-      .click();
-    await expect(page.getByText('All caught up!')).toBeVisible({ timeout: 5_000 });
-  });
 });

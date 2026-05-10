@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { z } from 'zod';
 import { ToolHandler } from '../../shared/types';
 import { getApiaryHives, createApiaryHive, updateApiaryHive, getApiaryHiveStatus } from '@my-hub/shared/services';
@@ -73,13 +74,13 @@ export const updateHiveTool: ToolHandler<typeof UpdateHiveSchema.shape> = async 
       isActive: input.isActive,
     }),
   );
-  if (!hive) throw new Error(`Hive with id ${input.hiveId} not found`);
+  if (!hive) throw new HandledError(`Hive with id ${input.hiveId} not found`);
   return toolResponse(hive);
 };
 
 export const getHiveStatusTool: ToolHandler<typeof GetHiveStatusSchema.shape> = async (input, context) => {
   const { userId } = context;
   const status = await getApiaryHiveStatus(userId, input.hiveId);
-  if (!status) throw new Error(`Hive with id ${input.hiveId} not found`);
+  if (!status) throw new HandledError(`Hive with id ${input.hiveId} not found`);
   return toolResponse(status);
 };

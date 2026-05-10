@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { defineResource, withUserIdCheckResource } from '../../shared/toolsUtils';
+import { defineResource, wrapResourceHandler } from '../../shared/toolsUtils';
 import { getOpenTodosResource } from './open';
 
 const todoOpenResource = defineResource({
@@ -18,7 +18,7 @@ export function registerTodoResources(server: McpServer): void {
       resource.name,
       resource.uri,
       { description: resource.description, mimeType: resource.mimeType },
-      withUserIdCheckResource(resource.callback),
+      wrapResourceHandler(resource.callback),
     );
   }
 }

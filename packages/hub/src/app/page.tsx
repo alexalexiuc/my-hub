@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { DashboardFooter, DashboardHeader } from '@/components/dashboard';
-import { CaloriesWidget, TodoWidget, TravelWidget } from '@/components/widgets';
+import { CaloriesWidget, FinancesWidget, TravelWidget } from '@/components/widgets';
 import {
   UtensilsOutlineIcon,
   ListChecksOutlineIcon,
@@ -77,7 +77,7 @@ export default function HomePage() {
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">Overview</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-            <TodoWidget />
+            <FinancesWidget />
             <CaloriesWidget />
           </div>
         </section>

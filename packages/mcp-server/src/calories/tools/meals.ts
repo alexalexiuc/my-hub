@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import {
   getCalorieProfile,
   getMealsForDate,
@@ -212,7 +213,7 @@ export const deleteMealTool: ToolHandler<typeof DeleteMealSchema.shape> = async 
   const { userId } = context;
   const deleted = await deleteMeal(userId, input.mealId);
   if (!deleted) {
-    throw new Error(`Meal with id "${input.mealId}" not found.`);
+    throw new HandledError(`Meal with id "${input.mealId}" not found.`);
   }
   return toolResponse({ deleted: true, mealId: input.mealId });
 };

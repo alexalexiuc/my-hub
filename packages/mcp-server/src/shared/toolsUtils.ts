@@ -2,6 +2,7 @@ import {
   ReadResourceCallback as SdkReadResourceCallback,
   ToolCallback as SdkToolCallback,
 } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { logger } from '@my-hub/shared/utils';
 import {
   AnyInput,
   AnyOutput,
@@ -15,6 +16,7 @@ import {
   RequestExtraParam,
   HubExtraParam,
 } from './types';
+import { HandledError } from './errors';
 
 export const toolResponse = (payload: unknown) => {
   return {
@@ -48,25 +50,42 @@ export function getHubAuthExtra(extra?: HubExtraParam): HubAuthExtra | null {
 export function requireHubAuthExtra(extra: RequestExtraParam): HubAuthExtra {
   const authExtra = getHubAuthExtra(extra);
   if (!authExtra) {
-    throw new Error('Authentication required');
+    throw new HandledError('Authentication required');
   }
   return authExtra;
 }
 
-export const withUserIdCheckResource =
+function logMcpError(err: unknown, handlerType: string): void {
+  if (err instanceof HandledError) {
+    logger.warn(`[mcp] ${err.message}`);
+  } else {
+    logger.error(`[mcp] Unexpected error in ${handlerType}:`, err);
+  }
+}
+
+export const wrapResourceHandler =
   (cb: ResourceHandler): SdkReadResourceCallback =>
-  (uri, extra) => {
-    const context = requireHubAuthExtra(extra);
-    return cb(uri, context, extra);
+  async (uri, extra) => {
+    try {
+      const context = requireHubAuthExtra(extra);
+      return await cb(uri, context, extra);
+    } catch (err) {
+      logMcpError(err, 'resource handler');
+      throw err;
+    }
   };
 
-export const withUserIdCheck = <InputArgs extends AnyInput>(cb: ToolHandler<InputArgs>): SdkToolCallback<InputArgs> => {
-  return ((...args: unknown[]) => {
+export const wrapToolHandler = <InputArgs extends AnyInput>(cb: ToolHandler<InputArgs>): SdkToolCallback<InputArgs> => {
+  return (async (...args: unknown[]) => {
     const input = (args.length === 2 ? args[0] : undefined) as ToolInput<InputArgs>;
     const extra = (args.length === 2 ? args[1] : args[0]) as RequestExtraParam;
 
-    const context = requireHubAuthExtra(extra);
-
-    return cb(input, context, extra);
+    try {
+      const context = requireHubAuthExtra(extra);
+      return await cb(input, context, extra);
+    } catch (err) {
+      logMcpError(err, 'tool handler');
+      throw err;
+    }
   }) as SdkToolCallback<InputArgs>;
 };

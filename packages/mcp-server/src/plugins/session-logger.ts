@@ -134,7 +134,16 @@ export const sessionLoggerPlugin = fp(async (app: FastifyInstance) => {
                 );
               }
 
-              putLog({ ...pending.logData, durationMs, statusCode }).catch((err: unknown) => {
+              let error: string | null = null;
+              if (isProtocolError) {
+                const { message: msg } = responseBody as Record<string, unknown>;
+                error = typeof msg === 'string' ? msg : null;
+              } else if (isToolResultError) {
+                const { content } = responseBody as { content?: Array<{ type: string; text?: string }> };
+                error = content?.find(c => c.type === 'text')?.text ?? null;
+              }
+
+              putLog({ ...pending.logData, durationMs, statusCode, error }).catch((err: unknown) => {
                 app.log.error({ err }, 'Failed to write MCP tool call log to DB');
               });
               pendingCalls.delete(message.id);

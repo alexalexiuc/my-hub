@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { ToolHandler } from '../../shared/types';
 import { z } from 'zod';
 import {
@@ -420,9 +421,9 @@ export const travelEditBookingTool: ToolHandler<typeof TravelEditBookingSchema.s
   const { userId } = context;
 
   const existing = await getTripBookingById(userId, input.bookingId);
-  if (!existing) throw new Error(`Booking ${input.bookingId} not found.`);
+  if (!existing) throw new HandledError(`Booking ${input.bookingId} not found.`);
   if (existing.bookingType === TripBookingTypes.Flight)
-    throw new Error('Use travel_edit_flight to update flight bookings.');
+    throw new HandledError('Use travel_edit_flight to update flight bookings.');
 
   const updated = await updateTripBooking(
     userId,
@@ -446,7 +447,7 @@ export const travelEditBookingTool: ToolHandler<typeof TravelEditBookingSchema.s
     }),
   );
 
-  if (!updated) throw new Error(`Failed to update booking ${input.bookingId}.`);
+  if (!updated) throw new HandledError(`Failed to update booking ${input.bookingId}.`);
 
   return toolResponse({
     message: 'Booking updated.',
@@ -486,9 +487,9 @@ export const travelEditFlightTool: ToolHandler<typeof TravelEditFlightSchema.sha
   const { userId } = context;
 
   const existing = await getTripBookingById(userId, input.bookingId);
-  if (!existing) throw new Error(`Booking ${input.bookingId} not found.`);
+  if (!existing) throw new HandledError(`Booking ${input.bookingId} not found.`);
   if (existing.bookingType !== TripBookingTypes.Flight)
-    throw new Error('Use travel_edit_booking to update non-flight bookings.');
+    throw new HandledError('Use travel_edit_booking to update non-flight bookings.');
 
   // Merge flight detail fields with existing so unmentioned fields are preserved.
   const existingDetails = (existing.details as Partial<FlightDetails>) ?? {};
@@ -520,7 +521,7 @@ export const travelEditFlightTool: ToolHandler<typeof TravelEditFlightSchema.sha
     details: mergedDetails,
   });
 
-  if (!updated) throw new Error(`Failed to update flight booking ${input.bookingId}.`);
+  if (!updated) throw new HandledError(`Failed to update flight booking ${input.bookingId}.`);
 
   // Re-link live tracking if the flight number changed.
   if (newFlightNumber) {
@@ -553,7 +554,7 @@ export const travelRemoveBookingTool: ToolHandler<typeof TravelRemoveBookingSche
   const { userId } = context;
 
   const removed = await deleteTripBooking(userId, input.bookingId);
-  if (!removed) throw new Error(`Booking ${input.bookingId} not found or already removed.`);
+  if (!removed) throw new HandledError(`Booking ${input.bookingId} not found or already removed.`);
 
   return toolResponse({
     message: 'Booking removed.',

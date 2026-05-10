@@ -10,7 +10,7 @@ test.describe('Main Dashboard', () => {
     // ── 1. Core tiles and links ───────────────────────────────────────────────
     await expect(page.getByRole('heading', { name: /my hub/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /calories/i }).first()).toBeVisible();
-    await expect(page.getByRole('link', { name: /todo/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /finances/i }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /mcp control/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /profile/i })).toBeVisible();
 

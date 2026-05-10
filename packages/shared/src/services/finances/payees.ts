@@ -60,7 +60,7 @@ export async function findPayeeByNameOrAlias(
         eq(financePayees.budgetId, budgetId),
         or(
           eq(financePayees.normalizedName, normalizedName),
-          sql`EXISTS (SELECT * FROM jsonb_array_elements(${financePayees.aliases}) AS elem WHERE elem::text ILIKE ${`%${trimmedName}%`})`,
+          sql`LOWER(${financePayees.aliases}::TEXT)::JSONB ? ${trimmedName.toLowerCase()}`,
         ),
       ),
     )

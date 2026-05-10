@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { z } from 'zod';
 import { ToolHandler } from '../../shared/types';
 import { createApiaryLog, getApiaryLogs, deleteApiaryLog, updateApiaryHive } from '@my-hub/shared/services';
@@ -242,6 +243,6 @@ export const getHiveLogsTool: ToolHandler<typeof GetHiveLogsSchema.shape> = asyn
 export const deleteLogTool: ToolHandler<typeof DeleteLogSchema.shape> = async (input, context) => {
   const { userId } = context;
   const deleted = await deleteApiaryLog(userId, input.logId);
-  if (!deleted) throw new Error(`Log entry with id ${input.logId} not found`);
+  if (!deleted) throw new HandledError(`Log entry with id ${input.logId} not found`);
   return toolResponse({ deleted: true, logId: input.logId });
 };

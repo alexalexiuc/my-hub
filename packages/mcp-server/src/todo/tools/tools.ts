@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { defineTool, withUserIdCheck } from '../../shared/toolsUtils';
+import { defineTool, wrapToolHandler } from '../../shared/toolsUtils';
 import { AddTodoSchema, addTodoTool, ListTodosSchema, listTodosTool, MarkDoneSchema, markDoneTool } from './todos';
 
 const addTodoDefinition = defineTool({
@@ -38,7 +38,7 @@ export function registerTodoTools(server: McpServer): void {
         inputSchema: tool.inputSchema,
         annotations: tool.annotations,
       },
-      withUserIdCheck(tool.callback),
+      wrapToolHandler(tool.callback),
     );
   }
 }

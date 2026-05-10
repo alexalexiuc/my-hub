@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { z } from 'zod';
 import { ToolHandler } from '../../shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -44,13 +45,13 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
   const { userId } = context;
 
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget. Set an active budget in the Hub first.');
+  if (!budget) throw new HandledError('No active budget. Set an active budget in the Hub first.');
 
   if (input.openingBalance !== undefined && input.openingDate === undefined) {
-    throw new Error('openingDate is required when openingBalance is provided');
+    throw new HandledError('openingDate is required when openingBalance is provided');
   }
   if (input.openingDate !== undefined && input.openingBalance === undefined) {
-    throw new Error('openingBalance is required when openingDate is provided');
+    throw new HandledError('openingBalance is required when openingDate is provided');
   }
 
   let account;
@@ -58,7 +59,7 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
   if (input.id !== undefined) {
     // Update existing
     const existing = await getAccountById(userId, budget.id, input.id);
-    if (!existing) throw new Error(`Account id ${input.id} not found`);
+    if (!existing) throw new HandledError(`Account id ${input.id} not found`);
 
     account = await updateAccount(userId, budget.id, input.id, {
       name: input.name,
@@ -68,8 +69,8 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
     });
   } else {
     // Create new
-    if (!input.name) throw new Error('name is required when creating an account');
-    if (!input.type) throw new Error('type is required when creating an account');
+    if (!input.name) throw new HandledError('name is required when creating an account');
+    if (!input.type) throw new HandledError('type is required when creating an account');
 
     account = await createAccount(userId, budget.id, {
       name: input.name,
@@ -146,7 +147,7 @@ export const upsertCategoryTool: ToolHandler<typeof UpsertCategorySchema.shape> 
   const { userId } = context;
 
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget. Set an active budget in the Hub first.');
+  if (!budget) throw new HandledError('No active budget. Set an active budget in the Hub first.');
 
   // Resolve groupName to groupId
   let groupId: number | null | undefined = undefined;
@@ -157,7 +158,9 @@ export const upsertCategoryTool: ToolHandler<typeof UpsertCategorySchema.shape> 
       const groups = await getGroups(userId, budget.id);
       const match = groups.find(g => g.name.toLowerCase() === input.groupName!.toLowerCase());
       if (!match)
-        throw new Error(`Group "${input.groupName}" not found. Use finances_list_context to see available groups.`);
+        throw new HandledError(
+          `Group "${input.groupName}" not found. Use finances_list_context to see available groups.`,
+        );
       groupId = match.id;
     }
   }
@@ -167,7 +170,7 @@ export const upsertCategoryTool: ToolHandler<typeof UpsertCategorySchema.shape> 
   if (input.id !== undefined) {
     // Update existing
     const existing = await getCategoryById(userId, budget.id, input.id);
-    if (!existing) throw new Error(`Category id ${input.id} not found`);
+    if (!existing) throw new HandledError(`Category id ${input.id} not found`);
 
     category = await updateCategory(userId, budget.id, input.id, {
       name: input.name,
@@ -176,7 +179,7 @@ export const upsertCategoryTool: ToolHandler<typeof UpsertCategorySchema.shape> 
     });
   } else {
     // Create new
-    if (!input.name) throw new Error('name is required when creating a category');
+    if (!input.name) throw new HandledError('name is required when creating a category');
 
     category = await createCategory(userId, budget.id, {
       name: input.name,

@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { z } from 'zod';
 import { ToolHandler } from '../../shared/types';
 import { createApiaryTask, updateApiaryTask, deleteApiaryTask, getApiaryTasks } from '@my-hub/shared/services';
@@ -65,14 +66,14 @@ export const createTaskTool: ToolHandler<typeof CreateTaskSchema.shape> = async 
 export const completeTaskTool: ToolHandler<typeof CompleteTaskSchema.shape> = async (input, context) => {
   const { userId } = context;
   const task = await updateApiaryTask(userId, input.taskId, { completed: true });
-  if (!task) throw new Error(`Task with id ${input.taskId} not found`);
+  if (!task) throw new HandledError(`Task with id ${input.taskId} not found`);
   return toolResponse(task);
 };
 
 export const deleteTaskTool: ToolHandler<typeof DeleteTaskSchema.shape> = async (input, context) => {
   const { userId } = context;
   const deleted = await deleteApiaryTask(userId, input.taskId);
-  if (!deleted) throw new Error(`Task with id ${input.taskId} not found`);
+  if (!deleted) throw new HandledError(`Task with id ${input.taskId} not found`);
   return toolResponse({ deleted: true, taskId: input.taskId });
 };
 

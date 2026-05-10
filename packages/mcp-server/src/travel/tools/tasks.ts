@@ -1,3 +1,4 @@
+import { HandledError } from '../../shared/errors';
 import { ToolHandler } from '../../shared/types';
 import { z } from 'zod';
 import {
@@ -106,7 +107,7 @@ export const travelPrepareTripChecklistTool: ToolHandler<typeof TravelPrepareTri
   const { userId } = context;
   const trips = await getTrips(userId);
   const trip = trips.find(t => t.id === input.tripId);
-  if (!trip) throw new Error(`Trip with id ${input.tripId} not found`);
+  if (!trip) throw new HandledError(`Trip with id ${input.tripId} not found`);
 
   const added: string[] = [];
 

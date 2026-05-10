@@ -1,7 +1,14 @@
+import { HandledError } from '../../shared/errors';
 import { z } from 'zod';
 import { ToolHandler } from '../../shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
-import { getUserActiveBudget, mergePayees, upsertPayee, updatePayee, findPayeeByNameOrAlias } from '@my-hub/shared/services';
+import {
+  getUserActiveBudget,
+  mergePayees,
+  upsertPayee,
+  updatePayee,
+  findPayeeByNameOrAlias,
+} from '@my-hub/shared/services';
 
 // ─── upsert_payee ─────────────────────────────────────────────────────────────
 
@@ -28,7 +35,7 @@ export const upsertPayeeTool: ToolHandler<typeof UpsertPayeeSchema.shape> = asyn
   const { userId } = context;
 
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget. Set an active budget in the Hub first.');
+  if (!budget) throw new HandledError('No active budget. Set an active budget in the Hub first.');
 
   const beforeUpsert = await findPayeeByNameOrAlias(userId, budget.id, input.name);
   const isNew = beforeUpsert == null;
@@ -77,7 +84,7 @@ export const mergePayeesTool: ToolHandler<typeof MergePayeesSchema.shape> = asyn
   const { userId } = context;
 
   const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new Error('No active budget. Set an active budget in the Hub first.');
+  if (!budget) throw new HandledError('No active budget. Set an active budget in the Hub first.');
 
   const result = await mergePayees(userId, budget.id, input.targetId, input.sourceIds, input.canonicalName);
 
