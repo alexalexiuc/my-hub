@@ -1,7 +1,8 @@
 /**
  * Finance payee CRUD + usage stats
- * - upsertPayee(userId, budgetId, name) — insert-or-return, case-insensitive via normalizedName
- * - getPayees(userId, budgetId) — returns all payees ranked by user usage; includes description and stats
+ * - upsertPayee(userId, budgetId, name) — insert-or-return, case-insensitive via canonical name or aliases
+ * - getPayees(userId, budgetId) — returns all payees ranked by user usage; includes aliases, notes, description, and stats
+ * - updatePayee(userId, budgetId, payeeId, data) — updates payee aliases/notes after conflict checks
  * - deletePayee(userId, budgetId, payeeId) — hard delete
  * - incrementPayeeStats(tx, payeeId, userId, categoryId, accountId?) — called inside transaction writes
  * - decrementPayeeStats(tx, payeeId, userId) — called inside transaction deletes
@@ -11,12 +12,15 @@ import { and, asc, eq } from 'drizzle-orm';
 import { db, DbTx } from '../../db/client';
 import { financePayees } from '../../db/schema/finances';
 import type { PayeeUserStats } from '../../db/schema/finances';
+import { omitUndefined } from '../../utils';
 import { hasAccessToBudget } from './budgets';
 import type { FinancePayee } from '../../types';
 
 export interface Payee {
   id: number;
   name: string;
+  aliases: string[];
+  notes: string | null;
   description: string | null;
   useCount: number;
   lastUsedAt: string | null;
@@ -24,17 +28,57 @@ export interface Payee {
   recentAccountId: number | null;
 }
 
+export type PayeeUpdate = Partial<Pick<FinancePayee, 'aliases' | 'notes'>>;
+
+function normalizePayeeName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+function sanitizeAliases(aliases: string[] | null | undefined, canonicalName: string): string[] {
+  const canonicalNormalized = normalizePayeeName(canonicalName);
+  const seen = new Set<string>();
+  const sanitized: string[] = [];
+
+  for (const alias of aliases ?? []) {
+    const trimmed = alias.trim();
+    const normalized = normalizePayeeName(trimmed);
+    if (!trimmed || normalized === canonicalNormalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    sanitized.push(trimmed);
+  }
+
+  return sanitized;
+}
+
+function getPayeeIdentities(payee: Pick<FinancePayee, 'name' | 'normalizedName' | 'aliases'>): Set<string> {
+  const identities = new Set<string>([payee.normalizedName]);
+  for (const alias of payee.aliases ?? []) {
+    const normalizedAlias = normalizePayeeName(alias);
+    if (normalizedAlias) identities.add(normalizedAlias);
+  }
+  return identities;
+}
+
 export async function upsertPayee(userId: string, budgetId: number, name: string): Promise<FinancePayee> {
   if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
 
-  const normalizedName = name.toLowerCase().trim();
   const trimmedName = name.trim();
+  const normalizedName = normalizePayeeName(trimmedName);
+
+  const payees = await db
+    .select()
+    .from(financePayees)
+    .where(eq(financePayees.budgetId, budgetId))
+    .orderBy(asc(financePayees.name));
+
+  const existingByAlias = payees.find(payee => getPayeeIdentities(payee).has(normalizedName));
+  if (existingByAlias) return existingByAlias;
 
   const [row] = await db
     .insert(financePayees)
-    .values({ budgetId, name: trimmedName, normalizedName, statsByUser: {} })
+    .values({ budgetId, name: trimmedName, normalizedName, aliases: [], notes: null, statsByUser: {} })
     .onConflictDoNothing()
     .returning();
 
@@ -65,6 +109,8 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
     return {
       id: p.id,
       name: p.name,
+      aliases: p.aliases ?? [],
+      notes: p.notes,
       description: p.description,
       useCount: stats?.count ?? 0,
       lastUsedAt: stats?.lastUsedAt ?? null,
@@ -83,6 +129,56 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
   });
 
   return suggestions;
+}
+
+export async function updatePayee(
+  userId: string,
+  budgetId: number,
+  payeeId: number,
+  data: PayeeUpdate,
+): Promise<FinancePayee> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const payees = await db
+    .select()
+    .from(financePayees)
+    .where(eq(financePayees.budgetId, budgetId))
+    .orderBy(asc(financePayees.name));
+
+  const existing = payees.find(payee => payee.id === payeeId);
+  if (!existing) throw new Error('Payee not found');
+
+  const aliases = data.aliases !== undefined ? sanitizeAliases(data.aliases, existing.name) : undefined;
+
+  if (aliases !== undefined) {
+    const reservedIdentities = new Set(aliases.map(normalizePayeeName));
+    for (const payee of payees) {
+      if (payee.id === payeeId) continue;
+      for (const identity of getPayeeIdentities(payee)) {
+        if (reservedIdentities.has(identity)) {
+          throw new Error(
+            `Alias "${aliases.find(alias => normalizePayeeName(alias) === identity) ?? identity}" is already used by another payee`,
+          );
+        }
+      }
+    }
+  }
+
+  const [updated] = await db
+    .update(financePayees)
+    .set(
+      omitUndefined({
+        aliases,
+        notes: data.notes !== undefined ? data.notes : undefined,
+      }),
+    )
+    .where(and(eq(financePayees.id, payeeId), eq(financePayees.budgetId, budgetId)))
+    .returning();
+
+  if (!updated) throw new Error('Payee not found');
+  return updated;
 }
 
 export async function deletePayee(userId: string, budgetId: number, payeeId: number): Promise<void> {

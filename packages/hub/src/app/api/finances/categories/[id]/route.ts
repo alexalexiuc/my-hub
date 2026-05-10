@@ -19,6 +19,7 @@ const CategoryUpdateSchema = z.object({
     .optional(),
   color: z.string().nullable().optional(),
   monthlyTarget: z.number().nonnegative().nullable().optional(),
+  notes: z.string().trim().nullable().optional(),
   groupId: z.number().int().positive().nullable().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
 });
@@ -38,6 +39,7 @@ export const PATCH = route({
     icon: body.icon !== undefined ? ((body.icon as CategoryIcon | null) ?? null) : undefined,
     color: body.color !== undefined ? body.color : undefined,
     monthlyTarget: body.monthlyTarget !== undefined ? body.monthlyTarget : undefined,
+    notes: body.notes !== undefined ? body.notes : undefined,
     groupId: body.groupId !== undefined ? body.groupId : undefined,
     sortOrder: body.sortOrder,
   });

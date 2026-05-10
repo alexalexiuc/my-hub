@@ -59,10 +59,11 @@ async function createTransactionViaAPI(
   accountId: number,
   categoryId: number,
   amount = 50,
+  payeeName?: string,
 ): Promise<number> {
   const date = new Date().toISOString().slice(0, 10);
   const res = await page.request.post('/api/finances/transactions', {
-    data: { type: 'expense', accountId, categoryId, amount, date },
+    data: { type: 'expense', accountId, categoryId, amount, date, payeeName },
   });
   expect(res.status()).toBe(201);
   const body = (await res.json()) as { transaction: { id: number } };
@@ -129,6 +130,7 @@ test.describe('Finances', () => {
     const goalName = uniqueName('Emergency Fund');
     const groupName = uniqueName('Living Expenses');
     const catName = uniqueName('Groceries');
+    const expenseCatName = uniqueName('Shopping');
 
     test('create budget', async ({ page }) => {
       await deleteFinances(page);
@@ -198,7 +200,6 @@ test.describe('Finances', () => {
 
     test('transactions: add expense and payee autocomplete', async ({ page }) => {
       // Expense form requires a category — create one via API before opening the modal
-      const expenseCatName = uniqueName('Shopping');
       await createCategoryViaAPI(page, expenseCatName);
 
       await page.getByRole('button', { name: 'Transactions' }).click();
@@ -280,6 +281,54 @@ test.describe('Finances', () => {
       await expect(page.getByTitle('Employer')).toBeVisible();
     });
 
+    test('payees: save aliases and notes, then reuse alias without creating a duplicate payee', async ({ page }) => {
+      await page.getByRole('button', { name: 'Payees' }).click();
+      await page.waitForLoadState('networkidle');
+
+      await page.getByRole('button', { name: 'Edit payee Supermarket' }).click();
+      await expect(page.getByText('Edit Supermarket')).toBeVisible();
+
+      await page.getByLabel('Aliases (optional)').fill('SUPERMARKET LEGAL LLC');
+      await page.getByLabel('Notes (optional)').fill('Canonical supermarket payee for bank imports');
+      await page.getByRole('button', { name: 'Save' }).click();
+      await page.waitForLoadState('networkidle');
+
+      await expect(page.getByText('Aliases: SUPERMARKET LEGAL LLC')).toBeVisible();
+      await expect(page.getByText('Canonical supermarket payee for bank imports')).toBeVisible();
+
+      const accountsRes = await page.request.get('/api/finances/accounts');
+      expect(accountsRes.status()).toBe(200);
+      const accountsData = (await accountsRes.json()) as { accounts: Array<{ id: number; name: string }> };
+      const bankAccount = accountsData.accounts.find(account => account.name === bankAccountName);
+      expect(bankAccount).toBeTruthy();
+
+      const categoriesRes = await page.request.get('/api/finances/categories');
+      expect(categoriesRes.status()).toBe(200);
+      const categoriesData = (await categoriesRes.json()) as { allCategories: Array<{ id: number; name: string }> };
+      const shoppingCategory = categoriesData.allCategories.find(category => category.name === expenseCatName);
+      expect(shoppingCategory).toBeTruthy();
+
+      const date = new Date().toISOString().slice(0, 10);
+      const aliasTxnRes = await page.request.post('/api/finances/transactions', {
+        data: {
+          type: 'expense',
+          accountId: bankAccount!.id,
+          categoryId: shoppingCategory!.id,
+          amount: 12.34,
+          date,
+          payeeName: 'SUPERMARKET LEGAL LLC',
+        },
+      });
+      expect(aliasTxnRes.status()).toBe(201);
+      const aliasTxnBody = (await aliasTxnRes.json()) as { listItem: { payeeName: string | null } };
+      expect(aliasTxnBody.listItem.payeeName).toBe('Supermarket');
+
+      await page.reload();
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText('Aliases: SUPERMARKET LEGAL LLC')).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Edit payee Supermarket' })).toHaveCount(1);
+    });
+
     test('categories: add group and category', async ({ page }) => {
       await page.getByRole('button', { name: 'Categories' }).click();
       await page.waitForLoadState('networkidle');
@@ -352,9 +401,10 @@ test.describe('Finances', () => {
 
       await expect(page.getByText('Edit Category')).toBeVisible();
 
-      // Update the monthly target to 600
+      // Update the monthly target to 600 and add notes
       await page.getByLabel('Monthly Target (optional)').clear();
       await page.getByLabel('Monthly Target (optional)').fill('600');
+      await page.getByLabel('Notes (optional)').fill('Core grocery spending category');
 
       const patchResponsePromise = page.waitForResponse(
         res => res.url().includes('/api/finances/categories/') && res.request().method() === 'PATCH',
@@ -367,6 +417,7 @@ test.describe('Finances', () => {
 
       // Updated target label appears in the category row
       await expect(page.getByText(/Target.*600.*\/mo/)).toBeVisible();
+      await expect(page.getByText('Core grocery spending category')).toBeVisible();
     });
   });
 

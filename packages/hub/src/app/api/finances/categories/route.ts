@@ -19,6 +19,7 @@ const CategoryCreateSchema = z.object({
     .optional(),
   color: z.string().optional(),
   monthlyTarget: z.number().nonnegative().nullable().optional(),
+  notes: z.string().trim().nullable().optional(),
   groupId: z.number().int().positive().nullable().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
 });
@@ -65,6 +66,7 @@ export const GET = route({ query: CategoryQuerySchema, response: categoriesRespo
     icon: c.icon ?? null,
     color: c.color ?? null,
     monthlyTarget: c.monthlyTarget ?? null,
+    notes: c.notes ?? null,
     spent: spentByCategory.get(c.id) ?? 0,
     groupId: c.groupId ?? null,
     sortOrder: c.sortOrder,
@@ -102,6 +104,7 @@ export const POST = route({ body: CategoryCreateSchema, response: categoryMutati
     icon: (body.icon as CategoryIcon | null | undefined) ?? null,
     color: body.color ?? null,
     monthlyTarget: body.monthlyTarget ?? null,
+    notes: body.notes ?? null,
     groupId: body.groupId ?? null,
     sortOrder: body.sortOrder ?? 0,
   });

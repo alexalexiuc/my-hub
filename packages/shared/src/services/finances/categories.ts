@@ -6,10 +6,10 @@
  * - updateGroup(userId, budgetId, groupId, data) — partial update
  * - deleteGroup(userId, budgetId, groupId) — hard delete; categories become ungrouped
  * Categories:
- * - createCategory(userId, budgetId, data) — creates a category
+ * - createCategory(userId, budgetId, data) — creates a category, including optional notes
  * - getCategories(userId, budgetId) — lists active (non-archived) categories for a budget
  * - getCategoryById(userId, budgetId, categoryId) — single category with access check
- * - updateCategory(userId, budgetId, categoryId, data) — partial update
+ * - updateCategory(userId, budgetId, categoryId, data) — partial update including notes
  * - deleteCategory(userId, budgetId, categoryId) — hard delete
  * - archiveCategory(userId, budgetId, categoryId) — soft-delete: sets archivedAt
  * - unarchiveCategory(userId, budgetId, categoryId) — clears archivedAt
@@ -27,7 +27,7 @@ export type GroupUpdate = Partial<Pick<GroupInsert, 'name' | 'sortOrder'>>;
 
 export type CategoryInsert = Omit<NewFinanceCategory, 'id' | 'budgetId' | 'createdAt' | 'updatedAt'>;
 export type CategoryUpdate = Partial<
-  Pick<CategoryInsert, 'name' | 'groupId' | 'color' | 'icon' | 'monthlyTarget' | 'sortOrder'>
+  Pick<CategoryInsert, 'name' | 'groupId' | 'color' | 'icon' | 'monthlyTarget' | 'notes' | 'sortOrder'>
 >;
 
 // ─── Groups ───────────────────────────────────────────────────────────────────

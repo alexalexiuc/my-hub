@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
   date,
@@ -116,6 +117,7 @@ export const financeCategories = pgTable(
     icon: text('icon').$type<CategoryIcon>(),
     // Optional monthly spending target — nullable, no envelope-style allocation
     monthlyTarget: numericCasted('monthly_target', { precision: 18, scale: 4 }),
+    notes: text('notes'),
     sortOrder: integer('sort_order').notNull().default(0),
     archivedAt: timestamp('archived_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -148,8 +150,14 @@ export const financePayees = pgTable(
     name: text('name').notNull(),
     // lower(trim(name)) — used for case-insensitive uniqueness check
     normalizedName: text('normalized_name').notNull(),
+    // Additional statement/legal names that should resolve to this canonical payee.
+    aliases: text('aliases')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     // Optional context for AI — e.g. "Main grocery supermarket", "Landlord — rent"
     description: text('description'),
+    notes: text('notes'),
     // keyed by userId string; tracks per-user usage for ranked suggestions
     statsByUser: jsonb('stats_by_user').$type<Record<string, PayeeUserStats>>().notNull().default({}),
     createdAt: timestamp('created_at').notNull().defaultNow(),

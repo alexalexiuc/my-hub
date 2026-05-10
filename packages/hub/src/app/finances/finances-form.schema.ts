@@ -1,6 +1,21 @@
 import { z } from 'zod';
 import { AccountTypes, LentDirections, SupportedCurrencies, TransactionTypes } from '@my-hub/shared/constants';
 
+function splitLinesToUniqueValues(value: string): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const line of value.split('\n')) {
+    const trimmed = line.trim();
+    const normalized = trimmed.toLowerCase();
+    if (!trimmed || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(trimmed);
+  }
+
+  return result;
+}
+
 // --- Add Group ---
 
 export const AddGroupSchema = z.object({
@@ -43,6 +58,7 @@ export const AddCategorySchema = z.object({
   icon: z.string().min(1, 'Icon is required'),
   color: z.string().min(1),
   monthlyTarget: z.string(),
+  notes: z.string(),
   groupId: z.string(),
 });
 
@@ -54,6 +70,7 @@ export function defaultAddCategoryValues(defaultGroupId?: number | null): AddCat
     icon: '',
     color: '#6ee7b7',
     monthlyTarget: '',
+    notes: '',
     groupId: defaultGroupId != null ? String(defaultGroupId) : '',
   };
 }
@@ -64,6 +81,7 @@ export function formToCategoryBody(values: AddCategoryValues) {
     icon: values.icon,
     color: values.color,
     monthlyTarget: values.monthlyTarget ? parseFloat(values.monthlyTarget) : null,
+    notes: values.notes.trim() || null,
     groupId: values.groupId ? parseInt(values.groupId) : null,
   };
 }
@@ -78,6 +96,7 @@ export function categoryToEditValues(cat: {
   icon: string | null;
   color: string | null;
   monthlyTarget: number | null;
+  notes: string | null;
   groupId: number | null;
 }): EditCategoryValues {
   return {
@@ -85,7 +104,31 @@ export function categoryToEditValues(cat: {
     icon: cat.icon ?? '',
     color: cat.color ?? '#6ee7b7',
     monthlyTarget: cat.monthlyTarget != null ? String(cat.monthlyTarget) : '',
+    notes: cat.notes ?? '',
     groupId: cat.groupId != null ? String(cat.groupId) : '',
+  };
+}
+
+// --- Edit Payee ---
+
+export const EditPayeeSchema = z.object({
+  aliasesText: z.string(),
+  notes: z.string(),
+});
+
+export type EditPayeeValues = z.infer<typeof EditPayeeSchema>;
+
+export function payeeToEditValues(payee: { aliases: string[]; notes: string | null }): EditPayeeValues {
+  return {
+    aliasesText: payee.aliases.join('\n'),
+    notes: payee.notes ?? '',
+  };
+}
+
+export function formToPayeeBody(values: EditPayeeValues) {
+  return {
+    aliases: splitLinesToUniqueValues(values.aliasesText),
+    notes: values.notes.trim() || null,
   };
 }
 

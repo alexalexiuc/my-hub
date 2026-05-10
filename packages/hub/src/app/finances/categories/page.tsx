@@ -63,6 +63,7 @@ function CatRow({
           {cat.monthlyTarget && (
             <div className="text-[10px] text-[var(--fin-subtle)]">Target {fmt(cat.monthlyTarget, currency)}/mo</div>
           )}
+          {cat.notes && <div className="mt-0.5 text-[10px] text-[var(--fin-subtle)]">{cat.notes}</div>}
         </div>
         <div className="flex items-center gap-2">
           <div className="text-right">

@@ -4,7 +4,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import { FinModalShell } from '../FinModalShell';
-import { Button, ColorPicker, Field, Input, Select } from '@/components';
+import { Button, ColorPicker, Field, Input, Select, Textarea } from '@/components';
 import { ICON_OPTIONS } from '../categoryIcons';
 import {
   AddCategorySchema,
@@ -123,6 +123,10 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
 
         <Field label="Monthly Target (optional)">
           <Input {...register('monthlyTarget')} type="number" step="0.01" min="0" placeholder="e.g. 500" />
+        </Field>
+
+        <Field label="Notes (optional)">
+          <Textarea {...register('notes')} rows={3} placeholder="Optional details for AI and future categorization" />
         </Field>
 
         <Field label="Group (optional)">

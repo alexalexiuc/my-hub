@@ -186,6 +186,7 @@ export const categoryRowSchema = z.object({
   icon: categoryIconSchema,
   color: categoryColorSchema,
   monthlyTarget: z.number().nullable(),
+  notes: z.string().nullable(),
   spent: z.number(),
   groupId: z.number().int().nullable(),
   sortOrder: z.number().int(),
@@ -239,6 +240,8 @@ export const goalsResponseSchema = z.object({
 export const payeeSuggestionSchema = z.object({
   id: z.number().int(),
   name: z.string(),
+  aliases: z.array(z.string()),
+  notes: z.string().nullable(),
   useCount: z.number().int(),
   lastUsedAt: z.string().nullable(),
   recentCategoryId: z.number().int().nullable(),
@@ -249,6 +252,15 @@ export const payeesResponseSchema = z.object({
   payees: z.array(payeeSuggestionSchema),
   currency: z.string(),
 });
+
+export const payeeMutationResponseSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    aliases: z.array(z.string()),
+    notes: z.string().nullable(),
+  })
+  .loose();
 
 export const payeeReportItemSchema = z.object({
   id: z.number().int(),

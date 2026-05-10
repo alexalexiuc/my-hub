@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getPayees, decrementPayeeStats } from './payees';
+import { getPayees, decrementPayeeStats, updatePayee, upsertPayee } from './payees';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -8,6 +8,7 @@ vi.mock('../../db/client.js', () => ({
   db: {
     select: vi.fn(),
     update: vi.fn(),
+    insert: vi.fn(),
   },
 }));
 vi.mock('./budgets.js', () => ({ hasAccessToBudget: vi.fn() }));
@@ -25,7 +26,16 @@ function makeDbPayee(
     { count: number; lastUsedAt: string | null; lastUsedCategoryId: number | null; lastUsedAccountId: number | null }
   >,
 ) {
-  return { id, name, description: null, normalizedName: name.toLowerCase(), budgetId: 1, statsByUser };
+  return {
+    id,
+    name,
+    aliases: [],
+    notes: null,
+    description: null,
+    normalizedName: name.toLowerCase(),
+    budgetId: 1,
+    statsByUser,
+  };
 }
 
 function makeSelectChain(rows: unknown[]) {
@@ -112,6 +122,63 @@ describe('getPayees sort order', () => {
     const result = await getPayees('user-1', 1);
 
     expect(result.map(p => p.name)).toEqual(['Acme', 'Midway', 'Zara']);
+  });
+});
+
+describe('upsertPayee', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(hasAccessToBudget).mockResolvedValue(true);
+  });
+
+  it('returns an existing payee when the input matches an alias', async () => {
+    const payee = { ...makeDbPayee(10, 'Supermarket', {}), aliases: ['Supermarket Legal LLC'] };
+    (vi.mocked(db) as any).select.mockReturnValue(makeSelectChain([payee]));
+
+    const result = await upsertPayee('user-1', 1, ' supermarket legal llc ');
+
+    expect(result.id).toBe(10);
+    expect((vi.mocked(db) as any).insert).not.toHaveBeenCalled();
+  });
+});
+
+describe('updatePayee', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(hasAccessToBudget).mockResolvedValue(true);
+  });
+
+  function mockUpdateReturning(row: unknown) {
+    const returning = vi.fn().mockResolvedValue([row]);
+    const where = vi.fn().mockReturnValue({ returning });
+    const set = vi.fn().mockReturnValue({ where });
+    (vi.mocked(db) as any).update.mockReturnValue({ set });
+    return { set };
+  }
+
+  it('sanitizes aliases before persisting them', async () => {
+    const payee = makeDbPayee(5, 'Supermarket', {});
+    (vi.mocked(db) as any).select.mockReturnValue(makeSelectChain([payee]));
+    const update = mockUpdateReturning({ ...payee, aliases: ['Supermarket Legal LLC'] });
+
+    await updatePayee('user-1', 1, 5, {
+      aliases: ['  Supermarket  ', ' Supermarket Legal LLC ', 'Supermarket Legal LLC'],
+      notes: 'Main grocery merchant',
+    });
+
+    expect(update.set).toHaveBeenCalledWith({
+      aliases: ['Supermarket Legal LLC'],
+      notes: 'Main grocery merchant',
+    });
+  });
+
+  it('rejects aliases that are already used by another payee', async () => {
+    const payees = [makeDbPayee(5, 'Supermarket', {}), { ...makeDbPayee(6, 'Employer', {}), aliases: ['Payroll'] }];
+    (vi.mocked(db) as any).select.mockReturnValue(makeSelectChain(payees));
+
+    await expect(updatePayee('user-1', 1, 5, { aliases: ['Payroll'] })).rejects.toThrow(
+      'Alias "Payroll" is already used by another payee',
+    );
   });
 });
 

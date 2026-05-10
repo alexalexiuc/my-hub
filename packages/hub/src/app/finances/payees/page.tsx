@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, Divider, CategoryIcon } from '../ui';
-import type { PayeesReportResponse } from '@/app/api/finances/contracts';
+import { PencilIcon } from '@/components/icons';
+import { EditPayeeModal } from './EditPayeeModal';
+import type { PayeesReportResponse, PayeesResponse, PayeeSuggestion } from '@/app/api/finances/contracts';
 type Range = '30d' | '3m' | 'ytd';
 type SortKey = 'totalSpent' | 'txCount' | 'name';
 
@@ -18,15 +20,20 @@ export default function PayeesPage() {
   const [range, setRange] = useState<Range>('30d');
   const [sortBy, setSortBy] = useState<SortKey>('totalSpent');
   const [data, setData] = useState<PayeesReportResponse | null>(null);
+  const [metadata, setMetadata] = useState<PayeesResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (r: Range) => {
     setLoading(true);
     try {
-      const result = await apiFetch<PayeesReportResponse>(`/api/finances/payees/report?range=${r}`, {
-        silentToast: true,
-      });
-      setData(result);
+      const [reportResult, metadataResult] = await Promise.all([
+        apiFetch<PayeesReportResponse>(`/api/finances/payees/report?range=${r}`, {
+          silentToast: true,
+        }),
+        apiFetch<PayeesResponse>('/api/finances/payees', { silentToast: true }),
+      ]);
+      setData(reportResult);
+      setMetadata(metadataResult);
     } finally {
       setLoading(false);
     }
@@ -37,10 +44,12 @@ export default function PayeesPage() {
   }, [range, load]);
 
   const currency = data?.currency ?? 'EUR';
+  const metadataById = new Map(metadata?.payees.map(payee => [payee.id, payee]) ?? []);
   const sorted = [...(data?.payees ?? [])].sort((a, b) => {
     if (sortBy === 'name') return a.name.localeCompare(b.name);
     return b[sortBy] - a[sortBy];
   });
+  const [editingPayee, setEditingPayee] = useState<PayeeSuggestion | null>(null);
 
   return (
     <div className="flex flex-col gap-[14px]">
@@ -104,16 +113,35 @@ export default function PayeesPage() {
 
           {sorted.map((p, i) => {
             const catColor = p.categoryColor ?? 'var(--fin-muted)';
+            const meta = metadataById.get(p.id);
+            const extraBits = [
+              p.categoryName ? `${p.categoryName} · Last: ${p.lastDate}` : `Last: ${p.lastDate}`,
+              meta?.aliases.length ? `Aliases: ${meta.aliases.join(', ')}` : null,
+              meta?.notes ? meta.notes : null,
+            ].filter(Boolean);
             return (
               <div key={p.id}>
                 {i > 0 && <Divider />}
                 <div className="grid grid-cols-[1fr_80px_90px] items-center px-[14px] py-[10px]">
                   <div className="flex items-center gap-2.5">
                     <CategoryIcon color={catColor} icon={p.categoryIcon} size="lg" />
-                    <div>
-                      <div className="text-[13px] font-medium text-[var(--fin-text)]">{p.name}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="truncate text-[13px] font-medium text-[var(--fin-text)]">{p.name}</div>
+                        {meta && (
+                          <button
+                            aria-label={`Edit payee ${p.name}`}
+                            onClick={() => setEditingPayee(meta)}
+                            className="cursor-pointer rounded p-1 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
+                          >
+                            <PencilIcon className="size-3" />
+                          </button>
+                        )}
+                      </div>
                       <div className="text-[10px] text-[var(--fin-subtle)]">
-                        {p.categoryName ? `${p.categoryName} · ` : ''}Last: {p.lastDate}
+                        {extraBits.map((bit, index) => (
+                          <div key={`${p.id}-${index}`}>{bit}</div>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -126,6 +154,17 @@ export default function PayeesPage() {
             );
           })}
         </Card>
+      )}
+
+      {editingPayee && (
+        <EditPayeeModal
+          payee={editingPayee}
+          onClose={() => setEditingPayee(null)}
+          onSaved={() => {
+            setEditingPayee(null);
+            load(range);
+          }}
+        />
       )}
     </div>
   );
