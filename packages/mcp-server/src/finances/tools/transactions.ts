@@ -93,6 +93,14 @@ const TransactionItemSchema = z
 
 export const AddTransactionsSchema = z.object({
   transactions: z.array(TransactionItemSchema).min(1).max(50),
+  createPayee: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, automatically create any payee that cannot be found by name or alias, ' +
+        'instead of returning a payee_not_found error. ' +
+        'The new payee is created using the exact payeeName provided in the transaction item.',
+    ),
 });
 
 export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape> = async (input, context) => {
@@ -119,22 +127,27 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
     try {
       const date = item.date ?? currentDateString();
 
-      // Resolve payee (block if not found)
+      // Resolve payee (block if not found, or auto-create if createPayee flag is set)
       let payeeId: number | null = null;
       if (isPayeeRequired(item.type) && item.payeeName) {
         const resolvedPayeeId = await resolvePayeeIdByNameOrAlias(userId, budget.id, item.payeeName);
         if (resolvedPayeeId === undefined) {
-          return toolResponse({
-            error: {
-              code: 'payee_not_found',
-              message: `Payee not found: ${item.payeeName}`,
-              normalizedName: item.payeeName.trim().toLowerCase(),
-              requirePayeeCreation: true,
-            },
-          });
+          if (input.createPayee) {
+            const resolvedPayee = await upsertPayee(userId, budget.id, item.payeeName);
+            payeeId = resolvedPayee.id;
+          } else {
+            return toolResponse({
+              error: {
+                code: 'payee_not_found',
+                message: `Payee not found: ${item.payeeName}`,
+                normalizedName: item.payeeName.trim().toLowerCase(),
+                requirePayeeCreation: true,
+              },
+            });
+          }
+        } else {
+          payeeId = resolvedPayeeId;
         }
-
-        payeeId = resolvedPayeeId;
       }
 
       // Duplicate check
