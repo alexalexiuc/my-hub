@@ -260,6 +260,13 @@
       "when": 1778393689525,
       "tag": "0037_omniscient_kid_colt",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1778420859218,
+      "tag": "0038_wise_angel",
+      "breakpoints": true
     }
   ]
 }

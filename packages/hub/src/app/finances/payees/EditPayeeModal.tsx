@@ -10,7 +10,7 @@ import type { PayeeSuggestion } from '@/app/api/finances/contracts';
 
 const EditPayeeSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
-  alias: z.string(),
+  aliases: z.string(),
   description: z.string(),
 });
 
@@ -31,7 +31,7 @@ export function EditPayeeModal({ payee, onClose, onSaved }: EditPayeeModalProps)
     resolver: zodResolver(EditPayeeSchema),
     defaultValues: {
       name: payee.name,
-      alias: payee.alias ?? '',
+      aliases: payee.aliases?.join(', ') ?? '',
       description: payee.description ?? '',
     },
   });
@@ -41,7 +41,10 @@ export function EditPayeeModal({ payee, onClose, onSaved }: EditPayeeModalProps)
       method: 'PATCH',
       body: {
         name: values.name,
-        alias: values.alias.trim() || null,
+        aliases: values.aliases
+          .split(',')
+          .map(a => a.trim())
+          .filter(Boolean),
         description: values.description.trim() || null,
       },
     });
@@ -56,8 +59,8 @@ export function EditPayeeModal({ payee, onClose, onSaved }: EditPayeeModalProps)
           {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name.message}</p>}
         </Field>
 
-        <Field label="Alias (optional)">
-          <Input {...register('alias')} placeholder="e.g. SRL name or trade name" />
+        <Field label="Aliases (optional, comma-separated)">
+          <Input {...register('aliases')} placeholder="e.g. Kaufland SRL, Kaufland Romania, KL" />
         </Field>
 
         <Field label="Description (optional)">

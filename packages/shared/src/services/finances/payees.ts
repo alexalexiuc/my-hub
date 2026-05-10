@@ -1,16 +1,16 @@
 /**
  * Finance payee CRUD + usage stats
- * - findPayeeByNameOrAlias(userId, budgetId, name) — resolves a payee by canonical name or alias
- * - upsertPayee(userId, budgetId, name) — insert-or-return, case-insensitive via normalizedName/alias matching
+ * - findPayeeByNameOrAlias(userId, budgetId, name) — resolves a payee by canonical name or aliases
+ * - upsertPayee(userId, budgetId, name) — insert-or-return, case-insensitive via normalizedName/aliases matching
  * - resolvePayeeIdByNameOrAlias(userId, budgetId, name) — resolves payee id or undefined
- * - updatePayee(userId, budgetId, payeeId, patch) — updates payee name/alias/description
- * - getPayees(userId, budgetId) — returns all payees ranked by user usage; includes alias, description, and stats
+ * - updatePayee(userId, budgetId, payeeId, patch) — updates payee name/aliases/description
+ * - getPayees(userId, budgetId) — returns all payees ranked by user usage; includes aliases, description, and stats
  * - deletePayee(userId, budgetId, payeeId) — hard delete
  * - incrementPayeeStats(tx, payeeId, userId, categoryId, accountId?) — called inside transaction writes
  * - decrementPayeeStats(tx, payeeId, userId) — called inside transaction deletes
  * Types: Payee
  */
-import { and, asc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, or, sql } from 'drizzle-orm';
 import { db, DbTx } from '../../db/client';
 import { financePayees, financeTransactions } from '../../db/schema/finances';
 import type { PayeeUserStats } from '../../db/schema/finances';
@@ -20,7 +20,7 @@ import type { FinancePayee } from '../../types';
 export interface Payee {
   id: number;
   name: string;
-  alias: string | null;
+  aliases: string[];
   description: string | null;
   useCount: number;
   lastUsedAt: string | null;
@@ -30,7 +30,7 @@ export interface Payee {
 
 export interface PayeeUpdate {
   name?: string;
-  alias?: string | null;
+  aliases?: string[];
   description?: string | null;
 }
 
@@ -58,7 +58,10 @@ export async function findPayeeByNameOrAlias(
     .where(
       and(
         eq(financePayees.budgetId, budgetId),
-        or(eq(financePayees.normalizedName, normalizedName), ilike(financePayees.alias, trimmedName)),
+        or(
+          eq(financePayees.normalizedName, normalizedName),
+          sql`EXISTS (SELECT * FROM jsonb_array_elements(${financePayees.aliases}) AS elem WHERE elem::text ILIKE ${`%${trimmedName}%`})`,
+        ),
       ),
     )
     .limit(1);
@@ -79,7 +82,7 @@ export async function upsertPayee(userId: string, budgetId: number, name: string
 
   const [row] = await db
     .insert(financePayees)
-    .values({ budgetId, name: trimmedName, alias: null, normalizedName, statsByUser: {} })
+    .values({ budgetId, name: trimmedName, aliases: [], normalizedName, statsByUser: {} })
     .onConflictDoNothing()
     .returning();
 
@@ -119,8 +122,8 @@ export async function updatePayee(
     changes.name = trimmed;
     changes.normalizedName = normalizePayeeName(trimmed);
   }
-  if (patch.alias !== undefined) {
-    changes.alias = patch.alias?.trim() || null;
+  if (patch.aliases !== undefined) {
+    changes.aliases = patch.aliases.map(a => a.trim()).filter(Boolean);
   }
   if (patch.description !== undefined) {
     changes.description = patch.description?.trim() || null;
@@ -155,7 +158,7 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
     return {
       id: p.id,
       name: p.name,
-      alias: p.alias,
+      aliases: p.aliases,
       description: p.description,
       useCount: stats?.count ?? 0,
       lastUsedAt: stats?.lastUsedAt ?? null,
