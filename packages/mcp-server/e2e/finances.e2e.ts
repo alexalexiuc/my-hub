@@ -437,47 +437,95 @@ describe.sequential('finances — merge_payees', () => {
   });
 
   it('merges two payees successfully when they exist', async () => {
-    // First get context to find dedicated e2e payees only
-    const contextResult = await client.callTool({
-      name: 'finances_list_context',
-      arguments: {},
-    });
-    const context = parseToolResult<ListContextResult>(contextResult);
-    const e2ePayees = context.payees.filter(payee => payee.name.startsWith('[e2e:'));
-
-    if (e2ePayees.length < 2) {
-      console.log('Not enough dedicated e2e payees to test merge safely, skipping');
-      return;
-    }
-
-    const [target, ...sources] = e2ePayees;
-    const sourceIds = sources.slice(0, 1).map(p => p.id);
-
     const runId = Date.now().toString(36);
-    const result = await client.callTool({
-      name: 'finances_merge_payees',
-      arguments: {
-        targetId: target!.id,
-        sourceIds,
-        canonicalName: `[e2e:${runId}] Merged Payee`,
-      },
-    });
+    const targetPayeeName = `[e2e:${runId}] Merge Target`;
+    const sourcePayeeName = `[e2e:${runId}] Merge Source`;
+    const canonicalName = `[e2e:${runId}] Merged Payee`;
+    const createdTransactionIds: number[] = [];
 
-    const data = parseToolResult<MergePayeesResult>(result);
+    try {
+      const contextResult = await client.callTool({
+        name: 'finances_list_context',
+        arguments: {},
+      });
+      const context = parseToolResult<any>(contextResult);
+      const accountId = context.accounts?.find((account: any) => !account.archived)?.id;
+      const categoryId = context.categories?.find((category: any) => !category.archived)?.id;
 
-    expect(data.targetId).toBe(target!.id);
-    expect(typeof data.mergedCount).toBe('number');
-    expect(data.canonicalName).toBe(`[e2e:${runId}] Merged Payee`);
+      expect(typeof accountId).toBe('number');
+      expect(typeof categoryId).toBe('number');
 
-    // Verify the source payees are gone from context
-    const afterContextResult = await client.callTool({
-      name: 'finances_list_context',
-      arguments: {},
-    });
-    const afterContext = parseToolResult<ListContextResult>(afterContextResult);
-    const remainingIds = new Set(afterContext.payees.map(p => p.id));
-    for (const srcId of sourceIds) {
-      expect(remainingIds.has(srcId)).toBe(false);
+      for (const [index, payeeName] of [targetPayeeName, sourcePayeeName].entries()) {
+        const createTransactionResult = await client.callTool({
+          name: 'finances_create_transaction',
+          arguments: {
+            accountId,
+            categoryId,
+            amount: 1000 + index,
+            date: '2025-01-01',
+            payeeName,
+            notes: `[e2e:${runId}] Seed transaction ${index + 1}`,
+          },
+        });
+
+        const createdTransaction = parseToolResult<any>(createTransactionResult);
+        const createdTransactionId =
+          createdTransaction?.transactionId ??
+          createdTransaction?.id ??
+          createdTransaction?.transaction?.id;
+
+        if (typeof createdTransactionId === 'number') {
+          createdTransactionIds.push(createdTransactionId);
+        }
+      }
+
+      const seededContextResult = await client.callTool({
+        name: 'finances_list_context',
+        arguments: {},
+      });
+      const seededContext = parseToolResult<ListContextResult>(seededContextResult);
+      const target = seededContext.payees.find(payee => payee.name === targetPayeeName);
+      const source = seededContext.payees.find(payee => payee.name === sourcePayeeName);
+
+      expect(target).toBeTruthy();
+      expect(source).toBeTruthy();
+
+      const result = await client.callTool({
+        name: 'finances_merge_payees',
+        arguments: {
+          targetId: target!.id,
+          sourceIds: [source!.id],
+          canonicalName,
+        },
+      });
+
+      const data = parseToolResult<MergePayeesResult>(result);
+
+      expect(data.targetId).toBe(target!.id);
+      expect(typeof data.mergedCount).toBe('number');
+      expect(data.canonicalName).toBe(canonicalName);
+
+      const afterContextResult = await client.callTool({
+        name: 'finances_list_context',
+        arguments: {},
+      });
+      const afterContext = parseToolResult<ListContextResult>(afterContextResult);
+      const remainingIds = new Set(afterContext.payees.map(p => p.id));
+
+      expect(remainingIds.has(source!.id)).toBe(false);
+    } finally {
+      for (const transactionId of createdTransactionIds) {
+        try {
+          await client.callTool({
+            name: 'finances_delete_transaction',
+            arguments: {
+              id: transactionId,
+            },
+          });
+        } catch {
+          // Best-effort cleanup for seeded transactions.
+        }
+      }
     }
   });
 });
