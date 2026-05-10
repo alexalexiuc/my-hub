@@ -12,6 +12,8 @@ import { AddItemRow, type NewItemState } from './AddItemRow';
 import { EditPlanItemModal } from './EditPlanItemModal';
 import { fmtNum } from './monthly-plan.utils';
 import { dateToString } from '@my-hub/shared/utils';
+import { SupportedCurrencies } from '@my-hub/shared/constants';
+import type { SupportedCurrency } from '@my-hub/shared/constants';
 
 export function MonthlyPlanScreen() {
   const [month, setMonth] = useState(dateToString(new Date(), 'YYYY-MM'));
@@ -60,6 +62,10 @@ export function MonthlyPlanScreen() {
 
   const allDone = data != null && data.summary.totalCount > 0 && data.summary.assignedCount === data.summary.totalCount;
   const itemUrl = (id: number) => `/api/finances/monthly-plans/${month}/items/${id}`;
+  const addItemDefaultCurrency: SupportedCurrency =
+    data != null && SupportedCurrencies.includes(data.currency as SupportedCurrency)
+      ? (data.currency as SupportedCurrency)
+      : SupportedCurrencies[0];
 
   return (
     <>
@@ -130,7 +136,7 @@ export function MonthlyPlanScreen() {
               </div>
               {showAddItem && (
                 <AddItemRow
-                  defaultCurrency={data.currency}
+                  defaultCurrency={addItemDefaultCurrency}
                   formData={formData}
                   onSave={async (form: NewItemState) => {
                     await withRefresh(() =>

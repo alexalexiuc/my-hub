@@ -308,7 +308,7 @@ export const AddPlanItemSchema = z.object({
     .string()
     .min(1, 'Amount is required')
     .refine(v => !isNaN(parseFloat(v)), 'Must be a number'),
-  currency: z.string(),
+  currency: z.enum(SupportedCurrencies),
   linkedAccountId: z.string(),
   categoryId: z.string(),
 });

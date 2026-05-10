@@ -14,6 +14,7 @@ import {
 } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import { currentDateString } from '@my-hub/shared/utils';
+import { supportedCurrencySchema } from '../../shared/schemas';
 
 // ─── upsert_account ───────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ export const UpsertAccountSchema = z.object({
     .describe(
       'Account type. Required when creating. One of: cash, bank, credit_card, investment, loan, borrowed_lent, tracking, goal.',
     ),
-  currency: z.string().length(3).toUpperCase().optional().describe('3-letter ISO currency code, e.g. MDL, EUR.'),
+  currency: supportedCurrencySchema.optional().describe('Supported currency code (e.g. EUR, USD, MDL).'),
   openingBalance: z
     .number()
     .optional()

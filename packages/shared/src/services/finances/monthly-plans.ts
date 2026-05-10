@@ -32,7 +32,7 @@ import { enforceBudgetAccess } from './budgets';
 import { getExchangeRate } from './exchangeRates';
 import type { FinanceMonthlyPlan, FinanceMonthlyPlanItem, FinanceTransaction } from '../../types';
 import { PromiseCacheX } from 'promise-cachex';
-import { TransactionTypes } from '../../constants/finances';
+import { TransactionTypes, type SupportedCurrency } from '../../constants/finances';
 
 const monthlyPlanCache = new PromiseCacheX<FinanceMonthlyPlan | undefined>({ ttl: 1000 * 60 * 60 }); // 1 hour cache for plan fetches
 const monthlyPlanAccessCache = new PromiseCacheX<number | undefined>({ ttl: 1000 * 60 * 60 }); // 1 hour cache for plan item fetches
@@ -40,7 +40,7 @@ const monthlyPlanAccessCache = new PromiseCacheX<number | undefined>({ ttl: 1000
 export type PlanItemInsert = {
   name: string;
   amount: number;
-  currency: string;
+  currency: SupportedCurrency;
   categoryId?: number | null;
   merchantId?: number | null;
   linkedAccountId?: number | null;
@@ -73,7 +73,7 @@ export interface MonthlyPlanFull {
   plan: FinanceMonthlyPlan;
   items: PlanItemWithMeta[];
   summary: MonthlyPlanSummary;
-  currency: string;
+  currency: SupportedCurrency;
 }
 
 type AutoMatchTx = Pick<
@@ -120,7 +120,7 @@ async function enforceMonthlyPlanAccess(userId: string, planId: number, tx: DbOr
 export async function computeSummary(
   plan: FinanceMonthlyPlan,
   items: FinanceMonthlyPlanItem[],
-  budgetCurrency: string,
+  budgetCurrency: SupportedCurrency,
 ): Promise<MonthlyPlanSummary> {
   const today = toUTCDateStr(new Date());
 
@@ -154,13 +154,13 @@ export async function computeSummary(
   };
 }
 
-async function resolveBudgetCurrency(budgetId: number): Promise<string> {
+async function resolveBudgetCurrency(budgetId: number): Promise<SupportedCurrency> {
   const rows = await db
     .select({ defaultCurrency: financeBudgets.defaultCurrency })
     .from(financeBudgets)
     .where(eq(financeBudgets.id, budgetId))
     .limit(1);
-  return rows[0]?.defaultCurrency ?? 'MDL';
+  return (rows[0]?.defaultCurrency ?? 'MDL') as SupportedCurrency;
 }
 
 export async function getMonthlyPlan(

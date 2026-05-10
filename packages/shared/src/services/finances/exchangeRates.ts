@@ -7,14 +7,19 @@ import { and, desc, eq } from 'drizzle-orm';
 import { PromiseCacheX } from 'promise-cachex';
 import { db } from '../../db/client';
 import { financeCurrencyRates } from '../../db/schema/finances';
+import { SupportedCurrencies, type SupportedCurrency } from '../../constants/finances';
 
 const exchangeRatePromiseCache = new PromiseCacheX({
   // Date-based rates are immutable enough for long-lived process caching.
   ttl: 30 * 24 * 60 * 60 * 1000,
 });
 
-function normalizeCurrency(currency: string): string {
-  return currency.trim().toUpperCase();
+function normalizeCurrency(currency: string): SupportedCurrency {
+  const normalized = currency.trim().toUpperCase();
+  if (!SupportedCurrencies.includes(normalized as SupportedCurrency)) {
+    throw new Error(`Unsupported currency: ${currency}`);
+  }
+  return normalized as SupportedCurrency;
 }
 
 function buildApiUrls(fromCurrencyLower: string, date: string): string[] {
@@ -37,8 +42,8 @@ export function parseApiRate(payload: unknown, fromCurrencyLower: string, toCurr
 }
 
 async function fetchExchangeRateFromApi(
-  fromCurrency: string,
-  toCurrency: string,
+  fromCurrency: SupportedCurrency,
+  toCurrency: SupportedCurrency,
   date: string,
 ): Promise<number | null> {
   const fromCurrencyLower = fromCurrency.toLowerCase();
@@ -61,7 +66,11 @@ async function fetchExchangeRateFromApi(
   return null;
 }
 
-async function getExactRateFromDb(fromCurrency: string, toCurrency: string, date: string): Promise<number | null> {
+async function getExactRateFromDb(
+  fromCurrency: SupportedCurrency,
+  toCurrency: SupportedCurrency,
+  date: string,
+): Promise<number | null> {
   const [row] = await db
     .select({ rate: financeCurrencyRates.rate })
     .from(financeCurrencyRates)
@@ -77,7 +86,10 @@ async function getExactRateFromDb(fromCurrency: string, toCurrency: string, date
   return row?.rate ?? null;
 }
 
-async function getMostRecentRateFromDb(fromCurrency: string, toCurrency: string): Promise<number | null> {
+async function getMostRecentRateFromDb(
+  fromCurrency: SupportedCurrency,
+  toCurrency: SupportedCurrency,
+): Promise<number | null> {
   const [row] = await db
     .select({ rate: financeCurrencyRates.rate })
     .from(financeCurrencyRates)
@@ -88,7 +100,12 @@ async function getMostRecentRateFromDb(fromCurrency: string, toCurrency: string)
   return row?.rate ?? null;
 }
 
-async function saveRateToDb(fromCurrency: string, toCurrency: string, date: string, rate: number): Promise<void> {
+async function saveRateToDb(
+  fromCurrency: SupportedCurrency,
+  toCurrency: SupportedCurrency,
+  date: string,
+  rate: number,
+): Promise<void> {
   await db
     .insert(financeCurrencyRates)
     .values({
