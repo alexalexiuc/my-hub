@@ -14,7 +14,13 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from './users';
 import { numericCasted } from './numeric-casted';
-import type { AccountType, TransactionType, CategoryIcon, TransactionSource } from '../../constants/finances';
+import type {
+  AccountType,
+  TransactionType,
+  CategoryIcon,
+  TransactionSource,
+  SupportedCurrency,
+} from '../../constants/finances';
 import type { TransactionDetails } from '../../types/transaction-details';
 
 // ─── Budget (household) ───────────────────────────────────────────────────
@@ -22,7 +28,7 @@ import type { TransactionDetails } from '../../types/transaction-details';
 export const financeBudgets = pgTable('finance_budgets', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
-  defaultCurrency: text('default_currency').notNull().default('MDL'),
+  defaultCurrency: text('default_currency').$type<SupportedCurrency>().notNull().default('MDL'),
   // The user who created the budget — informational, does not imply elevated permissions.
   // All permission logic is driven by financeBudgetMembers.
   createdByUserId: uuid('created_by_user_id')
@@ -63,7 +69,7 @@ export const financeAccounts = pgTable(
     name: text('name').notNull(),
     description: text('description'),
     type: text('type').$type<AccountType>().notNull(),
-    currency: text('currency').notNull(),
+    currency: text('currency').$type<SupportedCurrency>().notNull(),
     openingBalance: numericCasted('opening_balance', { precision: 18, scale: 4 }).notNull().default(0),
     // Running balance — updated on every transaction insert/update/delete.
     // For Investment/Tracking: manually-overridden current value.
@@ -244,8 +250,8 @@ export const financeTransactions = pgTable(
 export const financeCurrencyRates = pgTable(
   'finance_currency_rates',
   {
-    fromCurrency: text('from_currency').notNull(),
-    toCurrency: text('to_currency').notNull(),
+    fromCurrency: text('from_currency').$type<SupportedCurrency>().notNull(),
+    toCurrency: text('to_currency').$type<SupportedCurrency>().notNull(),
     date: date('date').notNull(), // YYYY-MM-DD
     rate: numericCasted('rate', { precision: 18, scale: 8 }).notNull(),
     fetchedAt: timestamp('fetched_at').notNull().defaultNow(),
@@ -291,7 +297,7 @@ export const financeMonthlyPlanItems = pgTable(
     name: text('name').notNull(),
     // Planned amount in `currency` below.
     amount: numericCasted('amount', { precision: 18, scale: 4 }).notNull(),
-    currency: text('currency').notNull(),
+    currency: text('currency').$type<SupportedCurrency>().notNull(),
     // Category link — drives auto-match: when an expense transaction with this
     // categoryId is recorded in the same month, assignedAmount increases by the
     // transaction amount. Cosmetic if linkedAccountId is also set (both must match).

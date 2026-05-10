@@ -23,6 +23,7 @@ import {
 import { TransactionTypes } from '@my-hub/shared/constants';
 import type { TransactionInsert } from '@my-hub/shared/services';
 import { currentDateString, isPayeeRequired, omitUndefined } from '@my-hub/shared/utils';
+import { supportedCurrencySchema } from '../../shared/schemas';
 
 // ─── add_transactions ─────────────────────────────────────────────────────────
 
@@ -59,11 +60,7 @@ const TransactionItemSchema = z
   .object({
     type: z.enum(TransactionTypes),
     amount: z.number().positive(),
-    currency: z
-      .string()
-      .trim()
-      .regex(/^[A-Za-z]{3}$/)
-      .optional(),
+    currency: supportedCurrencySchema.optional(),
     date: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)

@@ -6,23 +6,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Input } from '@/components';
 import { FinancialDropdown } from '../FinancialDropdown';
 import { SupportedCurrencies } from '@my-hub/shared/constants';
+import type { SupportedCurrency } from '@my-hub/shared/constants';
 import { AddPlanItemSchema, type AddPlanItemValues } from '../finances-form.schema';
 import type { TransactionFormDataResponse } from '@/app/api/finances/contracts';
 
 export type NewItemState = AddPlanItemValues;
 
 type AddItemRowProps = {
-  defaultCurrency: string;
+  defaultCurrency: SupportedCurrency;
   formData: TransactionFormDataResponse | null;
   onSave: (item: NewItemState) => Promise<void>;
   onCancel: () => void;
 };
 
 export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddItemRowProps) {
-  const fallbackCurrency = SupportedCurrencies.includes(defaultCurrency as (typeof SupportedCurrencies)[number])
-    ? defaultCurrency
-    : SupportedCurrencies[0];
-
   const {
     register,
     control,
@@ -35,15 +32,15 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
     defaultValues: {
       name: '',
       amount: '',
-      currency: fallbackCurrency,
+      currency: defaultCurrency,
       linkedAccountId: '',
       categoryId: '',
     },
   });
 
   useEffect(() => {
-    setValue('currency', fallbackCurrency);
-  }, [fallbackCurrency, setValue]);
+    setValue('currency', defaultCurrency);
+  }, [defaultCurrency, setValue]);
 
   const accountOptions = useMemo(
     () => (formData?.accounts ?? []).map(account => ({ id: String(account.id), value: account.name })),
@@ -56,7 +53,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
 
   return (
     <form
-      onSubmit={handleSubmit(onSave)}
+      onSubmit={handleSubmit((values: NewItemState) => onSave(values))}
       onKeyDown={event => {
         if (event.key === 'Escape') {
           event.preventDefault();
@@ -89,7 +86,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
               searchable={false}
               options={SupportedCurrencies.map(currency => ({ id: currency, value: currency }))}
               value={field.value}
-              onChange={item => field.onChange((item?.id as string) ?? fallbackCurrency)}
+              onChange={item => field.onChange((item?.id as SupportedCurrency | undefined) ?? defaultCurrency)}
               placeholder="Currency"
               inputClassName="rounded border border-[var(--fin-border)] bg-[var(--fin-card3)] px-2 py-1.5 text-center text-[11px] text-[var(--fin-muted)]"
             />

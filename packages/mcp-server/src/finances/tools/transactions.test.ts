@@ -261,7 +261,7 @@ describe('addTransactionsTool', () => {
           {
             type: TransactionTypes.Expense,
             amount: 100,
-            currency: 'eur',
+            currency: 'EUR',
             accountId: 1,
             notes: 'Taxi',
             date: '2026-04-28',

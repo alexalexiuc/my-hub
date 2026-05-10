@@ -128,7 +128,7 @@ describe('getExchangeRate', () => {
 
     global.fetch = vi.fn().mockResolvedValue({ ok: false } as any);
 
-    const rate = await getExchangeRate('CHF', 'PLN', '2023-07-20');
+    const rate = await getExchangeRate('CHF', 'JPY', '2023-07-20');
 
     expect(rate).toBe(1.55);
   });
@@ -137,7 +137,7 @@ describe('getExchangeRate', () => {
     (vi.mocked(db) as any).select.mockReturnValue(makeSelectChain([]));
     global.fetch = vi.fn().mockRejectedValue(new Error('network error'));
 
-    const rate = await getExchangeRate('AED', 'KRW', '2024-11-01');
+    const rate = await getExchangeRate('AUD', 'CAD', '2024-11-01');
 
     expect(rate).toBe(1);
   });

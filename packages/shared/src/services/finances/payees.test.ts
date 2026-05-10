@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { findPayeeByNameOrAlias, getPayees, decrementPayeeStats } from './payees';
+import { findPayeeByNameOrAlias, getPayees, decrementPayeeStats, mergePayees } from './payees';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -8,12 +8,14 @@ vi.mock('../../db/client.js', () => ({
   db: {
     select: vi.fn(),
     update: vi.fn(),
+    transaction: vi.fn(),
   },
 }));
 vi.mock('./budgets.js', () => ({ hasAccessToBudget: vi.fn() }));
 
 import { db } from '../../db/client.js';
 import { hasAccessToBudget } from './budgets.js';
+import { financePayees, financeTransactions } from '../../db/schema/finances';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -198,5 +200,156 @@ describe('decrementPayeeStats', () => {
         }),
       }),
     );
+  });
+});
+
+// ─── mergePayees ─────────────────────────────────────────────────────────────
+
+describe('mergePayees', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(hasAccessToBudget).mockResolvedValue(true);
+  });
+
+  it('recomputes target statsByUser from reassigned transactions', async () => {
+    const target = makeDbPayee(10, 'Target', null, {
+      staleUser: { count: 99, lastUsedAt: '2020-01-01', lastUsedCategoryId: 1, lastUsedAccountId: 1 },
+    });
+    const source1 = makeDbPayee(11, 'Old A', null, {});
+    const source2 = makeDbPayee(12, 'Old B', null, {});
+
+    (vi.mocked(db) as any).select
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockResolvedValue([target]),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockResolvedValue([source1, source2]),
+      });
+
+    const updateCalls: Array<{ table: unknown; values: Record<string, unknown> }> = [];
+
+    const tx = {
+      select: vi
+        .fn()
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([{ count: 2 }]),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          orderBy: vi.fn().mockResolvedValue([
+            {
+              addedByUserId: 'user-1',
+              categoryId: 101,
+              accountId: 201,
+              createdAt: new Date('2026-04-02T10:00:00.000Z'),
+            },
+            {
+              addedByUserId: 'user-1',
+              categoryId: 102,
+              accountId: 202,
+              createdAt: new Date('2026-04-01T10:00:00.000Z'),
+            },
+            {
+              addedByUserId: 'user-2',
+              categoryId: null,
+              accountId: 303,
+              createdAt: new Date('2026-04-03T10:00:00.000Z'),
+            },
+          ]),
+        }),
+      update: vi.fn((table: unknown) => ({
+        set: vi.fn((values: Record<string, unknown>) => ({
+          where: vi.fn().mockImplementation(async () => {
+            updateCalls.push({ table, values });
+            return [];
+          }),
+        })),
+      })),
+      delete: vi.fn(() => ({ where: vi.fn().mockResolvedValue([]) })),
+    };
+
+    (vi.mocked(db) as any).transaction.mockImplementation(async (cb: (txArg: unknown) => Promise<unknown>) => cb(tx));
+
+    const result = await mergePayees('user-1', 1, 10, [11, 12]);
+
+    expect(result).toEqual({ mergedCount: 2, targetId: 10, canonicalName: 'Target' });
+
+    const transactionReassignUpdate = updateCalls.find(c => c.table === financeTransactions);
+    expect(transactionReassignUpdate?.values).toEqual(
+      expect.objectContaining({
+        payeeId: 10,
+      }),
+    );
+
+    const payeeStatsUpdate = updateCalls.find(c => c.table === financePayees);
+    expect(payeeStatsUpdate?.values).toEqual({
+      statsByUser: {
+        'user-1': {
+          count: 2,
+          lastUsedAt: '2026-04-02T10:00:00.000Z',
+          lastUsedCategoryId: 101,
+          lastUsedAccountId: 201,
+        },
+        'user-2': {
+          count: 1,
+          lastUsedAt: '2026-04-03T10:00:00.000Z',
+          lastUsedCategoryId: null,
+          lastUsedAccountId: 303,
+        },
+      },
+    });
+  });
+
+  it('writes empty statsByUser when target has no transactions', async () => {
+    const target = makeDbPayee(20, 'Target', null, {
+      staleUser: { count: 3, lastUsedAt: '2026-01-01', lastUsedCategoryId: 9, lastUsedAccountId: 9 },
+    });
+    const source = makeDbPayee(21, 'Source', null, {});
+
+    (vi.mocked(db) as any).select
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockResolvedValue([target]),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockResolvedValue([source]),
+      });
+
+    const updateCalls: Array<{ table: unknown; values: Record<string, unknown> }> = [];
+
+    const tx = {
+      select: vi
+        .fn()
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([{ count: 0 }]),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          orderBy: vi.fn().mockResolvedValue([]),
+        }),
+      update: vi.fn((table: unknown) => ({
+        set: vi.fn((values: Record<string, unknown>) => ({
+          where: vi.fn().mockImplementation(async () => {
+            updateCalls.push({ table, values });
+            return [];
+          }),
+        })),
+      })),
+      delete: vi.fn(() => ({ where: vi.fn().mockResolvedValue([]) })),
+    };
+
+    (vi.mocked(db) as any).transaction.mockImplementation(async (cb: (txArg: unknown) => Promise<unknown>) => cb(tx));
+
+    await mergePayees('user-1', 1, 20, [21]);
+
+    const payeeStatsUpdate = updateCalls.find(c => c.table === financePayees);
+    expect(payeeStatsUpdate?.values).toEqual({ statsByUser: {} });
   });
 });
