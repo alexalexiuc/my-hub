@@ -23,8 +23,8 @@ import { users } from '../../db/schema/users';
 import { logger, omitUndefined } from '../../utils';
 import type { FinanceBudget, NewFinanceBudget } from '../../types';
 
-const budgetAccessCache = new PromiseCacheX<boolean>({ ttl: 300_000 });
-const budgetsCache = new PromiseCacheX<UserBudget[]>({ ttl: 300_000 });
+const budgetAccessCache = new PromiseCacheX<boolean>({ ttl: 5 * 60 * 1000 }); // 5 minutes
+const budgetsCache = new PromiseCacheX<UserBudget[]>({ ttl: 5 * 60 * 1000 }); // 5 minutes
 
 export type BudgetInsert = Omit<NewFinanceBudget, 'id' | 'createdByUserId' | 'createdAt' | 'updatedAt'>;
 export type BudgetUpdate = Partial<Pick<BudgetInsert, 'name' | 'defaultCurrency'>>;
