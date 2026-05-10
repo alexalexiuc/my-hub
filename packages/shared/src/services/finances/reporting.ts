@@ -29,9 +29,9 @@ export interface CategoryProgress {
   id: number;
   name: string;
   displayName: string;
-  monthlyTarget: string | null;
-  spent: string;
-  remainingBudget: string | null;
+  monthlyTarget: number | null;
+  spent: number;
+  remainingBudget: number | null;
   percentUsed: number | null;
 }
 
@@ -103,15 +103,15 @@ export async function getBudgetProgress(
     if (target !== null) totalBudgeted += target;
     totalSpent += spent;
 
-    const remainingBudget = target !== null ? String(target - spent) : null;
+    const remainingBudget = target !== null ? target - spent : null;
     const percentUsed = target !== null && target > 0 ? Math.round((spent / target) * 100) : null;
 
     return {
       id: cat.id,
       name: cat.name,
       displayName,
-      monthlyTarget: cat.monthlyTarget != null ? String(cat.monthlyTarget) : null,
-      spent: String(spent),
+      monthlyTarget: cat.monthlyTarget ?? null,
+      spent,
       remainingBudget,
       percentUsed,
     };

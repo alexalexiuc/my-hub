@@ -119,7 +119,7 @@ export default function PayeesPage() {
           {sorted.map((p, i) => {
             const catColor = p.categoryColor ?? 'var(--fin-muted)';
             const fullPayee = payeesById.get(p.id);
-            const alias = fullPayee?.alias?.trim() || null;
+            const aliases = fullPayee?.aliases ?? [];
             const description = fullPayee?.description?.trim() || null;
             return (
               <div key={p.id}>
@@ -130,12 +130,13 @@ export default function PayeesPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <div className="text-[13px] font-medium text-[var(--fin-text)]">{p.name}</div>
-                        {alias && (
+                        {aliases.length > 0 && (
                           <span
                             className="rounded-full border px-1.5 py-[1px] text-[9px] uppercase tracking-[0.06em] text-[var(--fin-subtle)]"
                             style={{ borderColor: 'var(--fin-border)', background: 'var(--fin-card2)' }}
+                            title={aliases.join(', ')}
                           >
-                            Alias: {alias}
+                            Aliases: {aliases.join(', ')}
                           </span>
                         )}
                         {description && (

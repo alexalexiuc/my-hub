@@ -154,7 +154,9 @@ export const financePayees = pgTable(
       .notNull()
       .references(() => financeBudgets.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
-    alias: text('alias'),
+    // Array of alternative names/aliases for fast lookup. Example: ["H&M", "H&M Romania", "HM"].
+    // Searched case-insensitively in findPayeeByNameOrAlias(). Updated via updatePayee().
+    aliases: jsonb('aliases').$type<string[]>().notNull().default([]),
     // lower(trim(name)) — used for case-insensitive uniqueness check
     normalizedName: text('normalized_name').notNull(),
     // Optional context for AI — e.g. "Main grocery supermarket", "Landlord — rent"

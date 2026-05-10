@@ -8,7 +8,7 @@ const IdParamSchema = z.object({ id: z.coerce.number().int().positive() });
 
 const PayeeUpdateSchema = z.object({
   name: z.string().trim().min(1, 'name is required').optional(),
-  alias: z.string().trim().nullable().optional(),
+  aliases: z.array(z.string().trim()).optional(),
   description: z.string().trim().nullable().optional(),
 });
 
@@ -22,14 +22,14 @@ export const PATCH = route({
 
   const payee = await updatePayee(user.id, budget.id, params.id, {
     name: body.name,
-    alias: trimOrNull(body.alias),
+    aliases: body.aliases,
     description: trimOrNull(body.description),
   });
 
   return {
     id: payee.id,
     name: payee.name,
-    alias: payee.alias,
+    aliases: payee.aliases,
     description: payee.description,
     useCount: 0,
     lastUsedAt: null,

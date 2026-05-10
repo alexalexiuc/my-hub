@@ -23,8 +23,9 @@ import { users } from '../../db/schema/users';
 import { logger, omitUndefined } from '../../utils';
 import type { FinanceBudget, NewFinanceBudget } from '../../types';
 
-const budgetAccessCache = new PromiseCacheX<boolean>({ ttl: 5 * 60 * 1000 }); // 5 minutes
-const budgetsCache = new PromiseCacheX<UserBudget[]>({ ttl: 5 * 60 * 1000 }); // 5 minutes
+// TODO: Fix stale access cache and increase time
+const budgetAccessCache = new PromiseCacheX<boolean>({ ttl: 1000 }); // 1 second
+const budgetsCache = new PromiseCacheX<UserBudget[]>({ ttl: 1000 }); // 1 second
 
 export type BudgetInsert = Omit<NewFinanceBudget, 'id' | 'createdByUserId' | 'createdAt' | 'updatedAt'>;
 export type BudgetUpdate = Partial<Pick<BudgetInsert, 'name' | 'defaultCurrency'>>;

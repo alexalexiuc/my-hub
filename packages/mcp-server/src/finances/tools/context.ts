@@ -44,7 +44,7 @@ export const listContextTool: ToolHandler<typeof ListContextSchema.shape> = asyn
     payees: payees.map(p => ({
       id: p.id,
       name: p.name,
-      alias: p.alias ?? null,
+      aliases: p.aliases,
     })),
   });
 };

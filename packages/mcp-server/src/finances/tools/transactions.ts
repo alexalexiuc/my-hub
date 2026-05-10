@@ -20,7 +20,7 @@ import {
   getPayees,
   getBudgetProgress,
 } from '@my-hub/shared/services';
-import { TransactionTypes } from '@my-hub/shared/constants';
+import { TransactionTypes, AccountTypes } from '@my-hub/shared/constants';
 import type { TransactionInsert } from '@my-hub/shared/services';
 import { currentDateString, isPayeeRequired, omitUndefined } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
@@ -214,10 +214,27 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
 
       const tx = await addTransaction(userId, budget.id, txData);
 
+      // Helper to calculate available amount for an account
+      const getAccountAvailable = (acc: typeof account): number | null => {
+        if (acc.type === AccountTypes.CreditCard) {
+          const details = acc.details as { creditLimit?: number } | null;
+          const creditLimit = details?.creditLimit ?? 0;
+          return creditLimit - acc.balance;
+        }
+        if (acc.type === AccountTypes.Goal) {
+          const details = acc.details as { targetAmount?: number } | null;
+          const targetAmount = details?.targetAmount ?? 0;
+          return targetAmount - acc.balance;
+        }
+        // For other account types, available is typically the balance itself (for bank/cash)
+        return null;
+      };
+
       const result: Record<string, unknown> = {
         index: i,
         transactionId: tx.id,
         fromAccountBalanceAfter: tx.fromAccountBalanceAfter,
+        fromAccountAvailableAfter: getAccountAvailable(account),
         resolvedAccount: account.name,
         resolvedCategory: item.categoryId != null ? String(item.categoryId) : null,
         resolvedPayee: item.payeeName ?? null,
@@ -225,6 +242,10 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
 
       if (tx.toAccountBalanceAfter != null) {
         result.toAccountBalanceAfter = tx.toAccountBalanceAfter;
+        const toAccount = await getAccountById(userId, budget.id, item.toAccountId!);
+        if (toAccount) {
+          result.toAccountAvailableAfter = getAccountAvailable(toAccount);
+        }
       }
 
       if (duplicate) {
@@ -251,6 +272,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
               month,
               monthlyTarget: categoryProgress.monthlyTarget,
               spentSoFar: categoryProgress.spent,
+              remaining: categoryProgress.monthlyTarget - categoryProgress.spent,
             };
           }
         }
@@ -345,15 +367,60 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
   const updated = await updateTransaction(userId, budget.id, input.transactionId, updateData);
   const resolvedAccount = await getAccountById(userId, budget.id, updated.accountId);
 
-  return toolResponse({
+  // Helper to calculate available amount for an account
+  const getAccountAvailable = (acc: typeof resolvedAccount): number | null => {
+    if (!acc) return null;
+    if (acc.type === AccountTypes.CreditCard) {
+      const details = acc.details as { creditLimit?: number } | null;
+      const creditLimit = details?.creditLimit ?? 0;
+      return creditLimit - acc.balance;
+    }
+    if (acc.type === AccountTypes.Goal) {
+      const details = acc.details as { targetAmount?: number } | null;
+      const targetAmount = details?.targetAmount ?? 0;
+      return targetAmount - acc.balance;
+    }
+    return null;
+  };
+
+  const responseData: Record<string, unknown> = {
     index: 0,
     transactionId: updated.id,
     fromAccountBalanceAfter: updated.fromAccountBalanceAfter,
-    ...(updated.toAccountBalanceAfter != null ? { toAccountBalanceAfter: updated.toAccountBalanceAfter } : {}),
+    fromAccountAvailableAfter: getAccountAvailable(resolvedAccount),
     resolvedAccount: resolvedAccount?.name ?? String(updated.accountId),
     resolvedCategory: updated.categoryId != null ? String(updated.categoryId) : null,
     resolvedPayee: input.payeeName ?? null,
-  });
+  };
+
+  if (updated.toAccountBalanceAfter != null) {
+    responseData.toAccountBalanceAfter = updated.toAccountBalanceAfter;
+    const toAccount = await getAccountById(userId, budget.id, updated.toAccountId!);
+    if (toAccount) {
+      responseData.toAccountAvailableAfter = getAccountAvailable(toAccount);
+    }
+  }
+
+  // Add category budget progress if category is set
+  if (updated.categoryId != null) {
+    const categories = await getCategories(userId, budget.id);
+    const category = categories.find(c => c.id === updated.categoryId);
+    if (category?.monthlyTarget != null) {
+      const month = updated.date.slice(0, 7);
+      const budgetProgress = await getBudgetProgress(userId, budget.id, month);
+      const categoryProgress = budgetProgress.categories.find(cp => cp.id === updated.categoryId);
+      if (categoryProgress?.monthlyTarget != null) {
+        responseData.categoryBudgetProgress = {
+          month,
+          monthlyTarget: categoryProgress.monthlyTarget,
+          spentSoFar: categoryProgress.spent,
+          remaining: categoryProgress.monthlyTarget - categoryProgress.spent,
+        };
+      }
+    }
+  }
+
+  return toolResponse(responseData);
 };
 
 // ─── delete_transaction ───────────────────────────────────────────────────────

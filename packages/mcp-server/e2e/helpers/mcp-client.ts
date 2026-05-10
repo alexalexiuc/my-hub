@@ -28,10 +28,20 @@ export async function createMcpClient(baseUrl: string, path: string, token: stri
 type McpContentItem = { type: string; text?: string };
 
 export function parseToolResult<T = unknown>(result: Awaited<ReturnType<Client['callTool']>>): T {
-  const { content } = result as { content: McpContentItem[] };
+  const { content, isError } = result as { content: McpContentItem[]; isError?: boolean };
   const item = content[0];
   if (!item || item.type !== 'text' || item.text === undefined) {
     throw new Error(`Unexpected MCP content type: ${item?.type ?? 'none'}`);
   }
-  return JSON.parse(item.text) as T;
+
+  if (isError) {
+    throw new Error(`MCP tool returned error: ${item.text}`);
+  }
+
+  try {
+    return JSON.parse(item.text) as T;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to parse MCP tool JSON response: ${message}. Raw text: ${item.text}`);
+  }
 }

@@ -241,7 +241,7 @@ export const goalsResponseSchema = z.object({
 export const payeeSuggestionSchema = z.object({
   id: z.number().int(),
   name: z.string(),
-  alias: z.string().nullable(),
+  aliases: z.array(z.string()),
   description: z.string().nullable(),
   useCount: z.number().int(),
   lastUsedAt: z.string().nullable(),
