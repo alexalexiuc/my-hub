@@ -129,6 +129,7 @@ describe('addTransactionsTool', () => {
             date: '2026-04-28',
           },
         ],
+        createPayee: undefined,
       },
       context,
     );
@@ -153,6 +154,7 @@ describe('addTransactionsTool', () => {
             },
           },
         ],
+        createPayee: undefined,
       },
       context,
     );
@@ -201,6 +203,7 @@ describe('addTransactionsTool', () => {
             date: '2026-04-28',
           },
         ],
+        createPayee: undefined,
       },
       context,
     );
@@ -241,6 +244,7 @@ describe('addTransactionsTool', () => {
             date: '2026-04-28',
           },
         ],
+        createPayee: undefined,
       },
       context,
     );
@@ -269,6 +273,7 @@ describe('addTransactionsTool', () => {
             date: '2026-04-28',
           },
         ],
+        createPayee: undefined,
       },
       context,
     );
