@@ -283,7 +283,7 @@ export async function mergePayees(
     if (mergedCount > 0) {
       await tx
         .update(financeTransactions)
-        .set({ payeeId: targetId })
+        .set({ payeeId: targetId, updatedAt: new Date() })
         .where(and(eq(financeTransactions.budgetId, budgetId), inArray(financeTransactions.payeeId, sourceIds)));
     }
 
