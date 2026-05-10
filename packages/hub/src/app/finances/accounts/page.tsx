@@ -34,7 +34,7 @@ function AccountCard({
   onClick: () => void;
 }) {
   const isLiability = acc.type === 'credit_card' || acc.type === 'loan';
-  const hasExtra = acc.type === 'credit_card' || acc.type === 'goal' || acc.type === 'investment';
+  const hasExtra = acc.type === 'credit_card' || acc.type === 'goal';
 
   return (
     <Card onClick={onClick} className="cursor-pointer px-[14px] py-3">
@@ -73,39 +73,6 @@ function AccountCard({
         />
       )}
 
-      {acc.type === 'investment' && acc.deposited != null && (
-        <div className="flex gap-4">
-          <div>
-            <div className="text-[10px] text-[var(--fin-subtle)]">Deposited</div>
-            <div className="text-xs text-[var(--fin-muted)]">{fmt(acc.deposited, acc.currency)}</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-[var(--fin-subtle)]">P&L</div>
-            <div
-              className={cn(
-                'text-xs',
-                acc.balance >= acc.deposited ? 'text-[var(--fin-green)]' : 'text-[var(--fin-red)]',
-              )}
-            >
-              {acc.balance >= acc.deposited ? '+' : '-'}
-              {fmt(Math.abs(acc.balance - acc.deposited), acc.currency)}
-            </div>
-          </div>
-          <div>
-            <div className="text-[10px] text-[var(--fin-subtle)]">Return</div>
-            <div
-              className={cn(
-                'text-xs',
-                acc.balance >= acc.deposited ? 'text-[var(--fin-green)]' : 'text-[var(--fin-red)]',
-              )}
-            >
-              {acc.deposited > 0
-                ? `${acc.balance >= acc.deposited ? '+' : ''}${(((acc.balance - acc.deposited) / acc.deposited) * 100).toFixed(1)}%`
-                : '—'}
-            </div>
-          </div>
-        </div>
-      )}
 
       {acc.type === 'tracking' && (
         <div className="text-[10px] text-[var(--fin-subtle)]">Manually tracked value · read-only</div>

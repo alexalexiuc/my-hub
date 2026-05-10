@@ -51,7 +51,12 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
         description: values.description.trim() || undefined,
         type: values.type,
         currency: defaultCurrency.trim().toUpperCase(),
-        openingBalance: parseFloat(values.openingBalance) || 0,
+        openingBalance:
+          values.type === AccountTypes.Loan
+            ? parseFloat(values.principal) || 0
+            : values.type === AccountTypes.Investment
+              ? parseFloat(values.deposited) || 0
+              : parseFloat(values.openingBalance) || 0,
         details: formToAccountDetails(values),
       },
     });
@@ -79,9 +84,11 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
           <Input {...register('description')} placeholder="e.g. Main salary account" />
         </Field>
 
-        <Field label="Opening Balance">
-          <Input {...register('openingBalance')} type="number" step="0.01" />
-        </Field>
+        {type !== AccountTypes.Loan && type !== AccountTypes.Investment && (
+          <Field label="Opening Balance">
+            <Input {...register('openingBalance')} type="number" step="0.01" />
+          </Field>
+        )}
 
         {type === AccountTypes.CreditCard && (
           <>
