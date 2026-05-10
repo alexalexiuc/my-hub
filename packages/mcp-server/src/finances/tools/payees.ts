@@ -1,7 +1,66 @@
 import { z } from 'zod';
 import { ToolHandler } from '../../shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
-import { getUserActiveBudget, mergePayees } from '@my-hub/shared/services';
+import { getUserActiveBudget, mergePayees, upsertPayee, updatePayee, findPayeeByNameOrAlias } from '@my-hub/shared/services';
+
+// ─── upsert_payee ─────────────────────────────────────────────────────────────
+
+export const UpsertPayeeSchema = z.object({
+  name: z
+    .string()
+    .min(1)
+    .describe(
+      'The canonical name for the payee (e.g. "Starbucks"). ' +
+        'If a payee with this name (or a matching alias) already exists, it will be updated rather than duplicated.',
+    ),
+  alias: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      'An alternative name or shorthand for the payee (e.g. "Starbucks Coffee"). ' +
+        'Aliases are matched when resolving payee names during transaction entry, so adding an alias lets you ' +
+        'use that alternate spelling without creating a duplicate payee.',
+    ),
+});
+
+export const upsertPayeeTool: ToolHandler<typeof UpsertPayeeSchema.shape> = async (input, context) => {
+  const { userId } = context;
+
+  const budget = await getUserActiveBudget(userId);
+  if (!budget) throw new Error('No active budget. Set an active budget in the Hub first.');
+
+  const beforeUpsert = await findPayeeByNameOrAlias(userId, budget.id, input.name);
+  const isNew = beforeUpsert == null;
+
+  const payee = isNew ? await upsertPayee(userId, budget.id, input.name) : beforeUpsert;
+
+  let aliasAdded = false;
+  if (input.alias) {
+    const existingAliases = payee.aliases ?? [];
+    const normalizedAlias = input.alias.trim().toLowerCase();
+    const alreadyPresent = existingAliases.some(a => a.trim().toLowerCase() === normalizedAlias);
+    if (!alreadyPresent) {
+      await updatePayee(userId, budget.id, payee.id, { aliases: [...existingAliases, input.alias.trim()] });
+      aliasAdded = true;
+    }
+  }
+
+  let message: string;
+  if (isNew) {
+    message = input.alias
+      ? `Payee "${payee.name}" created with alias "${input.alias.trim()}".`
+      : `Payee "${payee.name}" created.`;
+  } else if (aliasAdded) {
+    message = `Payee "${payee.name}" already exists. Alias "${input.alias!.trim()}" added.`;
+  } else if (input.alias) {
+    message = `Payee "${payee.name}" already exists. Alias "${input.alias.trim()}" was already present.`;
+  } else {
+    message = `Payee "${payee.name}" already exists.`;
+  }
+
+  return toolResponse({ message, payeeId: payee.id, name: payee.name });
+};
 
 // ─── merge_payees ─────────────────────────────────────────────────────────────
 

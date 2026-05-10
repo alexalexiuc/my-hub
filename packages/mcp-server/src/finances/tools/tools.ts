@@ -29,7 +29,7 @@ import {
   UpsertCategorySchema,
   upsertCategoryTool,
 } from './accounts-categories';
-import { MergePayeesSchema, mergePayeesTool } from './payees';
+import { MergePayeesSchema, mergePayeesTool, UpsertPayeeSchema, upsertPayeeTool } from './payees';
 
 const financeTools = [
   defineTool({
@@ -68,6 +68,19 @@ const financeTools = [
     callback: upsertCategoryTool,
   }),
   defineTool({
+    name: 'finances_upsert_payee',
+    description:
+      'Create a new payee or update an existing one. ' +
+      'If a payee with the given name (or matching alias) already exists, it is returned as-is. ' +
+      'Provide alias to add an alternative name that will be recognised during transaction entry — ' +
+      'for example, alias "Starbucks Coffee" maps to the canonical payee "Starbucks". ' +
+      'Use this tool before adding transactions when you know the payee does not yet exist, ' +
+      'or after adding transactions that returned a payee_not_found error.',
+    inputSchema: UpsertPayeeSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: upsertPayeeTool,
+  }),
+  defineTool({
     name: 'finances_merge_payees',
     description:
       'Merge duplicate payees: all transactions from sourceIds are reassigned to targetId, ' +
@@ -87,6 +100,8 @@ const financeTools = [
       'Each item is processed independently — a duplicate warning on one does not block the others. ' +
       'Always populate the notes field with a plain-language summary of the transaction. ' +
       'The tool automatically detects possible duplicates and includes a warning in the result if found. ' +
+      'If a payeeName is not recognised and createPayee is false (default), the call returns a payee_not_found error — ' +
+      'use finances_upsert_payee to create the payee first, or set createPayee: true to create it automatically. ' +
       '\n\nExtras field guidance:\n' +
       '- extras is optional. Provide it only when you have meaningful structured metadata beyond the core transaction fields. ' +
       '- For receipt transactions, populate extras.items with the line items that are clearly visible on the receipt. ' +
