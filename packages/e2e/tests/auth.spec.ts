@@ -13,6 +13,7 @@ test.describe('Authentication', () => {
     // ── 1. Unauthenticated user redirected to sign-in ─────────────────────────
     await page.goto('/');
     await expect(page).toHaveURL(/\/auth\/signin/);
+    await page.goto('/auth/signin');
 
     // ── 2. Form layout ────────────────────────────────────────────────────────
     await expect(page.getByLabel('Email')).toBeVisible();

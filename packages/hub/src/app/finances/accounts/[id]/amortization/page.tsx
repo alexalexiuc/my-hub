@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar } from '../../../ui';
+import { LoanPaydownChart } from './LoanPaydownChart';
 import type { AmortizationData } from '@/app/api/finances/contracts';
 
 export default function AmortizationPage() {
@@ -122,6 +123,11 @@ export default function AmortizationPage() {
           </button>
         </div>
       )}
+
+      {/* Paydown chart */}
+      <Card className="p-[14px]">
+        <LoanPaydownChart rows={data.rows} principal={data.principal} currency={data.currency} />
+      </Card>
 
       {/* Schedule table */}
       <Card className="p-[14px]">
