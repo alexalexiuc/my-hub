@@ -48,6 +48,9 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
   if (input.openingBalance !== undefined && input.openingDate === undefined) {
     throw new Error('openingDate is required when openingBalance is provided');
   }
+  if (input.openingDate !== undefined && input.openingBalance === undefined) {
+    throw new Error('openingBalance is required when openingDate is provided');
+  }
 
   let account;
 
