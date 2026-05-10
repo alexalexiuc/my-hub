@@ -10,7 +10,7 @@
  * - decrementPayeeStats(tx, payeeId, userId) — called inside transaction deletes
  * Types: Payee
  */
-import { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { db, DbTx } from '../../db/client';
 import { financePayees, financeTransactions } from '../../db/schema/finances';
 import type { PayeeUserStats } from '../../db/schema/finances';
@@ -255,7 +255,7 @@ export async function mergePayees(
   let finalCanonicalName = '';
   await db.transaction(async tx => {
     const [target] = await tx
-      .select({ id: financePayees.id, name: financePayees.name })
+      .select({ id: financePayees.id, name: financePayees.name, statsByUser: financePayees.statsByUser })
       .from(financePayees)
       .where(and(eq(financePayees.id, targetId), eq(financePayees.budgetId, budgetId)))
       .for('update');
@@ -265,7 +265,7 @@ export async function mergePayees(
     }
 
     const sources = await tx
-      .select({ id: financePayees.id })
+      .select({ id: financePayees.id, statsByUser: financePayees.statsByUser })
       .from(financePayees)
       .where(and(inArray(financePayees.id, uniqueSourceIds), eq(financePayees.budgetId, budgetId)))
       .for('update');
@@ -294,45 +294,34 @@ export async function mergePayees(
         .where(and(eq(financeTransactions.budgetId, budgetId), inArray(financeTransactions.payeeId, uniqueSourceIds)));
     }
 
-    // Recompute target stats from actual transactions to keep getPayees ranking accurate.
-    const targetTransactions = await tx
-      .select({
-        addedByUserId: financeTransactions.addedByUserId,
-        categoryId: financeTransactions.categoryId,
-        accountId: financeTransactions.accountId,
-        createdAt: financeTransactions.createdAt,
-      })
-      .from(financeTransactions)
-      .where(and(eq(financeTransactions.budgetId, budgetId), eq(financeTransactions.payeeId, targetId)))
-      .orderBy(asc(financeTransactions.addedByUserId), desc(financeTransactions.createdAt));
+    // Merge stats from source payees into target
+    const mergedStats: Record<string, PayeeUserStats> = { ...target.statsByUser };
 
-    const recomputedStats: Record<string, PayeeUserStats> = {};
-    for (const row of targetTransactions) {
-      const existing = recomputedStats[row.addedByUserId];
-      const createdAtIso = row.createdAt.toISOString();
+    for (const source of sources) {
+      const sourceStats = source.statsByUser;
+      for (const [userId, sourceUserStats] of Object.entries(sourceStats)) {
+        const existing = mergedStats[userId];
+        if (!existing) {
+          mergedStats[userId] = { ...sourceUserStats };
+          continue;
+        }
 
-      if (!existing) {
-        recomputedStats[row.addedByUserId] = {
-          count: 1,
-          lastUsedAt: createdAtIso,
-          lastUsedCategoryId: row.categoryId,
-          lastUsedAccountId: row.accountId,
+        // Merge counts and pick the most recent timestamp + metadata
+        const isMostRecent =
+          !existing.lastUsedAt || (sourceUserStats.lastUsedAt && sourceUserStats.lastUsedAt > existing.lastUsedAt);
+
+        mergedStats[userId] = {
+          count: existing.count + sourceUserStats.count,
+          lastUsedAt: isMostRecent ? sourceUserStats.lastUsedAt : existing.lastUsedAt,
+          lastUsedCategoryId: isMostRecent ? sourceUserStats.lastUsedCategoryId : existing.lastUsedCategoryId,
+          lastUsedAccountId: isMostRecent ? sourceUserStats.lastUsedAccountId : existing.lastUsedAccountId,
         };
-        continue;
-      }
-
-      existing.count += 1;
-
-      if (existing.lastUsedAt == null || createdAtIso > existing.lastUsedAt) {
-        existing.lastUsedAt = createdAtIso;
-        existing.lastUsedCategoryId = row.categoryId;
-        existing.lastUsedAccountId = row.accountId;
       }
     }
 
     await tx
       .update(financePayees)
-      .set({ statsByUser: recomputedStats })
+      .set({ statsByUser: mergedStats })
       .where(and(eq(financePayees.id, targetId), eq(financePayees.budgetId, budgetId)));
 
     // Delete source payees

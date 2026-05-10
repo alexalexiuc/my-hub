@@ -211,12 +211,17 @@ describe('mergePayees', () => {
     vi.mocked(hasAccessToBudget).mockResolvedValue(true);
   });
 
-  it('recomputes target statsByUser from reassigned transactions', async () => {
+  it('merges stats from source payees into target', async () => {
     const target = makeDbPayee(10, 'Target', null, {
-      staleUser: { count: 99, lastUsedAt: '2020-01-01', lastUsedCategoryId: 1, lastUsedAccountId: 1 },
+      'user-1': { count: 5, lastUsedAt: '2026-04-01T10:00:00.000Z', lastUsedCategoryId: 100, lastUsedAccountId: 200 },
     });
-    const source1 = makeDbPayee(11, 'Old A', null, {});
-    const source2 = makeDbPayee(12, 'Old B', null, {});
+    const source1 = makeDbPayee(11, 'Old A', null, {
+      'user-1': { count: 3, lastUsedAt: '2026-04-02T10:00:00.000Z', lastUsedCategoryId: 101, lastUsedAccountId: 201 },
+      'user-2': { count: 2, lastUsedAt: '2026-03-15T10:00:00.000Z', lastUsedCategoryId: null, lastUsedAccountId: null },
+    });
+    const source2 = makeDbPayee(12, 'Old B', null, {
+      'user-1': { count: 1, lastUsedAt: '2026-03-20T10:00:00.000Z', lastUsedCategoryId: 102, lastUsedAccountId: 202 },
+    });
 
     const updateCalls: Array<{ table: unknown; values: Record<string, unknown> }> = [];
 
@@ -236,30 +241,6 @@ describe('mergePayees', () => {
         .mockReturnValueOnce({
           from: vi.fn().mockReturnThis(),
           where: vi.fn().mockResolvedValue([{ count: 2 }]),
-        })
-        .mockReturnValueOnce({
-          from: vi.fn().mockReturnThis(),
-          where: vi.fn().mockReturnThis(),
-          orderBy: vi.fn().mockResolvedValue([
-            {
-              addedByUserId: 'user-1',
-              categoryId: 101,
-              accountId: 201,
-              createdAt: new Date('2026-04-02T10:00:00.000Z'),
-            },
-            {
-              addedByUserId: 'user-1',
-              categoryId: 102,
-              accountId: 202,
-              createdAt: new Date('2026-04-01T10:00:00.000Z'),
-            },
-            {
-              addedByUserId: 'user-2',
-              categoryId: null,
-              accountId: 303,
-              createdAt: new Date('2026-04-03T10:00:00.000Z'),
-            },
-          ]),
         }),
       update: vi.fn((table: unknown) => ({
         set: vi.fn((values: Record<string, unknown>) => ({
@@ -289,24 +270,24 @@ describe('mergePayees', () => {
     expect(payeeStatsUpdate?.values).toEqual({
       statsByUser: {
         'user-1': {
-          count: 2,
-          lastUsedAt: '2026-04-02T10:00:00.000Z',
+          count: 9, // 5 (target) + 3 (source1) + 1 (source2)
+          lastUsedAt: '2026-04-02T10:00:00.000Z', // Most recent from source1
           lastUsedCategoryId: 101,
           lastUsedAccountId: 201,
         },
         'user-2': {
-          count: 1,
-          lastUsedAt: '2026-04-03T10:00:00.000Z',
+          count: 2, // Only from source1
+          lastUsedAt: '2026-03-15T10:00:00.000Z',
           lastUsedCategoryId: null,
-          lastUsedAccountId: 303,
+          lastUsedAccountId: null,
         },
       },
     });
   });
 
-  it('writes empty statsByUser when target has no transactions', async () => {
+  it('preserves target stats when sources have no stats', async () => {
     const target = makeDbPayee(20, 'Target', null, {
-      staleUser: { count: 3, lastUsedAt: '2026-01-01', lastUsedCategoryId: 9, lastUsedAccountId: 9 },
+      'user-1': { count: 5, lastUsedAt: '2026-01-01T10:00:00.000Z', lastUsedCategoryId: 9, lastUsedAccountId: 9 },
     });
     const source = makeDbPayee(21, 'Source', null, {});
 
@@ -328,11 +309,6 @@ describe('mergePayees', () => {
         .mockReturnValueOnce({
           from: vi.fn().mockReturnThis(),
           where: vi.fn().mockResolvedValue([{ count: 0 }]),
-        })
-        .mockReturnValueOnce({
-          from: vi.fn().mockReturnThis(),
-          where: vi.fn().mockReturnThis(),
-          orderBy: vi.fn().mockResolvedValue([]),
         }),
       update: vi.fn((table: unknown) => ({
         set: vi.fn((values: Record<string, unknown>) => ({
@@ -350,7 +326,67 @@ describe('mergePayees', () => {
     await mergePayees('user-1', 1, 20, [21]);
 
     const payeeStatsUpdate = updateCalls.find(c => c.table === financePayees);
-    expect(payeeStatsUpdate?.values).toEqual({ statsByUser: {} });
+    expect(payeeStatsUpdate?.values).toEqual({
+      statsByUser: {
+        'user-1': { count: 5, lastUsedAt: '2026-01-01T10:00:00.000Z', lastUsedCategoryId: 9, lastUsedAccountId: 9 },
+      },
+    });
+  });
+
+  it('picks most recent lastUsedAt when merging stats from multiple sources', async () => {
+    const target = makeDbPayee(30, 'Target', null, {});
+    const source1 = makeDbPayee(31, 'Old A', null, {
+      'user-1': { count: 2, lastUsedAt: '2026-04-01T10:00:00.000Z', lastUsedCategoryId: 101, lastUsedAccountId: 201 },
+    });
+    const source2 = makeDbPayee(32, 'Old B', null, {
+      'user-1': { count: 3, lastUsedAt: '2026-04-05T10:00:00.000Z', lastUsedCategoryId: 102, lastUsedAccountId: 202 },
+    });
+
+    const updateCalls: Array<{ table: unknown; values: Record<string, unknown> }> = [];
+
+    const tx = {
+      select: vi
+        .fn()
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          for: vi.fn().mockResolvedValue([target]),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          for: vi.fn().mockResolvedValue([source1, source2]),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockResolvedValue([{ count: 2 }]),
+        }),
+      update: vi.fn((table: unknown) => ({
+        set: vi.fn((values: Record<string, unknown>) => ({
+          where: vi.fn().mockImplementation(async () => {
+            updateCalls.push({ table, values });
+            return [];
+          }),
+        })),
+      })),
+      delete: vi.fn(() => ({ where: vi.fn().mockResolvedValue([]) })),
+    };
+
+    (vi.mocked(db) as any).transaction.mockImplementation(async (cb: (txArg: unknown) => Promise<unknown>) => cb(tx));
+
+    await mergePayees('user-1', 1, 30, [31, 32]);
+
+    const payeeStatsUpdate = updateCalls.find(c => c.table === financePayees);
+    expect(payeeStatsUpdate?.values).toEqual({
+      statsByUser: {
+        'user-1': {
+          count: 5, // 2 + 3
+          lastUsedAt: '2026-04-05T10:00:00.000Z', // More recent
+          lastUsedCategoryId: 102,
+          lastUsedAccountId: 202,
+        },
+      },
+    });
   });
 
   it('throws when the target payee is missing inside the transaction', async () => {

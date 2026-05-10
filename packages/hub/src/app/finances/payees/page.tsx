@@ -150,6 +150,10 @@ export default function PayeesPage() {
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-[var(--fin-subtle)]">
                         {p.categoryName ? `${p.categoryName} · ` : ''}Last: {p.lastDate}
+                        {fullPayee?.useCount
+                          ? ` · Used ${fullPayee.useCount} time${fullPayee.useCount === 1 ? '' : 's'}`
+                          : ''}
+                        {fullPayee?.lastUsedAt && ` · Overall: ${fullPayee.lastUsedAt}`}
                         <button
                           type="button"
                           className="cursor-pointer text-[var(--fin-accent)] hover:underline"
