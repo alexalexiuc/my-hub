@@ -14,7 +14,7 @@ WORKDIR /app
 ENV CI=true
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-  pnpm install -r --offline
+  pnpm install -r --prefer-offline
 
 RUN pnpm --filter @my-hub/shared build
 RUN pnpm --filter @my-hub/e2e deploy --legacy /prod/e2e
