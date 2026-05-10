@@ -73,7 +73,6 @@ function AccountCard({
         />
       )}
 
-
       {acc.type === 'tracking' && (
         <div className="text-[10px] text-[var(--fin-subtle)]">Manually tracked value · read-only</div>
       )}

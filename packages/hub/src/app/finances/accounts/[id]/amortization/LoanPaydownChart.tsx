@@ -40,7 +40,13 @@ export function LoanPaydownChart({ rows, principal, currency, width = 320, heigh
   const remainingClipId = 'lpc-remaining';
 
   return (
-    <svg width={width} height={height} className="block w-full overflow-visible" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+    <svg
+      width={width}
+      height={height}
+      className="block w-full overflow-visible"
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+    >
       <defs>
         <clipPath id={paidClipId}>
           <rect x={0} y={0} width={currentX} height={height} />
