@@ -1,0 +1,196 @@
+import { z } from 'zod';
+import { ToolHandler } from '../../shared/types';
+import { toolResponse } from '../../shared/toolsUtils';
+import {
+  getUserActiveBudget,
+  createAccount,
+  updateAccount,
+  getAccountById,
+  createCategory,
+  updateCategory,
+  getCategoryById,
+  getGroups,
+  addTransaction,
+} from '@my-hub/shared/services';
+import { AccountTypes } from '@my-hub/shared/constants';
+import { currentDateString } from '@my-hub/shared/utils';
+
+// ─── upsert_account ───────────────────────────────────────────────────────────
+
+export const UpsertAccountSchema = z.object({
+  id: z.number().int().positive().optional().describe('Omit to create a new account.'),
+  name: z.string().min(1).optional().describe('Account display name. Required when creating.'),
+  type: z
+    .enum(AccountTypes)
+    .optional()
+    .describe(
+      'Account type. Required when creating. One of: cash, bank, credit_card, investment, loan, borrowed_lent, tracking, goal.',
+    ),
+  currency: z.string().length(3).toUpperCase().optional().describe('3-letter ISO currency code, e.g. MDL, EUR.'),
+  openingBalance: z
+    .number()
+    .optional()
+    .describe('Creates a balance-correction transaction on openingDate. Required together with openingDate.'),
+  openingDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe('Date for the opening balance transaction (YYYY-MM-DD). Required when openingBalance is provided.'),
+  archived: z.boolean().optional().describe('Archive or unarchive the account.'),
+});
+
+export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = async (input, context) => {
+  const { userId } = context;
+
+  const budget = await getUserActiveBudget(userId);
+  if (!budget) throw new Error('No active budget. Set an active budget in the Hub first.');
+
+  if (input.openingBalance !== undefined && input.openingDate === undefined) {
+    throw new Error('openingDate is required when openingBalance is provided');
+  }
+
+  let account;
+
+  if (input.id !== undefined) {
+    // Update existing
+    const existing = await getAccountById(userId, budget.id, input.id);
+    if (!existing) throw new Error(`Account id ${input.id} not found`);
+
+    account = await updateAccount(userId, budget.id, input.id, {
+      name: input.name,
+      type: input.type,
+      currency: input.currency,
+      archived: input.archived,
+    });
+  } else {
+    // Create new
+    if (!input.name) throw new Error('name is required when creating an account');
+    if (!input.type) throw new Error('type is required when creating an account');
+
+    account = await createAccount(userId, budget.id, {
+      name: input.name,
+      type: input.type,
+      currency: input.currency ?? budget.defaultCurrency,
+      openingBalance: 0,
+      balance: 0,
+      archived: input.archived ?? false,
+    });
+  }
+
+  // Create opening balance correction transaction if requested
+  let openingTx = null;
+  if (input.openingBalance !== undefined && input.openingDate !== undefined) {
+    const amount = Math.abs(input.openingBalance);
+    const txType = input.openingBalance >= 0 ? 'income' : 'expense';
+    const date = input.openingDate ?? currentDateString();
+
+    const tx = await addTransaction(userId, budget.id, {
+      type: txType,
+      amount,
+      date,
+      accountId: account.id,
+      categoryId: null,
+      payeeId: null,
+      notes: 'Opening balance',
+      isCorrection: true,
+      source: 'mcp',
+    });
+
+    openingTx = {
+      transactionId: tx.id,
+      type: txType,
+      amount: input.openingBalance,
+      date,
+      balanceAfter: tx.fromAccountBalanceAfter,
+    };
+  }
+
+  // Refresh account to get the updated balance after opening transaction
+  const finalAccount = openingTx != null ? await getAccountById(userId, budget.id, account.id) : account;
+
+  return toolResponse({
+    id: finalAccount!.id,
+    name: finalAccount!.name,
+    type: finalAccount!.type,
+    currency: finalAccount!.currency,
+    balance: finalAccount!.balance,
+    archived: finalAccount!.archived,
+    ...(openingTx ? { openingTransaction: openingTx } : {}),
+  });
+};
+
+// ─── upsert_category ──────────────────────────────────────────────────────────
+
+export const UpsertCategorySchema = z.object({
+  id: z.number().int().positive().optional().describe('Omit to create a new category.'),
+  name: z.string().min(1).optional().describe('Category name. Required when creating.'),
+  groupName: z
+    .string()
+    .min(1)
+    .nullable()
+    .optional()
+    .describe('Name of the group (parent) for this category. null means ungrouped.'),
+  monthlyTarget: z
+    .number()
+    .nullable()
+    .optional()
+    .describe('Monthly spending target in the budget default currency. null to remove the target.'),
+});
+
+export const upsertCategoryTool: ToolHandler<typeof UpsertCategorySchema.shape> = async (input, context) => {
+  const { userId } = context;
+
+  const budget = await getUserActiveBudget(userId);
+  if (!budget) throw new Error('No active budget. Set an active budget in the Hub first.');
+
+  // Resolve groupName to groupId
+  let groupId: number | null | undefined = undefined;
+  if (input.groupName !== undefined) {
+    if (input.groupName === null) {
+      groupId = null;
+    } else {
+      const groups = await getGroups(userId, budget.id);
+      const match = groups.find(g => g.name.toLowerCase() === input.groupName!.toLowerCase());
+      if (!match)
+        throw new Error(`Group "${input.groupName}" not found. Use finances_list_context to see available groups.`);
+      groupId = match.id;
+    }
+  }
+
+  let category;
+
+  if (input.id !== undefined) {
+    // Update existing
+    const existing = await getCategoryById(userId, budget.id, input.id);
+    if (!existing) throw new Error(`Category id ${input.id} not found`);
+
+    category = await updateCategory(userId, budget.id, input.id, {
+      name: input.name,
+      groupId,
+      monthlyTarget: input.monthlyTarget ?? undefined,
+    });
+  } else {
+    // Create new
+    if (!input.name) throw new Error('name is required when creating a category');
+
+    category = await createCategory(userId, budget.id, {
+      name: input.name,
+      groupId: groupId ?? null,
+      monthlyTarget: input.monthlyTarget ?? null,
+    });
+  }
+
+  // Get group name for response
+  let groupName: string | null = null;
+  if (category.groupId != null) {
+    const groups = await getGroups(userId, budget.id);
+    groupName = groups.find(g => g.id === category.groupId)?.name ?? null;
+  }
+
+  return toolResponse({
+    id: category.id,
+    name: category.name,
+    group: groupName,
+    monthlyTarget: category.monthlyTarget ?? null,
+  });
+};

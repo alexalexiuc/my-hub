@@ -22,8 +22,62 @@ import {
   getSpendingAggregatesTool,
   getNetWorthSummaryTool,
 } from './reporting';
+import { ListContextSchema, listContextTool } from './context';
+import {
+  UpsertAccountSchema,
+  upsertAccountTool,
+  UpsertCategorySchema,
+  upsertCategoryTool,
+} from './accounts-categories';
+import { MergePayeesSchema, mergePayeesTool } from './payees';
 
 const financeTools = [
+  defineTool({
+    name: 'finances_list_context',
+    description:
+      'Returns all accounts, categories, groups, and payees in a single call. ' +
+      'Call this first before using any other finances tool that requires an accountId, categoryId, or payee name. ' +
+      'Use account IDs for transaction tools, category IDs for budget tools, and payee IDs for merge operations. ' +
+      'Includes archived accounts so you can reference them in historical queries.',
+    inputSchema: ListContextSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: listContextTool,
+  }),
+  defineTool({
+    name: 'finances_upsert_account',
+    description:
+      'Create a new account or update an existing one. ' +
+      'Omit id to create; provide id to update only the fields you supply. ' +
+      'Use openingBalance + openingDate to record a starting balance as a correction transaction — ' +
+      'this does not overwrite existing transaction history. ' +
+      'Loan and credit card accounts accept negative opening balances.',
+    inputSchema: UpsertAccountSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: upsertAccountTool,
+  }),
+  defineTool({
+    name: 'finances_upsert_category',
+    description:
+      'Create a new spending category or update an existing one. ' +
+      'Omit id to create; provide id to update only the fields you supply. ' +
+      'Use groupName to assign the category to a group (the "parent" section visible in the Hub). ' +
+      'Set monthlyTarget to define a monthly spending limit; pass null to remove it. ' +
+      'Use finances_list_context to see available group names.',
+    inputSchema: UpsertCategorySchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: upsertCategoryTool,
+  }),
+  defineTool({
+    name: 'finances_merge_payees',
+    description:
+      'Merge duplicate payees: all transactions from sourceIds are reassigned to targetId, ' +
+      'then the source payees are deleted. ' +
+      'Optionally rename the target payee to a canonical name after the merge. ' +
+      'This operation is irreversible — use finances_list_context to confirm IDs before calling.',
+    inputSchema: MergePayeesSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: true },
+    callback: mergePayeesTool,
+  }),
   defineTool({
     name: 'finances_add_transactions',
     description:

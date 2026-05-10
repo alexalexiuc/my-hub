@@ -10,9 +10,9 @@
  * - decrementPayeeStats(tx, payeeId, userId) — called inside transaction deletes
  * Types: Payee
  */
-import { and, asc, eq, ilike, or } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { db, DbTx } from '../../db/client';
-import { financePayees } from '../../db/schema/finances';
+import { financePayees, financeTransactions } from '../../db/schema/finances';
 import type { PayeeUserStats } from '../../db/schema/finances';
 import { hasAccessToBudget } from './budgets';
 import type { FinancePayee } from '../../types';
@@ -215,6 +215,97 @@ export async function incrementPayeeStats(
     .update(financePayees)
     .set({ statsByUser: { ...payee.statsByUser, [userId]: updated } })
     .where(eq(financePayees.id, payeeId));
+}
+
+export interface MergePayeesResult {
+  mergedCount: number;
+  targetId: number;
+  canonicalName: string;
+}
+
+/**
+ * Merges one or more source payees into a target payee.
+ * All transactions referencing the source payees are reassigned to targetId,
+ * then the source payees are deleted. Optionally renames the target payee.
+ */
+export async function mergePayees(
+  userId: string,
+  budgetId: number,
+  targetId: number,
+  sourceIds: number[],
+  canonicalName?: string,
+): Promise<MergePayeesResult> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  if (sourceIds.length === 0) {
+    throw new Error('At least one sourceId is required');
+  }
+  if (sourceIds.includes(targetId)) {
+    throw new Error('targetId must not be in sourceIds');
+  }
+
+  // Verify target exists in this budget
+  const [target] = await db
+    .select()
+    .from(financePayees)
+    .where(and(eq(financePayees.id, targetId), eq(financePayees.budgetId, budgetId)));
+
+  if (!target) {
+    throw new Error(`Payee id ${targetId} not found`);
+  }
+
+  // Verify all sources exist in this budget
+  const sources = await db
+    .select()
+    .from(financePayees)
+    .where(and(inArray(financePayees.id, sourceIds), eq(financePayees.budgetId, budgetId)));
+
+  if (sources.length !== sourceIds.length) {
+    const foundIds = new Set(sources.map(s => s.id));
+    const missing = sourceIds.filter(id => !foundIds.has(id));
+    throw new Error(`Payee ids not found: ${missing.join(', ')}`);
+  }
+
+  // Reassign transactions and delete sources in one DB transaction
+  let mergedCount = 0;
+  await db.transaction(async tx => {
+    // Count transactions affected
+    const [countRow] = await tx
+      .select({ count: sql<number>`count(*)` })
+      .from(financeTransactions)
+      .where(and(eq(financeTransactions.budgetId, budgetId), inArray(financeTransactions.payeeId, sourceIds)));
+
+    mergedCount = Number(countRow?.count ?? 0);
+
+    // Reassign transactions
+    if (mergedCount > 0) {
+      await tx
+        .update(financeTransactions)
+        .set({ payeeId: targetId })
+        .where(and(eq(financeTransactions.budgetId, budgetId), inArray(financeTransactions.payeeId, sourceIds)));
+    }
+
+    // Delete source payees
+    await tx
+      .delete(financePayees)
+      .where(and(eq(financePayees.budgetId, budgetId), inArray(financePayees.id, sourceIds)));
+
+    // Optionally rename target
+    if (canonicalName !== undefined) {
+      const trimmed = canonicalName.trim();
+      if (!trimmed) throw new Error('canonicalName cannot be empty');
+      await tx
+        .update(financePayees)
+        .set({ name: trimmed, normalizedName: normalizePayeeName(trimmed) })
+        .where(and(eq(financePayees.id, targetId), eq(financePayees.budgetId, budgetId)));
+    }
+  });
+
+  const finalName = canonicalName?.trim() ?? target.name;
+
+  return { mergedCount, targetId, canonicalName: finalName };
 }
 
 /**
