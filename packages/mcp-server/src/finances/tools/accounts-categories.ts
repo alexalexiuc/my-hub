@@ -131,6 +131,7 @@ export const UpsertCategorySchema = z.object({
   groupName: z
     .string()
     .min(1)
+    .trim()
     .nullable()
     .optional()
     .describe('Name of the group (parent) for this category. null means ungrouped.'),
