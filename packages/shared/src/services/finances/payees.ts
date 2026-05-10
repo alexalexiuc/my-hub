@@ -246,36 +246,43 @@ export async function mergePayees(
     throw new Error('targetId must not be in sourceIds');
   }
 
-  // Verify target exists in this budget
-  const [target] = await db
-    .select()
-    .from(financePayees)
-    .where(and(eq(financePayees.id, targetId), eq(financePayees.budgetId, budgetId)));
-
-  if (!target) {
-    throw new Error(`Payee id ${targetId} not found`);
+  const uniqueSourceIds = [...new Set(sourceIds)];
+  if (uniqueSourceIds.length !== sourceIds.length) {
+    throw new Error('sourceIds must not contain duplicates');
   }
 
-  // Verify all sources exist in this budget
-  const sources = await db
-    .select()
-    .from(financePayees)
-    .where(and(inArray(financePayees.id, sourceIds), eq(financePayees.budgetId, budgetId)));
-
-  if (sources.length !== sourceIds.length) {
-    const foundIds = new Set(sources.map(s => s.id));
-    const missing = sourceIds.filter(id => !foundIds.has(id));
-    throw new Error(`Payee ids not found: ${missing.join(', ')}`);
-  }
-
-  // Reassign transactions and delete sources in one DB transaction
   let mergedCount = 0;
+  let finalCanonicalName = '';
   await db.transaction(async tx => {
+    const [target] = await tx
+      .select({ id: financePayees.id, name: financePayees.name })
+      .from(financePayees)
+      .where(and(eq(financePayees.id, targetId), eq(financePayees.budgetId, budgetId)))
+      .for('update');
+
+    if (!target) {
+      throw new Error(`Payee id ${targetId} not found`);
+    }
+
+    const sources = await tx
+      .select({ id: financePayees.id })
+      .from(financePayees)
+      .where(and(inArray(financePayees.id, uniqueSourceIds), eq(financePayees.budgetId, budgetId)))
+      .for('update');
+
+    if (sources.length !== uniqueSourceIds.length) {
+      const foundIds = new Set(sources.map(s => s.id));
+      const missing = uniqueSourceIds.filter(id => !foundIds.has(id));
+      throw new Error(`Payee ids not found: ${missing.join(', ')}`);
+    }
+
+    finalCanonicalName = target.name;
+
     // Count transactions affected
     const [countRow] = await tx
       .select({ count: sql<number>`count(*)` })
       .from(financeTransactions)
-      .where(and(eq(financeTransactions.budgetId, budgetId), inArray(financeTransactions.payeeId, sourceIds)));
+      .where(and(eq(financeTransactions.budgetId, budgetId), inArray(financeTransactions.payeeId, uniqueSourceIds)));
 
     mergedCount = Number(countRow?.count ?? 0);
 
@@ -284,7 +291,7 @@ export async function mergePayees(
       await tx
         .update(financeTransactions)
         .set({ payeeId: targetId, updatedAt: new Date() })
-        .where(and(eq(financeTransactions.budgetId, budgetId), inArray(financeTransactions.payeeId, sourceIds)));
+        .where(and(eq(financeTransactions.budgetId, budgetId), inArray(financeTransactions.payeeId, uniqueSourceIds)));
     }
 
     // Recompute target stats from actual transactions to keep getPayees ranking accurate.
@@ -331,12 +338,13 @@ export async function mergePayees(
     // Delete source payees
     await tx
       .delete(financePayees)
-      .where(and(eq(financePayees.budgetId, budgetId), inArray(financePayees.id, sourceIds)));
+      .where(and(eq(financePayees.budgetId, budgetId), inArray(financePayees.id, uniqueSourceIds)));
 
     // Optionally rename target
     if (canonicalName !== undefined) {
       const trimmed = canonicalName.trim();
       if (!trimmed) throw new Error('canonicalName cannot be empty');
+      finalCanonicalName = trimmed;
       await tx
         .update(financePayees)
         .set({ name: trimmed, normalizedName: normalizePayeeName(trimmed) })
@@ -344,9 +352,7 @@ export async function mergePayees(
     }
   });
 
-  const finalName = canonicalName?.trim() ?? target.name;
-
-  return { mergedCount, targetId, canonicalName: finalName };
+  return { mergedCount, targetId, canonicalName: finalCanonicalName };
 }
 
 /**

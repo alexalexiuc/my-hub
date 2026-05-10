@@ -218,21 +218,21 @@ describe('mergePayees', () => {
     const source1 = makeDbPayee(11, 'Old A', null, {});
     const source2 = makeDbPayee(12, 'Old B', null, {});
 
-    (vi.mocked(db) as any).select
-      .mockReturnValueOnce({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([target]),
-      })
-      .mockReturnValueOnce({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([source1, source2]),
-      });
-
     const updateCalls: Array<{ table: unknown; values: Record<string, unknown> }> = [];
 
     const tx = {
       select: vi
         .fn()
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          for: vi.fn().mockResolvedValue([target]),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          for: vi.fn().mockResolvedValue([source1, source2]),
+        })
         .mockReturnValueOnce({
           from: vi.fn().mockReturnThis(),
           where: vi.fn().mockResolvedValue([{ count: 2 }]),
@@ -310,21 +310,21 @@ describe('mergePayees', () => {
     });
     const source = makeDbPayee(21, 'Source', null, {});
 
-    (vi.mocked(db) as any).select
-      .mockReturnValueOnce({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([target]),
-      })
-      .mockReturnValueOnce({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([source]),
-      });
-
     const updateCalls: Array<{ table: unknown; values: Record<string, unknown> }> = [];
 
     const tx = {
       select: vi
         .fn()
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          for: vi.fn().mockResolvedValue([target]),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          for: vi.fn().mockResolvedValue([source]),
+        })
         .mockReturnValueOnce({
           from: vi.fn().mockReturnThis(),
           where: vi.fn().mockResolvedValue([{ count: 0 }]),
@@ -351,5 +351,32 @@ describe('mergePayees', () => {
 
     const payeeStatsUpdate = updateCalls.find(c => c.table === financePayees);
     expect(payeeStatsUpdate?.values).toEqual({ statsByUser: {} });
+  });
+
+  it('throws when the target payee is missing inside the transaction', async () => {
+    const source = makeDbPayee(31, 'Source', null, {});
+
+    const tx = {
+      select: vi
+        .fn()
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          for: vi.fn().mockResolvedValue([]),
+        })
+        .mockReturnValueOnce({
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          for: vi.fn().mockResolvedValue([source]),
+        }),
+    };
+
+    (vi.mocked(db) as any).transaction.mockImplementation(async (cb: (txArg: unknown) => Promise<unknown>) => cb(tx));
+
+    await expect(mergePayees('user-1', 1, 30, [31])).rejects.toThrow('Payee id 30 not found');
+  });
+
+  it('rejects duplicate sourceIds with a clear error', async () => {
+    await expect(mergePayees('user-1', 1, 30, [31, 31])).rejects.toThrow('sourceIds must not contain duplicates');
   });
 });
