@@ -127,7 +127,7 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
 
 export const UpsertCategorySchema = z.object({
   id: z.number().int().positive().optional().describe('Omit to create a new category.'),
-  name: z.string().min(1).optional().describe('Category name. Required when creating.'),
+  name: z.string().trim().min(1).optional().describe('Category name. Required when creating.'),
   groupName: z
     .string()
     .min(1)
