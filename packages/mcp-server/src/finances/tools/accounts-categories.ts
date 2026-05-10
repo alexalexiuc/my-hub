@@ -167,7 +167,7 @@ export const upsertCategoryTool: ToolHandler<typeof UpsertCategorySchema.shape> 
     category = await updateCategory(userId, budget.id, input.id, {
       name: input.name,
       groupId,
-      monthlyTarget: input.monthlyTarget ?? undefined,
+      monthlyTarget: input.monthlyTarget,
     });
   } else {
     // Create new
