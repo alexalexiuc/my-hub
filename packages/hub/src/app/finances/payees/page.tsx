@@ -16,6 +16,28 @@ const RANGES: { key: Range; label: string }[] = [
   { key: 'ytd', label: 'This year' },
 ];
 
+function getPayeeMetaLines(
+  payee: PayeesReportResponse['payees'][number],
+  meta: PayeeSuggestion | undefined,
+): Array<{ key: string; text: string }> {
+  const lines = [
+    {
+      key: 'summary',
+      text: payee.categoryName ? `${payee.categoryName} · Last: ${payee.lastDate}` : `Last: ${payee.lastDate}`,
+    },
+  ];
+
+  if (meta?.aliases.length) {
+    lines.push({ key: 'aliases', text: `Aliases: ${meta.aliases.join(', ')}` });
+  }
+
+  if (meta?.notes) {
+    lines.push({ key: 'notes', text: meta.notes });
+  }
+
+  return lines;
+}
+
 export default function PayeesPage() {
   const [range, setRange] = useState<Range>('30d');
   const [sortBy, setSortBy] = useState<SortKey>('totalSpent');
@@ -114,11 +136,7 @@ export default function PayeesPage() {
           {sorted.map((p, i) => {
             const catColor = p.categoryColor ?? 'var(--fin-muted)';
             const meta = metadataById.get(p.id);
-            const extraBits = [
-              p.categoryName ? `${p.categoryName} · Last: ${p.lastDate}` : `Last: ${p.lastDate}`,
-              meta?.aliases.length ? `Aliases: ${meta.aliases.join(', ')}` : null,
-              meta?.notes ? meta.notes : null,
-            ].filter(Boolean);
+            const metaLines = getPayeeMetaLines(p, meta);
             return (
               <div key={p.id}>
                 {i > 0 && <Divider />}
@@ -139,8 +157,8 @@ export default function PayeesPage() {
                         )}
                       </div>
                       <div className="text-[10px] text-[var(--fin-subtle)]">
-                        {extraBits.map((bit, index) => (
-                          <div key={`${p.id}-${index}`}>{bit}</div>
+                        {metaLines.map(line => (
+                          <div key={`${p.id}-${line.key}`}>{line.text}</div>
                         ))}
                       </div>
                     </div>

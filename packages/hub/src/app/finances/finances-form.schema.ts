@@ -1,21 +1,6 @@
 import { z } from 'zod';
 import { AccountTypes, LentDirections, SupportedCurrencies, TransactionTypes } from '@my-hub/shared/constants';
 
-function splitLinesToUniqueValues(value: string): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-
-  for (const line of value.split('\n')) {
-    const trimmed = line.trim();
-    const normalized = trimmed.toLowerCase();
-    if (!trimmed || seen.has(normalized)) continue;
-    seen.add(normalized);
-    result.push(trimmed);
-  }
-
-  return result;
-}
-
 // --- Add Group ---
 
 export const AddGroupSchema = z.object({
@@ -110,6 +95,21 @@ export function categoryToEditValues(cat: {
 }
 
 // --- Edit Payee ---
+
+function splitLinesToUniqueValues(value: string): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const line of value.split('\n')) {
+    const trimmed = line.trim();
+    const normalized = trimmed.toLowerCase();
+    if (!trimmed || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(trimmed);
+  }
+
+  return result;
+}
 
 export const EditPayeeSchema = z.object({
   aliasesText: z.string(),

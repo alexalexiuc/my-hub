@@ -34,6 +34,10 @@ function normalizePayeeName(name: string): string {
   return name.trim().toLowerCase();
 }
 
+/**
+ * Normalizes user-entered aliases by trimming, deduplicating case-insensitively,
+ * and dropping aliases that would just repeat the canonical payee name.
+ */
 function sanitizeAliases(aliases: string[] | null | undefined, canonicalName: string): string[] {
   const canonicalNormalized = normalizePayeeName(canonicalName);
   const seen = new Set<string>();
