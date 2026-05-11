@@ -11,9 +11,10 @@ import {
   updateCategory,
   getCategoryById,
   getGroups,
+  createGroup,
   addTransaction,
 } from '@my-hub/shared/services';
-import { AccountTypes, LentDirections } from '@my-hub/shared/constants';
+import { AccountTypes, CategoryIcons, LentDirections } from '@my-hub/shared/constants';
 import { currentDateString } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
 
@@ -205,9 +206,23 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
 
 // ─── upsert_category ──────────────────────────────────────────────────────────
 
+const colorCodeSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(
+    value =>
+      /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(value) ||
+      /^[a-z]+$/i.test(value) ||
+      /^[a-z][a-z-]*\(.+\)$/i.test(value),
+    'Invalid color code. Use any valid CSS color code (e.g. #6ee7b7, rgb(...), hsl(...), oklch(...), red).',
+  );
+
 export const UpsertCategorySchema = z.object({
   id: z.number().int().positive().optional().describe('Omit to create a new category.'),
   name: z.string().trim().min(1).optional().describe('Category name. Required when creating.'),
+  icon: z.enum(CategoryIcons).describe('Category icon key. Required.'),
+  color: colorCodeSchema.describe('Category color code. Required; accepts any valid CSS color code.'),
   groupName: z
     .string()
     .min(1)
@@ -236,11 +251,12 @@ export const upsertCategoryTool: ToolHandler<typeof UpsertCategorySchema.shape> 
     } else {
       const groups = await getGroups(userId, budget.id);
       const match = groups.find(g => g.name.toLowerCase() === input.groupName!.toLowerCase());
-      if (!match)
-        throw new HandledError(
-          `Group "${input.groupName}" not found. Use finances_list_context to see available groups.`,
-        );
-      groupId = match.id;
+      if (match) {
+        groupId = match.id;
+      } else {
+        const group = await createGroup(userId, budget.id, { name: input.groupName });
+        groupId = group.id;
+      }
     }
   }
 
@@ -253,6 +269,8 @@ export const upsertCategoryTool: ToolHandler<typeof UpsertCategorySchema.shape> 
 
     category = await updateCategory(userId, budget.id, input.id, {
       name: input.name,
+      icon: input.icon,
+      color: input.color,
       groupId,
       monthlyTarget: input.monthlyTarget,
     });
@@ -262,6 +280,8 @@ export const upsertCategoryTool: ToolHandler<typeof UpsertCategorySchema.shape> 
 
     category = await createCategory(userId, budget.id, {
       name: input.name,
+      icon: input.icon,
+      color: input.color,
       groupId: groupId ?? null,
       monthlyTarget: input.monthlyTarget ?? null,
     });

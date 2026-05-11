@@ -60,7 +60,9 @@ const financeTools = [
     description:
       'Create a new spending category or update an existing one. ' +
       'Omit id to create; provide id to update only the fields you supply. ' +
-      'Use groupName to assign the category to a group (the "parent" section visible in the Hub). ' +
+      'icon and color are required. ' +
+      'Use groupName to assign the category to a group (the "parent" section visible in the Hub); ' +
+      'if the group does not exist, it is created automatically. ' +
       'Set monthlyTarget to define a monthly spending limit; pass null to remove it. ' +
       'Use finances_list_context to see available group names.',
     inputSchema: UpsertCategorySchema.shape,

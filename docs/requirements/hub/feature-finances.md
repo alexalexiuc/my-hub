@@ -61,6 +61,7 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 | TR-22 | Finance categories and groups must support optional `notes` fields, and the Hub category/group create and edit flows must allow users to view and update those notes.                                                                          |
 | TR-23 | Payee-required logic must be centralized in shared utilities (`isPayeeRequired`) and reused by both Hub transaction UI and MCP transaction tools, so transfer transactions consistently bypass payee handling.                                 |
 | TR-24 | The Hub Payees page must allow editing payee metadata (name, aliases, description) via an edit modal and persist changes through the finances payees API.                                                                                      |
+| TR-25 | MCP `finances_upsert_category` must require `icon` and `color`, validate icon against the shared category icon set, accept any valid CSS color code, and upsert `groupName` by creating the group when missing.                                |
 
 ---
 
@@ -97,3 +98,4 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 - [x] Category and group add/edit flows in Hub persist optional notes without changing the transaction-entry UX.
 - [x] Shared payee-required logic is reused by Hub and MCP so transfer transaction flows do not attempt payee selection/resolution.
 - [x] The Hub Payees page allows editing payee name, aliases, and description through an edit modal.
+- [x] MCP `finances_upsert_category` requires `icon` and `color`; `icon` is validated against shared category icons, `color` accepts valid CSS color codes, and missing `groupName` values are created automatically.
