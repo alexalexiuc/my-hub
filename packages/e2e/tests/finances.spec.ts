@@ -741,4 +741,61 @@ test.describe('Finances', () => {
       description: 'Shared budget not active after delete-all; skipping member view assertion',
     });
   });
+
+  /**
+   * Transactions: month navigation reloads data on first click.
+   * Regression test for the bug where clicking the MonthCarousel only updated
+   * the month label but did not reload transaction data until the following click
+   * (caused by the API using a hardcoded day 31 for all months, which PostgreSQL
+   * rejects for 30-day months, causing a silent API error on first navigation).
+   */
+  test('transactions: month navigation reloads data immediately on first click', async ({ page }) => {
+    await deleteFinances(page);
+    await createBudgetViaAPI(page, uniqueName('Month Nav Budget'));
+
+    const bank = await createAccount(page, { name: 'Nav Test Bank', type: 'bank', openingBalance: 500 });
+    const catId = await createCategoryViaAPI(page, uniqueName('Nav Category'));
+
+    // Create a transaction dated today (current month)
+    const today = new Date().toISOString().slice(0, 10);
+    const txRes = await page.request.post('/api/finances/transactions', {
+      data: { type: 'expense', accountId: bank.id, categoryId: catId, amount: 77, date: today },
+    });
+    expect(txRes.status()).toBe(201);
+
+    await page.goto('/finances/transactions');
+    await page.waitForLoadState('networkidle');
+
+    // Current month shows the transaction (amount 77)
+    await expect(page.getByText('77')).toBeVisible();
+
+    // Derive current and previous month labels for assertions
+    const now = new Date();
+    const currentMonthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthLabel = prevMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    // Navigate to previous month — a single click must trigger a successful API reload immediately
+    const prevMonthApiPromise = page.waitForResponse(
+      res => res.url().includes('/api/finances/transactions') && res.url().includes('month=') && res.ok(),
+    );
+    await page.getByLabel('Previous month').first().click();
+    await prevMonthApiPromise;
+
+    // Label has updated to previous month
+    await expect(page.getByText(prevMonthLabel)).toBeVisible();
+
+    // The current-month transaction must NOT be visible — data was actually reloaded
+    await expect(page.getByText('77')).not.toBeVisible();
+
+    // Navigate back to current month via the "Today" button
+    const todayApiPromise = page.waitForResponse(
+      res => res.url().includes('/api/finances/transactions') && res.url().includes('month=') && res.ok(),
+    );
+    await page.getByRole('button', { name: 'Today' }).first().click();
+    await todayApiPromise;
+
+    await expect(page.getByText(currentMonthLabel)).toBeVisible();
+    await expect(page.getByText('77')).toBeVisible();
+  });
 });

@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Bar, Divider, CategoryIcon } from '../ui';
+import { fmt, Card, SectionLabel, Bar, Divider, CategoryIcon, MonthCarousel } from '../ui';
+import { dateToString } from '@my-hub/shared/utils';
 import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
 import { AddCategoryModal } from './AddCategoryModal';
 import { AddGroupModal } from './AddGroupModal';
@@ -13,17 +14,8 @@ import { EditGroupModal } from './EditGroupModal';
 import { categoryToEditValues } from '../finances-form.schema';
 import type { CategoriesResponse, CategoryGroup, CategoryRow } from '@/app/api/finances/contracts';
 
-function lastNMonths(n: number): { label: string; value: string }[] {
-  const result = [];
-  const now = new Date();
-  for (let i = 0; i < n; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    result.push({
-      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      label: d.toLocaleDateString('en-IE', { month: 'short', year: 'numeric' }),
-    });
-  }
-  return result;
+function currentMonthStr(): string {
+  return dateToString(new Date(), 'YYYY-MM-DD').slice(0, 7);
 }
 
 function groupColor(group: CategoryGroup): string {
@@ -206,8 +198,7 @@ function GroupSection({
 }
 
 export default function CategoriesPage() {
-  const months = lastNMonths(3);
-  const [selectedMonth, setSelectedMonth] = useState(months[0]!.value);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
   const [data, setData] = useState<CategoriesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddCategory, setShowAddCategory] = useState(false);
@@ -263,26 +254,7 @@ export default function CategoriesPage() {
     <div className="flex flex-col gap-[14px]">
       <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Categories</div>
 
-      <div className="flex gap-1.5">
-        {months.map(m => {
-          const active = m.value === selectedMonth;
-          return (
-            <button
-              key={m.value}
-              onClick={() => setSelectedMonth(m.value)}
-              className={cn(
-                'cursor-pointer rounded-[20px] px-3 py-[5px] text-[11px]',
-                active
-                  ? 'bg-[var(--fin-accent-d)] text-[var(--fin-accent)] font-semibold'
-                  : 'bg-[var(--fin-card2)] text-[var(--fin-muted)]',
-              )}
-              style={{ border: active ? `1px solid var(--fin-accent)44` : `1px solid var(--fin-border)` }}
-            >
-              {m.label}
-            </button>
-          );
-        })}
-      </div>
+      <MonthCarousel month={selectedMonth} onNavigate={setSelectedMonth} currentMonth={currentMonthStr()} />
 
       {loading ? (
         <div className="flex flex-col gap-[14px]">

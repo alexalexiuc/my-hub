@@ -116,7 +116,7 @@ export default function TransactionsPage() {
     <div className="flex flex-col gap-[14px]">
       {/* Desktop header */}
       <div className="hidden items-center justify-between md:flex">
-        <MonthCarousel month={month} onNavigate={setMonth} />
+        <MonthCarousel month={month} onNavigate={setMonth} currentMonth={currentMonthStr()} />
         <AddButton onClick={() => setShowAddModal(true)} title="Add transaction" />
       </div>
 
@@ -126,6 +126,7 @@ export default function TransactionsPage() {
           <MonthCarousel
             month={month}
             onNavigate={setMonth}
+            currentMonth={currentMonthStr()}
             className="flex-1 justify-between"
             labelClassName="text-[32px] font-bold leading-none tracking-tight"
           />

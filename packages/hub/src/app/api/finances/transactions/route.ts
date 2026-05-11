@@ -92,7 +92,12 @@ export const GET = route({ query: TransactionQuerySchema, response: transactions
   const offset = query.offset ?? 0;
 
   const fromDate = query.month ? `${query.month}-01` : undefined;
-  const toDate = query.month ? `${query.month}-31` : undefined;
+  let toDate: string | undefined;
+  if (query.month) {
+    const [y, m] = query.month.split('-').map(Number);
+    // first of next month − 1 day = last day of this month
+    toDate = new Date(Date.UTC(y!, m!, 0)).toISOString().slice(0, 10);
+  }
 
   const [accounts, categories, payees, txns, members] = await Promise.all([
     getAccounts(user.id, budgetId),

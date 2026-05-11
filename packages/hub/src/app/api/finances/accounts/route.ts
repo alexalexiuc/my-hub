@@ -18,7 +18,7 @@ import type {
   LoanAccountDetails,
   BorrowedLentAccountDetails,
   CashAccountDetails,
-} from '@my-hub/shared/constants';
+} from '@my-hub/shared/types';
 import { accountsListResponseSchema, accountMutationResponseSchema } from '../contracts';
 import type { AccountItem, AccountsListData } from '../contracts';
 const AccountCreateSchema = z.object({

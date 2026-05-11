@@ -266,7 +266,7 @@ function createRouteHandler<
 
       const message = err instanceof Error ? err.message : 'Unknown server error';
       await log(500, message, userId);
-      logger.error(`[api] ${req.method} ${req.url} failed`, err);
+      logger.error(`[api] ${req.method} ${new URL(req.url).pathname} 500 in ${Date.now() - start}ms —`, err);
       if (hubEnvConfig.PRINT_PAYLOADS) logger.error('[api] request payloads:', JSON.stringify(payloads));
       return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }

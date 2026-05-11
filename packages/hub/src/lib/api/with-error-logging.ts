@@ -43,10 +43,8 @@ export async function writeApiLog(
   error?: string,
   options?: ErrorLoggingOptions,
 ) {
-  // if error, log to console too
-  if (error) {
-    logger.error(`[api-log] ${req.method} ${req.url} failed with error: ${error}`);
-  }
+  const tag = error ? 'ERROR' : 'INFO ';
+  logger.info(`[api] ${tag} ${req.method} ${new URL(req.url).pathname} ${statusCode} in ${durationMs}ms`);
   try {
     const url = new URL(req.url);
     await putLog({
@@ -61,7 +59,7 @@ export async function writeApiLog(
       error,
     });
   } catch (logErr) {
-    logger.error('[api-log] failed to persist request log', logErr);
+    logger.error('[api] failed to persist request log', logErr);
   }
 }
 

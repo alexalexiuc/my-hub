@@ -282,13 +282,15 @@ export function AddButton({ onClick, title }: AddButtonProps) {
 type MonthCarouselProps = {
   month: string;
   onNavigate: (m: string) => void;
+  /** When provided, shows a "Today" pill next to the carousel whenever `month` differs from `currentMonth`. */
+  currentMonth?: string;
   className?: string;
   labelClassName?: string;
 };
 
 const MONTH_LABEL_WIDTH = 160; // px, enough for longest month name
 
-export function MonthCarousel({ month, onNavigate, className, labelClassName }: MonthCarouselProps) {
+export function MonthCarousel({ month, onNavigate, currentMonth, className, labelClassName }: MonthCarouselProps) {
   return (
     <div className={cn('flex items-center gap-3', className)}>
       <IconButton
@@ -309,6 +311,14 @@ export function MonthCarousel({ month, onNavigate, className, labelClassName }: 
         onClick={() => onNavigate(shiftMonthStr(month, 1))}
         className="bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)]"
       />
+      {currentMonth !== undefined && month !== currentMonth && (
+        <button
+          onClick={() => onNavigate(currentMonth)}
+          className="cursor-pointer rounded-[20px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-[5px] text-[11px] text-[var(--fin-muted)] hover:text-[var(--fin-text)]"
+        >
+          Today
+        </button>
+      )}
     </div>
   );
 }

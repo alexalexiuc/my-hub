@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getAccountById, getUserActiveBudget } from '@my-hub/shared/services';
-import type { LoanAccountDetails } from '@my-hub/shared/constants';
+import type { LoanAccountDetails } from '@my-hub/shared/types';
 import { amortizationResponseSchema } from '../../../contracts';
 import type { AmortizationData, ScheduleRow } from '../../../contracts';
 
@@ -29,7 +29,14 @@ export const GET = route({
   if (!account) routeHttpError(404, { error: 'Account not found' });
   if (account.type !== 'loan') routeHttpError(400, { error: 'Not a loan account' });
 
-  const details = account.details as LoanAccountDetails;
+  const rawDetails = account.details;
+  if (!rawDetails || (rawDetails as { type?: string }).type !== 'loan') {
+    routeHttpError(400, {
+      error: 'Loan account is missing required details (principal, interestRate, termMonths, startDate).',
+    });
+  }
+
+  const details = rawDetails as LoanAccountDetails;
   const { principal, interestRate, termMonths, startDate } = details;
   const currentBalance = account.balance;
 

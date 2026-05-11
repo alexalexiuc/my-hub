@@ -39,6 +39,72 @@ export const UpsertAccountSchema = z.object({
     .optional()
     .describe('Date for the opening balance transaction (YYYY-MM-DD). Required when openingBalance is provided.'),
   archived: z.boolean().optional().describe('Archive or unarchive the account.'),
+  details: z
+    .discriminatedUnion('type', [
+      z.object({
+        type: z.literal('bank'),
+        interestRate: z.number().min(0).optional().describe('Savings interest rate in percent.'),
+        savingsGoal: z.number().optional().describe('Savings goal amount.'),
+        cardLastFour: z.string().length(4).optional().describe('Last four digits of the card.'),
+        cardName: z.string().optional().describe('Card label or nickname.'),
+      }),
+      z.object({
+        type: z.literal('cash'),
+        savingsTarget: z.number().optional().describe('Cash savings target amount.'),
+      }),
+      z.object({
+        type: z.literal('credit_card'),
+        creditLimit: z.number().positive().describe('Credit limit amount.'),
+        statementDay: z.number().int().min(1).max(31).describe('Statement closing day of month (1–31).'),
+        cardLastFour: z.string().length(4).optional().describe('Last four digits of the card.'),
+        cardName: z.string().optional().describe('Card label or nickname.'),
+      }),
+      z.object({
+        type: z.literal('investment'),
+        deposited: z.number().describe('Total amount deposited into this investment account.'),
+      }),
+      z.object({
+        type: z.literal('loan'),
+        principal: z.number().positive().describe('Original loan principal amount.'),
+        interestRate: z
+          .number()
+          .min(0)
+          .describe('Annual interest rate in percent (0 for interest-free installment plans).'),
+        termMonths: z.number().int().positive().describe('Loan term in months.'),
+        startDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .describe('Loan start date (YYYY-MM-DD).'),
+        linkedItemName: z.string().optional().describe('Optional label for the purchased item.'),
+      }),
+      z.object({
+        type: z.literal('borrowed_lent'),
+        counterpartyName: z.string().min(1).describe('Name of the person you borrowed from or lent to.'),
+        direction: z.enum(['gave', 'received']).describe('"gave" = you lent money; "received" = you borrowed money.'),
+        dueDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional()
+          .describe('Expected repayment date (YYYY-MM-DD).'),
+        settled: z.boolean().optional().default(false).describe('Whether the debt has been settled.'),
+      }),
+      z.object({
+        type: z.literal('goal'),
+        targetAmount: z.number().positive().describe('Savings goal target amount.'),
+      }),
+      z.object({
+        type: z.literal('tracking'),
+      }),
+    ])
+    .optional()
+    .describe(
+      'Type-specific account details. The "type" field must match the account type. ' +
+        'Required for: loan (principal, interestRate, termMonths, startDate), ' +
+        'credit_card (creditLimit, statementDay), ' +
+        'borrowed_lent (counterpartyName, direction), ' +
+        'goal (targetAmount), ' +
+        'investment (deposited).',
+    ),
 });
 
 export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = async (input, context) => {
@@ -53,6 +119,11 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
   if (input.openingDate !== undefined && input.openingBalance === undefined) {
     throw new HandledError('openingBalance is required when openingDate is provided');
   }
+  if (input.details !== undefined && input.type !== undefined && input.details.type !== input.type) {
+    throw new HandledError(`details.type "${input.details.type}" does not match account type "${input.type}"`);
+  }
+
+  const DETAILS_REQUIRED: string[] = ['loan', 'credit_card', 'borrowed_lent', 'goal', 'investment'];
 
   let account;
 
@@ -66,11 +137,18 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
       type: input.type,
       currency: input.currency,
       archived: input.archived,
+      ...(input.details !== undefined ? { details: input.details } : {}),
     });
   } else {
     // Create new
     if (!input.name) throw new HandledError('name is required when creating an account');
     if (!input.type) throw new HandledError('type is required when creating an account');
+    if (DETAILS_REQUIRED.includes(input.type) && !input.details) {
+      throw new HandledError(
+        `details is required when creating a "${input.type}" account. ` +
+          `Provide a details object with type="${input.type}" and the required fields.`,
+      );
+    }
 
     account = await createAccount(userId, budget.id, {
       name: input.name,
@@ -79,6 +157,7 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
       openingBalance: 0,
       balance: 0,
       archived: input.archived ?? false,
+      details: input.details ?? null,
     });
   }
 
