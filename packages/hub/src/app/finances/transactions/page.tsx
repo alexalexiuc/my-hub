@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { AddButton, Card } from '../ui';
+import { Button } from '@/components';
 import { TransactionModal } from './TransactionModal';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { TransactionList } from './TransactionList';
@@ -46,7 +49,9 @@ function currentMonthStr(): string {
 }
 
 export default function TransactionsPage() {
+  const router = useRouter();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [lastImport, setLastImport] = useState<{ batchId: string; count: number } | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
@@ -90,7 +95,25 @@ export default function TransactionsPage() {
     load(filter, month, true);
   }, [filter, month]);
 
+  // Read undo data from URL params (set by the import page on success)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const batchId = params.get('imported');
+    const count = params.get('count');
+    if (batchId && count) {
+      setLastImport({ batchId, count: parseInt(count, 10) });
+      router.replace('/finances/transactions', { scroll: false });
+    }
+  }, []);
+
   const currency = data?.currency ?? 'EUR';
+
+  async function handleUndo() {
+    if (!lastImport) return;
+    await apiFetch(`/api/finances/transactions/import/${lastImport.batchId}`, { method: 'DELETE' });
+    setLastImport(null);
+    load(filter, month, true);
+  }
 
   function handleCreated(result?: TransactionMutationResponse) {
     setShowAddModal(false);
@@ -117,7 +140,12 @@ export default function TransactionsPage() {
       {/* Desktop header */}
       <div className="hidden items-center justify-between md:flex">
         <MonthCarousel month={month} onNavigate={setMonth} currentMonth={currentMonthStr()} />
-        <AddButton onClick={() => setShowAddModal(true)} title="Add transaction" />
+        <div className="flex items-center gap-2">
+          <Link href="/finances/transactions/import">
+            <Button variant="ghost">Import CSV</Button>
+          </Link>
+          <AddButton onClick={() => setShowAddModal(true)} title="Add transaction" />
+        </div>
       </div>
 
       {/* Mobile header */}
@@ -136,6 +164,18 @@ export default function TransactionsPage() {
           <AddButton onClick={() => setShowAddModal(true)} title="Add transaction" />
         </div>
       </div>
+
+      {/* Undo import banner */}
+      {lastImport && (
+        <div className="flex items-center justify-between rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2 text-xs text-[var(--fin-text)]">
+          <span>
+            Imported {lastImport.count} transaction{lastImport.count !== 1 ? 's' : ''}
+          </span>
+          <button onClick={handleUndo} className="text-[var(--fin-red)] font-medium cursor-pointer">
+            Undo import
+          </button>
+        </div>
+      )}
 
       {/* Type filter */}
       <div className="flex flex-wrap gap-1.5">

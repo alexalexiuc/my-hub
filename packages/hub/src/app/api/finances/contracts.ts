@@ -1,8 +1,44 @@
-import { AccountTypes, TransactionTypes } from '@my-hub/shared/constants';
+import { AccountTypes, LentDirections, TransactionTypes } from '@my-hub/shared/constants';
 import { z } from 'zod';
 
 const categoryIconSchema = z.string().nullable();
 const categoryColorSchema = z.string().nullable();
+
+export const accountDetailsSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal(AccountTypes.Bank),
+    interestRate: z.number().optional(),
+    savingsGoal: z.number().optional(),
+    cardLastFour: z.string().optional(),
+    cardName: z.string().optional(),
+  }),
+  z.object({ type: z.literal(AccountTypes.Cash), savingsTarget: z.number().optional() }),
+  z.object({
+    type: z.literal(AccountTypes.CreditCard),
+    creditLimit: z.number(),
+    statementDay: z.number().int().min(1).max(31),
+    cardLastFour: z.string().optional(),
+    cardName: z.string().optional(),
+  }),
+  z.object({ type: z.literal(AccountTypes.Investment), deposited: z.number() }),
+  z.object({
+    type: z.literal(AccountTypes.Loan),
+    principal: z.number(),
+    interestRate: z.number(),
+    termMonths: z.number().int(),
+    startDate: z.string(),
+    linkedItemName: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal(AccountTypes.BorrowedLent),
+    counterpartyName: z.string(),
+    direction: z.enum(LentDirections),
+    dueDate: z.string().optional(),
+    settled: z.boolean(),
+  }),
+  z.object({ type: z.literal(AccountTypes.Goal), targetAmount: z.number() }),
+  z.object({ type: z.literal(AccountTypes.Tracking) }),
+]);
 
 export const dashboardCategorySchema = z.object({
   id: z.number().int(),
@@ -469,3 +505,32 @@ export const monthlyPlanItemMutationSchema = z.object({
 export type MonthlyPlanItem = z.infer<typeof monthlyPlanItemSchema>;
 export type MonthlyPlanSummary = z.infer<typeof monthlyPlanSummarySchema>;
 export type MonthlyPlanResponse = z.infer<typeof monthlyPlanResponseSchema>;
+
+// ─── CSV Import ────────────────────────────────────────────────────────────
+
+export const importBatchResponseSchema = z.object({
+  batchId: z.string(),
+  importedCount: z.number().int(),
+});
+
+export const importRollbackResponseSchema = z.object({
+  deletedCount: z.number().int(),
+});
+
+export const importBatchItemSchema = z.object({
+  id: z.string(),
+  filename: z.string(),
+  rowCount: z.number().int(),
+  importedCount: z.number().int(),
+  status: z.string(),
+  createdAt: z.string(),
+});
+
+export const importBatchListResponseSchema = z.object({
+  batches: z.array(importBatchItemSchema),
+});
+
+export type ImportBatchResponse = z.infer<typeof importBatchResponseSchema>;
+export type ImportRollbackResponse = z.infer<typeof importRollbackResponseSchema>;
+export type ImportBatchItem = z.infer<typeof importBatchItemSchema>;
+export type ImportBatchListResponse = z.infer<typeof importBatchListResponseSchema>;

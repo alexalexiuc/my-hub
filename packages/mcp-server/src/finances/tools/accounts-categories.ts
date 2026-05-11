@@ -13,7 +13,7 @@ import {
   getGroups,
   addTransaction,
 } from '@my-hub/shared/services';
-import { AccountTypes } from '@my-hub/shared/constants';
+import { AccountTypes, LentDirections } from '@my-hub/shared/constants';
 import { currentDateString } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
 
@@ -80,7 +80,7 @@ export const UpsertAccountSchema = z.object({
       z.object({
         type: z.literal('borrowed_lent'),
         counterpartyName: z.string().min(1).describe('Name of the person you borrowed from or lent to.'),
-        direction: z.enum(['gave', 'received']).describe('"gave" = you lent money; "received" = you borrowed money.'),
+        direction: z.enum(LentDirections).describe('"gave" = you lent money; "received" = you borrowed money.'),
         dueDate: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)

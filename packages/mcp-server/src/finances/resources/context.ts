@@ -1,8 +1,6 @@
 import { ResourceHandler } from '../../shared/types';
 import { resourceResponse } from '../../shared/resourcesUtils';
 import { getUserActiveBudget, getAccounts, getCategories, getGroups } from '@my-hub/shared/services';
-import type { BankAccountDetails, CreditCardAccountDetails, GoalAccountDetails } from '@my-hub/shared/constants';
-
 export const getFinancesContextResource: ResourceHandler = async (uri, context) => {
   const { userId } = context;
 
@@ -20,7 +18,7 @@ export const getFinancesContextResource: ResourceHandler = async (uri, context) 
   const groupMap = new Map(groups.map(g => [g.id, g.name]));
 
   const accountsOut = accounts.map(acct => {
-    const details = acct.details as (BankAccountDetails & CreditCardAccountDetails & GoalAccountDetails) | null;
+    const details = acct.details as { cardLastFour?: string; cardName?: string; targetAmount?: number } | null;
     return {
       id: acct.id,
       name: acct.name,

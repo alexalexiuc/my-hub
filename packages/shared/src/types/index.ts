@@ -105,6 +105,7 @@ import type {
   financeGroups,
   financeCategories,
   financePayees,
+  financeImportBatches,
   financeTransactions,
   financeCurrencyRates,
   financeNetWorthSnapshots,
@@ -118,12 +119,27 @@ export type FinanceBudgetMember = InferSelectModel<typeof financeBudgetMembers>;
 export type NewFinanceBudgetMember = InferInsertModel<typeof financeBudgetMembers>;
 export type FinanceAccount = InferSelectModel<typeof financeAccounts>;
 export type NewFinanceAccount = InferInsertModel<typeof financeAccounts>;
+export type {
+  AccountDetails,
+  BaseAccountDetails,
+  BankAccountDetails,
+  CashAccountDetails,
+  CreditCardAccountDetails,
+  InvestmentAccountDetails,
+  LoanAccountDetails,
+  BorrowedLentAccountDetails,
+  GoalAccountDetails,
+  TrackingAccountDetails,
+} from './account-details';
+export { getAccountDetails } from './account-details';
 export type FinanceGroup = InferSelectModel<typeof financeGroups>;
 export type NewFinanceGroup = InferInsertModel<typeof financeGroups>;
 export type FinanceCategory = InferSelectModel<typeof financeCategories>;
 export type NewFinanceCategory = InferInsertModel<typeof financeCategories>;
 export type FinancePayee = InferSelectModel<typeof financePayees>;
 export type NewFinancePayee = InferInsertModel<typeof financePayees>;
+export type FinanceImportBatch = InferSelectModel<typeof financeImportBatches>;
+export type NewFinanceImportBatch = InferInsertModel<typeof financeImportBatches>;
 export type FinanceTransaction = InferSelectModel<typeof financeTransactions>;
 export type NewFinanceTransaction = InferInsertModel<typeof financeTransactions>;
 export type FinanceCurrencyRate = InferSelectModel<typeof financeCurrencyRates>;

@@ -10,7 +10,7 @@ import {
 } from '@my-hub/shared/services';
 import type { BorrowedLentAccountDetails } from '@my-hub/shared/constants';
 import type { AccountUpdate } from '@my-hub/shared/services';
-import { accountDetailResponseSchema, accountMutationResponseSchema } from '../../contracts';
+import { accountDetailResponseSchema, accountMutationResponseSchema, accountDetailsSchema } from '../../contracts';
 import type { AccountItem, AccountDetailData, AccountTransaction } from '../../contracts';
 import { FinanceAccount } from '@my-hub/shared/types';
 const AccountPatchSchema = z.discriminatedUnion('action', [
@@ -21,7 +21,7 @@ const AccountPatchSchema = z.discriminatedUnion('action', [
     action: z.literal('edit'),
     name: z.string().trim().min(1),
     description: z.string().trim().nullable().optional(),
-    details: z.record(z.string(), z.unknown()).nullable().optional(),
+    details: accountDetailsSchema.nullable().optional(),
   }),
 ]);
 

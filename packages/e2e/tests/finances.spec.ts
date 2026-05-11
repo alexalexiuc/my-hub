@@ -766,8 +766,17 @@ test.describe('Finances', () => {
     await page.goto('/finances/transactions');
     await page.waitForLoadState('networkidle');
 
+    // Scope amount assertions to the amount column of the desktop transaction row.
+    // Using the exact formatted value (€77.00) to avoid false matches on the
+    // category name timestamp which can also contain "77".
+    const txAmountLocator = page
+      .locator('[data-layout="desktop"]')
+      .filter({ hasText: 'Nav Test Bank' })
+      .locator('div.text-right')
+      .getByText('€77.00', { exact: true });
+
     // Current month shows the transaction (amount 77)
-    await expect(page.getByText('77')).toBeVisible();
+    await expect(txAmountLocator).toBeVisible();
 
     // Derive current and previous month labels for assertions
     const now = new Date();
@@ -782,11 +791,15 @@ test.describe('Finances', () => {
     await page.getByLabel('Previous month').first().click();
     await prevMonthApiPromise;
 
+    // Scope month label assertions to the desktop MonthCarousel h2 to avoid the duplicate
+    // mobile carousel rendering the same text
+    const desktopMonthLabel = page.locator('div.hidden.md\\:flex h2').first();
+
     // Label has updated to previous month
-    await expect(page.getByText(prevMonthLabel)).toBeVisible();
+    await expect(desktopMonthLabel).toHaveText(prevMonthLabel);
 
     // The current-month transaction must NOT be visible — data was actually reloaded
-    await expect(page.getByText('77')).not.toBeVisible();
+    await expect(txAmountLocator).not.toBeVisible();
 
     // Navigate back to current month via the "Today" button
     const todayApiPromise = page.waitForResponse(
@@ -795,7 +808,7 @@ test.describe('Finances', () => {
     await page.getByRole('button', { name: 'Today' }).first().click();
     await todayApiPromise;
 
-    await expect(page.getByText(currentMonthLabel)).toBeVisible();
-    await expect(page.getByText('77')).toBeVisible();
+    await expect(desktopMonthLabel).toHaveText(currentMonthLabel);
+    await expect(txAmountLocator).toBeVisible();
   });
 });

@@ -19,7 +19,7 @@ import type {
   BorrowedLentAccountDetails,
   CashAccountDetails,
 } from '@my-hub/shared/types';
-import { accountsListResponseSchema, accountMutationResponseSchema } from '../contracts';
+import { accountsListResponseSchema, accountMutationResponseSchema, accountDetailsSchema } from '../contracts';
 import type { AccountItem, AccountsListData } from '../contracts';
 const AccountCreateSchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
@@ -27,7 +27,7 @@ const AccountCreateSchema = z.object({
   type: z.enum(Object.values(AccountTypes) as [string, ...string[]], { error: 'Invalid account type' }),
   currency: supportedCurrencySchema,
   openingBalance: z.number().optional(),
-  details: z.record(z.string(), z.unknown()).nullable().optional(),
+  details: accountDetailsSchema.nullable().optional(),
 });
 
 function flattenDetails(type: string, details: unknown): Partial<AccountItem> {

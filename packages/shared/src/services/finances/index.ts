@@ -6,3 +6,4 @@ export * from './payees';
 export * from './exchangeRates';
 export * from './reporting';
 export * from './monthly-plans';
+export * from './import-batches';

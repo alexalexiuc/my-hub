@@ -19,9 +19,11 @@ import type {
   TransactionType,
   CategoryIcon,
   TransactionSource,
+  ImportBatchStatus,
   SupportedCurrency,
 } from '../../constants/finances';
 import type { TransactionDetails } from '../../types/transaction-details';
+import type { AccountDetails } from '../../types/account-details';
 
 // ─── Budget (household) ───────────────────────────────────────────────────
 
@@ -75,8 +77,8 @@ export const financeAccounts = pgTable(
     // For Investment/Tracking: manually-overridden current value.
     balance: numericCasted('balance', { precision: 18, scale: 4 }).notNull().default(0),
     archived: boolean('archived').notNull().default(false),
-    // Type-specific fields — see BankAccountDetails, LoanAccountDetails, etc. in constants
-    details: jsonb('details'),
+    // Type-specific fields — see account-details.ts for the full discriminated union
+    details: jsonb('details').$type<AccountDetails>(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -171,6 +173,32 @@ export const financePayees = pgTable(
   }),
 );
 
+// ─── Import batches ──────────────────────────────────────────────────────
+// One row per CSV import; transactions link back via importBatchId.
+// Enables durable undo and import history.
+
+export const financeImportBatches = pgTable(
+  'finance_import_batches',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    budgetId: integer('budget_id')
+      .notNull()
+      .references(() => financeBudgets.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    filename: text('filename').notNull(),
+    rowCount: integer('row_count').notNull(),
+    importedCount: integer('imported_count').notNull().default(0),
+    status: text('status').$type<ImportBatchStatus>().notNull().default('completed'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  table => ({
+    budgetIdx: index('idx_finance_import_batches_budget').on(table.budgetId),
+    userIdx: index('idx_finance_import_batches_user').on(table.userId),
+  }),
+);
+
 // ─── Transactions ─────────────────────────────────────────────────────────
 
 export const financeTransactions = pgTable(
@@ -230,6 +258,9 @@ export const financeTransactions = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
 
+    // Set when the transaction was created via a CSV import batch.
+    importBatchId: uuid('import_batch_id').references(() => financeImportBatches.id, { onDelete: 'set null' }),
+
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -241,6 +272,7 @@ export const financeTransactions = pgTable(
     categoryIdx: index('idx_finance_txns_category').on(table.categoryId),
     payeeIdx: index('idx_finance_txns_payee').on(table.payeeId),
     addedByIdx: index('idx_finance_txns_added_by').on(table.addedByUserId),
+    importBatchIdx: index('idx_finance_txns_import_batch').on(table.importBatchId),
     // Composite — most common query pattern: budget + date range
     budgetDateIdx: index('idx_finance_txns_budget_date').on(table.budgetId, table.date),
   }),

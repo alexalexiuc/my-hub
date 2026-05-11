@@ -101,47 +101,20 @@ export const CategoryIcons = {
 export type CategoryIcon = (typeof CategoryIcons)[keyof typeof CategoryIcons];
 
 // ---- Type-specific JSONB detail interfaces (financeAccounts.details) ----
-
-export interface BankAccountDetails {
-  interestRate?: number;
-  savingsGoal?: number;
-  cardLastFour?: string;
-  cardName?: string;
-}
-
-export interface InvestmentAccountDetails {
-  deposited: number; // sum of transfers in; updated on each inbound transfer
-}
-
-export interface BorrowedLentAccountDetails {
-  counterpartyName: string;
-  direction: LentDirection;
-  dueDate?: string; // YYYY-MM-DD
-  settled: boolean;
-}
-
-export interface LoanAccountDetails {
-  principal: number;
-  interestRate: number; // 0 for installment plans
-  termMonths: number;
-  linkedItemName?: string;
-  startDate: string; // YYYY-MM-DD
-}
-
-export interface CreditCardAccountDetails {
-  creditLimit: number;
-  statementDay: number; // day of month (1–31)
-  cardLastFour?: string;
-  cardName?: string;
-}
-
-export interface CashAccountDetails {
-  savingsTarget?: number;
-}
-
-export interface GoalAccountDetails {
-  targetAmount: number;
-}
+// Moved to packages/shared/src/types/account-details.ts — re-exported here for backwards compat.
+export type {
+  AccountDetails,
+  BaseAccountDetails,
+  BankAccountDetails,
+  CashAccountDetails,
+  CreditCardAccountDetails,
+  InvestmentAccountDetails,
+  LoanAccountDetails,
+  BorrowedLentAccountDetails,
+  GoalAccountDetails,
+  TrackingAccountDetails,
+} from '../types/account-details';
+export { getAccountDetails } from '../types/account-details';
 
 // ---- Account type metadata ----
 
@@ -177,3 +150,9 @@ export const TransactionSources = {
 } as const;
 export type TransactionSource = (typeof TransactionSources)[keyof typeof TransactionSources];
 export const transactionSourceValues = Object.values(TransactionSources) as TransactionSource[];
+
+export const ImportBatchStatuses = {
+  completed: 'completed',
+  rolledBack: 'rolled_back',
+} as const;
+export type ImportBatchStatus = (typeof ImportBatchStatuses)[keyof typeof ImportBatchStatuses];
