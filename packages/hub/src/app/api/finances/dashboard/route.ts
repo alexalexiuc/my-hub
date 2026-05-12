@@ -45,7 +45,7 @@ export const dashboardTransactionSchema = z.object({
 export const availableBudgetSchema = z.object({
   id: z.number().int(),
   name: z.string(),
-  defaultCurrency: z.string(),
+  defaultCurrency: supportedCurrencySchema,
   isOwner: z.boolean(),
 });
 
