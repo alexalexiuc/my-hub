@@ -34,7 +34,7 @@ export const dashboardTransactionSchema = z.object({
   id: z.number().int(),
   date: z.string(),
   amount: z.number(),
-  type: z.string(),
+  type: z.enum(TransactionTypes),
   notes: z.string().nullable(),
   payeeName: z.string().nullable(),
   categoryName: z.string().nullable(),

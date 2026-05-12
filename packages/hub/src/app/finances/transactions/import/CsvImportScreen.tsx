@@ -18,6 +18,7 @@ import {
   isDuplicateRow,
   matchCategory,
 } from './csv-import.utils';
+import { CSV_IMPORT_ROW_LIMIT } from './constants';
 import type { Step, ColumnMap, ImportRow, PayeeMapping, CategoryMapping } from './types';
 import { UploadStep } from './UploadStep';
 import { PreviewStep } from './PreviewStep';
@@ -136,7 +137,7 @@ export function CsvImportScreen({ onDone, onBack }: CsvImportScreenProps) {
   }
 
   function buildImportRows(): ImportRow[] {
-    return rawRows.slice(0, 1000).map((raw, i) => {
+    return rawRows.slice(0, CSV_IMPORT_ROW_LIMIT).map((raw, i) => {
       const dateRaw = colMap.dateCol ? (raw[colMap.dateCol] ?? '') : '';
       const date = parseDate(dateRaw) ?? '';
 

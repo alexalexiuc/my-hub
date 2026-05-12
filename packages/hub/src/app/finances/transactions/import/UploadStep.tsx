@@ -5,6 +5,7 @@ import { Button } from '@/components';
 import { FinancialDropdown } from '../../FinancialDropdown';
 import type { DropdownOption } from '../../FinancialDropdown';
 import { ColumnSelect } from './ColumnSelect';
+import { CSV_IMPORT_ROW_LIMIT } from './constants';
 import type { ColumnMap } from './types';
 
 export type UploadStepProps = {
@@ -80,9 +81,9 @@ export function UploadStep({
             />
           </div>
 
-          {rawRows.length > 2000 && (
+          {rawRows.length > CSV_IMPORT_ROW_LIMIT && (
             <div className="rounded-[8px] border border-[var(--fin-amber)] px-3 py-2 text-xs text-[var(--fin-amber)]">
-              ⚠ File has {rawRows.length} rows — only first 2,000 will be imported.
+              ⚠ File has {rawRows.length} rows — only first {CSV_IMPORT_ROW_LIMIT.toLocaleString()} will be imported.
             </div>
           )}
 
@@ -186,7 +187,8 @@ export function UploadStep({
           ← Transactions
         </Button>
         <Button disabled={!step1Valid} onClick={onAdvance}>
-          Preview {rawRows.length > 0 ? `(${Math.min(rawRows.length, 1000)} rows)` : ''} →
+          Preview{' '}
+          {rawRows.length > 0 ? `(${Math.min(rawRows.length, CSV_IMPORT_ROW_LIMIT).toLocaleString()} rows)` : ''} →
         </Button>
       </div>
     </div>

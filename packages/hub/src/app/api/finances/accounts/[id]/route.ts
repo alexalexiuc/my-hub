@@ -8,7 +8,7 @@ import {
   updateAccount,
   getUserActiveBudget,
 } from '@my-hub/shared/services';
-import type { BorrowedLentAccountDetails } from '@my-hub/shared/constants';
+import { TransactionTypes, type BorrowedLentAccountDetails } from '@my-hub/shared/constants';
 import type { AccountUpdate } from '@my-hub/shared/services';
 import { FinanceAccount } from '@my-hub/shared/types';
 import { categoryIconSchema, categoryColorSchema } from '../../shared.schema';
@@ -19,7 +19,7 @@ export const accountTransactionSchema = z.object({
   id: z.number().int(),
   date: z.string(),
   amount: z.number(),
-  type: z.string(),
+  type: z.enum(TransactionTypes),
   notes: z.string().nullable(),
   payeeName: z.string().nullable(),
   categoryName: z.string().nullable(),

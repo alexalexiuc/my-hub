@@ -16,6 +16,7 @@ import { financeAccounts, financeNetWorthSnapshots, financeTransactions } from '
 import { omitUndefined } from '../../utils';
 import { hasAccessToBudget } from './budgets';
 import type { FinanceAccount, NewFinanceAccount } from '../../types';
+import { TransactionTypes } from '../../constants';
 
 export interface NetWorthSnapshot {
   month: string;
@@ -171,7 +172,7 @@ export async function recalculateAccountBalance(accountId: number): Promise<numb
 
   const [fromEffect] = await db
     .select({
-      net: sql<number>`COALESCE(SUM(CASE WHEN ${financeTransactions.type} = 'income' THEN ${financeTransactions.amount} ELSE -${financeTransactions.amount} END), 0)`,
+      net: sql<number>`COALESCE(SUM(CASE WHEN ${financeTransactions.type} = ${TransactionTypes.Income} THEN ${financeTransactions.amount} ELSE -${financeTransactions.amount} END), 0)`,
     })
     .from(financeTransactions)
     .where(eq(financeTransactions.accountId, accountId));
@@ -181,7 +182,9 @@ export async function recalculateAccountBalance(accountId: number): Promise<numb
       net: sql<number>`COALESCE(SUM(${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1)), 0)`,
     })
     .from(financeTransactions)
-    .where(and(eq(financeTransactions.toAccountId, accountId), eq(financeTransactions.type, 'transfer')));
+    .where(
+      and(eq(financeTransactions.toAccountId, accountId), eq(financeTransactions.type, TransactionTypes.Transfer)),
+    );
 
   const newBalance = account.openingBalance + (fromEffect?.net ?? 0) + (toEffect?.net ?? 0);
 

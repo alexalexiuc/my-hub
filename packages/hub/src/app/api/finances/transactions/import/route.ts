@@ -33,7 +33,7 @@ const ImportRowSchema = z.object({
 
 const ImportRequestSchema = z.object({
   filename: z.string().min(1),
-  rows: z.array(ImportRowSchema).min(1).max(1000),
+  rows: z.array(ImportRowSchema).min(1).max(2000),
 });
 
 export const importBatchResponseSchema = z.object({
