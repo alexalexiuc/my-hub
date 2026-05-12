@@ -6,6 +6,7 @@ import { backupDockerLogsToS3 } from './docker-log-backup.js';
 import { cleanupOldDbLogs } from './db-log-cleanup.js';
 import { sendCaloriesWeeklyReports } from './calories-weekly-report.js';
 import { sendCaloriesMonthlyReports } from './calories-monthly-report.js';
+import { recalculateFinanceBalances } from './finances-balance-recalc.js';
 
 interface Task {
   name: string;
@@ -44,11 +45,12 @@ export const tasks: Task[] = [
     cron: '0 8 1 * *', // 1st of every month at 08:00
     fn: sendCaloriesMonthlyReports,
   },
-  // { // Observe for a few periods and see if balance drifts.
-  //   name: 'finances-balance-recalc',
-  //   cron: '0 3 * * 0', // every Sunday at 03:00 UTC
-  //   fn: recalculateFinanceBalances,
-  // },
+  {
+    // Observe for a few periods and see if balance drifts.
+    name: 'finances-balance-recalc',
+    cron: '0 0 1 1 1', // every January 1st at 00:00
+    fn: recalculateFinanceBalances,
+  },
 ];
 
 export function startPollLoop(): void {

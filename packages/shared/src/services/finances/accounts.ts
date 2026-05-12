@@ -172,14 +172,14 @@ export async function recalculateAccountBalance(accountId: number): Promise<numb
 
   const [fromEffect] = await db
     .select({
-      net: sql<number>`COALESCE(SUM(CASE WHEN ${financeTransactions.type} = ${TransactionTypes.Income} THEN ${financeTransactions.amount} ELSE -${financeTransactions.amount} END), 0)`,
+      net: sql<number>`COALESCE(SUM(CASE WHEN ${financeTransactions.type} = ${TransactionTypes.Income} THEN ${financeTransactions.amount} ELSE -${financeTransactions.amount} END), 0)::float8`,
     })
     .from(financeTransactions)
     .where(eq(financeTransactions.accountId, accountId));
 
   const [toEffect] = await db
     .select({
-      net: sql<number>`COALESCE(SUM(${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1)), 0)`,
+      net: sql<number>`COALESCE(SUM(${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1)), 0)::float8`,
     })
     .from(financeTransactions)
     .where(
