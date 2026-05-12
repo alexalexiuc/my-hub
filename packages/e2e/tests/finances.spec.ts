@@ -202,6 +202,72 @@ test.describe('Finances', () => {
       await expect(page.getByTitle('Initial Balance')).toBeVisible();
     });
 
+    test('account edit: rename and update details succeeds without validation error', async ({ page }) => {
+      const accountsRes = await page.request.get('/api/finances/accounts');
+      const accountsData = (await accountsRes.json()) as {
+        accounts: Array<{ id: number; name: string; type: string }>;
+      };
+
+      // ── 1. Edit bank account (name rename) ────────────────────────────────
+      const bankAcc = accountsData.accounts.find(a => a.name === bankAccountName);
+      expect(bankAcc).toBeTruthy();
+
+      await page.goto(`/finances/accounts/${bankAcc!.id}`);
+      await page.waitForLoadState('networkidle');
+
+      await page.getByRole('button', { name: 'Edit' }).click();
+      await expect(page.getByText('Edit Account')).toBeVisible();
+
+      const newBankName = `${bankAccountName} Renamed`;
+      await page.getByLabel('Name', { exact: true }).fill(newBankName);
+
+      const editBankRes = page.waitForResponse(
+        res => res.url().includes(`/api/finances/accounts/${bankAcc!.id}`) && res.request().method() === 'PATCH',
+      );
+      await page.getByRole('button', { name: 'Save Changes' }).click();
+      const editBankResp = await editBankRes;
+      expect(editBankResp.status()).toBe(200);
+      await expect(page.getByText(newBankName)).toBeVisible({ timeout: 10_000 });
+
+      // ── 2. Edit credit card account (update credit limit) ─────────────────
+      const ccAcc = accountsData.accounts.find(a => a.name === ccName);
+      expect(ccAcc).toBeTruthy();
+
+      await page.goto(`/finances/accounts/${ccAcc!.id}`);
+      await page.waitForLoadState('networkidle');
+
+      await page.getByRole('button', { name: 'Edit' }).click();
+      await expect(page.getByText('Edit Account')).toBeVisible();
+
+      await page.getByLabel('Credit Limit').fill('7500');
+
+      const editCcRes = page.waitForResponse(
+        res => res.url().includes(`/api/finances/accounts/${ccAcc!.id}`) && res.request().method() === 'PATCH',
+      );
+      await page.getByRole('button', { name: 'Save Changes' }).click();
+      const editCcResp = await editCcRes;
+      expect(editCcResp.status()).toBe(200);
+
+      // ── 3. Edit goal account (update target amount) ───────────────────────
+      const goalAcc = accountsData.accounts.find(a => a.name === goalName);
+      expect(goalAcc).toBeTruthy();
+
+      await page.goto(`/finances/accounts/${goalAcc!.id}`);
+      await page.waitForLoadState('networkidle');
+
+      await page.getByRole('button', { name: 'Edit' }).click();
+      await expect(page.getByText('Edit Account')).toBeVisible();
+
+      await page.getByLabel('Target Amount').fill('15000');
+
+      const editGoalRes = page.waitForResponse(
+        res => res.url().includes(`/api/finances/accounts/${goalAcc!.id}`) && res.request().method() === 'PATCH',
+      );
+      await page.getByRole('button', { name: 'Save Changes' }).click();
+      const editGoalResp = await editGoalRes;
+      expect(editGoalResp.status()).toBe(200);
+    });
+
     test('transactions: add expense and payee autocomplete', async ({ page }) => {
       // Expense form requires a category — create one via API before opening the modal
       const expenseCatName = uniqueName('Shopping');

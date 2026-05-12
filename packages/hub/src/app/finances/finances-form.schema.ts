@@ -250,26 +250,29 @@ export function formToEditDetails(
   type: string,
   values: EditAccountValues,
   preserved: { settled?: boolean } = {},
-): object | null {
+): AccountDetails | null {
   switch (type) {
     case AccountTypes.Bank:
       return {
+        type: AccountTypes.Bank,
         ...(values.bankCardLastFour ? { cardLastFour: values.bankCardLastFour } : {}),
         ...(values.bankCardName ? { cardName: values.bankCardName } : {}),
       };
     case AccountTypes.CreditCard:
       return {
+        type: AccountTypes.CreditCard,
         creditLimit: parseFloat(values.creditLimit) || 0,
         statementDay: parseInt(values.statementDay) || 1,
         ...(values.cardLastFour ? { cardLastFour: values.cardLastFour } : {}),
         ...(values.cardName ? { cardName: values.cardName } : {}),
       };
     case AccountTypes.Goal:
-      return { targetAmount: parseFloat(values.targetAmount) || 0 };
+      return { type: AccountTypes.Goal, targetAmount: parseFloat(values.targetAmount) || 0 };
     case AccountTypes.Investment:
-      return { deposited: parseFloat(values.deposited) || 0 };
+      return { type: AccountTypes.Investment, deposited: parseFloat(values.deposited) || 0 };
     case AccountTypes.Loan:
       return {
+        type: AccountTypes.Loan,
         principal: parseFloat(values.principal) || 0,
         interestRate: parseFloat(values.interestRate) || 0,
         termMonths: parseInt(values.termMonths) || 0,
@@ -278,6 +281,7 @@ export function formToEditDetails(
       };
     case AccountTypes.BorrowedLent:
       return {
+        type: AccountTypes.BorrowedLent,
         counterpartyName: values.counterpartyName,
         direction: values.direction,
         ...(values.dueDate ? { dueDate: values.dueDate } : {}),
