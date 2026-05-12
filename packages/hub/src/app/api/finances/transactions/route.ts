@@ -13,8 +13,38 @@ import {
 import type { TransactionInsert } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
 import { isPayeeRequired } from '@my-hub/shared/utils';
-import type { TransactionListItem } from '../contracts';
-import { transactionsListResponseSchema, transactionMutationResponseSchema } from '../contracts';
+import { supportedCurrencySchema } from '../currency.schema';
+import { categoryIconSchema, categoryColorSchema } from '../shared.schema';
+
+export const transactionListItemSchema = z.object({
+  id: z.number().int(),
+  date: z.string(),
+  amount: z.number(),
+  type: z.enum(TransactionTypes),
+  isCorrection: z.boolean(),
+  notes: z.string().nullable(),
+  payeeName: z.string().nullable(),
+  categoryName: z.string().nullable(),
+  categoryColor: categoryColorSchema,
+  categoryIcon: categoryIconSchema,
+  accountName: z.string(),
+  toAccountName: z.string().nullable(),
+  addedByInitials: z.string().nullable(),
+});
+
+export const transactionsListResponseSchema = z.object({
+  transactions: z.array(transactionListItemSchema),
+  currency: supportedCurrencySchema,
+});
+
+export const transactionMutationResponseSchema = z.object({
+  transaction: z.object({ id: z.number().int() }).loose(),
+  listItem: transactionListItemSchema.optional(),
+});
+
+export type TransactionListItem = z.infer<typeof transactionListItemSchema>;
+export type TransactionsListResponse = z.infer<typeof transactionsListResponseSchema>;
+export type TransactionMutationResponse = z.infer<typeof transactionMutationResponseSchema>;
 
 function buildUserInitialsMap(members: Awaited<ReturnType<typeof getBudgetMembers>>) {
   return new Map(

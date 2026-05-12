@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Divider, TYPE_META } from '../ui';
-import type { NetWorthData } from '@/app/api/finances/contracts';
+import type { NetWorthData } from '@/app/api/finances/networth/route';
 
 function NwChart({
   history,

@@ -336,6 +336,8 @@ describe.sequential('finances — upsert_category lifecycle', () => {
       name: 'finances_upsert_category',
       arguments: {
         name: testCategoryName,
+        icon: 'tag',
+        color: '#6ee7b7',
       },
     });
 
@@ -357,6 +359,8 @@ describe.sequential('finances — upsert_category lifecycle', () => {
       arguments: {
         id: createdCategoryId,
         monthlyTarget: 3000,
+        icon: 'tag',
+        color: '#6ee7b7',
       },
     });
 
@@ -373,6 +377,8 @@ describe.sequential('finances — upsert_category lifecycle', () => {
       arguments: {
         id: createdCategoryId,
         monthlyTarget: null,
+        icon: 'tag',
+        color: '#6ee7b7',
       },
     });
 
@@ -393,6 +399,8 @@ describe.sequential('finances — upsert_category lifecycle', () => {
       arguments: {
         id: createdCategoryId,
         groupName: testGroupName,
+        icon: 'tag',
+        color: '#6ee7b7',
       },
     });
 
@@ -412,18 +420,22 @@ describe.sequential('finances — upsert_category lifecycle', () => {
     expect(result.isError).toBe(true);
   });
 
-  it('returns error for non-existent group name', async () => {
+  it('creates a new group when group name does not exist', async () => {
     expect(createdCategoryId).toBeDefined();
 
+    const newGroupName = `[e2e:${runId}] Non-Existent Group`;
     const result = await client.callTool({
       name: 'finances_upsert_category',
       arguments: {
         id: createdCategoryId,
-        groupName: `[e2e:${runId}] Non-Existent Group`,
+        groupName: newGroupName,
+        icon: 'tag',
+        color: '#6ee7b7',
       },
     });
 
-    expect(result.isError).toBe(true);
+    const data = parseToolResult<UpsertCategoryResult>(result);
+    expect(data.group).toBe(newGroupName);
   });
 });
 

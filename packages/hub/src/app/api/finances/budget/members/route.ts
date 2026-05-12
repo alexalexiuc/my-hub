@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, addBudgetMember, findUserByEmail } from '@my-hub/shared/services';
-import { okResponseSchema } from '../../contracts';
+import { okResponseSchema } from '../../shared.schema';
 
 const InviteMemberSchema = z.object({
   email: z.string().email('Valid email required'),

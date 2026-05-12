@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Divider, Bar } from '../ui';
-import type { ReportsData, CategoriesResponse } from '@/app/api/finances/contracts';
+import type { ReportsData } from '@/app/api/finances/reports/route';
+import type { CategoriesResponse } from '@/app/api/finances/categories/route';
 
 type View = 'monthly' | 'breakdown';
 

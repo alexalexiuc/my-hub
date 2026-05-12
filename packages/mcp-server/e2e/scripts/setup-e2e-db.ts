@@ -8,6 +8,8 @@ import {
   deleteUserOAuthClient,
   createUserOAuthClient,
   ensureAllMcpServers,
+  getUserBudgets,
+  createBudget,
 } from '@my-hub/shared/services';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -32,6 +34,14 @@ const created = await createUserOAuthClient(
   process.env.E2E_MCP_CLIENT_SECRET,
 );
 await ensureAllMcpServers(user.id);
+
+// Ensure the e2e user has an active budget so finance tools work
+const budgets = await getUserBudgets(user.id);
+if (!budgets.some(b => b.isActive)) {
+  await createBudget(user.id, { name: 'E2E Budget', defaultCurrency: 'EUR' });
+  console.error('Created e2e budget for user');
+}
+
 console.error('Created e2e client:', created.clientId);
 
 const lines =

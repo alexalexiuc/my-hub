@@ -8,7 +8,9 @@ import { Button, Field, Input, Select } from '@/components';
 import { SupportedCurrencies } from '@my-hub/shared/constants';
 import { Card, SectionLabel } from '../ui';
 import { CreateBudgetSchema, defaultCreateBudgetValues, type CreateBudgetValues } from '../finances-form.schema';
-import type { BudgetInfo, BudgetsListResponse } from '@/app/api/finances/contracts';
+import type { BudgetInfo } from '@/app/api/finances/budget/budget.schema';
+import type { BudgetCreateResponse } from '@/app/api/finances/budgets/route';
+import type { BudgetActivateBody, BudgetCreateBody, BudgetsListResponse } from '@/app/api/finances/budgets/route';
 
 type BudgetsSectionProps = {
   onChanged: () => void;
@@ -41,7 +43,7 @@ export function BudgetsSection({ onChanged }: BudgetsSectionProps) {
   async function handleMakeActive(id: number) {
     setActivating(id);
     try {
-      await apiFetch('/api/finances/budgets', {
+      await apiFetch<undefined, BudgetActivateBody>('/api/finances/budgets', {
         method: 'PATCH',
         body: { activeBudgetId: id },
         silentToast: true,
@@ -55,7 +57,7 @@ export function BudgetsSection({ onChanged }: BudgetsSectionProps) {
   }
 
   async function onCreateSubmit(values: CreateBudgetValues) {
-    await apiFetch('/api/finances/budgets', {
+    await apiFetch<BudgetCreateResponse, BudgetCreateBody>('/api/finances/budgets', {
       method: 'POST',
       body: { name: values.name.trim(), defaultCurrency: values.defaultCurrency },
       silentToast: true,

@@ -10,7 +10,7 @@ import { AccountProgressBar } from './AccountProgressBar';
 import { BorrowedLentDetails } from './BorrowedLentDetails';
 import { NetWorthSummary } from './NetWorthSummary';
 import { AccountsPageSkeleton } from './AccountsPageSkeleton';
-import type { AccountsListData, AccountItem } from './types';
+import type { AccountItem, AccountsListData } from '@/app/api/finances/accounts/route';
 
 const ACCOUNT_GROUPS = [
   { key: 'bank', label: 'Bank', icon: '🏦' },

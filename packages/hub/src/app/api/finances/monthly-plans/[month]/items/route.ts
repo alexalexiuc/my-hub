@@ -1,8 +1,16 @@
 import { z } from 'zod';
 import { route, routeHttpError, created } from '@/lib/api/route';
 import { getUserActiveBudget, getMonthlyPlanFull, addPlanItem } from '@my-hub/shared/services';
-import { monthlyPlanItemMutationSchema } from '../../../contracts';
 import { supportedCurrencySchema } from '../../../currency.schema';
+import { monthlyPlanItemSchema } from '../route';
+import type { MonthlyPlanItem } from '../route';
+
+export const monthlyPlanItemMutationSchema = z.object({
+  item: monthlyPlanItemSchema,
+});
+
+export type MonthlyPlanItemMutationResponse = z.infer<typeof monthlyPlanItemMutationSchema>;
+export type { MonthlyPlanItem };
 
 const ParamsSchema = z.object({ month: z.string().regex(/^\d{4}-\d{2}$/) });
 

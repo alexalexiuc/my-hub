@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar, Divider, Sparkline, CategoryIcon } from './ui';
 import { TransactionModal } from './transactions/TransactionModal';
 import { TransactionList } from './transactions/TransactionList';
-import type { FinanceDashboardData } from './types';
+import type { FinanceDashboardData } from '@/app/api/finances/dashboard/route';
 
 function getGreeting() {
   const h = new Date().getHours();

@@ -153,10 +153,13 @@ test.describe('Finances', () => {
       await page.getByLabel('Name', { exact: true }).fill(bankAccountName);
       // Type defaults to bank — opening balance
       await page.getByLabel('Opening Balance').fill('1500');
+      const createBankRes = page.waitForResponse(
+        res => res.url().includes('/api/finances/accounts') && res.request().method() === 'POST',
+      );
       await page.getByRole('button', { name: 'Create Account' }).click();
-      await page.waitForLoadState('networkidle');
+      await createBankRes;
 
-      await expect(page.getByText(bankAccountName)).toBeVisible();
+      await expect(page.getByText(bankAccountName)).toBeVisible({ timeout: 10_000 });
 
       // ── 2. Add credit card ────────────────────────────────────────────────
       await page.getByTitle('Add account').click();
@@ -164,10 +167,13 @@ test.describe('Finances', () => {
       await page.getByLabel('Type').selectOption('credit_card');
       await page.getByLabel('Credit Limit').fill('5000');
       await page.getByLabel('Opening Balance').fill('200');
+      const createCcRes = page.waitForResponse(
+        res => res.url().includes('/api/finances/accounts') && res.request().method() === 'POST',
+      );
       await page.getByRole('button', { name: 'Create Account' }).click();
-      await page.waitForLoadState('networkidle');
+      await createCcRes;
 
-      await expect(page.getByText(ccName)).toBeVisible();
+      await expect(page.getByText(ccName)).toBeVisible({ timeout: 10_000 });
       // Credit card shows progress bar (used / limit)
       await expect(page.getByText(/Used/i)).toBeVisible();
 
@@ -626,11 +632,14 @@ test.describe('Finances', () => {
     await page.getByLabel('Counterparty Name').fill('John Doe');
     // Direction defaults to "Lent (gave)"
 
+    const createLentRes = page.waitForResponse(
+      res => res.url().includes('/api/finances/accounts') && res.request().method() === 'POST',
+    );
     await page.getByRole('button', { name: 'Create Account' }).click();
-    await page.waitForLoadState('networkidle');
+    await createLentRes;
 
     // Account appears under "Borrowed/Lent" group
-    await expect(page.getByText(lentName)).toBeVisible();
+    await expect(page.getByText(lentName)).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('John Doe')).toBeVisible();
 
     // Settle button visible for unsettled accounts

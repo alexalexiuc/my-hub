@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { cn, apiFetch } from '@/lib/utils';
 import { Button } from '@/components';
 import { SectionLabel, MonthCarousel } from '../ui';
+import type { MonthlyPlanCopyResponse } from '@/app/api/finances/monthly-plans/[month]/copy-next/route';
 
 type MonthHeaderProps = {
   month: string;
@@ -21,10 +22,9 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
   const handleCopyNext = async () => {
     setCopying(true);
     try {
-      const res = await apiFetch<{ created: boolean; targetMonth: string }>(
-        `/api/finances/monthly-plans/${month}/copy-next`,
-        { method: 'POST' },
-      );
+      const res = await apiFetch<MonthlyPlanCopyResponse>(`/api/finances/monthly-plans/${month}/copy-next`, {
+        method: 'POST',
+      });
       if (res?.created) onNavigate(res.targetMonth);
     } finally {
       setCopying(false);

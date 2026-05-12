@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { route, noContent } from '@/lib/api/route';
 import { updatePlanItem, deletePlanItem } from '@my-hub/shared/services';
-import { monthlyPlanItemMutationSchema } from '../../../../contracts';
 import { supportedCurrencySchema } from '../../../../currency.schema';
+import { monthlyPlanItemMutationSchema } from '../route';
 
 const ParamsSchema = z.object({
   month: z.string().regex(/^\d{4}-\d{2}$/),

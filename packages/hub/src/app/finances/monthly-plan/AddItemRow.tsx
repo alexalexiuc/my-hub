@@ -8,7 +8,7 @@ import { FinancialDropdown } from '../FinancialDropdown';
 import { SupportedCurrencies } from '@my-hub/shared/constants';
 import type { SupportedCurrency } from '@my-hub/shared/constants';
 import { AddPlanItemSchema, type AddPlanItemValues } from '../finances-form.schema';
-import type { TransactionFormDataResponse } from '@/app/api/finances/contracts';
+import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
 
 export type NewItemState = AddPlanItemValues;
 

@@ -1,9 +1,28 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getPayees, getCategories, getTransactions } from '@my-hub/shared/services';
-import { payeesReportResponseSchema } from '../../contracts';
-import type { PayeeReportItem } from '../../contracts';
 import { TransactionTypes } from '@my-hub/shared/constants';
+import { supportedCurrencySchema } from '../../currency.schema';
+import { categoryIconSchema, categoryColorSchema } from '../../shared.schema';
+
+export const payeeReportItemSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  txCount: z.number().int(),
+  totalSpent: z.number(),
+  lastDate: z.string(),
+  categoryName: z.string().nullable(),
+  categoryColor: categoryColorSchema,
+  categoryIcon: categoryIconSchema,
+});
+
+export const payeesReportResponseSchema = z.object({
+  currency: supportedCurrencySchema,
+  payees: z.array(payeeReportItemSchema),
+});
+
+export type PayeeReportItem = z.infer<typeof payeeReportItemSchema>;
+export type PayeesReportResponse = z.infer<typeof payeesReportResponseSchema>;
 
 function getFromDate(range: string): string {
   const now = new Date();

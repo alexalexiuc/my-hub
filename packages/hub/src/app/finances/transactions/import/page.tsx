@@ -5,7 +5,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { Button } from '@/components';
 import { FinModalShell } from '../../FinModalShell';
-import type { ImportBatchItem, ImportBatchListResponse, ImportRollbackResponse } from '@/app/api/finances/contracts';
+import type { ImportBatchItem, ImportBatchListResponse } from '@/app/api/finances/transactions/import/route';
+import type { ImportRollbackResponse } from '@/app/api/finances/transactions/import/[batchId]/route';
 import { CsvImportScreen } from './CsvImportScreen';
 
 function ConfirmRollbackModal({

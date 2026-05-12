@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { sortBudgets } from './finances.utils';
 import { CreateBudgetSchema } from './finances-form.schema';
-import type { BudgetInfo } from '@/app/api/finances/contracts';
+import type { BudgetInfo } from '@/app/api/finances/budget/budget.schema';
 
 function makeBudget(overrides: Partial<BudgetInfo> & { id: number; name: string }): BudgetInfo {
   return {

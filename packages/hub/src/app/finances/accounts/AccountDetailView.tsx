@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Pill } from '@/components';
+import { Pill, Button } from '@/components';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar, TYPE_META } from '../ui';
 import { TransactionList } from '../transactions/TransactionList';
 import { EditAccountModal } from './EditAccountModal';
-import type { AccountDetailData, AccountItem } from './types';
-import type { TransactionMutationResponse } from '@/app/api/finances/contracts';
+import type { AccountItem } from '@/app/api/finances/accounts/route';
+import type { AccountDetailData } from '@/app/api/finances/accounts/[id]/route';
+import type { TransactionMutationResponse } from '@/app/api/finances/transactions/route';
 import { TransactionType, TransactionTypes } from '@my-hub/shared/constants';
 
 function today() {
@@ -358,18 +359,20 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
           <TypeBadge type={acc.type} />
         </div>
         <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setEditOpen(true)}
-            className="cursor-pointer rounded-md border border-[var(--fin-border)] bg-transparent px-2.5 py-[5px] text-xs text-[var(--fin-muted)]"
-          >
+          <Button size="xs" variant="primary" onClick={() => setCorrectionOpen(true)}>
+            + Correction
+          </Button>
+          <Button size="xs" variant="ghost" onClick={() => setEditOpen(true)}>
             Edit
-          </button>
-          <button
+          </Button>
+          <Button
+            size="xs"
+            variant="ghost"
+            className="text-amber-400 hover:text-amber-300 hover:bg-amber-900/20"
             onClick={handleArchive}
-            className="cursor-pointer rounded-md border border-[var(--fin-border)] bg-transparent px-2.5 py-[5px] text-xs text-[var(--fin-muted)]"
           >
             {acc.archived ? 'Unarchive' : 'Archive'}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -389,13 +392,6 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
         <SectionLabel className="mb-2.5">Ledger</SectionLabel>
         <TransactionList transactions={transactions} currency={acc.currency} />
       </Card>
-
-      <button
-        onClick={() => setCorrectionOpen(true)}
-        className="w-full cursor-pointer rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-2 text-xs text-[var(--fin-muted)]"
-      >
-        + Add Correction
-      </button>
 
       {editOpen && (
         <EditAccountModal

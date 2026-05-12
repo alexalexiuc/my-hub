@@ -1,9 +1,31 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getTransactions, getNetWorthHistory } from '@my-hub/shared/services';
-import { reportsResponseSchema } from '../contracts';
-import type { ReportsData, CashflowMonth } from '../contracts';
 import { TransactionTypes } from '@my-hub/shared/constants';
+import { supportedCurrencySchema } from '../currency.schema';
+
+export const reportsCashflowMonthSchema = z.object({
+  month: z.string(),
+  value: z.string(),
+  income: z.number(),
+  expense: z.number(),
+});
+
+export const reportsNetWorthPointSchema = z.object({
+  month: z.string(),
+  label: z.string(),
+  netWorth: z.number(),
+});
+
+export const reportsResponseSchema = z.object({
+  currency: supportedCurrencySchema,
+  cashflow: z.array(reportsCashflowMonthSchema),
+  netWorthHistory: z.array(reportsNetWorthPointSchema),
+});
+
+export type CashflowMonth = z.infer<typeof reportsCashflowMonthSchema>;
+export type ReportsNetWorthPoint = z.infer<typeof reportsNetWorthPointSchema>;
+export type ReportsData = z.infer<typeof reportsResponseSchema>;
 
 const ReportsQuerySchema = z.object({
   months: z.coerce.number().int().positive().max(12).optional(),

@@ -1,8 +1,16 @@
 import { z } from 'zod';
 import { route, created } from '@/lib/api/route';
 import { createBudget, getUserBudgets, setActiveBudget } from '@my-hub/shared/services';
-import { budgetsListResponseSchema, budgetCreateResponseSchema, okResponseSchema } from '../contracts';
 import { supportedCurrencySchema } from '../currency.schema';
+import { okResponseSchema } from '../shared.schema';
+import { budgetInfoSchema } from '../budget/budget.schema';
+export type { BudgetInfo } from '../budget/budget.schema';
+
+export const budgetCreateResponseSchema = z.object({
+  budget: budgetInfoSchema,
+});
+
+export type BudgetCreateResponse = z.infer<typeof budgetCreateResponseSchema>;
 
 const BudgetCreateSchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
@@ -12,6 +20,14 @@ const BudgetCreateSchema = z.object({
 const SetActiveBudgetSchema = z.object({
   activeBudgetId: z.number().int().positive(),
 });
+
+export const budgetsListResponseSchema = z.object({
+  budgets: z.array(budgetInfoSchema),
+});
+
+export type BudgetCreateBody = z.infer<typeof BudgetCreateSchema>;
+export type BudgetActivateBody = z.infer<typeof SetActiveBudgetSchema>;
+export type BudgetsListResponse = z.infer<typeof budgetsListResponseSchema>;
 
 export const GET = route({ response: budgetsListResponseSchema })(async ({ user }) => {
   const budgets = await getUserBudgets(user.id);

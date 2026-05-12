@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import { fmt, Card, Bar } from '../ui';
 import { TransactionModal } from '../transactions/TransactionModal';
 import { AddGoalModal } from './AddGoalModal';
-import type { GoalsResponse } from '@/app/api/finances/contracts';
+import type { GoalsResponse } from '@/app/api/finances/goals/route';
 
 function projectedDate(months: number): string {
   const d = new Date();

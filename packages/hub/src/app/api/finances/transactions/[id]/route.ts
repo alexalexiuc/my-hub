@@ -11,7 +11,26 @@ import {
 import type { TransactionUpdate } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
 import { omitUndefined } from '@my-hub/shared/utils';
-import { transactionDetailSchema, transactionMutationResponseSchema, okResponseSchema } from '../../contracts';
+import { okResponseSchema } from '../../shared.schema';
+import { transactionMutationResponseSchema } from '../route';
+import type { TransactionMutationResponse } from '../route';
+
+export const transactionDetailSchema = z.object({
+  id: z.number().int(),
+  type: z.enum(TransactionTypes),
+  accountId: z.number().int(),
+  toAccountId: z.number().int().nullable(),
+  categoryId: z.number().int().nullable(),
+  payeeId: z.number().int().nullable(),
+  payeeName: z.string().nullable(),
+  amount: z.number(),
+  date: z.string(),
+  notes: z.string().nullable(),
+  isCorrection: z.boolean(),
+});
+
+export type TransactionDetail = z.infer<typeof transactionDetailSchema>;
+export type { TransactionMutationResponse };
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() });
 

@@ -6,7 +6,51 @@ import {
   updateMonthlyPlan,
   checkMonthlyPlanExists,
 } from '@my-hub/shared/services';
-import { monthlyPlanResponseSchema } from '../../contracts';
+import { supportedCurrencySchema } from '../../currency.schema';
+
+export const monthlyPlanItemSchema = z.object({
+  id: z.number().int(),
+  planId: z.number().int(),
+  name: z.string(),
+  amount: z.number(),
+  currency: supportedCurrencySchema,
+  categoryId: z.number().int().nullable(),
+  merchantId: z.number().int().nullable(),
+  linkedAccountId: z.number().int().nullable(),
+  assignedAmount: z.number(),
+  isAssigned: z.boolean(),
+  assignedTransactionId: z.number().int().nullable(),
+  sortOrder: z.number().int(),
+  notes: z.string().nullable(),
+  categoryName: z.string().nullable(),
+  merchantName: z.string().nullable(),
+  linkedAccountName: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const monthlyPlanSummarySchema = z.object({
+  planned: z.number(),
+  remainingPotential: z.number(),
+  remainingReal: z.number(),
+  assignedCount: z.number().int(),
+  totalCount: z.number().int(),
+});
+
+export const monthlyPlanResponseSchema = z.object({
+  planId: z.number().int(),
+  month: z.string(),
+  availableAmount: z.number(),
+  incomeAccountId: z.number().int().nullable(),
+  currency: supportedCurrencySchema,
+  items: z.array(monthlyPlanItemSchema),
+  summary: monthlyPlanSummarySchema,
+  nextMonthExists: z.boolean(),
+});
+
+export type MonthlyPlanItem = z.infer<typeof monthlyPlanItemSchema>;
+export type MonthlyPlanSummary = z.infer<typeof monthlyPlanSummarySchema>;
+export type MonthlyPlanResponse = z.infer<typeof monthlyPlanResponseSchema>;
 
 const ParamsSchema = z.object({ month: z.string().regex(/^\d{4}-\d{2}$/, 'month must be YYYY-MM') });
 

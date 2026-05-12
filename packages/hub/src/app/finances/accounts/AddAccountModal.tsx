@@ -3,9 +3,10 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
+import type { AccountMutationResponse, AccountCreateData } from '@/app/api/finances/accounts/route';
 import { FinModalShell } from '../FinModalShell';
 import { Button, Field, Input, Select } from '@/components';
-import { AccountTypes, LentDirections, ACCOUNT_TYPE_DESCRIPTIONS } from '@my-hub/shared/constants';
+import { AccountTypes, LentDirections, ACCOUNT_TYPE_DESCRIPTIONS, SupportedCurrency } from '@my-hub/shared/constants';
 import {
   AddAccountSchema,
   defaultAddAccountValues,
@@ -25,7 +26,7 @@ const ACCOUNT_TYPE_OPTIONS = [
 ];
 
 type AddAccountModalProps = {
-  defaultCurrency: string;
+  defaultCurrency: SupportedCurrency;
   onClose: () => void;
   onCreated: () => void;
 };
@@ -44,13 +45,13 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
   const type = watch('type');
 
   async function onSubmit(values: AddAccountValues) {
-    await apiFetch('/api/finances/accounts', {
+    await apiFetch<AccountMutationResponse, AccountCreateData>('/api/finances/accounts', {
       method: 'POST',
       body: {
         name: values.name,
         description: values.description.trim() || undefined,
         type: values.type,
-        currency: defaultCurrency.trim().toUpperCase(),
+        currency: defaultCurrency,
         openingBalance:
           values.type === AccountTypes.Loan
             ? parseFloat(values.principal) || 0

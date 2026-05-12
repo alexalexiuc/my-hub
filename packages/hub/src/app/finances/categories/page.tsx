@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
+import type { CategoriesResponse, CategoryGroup, CategoryRow } from '@/app/api/finances/categories/route';
+import type { CategoryDeleteResponse } from '@/app/api/finances/categories/[id]/route';
 import { fmt, Card, SectionLabel, Bar, Divider, CategoryIcon, MonthCarousel } from '../ui';
 import { dateToString } from '@my-hub/shared/utils';
 import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
@@ -12,7 +14,6 @@ import { AddGroupModal } from './AddGroupModal';
 import { EditCategoryModal } from './EditCategoryModal';
 import { EditGroupModal } from './EditGroupModal';
 import { categoryToEditValues } from '../finances-form.schema';
-import type { CategoriesResponse, CategoryGroup, CategoryRow } from '@/app/api/finances/contracts';
 
 function currentMonthStr(): string {
   return dateToString(new Date(), 'YYYY-MM-DD').slice(0, 7);
@@ -236,10 +237,10 @@ export default function CategoriesPage() {
 
   async function handleDeleteCategory(cat: CategoryRow) {
     if (!window.confirm(`Remove "${cat.name}"?`)) return;
-    const result = await apiFetch<{ id: number; action: 'archived' | 'deleted' }>(
-      `/api/finances/categories/${cat.id}`,
-      { method: 'DELETE', silentToast: true },
-    );
+    const result = await apiFetch<CategoryDeleteResponse>(`/api/finances/categories/${cat.id}`, {
+      method: 'DELETE',
+      silentToast: true,
+    });
     if (result?.action === 'archived') {
       toast.success(`"${cat.name}" archived — it has existing transactions.`);
     } else {

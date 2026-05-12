@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { TransactionModal } from './transactions/TransactionModal';
-import type { BudgetDetailResponse } from '@/app/api/finances/contracts';
+import type { BudgetDetailResponse } from '@/app/api/finances/budget/route';
 
 interface NavItem {
   id: string;

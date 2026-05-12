@@ -3,10 +3,12 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
+import type { BudgetCreateResponse } from '@/app/api/finances/budgets/route';
 import { Button, Field, Input, Select } from '@/components';
 import { Card } from './ui';
 import { SupportedCurrencies } from '@my-hub/shared/constants';
 import { CreateBudgetSchema, defaultCreateBudgetValues, type CreateBudgetValues } from './finances-form.schema';
+import type { BudgetCreateBody } from '../api/finances/budgets/route';
 
 type CreateBudgetScreenProps = {
   onCreated: () => void;
@@ -23,7 +25,7 @@ export function CreateBudgetScreen({ onCreated }: CreateBudgetScreenProps) {
   });
 
   async function onSubmit(values: CreateBudgetValues) {
-    await apiFetch('/api/finances/budgets', {
+    await apiFetch<BudgetCreateResponse, BudgetCreateBody>('/api/finances/budgets', {
       method: 'POST',
       body: { name: values.name.trim(), defaultCurrency: values.defaultCurrency },
       silentToast: true,

@@ -13,7 +13,8 @@ import {
   formToEditPlanItem,
   type EditPlanItemValues,
 } from '../finances-form.schema';
-import type { MonthlyPlanItem, TransactionFormDataResponse } from '@/app/api/finances/contracts';
+import type { MonthlyPlanItem } from '@/app/api/finances/monthly-plans/[month]/route';
+import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
 import { SectionLabel } from '../ui';
 
 function fmtNum(n: number): string {

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, updatePayee } from '@my-hub/shared/services';
 import { trimOrNull } from '@my-hub/shared/utils';
-import { payeeSuggestionSchema } from '../../contracts';
+import { payeeSuggestionSchema } from '../route';
 
 const IdParamSchema = z.object({ id: z.coerce.number().int().positive() });
 

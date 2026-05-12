@@ -1,8 +1,37 @@
+import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getAccounts, getNetWorthHistory } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
-import { netWorthResponseSchema } from '../contracts';
-import type { NetWorthData } from '../contracts';
+import { supportedCurrencySchema } from '../currency.schema';
+
+export const netWorthItemSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  type: z.enum(AccountTypes),
+  balance: z.number(),
+  currency: supportedCurrencySchema,
+});
+
+export const netWorthHistoryPointSchema = z.object({
+  month: z.string(),
+  label: z.string(),
+  totalAssets: z.number(),
+  totalLiabilities: z.number(),
+  netWorth: z.number(),
+});
+
+export const netWorthResponseSchema = z.object({
+  currency: supportedCurrencySchema,
+  netWorth: z.number(),
+  totalAssets: z.number(),
+  totalLiabilities: z.number(),
+  assets: z.array(netWorthItemSchema),
+  liabilities: z.array(netWorthItemSchema),
+  history: z.array(netWorthHistoryPointSchema),
+  deltaVsLastMonth: z.number().nullable(),
+});
+
+export type NetWorthData = z.infer<typeof netWorthResponseSchema>;
 
 const LIABILITY_TYPES = new Set<string>([AccountTypes.Loan, AccountTypes.CreditCard]);
 

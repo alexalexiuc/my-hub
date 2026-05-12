@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { route } from '@/lib/api/route';
 import {
   getAccounts,
@@ -10,8 +11,72 @@ import {
 } from '@my-hub/shared/services';
 import { AccountTypes, TransactionTypes } from '@my-hub/shared/constants';
 import type { GoalAccountDetails } from '@my-hub/shared/constants';
-import { dashboardResponseSchema } from '../contracts';
-import type { FinanceDashboardData } from '../contracts';
+import { supportedCurrencySchema } from '../currency.schema';
+import { categoryIconSchema, categoryColorSchema } from '../shared.schema';
+
+export const dashboardCategorySchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  icon: categoryIconSchema,
+  color: categoryColorSchema,
+  spent: z.number(),
+  target: z.number(),
+});
+
+export const dashboardGoalSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  balance: z.number(),
+  target: z.number(),
+});
+
+export const dashboardTransactionSchema = z.object({
+  id: z.number().int(),
+  date: z.string(),
+  amount: z.number(),
+  type: z.enum(TransactionTypes),
+  notes: z.string().nullable(),
+  payeeName: z.string().nullable(),
+  categoryName: z.string().nullable(),
+  categoryColor: categoryColorSchema,
+  categoryIcon: categoryIconSchema,
+});
+
+export const availableBudgetSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  defaultCurrency: supportedCurrencySchema,
+  isOwner: z.boolean(),
+});
+
+export const financeDashboardDataSchema = z.object({
+  hasBudget: z.literal(true),
+  budgetId: z.number().int(),
+  budgetName: z.string(),
+  currency: supportedCurrencySchema,
+  netWorth: z.number(),
+  netWorthHistory: z.array(z.number()),
+  monthlyIncome: z.number(),
+  monthlyExpense: z.number(),
+  categories: z.array(dashboardCategorySchema),
+  goals: z.array(dashboardGoalSchema),
+  recentTransactions: z.array(dashboardTransactionSchema),
+});
+
+export const noBudgetResponseSchema = z.object({
+  hasBudget: z.literal(false),
+  availableBudgets: z.array(availableBudgetSchema),
+});
+
+export const dashboardResponseSchema = z.union([financeDashboardDataSchema, noBudgetResponseSchema]);
+
+export type DashboardCategory = z.infer<typeof dashboardCategorySchema>;
+export type DashboardGoal = z.infer<typeof dashboardGoalSchema>;
+export type DashboardTransaction = z.infer<typeof dashboardTransactionSchema>;
+export type AvailableBudget = z.infer<typeof availableBudgetSchema>;
+export type FinanceDashboardData = z.infer<typeof financeDashboardDataSchema>;
+export type NoBudgetResponse = z.infer<typeof noBudgetResponseSchema>;
+export type DashboardResponse = z.infer<typeof dashboardResponseSchema>;
 
 export const GET = route({ response: dashboardResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);

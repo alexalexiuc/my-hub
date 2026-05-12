@@ -12,7 +12,7 @@ import {
   formToEditDetails,
   type EditAccountValues,
 } from '../finances-form.schema';
-import type { AccountItem } from './types';
+import type { AccountItem } from '@/app/api/finances/accounts/route';
 
 type EditAccountModalProps = {
   acc: AccountItem;

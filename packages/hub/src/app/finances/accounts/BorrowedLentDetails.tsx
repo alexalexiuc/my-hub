@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import type { AccountItem } from './types';
+import type { AccountItem } from '@/app/api/finances/accounts/route';
 
 export function BorrowedLentDetails({ acc, onSettle }: { acc: AccountItem; onSettle: (id: number) => void }) {
   return (

@@ -9,10 +9,47 @@ import {
 } from '@my-hub/shared/services';
 import { CategoryIcons, TransactionTypes } from '@my-hub/shared/constants';
 import type { CategoryIcon } from '@my-hub/shared/constants';
-import { categoriesResponseSchema, categoryMutationResponseSchema } from '../contracts';
 import { trimOrNull } from '@my-hub/shared/utils';
+import { supportedCurrencySchema } from '../currency.schema';
+import { categoryIconSchema, categoryColorSchema } from '../shared.schema';
 
-const CategoryCreateSchema = z.object({
+export const categoryRowSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  icon: categoryIconSchema,
+  color: categoryColorSchema,
+  notes: z.string().nullable(),
+  monthlyTarget: z.number().nullable(),
+  spent: z.number(),
+  groupId: z.number().int().nullable(),
+  sortOrder: z.number().int(),
+});
+
+export const categoryGroupSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  notes: z.string().nullable(),
+  sortOrder: z.number().int(),
+  categories: z.array(categoryRowSchema),
+});
+
+export const categoriesResponseSchema = z.object({
+  currency: supportedCurrencySchema,
+  month: z.string(),
+  groups: z.array(categoryGroupSchema),
+  ungrouped: z.array(categoryRowSchema),
+  totalSpent: z.number(),
+  allCategories: z.array(categoryRowSchema),
+});
+
+export const categoryMutationResponseSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+  })
+  .loose();
+
+export const categoryCreateBodySchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
   icon: z
     .enum(Object.values(CategoryIcons) as [string, ...string[]])
@@ -24,6 +61,12 @@ const CategoryCreateSchema = z.object({
   groupId: z.number().int().positive().nullable().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
 });
+
+export type CategoryRow = z.infer<typeof categoryRowSchema>;
+export type CategoryGroup = z.infer<typeof categoryGroupSchema>;
+export type CategoriesResponse = z.infer<typeof categoriesResponseSchema>;
+export type CategoryMutationResponse = z.infer<typeof categoryMutationResponseSchema>;
+export type CategoryCreateBody = z.infer<typeof categoryCreateBodySchema>;
 
 const CategoryQuerySchema = z.object({
   month: z
@@ -94,7 +137,7 @@ export const GET = route({ query: CategoryQuerySchema, response: categoriesRespo
   };
 });
 
-export const POST = route({ body: CategoryCreateSchema, response: categoryMutationResponseSchema })(async ({
+export const POST = route({ body: categoryCreateBodySchema, response: categoryMutationResponseSchema })(async ({
   user,
   body,
 }) => {

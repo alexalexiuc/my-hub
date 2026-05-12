@@ -1,5 +1,6 @@
 import { Button, Pill } from '@/components';
-import type { PayeeReportItem, PayeeSuggestion } from '@/app/api/finances/contracts';
+import type { PayeeSuggestion } from '@/app/api/finances/payees/route';
+import type { PayeeReportItem } from '@/app/api/finances/payees/report/route';
 import { CategoryIcon, Divider, fmt, SectionLabel } from '../ui';
 import { dateToString } from '@my-hub/shared/utils';
 
