@@ -3,6 +3,7 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
+import type { CategoryMutationResponse, CategoryCreateBody } from '@/app/api/finances/categories/route';
 import { FinModalShell } from '../FinModalShell';
 import { Button, ColorPicker, Field, Input, Select, Textarea } from '@/components';
 import { ICON_OPTIONS } from '../categoryIcons';
@@ -57,7 +58,7 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
   });
 
   async function onSubmit(values: AddCategoryValues) {
-    await apiFetch('/api/finances/categories', {
+    await apiFetch<CategoryMutationResponse, CategoryCreateBody>('/api/finances/categories', {
       method: 'POST',
       body: formToCategoryBody(values),
     });

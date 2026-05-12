@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { PlusOutlineIcon } from '@/components/icons';
 import { TransactionModal } from './transactions/TransactionModal';
-import type { BudgetDetailResponse } from '@/app/api/finances/contracts';
+import type { BudgetDetailResponse } from '@/app/api/finances/budget/route';
 
 const LEFT_ITEMS = [
   { id: 'dashboard', icon: '◈', label: 'Home', path: '/finances' },

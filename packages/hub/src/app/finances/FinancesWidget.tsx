@@ -6,7 +6,7 @@ import { EyeOffOutlineIcon, EyeOutlineIcon, PlusOutlineIcon } from '@/components
 import { apiFetch } from '@/lib/utils';
 import { CategoryIcon, fmt } from './ui';
 import { TransactionModal } from './transactions/TransactionModal';
-import type { DashboardResponse, FinanceDashboardData } from '@/app/api/finances/contracts';
+import type { DashboardResponse, FinanceDashboardData } from '@/app/api/finances/dashboard/route';
 import Link from 'next/link';
 
 export function FinancesWidget() {

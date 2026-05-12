@@ -10,9 +10,34 @@ import {
 } from '@my-hub/shared/services';
 import type { BorrowedLentAccountDetails } from '@my-hub/shared/constants';
 import type { AccountUpdate } from '@my-hub/shared/services';
-import { accountDetailResponseSchema, accountMutationResponseSchema, accountDetailsSchema } from '../../contracts';
-import type { AccountItem, AccountDetailData, AccountTransaction } from '../../contracts';
 import { FinanceAccount } from '@my-hub/shared/types';
+import { categoryIconSchema, categoryColorSchema } from '../../shared.schema';
+import { accountDetailsSchema, accountItemSchema, accountMutationResponseSchema } from '../route';
+import type { AccountItem, AccountMutationResponse } from '../route';
+
+export const accountTransactionSchema = z.object({
+  id: z.number().int(),
+  date: z.string(),
+  amount: z.number(),
+  type: z.string(),
+  notes: z.string().nullable(),
+  payeeName: z.string().nullable(),
+  categoryName: z.string().nullable(),
+  categoryColor: categoryColorSchema,
+  categoryIcon: categoryIconSchema,
+  balanceAfter: z.number().nullable(),
+  isCorrection: z.boolean(),
+});
+
+export const accountDetailResponseSchema = z.object({
+  account: accountItemSchema,
+  transactions: z.array(accountTransactionSchema),
+});
+
+export type AccountTransaction = z.infer<typeof accountTransactionSchema>;
+export type AccountDetailData = z.infer<typeof accountDetailResponseSchema>;
+export type { AccountItem, AccountMutationResponse };
+
 const AccountPatchSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('settle') }),
   z.object({ action: z.literal('archive') }),

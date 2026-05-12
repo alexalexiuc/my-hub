@@ -1,6 +1,32 @@
+import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getAccounts, getCategories } from '@my-hub/shared/services';
-import { transactionFormDataResponseSchema } from '../../contracts';
+import { AccountTypes } from '@my-hub/shared/constants';
+import { supportedCurrencySchema } from '../../currency.schema';
+import { categoryIconSchema, categoryColorSchema } from '../../shared.schema';
+
+export const transactionFormAccountSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  type: z.enum(AccountTypes),
+  currency: supportedCurrencySchema,
+});
+
+export const transactionFormCategorySchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  icon: categoryIconSchema,
+  color: categoryColorSchema,
+  groupId: z.number().int().nullable(),
+});
+
+export const transactionFormDataResponseSchema = z.object({
+  currency: supportedCurrencySchema,
+  accounts: z.array(transactionFormAccountSchema),
+  categories: z.array(transactionFormCategorySchema),
+});
+
+export type TransactionFormDataResponse = z.infer<typeof transactionFormDataResponseSchema>;
 
 export const GET = route({ response: transactionFormDataResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);

@@ -1,4 +1,4 @@
-import type { ScheduleRow } from '@/app/api/finances/contracts';
+import type { ScheduleRow } from '@/app/api/finances/accounts/[id]/amortization/route';
 import { fmt } from '../../../ui';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 

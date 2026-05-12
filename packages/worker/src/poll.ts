@@ -44,6 +44,11 @@ export const tasks: Task[] = [
     cron: '0 8 1 * *', // 1st of every month at 08:00
     fn: sendCaloriesMonthlyReports,
   },
+  // { // Observe for a few periods and see if balance drifts.
+  //   name: 'finances-balance-recalc',
+  //   cron: '0 3 * * 0', // every Sunday at 03:00 UTC
+  //   fn: recalculateFinanceBalances,
+  // },
 ];
 
 export function startPollLoop(): void {

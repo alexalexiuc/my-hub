@@ -7,7 +7,7 @@ import { Button, Input } from '@/components';
 import { Card, SectionLabel } from '../ui';
 import { ClaudePromptSection } from './ClaudePromptSection';
 import { BudgetsSection } from './BudgetsSection';
-import type { BudgetDetailResponse } from '@/app/api/finances/contracts';
+import type { BudgetDetailResponse } from '@/app/api/finances/budget/route';
 
 export default function FinancesSettingsPage() {
   const router = useRouter();

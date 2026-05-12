@@ -1,16 +1,25 @@
 import { z } from 'zod';
 import { route, routeHttpError, created } from '@/lib/api/route';
 import { getUserActiveBudget, createGroup } from '@my-hub/shared/services';
-import { groupMutationResponseSchema } from '../contracts';
 import { trimOrNull } from '@my-hub/shared/utils';
 
-const GroupCreateSchema = z.object({
+export const groupCreateBodySchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
   notes: z.string().trim().nullable().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
 });
 
-export const POST = route({ body: GroupCreateSchema, response: groupMutationResponseSchema })(async ({
+export const groupMutationResponseSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+  })
+  .loose();
+
+export type GroupCreateBody = z.infer<typeof groupCreateBodySchema>;
+export type GroupMutationResponse = z.infer<typeof groupMutationResponseSchema>;
+
+export const POST = route({ body: groupCreateBodySchema, response: groupMutationResponseSchema })(async ({
   user,
   body,
 }) => {

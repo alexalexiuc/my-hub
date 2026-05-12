@@ -3,12 +3,14 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
+import type { AccountCreateData, AccountMutationResponse } from '@/app/api/finances/accounts/route';
 import { FinModalShell } from '../FinModalShell';
 import { Button, Field, Input } from '@/components';
 import { AddGoalSchema, defaultAddGoalValues, formToGoalBody, type AddGoalValues } from '../finances-form.schema';
+import { SupportedCurrency } from '@my-hub/shared/constants';
 
 type AddGoalModalProps = {
-  defaultCurrency: string;
+  defaultCurrency: SupportedCurrency;
   onClose: () => void;
   onCreated: () => void;
 };
@@ -24,7 +26,7 @@ export function AddGoalModal({ defaultCurrency, onClose, onCreated }: AddGoalMod
   });
 
   async function onSubmit(values: AddGoalValues) {
-    await apiFetch('/api/finances/accounts', {
+    await apiFetch<AccountMutationResponse, AccountCreateData>('/api/finances/accounts', {
       method: 'POST',
       body: { ...formToGoalBody(values), currency: defaultCurrency },
     });

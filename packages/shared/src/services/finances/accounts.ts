@@ -6,11 +6,13 @@
  * - updateAccount(userId, budgetId, accountId, data) — partial update
  * - deleteAccount(userId, budgetId, accountId) — hard delete
  * - getNetWorthHistory(userId, budgetId, limit?) — last N monthly net-worth snapshots, oldest-first
+ * - getAllAccountIds() — system maintenance: returns all account IDs across all budgets (worker use only)
+ * - recalculateAccountBalance(accountId) — system maintenance: recomputes a single account's balance from openingBalance + transaction history; returns the new balance
  * Types: AccountInsert, AccountUpdate, GetAccountsOpts, NetWorthSnapshot
  */
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { financeAccounts, financeNetWorthSnapshots } from '../../db/schema/finances';
+import { financeAccounts, financeNetWorthSnapshots, financeTransactions } from '../../db/schema/finances';
 import { omitUndefined } from '../../utils';
 import { hasAccessToBudget } from './budgets';
 import type { FinanceAccount, NewFinanceAccount } from '../../types';
@@ -138,4 +140,55 @@ export async function getNetWorthHistory(userId: string, budgetId: number, limit
     totalAssets: r.totalAssets,
     totalLiabilities: r.totalLiabilities,
   }));
+}
+
+/** System maintenance: returns all account IDs across all budgets. No auth required — worker use only. */
+export async function getAllAccountIds(): Promise<number[]> {
+  const rows = await db.select({ id: financeAccounts.id }).from(financeAccounts);
+  return rows.map(r => r.id);
+}
+
+/**
+ * System maintenance: recomputes a single account's balance from scratch using
+ * openingBalance + net transaction history. No user auth required — intended
+ * for use by the worker only.
+ *
+ * Balance formula:
+ *   openingBalance
+ *   + SUM(income transactions where accountId = account.id: amount)
+ *   - SUM(expense/transfer transactions where accountId = account.id: amount)
+ *   + SUM(transfer transactions where toAccountId = account.id: amount * toExchangeRate)
+ *
+ * Returns the new balance, or null if the account does not exist.
+ */
+export async function recalculateAccountBalance(accountId: number): Promise<number | null> {
+  const [account] = await db
+    .select({ openingBalance: financeAccounts.openingBalance })
+    .from(financeAccounts)
+    .where(eq(financeAccounts.id, accountId));
+
+  if (!account) return null;
+
+  const [fromEffect] = await db
+    .select({
+      net: sql<number>`COALESCE(SUM(CASE WHEN ${financeTransactions.type} = 'income' THEN ${financeTransactions.amount} ELSE -${financeTransactions.amount} END), 0)`,
+    })
+    .from(financeTransactions)
+    .where(eq(financeTransactions.accountId, accountId));
+
+  const [toEffect] = await db
+    .select({
+      net: sql<number>`COALESCE(SUM(${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1)), 0)`,
+    })
+    .from(financeTransactions)
+    .where(and(eq(financeTransactions.toAccountId, accountId), eq(financeTransactions.type, 'transfer')));
+
+  const newBalance = account.openingBalance + (fromEffect?.net ?? 0) + (toEffect?.net ?? 0);
+
+  await db
+    .update(financeAccounts)
+    .set({ balance: newBalance, updatedAt: new Date() })
+    .where(eq(financeAccounts.id, accountId));
+
+  return newBalance;
 }

@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { AccountTypes, LentDirections, SupportedCurrencies, TransactionTypes } from '@my-hub/shared/constants';
+import {
+  AccountDetails,
+  AccountTypes,
+  LentDirection,
+  LentDirections,
+  SupportedCurrencies,
+  TransactionTypes,
+} from '@my-hub/shared/constants';
 
 // --- Add Group ---
 
@@ -33,7 +40,7 @@ export function formToGoalBody(values: AddGoalValues) {
     name: values.name.trim(),
     type: AccountTypes.Goal,
     openingBalance: values.openingBalance ? parseFloat(values.openingBalance) : 0,
-    details: { targetAmount: values.targetAmount ? parseFloat(values.targetAmount) : 0 },
+    details: { type: AccountTypes.Goal, targetAmount: values.targetAmount ? parseFloat(values.targetAmount) : 0 },
   };
 }
 
@@ -122,7 +129,7 @@ export const AddAccountSchema = z.object({
   linkedItemName: z.string(),
   // Borrowed/Lent
   counterpartyName: z.string(),
-  direction: z.string(),
+  direction: z.enum(LentDirections),
   dueDate: z.string(),
 });
 
@@ -151,37 +158,41 @@ export const defaultAddAccountValues: AddAccountValues = {
   dueDate: '',
 };
 
-export function formToAccountDetails(values: AddAccountValues): object | null {
+export function formToAccountDetails(values: AddAccountValues): AccountDetails | null {
   switch (values.type) {
     case AccountTypes.Bank:
       return {
-        ...(values.bankCardLastFour ? { cardLastFour: values.bankCardLastFour } : {}),
-        ...(values.bankCardName ? { cardName: values.bankCardName } : {}),
+        type: AccountTypes.Bank,
+        cardLastFour: values.bankCardLastFour,
+        cardName: values.bankCardName,
       };
     case AccountTypes.CreditCard:
       return {
+        type: AccountTypes.CreditCard,
         creditLimit: parseFloat(values.creditLimit) || 0,
         statementDay: parseInt(values.statementDay) || 1,
-        ...(values.cardLastFour ? { cardLastFour: values.cardLastFour } : {}),
-        ...(values.cardName ? { cardName: values.cardName } : {}),
+        cardLastFour: values.cardLastFour,
+        cardName: values.cardName,
       };
     case AccountTypes.Goal:
-      return { targetAmount: parseFloat(values.targetAmount) || 0 };
+      return { type: AccountTypes.Goal, targetAmount: parseFloat(values.targetAmount) || 0 };
     case AccountTypes.Investment:
-      return { deposited: parseFloat(values.deposited) || 0 };
+      return { type: AccountTypes.Investment, deposited: parseFloat(values.deposited) || 0 };
     case AccountTypes.Loan:
       return {
+        type: AccountTypes.Loan,
         principal: parseFloat(values.principal) || 0,
         interestRate: parseFloat(values.interestRate) || 0,
         termMonths: parseInt(values.termMonths) || 0,
         startDate: values.loanStartDate || new Date().toISOString().slice(0, 10),
-        ...(values.linkedItemName ? { linkedItemName: values.linkedItemName } : {}),
+        linkedItemName: values.linkedItemName,
       };
     case AccountTypes.BorrowedLent:
       return {
+        type: AccountTypes.BorrowedLent,
         counterpartyName: values.counterpartyName,
         direction: values.direction,
-        ...(values.dueDate ? { dueDate: values.dueDate } : {}),
+        dueDate: values.dueDate,
         settled: false,
       };
     default:
@@ -210,7 +221,7 @@ export function accountToEditValues(acc: {
   startDate?: string;
   linkedItemName?: string;
   counterpartyName?: string;
-  direction?: string;
+  direction?: LentDirection;
   dueDate?: string;
 }): EditAccountValues {
   return {

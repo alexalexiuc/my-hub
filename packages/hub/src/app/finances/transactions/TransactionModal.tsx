@@ -10,13 +10,9 @@ import { FinModalShell } from '../FinModalShell';
 import { Button, Input, Pill } from '@/components';
 import { categoryIconEmoji } from '../categoryIcons';
 import { AddTransactionSchema, defaultAddTransactionValues, type AddTransactionValues } from '../finances-form.schema';
-import type {
-  PayeesResponse,
-  PayeeSuggestion,
-  TransactionFormDataResponse,
-  TransactionDetail,
-  TransactionMutationResponse,
-} from '@/app/api/finances/contracts';
+import type { PayeesResponse, PayeeSuggestion } from '@/app/api/finances/payees/route';
+import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
+import type { TransactionDetail, TransactionMutationResponse } from '@/app/api/finances/transactions/[id]/route';
 import { getCurrencySymbol, isPayeeRequired } from '@my-hub/shared/utils';
 import { EXPENSE_ACCOUNT_TYPES, TransactionType, TransactionTypes } from '@my-hub/shared/constants';
 

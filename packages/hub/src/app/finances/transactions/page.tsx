@@ -14,7 +14,7 @@ import type {
   TransactionListItem,
   TransactionMutationResponse,
   TransactionsListResponse,
-} from '@/app/api/finances/contracts';
+} from '@/app/api/finances/transactions/route';
 import { TransactionType, TransactionTypes } from '@my-hub/shared/constants';
 import { MonthCarousel } from '../ui';
 import { dateToString } from '@my-hub/shared/utils';

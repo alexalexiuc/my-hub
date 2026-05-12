@@ -1,14 +1,14 @@
 type QueryParams = Record<string, string | number | boolean | null | undefined>;
 
-interface ApiFetchOptions {
+interface ApiFetchOptions<TBody = unknown, TQuery extends QueryParams = QueryParams> {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  query?: QueryParams;
-  body?: unknown;
+  query?: TQuery;
+  body?: TBody;
   headers?: Record<string, string>;
   silentToast?: boolean;
 }
 
-const SUCCESS_TOAST_METHODS = new Set<ApiFetchOptions['method']>(['POST', 'PUT', 'PATCH', 'DELETE']);
+const SUCCESS_TOAST_METHODS = new Set<ApiFetchOptions['method']>(['POST', 'PUT', 'PATCH', 'DELETE'] as const);
 
 function showToast(kind: 'success' | 'error', message: string) {
   if (typeof window === 'undefined') return;
@@ -46,7 +46,10 @@ class ApiError extends Error {
  * - Throws `ApiError` (with `.status`) on non-2xx responses.
  * - Returns `undefined` for empty responses (e.g. 204 No Content).
  */
-export async function apiFetch<T = undefined>(path: string, options?: ApiFetchOptions): Promise<T> {
+export async function apiFetch<T = undefined, TBody = unknown, TQuery extends QueryParams = QueryParams>(
+  path: string,
+  options?: ApiFetchOptions<TBody, TQuery>,
+): Promise<T> {
   const { method = 'GET', query, body, headers: extraHeaders = {}, silentToast = false } = options ?? {};
 
   let url = path;

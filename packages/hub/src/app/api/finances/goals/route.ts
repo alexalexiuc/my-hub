@@ -1,9 +1,27 @@
+import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getAccounts, getTransactions, getUserActiveBudget } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import type { GoalAccountDetails } from '@my-hub/shared/constants';
-import { goalsResponseSchema } from '../contracts';
-import type { GoalItem } from '../contracts';
+import { supportedCurrencySchema } from '../currency.schema';
+
+export const goalItemSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  currency: supportedCurrencySchema,
+  balance: z.number(),
+  targetAmount: z.number(),
+  monthlyAvg: z.number(),
+  projectedMonths: z.number().int().nullable(),
+});
+
+export const goalsResponseSchema = z.object({
+  currency: supportedCurrencySchema,
+  goals: z.array(goalItemSchema),
+});
+
+export type GoalItem = z.infer<typeof goalItemSchema>;
+export type GoalsResponse = z.infer<typeof goalsResponseSchema>;
 
 export const GET = route({ response: goalsResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);

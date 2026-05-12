@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
-import type { PayeesReportResponse, PayeesResponse, PayeeSuggestion } from '@/app/api/finances/contracts';
+import type { PayeesResponse, PayeeSuggestion } from '@/app/api/finances/payees/route';
+import type { PayeesReportResponse } from '@/app/api/finances/payees/report/route';
 import { Card } from '../ui';
 import { EditPayeeModal } from './EditPayeeModal';
 import { PayeesRangeFilter } from './PayeesRangeFilter';

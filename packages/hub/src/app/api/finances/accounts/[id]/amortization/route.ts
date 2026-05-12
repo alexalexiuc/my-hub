@@ -2,8 +2,34 @@ import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getAccountById, getUserActiveBudget } from '@my-hub/shared/services';
 import type { LoanAccountDetails } from '@my-hub/shared/types';
-import { amortizationResponseSchema } from '../../../contracts';
-import type { AmortizationData, ScheduleRow } from '../../../contracts';
+import { supportedCurrencySchema } from '../../../currency.schema';
+
+export const scheduleRowSchema = z.object({
+  n: z.number().int(),
+  date: z.string(),
+  principalPart: z.number(),
+  interestPart: z.number(),
+  balance: z.number(),
+  paid: z.boolean(),
+  current: z.boolean(),
+});
+
+export const amortizationResponseSchema = z.object({
+  accountId: z.number().int(),
+  name: z.string(),
+  currency: supportedCurrencySchema,
+  currentBalance: z.number(),
+  principal: z.number(),
+  interestRate: z.number(),
+  termMonths: z.number().int(),
+  monthlyPayment: z.number(),
+  startDate: z.string(),
+  nextPaymentDate: z.string(),
+  rows: z.array(scheduleRowSchema),
+});
+
+export type ScheduleRow = z.infer<typeof scheduleRowSchema>;
+export type AmortizationData = z.infer<typeof amortizationResponseSchema>;
 
 function addMonths(date: Date, months: number): Date {
   const d = new Date(date);

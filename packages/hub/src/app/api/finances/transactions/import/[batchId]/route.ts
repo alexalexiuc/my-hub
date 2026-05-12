@@ -4,9 +4,14 @@ import { getUserActiveBudget, rollbackImportBatch } from '@my-hub/shared/service
 
 const paramsSchema = z.object({ batchId: z.string().uuid() });
 
-const rollbackResponseSchema = z.object({ deletedCount: z.number().int() });
+export const importRollbackResponseSchema = z.object({ deletedCount: z.number().int() });
 
-export const DELETE = route({ params: paramsSchema, response: rollbackResponseSchema })(async ({ user, params }) => {
+export type ImportRollbackResponse = z.infer<typeof importRollbackResponseSchema>;
+
+export const DELETE = route({ params: paramsSchema, response: importRollbackResponseSchema })(async ({
+  user,
+  params,
+}) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 

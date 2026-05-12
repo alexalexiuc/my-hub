@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { route, routeHttpError, created } from '@/lib/api/route';
-import { supportedCurrencySchema } from '../currency.schema';
 import {
   getAccounts,
   getNetWorthHistory,
@@ -8,7 +7,7 @@ import {
   addTransaction,
   getUserActiveBudget,
 } from '@my-hub/shared/services';
-import { AccountTypes, TransactionTypes } from '@my-hub/shared/constants';
+import { AccountTypes, LentDirections, TransactionTypes } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
 import type {
   BankAccountDetails,
@@ -19,9 +18,72 @@ import type {
   BorrowedLentAccountDetails,
   CashAccountDetails,
 } from '@my-hub/shared/types';
-import { accountsListResponseSchema, accountMutationResponseSchema, accountDetailsSchema } from '../contracts';
-import type { AccountItem, AccountsListData } from '../contracts';
-const AccountCreateSchema = z.object({
+import { supportedCurrencySchema } from '../currency.schema';
+
+export const accountDetailsSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal(AccountTypes.Bank),
+    interestRate: z.number().optional(),
+    savingsGoal: z.number().optional(),
+    cardLastFour: z.string().optional(),
+    cardName: z.string().optional(),
+  }),
+  z.object({ type: z.literal(AccountTypes.Cash), savingsTarget: z.number().optional() }),
+  z.object({
+    type: z.literal(AccountTypes.CreditCard),
+    creditLimit: z.number(),
+    statementDay: z.number().int().min(1).max(31),
+    cardLastFour: z.string().optional(),
+    cardName: z.string().optional(),
+  }),
+  z.object({ type: z.literal(AccountTypes.Investment), deposited: z.number() }),
+  z.object({
+    type: z.literal(AccountTypes.Loan),
+    principal: z.number(),
+    interestRate: z.number(),
+    termMonths: z.number().int(),
+    startDate: z.string(),
+    linkedItemName: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal(AccountTypes.BorrowedLent),
+    counterpartyName: z.string(),
+    direction: z.enum(LentDirections),
+    dueDate: z.string().optional(),
+    settled: z.boolean(),
+  }),
+  z.object({ type: z.literal(AccountTypes.Goal), targetAmount: z.number() }),
+  z.object({ type: z.literal(AccountTypes.Tracking) }),
+]);
+
+export const accountItemSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    description: z.string().nullable().optional(),
+    type: z.enum(AccountTypes),
+    currency: supportedCurrencySchema,
+    balance: z.number(),
+    archived: z.boolean(),
+    creditLimit: z.number().optional(),
+    statementDay: z.number().optional(),
+    cardLastFour: z.string().optional(),
+    cardName: z.string().optional(),
+    targetAmount: z.number().optional(),
+    deposited: z.number().optional(),
+    principal: z.number().optional(),
+    interestRate: z.number().optional(),
+    termMonths: z.number().optional(),
+    startDate: z.string().optional(),
+    linkedItemName: z.string().optional(),
+    counterpartyName: z.string().optional(),
+    direction: z.enum(LentDirections).optional(),
+    dueDate: z.string().optional(),
+    settled: z.boolean().optional(),
+  })
+  .loose();
+
+export const accountCreateSchema = z.object({
   name: z.string().trim().min(1, 'name is required'),
   description: z.string().trim().optional(),
   type: z.enum(Object.values(AccountTypes) as [string, ...string[]], { error: 'Invalid account type' }),
@@ -29,6 +91,23 @@ const AccountCreateSchema = z.object({
   openingBalance: z.number().optional(),
   details: accountDetailsSchema.nullable().optional(),
 });
+
+export const accountsListResponseSchema = z.object({
+  currency: supportedCurrencySchema,
+  netWorth: z.number(),
+  netWorthHistory: z.array(z.number()),
+  accounts: z.array(accountItemSchema),
+});
+
+export const accountMutationResponseSchema = z.object({
+  account: z.object({ id: z.number().int() }).loose(),
+});
+
+export type AccountItem = z.infer<typeof accountItemSchema>;
+export type AccountsListData = z.infer<typeof accountsListResponseSchema>;
+export type AccountCreateData = z.infer<typeof accountCreateSchema>;
+export type AccountDetails = z.infer<typeof accountDetailsSchema>;
+export type AccountMutationResponse = z.infer<typeof accountMutationResponseSchema>;
 
 function flattenDetails(type: string, details: unknown): Partial<AccountItem> {
   if (!details || typeof details !== 'object') return {};
@@ -117,7 +196,7 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
   return data;
 });
 
-export const POST = route({ body: AccountCreateSchema, response: accountMutationResponseSchema })(async ({
+export const POST = route({ body: accountCreateSchema, response: accountMutationResponseSchema })(async ({
   user,
   body,
 }) => {

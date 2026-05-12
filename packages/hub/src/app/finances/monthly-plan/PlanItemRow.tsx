@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components';
 import { TrashOutlineIcon } from '@/components/icons';
-import type { MonthlyPlanItem } from '@/app/api/finances/contracts';
+import type { MonthlyPlanItem } from '@/app/api/finances/monthly-plans/[month]/route';
 import { fmtNum } from './monthly-plan.utils';
 
 function LinkedToChip({ item }: { item: MonthlyPlanItem }) {

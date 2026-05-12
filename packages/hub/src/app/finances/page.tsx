@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import { DashboardScreen } from './DashboardScreen';
 import { CreateBudgetScreen } from './CreateBudgetScreen';
 import { BudgetSelectorScreen } from './BudgetSelectorScreen';
-import type { DashboardResponse, FinanceDashboardData, NoBudgetResponse } from './types';
+import type { DashboardResponse, FinanceDashboardData, NoBudgetResponse } from '@/app/api/finances/dashboard/route';
 
 export default function FinancesPage() {
   const { data: session } = useSession();

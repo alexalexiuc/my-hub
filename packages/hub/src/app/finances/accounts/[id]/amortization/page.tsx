@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { apiFetch, cn } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar } from '../../../ui';
 import { LoanPaydownChart } from './LoanPaydownChart';
-import type { AmortizationData } from '@/app/api/finances/contracts';
+import type { AmortizationData } from '@/app/api/finances/accounts/[id]/amortization/route';
 
 export default function AmortizationPage() {
   const router = useRouter();

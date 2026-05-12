@@ -36,12 +36,15 @@ const ImportRequestSchema = z.object({
   rows: z.array(ImportRowSchema).min(1).max(1000),
 });
 
-const importResponseSchema = z.object({
+export const importBatchResponseSchema = z.object({
   batchId: z.string(),
   importedCount: z.number().int(),
 });
 
-export const POST = route({ body: ImportRequestSchema, response: importResponseSchema })(async ({ user, body }) => {
+export const POST = route({ body: ImportRequestSchema, response: importBatchResponseSchema })(async ({
+  user,
+  body,
+}) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
@@ -98,7 +101,7 @@ export const POST = route({ body: ImportRequestSchema, response: importResponseS
   return { batchId, importedCount };
 });
 
-const importBatchSchema = z.object({
+export const importBatchItemSchema = z.object({
   id: z.string(),
   filename: z.string(),
   rowCount: z.number().int(),
@@ -107,9 +110,13 @@ const importBatchSchema = z.object({
   createdAt: z.string(),
 });
 
-const importBatchListResponseSchema = z.object({
-  batches: z.array(importBatchSchema),
+export const importBatchListResponseSchema = z.object({
+  batches: z.array(importBatchItemSchema),
 });
+
+export type ImportBatchResponse = z.infer<typeof importBatchResponseSchema>;
+export type ImportBatchItem = z.infer<typeof importBatchItemSchema>;
+export type ImportBatchListResponse = z.infer<typeof importBatchListResponseSchema>;
 
 export const GET = route({ response: importBatchListResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);

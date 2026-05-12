@@ -7,12 +7,13 @@ import {
   archiveCategory,
   countTransactions,
 } from '@my-hub/shared/services';
-import { CategoryIcons } from '@my-hub/shared/constants';
 import type { CategoryIcon } from '@my-hub/shared/constants';
-import { categoryMutationResponseSchema } from '../../contracts';
+import { CategoryIcons } from '@my-hub/shared/constants';
 import { trimOrNull } from '@my-hub/shared/utils';
+import { categoryMutationResponseSchema } from '../route';
+import type { CategoryMutationResponse } from '../route';
 
-const CategoryUpdateSchema = z.object({
+export const categoryUpdateBodySchema = z.object({
   name: z.string().trim().min(1, 'name is required').optional(),
   icon: z
     .enum(Object.values(CategoryIcons) as [string, ...string[]])
@@ -25,10 +26,16 @@ const CategoryUpdateSchema = z.object({
   sortOrder: z.number().int().nonnegative().optional(),
 });
 
+export type CategoryUpdateBody = z.infer<typeof categoryUpdateBodySchema>;
+export type { CategoryMutationResponse };
+
+const deleteResponseSchema = z.object({ id: z.number(), action: z.enum(['deleted', 'archived']) });
+export type CategoryDeleteResponse = z.infer<typeof deleteResponseSchema>;
+
 const IdParamSchema = z.object({ id: z.coerce.number().int().positive() });
 
 export const PATCH = route({
-  body: CategoryUpdateSchema,
+  body: categoryUpdateBodySchema,
   params: IdParamSchema,
   response: categoryMutationResponseSchema,
 })(async ({ user, body, params }) => {
@@ -47,8 +54,6 @@ export const PATCH = route({
 
   return category;
 });
-
-const deleteResponseSchema = z.object({ id: z.number(), action: z.enum(['deleted', 'archived']) });
 
 export const DELETE = route({ params: IdParamSchema, response: deleteResponseSchema })(async ({ user, params }) => {
   const budget = await getUserActiveBudget(user.id);

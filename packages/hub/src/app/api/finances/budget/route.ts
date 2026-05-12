@@ -8,8 +8,23 @@ import {
   removeBudgetMember,
   getUserActiveBudget,
 } from '@my-hub/shared/services';
-import { budgetDetailResponseSchema, budgetMutationResponseSchema, okResponseSchema } from '../contracts';
 import { supportedCurrencySchema } from '../currency.schema';
+import { okResponseSchema } from '../shared.schema';
+import { budgetInfoSchema, budgetMemberSchema } from './budget.schema';
+export type { BudgetInfo, BudgetMember } from './budget.schema';
+
+export const budgetDetailResponseSchema = z.object({
+  budget: budgetInfoSchema,
+  members: z.array(budgetMemberSchema),
+});
+
+export const budgetMutationResponseSchema = z.object({
+  budget: budgetInfoSchema,
+});
+
+export type BudgetDetailResponse = z.infer<typeof budgetDetailResponseSchema>;
+export type BudgetMutationResponse = z.infer<typeof budgetMutationResponseSchema>;
+
 const BudgetUpdateSchema = z.object({
   name: z.string().trim().min(1).optional(),
   defaultCurrency: supportedCurrencySchema.optional(),

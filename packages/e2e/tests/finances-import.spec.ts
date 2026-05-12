@@ -65,14 +65,26 @@ async function importViaAPI(page: Page, accountId: number, categoryId: number, f
 
 /**
  * Build a minimal CSV with two expense rows and one income row.
- * The payee column is named "Description" (typical bank export).
+ * The payee column is named "Payee" so it is auto-detected by /payee/i.
  */
 function buildCsv(payeeExpense: string, payeeIncome: string): string {
   const lines = [
-    'Date,Amount,Description,Notes',
+    'Date,Amount,Payee,Notes',
     `2024-03-01,-45.50,${payeeExpense},Weekly groceries`,
     `2024-03-02,-12.00,${payeeExpense},Morning coffee`,
     `2024-03-03,2000.00,${payeeIncome},Monthly salary`,
+  ];
+  return lines.join('\n');
+}
+
+/**
+ * Build a CSV that includes a Category column.
+ */
+function buildCsvWithCategory(payeeName: string, categoryName: string): string {
+  const lines = [
+    'Date,Amount,Payee,Category',
+    `2024-07-01,-30.00,${payeeName},${categoryName}`,
+    `2024-07-02,-15.00,${payeeName},${categoryName}`,
   ];
   return lines.join('\n');
 }
@@ -144,10 +156,10 @@ test.describe('Finances – CSV Import', () => {
     await page.getByRole('button', { name: accountName }).first().click();
 
     // Auto-detected columns — verify Date and Amount are pre-selected, and
-    // Description is auto-detected as Payee (/description/i in autoDetectColumn).
+    // Payee is auto-detected via /payee/i in autoDetectColumn.
     await expect(page.getByRole('combobox').first()).toHaveValue('Date');
     await expect(page.getByRole('combobox').nth(1)).toHaveValue('Amount');
-    await expect(page.getByRole('combobox').nth(2)).toHaveValue('Description');
+    await expect(page.getByRole('combobox').nth(2)).toHaveValue('Payee');
 
     const previewBtn = page.getByRole('button', { name: /Preview/ });
     await expect(previewBtn).toBeEnabled();
@@ -226,7 +238,7 @@ test.describe('Finances – CSV Import', () => {
     await page.waitForLoadState('networkidle');
 
     // Now upload a CSV that contains that same payee name
-    const csvContent = ['Date,Amount,Description', `2024-04-01,-25.00,${existingPayeeName}`].join('\n');
+    const csvContent = ['Date,Amount,Payee', `2024-04-01,-25.00,${existingPayeeName}`].join('\n');
 
     await uploadCsv(page, csvContent);
     await expect(page.getByText('1 rows detected')).toBeVisible();
@@ -250,7 +262,7 @@ test.describe('Finances – CSV Import', () => {
    */
   test('payee skip: setting action to Skip updates mapping stats', async ({ page }) => {
     const payeeName = uniqueName('SkipMe Import');
-    const csvContent = ['Date,Amount,Description', `2024-05-01,-8.00,${payeeName}`].join('\n');
+    const csvContent = ['Date,Amount,Payee', `2024-05-01,-8.00,${payeeName}`].join('\n');
 
     await uploadCsv(page, csvContent);
     await expect(page.getByText('1 rows detected')).toBeVisible();
@@ -272,16 +284,15 @@ test.describe('Finances – CSV Import', () => {
   });
 
   /**
-   * Ignore row: checking the "Ignore" checkbox on a transaction row in the
-   * preview removes it from the active count on the confirm screen.
+   * Category mapping panel: when the CSV has a Category column, the Category
+   * mapping panel is shown. Unmatched CSV categories can be resolved by
+   * selecting a system category from the dropdown. After mapping, the panel
+   * shows 0 unresolved.
    */
-  test('ignore row: ignored rows are excluded from import count', async ({ page }) => {
-    const payeeName = uniqueName('IgnoreRow Import');
-    const csvContent = [
-      'Date,Amount,Description',
-      `2024-06-01,-10.00,${payeeName}`,
-      `2024-06-02,-20.00,${payeeName}`,
-    ].join('\n');
+  test('category mapping: CSV category column shows mapping panel', async ({ page }) => {
+    const payeeName = uniqueName('CatMap Import');
+    const csvCategoryName = uniqueName('CsvCat');
+    const csvContent = buildCsvWithCategory(payeeName, csvCategoryName);
 
     await uploadCsv(page, csvContent);
     await expect(page.getByText('2 rows detected')).toBeVisible();
@@ -290,7 +301,44 @@ test.describe('Finances – CSV Import', () => {
     await page.getByRole('button', { name: accountName }).first().click();
 
     await page.getByRole('button', { name: /Preview/ }).click();
-    await expect(page.getByText('Payee mapping')).toBeVisible({ timeout: 10_000 });
+
+    // Category mapping panel should appear because CSV has a Category column
+    await expect(page.getByText('Category mapping')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(csvCategoryName)).toBeVisible();
+
+    // Should show 1 unresolved (the CSV category has no auto-match)
+    await expect(page.getByText('1 unresolved')).toBeVisible();
+
+    // Map the CSV category to the system category
+    const catMappingPanel = page
+      .getByText('Category mapping')
+      .locator('xpath=ancestor::div[contains(@class,"rounded")]')
+      .last();
+    await catMappingPanel.getByPlaceholder('Select category…').click();
+    await page.getByRole('button', { name: catName }).first().click();
+
+    // After mapping, 0 unresolved
+    await expect(catMappingPanel.getByText('0 unresolved')).toBeVisible();
+  });
+
+  /**
+   * Ignore row: checking the "Ignore" checkbox on a transaction row in the
+   * preview removes it from the active count on the confirm screen.
+   */
+  test('ignore row: ignored rows are excluded from import count', async ({ page }) => {
+    const payeeName = uniqueName('IgnoreRow Import');
+    const csvContent = ['Date,Amount,Payee', `2024-06-01,-10.00,${payeeName}`, `2024-06-02,-20.00,${payeeName}`].join(
+      '\n',
+    );
+
+    await uploadCsv(page, csvContent);
+    await expect(page.getByText('2 rows detected')).toBeVisible();
+
+    await page.getByPlaceholder('Select account…').click();
+    await page.getByRole('button', { name: accountName }).first().click();
+
+    await page.getByRole('button', { name: /Preview/ }).click();
+    await expect(page.getByRole('button', { name: 'Review →' })).toBeVisible({ timeout: 10_000 });
 
     // Ignore the first row — check the first "Ignore this row" checkbox
     const ignoreCheckboxes = page.getByTitle('Ignore this row');

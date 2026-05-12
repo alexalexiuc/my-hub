@@ -1,4 +1,4 @@
-import type { BudgetInfo } from '@/app/api/finances/contracts';
+import type { BudgetInfo } from '@/app/api/finances/budget/budget.schema';
 
 /**
  * Sorts budgets with the active budget first, then alphabetically by name.

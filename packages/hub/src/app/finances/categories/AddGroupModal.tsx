@@ -3,6 +3,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
+import type { GroupMutationResponse, GroupCreateBody } from '@/app/api/finances/groups/route';
 import { FinModalShell } from '../FinModalShell';
 import { Button, Field, Input, Textarea } from '@/components';
 import { AddGroupSchema, defaultAddGroupValues, type AddGroupValues } from '../finances-form.schema';
@@ -23,7 +24,7 @@ export function AddGroupModal({ onClose, onCreated }: AddGroupModalProps) {
   });
 
   async function onSubmit(values: AddGroupValues) {
-    await apiFetch('/api/finances/groups', {
+    await apiFetch<GroupMutationResponse, GroupCreateBody>('/api/finances/groups', {
       method: 'POST',
       body: { name: values.name, notes: values.notes.trim() || null },
     });

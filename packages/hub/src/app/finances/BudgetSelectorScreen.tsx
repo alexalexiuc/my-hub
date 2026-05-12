@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { Button } from '@/components';
 import { Card } from './ui';
-import type { AvailableBudget } from './types';
+import type { AvailableBudget } from '@/app/api/finances/dashboard/route';
+import type { BudgetActivateBody } from '../api/finances/budgets/route';
 
 type BudgetSelectorScreenProps = {
   budgets: AvailableBudget[];
@@ -18,7 +19,7 @@ export function BudgetSelectorScreen({ budgets, onActivated, onCreateNew }: Budg
   async function handleActivate(id: number) {
     setActivating(id);
     try {
-      await apiFetch('/api/finances/budgets', {
+      await apiFetch<undefined, BudgetActivateBody>('/api/finances/budgets', {
         method: 'PATCH',
         body: { activeBudgetId: id },
         silentToast: true,
