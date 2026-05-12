@@ -13,6 +13,7 @@ export interface ColumnMap {
   typeCol: string;
   currencyCol: string;
   categoryCol: string;
+  toAccountCol: string;
 }
 
 export interface ImportRow {
@@ -25,6 +26,7 @@ export interface ImportRow {
   csvCurrency: string; // raw value from CSV currency column (may be empty)
   rawPayeeName: string;
   rawCategoryName: string; // raw value from CSV category column (may be empty)
+  rawToAccountName: string; // raw value from CSV to-account column (may be empty)
   accountId: number;
   toAccountId: number | null;
   categoryId: number | null;

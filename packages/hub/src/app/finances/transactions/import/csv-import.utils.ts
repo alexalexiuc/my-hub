@@ -36,9 +36,9 @@ export function parseAmount(raw: string): number | null {
 export function deriveType(signed: number, typeRaw?: string): TransactionType {
   if (typeRaw) {
     const t = typeRaw.trim().toLowerCase();
-    if (t === 'transfer' || t === 'tra') return TransactionTypes.Transfer;
-    if (t === 'income' || t === 'credit' || t === 'inc') return TransactionTypes.Income;
-    if (t === 'expense' || t === 'debit' || t === 'exp') return TransactionTypes.Expense;
+    if (['transfer', 'tra', 't'].includes(t)) return TransactionTypes.Transfer;
+    if (['income', 'credit', 'inc', 'i'].includes(t)) return TransactionTypes.Income;
+    if (['expense', 'debit', 'exp', 'e'].includes(t)) return TransactionTypes.Expense;
   }
   return signed >= 0 ? TransactionTypes.Income : TransactionTypes.Expense;
 }

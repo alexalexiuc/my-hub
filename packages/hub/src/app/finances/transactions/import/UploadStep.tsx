@@ -175,6 +175,12 @@ export function UploadStep({
                     headers={headers}
                     onChange={v => onColMapChange({ categoryCol: v })}
                   />
+                  <ColumnSelect
+                    label="To Account / Transfer To (optional)"
+                    value={colMap.toAccountCol}
+                    headers={headers}
+                    onChange={v => onColMapChange({ toAccountCol: v })}
+                  />
                 </div>
               </div>
             </div>

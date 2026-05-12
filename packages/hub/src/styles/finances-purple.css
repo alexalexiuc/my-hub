@@ -1,14 +1,14 @@
 .finances-theme {
-  --fin-bg: #0e0e12;
-  --fin-overlay: rgba(0, 0, 0, 0.65);
-  --fin-shell: #111116;
-  --fin-card: #18181e;
-  --fin-card2: #21212a;
-  --fin-card3: #2a2a35;
-  --fin-border: #35354a;
-  --fin-text: #f2f2f8;
-  --fin-muted: #9898b0;
-  --fin-subtle: #606078;
+  --fin-bg: #0b0a14;
+  --fin-overlay: rgba(8, 6, 18, 0.7);
+  --fin-shell: #100e1a;
+  --fin-card: #171422;
+  --fin-card2: #1e1a2e;
+  --fin-card3: #27223a;
+  --fin-border: #342f4d;
+  --fin-text: #f0eeff;
+  --fin-muted: #9490b8;
+  --fin-subtle: #5c5878;
   --fin-accent: #a78bfa;
   --fin-accent-d: rgba(167, 139, 250, 0.12);
   --fin-green: #6ee7b7;

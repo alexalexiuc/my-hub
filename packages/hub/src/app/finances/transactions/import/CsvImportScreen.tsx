@@ -70,6 +70,7 @@ export function CsvImportScreen({ onDone, onBack }: CsvImportScreenProps) {
     typeCol: '',
     currencyCol: '',
     categoryCol: '',
+    toAccountCol: '',
   });
   const [defaultAccountId, setDefaultAccountId] = useState<number | null>(null);
   const [importRows, setImportRows] = useState<ImportRow[]>([]);
@@ -119,6 +120,12 @@ export function CsvImportScreen({ onDone, onBack }: CsvImportScreenProps) {
         const typeCol = autoDetectColumn(hs, [/^type$/i, /transaction type/i]);
         const currencyCol = autoDetectColumn(hs, [/^currency$/i, /^cur?r$/i, /^ccy$/i, /^iso currency/i]);
         const categoryCol = autoDetectColumn(hs, [/^category$/i, /^cat$/i]);
+        const toAccountCol = autoDetectColumn(hs, [
+          /to account/i,
+          /destination account/i,
+          /transfer to/i,
+          /to_account/i,
+        ]);
         const twoColumn = !amountCol && !!(debitCol || creditCol);
         setColMap({
           dateCol,
@@ -131,6 +138,7 @@ export function CsvImportScreen({ onDone, onBack }: CsvImportScreenProps) {
           typeCol,
           currencyCol,
           categoryCol,
+          toAccountCol,
         });
       },
     });
@@ -157,6 +165,14 @@ export function CsvImportScreen({ onDone, onBack }: CsvImportScreenProps) {
       const notes = (colMap.notesCol ? (raw[colMap.notesCol] ?? '') : '').trim();
       const csvCurrency = (colMap.currencyCol ? (raw[colMap.currencyCol] ?? '') : '').trim().toUpperCase();
       const rawCategoryName = (colMap.categoryCol ? (raw[colMap.categoryCol] ?? '') : '').trim();
+      const rawToAccountName = (colMap.toAccountCol ? (raw[colMap.toAccountCol] ?? '') : '').trim();
+
+      // Auto-match to-account by name for transfers
+      let toAccountId: number | null = null;
+      if (rawToAccountName) {
+        const match = loadedFormData.accounts.find(a => a.name.toLowerCase() === rawToAccountName.toLowerCase());
+        if (match) toAccountId = match.id;
+      }
 
       let categoryId: number | null = null;
       if (rawCategoryName) {
@@ -180,8 +196,9 @@ export function CsvImportScreen({ onDone, onBack }: CsvImportScreenProps) {
         csvCurrency,
         rawPayeeName,
         rawCategoryName,
+        rawToAccountName,
         accountId: defaultAccountId ?? loadedFormData.accounts[0]?.id ?? 0,
-        toAccountId: null,
+        toAccountId,
         categoryId,
         notes,
         isDuplicate: false,
