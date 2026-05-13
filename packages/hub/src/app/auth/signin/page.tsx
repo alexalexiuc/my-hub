@@ -1,5 +1,6 @@
 'use client';
 
+import { hubClientEnvConfig } from '@/config/client-env';
 import { Suspense, useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
@@ -152,11 +153,14 @@ function normalizeCallbackUrl(rawCallbackUrl: string | null) {
       return normalizedPath || '/';
     }
 
-    // TODO: Re-enable MCP server origin check once NEXT_PUBLIC_MCP_URL is
-    //       confirmed to be set at build time. For now, allow any HTTPS
-    //       cross-origin callback so the OAuth flow can be debugged.
-    if (parsed.protocol === 'https:') {
-      return rawCallbackUrl;
+    // Allow cross-origin redirects only to the configured MCP server URL.
+    const mcpUrl = hubClientEnvConfig.NEXT_PUBLIC_MCP_URL;
+    if (mcpUrl) {
+      try {
+        if (parsed.origin === new URL(mcpUrl).origin) return rawCallbackUrl;
+      } catch {
+        // invalid MCP URL — deny cross-origin redirect
+      }
     }
 
     return '/';
