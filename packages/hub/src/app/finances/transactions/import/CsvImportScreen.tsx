@@ -120,12 +120,7 @@ export function CsvImportScreen({ onDone, onBack }: CsvImportScreenProps) {
         const typeCol = autoDetectColumn(hs, [/^type$/i, /transaction type/i]);
         const currencyCol = autoDetectColumn(hs, [/^currency$/i, /^cur?r$/i, /^ccy$/i, /^iso currency/i]);
         const categoryCol = autoDetectColumn(hs, [/^category$/i, /^cat$/i]);
-        const toAccountCol = autoDetectColumn(hs, [
-          /to account/i,
-          /destination account/i,
-          /transfer to/i,
-          /to_account/i,
-        ]);
+        const toAccountCol = autoDetectColumn(hs, [/destination account/i, /transfer to/i, /to.?account/i]);
         const twoColumn = !amountCol && !!(debitCol || creditCol);
         setColMap({
           dateCol,
