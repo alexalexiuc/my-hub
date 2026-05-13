@@ -40,6 +40,7 @@ interface LoanScheduleState {
   paymentsMade: number;
 }
 
+// Safety guard against runaway projections (for example, underpaying loans where principal never decreases).
 const MAX_PROJECTION_ITERATIONS = 1000;
 
 function roundToTwoDecimals(value: number): number {

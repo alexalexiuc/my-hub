@@ -495,7 +495,9 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
     .where(and(eq(financeAccounts.budgetId, budgetId), eq(financeAccounts.archived, false)));
 
   const today = currentDateString();
-  const accountCurrencyById = new Map(accounts.map(account => [account.id, account.currency]));
+  const accountCurrencyById = accounts.some(account => account.type === AccountTypes.Loan)
+    ? new Map(accounts.map(account => [account.id, account.currency]))
+    : undefined;
 
   // Build byType map with currency conversion
   const byType: Partial<Record<AccountType, NetWorthByType>> = {};
