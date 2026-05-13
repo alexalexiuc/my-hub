@@ -48,7 +48,6 @@ function AccountCard({
         </div>
         <div className="text-right">
           <div className={cn('text-base font-bold', isLiability ? 'text-[var(--fin-red)]' : 'text-[var(--fin-text)]')}>
-            {acc.type === 'loan' ? '-' : ''}
             {fmt(acc.balance, acc.currency)}
           </div>
         </div>

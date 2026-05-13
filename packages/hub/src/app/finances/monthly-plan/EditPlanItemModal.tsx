@@ -16,10 +16,7 @@ import {
 import type { MonthlyPlanItem } from '@/app/api/finances/monthly-plans/[month]/route';
 import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
 import { SectionLabel } from '../ui';
-
-function fmtNum(n: number): string {
-  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
-}
+import { fmtNum } from './monthly-plan.utils';
 
 type EditPlanItemModalProps = {
   item: MonthlyPlanItem;

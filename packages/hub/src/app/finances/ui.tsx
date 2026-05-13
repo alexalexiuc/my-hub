@@ -8,12 +8,13 @@ import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon } from '@/components/ic
 import { shiftMonthStr, formatMonthStr } from '@my-hub/shared/utils';
 
 // ─── Currency formatter ───────────────────────────────────────────────────────
-export function fmt(value: number, currency = 'EUR') {
-  return new Intl.NumberFormat('en-IE', {
+export function fmt(value: number, currency = 'EUR', reverseSign = false) {
+  const finalValue = reverseSign ? -value : value;
+  return new Intl.NumberFormat('de-DE', {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
-  }).format(Math.abs(value));
+  }).format(finalValue);
 }
 
 export function fmtSign(value: number, currency = 'EUR') {
