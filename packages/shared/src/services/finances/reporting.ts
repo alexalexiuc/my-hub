@@ -21,6 +21,7 @@ import type { AccountType, TransactionType } from '../../constants/finances';
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
 import { hasAccessToBudget, getBudgetById } from './budgets';
 import { getExchangeRate } from './exchangeRates';
+import { getLoanBalanceSnapshotForAccount } from './loan-amortization';
 import { currentDateString, dateToString } from '../../utils';
 
 // ─── Budget Progress ──────────────────────────────────────────────────────────
@@ -494,6 +495,7 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
     .where(and(eq(financeAccounts.budgetId, budgetId), eq(financeAccounts.archived, false)));
 
   const today = currentDateString();
+  const accountCurrencyById = new Map(accounts.map(account => [account.id, account.currency]));
 
   // Build byType map with currency conversion
   const byType: Partial<Record<AccountType, NetWorthByType>> = {};
@@ -501,7 +503,17 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
   let totalLiabilities = 0;
 
   for (const acct of accounts) {
-    const { balance } = acct;
+    const { balance: accountBalance } = acct;
+    let balance = accountBalance;
+    if (acct.type === AccountTypes.Loan) {
+      const loanSnapshot = await getLoanBalanceSnapshotForAccount(userId, budgetId, acct, {
+        accountCurrencyById,
+        asOfDate: today,
+      });
+      if (loanSnapshot) {
+        balance = loanSnapshot.balance;
+      }
+    }
     const rate = await getExchangeRate(acct.currency, budget.defaultCurrency, today);
     const balanceDefault = balance * rate;
 

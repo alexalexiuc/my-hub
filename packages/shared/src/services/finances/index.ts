@@ -5,5 +5,6 @@ export * from './transactions';
 export * from './payees';
 export * from './exchangeRates';
 export * from './reporting';
+export * from './loan-amortization';
 export * from './monthly-plans';
 export * from './import-batches';

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
-import { getAccountById, getUserActiveBudget } from '@my-hub/shared/services';
+import { getAccountById, getUserActiveBudget, getLoanBalanceSnapshotForAccount } from '@my-hub/shared/services';
 import type { LoanAccountDetails } from '@my-hub/shared/types';
 import { supportedCurrencySchema } from '../../../currency.schema';
 
@@ -25,6 +25,14 @@ export const amortizationResponseSchema = z.object({
   monthlyPayment: z.number(),
   startDate: z.string(),
   nextPaymentDate: z.string(),
+  paymentsMade: z.number().int(),
+  paymentsRemaining: z.number().int(),
+  totalInterestPaid: z.number(),
+  totalInterestRemaining: z.number(),
+  totalCost: z.number(),
+  scheduledPayoffDate: z.string(),
+  actualPayoffDate: z.string().nullable(),
+  interestSavedVsSchedule: z.number().nullable(),
   rows: z.array(scheduleRowSchema),
 });
 
@@ -64,7 +72,9 @@ export const GET = route({
 
   const details = rawDetails as LoanAccountDetails;
   const { principal, interestRate, termMonths, startDate } = details;
-  const currentBalance = account.balance;
+  const loanSnapshot = await getLoanBalanceSnapshotForAccount(user.id, budget.id, account);
+  const amortizationSummary = loanSnapshot?.amortizationSummary;
+  const currentBalance = loanSnapshot?.balance ?? account.balance;
 
   // Monthly payment
   const r = interestRate / 100 / 12;
@@ -95,10 +105,12 @@ export const GET = route({
     });
   }
 
-  // Mark paid rows: balance after payment > currentBalance means it's been paid
-  // Find the first row where balance <= currentBalance — that's the next payment
   let nextIdx = rows.findIndex(r => r.balance <= currentBalance + 0.01);
-  if (nextIdx === -1) nextIdx = rows.length; // all paid
+  if (nextIdx === -1) nextIdx = rows.length;
+  if (amortizationSummary) {
+    nextIdx = Math.min(amortizationSummary.paymentsMade, rows.length);
+    if (currentBalance <= 0) nextIdx = rows.length;
+  }
 
   for (let i = 0; i < nextIdx; i++) rows[i]!.paid = true;
   if (nextIdx < rows.length) rows[nextIdx]!.current = true;
@@ -116,6 +128,14 @@ export const GET = route({
     monthlyPayment: Math.round(monthlyPayment * 100) / 100,
     startDate,
     nextPaymentDate,
+    paymentsMade: amortizationSummary?.paymentsMade ?? 0,
+    paymentsRemaining: amortizationSummary?.paymentsRemaining ?? Math.max(0, termMonths - nextIdx),
+    totalInterestPaid: amortizationSummary?.totalInterestPaid ?? 0,
+    totalInterestRemaining: amortizationSummary?.totalInterestRemaining ?? 0,
+    totalCost: amortizationSummary?.totalCost ?? principal,
+    scheduledPayoffDate: amortizationSummary?.scheduledPayoffDate ?? '',
+    actualPayoffDate: amortizationSummary?.actualPayoffDate ?? null,
+    interestSavedVsSchedule: amortizationSummary?.interestSavedVsSchedule ?? null,
     rows,
   };
 

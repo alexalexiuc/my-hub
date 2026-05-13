@@ -2,13 +2,15 @@ import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import {
   getAccountById,
+  getAccounts,
   getCategories,
   getPayees,
   getTransactions,
   updateAccount,
   getUserActiveBudget,
+  getLoanBalanceSnapshotForAccount,
 } from '@my-hub/shared/services';
-import { TransactionTypes, type BorrowedLentAccountDetails } from '@my-hub/shared/constants';
+import { AccountTypes, TransactionTypes, type BorrowedLentAccountDetails } from '@my-hub/shared/constants';
 import type { AccountUpdate } from '@my-hub/shared/services';
 import { FinanceAccount } from '@my-hub/shared/types';
 import { categoryIconSchema, categoryColorSchema } from '../../shared.schema';
@@ -84,7 +86,19 @@ export const GET = route({
 
   if (!rawAccount) routeHttpError(404, { error: 'Account not found' });
 
-  const account = flattenAccount(rawAccount);
+  let account = flattenAccount(rawAccount);
+  if (rawAccount.type === AccountTypes.Loan) {
+    const accountsForCurrency = await getAccounts(user.id, budgetId, { includeArchived: true });
+    const accountCurrencyById = new Map(accountsForCurrency.map(current => [current.id, current.currency]));
+    const loanSnapshot = await getLoanBalanceSnapshotForAccount(user.id, budgetId, rawAccount, { accountCurrencyById });
+    if (loanSnapshot) {
+      account = {
+        ...account,
+        balance: loanSnapshot.balance,
+        amortizationSummary: loanSnapshot.amortizationSummary,
+      };
+    }
+  }
   const categoryMap = new Map(categories.map(c => [c.id, c]));
   const payeeMap = new Map(payees.map(p => [p.id, p]));
 

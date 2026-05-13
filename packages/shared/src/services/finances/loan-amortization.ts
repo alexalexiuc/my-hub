@@ -1,0 +1,282 @@
+/**
+ * Loan amortization helpers
+ * - calculateLoanAmortizationSummary(details, opts?) — computes schedule-derived and hybrid payment summary for a loan
+ * - getLoanBalanceSnapshotForAccount(userId, budgetId, account, opts?) — computes remaining principal + amortization summary for a loan account
+ * Types: LoanPaymentHistoryEntry, LoanAmortizationSummary, LoanBalanceSnapshot
+ */
+import { AccountTypes, TransactionTypes } from '../../constants/finances';
+import { currentDateString } from '../../utils';
+import { getAccountDetails, type FinanceAccount, type LoanAccountDetails } from '../../types';
+import { getAccounts } from './accounts';
+import { getTransactions } from './transactions';
+
+export interface LoanPaymentHistoryEntry {
+  amount: number;
+  date: string;
+  currencyMismatch?: boolean;
+}
+
+export interface LoanAmortizationSummary {
+  monthlyPayment: number;
+  paymentsMade: number;
+  paymentsRemaining: number;
+  remainingPrincipal: number;
+  totalInterestPaid: number;
+  totalInterestRemaining: number;
+  totalCost: number;
+  scheduledPayoffDate: string;
+  actualPayoffDate?: string;
+  interestSavedVsSchedule?: number;
+}
+
+export interface LoanBalanceSnapshot {
+  balance: number;
+  amortizationSummary: LoanAmortizationSummary;
+}
+
+interface LoanScheduleState {
+  remainingPrincipal: number;
+  totalInterestPaid: number;
+  paymentsMade: number;
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function addMonths(date: Date, months: number): Date {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
+
+function toDateString(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function countScheduledPayments(startDate: string, asOfDate: string): number {
+  const start = new Date(startDate);
+  const asOf = new Date(asOfDate);
+
+  if (asOf < start) return 0;
+
+  let months = (asOf.getFullYear() - start.getFullYear()) * 12 + (asOf.getMonth() - start.getMonth());
+  if (asOf.getDate() < start.getDate()) {
+    months -= 1;
+  }
+
+  return Math.max(0, months);
+}
+
+function getMonthlyPayment(principal: number, monthlyRate: number, termMonths: number): number {
+  if (termMonths <= 0) return 0;
+  if (monthlyRate === 0) return principal / termMonths;
+  return (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -termMonths));
+}
+
+function applyPayment(remainingPrincipal: number, monthlyRate: number, paymentAmount: number): LoanScheduleState {
+  const interest = monthlyRate === 0 ? 0 : remainingPrincipal * monthlyRate;
+  const interestPaid = Math.min(paymentAmount, interest);
+  const principalPaid = paymentAmount - interestPaid;
+
+  return {
+    remainingPrincipal: Math.max(0, remainingPrincipal - principalPaid),
+    totalInterestPaid: interestPaid,
+    paymentsMade: 1,
+  };
+}
+
+function walkPaymentSequence(
+  principal: number,
+  monthlyRate: number,
+  paymentAmount: number,
+  paymentsCount: number,
+): LoanScheduleState {
+  let remainingPrincipal = principal;
+  let totalInterestPaid = 0;
+
+  for (let i = 0; i < paymentsCount && remainingPrincipal > 0; i++) {
+    const step = applyPayment(remainingPrincipal, monthlyRate, paymentAmount);
+    remainingPrincipal = step.remainingPrincipal;
+    totalInterestPaid += step.totalInterestPaid;
+  }
+
+  return {
+    remainingPrincipal,
+    totalInterestPaid,
+    paymentsMade: Math.min(paymentsCount, Math.max(0, paymentsCount)),
+  };
+}
+
+function projectToPayoff(
+  remainingPrincipal: number,
+  monthlyRate: number,
+  monthlyPayment: number,
+): { paymentsRemaining: number; totalInterestRemaining: number; canProject: boolean } {
+  if (remainingPrincipal <= 0) {
+    return { paymentsRemaining: 0, totalInterestRemaining: 0, canProject: true };
+  }
+
+  let paymentsRemaining = 0;
+  let totalInterestRemaining = 0;
+  let balance = remainingPrincipal;
+
+  while (balance > 0 && paymentsRemaining < 1000) {
+    const interest = monthlyRate === 0 ? 0 : balance * monthlyRate;
+    const principalPaid = monthlyPayment - interest;
+    if (principalPaid <= 0) {
+      return { paymentsRemaining, totalInterestRemaining, canProject: false };
+    }
+    balance = Math.max(0, balance - principalPaid);
+    totalInterestRemaining += interest;
+    paymentsRemaining += 1;
+  }
+
+  return {
+    paymentsRemaining,
+    totalInterestRemaining,
+    canProject: paymentsRemaining < 1000,
+  };
+}
+
+export function calculateLoanAmortizationSummary(
+  details: LoanAccountDetails,
+  opts: {
+    asOfDate?: string;
+    paymentHistory?: LoanPaymentHistoryEntry[];
+  } = {},
+): LoanAmortizationSummary {
+  const asOfDate = opts.asOfDate ?? currentDateString();
+  const monthlyRate = details.interestRate / 100 / 12;
+  const monthlyPayment = getMonthlyPayment(details.principal, monthlyRate, details.termMonths);
+  const scheduledPayoffDate = toDateString(addMonths(new Date(details.startDate), details.termMonths));
+
+  const scheduledPaymentsMade = Math.min(details.termMonths, countScheduledPayments(details.startDate, asOfDate));
+  const scheduledNow = walkPaymentSequence(details.principal, monthlyRate, monthlyPayment, scheduledPaymentsMade);
+  const scheduledEnd = walkPaymentSequence(details.principal, monthlyRate, monthlyPayment, details.termMonths);
+  const scheduledTotalInterest = scheduledEnd.totalInterestPaid;
+  const totalCost = details.principal + scheduledTotalInterest;
+
+  let summary: LoanAmortizationSummary = {
+    monthlyPayment: round2(monthlyPayment),
+    paymentsMade: scheduledPaymentsMade,
+    paymentsRemaining: Math.max(0, details.termMonths - scheduledPaymentsMade),
+    remainingPrincipal: round2(scheduledNow.remainingPrincipal),
+    totalInterestPaid: round2(scheduledNow.totalInterestPaid),
+    totalInterestRemaining: round2(Math.max(0, scheduledTotalInterest - scheduledNow.totalInterestPaid)),
+    totalCost: round2(totalCost),
+    scheduledPayoffDate,
+  };
+
+  const paymentHistory = (opts.paymentHistory ?? [])
+    .filter(payment => payment.date <= asOfDate && payment.amount > 0)
+    .sort((left, right) => left.date.localeCompare(right.date));
+
+  const hasCurrencyMismatch = paymentHistory.some(payment => payment.currencyMismatch === true);
+  if (hasCurrencyMismatch || paymentHistory.length === 0) {
+    return summary;
+  }
+
+  let remainingPrincipal = details.principal;
+  let totalInterestPaid = 0;
+  let paymentsMade = 0;
+
+  for (const payment of paymentHistory) {
+    const step = applyPayment(remainingPrincipal, monthlyRate, payment.amount);
+    remainingPrincipal = step.remainingPrincipal;
+    totalInterestPaid += step.totalInterestPaid;
+    paymentsMade += 1;
+    if (remainingPrincipal <= 0) break;
+  }
+
+  const projection = projectToPayoff(remainingPrincipal, monthlyRate, monthlyPayment);
+  if (!projection.canProject) {
+    return {
+      ...summary,
+      paymentsMade,
+      remainingPrincipal: round2(remainingPrincipal),
+      totalInterestPaid: round2(totalInterestPaid),
+    };
+  }
+
+  const expectedTotalInterestHybrid = totalInterestPaid + projection.totalInterestRemaining;
+
+  summary = {
+    ...summary,
+    paymentsMade,
+    paymentsRemaining: projection.paymentsRemaining,
+    remainingPrincipal: round2(remainingPrincipal),
+    totalInterestPaid: round2(totalInterestPaid),
+    totalInterestRemaining: round2(projection.totalInterestRemaining),
+    actualPayoffDate: toDateString(addMonths(new Date(details.startDate), paymentsMade + projection.paymentsRemaining)),
+    interestSavedVsSchedule: round2(Math.max(0, scheduledTotalInterest - expectedTotalInterestHybrid)),
+  };
+
+  return summary;
+}
+
+export async function getLoanBalanceSnapshotForAccount(
+  userId: string,
+  budgetId: number,
+  account: FinanceAccount,
+  opts: {
+    asOfDate?: string;
+    accountCurrencyById?: Map<number, string>;
+  } = {},
+): Promise<LoanBalanceSnapshot | null> {
+  if (account.type !== AccountTypes.Loan) return null;
+
+  const details = getAccountDetails('loan', account.details);
+  if (!details) return null;
+
+  const accountCurrencyById =
+    opts.accountCurrencyById ??
+    new Map(
+      (await getAccounts(userId, budgetId, { includeArchived: true })).map(current => [current.id, current.currency]),
+    );
+
+  const transactions = await getTransactions(userId, budgetId, {
+    accountId: account.id,
+    fromDate: details.startDate,
+    includeCorrections: false,
+  });
+
+  const paymentHistory: LoanPaymentHistoryEntry[] = transactions
+    .filter(txn => {
+      if (txn.type === TransactionTypes.Transfer) {
+        return txn.toAccountId === account.id;
+      }
+      return txn.accountId === account.id && txn.type === TransactionTypes.Income;
+    })
+    .sort((left, right) => {
+      if (left.date !== right.date) return left.date.localeCompare(right.date);
+      return left.id - right.id;
+    })
+    .map(txn => {
+      if (txn.type === TransactionTypes.Transfer && txn.toAccountId === account.id) {
+        const sourceCurrency = accountCurrencyById.get(txn.accountId);
+        const currencyMismatch = !sourceCurrency || sourceCurrency !== account.currency;
+        return {
+          amount: txn.amount * (txn.toExchangeRate ?? 1),
+          date: txn.date,
+          currencyMismatch,
+        };
+      }
+
+      return {
+        amount: txn.amount,
+        date: txn.date,
+        currencyMismatch: false,
+      };
+    });
+
+  const amortizationSummary = calculateLoanAmortizationSummary(details, {
+    asOfDate: opts.asOfDate,
+    paymentHistory,
+  });
+
+  return {
+    balance: amortizationSummary.remainingPrincipal,
+    amortizationSummary,
+  };
+}
