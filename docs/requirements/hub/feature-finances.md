@@ -30,6 +30,8 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 | FR-08 | All creation modals must support outside-click-to-close on both mobile and desktop.                                                                                                                             |
 | FR-09 | The finances budget name and default currency must continue to be displayed in the desktop sidebar header.                                                                                                      |
 | FR-10 | The desktop "Add Transaction" button in the sidebar must continue to work identically.                                                                                                                          |
+| FR-11 | On the Categories page, selecting a category must navigate to a category details screen that shows category summary details at the top and category transactions below.                                         |
+| FR-12 | On the Finances dashboard page, budget categories must be displayed in descending order by amount spent for the current month.                                                                                  |
 
 ---
 
@@ -64,6 +66,8 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 | TR-25 | MCP `finances_upsert_category` must require `icon` and `color`, validate icon against the shared category icon set, accept any valid CSS color code, and upsert `groupName` by creating the group when missing.                                |
 | TR-26 | Loan balances must be derived from amortization data (`principal`, `interestRate`, `termMonths`, `startDate`) rather than raw transaction sums; net worth liabilities must use this computed remaining principal.                              |
 | TR-27 | MCP `finances_list_context` must include computed loan `balance` plus `amortizationSummary`; when payment currency mismatches loan currency, summary falls back to schedule-only fields and omits hybrid-only fields.                          |
+| TR-28 | Category details are rendered by `src/app/finances/categories/[id]/page.tsx`, loading the selected category context for the current month plus category-filtered transactions from `/api/finances/transactions`.                               |
+| TR-29 | The transactions list API accepts an optional `categoryId` query parameter and applies it in shared `getTransactions` filtering while preserving date-desc, id-desc ordering.                                                                  |
 
 ---
 
@@ -103,3 +107,6 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 - [x] MCP `finances_upsert_category` requires `icon` and `color`; `icon` is validated against shared category icons, `color` accepts valid CSS color codes, and missing `groupName` values are created automatically.
 - [x] Loan account balances shown in Hub and MCP context/net-worth outputs are based on amortization remaining principal, not transaction-summed balances.
 - [x] Loan accounts expose `amortizationSummary` with monthly payment, progress, interest totals, and payoff-date fields; hybrid-only fields are omitted on payment-currency mismatch fallback.
+- [x] Clicking a category opens a dedicated category details screen with summary details on top and transactions listed below.
+- [x] Category details transactions are shown ordered by date descending (with id tie-breaker descending).
+- [x] Dashboard budget categories are shown in descending order by amount spent.

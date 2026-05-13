@@ -1,23 +1,20 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import type { CategoriesResponse, CategoryGroup, CategoryRow } from '@/app/api/finances/categories/route';
 import type { CategoryDeleteResponse } from '@/app/api/finances/categories/[id]/route';
 import { fmt, Card, SectionLabel, Bar, Divider, CategoryIcon, MonthCarousel } from '../ui';
-import { dateToString } from '@my-hub/shared/utils';
 import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
 import { AddCategoryModal } from './AddCategoryModal';
 import { AddGroupModal } from './AddGroupModal';
 import { EditCategoryModal } from './EditCategoryModal';
 import { EditGroupModal } from './EditGroupModal';
 import { categoryToEditValues } from '../finances-form.schema';
-
-function currentMonthStr(): string {
-  return dateToString(new Date(), 'YYYY-MM-DD').slice(0, 7);
-}
+import { currentMonthString, getCategoryFallbackLetter, normalizeYearMonth } from '../finances.utils';
 
 function groupColor(group: CategoryGroup): string {
   return group.categories.find(c => c.color)?.color ?? 'var(--fin-muted)';
@@ -28,11 +25,13 @@ function CatRow({
   currency,
   onEdit,
   onDelete,
+  onOpen,
 }: {
   cat: CategoryRow;
   currency: string;
   onEdit: (cat: CategoryRow) => void;
   onDelete: (cat: CategoryRow) => void;
+  onOpen: (cat: CategoryRow) => void;
 }) {
   const pct =
     cat.monthlyTarget && cat.monthlyTarget > 0
@@ -50,15 +49,20 @@ function CatRow({
   return (
     <div className="group px-[14px] py-[10px]">
       <div className={cn('flex items-center gap-2.5', pct !== null ? 'mb-2' : 'mb-0')}>
-        <CategoryIcon color={cat.color} icon={cat.icon} size="lg" fallback={cat.name[0]?.toUpperCase() ?? '?'} />
-        <div className="flex-1">
-          <div className="text-[13px] font-medium text-[var(--fin-text)]">{cat.name}</div>
-          {cat.monthlyTarget && (
-            <div className="text-[10px] text-[var(--fin-subtle)]">Target {fmt(cat.monthlyTarget, currency)}/mo</div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="text-right">
+        <button
+          type="button"
+          onClick={() => onOpen(cat)}
+          aria-label={`View details for ${cat.name} category`}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left"
+        >
+          <CategoryIcon color={cat.color} icon={cat.icon} size="lg" fallback={getCategoryFallbackLetter(cat.name)} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] font-medium text-[var(--fin-text)]">{cat.name}</div>
+            {cat.monthlyTarget && (
+              <div className="text-[10px] text-[var(--fin-subtle)]">Target {fmt(cat.monthlyTarget, currency)}/mo</div>
+            )}
+          </div>
+          <div className="shrink-0 text-right">
             <div
               className={cn(
                 'text-sm font-semibold',
@@ -73,22 +77,22 @@ function CatRow({
               </div>
             )}
           </div>
-          <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-            <button
-              aria-label={`Edit category ${cat.name}`}
-              onClick={() => onEdit(cat)}
-              className="cursor-pointer rounded p-1 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
-            >
-              <PencilIcon className="size-3" />
-            </button>
-            <button
-              aria-label={`Delete category ${cat.name}`}
-              onClick={() => onDelete(cat)}
-              className="cursor-pointer rounded p-1 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-red-400"
-            >
-              <TrashOutlineIcon className="size-3" />
-            </button>
-          </div>
+        </button>
+        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+          <button
+            aria-label={`Edit category ${cat.name}`}
+            onClick={() => onEdit(cat)}
+            className="cursor-pointer rounded p-1 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
+          >
+            <PencilIcon className="size-3" />
+          </button>
+          <button
+            aria-label={`Delete category ${cat.name}`}
+            onClick={() => onDelete(cat)}
+            className="cursor-pointer rounded p-1 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-red-400"
+          >
+            <TrashOutlineIcon className="size-3" />
+          </button>
         </div>
       </div>
       {pct !== null && cat.monthlyTarget && (
@@ -105,6 +109,7 @@ function GroupSection({
   onEditGroup,
   onEditCategory,
   onDeleteCategory,
+  onOpenCategory,
   onChanged,
 }: {
   group: CategoryGroup;
@@ -113,6 +118,7 @@ function GroupSection({
   onEditGroup: (group: CategoryGroup) => void;
   onEditCategory: (cat: CategoryRow) => void;
   onDeleteCategory: (cat: CategoryRow) => void;
+  onOpenCategory: (cat: CategoryRow) => void;
   onChanged: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -179,7 +185,13 @@ function GroupSection({
           {group.categories.map((cat, i) => (
             <div key={cat.id}>
               {i > 0 && <Divider />}
-              <CatRow cat={cat} currency={currency} onEdit={onEditCategory} onDelete={onDeleteCategory} />
+              <CatRow
+                cat={cat}
+                currency={currency}
+                onEdit={onEditCategory}
+                onDelete={onDeleteCategory}
+                onOpen={onOpenCategory}
+              />
             </div>
           ))}
           {group.categories.length === 0 && (
@@ -199,7 +211,10 @@ function GroupSection({
 }
 
 export default function CategoriesPage() {
-  const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const monthFromQuery = useMemo(() => normalizeYearMonth(searchParams.get('month')), [searchParams]);
+  const [selectedMonth, setSelectedMonth] = useState(monthFromQuery);
   const [data, setData] = useState<CategoriesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddCategory, setShowAddCategory] = useState(false);
@@ -224,6 +239,10 @@ export default function CategoriesPage() {
     load(selectedMonth);
   }, [selectedMonth, load]);
 
+  useEffect(() => {
+    setSelectedMonth(monthFromQuery);
+  }, [monthFromQuery]);
+
   function openAddCategory(groupId?: number) {
     setAddCategoryGroupId(groupId ?? null);
     setShowAddCategory(true);
@@ -233,6 +252,10 @@ export default function CategoriesPage() {
     setShowAddCategory(false);
     setShowAddGroup(false);
     load(selectedMonth);
+  }
+
+  function openCategory(cat: CategoryRow) {
+    router.push(`/finances/categories/${cat.id}?month=${selectedMonth}`);
   }
 
   async function handleDeleteCategory(cat: CategoryRow) {
@@ -255,7 +278,7 @@ export default function CategoriesPage() {
     <div className="flex flex-col gap-[14px]">
       <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Categories</div>
 
-      <MonthCarousel month={selectedMonth} onNavigate={setSelectedMonth} currentMonth={currentMonthStr()} />
+      <MonthCarousel month={selectedMonth} onNavigate={setSelectedMonth} currentMonth={currentMonthString()} />
 
       {loading ? (
         <div className="flex flex-col gap-[14px]">
@@ -322,6 +345,7 @@ export default function CategoriesPage() {
                 onEditGroup={setEditingGroup}
                 onEditCategory={setEditingCategory}
                 onDeleteCategory={handleDeleteCategory}
+                onOpenCategory={openCategory}
                 onChanged={() => load(selectedMonth)}
               />
             ))}
@@ -344,6 +368,7 @@ export default function CategoriesPage() {
                         currency={data.currency}
                         onEdit={setEditingCategory}
                         onDelete={handleDeleteCategory}
+                        onOpen={openCategory}
                       />
                     </div>
                   ))}
