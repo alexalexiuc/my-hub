@@ -94,17 +94,19 @@ function walkPaymentSequence(
 ): LoanScheduleState {
   let remainingPrincipal = principal;
   let totalInterestPaid = 0;
+  let paymentsMade = 0;
 
   for (let i = 0; i < paymentsCount && remainingPrincipal > 0; i++) {
     const step = applyPayment(remainingPrincipal, monthlyRate, paymentAmount);
     remainingPrincipal = step.remainingPrincipal;
     totalInterestPaid += step.totalInterestPaid;
+    paymentsMade += 1;
   }
 
   return {
     remainingPrincipal,
     totalInterestPaid,
-    paymentsMade: Math.min(paymentsCount, Math.max(0, paymentsCount)),
+    paymentsMade,
   };
 }
 

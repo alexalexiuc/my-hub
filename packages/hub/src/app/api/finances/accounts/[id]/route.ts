@@ -88,8 +88,8 @@ export const GET = route({
 
   let account = flattenAccount(rawAccount);
   if (rawAccount.type === AccountTypes.Loan) {
-    const accountsForCurrency = await getAccounts(user.id, budgetId, { includeArchived: true });
-    const accountCurrencyById = new Map(accountsForCurrency.map(current => [current.id, current.currency]));
+    const allAccounts = await getAccounts(user.id, budgetId, { includeArchived: true });
+    const accountCurrencyById = new Map(allAccounts.map(current => [current.id, current.currency]));
     const loanSnapshot = await getLoanBalanceSnapshotForAccount(user.id, budgetId, rawAccount, { accountCurrencyById });
     if (loanSnapshot) {
       account = {
