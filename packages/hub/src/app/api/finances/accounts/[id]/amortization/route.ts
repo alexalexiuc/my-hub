@@ -4,6 +4,8 @@ import { getAccountById, getUserActiveBudget, getLoanBalanceSnapshotForAccount }
 import type { LoanAccountDetails } from '@my-hub/shared/types';
 import { supportedCurrencySchema } from '../../../currency.schema';
 
+const BALANCE_COMPARISON_TOLERANCE = 0.01;
+
 export const scheduleRowSchema = z.object({
   n: z.number().int(),
   date: z.string(),
@@ -105,7 +107,7 @@ export const GET = route({
     });
   }
 
-  let nextIdx = rows.findIndex(r => r.balance <= currentBalance + 0.01);
+  let nextIdx = rows.findIndex(r => r.balance <= currentBalance + BALANCE_COMPARISON_TOLERANCE);
   if (nextIdx === -1) nextIdx = rows.length;
   if (amortizationSummary) {
     nextIdx = Math.min(amortizationSummary.paymentsMade, rows.length);

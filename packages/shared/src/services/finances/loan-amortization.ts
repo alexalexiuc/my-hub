@@ -40,7 +40,7 @@ interface LoanScheduleState {
   paymentsMade: number;
 }
 
-function round2(value: number): number {
+function roundToTwoDecimals(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
@@ -141,6 +141,24 @@ function projectToPayoff(
   };
 }
 
+function isLoanPaymentTransaction(
+  accountId: number,
+  txn: Awaited<ReturnType<typeof getTransactions>>[number],
+): boolean {
+  if (txn.type === TransactionTypes.Transfer) {
+    return txn.toAccountId === accountId;
+  }
+  return txn.accountId === accountId && txn.type === TransactionTypes.Income;
+}
+
+function compareTransactionsByDateAndId(
+  left: Awaited<ReturnType<typeof getTransactions>>[number],
+  right: Awaited<ReturnType<typeof getTransactions>>[number],
+): number {
+  if (left.date !== right.date) return left.date.localeCompare(right.date);
+  return left.id - right.id;
+}
+
 export function calculateLoanAmortizationSummary(
   details: LoanAccountDetails,
   opts: {
@@ -160,13 +178,13 @@ export function calculateLoanAmortizationSummary(
   const totalCost = details.principal + scheduledTotalInterest;
 
   let summary: LoanAmortizationSummary = {
-    monthlyPayment: round2(monthlyPayment),
+    monthlyPayment: roundToTwoDecimals(monthlyPayment),
     paymentsMade: scheduledPaymentsMade,
     paymentsRemaining: Math.max(0, details.termMonths - scheduledPaymentsMade),
-    remainingPrincipal: round2(scheduledNow.remainingPrincipal),
-    totalInterestPaid: round2(scheduledNow.totalInterestPaid),
-    totalInterestRemaining: round2(Math.max(0, scheduledTotalInterest - scheduledNow.totalInterestPaid)),
-    totalCost: round2(totalCost),
+    remainingPrincipal: roundToTwoDecimals(scheduledNow.remainingPrincipal),
+    totalInterestPaid: roundToTwoDecimals(scheduledNow.totalInterestPaid),
+    totalInterestRemaining: roundToTwoDecimals(Math.max(0, scheduledTotalInterest - scheduledNow.totalInterestPaid)),
+    totalCost: roundToTwoDecimals(totalCost),
     scheduledPayoffDate,
   };
 
@@ -196,8 +214,8 @@ export function calculateLoanAmortizationSummary(
     return {
       ...summary,
       paymentsMade,
-      remainingPrincipal: round2(remainingPrincipal),
-      totalInterestPaid: round2(totalInterestPaid),
+      remainingPrincipal: roundToTwoDecimals(remainingPrincipal),
+      totalInterestPaid: roundToTwoDecimals(totalInterestPaid),
     };
   }
 
@@ -207,11 +225,11 @@ export function calculateLoanAmortizationSummary(
     ...summary,
     paymentsMade,
     paymentsRemaining: projection.paymentsRemaining,
-    remainingPrincipal: round2(remainingPrincipal),
-    totalInterestPaid: round2(totalInterestPaid),
-    totalInterestRemaining: round2(projection.totalInterestRemaining),
+    remainingPrincipal: roundToTwoDecimals(remainingPrincipal),
+    totalInterestPaid: roundToTwoDecimals(totalInterestPaid),
+    totalInterestRemaining: roundToTwoDecimals(projection.totalInterestRemaining),
     actualPayoffDate: toDateString(addMonths(new Date(details.startDate), paymentsMade + projection.paymentsRemaining)),
-    interestSavedVsSchedule: round2(Math.max(0, scheduledTotalInterest - expectedTotalInterestHybrid)),
+    interestSavedVsSchedule: roundToTwoDecimals(Math.max(0, scheduledTotalInterest - expectedTotalInterestHybrid)),
   };
 
   return summary;
@@ -244,16 +262,8 @@ export async function getLoanBalanceSnapshotForAccount(
   });
 
   const paymentHistory: LoanPaymentHistoryEntry[] = transactions
-    .filter(txn => {
-      if (txn.type === TransactionTypes.Transfer) {
-        return txn.toAccountId === account.id;
-      }
-      return txn.accountId === account.id && txn.type === TransactionTypes.Income;
-    })
-    .sort((left, right) => {
-      if (left.date !== right.date) return left.date.localeCompare(right.date);
-      return left.id - right.id;
-    })
+    .filter(txn => isLoanPaymentTransaction(account.id, txn))
+    .sort(compareTransactionsByDateAndId)
     .map(txn => {
       if (txn.type === TransactionTypes.Transfer && txn.toAccountId === account.id) {
         const sourceCurrency = accountCurrencyById.get(txn.accountId);
