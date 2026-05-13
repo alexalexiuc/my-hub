@@ -62,6 +62,8 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 | TR-23 | Payee-required logic must be centralized in shared utilities (`isPayeeRequired`) and reused by both Hub transaction UI and MCP transaction tools, so transfer transactions consistently bypass payee handling.                                 |
 | TR-24 | The Hub Payees page must allow editing payee metadata (name, aliases, description) via an edit modal and persist changes through the finances payees API.                                                                                      |
 | TR-25 | MCP `finances_upsert_category` must require `icon` and `color`, validate icon against the shared category icon set, accept any valid CSS color code, and upsert `groupName` by creating the group when missing.                                |
+| TR-26 | Loan balances must be derived from amortization data (`principal`, `interestRate`, `termMonths`, `startDate`) rather than raw transaction sums; net worth liabilities must use this computed remaining principal.                              |
+| TR-27 | MCP `finances_list_context` must include computed loan `balance` plus `amortizationSummary`; when payment currency mismatches loan currency, summary falls back to schedule-only fields and omits hybrid-only fields.                          |
 
 ---
 
@@ -99,3 +101,5 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 - [x] Shared payee-required logic is reused by Hub and MCP so transfer transaction flows do not attempt payee selection/resolution.
 - [x] The Hub Payees page allows editing payee name, aliases, and description through an edit modal.
 - [x] MCP `finances_upsert_category` requires `icon` and `color`; `icon` is validated against shared category icons, `color` accepts valid CSS color codes, and missing `groupName` values are created automatically.
+- [x] Loan account balances shown in Hub and MCP context/net-worth outputs are based on amortization remaining principal, not transaction-summed balances.
+- [x] Loan accounts expose `amortizationSummary` with monthly payment, progress, interest totals, and payoff-date fields; hybrid-only fields are omitted on payment-currency mismatch fallback.

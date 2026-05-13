@@ -6,6 +6,7 @@ import {
   createAccount,
   addTransaction,
   getUserActiveBudget,
+  getLoanBalanceSnapshotForAccount,
 } from '@my-hub/shared/services';
 import { AccountTypes, LentDirections, TransactionTypes } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
@@ -80,6 +81,20 @@ export const accountItemSchema = z
     direction: z.enum(LentDirections).optional(),
     dueDate: z.string().optional(),
     settled: z.boolean().optional(),
+    amortizationSummary: z
+      .object({
+        monthlyPayment: z.number(),
+        paymentsMade: z.number().int(),
+        paymentsRemaining: z.number().int(),
+        remainingPrincipal: z.number(),
+        totalInterestPaid: z.number(),
+        totalInterestRemaining: z.number(),
+        totalCost: z.number(),
+        scheduledPayoffDate: z.string(),
+        actualPayoffDate: z.string().optional(),
+        interestSavedVsSchedule: z.number().optional(),
+      })
+      .optional(),
   })
   .loose();
 
@@ -168,21 +183,33 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
     getNetWorthHistory(user.id, budgetId, 6),
   ]);
 
+  const accountCurrencyById = new Map(rawAccounts.map(account => [account.id, account.currency]));
+  const accounts: AccountItem[] = await Promise.all(
+    rawAccounts.map(async account => {
+      const loanSnapshot =
+        account.type === AccountTypes.Loan
+          ? await getLoanBalanceSnapshotForAccount(user.id, budgetId, account, { accountCurrencyById })
+          : null;
+      return {
+        id: account.id,
+        name: account.name,
+        description: account.description ?? null,
+        type: account.type,
+        currency: account.currency,
+        balance: loanSnapshot?.balance ?? account.balance,
+        archived: account.archived,
+        ...flattenDetails(account.type, account.details),
+        ...(loanSnapshot ? { amortizationSummary: loanSnapshot.amortizationSummary } : {}),
+      };
+    }),
+  );
+
   let netWorth = 0;
-  const accounts: AccountItem[] = rawAccounts.map(a => {
-    const bal = a.balance;
-    if (!a.archived) netWorth += liabilityTypes.has(a.type) ? -bal : bal;
-    return {
-      id: a.id,
-      name: a.name,
-      description: a.description ?? null,
-      type: a.type,
-      currency: a.currency,
-      balance: bal,
-      archived: a.archived,
-      ...flattenDetails(a.type, a.details),
-    };
-  });
+  for (const account of accounts) {
+    if (!account.archived) {
+      netWorth += liabilityTypes.has(account.type) ? -account.balance : account.balance;
+    }
+  }
 
   const netWorthHistory = nwHistory.length > 0 ? nwHistory.map(s => s.netWorth) : [netWorth];
 

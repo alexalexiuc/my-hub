@@ -2,7 +2,15 @@ import { HandledError } from '../../shared/errors';
 import { z } from 'zod';
 import { ToolHandler } from '../../shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
-import { getUserActiveBudget, getAccounts, getCategories, getGroups, getPayees } from '@my-hub/shared/services';
+import { AccountTypes } from '@my-hub/shared/constants';
+import {
+  getUserActiveBudget,
+  getAccounts,
+  getCategories,
+  getGroups,
+  getPayees,
+  getLoanBalanceSnapshotForAccount,
+} from '@my-hub/shared/services';
 
 // ─── list_context ─────────────────────────────────────────────────────────────
 
@@ -23,15 +31,29 @@ export const listContextTool: ToolHandler<typeof ListContextSchema.shape> = asyn
 
   const groupMap = new Map(groups.map(g => [g.id, g.name]));
 
+  const accountCurrencyById = new Map(accounts.map(account => [account.id, account.currency]));
+
+  const accountsOut = await Promise.all(
+    accounts.map(async account => {
+      const loanSnapshot =
+        account.type === AccountTypes.Loan
+          ? await getLoanBalanceSnapshotForAccount(userId, budget.id, account, { accountCurrencyById })
+          : null;
+
+      return {
+        id: account.id,
+        name: account.name,
+        type: account.type,
+        currency: account.currency,
+        balance: loanSnapshot?.balance ?? account.balance,
+        archived: account.archived,
+        ...(loanSnapshot ? { amortizationSummary: loanSnapshot.amortizationSummary } : {}),
+      };
+    }),
+  );
+
   return toolResponse({
-    accounts: accounts.map(a => ({
-      id: a.id,
-      name: a.name,
-      type: a.type,
-      currency: a.currency,
-      balance: a.balance,
-      archived: a.archived,
-    })),
+    accounts: accountsOut,
     categories: categories.map(c => ({
       id: c.id,
       name: c.name,
