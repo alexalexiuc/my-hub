@@ -193,6 +193,7 @@ export function calculateLoanAmortizationSummary(
   };
 
   const paymentHistory = (opts.paymentHistory ?? [])
+    // Dates are normalized as YYYY-MM-DD strings across finance transactions.
     .filter(payment => payment.date <= asOfDate && payment.amount > 0)
     .sort((left, right) => left.date.localeCompare(right.date));
 

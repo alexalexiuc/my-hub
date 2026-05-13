@@ -113,13 +113,12 @@ export const GET = route({
   if (amortizationSummary) {
     // Prefer hybrid-derived payment count when available because balance-based lookup assumes fixed scheduled payments.
     nextIdx = Math.min(amortizationSummary.paymentsMade, rows.length);
-    if (currentBalance <= 0) nextIdx = rows.length;
   }
 
   for (let i = 0; i < nextIdx; i++) rows[i]!.paid = true;
-  if (nextIdx < rows.length) rows[nextIdx]!.current = true;
+  if (nextIdx < rows.length && currentBalance > 0) rows[nextIdx]!.current = true;
 
-  const nextPaymentDate = nextIdx < rows.length ? rows[nextIdx]!.date : '';
+  const nextPaymentDate = nextIdx < rows.length && currentBalance > 0 ? rows[nextIdx]!.date : '';
 
   const data: AmortizationData = {
     accountId,
