@@ -40,6 +40,8 @@ interface LoanScheduleState {
   paymentsMade: number;
 }
 
+const MAX_PROJECTION_ITERATIONS = 1000;
+
 function roundToTwoDecimals(value: number): number {
   return Math.round(value * 100) / 100;
 }
@@ -123,7 +125,7 @@ function projectToPayoff(
   let totalInterestRemaining = 0;
   let balance = remainingPrincipal;
 
-  while (balance > 0 && paymentsRemaining < 1000) {
+  while (balance > 0 && paymentsRemaining < MAX_PROJECTION_ITERATIONS) {
     const interest = monthlyRate === 0 ? 0 : balance * monthlyRate;
     const principalPaid = monthlyPayment - interest;
     if (principalPaid <= 0) {
@@ -137,7 +139,7 @@ function projectToPayoff(
   return {
     paymentsRemaining,
     totalInterestRemaining,
-    canProject: paymentsRemaining < 1000,
+    canProject: paymentsRemaining < MAX_PROJECTION_ITERATIONS,
   };
 }
 

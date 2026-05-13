@@ -4,6 +4,7 @@ import { getAccountById, getUserActiveBudget, getLoanBalanceSnapshotForAccount }
 import type { LoanAccountDetails } from '@my-hub/shared/types';
 import { supportedCurrencySchema } from '../../../currency.schema';
 
+/** Currency-unit tolerance used to account for floating-point drift in schedule balance comparisons. */
 const BALANCE_COMPARISON_TOLERANCE = 0.01;
 
 export const scheduleRowSchema = z.object({
