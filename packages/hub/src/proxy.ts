@@ -44,8 +44,12 @@ export default async function proxy(request: NextRequest) {
   if (!isPublic) {
     const token = await getToken({ req: request, secret: hubEnvConfig.NEXTAUTH_SECRET });
     if (!token) {
-      const signIn = new URL('/auth/signin', request.url);
-      signIn.searchParams.set('callbackUrl', request.url);
+      // Use NEXTAUTH_URL as the base so that Docker's internal bind address
+      // (0.0.0.0:3000) never leaks into the callbackUrl sent to Google OAuth.
+      const baseUrl = hubEnvConfig.NEXTAUTH_URL;
+      const signIn = new URL('/auth/signin', baseUrl);
+      const callbackPath = request.nextUrl.pathname + request.nextUrl.search;
+      signIn.searchParams.set('callbackUrl', new URL(callbackPath, baseUrl).toString());
       return NextResponse.redirect(signIn);
     }
   }

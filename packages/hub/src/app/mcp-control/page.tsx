@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { PageHeader, Input, Select } from '@/components';
 import { apiFetch, ApiError } from '@/lib/utils';
 import { McpServerName } from '@my-hub/shared/constants';
+import { hubClientEnvConfig } from '@/config/client-env';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -32,7 +33,7 @@ interface CreatedClient extends OAuthClientRow {
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-const MCP_BASE_URL = process.env.NEXT_PUBLIC_MCP_URL ?? 'https://mcp.alexiuc.dev';
+const MCP_BASE_URL = hubClientEnvConfig.NEXT_PUBLIC_MCP_URL || 'https://mcp.alexiuc.dev';
 
 const SERVER_META: Record<McpServerName, { label: string; path: string; description: string; active: boolean }> = {
   calories: {
