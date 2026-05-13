@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
-import type { PayeesResponse, PayeeSuggestion } from '@/app/api/finances/payees/route';
+import type { PayeesResponse, PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 import type { PayeesReportResponse } from '@/app/api/finances/payees/report/route';
 import { Card } from '../ui';
 import { EditPayeeModal } from './EditPayeeModal';
@@ -15,8 +15,8 @@ export default function PayeesPage() {
   const [range, setRange] = useState<Range>('30d');
   const [sortBy, setSortBy] = useState<SortKey>('totalSpent');
   const [data, setData] = useState<PayeesReportResponse | null>(null);
-  const [payeesById, setPayeesById] = useState<Map<number, PayeeSuggestion>>(new Map());
-  const [editingPayee, setEditingPayee] = useState<PayeeSuggestion | null>(null);
+  const [payeesById, setPayeesById] = useState<Map<number, PayeeWithSuggestion>>(new Map());
+  const [editingPayee, setEditingPayee] = useState<PayeeWithSuggestion | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (r: Range) => {
@@ -46,6 +46,7 @@ export default function PayeesPage() {
     loadPayees();
   }, [loadPayees]);
 
+  // TODO: Get currency from budget
   const currency = data?.currency ?? 'EUR';
   const sorted = [...(data?.payees ?? [])].sort((a, b) => {
     if (sortBy === 'name') return a.name.localeCompare(b.name);

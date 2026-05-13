@@ -1,4 +1,4 @@
-import { McpServerName } from '@my-hub/shared/constants';
+import { McpServerName, McpServerNames } from '@my-hub/shared/constants';
 import { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import { cachedFindUserById, cachedIsMcpServerEnabled, cachedVerifyToken } from '../cache';
 
@@ -46,5 +46,5 @@ export function createHubTokenVerifier(serverName: McpServerName) {
 }
 
 /** Pre-built verifier instances for each sub-server. */
-export const caloriesVerifier = createHubTokenVerifier(McpServerName.Calories);
-export const todoVerifier = createHubTokenVerifier(McpServerName.Todo);
+export const caloriesVerifier = createHubTokenVerifier(McpServerNames.Calories);
+export const todoVerifier = createHubTokenVerifier(McpServerNames.Todo);

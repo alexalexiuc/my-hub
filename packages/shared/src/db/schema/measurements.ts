@@ -27,10 +27,10 @@ export const bodyMeasurements = pgTable(
     entrySource: text('entry_source').notNull().default('hub').$type<MeasurementEntrySource>(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  table => ({
-    userIdx: index('idx_body_measurements_user').on(table.userId),
-    dateIdx: index('idx_body_measurements_date').on(table.date),
-    userDateIdx: index('idx_body_measurements_user_date').on(table.userId, table.date),
-    userTypeIdx: index('idx_body_measurements_user_type').on(table.userId, table.typeKey),
-  }),
+  table => [
+    index('idx_body_measurements_user').on(table.userId),
+    index('idx_body_measurements_date').on(table.date),
+    index('idx_body_measurements_user_date').on(table.userId, table.date),
+    index('idx_body_measurements_user_type').on(table.userId, table.typeKey),
+  ],
 );

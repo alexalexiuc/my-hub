@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { McpServerName } from '@my-hub/shared/constants';
+import { McpServerNames } from '@my-hub/shared/constants';
 import type { HubExtraParam, RequestExtraParam, ResourceHandler, ToolHandler } from './types';
 import { getHubAuthExtra, requireHubAuthExtra, toolResponse, wrapToolHandler, wrapResourceHandler } from './toolsUtils';
 
@@ -12,7 +12,7 @@ function buildExtra(
         userId: 'user-1',
         email: 'user@example.com',
         clientId: 'client-1',
-        serverName: McpServerName.Calories,
+        serverName: McpServerNames.Calories,
         timezone: 'Europe/Bucharest',
         ...overrides,
       },
@@ -48,7 +48,7 @@ describe('getHubAuthExtra', () => {
       userId: 'user-1',
       email: 'user@example.com',
       clientId: 'client-1',
-      serverName: McpServerName.Calories,
+      serverName: McpServerNames.Calories,
       timezone: 'Europe/Bucharest',
     });
   });
@@ -65,7 +65,7 @@ describe('getHubAuthExtra', () => {
       userId: 'user-1',
       email: undefined,
       clientId: 'client-1',
-      serverName: McpServerName.Calories,
+      serverName: McpServerNames.Calories,
       timezone: null,
     });
   });
@@ -83,7 +83,7 @@ describe('requireHubAuthExtra', () => {
       userId: 'user-1',
       email: 'user@example.com',
       clientId: 'client-1',
-      serverName: McpServerName.Calories,
+      serverName: McpServerNames.Calories,
       timezone: 'Europe/Bucharest',
     });
   });
@@ -112,7 +112,7 @@ describe('wrapResourceHandler', () => {
         userId: 'user-1',
         email: 'user@example.com',
         clientId: 'client-1',
-        serverName: McpServerName.Calories,
+        serverName: McpServerNames.Calories,
         timezone: 'Europe/Bucharest',
       },
       extra,
@@ -145,7 +145,7 @@ describe('wrapToolHandler', () => {
         userId: 'user-1',
         email: 'user@example.com',
         clientId: 'client-1',
-        serverName: McpServerName.Calories,
+        serverName: McpServerNames.Calories,
         timezone: 'Europe/Bucharest',
       },
       extra,
@@ -166,7 +166,7 @@ describe('wrapToolHandler', () => {
         userId: 'user-1',
         email: 'user@example.com',
         clientId: 'client-1',
-        serverName: McpServerName.Calories,
+        serverName: McpServerNames.Calories,
         timezone: 'Europe/Bucharest',
       },
       extra,

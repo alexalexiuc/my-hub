@@ -10,7 +10,7 @@ import { sessionCleanupPlugin } from './plugins/session-cleanup.js';
 import { sessionLoggerPlugin } from './plugins/session-logger.js';
 import relaxedJsonBodyPlugin from './plugins/relaxed-json-body.js';
 import requestLoggerPlugin from './plugins/request-logger.js';
-import { McpServerName } from '@my-hub/shared/constants';
+import { McpServerNames } from '@my-hub/shared/constants';
 import { registerMcpSubServer } from './mcp/sub-server.js';
 import { mcpSubServers } from './mcp/registry.js';
 import { createCaloriesServer } from './calories/server.js';
@@ -86,11 +86,11 @@ export async function buildServer() {
   // MCP sub-servers: /api/calories/mcp  /api/todo/mcp
   // Registered directly on app (not via prefix plugin) because FastifyMcpServer
   // manages its own child scopes and fp()-based plugins bypass prefix inheritance.
-  registerMcpSubServer(app, '/api/calories/mcp', McpServerName.Calories, createCaloriesServer);
-  registerMcpSubServer(app, '/api/todo/mcp', McpServerName.Todo, createTodoServer);
-  registerMcpSubServer(app, '/api/apiary/mcp', McpServerName.Apiary, createApiaryServer);
-  registerMcpSubServer(app, '/api/travel/mcp', McpServerName.Travel, createTravelServer);
-  registerMcpSubServer(app, '/api/finances/mcp', McpServerName.Finances, createFinancesServer);
+  registerMcpSubServer(app, '/api/calories/mcp', McpServerNames.Calories, createCaloriesServer);
+  registerMcpSubServer(app, '/api/todo/mcp', McpServerNames.Todo, createTodoServer);
+  registerMcpSubServer(app, '/api/apiary/mcp', McpServerNames.Apiary, createApiaryServer);
+  registerMcpSubServer(app, '/api/travel/mcp', McpServerNames.Travel, createTravelServer);
+  registerMcpSubServer(app, '/api/finances/mcp', McpServerNames.Finances, createFinancesServer);
 
   // Session cleanup plugin (reads mcpSubServers registry via onReady hook)
   await app.register(sessionCleanupPlugin);

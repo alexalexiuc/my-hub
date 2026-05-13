@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import { FinModalShell } from '../FinModalShell';
 import { Button, Field, Input, Textarea } from '@/components';
-import type { PayeeSuggestion } from '@/app/api/finances/payees/route';
+import type { PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 
 const EditPayeeSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
@@ -17,7 +17,7 @@ const EditPayeeSchema = z.object({
 type EditPayeeValues = z.infer<typeof EditPayeeSchema>;
 
 type EditPayeeModalProps = {
-  payee: PayeeSuggestion;
+  payee: PayeeWithSuggestion;
   onClose: () => void;
   onSaved: () => void;
 };

@@ -10,7 +10,7 @@ import { FinModalShell } from '../FinModalShell';
 import { Button, Input, Pill } from '@/components';
 import { categoryIconEmoji } from '../categoryIcons';
 import { AddTransactionSchema, defaultAddTransactionValues, type AddTransactionValues } from '../finances-form.schema';
-import type { PayeesResponse, PayeeSuggestion } from '@/app/api/finances/payees/route';
+import type { PayeesResponse, PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
 import type { TransactionDetail, TransactionMutationResponse } from '@/app/api/finances/transactions/[id]/route';
 import { getCurrencySymbol, isPayeeRequired } from '@my-hub/shared/utils';
@@ -54,7 +54,7 @@ export function TransactionModal({
   const isEdit = editId !== undefined;
 
   const [formData, setFormData] = useState<TransactionFormDataResponse | null>(null);
-  const [payees, setPayees] = useState<PayeeSuggestion[]>([]);
+  const [payees, setPayees] = useState<PayeeWithSuggestion[]>([]);
   const [selCatId, setSelCatId] = useState<number | null>(null);
   const [selAccId, setSelAccId] = useState<number | null>(null);
   const [selToAccId, setSelToAccId] = useState<number | null>(prefilledToAccountId ?? null);
@@ -120,14 +120,14 @@ export function TransactionModal({
     load();
   }, [load]);
 
-  function selectPayee(p: PayeeSuggestion) {
+  function selectPayee(p: PayeeWithSuggestion) {
     setValue('payee', p.name);
     setSelPayeeId(p.id);
-    if (p.recentCategoryId != null && formData) {
-      setSelCatId(p.recentCategoryId);
+    if (p.lastUsedCategoryId != null && formData) {
+      setSelCatId(p.lastUsedCategoryId);
     }
-    if (p.recentAccountId != null && formData) {
-      const acc = formData.accounts.find(a => a.id === p.recentAccountId);
+    if (p.lastUsedAccountId != null && formData) {
+      const acc = formData.accounts.find(a => a.id === p.lastUsedAccountId);
       if (acc) {
         setSelAccId(acc.id);
       }

@@ -52,10 +52,10 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1021.0",
-    "@aws-sdk/client-ses": "^3.1023.0",
+    "@aws-sdk/client-s3": "^3.1045.0",
+    "@aws-sdk/client-ses": "^3.1045.0",
     "airports-data": "^1.4.0",
-    "drizzle-orm": "^0.30.10",
+    "drizzle-orm": "^0.45.2",
     "jose": "^6.2.2",
     "juice": "^11.1.1",
     "postgres": "^3.4.4",
@@ -66,7 +66,7 @@
     "@types/node": "^22.13.14",
     "chain-mock": "^0.2.0",
     "dotenv-mono": "^1.5.1",
-    "drizzle-kit": "^0.21.4",
+    "drizzle-kit": "^0.31.10",
     "tsup": "^8.0.0",
     "tsx": "^4.21.0",
     "typescript": "^5.4.5",

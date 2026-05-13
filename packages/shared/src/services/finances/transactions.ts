@@ -14,7 +14,6 @@ import { financeAccounts, financeBudgets, financeTransactions } from '../../db/s
 import { logger, omitUndefined } from '../../utils';
 import { hasAccessToBudget } from './budgets';
 import { syncTransactionWithPlan } from './monthly-plans';
-import { incrementPayeeStats, decrementPayeeStats } from './payees';
 import { getExchangeRate } from './exchangeRates';
 import type { FinanceTransaction, NewFinanceTransaction } from '../../types';
 import { TransactionTypes, type TransactionType } from '../../constants/finances';
@@ -186,10 +185,6 @@ export async function addTransaction(
       .returning();
 
     if (!row) throw new Error('Insert did not return a row');
-
-    if (data.payeeId != null) {
-      await incrementPayeeStats(tx, data.payeeId, userId, data.categoryId ?? null, data.accountId);
-    }
 
     return row;
   });
@@ -501,23 +496,6 @@ export async function updateTransaction(
 
     if (!row) throw new Error('Transaction not found');
 
-    // ── Payee stats ────────────────────────────────────────────────────────
-    const oldPayeeId = existing.payeeId;
-    const newPayeeId = data.payeeId !== undefined ? data.payeeId : oldPayeeId;
-    const payeeChanged = data.payeeId !== undefined && data.payeeId !== oldPayeeId;
-
-    if (payeeChanged) {
-      if (oldPayeeId != null) await decrementPayeeStats(tx, oldPayeeId, userId);
-      if (newPayeeId != null) {
-        const categoryId = data.categoryId !== undefined ? data.categoryId : existing.categoryId;
-        const accountId = data.accountId ?? existing.accountId;
-        await incrementPayeeStats(tx, newPayeeId, userId, categoryId ?? null, accountId);
-      }
-    } else if (newPayeeId != null && data.categoryId !== undefined && data.categoryId !== existing.categoryId) {
-      const accountId = data.accountId ?? existing.accountId;
-      await incrementPayeeStats(tx, newPayeeId, userId, data.categoryId ?? null, accountId);
-    }
-
     return { row, previous: existing };
   });
 
@@ -581,10 +559,6 @@ export async function deleteTransaction(
     await tx
       .delete(financeTransactions)
       .where(and(eq(financeTransactions.id, transactionId), eq(financeTransactions.budgetId, budgetId)));
-
-    if (existing.payeeId != null) {
-      await decrementPayeeStats(tx, existing.payeeId, userId);
-    }
 
     return { accountBalanceAfter: fromBalanceAfter, deleted: existing };
   });

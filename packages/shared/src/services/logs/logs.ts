@@ -2,7 +2,7 @@ import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { apiRequestLogs } from '../../db/schema/api-request-logs';
 import type { ApiRequestLog, NewApiRequestLog } from '../../types';
-import type { McpServerName } from '../../db/schema/mcp-servers';
+import { McpServerName } from '../../constants';
 
 // ---------------------------------------------------------------------------
 // API Request Log service

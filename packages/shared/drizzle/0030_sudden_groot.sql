@@ -1,1 +1,0 @@
-ALTER TABLE "finance_payees" ADD COLUMN "description" text;

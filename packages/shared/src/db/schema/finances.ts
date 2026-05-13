@@ -52,11 +52,11 @@ export const financeBudgetMembers = pgTable(
     joinedAt: timestamp('joined_at').notNull().defaultNow(),
     isActive: boolean('is_active').notNull().default(false),
   },
-  table => ({
-    pk: primaryKey({ columns: [table.budgetId, table.userId] }),
-    budgetIdIdx: index('idx_finance_budget_members_budget').on(table.budgetId),
-    userIdIdx: index('idx_finance_budget_members_user').on(table.userId),
-  }),
+  table => [
+    primaryKey({ columns: [table.budgetId, table.userId] }),
+    index('idx_finance_budget_members_budget').on(table.budgetId),
+    index('idx_finance_budget_members_user').on(table.userId),
+  ],
 );
 
 // ─── Accounts ─────────────────────────────────────────────────────────────
@@ -82,10 +82,7 @@ export const financeAccounts = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  table => ({
-    budgetIdIdx: index('idx_finance_accounts_budget').on(table.budgetId),
-    typeIdx: index('idx_finance_accounts_type').on(table.type),
-  }),
+  table => [index('idx_finance_accounts_budget').on(table.budgetId), index('idx_finance_accounts_type').on(table.type)],
 );
 
 // ─── Groups (replaces parentId on categories) ────────────────────────────
@@ -103,9 +100,7 @@ export const financeGroups = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  table => ({
-    budgetIdIdx: index('idx_finance_groups_budget').on(table.budgetId),
-  }),
+  table => [index('idx_finance_groups_budget').on(table.budgetId)],
 );
 
 // ─── Categories ───────────────────────────────────────────────────────────
@@ -131,22 +126,15 @@ export const financeCategories = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  table => ({
-    budgetIdIdx: index('idx_finance_categories_budget').on(table.budgetId),
-    groupIdIdx: index('idx_finance_categories_group').on(table.groupId),
-  }),
+  table => [
+    index('idx_finance_categories_budget').on(table.budgetId),
+    index('idx_finance_categories_group').on(table.groupId),
+  ],
 );
 
 // ─── Payees ───────────────────────────────────────────────────────────────
 // Normalised payee list — powers autofill suggestions and spending-by-payee reports.
 // Unique by (budgetId, normalizedName) for case-insensitive duplicate prevention.
-
-export interface PayeeUserStats {
-  count: number;
-  lastUsedAt: string | null;
-  lastUsedCategoryId: number | null;
-  lastUsedAccountId: number | null;
-}
 
 export const financePayees = pgTable(
   'finance_payees',
@@ -163,14 +151,12 @@ export const financePayees = pgTable(
     normalizedName: text('normalized_name').notNull(),
     // Optional context for AI — e.g. "Main grocery supermarket", "Landlord — rent"
     description: text('description'),
-    // keyed by userId string; tracks per-user usage for ranked suggestions
-    statsByUser: jsonb('stats_by_user').$type<Record<string, PayeeUserStats>>().notNull().default({}),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  table => ({
-    budgetNormUniq: uniqueIndex('uq_finance_payees_budget_norm').on(table.budgetId, table.normalizedName),
-    budgetIdx: index('idx_finance_payees_budget').on(table.budgetId),
-  }),
+  table => [
+    uniqueIndex('uq_finance_payees_budget_norm').on(table.budgetId, table.normalizedName),
+    index('idx_finance_payees_budget').on(table.budgetId),
+  ],
 );
 
 // ─── Import batches ──────────────────────────────────────────────────────
@@ -193,10 +179,10 @@ export const financeImportBatches = pgTable(
     status: text('status').$type<ImportBatchStatus>().notNull().default('completed'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  table => ({
-    budgetIdx: index('idx_finance_import_batches_budget').on(table.budgetId),
-    userIdx: index('idx_finance_import_batches_user').on(table.userId),
-  }),
+  table => [
+    index('idx_finance_import_batches_budget').on(table.budgetId),
+    index('idx_finance_import_batches_user').on(table.userId),
+  ],
 );
 
 // ─── Transactions ─────────────────────────────────────────────────────────
@@ -264,18 +250,18 @@ export const financeTransactions = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  table => ({
-    budgetIdIdx: index('idx_finance_txns_budget').on(table.budgetId),
-    accountIdIdx: index('idx_finance_txns_account').on(table.accountId),
-    toAccountIdx: index('idx_finance_txns_to_account').on(table.toAccountId),
-    dateIdx: index('idx_finance_txns_date').on(table.date),
-    categoryIdx: index('idx_finance_txns_category').on(table.categoryId),
-    payeeIdx: index('idx_finance_txns_payee').on(table.payeeId),
-    addedByIdx: index('idx_finance_txns_added_by').on(table.addedByUserId),
-    importBatchIdx: index('idx_finance_txns_import_batch').on(table.importBatchId),
+  table => [
+    index('idx_finance_txns_budget').on(table.budgetId),
+    index('idx_finance_txns_account').on(table.accountId),
+    index('idx_finance_txns_to_account').on(table.toAccountId),
+    index('idx_finance_txns_date').on(table.date),
+    index('idx_finance_txns_category').on(table.categoryId),
+    index('idx_finance_txns_payee').on(table.payeeId),
+    index('idx_finance_txns_added_by').on(table.addedByUserId),
+    index('idx_finance_txns_import_batch').on(table.importBatchId),
     // Composite — most common query pattern: budget + date range
-    budgetDateIdx: index('idx_finance_txns_budget_date').on(table.budgetId, table.date),
-  }),
+    index('idx_finance_txns_budget_date').on(table.budgetId, table.date),
+  ],
 );
 
 // ─── Currency rates cache ─────────────────────────────────────────────────
@@ -290,9 +276,7 @@ export const financeCurrencyRates = pgTable(
     rate: numericCasted('rate', { precision: 18, scale: 8 }).notNull(),
     fetchedAt: timestamp('fetched_at').notNull().defaultNow(),
   },
-  table => ({
-    pk: primaryKey({ columns: [table.fromCurrency, table.toCurrency, table.date] }),
-  }),
+  table => [primaryKey({ columns: [table.fromCurrency, table.toCurrency, table.date] })],
 );
 
 // ─── Monthly plan ─────────────────────────────────────────────────────────
@@ -313,10 +297,10 @@ export const financeMonthlyPlans = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  table => ({
-    budgetMonthUniq: uniqueIndex('uq_finance_monthly_plan_budget_month').on(table.budgetId, table.month),
-    budgetIdIdx: index('idx_finance_monthly_plans_budget').on(table.budgetId),
-  }),
+  table => [
+    uniqueIndex('uq_finance_monthly_plan_budget_month').on(table.budgetId, table.month),
+    index('idx_finance_monthly_plans_budget').on(table.budgetId),
+  ],
 );
 
 // One planned expense/transfer/savings line per row within a monthly plan.
@@ -357,10 +341,10 @@ export const financeMonthlyPlanItems = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  table => ({
-    planIdIdx: index('idx_finance_plan_items_plan').on(table.planId),
-    linkedAccountIdx: index('idx_finance_plan_items_linked_account').on(table.linkedAccountId),
-  }),
+  table => [
+    index('idx_finance_plan_items_plan').on(table.planId),
+    index('idx_finance_plan_items_linked_account').on(table.linkedAccountId),
+  ],
 );
 
 // ─── Net worth snapshots ──────────────────────────────────────────────────
@@ -381,8 +365,8 @@ export const financeNetWorthSnapshots = pgTable(
     breakdown: jsonb('breakdown').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  table => ({
-    budgetMonthUniq: uniqueIndex('uq_finance_net_worth_budget_month').on(table.budgetId, table.month),
-    budgetIdIdx: index('idx_finance_net_worth_budget').on(table.budgetId),
-  }),
+  table => [
+    uniqueIndex('uq_finance_net_worth_budget_month').on(table.budgetId, table.month),
+    index('idx_finance_net_worth_budget').on(table.budgetId),
+  ],
 );

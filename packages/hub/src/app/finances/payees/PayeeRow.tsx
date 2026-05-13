@@ -1,15 +1,15 @@
 import { Button, Pill } from '@/components';
-import type { PayeeSuggestion } from '@/app/api/finances/payees/route';
+import type { PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 import type { PayeeReportItem } from '@/app/api/finances/payees/report/route';
 import { CategoryIcon, Divider, fmt, SectionLabel } from '../ui';
 import { dateToString } from '@my-hub/shared/utils';
 
 type PayeeRowProps = {
   payee: PayeeReportItem;
-  fullPayee: PayeeSuggestion | undefined;
+  fullPayee: PayeeWithSuggestion | undefined;
   currency: string;
   showDivider: boolean;
-  onEdit: (payee: PayeeSuggestion) => void;
+  onEdit: (payee: PayeeWithSuggestion) => void;
 };
 
 function PayeeChips({ aliases, description }: { aliases: string[]; description: string | null }) {

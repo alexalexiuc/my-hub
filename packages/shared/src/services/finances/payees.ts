@@ -11,22 +11,27 @@
  * Types: Payee
  */
 import { and, asc, eq, inArray, or, sql } from 'drizzle-orm';
-import { db, DbTx } from '../../db/client';
+import { db } from '../../db/client';
 import { financePayees, financeTransactions } from '../../db/schema/finances';
-import type { PayeeUserStats } from '../../db/schema/finances';
 import { hasAccessToBudget } from './budgets';
 import type { FinancePayee } from '../../types';
+import { omitNullish } from '../../utils';
 
 export interface Payee {
   id: number;
   name: string;
   aliases: string[];
   description: string | null;
-  useCount: number;
-  lastUsedAt: string | null;
-  recentCategoryId: number | null;
-  recentAccountId: number | null;
 }
+
+export type PayeeStats = {
+  useCount: number;
+  lastUsedAt?: string;
+  lastUsedCategoryId?: number;
+  lastUsedAccountId?: number;
+};
+
+export type PayeeWithStats = Payee & PayeeStats;
 
 export interface PayeeUpdate {
   name?: string;
@@ -82,7 +87,7 @@ export async function upsertPayee(userId: string, budgetId: number, name: string
 
   const [row] = await db
     .insert(financePayees)
-    .values({ budgetId, name: trimmedName, aliases: [], normalizedName, statsByUser: {} })
+    .values({ budgetId, name: trimmedName, aliases: [], normalizedName })
     .onConflictDoNothing()
     .returning();
 
@@ -142,7 +147,7 @@ export async function updatePayee(
   return updated;
 }
 
-export async function getPayees(userId: string, budgetId: number): Promise<Payee[]> {
+export async function getPayees(userId: string, budgetId: number): Promise<PayeeWithStats[]> {
   if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
   }
@@ -153,22 +158,56 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
     .where(eq(financePayees.budgetId, budgetId))
     .orderBy(asc(financePayees.name));
 
-  const suggestions: Payee[] = payees.map(p => {
-    const stats: PayeeUserStats | undefined = p.statsByUser[userId];
+  // get last 50 transactions to determine recent usage stats for payees.
+  const recentTransactions = await db
+    .select({
+      payeeId: financeTransactions.payeeId,
+      categoryId: financeTransactions.categoryId,
+      accountId: financeTransactions.accountId,
+      date: financeTransactions.date,
+    })
+    .from(financeTransactions)
+    .where(and(eq(financeTransactions.budgetId, budgetId), eq(financeTransactions.addedByUserId, userId)))
+    .orderBy(sql`created_at DESC`)
+    .limit(50);
+
+  const statsByPayeeId: Record<number, PayeeStats> = {};
+  for (const tx of recentTransactions) {
+    if (!tx.payeeId) continue;
+    const existing = statsByPayeeId[tx.payeeId];
+    if (!existing) {
+      statsByPayeeId[tx.payeeId] = {
+        useCount: 1,
+        ...omitNullish({
+          lastUsedAt: tx.date,
+          lastUsedCategoryId: tx.categoryId,
+          lastUsedAccountId: tx.accountId,
+        }),
+      };
+    } else {
+      existing.useCount! += 1;
+      if (existing.lastUsedAt! < tx.date) {
+        existing.lastUsedAt = tx.date;
+        existing.lastUsedCategoryId = tx.categoryId || existing.lastUsedCategoryId;
+        existing.lastUsedAccountId = tx.accountId || existing.lastUsedAccountId;
+      }
+    }
+  }
+
+  const withStats: PayeeWithStats[] = payees.map(p => {
+    const stats = statsByPayeeId[p.id];
     return {
       id: p.id,
       name: p.name,
       aliases: p.aliases,
       description: p.description,
-      useCount: stats?.count ?? 0,
-      lastUsedAt: stats?.lastUsedAt ?? null,
-      recentCategoryId: stats?.lastUsedCategoryId ?? null,
-      recentAccountId: stats?.lastUsedAccountId ?? null,
+      useCount: 0,
+      ...stats,
     };
   });
 
   // useCount DESC, lastUsedAt DESC, name ASC
-  suggestions.sort((a, b) => {
+  withStats.sort((a, b) => {
     if (b.useCount !== a.useCount) return b.useCount - a.useCount;
     if (b.lastUsedAt && a.lastUsedAt) return b.lastUsedAt.localeCompare(a.lastUsedAt);
     if (b.lastUsedAt) return 1;
@@ -176,7 +215,7 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
     return a.name.localeCompare(b.name);
   });
 
-  return suggestions;
+  return withStats;
 }
 
 export async function deletePayee(userId: string, budgetId: number, payeeId: number): Promise<void> {
@@ -185,39 +224,6 @@ export async function deletePayee(userId: string, budgetId: number, payeeId: num
   }
 
   await db.delete(financePayees).where(and(eq(financePayees.id, payeeId), eq(financePayees.budgetId, budgetId)));
-}
-
-/**
- * Increments usage stats for a payee inside an open DB transaction.
- * Call this after inserting a transaction that has a payeeId.
- */
-export async function incrementPayeeStats(
-  tx: DbTx,
-  payeeId: number,
-  userId: string,
-  categoryId: number | null,
-  accountId: number | null = null,
-): Promise<void> {
-  const [payee] = await tx.select().from(financePayees).where(eq(financePayees.id, payeeId));
-  if (!payee) return;
-
-  const stats: PayeeUserStats = payee.statsByUser[userId] ?? {
-    count: 0,
-    lastUsedAt: null,
-    lastUsedCategoryId: null,
-    lastUsedAccountId: null,
-  };
-  const updated: PayeeUserStats = {
-    count: stats.count + 1,
-    lastUsedAt: new Date().toISOString(),
-    lastUsedCategoryId: categoryId,
-    lastUsedAccountId: accountId,
-  };
-
-  await tx
-    .update(financePayees)
-    .set({ statsByUser: { ...payee.statsByUser, [userId]: updated } })
-    .where(eq(financePayees.id, payeeId));
 }
 
 export interface MergePayeesResult {
@@ -258,7 +264,7 @@ export async function mergePayees(
   let finalCanonicalName = '';
   await db.transaction(async tx => {
     const [target] = await tx
-      .select({ id: financePayees.id, name: financePayees.name, statsByUser: financePayees.statsByUser })
+      .select({ id: financePayees.id, name: financePayees.name })
       .from(financePayees)
       .where(and(eq(financePayees.id, targetId), eq(financePayees.budgetId, budgetId)))
       .for('update');
@@ -268,7 +274,7 @@ export async function mergePayees(
     }
 
     const sources = await tx
-      .select({ id: financePayees.id, statsByUser: financePayees.statsByUser })
+      .select({ id: financePayees.id })
       .from(financePayees)
       .where(and(inArray(financePayees.id, uniqueSourceIds), eq(financePayees.budgetId, budgetId)))
       .for('update');
@@ -297,36 +303,6 @@ export async function mergePayees(
         .where(and(eq(financeTransactions.budgetId, budgetId), inArray(financeTransactions.payeeId, uniqueSourceIds)));
     }
 
-    // Merge stats from source payees into target
-    const mergedStats: Record<string, PayeeUserStats> = { ...target.statsByUser };
-
-    for (const source of sources) {
-      const sourceStats = source.statsByUser;
-      for (const [userId, sourceUserStats] of Object.entries(sourceStats)) {
-        const existing = mergedStats[userId];
-        if (!existing) {
-          mergedStats[userId] = { ...sourceUserStats };
-          continue;
-        }
-
-        // Merge counts and pick the most recent timestamp + metadata
-        const isMostRecent =
-          !existing.lastUsedAt || (sourceUserStats.lastUsedAt && sourceUserStats.lastUsedAt > existing.lastUsedAt);
-
-        mergedStats[userId] = {
-          count: existing.count + sourceUserStats.count,
-          lastUsedAt: isMostRecent ? sourceUserStats.lastUsedAt : existing.lastUsedAt,
-          lastUsedCategoryId: isMostRecent ? sourceUserStats.lastUsedCategoryId : existing.lastUsedCategoryId,
-          lastUsedAccountId: isMostRecent ? sourceUserStats.lastUsedAccountId : existing.lastUsedAccountId,
-        };
-      }
-    }
-
-    await tx
-      .update(financePayees)
-      .set({ statsByUser: mergedStats })
-      .where(and(eq(financePayees.id, targetId), eq(financePayees.budgetId, budgetId)));
-
     // Delete source payees
     await tx
       .delete(financePayees)
@@ -345,23 +321,4 @@ export async function mergePayees(
   });
 
   return { mergedCount, targetId, canonicalName: finalCanonicalName };
-}
-
-/**
- * Decrements usage stats for a payee inside an open DB transaction.
- * Call this when deleting a transaction that had a payeeId.
- */
-export async function decrementPayeeStats(tx: DbTx, payeeId: number, userId: string): Promise<void> {
-  const [payee] = await tx.select().from(financePayees).where(eq(financePayees.id, payeeId));
-  if (!payee) return;
-
-  const stats: PayeeUserStats | undefined = payee.statsByUser[userId];
-  if (!stats) return;
-
-  const updated: PayeeUserStats = { ...stats, count: Math.max(stats.count - 1, 0) };
-
-  await tx
-    .update(financePayees)
-    .set({ statsByUser: { ...payee.statsByUser, [userId]: updated } })
-    .where(eq(financePayees.id, payeeId));
 }

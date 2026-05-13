@@ -17,7 +17,5 @@ export const notificationPreferences = pgTable(
     subscribed: boolean('subscribed').notNull().default(true),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  table => ({
-    userKeyIdx: uniqueIndex('notif_user_key_idx').on(table.userId, table.subscriptionKey),
-  }),
+  table => [uniqueIndex('notif_user_key_idx').on(table.userId, table.subscriptionKey)],
 );

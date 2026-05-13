@@ -8,7 +8,6 @@ vi.mock('../../db/client.js', () => ({
   db: { transaction: vi.fn() },
 }));
 vi.mock('./budgets.js', () => ({ hasAccessToBudget: vi.fn() }));
-vi.mock('./payees.js', () => ({ incrementPayeeStats: vi.fn(), decrementPayeeStats: vi.fn() }));
 vi.mock('./exchangeRates.js', () => ({ getExchangeRate: vi.fn() }));
 vi.mock('./monthly-plans.js', () => ({
   syncTransactionWithPlan: vi.fn().mockResolvedValue(undefined),
@@ -16,7 +15,6 @@ vi.mock('./monthly-plans.js', () => ({
 
 import { db } from '../../db/client.js';
 import { hasAccessToBudget } from './budgets.js';
-import { incrementPayeeStats, decrementPayeeStats } from './payees.js';
 import { getExchangeRate } from './exchangeRates.js';
 import { TransactionTypes } from '../../constants';
 
@@ -346,55 +344,6 @@ describe('addTransaction', () => {
       }),
     );
   });
-
-  it('increments payee stats when payeeId is provided', async () => {
-    const insertedRow = makeTransaction({ payeeId: 5, categoryId: 3 });
-    const tx = makeTx([[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }]], insertedRow);
-    useTx(tx);
-    vi.mocked(incrementPayeeStats).mockResolvedValue(undefined);
-
-    await addTransaction('user-1', 1, {
-      type: TransactionTypes.Expense,
-      accountId: 10,
-      toAccountId: null,
-      amount: 50,
-      exchangeRate: 1,
-      date: '2026-04-28',
-      categoryId: 3,
-      payeeId: 5,
-      notes: null,
-      extras: null,
-      isCorrection: false,
-      fromAccountBalanceAfter: 0,
-      toAccountBalanceAfter: null,
-    });
-
-    expect(incrementPayeeStats).toHaveBeenCalledWith(tx, 5, 'user-1', 3, 10);
-  });
-
-  it('skips payee stats when payeeId is null', async () => {
-    const insertedRow = makeTransaction();
-    const tx = makeTx([[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }]], insertedRow);
-    useTx(tx);
-
-    await addTransaction('user-1', 1, {
-      type: TransactionTypes.Expense,
-      accountId: 10,
-      toAccountId: null,
-      amount: 50,
-      exchangeRate: 1,
-      date: '2026-04-28',
-      categoryId: null,
-      payeeId: null,
-      notes: null,
-      extras: null,
-      isCorrection: false,
-      fromAccountBalanceAfter: 0,
-      toAccountBalanceAfter: null,
-    });
-
-    expect(incrementPayeeStats).not.toHaveBeenCalled();
-  });
 });
 
 // ─── updateTransaction ────────────────────────────────────────────────────────
@@ -451,33 +400,6 @@ describe('updateTransaction', () => {
     expect(getUpdateSetCall(tx, 0)).toHaveBeenCalledWith(expect.objectContaining({ balance: 1000 }));
     // Apply new income: 1100 + 50 = 1150
     expect(getUpdateSetCall(tx, 1)).toHaveBeenCalledWith(expect.objectContaining({ balance: 1150 }));
-  });
-
-  it('decrements old payee and increments new payee on payee change', async () => {
-    const existing = makeTransaction({ payeeId: 5, categoryId: 3 });
-    const updatedRow = makeTransaction({ payeeId: 7, categoryId: 3 });
-    const tx = makeTx([[existing], [{ balance: 900 }], [{ balance: 900 }]], updatedRow);
-    useTx(tx);
-    vi.mocked(decrementPayeeStats).mockResolvedValue(undefined);
-    vi.mocked(incrementPayeeStats).mockResolvedValue(undefined);
-
-    await updateTransaction('user-1', 1, 1, { payeeId: 7 });
-
-    expect(decrementPayeeStats).toHaveBeenCalledWith(tx, 5, 'user-1');
-    expect(incrementPayeeStats).toHaveBeenCalledWith(tx, 7, 'user-1', 3, 10);
-  });
-
-  it('increments payee stats on category change without payee change', async () => {
-    const existing = makeTransaction({ payeeId: 5, categoryId: 3 });
-    const updatedRow = makeTransaction({ payeeId: 5, categoryId: 8 });
-    const tx = makeTx([[existing], [{ balance: 900 }], [{ balance: 900 }]], updatedRow);
-    useTx(tx);
-    vi.mocked(incrementPayeeStats).mockResolvedValue(undefined);
-
-    await updateTransaction('user-1', 1, 1, { categoryId: 8 });
-
-    expect(decrementPayeeStats).not.toHaveBeenCalled();
-    expect(incrementPayeeStats).toHaveBeenCalledWith(tx, 5, 'user-1', 8, 10);
   });
 });
 
@@ -545,26 +467,5 @@ describe('deleteTransaction', () => {
     expect(getUpdateSetCall(tx, 0)).toHaveBeenCalledWith(expect.objectContaining({ balance: 1000 }));
     // Reverse to: 600 - 100 = 500
     expect(getUpdateSetCall(tx, 1)).toHaveBeenCalledWith(expect.objectContaining({ balance: 500 }));
-  });
-
-  it('decrements payee stats on delete', async () => {
-    const existing = makeTransaction({ payeeId: 5 });
-    const tx = makeTx([[existing], [{ balance: 900 }]]);
-    useTx(tx);
-    vi.mocked(decrementPayeeStats).mockResolvedValue(undefined);
-
-    await deleteTransaction('user-1', 1, 1);
-
-    expect(decrementPayeeStats).toHaveBeenCalledWith(tx, 5, 'user-1');
-  });
-
-  it('skips payee stats when payeeId is null', async () => {
-    const existing = makeTransaction({ payeeId: null });
-    const tx = makeTx([[existing], [{ balance: 900 }]]);
-    useTx(tx);
-
-    await deleteTransaction('user-1', 1, 1);
-
-    expect(decrementPayeeStats).not.toHaveBeenCalled();
   });
 });

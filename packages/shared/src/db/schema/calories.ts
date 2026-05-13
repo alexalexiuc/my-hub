@@ -51,9 +51,9 @@ export const mealLogs = pgTable(
     data: jsonb('data'), // raw nutritional payload
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  table => ({
-    userIdx: index('idx_meal_logs_user').on(table.userId),
-    dateIdx: index('idx_meal_logs_date').on(table.date),
-    userDateIdx: index('idx_meal_logs_user_date').on(table.userId, table.date).desc(),
-  }),
+  table => [
+    index('idx_meal_logs_user').on(table.userId),
+    index('idx_meal_logs_date').on(table.date),
+    index('idx_meal_logs_user_date').on(table.userId, table.date.desc()),
+  ],
 );

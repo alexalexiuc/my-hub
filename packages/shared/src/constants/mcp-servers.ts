@@ -1,7 +1,7 @@
 /**
  * Enum-like const object for MCP server names.
  */
-export const McpServerName = {
+export const McpServerNames = {
   Apiary: 'apiary',
   Calories: 'calories',
   Finances: 'finances',
@@ -10,12 +10,4 @@ export const McpServerName = {
   Todo: 'todo',
 } as const;
 
-export type McpServerName = (typeof McpServerName)[keyof typeof McpServerName];
-export const mcpServerNameValues = [
-  McpServerName.Apiary,
-  McpServerName.Calories,
-  McpServerName.Finances,
-  McpServerName.Products,
-  McpServerName.Travel,
-  McpServerName.Todo,
-] as const;
+export type McpServerName = (typeof McpServerNames)[keyof typeof McpServerNames];

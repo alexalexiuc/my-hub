@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, updatePayee } from '@my-hub/shared/services';
 import { trimOrNull } from '@my-hub/shared/utils';
-import { payeeSuggestionSchema } from '../route';
+import { payeeWithSuggestionSchema } from '../route';
 
 const IdParamSchema = z.object({ id: z.coerce.number().int().positive() });
 
@@ -15,7 +15,7 @@ const PayeeUpdateSchema = z.object({
 export const PATCH = route({
   params: IdParamSchema,
   body: PayeeUpdateSchema,
-  response: payeeSuggestionSchema,
+  response: payeeWithSuggestionSchema,
 })(async ({ user, params, body }) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
@@ -32,8 +32,5 @@ export const PATCH = route({
     aliases: payee.aliases,
     description: payee.description,
     useCount: 0,
-    lastUsedAt: null,
-    recentCategoryId: null,
-    recentAccountId: null,
   };
 });

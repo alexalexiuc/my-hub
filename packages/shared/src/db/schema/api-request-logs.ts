@@ -1,6 +1,6 @@
 import { bigserial, index, inet, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { McpServerName } from './mcp-servers';
 import { oauthClients } from './oauth-clients';
+import { McpServerName } from '../../constants';
 
 export const apiRequestLogs = pgTable(
   'api_request_logs',
@@ -20,13 +20,13 @@ export const apiRequestLogs = pgTable(
     responseBody: jsonb('response_body'),
     error: text('error'),
   },
-  table => ({
-    createdAtIdx: index('idx_logs_created_at').on(table.createdAt),
-    pathIdx: index('idx_logs_path').on(table.path),
-    userIdx: index('idx_logs_user').on(table.userId),
-    statusIdx: index('idx_logs_status').on(table.statusCode),
-    serviceIdx: index('idx_logs_service').on(table.service),
-    clientIdx: index('idx_logs_client').on(table.clientId).desc(),
-    serverIdx: index('idx_logs_server').on(table.server),
-  }),
+  table => [
+    index('idx_logs_created_at').on(table.createdAt),
+    index('idx_logs_path').on(table.path),
+    index('idx_logs_user').on(table.userId),
+    index('idx_logs_status').on(table.statusCode),
+    index('idx_logs_service').on(table.service),
+    index('idx_logs_client').on(table.clientId.desc()),
+    index('idx_logs_server').on(table.server),
+  ],
 );

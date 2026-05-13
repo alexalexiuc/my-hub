@@ -12,7 +12,7 @@
   "dependencies": {
     "@my-hub/shared": "workspace:*",
     "dotenv-mono": "^1.5.1",
-    "drizzle-orm": "^0.30.10"
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import type { DropdownOption } from '../../FinancialDropdown';
 import { categoryIconEmoji } from '../../categoryIcons';
 import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
-import type { PayeeSuggestion, PayeesResponse } from '@/app/api/finances/payees/route';
+import type { PayeesResponse, PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 import type { TransactionListItem, TransactionsListResponse } from '@/app/api/finances/transactions/route';
 import type { ImportBatchResponse } from '@/app/api/finances/transactions/import/route';
 import { TransactionTypes } from '@my-hub/shared/constants';
@@ -32,7 +32,7 @@ type CsvImportScreenProps = {
 export function CsvImportScreen({ onDone, onBack }: CsvImportScreenProps) {
   // ── Load data ──────────────────────────────────────────────────────────────
   const [formData, setFormData] = useState<TransactionFormDataResponse | null>(null);
-  const [payees, setPayees] = useState<PayeeSuggestion[]>([]);
+  const [payees, setPayees] = useState<PayeeWithSuggestion[]>([]);
   const [existingTransactions, setExistingTransactions] = useState<TransactionListItem[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
@@ -183,7 +183,7 @@ export function CsvImportScreen({ onDone, onBack }: CsvImportScreenProps) {
             p.name.toLowerCase() === rawPayeeName.toLowerCase() ||
             p.aliases.some(a => a.toLowerCase() === rawPayeeName.toLowerCase()),
         );
-        if (match?.recentCategoryId) categoryId = match.recentCategoryId;
+        if (match?.lastUsedCategoryId) categoryId = match.lastUsedCategoryId;
       }
 
       return {
@@ -226,7 +226,7 @@ export function CsvImportScreen({ onDone, onBack }: CsvImportScreenProps) {
           existingPayeeName: match?.name ?? null,
           newPayeeName: row.rawPayeeName,
           addAlias: !match,
-          defaultCategoryId: match?.recentCategoryId ?? null,
+          defaultCategoryId: match?.lastUsedCategoryId ?? null,
         });
       }
     }
@@ -260,7 +260,7 @@ export function CsvImportScreen({ onDone, onBack }: CsvImportScreenProps) {
       // When payee selection changes, propagate the payee's recent category to rows with no CSV category
       if (patch.existingPayeeId !== undefined) {
         const payee = payees.find(p => p.id === patch.existingPayeeId);
-        const catId = payee?.recentCategoryId ?? null;
+        const catId = payee?.lastUsedCategoryId ?? null;
         next.set(csvValue, { ...updated, defaultCategoryId: catId });
         if (catId) {
           setImportRows(rows =>

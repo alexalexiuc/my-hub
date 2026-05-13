@@ -13,7 +13,7 @@
     "run-task": "tsx scripts/run-task.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/client-s3": "^3.1045.0",
     "@my-hub/shared": "workspace:*",
     "croner": "^9.1.0",
     "dotenv-mono": "^1.5.1",
