@@ -7,6 +7,7 @@ import { fmt, Card, SectionLabel, Bar, Divider, Sparkline, CategoryIcon } from '
 import { TransactionModal } from './transactions/TransactionModal';
 import { TransactionList } from './transactions/TransactionList';
 import type { FinanceDashboardData } from '@/app/api/finances/dashboard/route';
+import { sortBySpentDesc } from './finances.utils';
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -29,6 +30,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
   const [showAddTx, setShowAddTx] = useState(false);
   const { currency, netWorth, netWorthHistory, monthlyIncome, monthlyExpense, categories, goals, recentTransactions } =
     data;
+  const categoriesBySpent = sortBySpentDesc(categories);
 
   const saved = monthlyIncome - monthlyExpense;
   const firstSnapshot = netWorthHistory[0];
@@ -105,7 +107,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
             </span>
           </div>
           <div className="flex flex-col gap-2.5">
-            {categories.map(cat => (
+            {categoriesBySpent.map(cat => (
               <div key={cat.id}>
                 <div className="mb-1 flex justify-between">
                   <div className="flex items-center gap-1.5">

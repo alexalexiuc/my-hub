@@ -102,6 +102,7 @@ const TransactionCreateSchema = z.object({
 
 const TransactionQuerySchema = z.object({
   type: z.enum(TransactionTypes).optional(),
+  categoryId: z.coerce.number().int().positive().optional(),
   month: z
     .string()
     .regex(/^\d{4}-\d{2}$/)
@@ -135,6 +136,7 @@ export const GET = route({ query: TransactionQuerySchema, response: transactions
     getPayees(user.id, budgetId),
     getTransactions(user.id, budgetId, {
       type: query.type,
+      categoryId: query.categoryId,
       fromDate,
       toDate,
       includeCorrections: true,
