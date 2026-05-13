@@ -168,6 +168,7 @@ export function calculateLoanAmortizationSummary(
     paymentHistory?: LoanPaymentHistoryEntry[];
   } = {},
 ): LoanAmortizationSummary {
+  // Evaluate "today" at call time so each invocation can reflect current-date changes.
   const asOfDate = opts.asOfDate ?? currentDateString();
   const monthlyRate = details.interestRate / 100 / 12;
   const monthlyPayment = getMonthlyPayment(details.principal, monthlyRate, details.termMonths);
@@ -271,6 +272,7 @@ export async function getLoanBalanceSnapshotForAccount(
         const sourceCurrency = accountCurrencyById.get(txn.accountId);
         const currencyMismatch = !sourceCurrency || sourceCurrency !== account.currency;
         return {
+          // toExchangeRate is stored as source-account currency -> destination-account currency.
           amount: txn.amount * (txn.toExchangeRate ?? 1),
           date: txn.date,
           currencyMismatch,

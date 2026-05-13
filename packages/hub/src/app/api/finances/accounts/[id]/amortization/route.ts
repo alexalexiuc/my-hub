@@ -111,6 +111,7 @@ export const GET = route({
   let nextIdx = rows.findIndex(r => r.balance <= currentBalance + BALANCE_COMPARISON_TOLERANCE);
   if (nextIdx === -1) nextIdx = rows.length;
   if (amortizationSummary) {
+    // Prefer hybrid-derived payment count when available because balance-based lookup assumes fixed scheduled payments.
     nextIdx = Math.min(amortizationSummary.paymentsMade, rows.length);
     if (currentBalance <= 0) nextIdx = rows.length;
   }
