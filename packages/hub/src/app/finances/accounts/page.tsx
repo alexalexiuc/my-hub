@@ -55,7 +55,12 @@ function AccountCard({
             {acc.cardLastFour && <div className="text-[10px] text-[var(--fin-subtle)]">•••• {acc.cardLastFour}</div>}
           </div>
         </div>
-        <div className={cn('text-base font-bold tabular-nums text-right shrink-0 ml-2', amountColor(acc.balance, acc.type as AccountType))}>
+        <div
+          className={cn(
+            'text-base font-bold tabular-nums text-right shrink-0 ml-2',
+            amountColor(acc.balance, acc.type as AccountType),
+          )}
+        >
           {fmt(acc.balance, acc.currency)}
         </div>
       </div>
@@ -190,7 +195,9 @@ export default function AccountsPage() {
               onClick={() => toggleGroup(key)}
               className="mb-1 flex w-full cursor-pointer items-center justify-between"
             >
-              <SectionLabel className="mb-0">{icon} {label}</SectionLabel>
+              <SectionLabel className="mb-0">
+                {icon} {label}
+              </SectionLabel>
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] font-semibold tabular-nums text-[var(--fin-muted)]">
                   {fmt(groupTotal, groupCurrency)}
