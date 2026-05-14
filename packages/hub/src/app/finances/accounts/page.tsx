@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn, apiFetch } from '@/lib/utils';
-import { fmt, Card, AddButton, Sparkline } from '../ui';
+import { fmt, Card, SectionLabel, AddButton, Sparkline } from '../ui';
 import { IconButton } from '@/components';
 import { QuestionMarkIcon } from '@/components/icons';
 import { AddAccountModal } from './AddAccountModal';
@@ -13,6 +13,8 @@ import { AccountsPageSkeleton } from './AccountsPageSkeleton';
 import { AvailableBalanceSheet } from './AvailableBalanceSheet';
 import { NetWorthSheet } from './NetWorthSheet';
 import type { AccountItem, AccountsListData } from '@/app/api/finances/accounts/route';
+import { LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
+import type { AccountType } from '@my-hub/shared/constants';
 
 const ACCOUNT_GROUPS = [
   { key: 'bank', label: 'Bank', icon: '🏦' },
@@ -25,10 +27,8 @@ const ACCOUNT_GROUPS = [
   { key: 'tracking', label: 'Tracking', icon: '👁' },
 ] as const;
 
-const LIABILITY_TYPES = ['credit_card', 'loan'];
-
-function amountColor(balance: number, type: string): string {
-  if (LIABILITY_TYPES.includes(type)) return 'text-[var(--fin-red)]';
+function amountColor(balance: number, type: AccountType): string {
+  if (LIABILITY_ACCOUNT_TYPES.has(type)) return 'text-[var(--fin-red)]';
   if (balance > 0) return 'text-[var(--fin-green)]';
   if (balance < 0) return 'text-[var(--fin-red)]';
   return 'text-[var(--fin-text)]';
@@ -55,10 +55,8 @@ function AccountCard({
             {acc.cardLastFour && <div className="text-[10px] text-[var(--fin-subtle)]">•••• {acc.cardLastFour}</div>}
           </div>
         </div>
-        <div className="text-right shrink-0 ml-2">
-          <div className={cn('text-base font-bold tabular-nums', amountColor(acc.balance, acc.type))}>
-            {fmt(acc.balance, acc.currency)}
-          </div>
+        <div className={cn('text-base font-bold tabular-nums text-right shrink-0 ml-2', amountColor(acc.balance, acc.type as AccountType))}>
+          {fmt(acc.balance, acc.currency)}
         </div>
       </div>
 
@@ -192,9 +190,7 @@ export default function AccountsPage() {
               onClick={() => toggleGroup(key)}
               className="mb-1 flex w-full cursor-pointer items-center justify-between"
             >
-              <div className="text-[11px] font-semibold uppercase tracking-widest text-[var(--fin-subtle)]">
-                {icon} {label}
-              </div>
+              <SectionLabel className="mb-0">{icon} {label}</SectionLabel>
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] font-semibold tabular-nums text-[var(--fin-muted)]">
                   {fmt(groupTotal, groupCurrency)}
@@ -202,7 +198,7 @@ export default function AccountsPage() {
                 <span
                   className={cn(
                     'text-[9px] text-[var(--fin-subtle)] transition-transform duration-200',
-                    isCollapsed ? 'rotate-0' : 'rotate-90',
+                    !isCollapsed && 'rotate-90',
                   )}
                 >
                   ▶
