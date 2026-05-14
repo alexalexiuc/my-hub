@@ -2,15 +2,26 @@
  * Finance transaction CRUD
  * - addTransaction(userId, budgetId, data) — inserts a transaction; updates account balances and payee stats
  * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (accountId, categoryId, type, fromDate, toDate, includeCorrections, search, limit, offset)
+ * - getTransactionListItems(userId, budgetId, opts?) — same filters as getTransactions; returns pre-resolved display fields (accountName, toAccountName, payeeName, categoryName/Color/Icon, addedByInitials) via JOIN
+ * - getTransactionListItemById(userId, budgetId, transactionId) — single TransactionListItem with resolved display fields; null if not found
+ * - countTransactions(userId, budgetId, opts?) — same filters; returns total count
  * - getTransactionById(userId, budgetId, transactionId) — single transaction with access check
  * - updateTransaction(userId, budgetId, transactionId, data) — partial update; recomputes account balances; adjusts payee stats when payeeId changes
  * - deleteTransaction(userId, budgetId, transactionId) — hard delete; reverses account balance effects; decrements payee stats
  * - checkDuplicateTransaction(userId, budgetId, opts) — checks for existing transaction matching (accountId, date, amount, payeeId)
- * Types: TransactionInsert, TransactionUpdate, GetTransactionsOpts, DuplicateCheckOpts
+ * Types: TransactionInsert, TransactionUpdate, GetTransactionsOpts, DuplicateCheckOpts, TransactionListItem
  */
-import { and, desc, eq, gte, ilike, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, isNull, lte, or, sql, type SQL } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../../db/client';
-import { financeAccounts, financeBudgets, financeTransactions } from '../../db/schema/finances';
+import {
+  financeAccounts,
+  financeBudgets,
+  financeCategories,
+  financePayees,
+  financeTransactions,
+} from '../../db/schema/finances';
+import { users } from '../../db/schema/users';
 import { logger, omitUndefined } from '../../utils';
 import { hasAccessToBudget } from './budgets';
 import { syncTransactionWithPlan } from './monthly-plans';
@@ -62,6 +73,161 @@ export interface DuplicateCheckOpts {
   date: string;
   amount: number;
   payeeId: number | null;
+}
+
+export interface TransactionListItem {
+  id: number;
+  date: string;
+  amount: number;
+  type: TransactionType;
+  isCorrection: boolean;
+  notes: string | null;
+  accountId: number;
+  accountName: string;
+  toAccountId: number | null;
+  toAccountName: string | null;
+  categoryName: string | null;
+  categoryColor: string | null;
+  categoryIcon: string | null;
+  payeeName: string | null;
+  addedByInitials: string | null;
+  fromAccountBalanceAfter: number | null;
+  toAccountBalanceAfter: number | null;
+}
+
+function computeInitials(name: string | null, email: string): string {
+  const raw = name?.trim() || email;
+  const parts = raw.split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length >= 2 ? (parts[parts.length - 1]?.[0] ?? '') : '';
+  return parts.length >= 2 ? (first + last).toUpperCase() : raw.slice(0, 2).toUpperCase();
+}
+
+function buildListConditions(budgetId: number, opts: GetTransactionsOpts) {
+  const conditions = [eq(financeTransactions.budgetId, budgetId)];
+  if (opts.accountId !== undefined) {
+    conditions.push(
+      or(eq(financeTransactions.accountId, opts.accountId), eq(financeTransactions.toAccountId, opts.accountId))!,
+    );
+  }
+  if (opts.categoryId === null) {
+    conditions.push(isNull(financeTransactions.categoryId));
+  } else if (opts.categoryId !== undefined) {
+    conditions.push(eq(financeTransactions.categoryId, opts.categoryId));
+  }
+  if (opts.payeeId === null) {
+    conditions.push(isNull(financeTransactions.payeeId));
+  } else if (opts.payeeId !== undefined) {
+    conditions.push(eq(financeTransactions.payeeId, opts.payeeId));
+  }
+  if (opts.type !== undefined) {
+    conditions.push(eq(financeTransactions.type, opts.type));
+  }
+  if (opts.fromDate !== undefined) {
+    conditions.push(gte(financeTransactions.date, opts.fromDate));
+  }
+  if (opts.toDate !== undefined) {
+    conditions.push(lte(financeTransactions.date, opts.toDate));
+  }
+  if (!opts.includeCorrections) {
+    conditions.push(eq(financeTransactions.isCorrection, false));
+  }
+  if (opts.search !== undefined && opts.search.trim() !== '') {
+    conditions.push(ilike(financeTransactions.notes, `%${opts.search}%`));
+  }
+  return conditions;
+}
+
+function buildListQuery(budgetId: number, opts: GetTransactionsOpts, extraConditions: SQL[] = []) {
+  const fromAcct = alias(financeAccounts, 'from_acct');
+  const toAcct = alias(financeAccounts, 'to_acct');
+  const conditions = [...buildListConditions(budgetId, opts), ...extraConditions];
+
+  let q = db
+    .select({
+      id: financeTransactions.id,
+      date: financeTransactions.date,
+      amount: financeTransactions.amount,
+      type: financeTransactions.type,
+      isCorrection: financeTransactions.isCorrection,
+      notes: financeTransactions.notes,
+      accountId: financeTransactions.accountId,
+      accountName: fromAcct.name,
+      toAccountId: financeTransactions.toAccountId,
+      toAccountName: toAcct.name,
+      categoryName: financeCategories.name,
+      categoryColor: financeCategories.color,
+      categoryIcon: financeCategories.icon,
+      payeeName: financePayees.name,
+      addedByUserName: users.name,
+      addedByUserEmail: users.email,
+      fromAccountBalanceAfter: financeTransactions.fromAccountBalanceAfter,
+      toAccountBalanceAfter: financeTransactions.toAccountBalanceAfter,
+    })
+    .from(financeTransactions)
+    .innerJoin(fromAcct, eq(financeTransactions.accountId, fromAcct.id))
+    .leftJoin(toAcct, eq(financeTransactions.toAccountId, toAcct.id))
+    .leftJoin(financeCategories, eq(financeTransactions.categoryId, financeCategories.id))
+    .leftJoin(financePayees, eq(financeTransactions.payeeId, financePayees.id))
+    .innerJoin(users, eq(financeTransactions.addedByUserId, users.id))
+    .where(and(...conditions))
+    .orderBy(desc(financeTransactions.date), desc(financeTransactions.id));
+
+  if (opts.limit !== undefined) {
+    q = q.limit(opts.limit) as typeof q;
+  }
+  if (opts.offset !== undefined) {
+    q = q.offset(opts.offset) as typeof q;
+  }
+  return q;
+}
+
+function rowToListItem(row: Awaited<ReturnType<typeof buildListQuery>>[number]): TransactionListItem {
+  return {
+    id: row.id,
+    date: row.date,
+    amount: row.amount,
+    type: row.type,
+    isCorrection: row.isCorrection,
+    notes: row.notes ?? null,
+    accountId: row.accountId,
+    accountName: row.accountName,
+    toAccountId: row.toAccountId ?? null,
+    toAccountName: row.toAccountName ?? null,
+    categoryName: row.categoryName ?? null,
+    categoryColor: row.categoryColor ?? null,
+    categoryIcon: row.categoryIcon ?? null,
+    payeeName: row.payeeName ?? null,
+    addedByInitials: computeInitials(row.addedByUserName, row.addedByUserEmail),
+    fromAccountBalanceAfter: row.fromAccountBalanceAfter ?? null,
+    toAccountBalanceAfter: row.toAccountBalanceAfter ?? null,
+  };
+}
+
+export async function getTransactionListItems(
+  userId: string,
+  budgetId: number,
+  opts: GetTransactionsOpts = {},
+): Promise<TransactionListItem[]> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+  const rows = await buildListQuery(budgetId, opts);
+  return rows.map(rowToListItem);
+}
+
+export async function getTransactionListItemById(
+  userId: string,
+  budgetId: number,
+  transactionId: number,
+): Promise<TransactionListItem | null> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+  const rows = await buildListQuery(budgetId, { includeCorrections: true }, [
+    eq(financeTransactions.id, transactionId),
+  ]);
+  return rows[0] ? rowToListItem(rows[0]) : null;
 }
 
 function normalizeCurrency(value: string | null | undefined): string | null {
@@ -205,38 +371,7 @@ export async function getTransactions(
     throw new Error('Budget not found');
   }
 
-  const conditions = [eq(financeTransactions.budgetId, budgetId)];
-
-  if (opts.accountId !== undefined) {
-    conditions.push(
-      or(eq(financeTransactions.accountId, opts.accountId), eq(financeTransactions.toAccountId, opts.accountId))!,
-    );
-  }
-  if (opts.categoryId === null) {
-    conditions.push(isNull(financeTransactions.categoryId));
-  } else if (opts.categoryId !== undefined) {
-    conditions.push(eq(financeTransactions.categoryId, opts.categoryId));
-  }
-  if (opts.payeeId === null) {
-    conditions.push(isNull(financeTransactions.payeeId));
-  } else if (opts.payeeId !== undefined) {
-    conditions.push(eq(financeTransactions.payeeId, opts.payeeId));
-  }
-  if (opts.type !== undefined) {
-    conditions.push(eq(financeTransactions.type, opts.type));
-  }
-  if (opts.fromDate !== undefined) {
-    conditions.push(gte(financeTransactions.date, opts.fromDate));
-  }
-  if (opts.toDate !== undefined) {
-    conditions.push(lte(financeTransactions.date, opts.toDate));
-  }
-  if (!opts.includeCorrections) {
-    conditions.push(eq(financeTransactions.isCorrection, false));
-  }
-  if (opts.search !== undefined && opts.search.trim() !== '') {
-    conditions.push(ilike(financeTransactions.notes, `%${opts.search}%`));
-  }
+  const conditions = buildListConditions(budgetId, opts);
 
   let query = db
     .select()
@@ -263,38 +398,7 @@ export async function countTransactions(
     throw new Error('Budget not found');
   }
 
-  const conditions = [eq(financeTransactions.budgetId, budgetId)];
-
-  if (opts.accountId !== undefined) {
-    conditions.push(
-      or(eq(financeTransactions.accountId, opts.accountId), eq(financeTransactions.toAccountId, opts.accountId))!,
-    );
-  }
-  if (opts.categoryId === null) {
-    conditions.push(isNull(financeTransactions.categoryId));
-  } else if (opts.categoryId !== undefined) {
-    conditions.push(eq(financeTransactions.categoryId, opts.categoryId));
-  }
-  if (opts.payeeId === null) {
-    conditions.push(isNull(financeTransactions.payeeId));
-  } else if (opts.payeeId !== undefined) {
-    conditions.push(eq(financeTransactions.payeeId, opts.payeeId));
-  }
-  if (opts.type !== undefined) {
-    conditions.push(eq(financeTransactions.type, opts.type));
-  }
-  if (opts.fromDate !== undefined) {
-    conditions.push(gte(financeTransactions.date, opts.fromDate));
-  }
-  if (opts.toDate !== undefined) {
-    conditions.push(lte(financeTransactions.date, opts.toDate));
-  }
-  if (!opts.includeCorrections) {
-    conditions.push(eq(financeTransactions.isCorrection, false));
-  }
-  if (opts.search !== undefined && opts.search.trim() !== '') {
-    conditions.push(ilike(financeTransactions.notes, `%${opts.search}%`));
-  }
+  const conditions = buildListConditions(budgetId, opts);
 
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })

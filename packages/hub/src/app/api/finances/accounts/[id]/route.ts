@@ -3,9 +3,7 @@ import { route, routeHttpError } from '@/lib/api/route';
 import {
   getAccountById,
   getAccounts,
-  getCategories,
-  getPayees,
-  getTransactions,
+  getTransactionListItems,
   updateAccount,
   getUserActiveBudget,
   getLoanBalanceSnapshotForAccount,
@@ -29,6 +27,8 @@ export const accountTransactionSchema = z.object({
   categoryIcon: categoryIconSchema,
   balanceAfter: z.number().nullable(),
   isCorrection: z.boolean(),
+  accountName: z.string(),
+  addedByInitials: z.string().nullable(),
 });
 
 export const accountDetailResponseSchema = z.object({
@@ -77,11 +77,9 @@ export const GET = route({
 
   const budgetId = budget.id;
 
-  const [rawAccount, categories, payees, rawTxns] = await Promise.all([
+  const [rawAccount, txns] = await Promise.all([
     getAccountById(user.id, budgetId, accountId),
-    getCategories(user.id, budgetId),
-    getPayees(user.id, budgetId),
-    getTransactions(user.id, budgetId, { accountId, limit: 50, includeCorrections: true }),
+    getTransactionListItems(user.id, budgetId, { accountId, limit: 50, includeCorrections: true }),
   ]);
 
   if (!rawAccount) routeHttpError(404, { error: 'Account not found' });
@@ -99,31 +97,24 @@ export const GET = route({
       };
     }
   }
-  const categoryMap = new Map(categories.map(c => [c.id, c]));
-  const payeeMap = new Map(payees.map(p => [p.id, p]));
 
-  const transactions: AccountTransaction[] = rawTxns.map(t => {
-    const cat = t.categoryId != null ? categoryMap.get(t.categoryId) : undefined;
-    const payee = t.payeeId != null ? payeeMap.get(t.payeeId) : undefined;
-    const isSource = t.accountId === accountId;
-    const rawBal = isSource ? t.fromAccountBalanceAfter : t.toAccountBalanceAfter;
-    return {
-      id: t.id,
-      date: t.date,
-      amount: t.amount,
-      type: t.type,
-      notes: t.notes ?? null,
-      payeeName: payee?.name ?? null,
-      categoryName: cat?.name ?? null,
-      categoryColor: cat?.color ?? null,
-      categoryIcon: cat?.icon ?? null,
-      balanceAfter: rawBal != null ? rawBal : null,
-      isCorrection: t.isCorrection,
-    };
-  });
+  const transactions: AccountTransaction[] = txns.map(t => ({
+    id: t.id,
+    date: t.date,
+    amount: t.amount,
+    type: t.type,
+    notes: t.notes,
+    payeeName: t.payeeName,
+    categoryName: t.categoryName,
+    categoryColor: t.categoryColor,
+    categoryIcon: t.categoryIcon,
+    balanceAfter: t.accountId === accountId ? t.fromAccountBalanceAfter : t.toAccountBalanceAfter,
+    isCorrection: t.isCorrection,
+    accountName: t.accountName,
+    addedByInitials: t.addedByInitials,
+  }));
 
-  const data: AccountDetailData = { account, transactions };
-  return data;
+  return { account, transactions };
 });
 
 export const PATCH = route({

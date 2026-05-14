@@ -3,8 +3,8 @@ import { route } from '@/lib/api/route';
 import {
   getAccounts,
   getCategories,
-  getPayees,
   getTransactions,
+  getTransactionListItems,
   getNetWorthHistory,
   getUserActiveBudget,
   getUserBudgets,
@@ -40,6 +40,8 @@ export const dashboardTransactionSchema = z.object({
   categoryName: z.string().nullable(),
   categoryColor: categoryColorSchema,
   categoryIcon: categoryIconSchema,
+  accountName: z.string(),
+  addedByInitials: z.string().nullable(),
 });
 
 export const availableBudgetSchema = z.object({
@@ -100,10 +102,9 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   const today = now.toISOString().slice(0, 10);
 
-  const [accounts, categories, payees, expenseTxns, incomeTxns, recentTxns, nwHistory] = await Promise.all([
+  const [accounts, categories, expenseTxns, incomeTxns, recentTxns, nwHistory] = await Promise.all([
     getAccounts(user.id, budgetId),
     getCategories(user.id, budgetId),
-    getPayees(user.id, budgetId),
     getTransactions(user.id, budgetId, {
       type: TransactionTypes.Expense,
       fromDate: monthStart,
@@ -116,7 +117,7 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
       toDate: today,
       limit: 2000,
     }),
-    getTransactions(user.id, budgetId, { limit: 5 }),
+    getTransactionListItems(user.id, budgetId, { limit: 5 }),
     getNetWorthHistory(user.id, budgetId, 6),
   ]);
 
@@ -168,26 +169,6 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
     })
     .filter(g => g.target > 0);
 
-  // Recent transactions enriched with category + payee names
-  const categoryMap = new Map(categories.map(c => [c.id, c]));
-  const payeeMap = new Map(payees.map(p => [p.id, p]));
-
-  const recentTransactions = recentTxns.map(t => {
-    const cat = t.categoryId != null ? categoryMap.get(t.categoryId) : undefined;
-    const payee = t.payeeId != null ? payeeMap.get(t.payeeId) : undefined;
-    return {
-      id: t.id,
-      date: t.date,
-      amount: t.amount,
-      type: t.type,
-      notes: t.notes ?? null,
-      payeeName: payee?.name ?? null,
-      categoryName: cat?.name ?? null,
-      categoryColor: cat?.color ?? null,
-      categoryIcon: cat?.icon ?? null,
-    };
-  });
-
   // Net worth sparkline: use snapshots if available, else single current point
   const netWorthHistory = nwHistory.length > 0 ? nwHistory.map(s => s.netWorth) : [netWorth];
 
@@ -202,7 +183,7 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
     monthlyExpense,
     categories: budgetCategories,
     goals,
-    recentTransactions,
+    recentTransactions: recentTxns,
   };
 
   return data;

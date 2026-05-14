@@ -434,6 +434,8 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
                 categoryIcon: null,
                 balanceAfter: (tx.fromAccountBalanceAfter as number | null | undefined) ?? null,
                 isCorrection: (tx.isCorrection as boolean | undefined) ?? true,
+                accountName: prev.account.name,
+                addedByInitials: null,
               };
 
               return {

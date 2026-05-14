@@ -18,11 +18,11 @@ export interface TransactionItem {
   categoryName: string | null;
   categoryColor: string | null;
   categoryIcon: string | null;
-  accountName?: string;
+  accountName: string;
   toAccountName?: string | null;
   balanceAfter?: number | null;
   isCorrection?: boolean;
-  addedByInitials?: string | null;
+  addedByInitials: string | null;
 }
 
 type TransactionListProps = {
@@ -241,7 +241,7 @@ export function TransactionList({
                     <div className="flex items-center gap-1.5 mt-0.5">
                       {tx.categoryName && <Pill label={tx.categoryName} color={catColor} />}
                       {tx.notes && !tx.isCorrection && tx.payeeName && (
-                        <span className="truncate text-[11px] text-[var(--fin-subtle)]">{tx.notes}</span>
+                        <span className="truncate text-[11px] text-[var(--fin-subtle)]">{tx.accountName}</span>
                       )}
                     </div>
                   </div>

@@ -4,11 +4,8 @@ import {
   getUserActiveBudget,
   addTransaction,
   upsertPayee,
-  getAccounts,
-  getCategories,
-  getPayees,
-  getTransactions,
-  getBudgetMembers,
+  getTransactionListItems,
+  getTransactionListItemById,
 } from '@my-hub/shared/services';
 import type { TransactionInsert } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
@@ -45,48 +42,6 @@ export const transactionMutationResponseSchema = z.object({
 export type TransactionListItem = z.infer<typeof transactionListItemSchema>;
 export type TransactionsListResponse = z.infer<typeof transactionsListResponseSchema>;
 export type TransactionMutationResponse = z.infer<typeof transactionMutationResponseSchema>;
-
-function buildUserInitialsMap(members: Awaited<ReturnType<typeof getBudgetMembers>>) {
-  return new Map(
-    members.map(m => {
-      const name = m.name?.trim() || m.email;
-      const parts = name.split(/\s+/).filter(Boolean);
-      const first = parts[0]?.[0] ?? '';
-      const last = parts.length >= 2 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-      const initials = parts.length >= 2 ? (first + last).toUpperCase() : name.slice(0, 2).toUpperCase();
-      return [m.userId, initials];
-    }),
-  );
-}
-
-function toTransactionListItem(
-  transaction: Awaited<ReturnType<typeof addTransaction>>,
-  accountMap: Map<number, { name: string }>,
-  categoryMap: Map<number, { name: string; color: string | null; icon: string | null }>,
-  payeeMap: Map<number, { name: string }>,
-  userInitialsMap: Map<string, string>,
-): TransactionListItem {
-  const category = transaction.categoryId != null ? categoryMap.get(transaction.categoryId) : undefined;
-  const payee = transaction.payeeId != null ? payeeMap.get(transaction.payeeId) : undefined;
-  const account = accountMap.get(transaction.accountId);
-  const toAccount = transaction.toAccountId != null ? accountMap.get(transaction.toAccountId) : undefined;
-
-  return {
-    id: transaction.id,
-    date: transaction.date,
-    amount: transaction.amount,
-    type: transaction.type,
-    isCorrection: transaction.isCorrection,
-    notes: transaction.notes ?? null,
-    payeeName: payee?.name ?? null,
-    categoryName: category?.name ?? null,
-    categoryColor: category?.color ?? null,
-    categoryIcon: category?.icon ?? null,
-    accountName: account?.name ?? '—',
-    toAccountName: toAccount?.name ?? null,
-    addedByInitials: userInitialsMap.get(transaction.addedByUserId) ?? null,
-  };
-}
 
 const TransactionCreateSchema = z.object({
   type: z.enum(Object.values(TransactionTypes) as [string, ...string[]]),
@@ -130,37 +85,17 @@ export const GET = route({ query: TransactionQuerySchema, response: transactions
     toDate = new Date(Date.UTC(y!, m!, 0)).toISOString().slice(0, 10);
   }
 
-  const [accounts, categories, payees, txns, members] = await Promise.all([
-    getAccounts(user.id, budgetId),
-    getCategories(user.id, budgetId),
-    getPayees(user.id, budgetId),
-    getTransactions(user.id, budgetId, {
-      type: query.type,
-      categoryId: query.categoryId,
-      fromDate,
-      toDate,
-      includeCorrections: true,
-      limit,
-      offset,
-    }),
-    getBudgetMembers(user.id, budgetId),
-  ]);
+  const transactions = await getTransactionListItems(user.id, budgetId, {
+    type: query.type,
+    categoryId: query.categoryId,
+    fromDate,
+    toDate,
+    includeCorrections: true,
+    limit,
+    offset,
+  });
 
-  const accountMap = new Map(accounts.map(account => [account.id, { name: account.name }]));
-  const categoryMap = new Map(
-    categories.map(category => [
-      category.id,
-      { name: category.name, color: category.color ?? null, icon: category.icon ?? null },
-    ]),
-  );
-  const payeeMap = new Map(payees.map(payee => [payee.id, { name: payee.name }]));
-  const userInitialsMap = buildUserInitialsMap(members);
-
-  const items = txns.map(transaction =>
-    toTransactionListItem(transaction, accountMap, categoryMap, payeeMap, userInitialsMap),
-  );
-
-  return { transactions: items, currency: budget.defaultCurrency };
+  return { transactions, currency: budget.defaultCurrency };
 });
 
 export const POST = route({ body: TransactionCreateSchema, response: transactionMutationResponseSchema })(async ({
@@ -194,26 +129,7 @@ export const POST = route({ body: TransactionCreateSchema, response: transaction
   };
 
   const transaction = await addTransaction(user.id, budgetId, data);
+  const listItem = (await getTransactionListItemById(user.id, budgetId, transaction.id)) ?? undefined;
 
-  const [accounts, categories, payees, members] = await Promise.all([
-    getAccounts(user.id, budgetId),
-    getCategories(user.id, budgetId),
-    getPayees(user.id, budgetId),
-    getBudgetMembers(user.id, budgetId),
-  ]);
-
-  const accountMap = new Map(accounts.map(account => [account.id, { name: account.name }]));
-  const categoryMap = new Map(
-    categories.map(category => [
-      category.id,
-      { name: category.name, color: category.color ?? null, icon: category.icon ?? null },
-    ]),
-  );
-  const payeeMap = new Map(payees.map(payee => [payee.id, { name: payee.name }]));
-  const userInitialsMap = buildUserInitialsMap(members);
-
-  return created({
-    transaction,
-    listItem: toTransactionListItem(transaction, accountMap, categoryMap, payeeMap, userInitialsMap),
-  });
+  return created({ transaction, listItem });
 });
