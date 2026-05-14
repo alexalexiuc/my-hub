@@ -544,6 +544,7 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema.s
   const [accounts, categories, payees] = await Promise.all([
     getAccounts(userId, budget.id, { includeArchived: true }),
     getCategories(userId, budget.id),
+    // TODO: Review payees list, to not overwhelm UI. We can order by last used and limit to 100, then if search term is provided we can do a separate search query to find the right payee.
     getPayees(userId, budget.id),
   ]);
 

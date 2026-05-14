@@ -15,6 +15,7 @@ import { NetWorthSheet } from './NetWorthSheet';
 import type { AccountItem, AccountsListData } from '@/app/api/finances/accounts/route';
 import { LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
+import { groupAccountsByCurrency } from './accounts.utils';
 
 const ACCOUNT_GROUPS = [
   { key: 'bank', label: 'Bank', icon: '🏦' },
@@ -187,8 +188,7 @@ export default function AccountsPage() {
         const accs = byType(key);
         if (!accs.length) return null;
         const isCollapsed = collapsedGroups.has(key);
-        const groupTotal = accs.reduce((sum, a) => sum + a.balance, 0);
-        const groupCurrency = accs.every(a => a.currency === accs[0].currency) ? accs[0].currency : currency;
+        const groupedAccounts = groupAccountsByCurrency(accs);
         return (
           <div key={key}>
             <button
@@ -200,7 +200,14 @@ export default function AccountsPage() {
               </SectionLabel>
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] font-semibold tabular-nums text-[var(--fin-muted)]">
-                  {fmt(groupTotal, groupCurrency)}
+                  {groupedAccounts.map(([currency, accounts]) => {
+                    const groupTotal = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+                    return (
+                      <span key={currency} className="ml-2">
+                        {fmt(groupTotal, currency)}
+                      </span>
+                    );
+                  })}
                 </span>
                 <span
                   className={cn(

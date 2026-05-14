@@ -1,22 +1,19 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Fuse from 'fuse.js';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components';
 import { MobileSelectSheet } from './MobileSelectSheet';
+import {
+  applyDropdownFilter,
+  buildDropdownFuse,
+  type DropdownOption,
+  type FinancialDropdownCreateOption,
+} from './financialDropdown.utils';
 
-export type DropdownOption = {
-  id: number | string;
-  value: number | string;
-};
-
-export type FinancialDropdownCreateOption = {
-  onCreate: (query: string) => void;
-  shouldShow?: (query: string, options: DropdownOption[]) => boolean;
-  renderLabel?: (query: string) => React.ReactNode;
-  className?: string;
-};
+// Re-export so existing consumers can keep importing from this file.
+export type { DropdownOption, FinancialDropdownCreateOption } from './financialDropdown.utils';
+export { buildDropdownFuse, applyDropdownFilter } from './financialDropdown.utils';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -28,27 +25,6 @@ function useIsMobile() {
     return () => mq.removeEventListener('change', handler);
   }, []);
   return isMobile;
-}
-
-export function buildDropdownFuse(
-  options: DropdownOption[],
-  config: boolean | { threshold: number } | undefined,
-): Fuse<DropdownOption> | null {
-  if (!config || options.length === 0) return null;
-  const threshold = typeof config === 'object' ? config.threshold : 0.35;
-  return new Fuse(options, { keys: ['value'], threshold });
-}
-
-export function applyDropdownFilter(
-  options: DropdownOption[],
-  trimmedQuery: string,
-  searchable: boolean,
-  fuseInstance: Fuse<DropdownOption> | null,
-): DropdownOption[] {
-  if (!searchable || !trimmedQuery) return options;
-  if (fuseInstance) return fuseInstance.search(trimmedQuery).map(r => r.item);
-  const lowered = trimmedQuery.toLowerCase();
-  return options.filter(item => String(item.value).toLowerCase().includes(lowered));
 }
 
 type FinancialDropdownBaseProps = {
