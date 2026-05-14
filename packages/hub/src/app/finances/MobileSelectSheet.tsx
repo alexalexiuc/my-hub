@@ -9,7 +9,7 @@ import {
   buildDropdownFuse,
   type DropdownOption,
   type FinancialDropdownCreateOption,
-} from './FinancialDropdown';
+} from './financialDropdown.utils';
 
 type MobileSelectSheetProps = {
   options: DropdownOption[];
@@ -87,6 +87,8 @@ export function MobileSelectSheet({
           <span className="text-sm font-semibold text-[var(--fin-text)]">{title ?? placeholder}</span>
           <button
             type="button"
+            aria-label="Close"
+            title="Close"
             onClick={onClose}
             className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--fin-card2)] text-xs text-[var(--fin-subtle)]"
           >
@@ -100,7 +102,7 @@ export function MobileSelectSheet({
               ref={inputRef}
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Search…"
+              placeholder={placeholder}
               className="w-full text-[15px]"
               autoComplete="off"
               autoCorrect="off"
@@ -166,7 +168,7 @@ export function MobileSelectSheet({
               ) : (
                 <>
                   <span>+</span>
-                  <span>Create &quot;{trimmedQuery}&quot;</span>
+                  <span>{`Create "${trimmedQuery}"`}</span>
                 </>
               )}
             </button>

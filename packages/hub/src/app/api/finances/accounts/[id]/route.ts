@@ -16,7 +16,7 @@ import type { AccountUpdate } from '@my-hub/shared/services';
 import { FinanceAccount } from '@my-hub/shared/types';
 import { categoryIconSchema, categoryColorSchema } from '../../shared.schema';
 import { accountDetailsSchema, accountItemSchema, accountMutationResponseSchema } from '../route';
-import type { AccountItem, AccountMutationResponse } from '../route';
+import type { AccountItem } from '../route';
 
 export const accountTransactionSchema = z.object({
   id: z.number().int(),
@@ -41,7 +41,6 @@ export const accountDetailResponseSchema = z.object({
 
 export type AccountTransaction = z.infer<typeof accountTransactionSchema>;
 export type AccountDetailData = z.infer<typeof accountDetailResponseSchema>;
-export type { AccountItem, AccountMutationResponse };
 
 const AccountPatchSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('settle') }),

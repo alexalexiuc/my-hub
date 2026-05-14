@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 
 /**
  * Manages a digit-only amount input where the decimal point is implicitly
@@ -6,6 +6,16 @@ import { useState, useCallback, useMemo } from 'react';
  */
 export function useAmountMask() {
   const [rawDigits, setRawDigits] = useState('');
+  const [pendingOp, setPendingOp] = useState<'+' | '-' | null>(null);
+  const [pendingValue, setPendingValue] = useState<number | null>(null);
+
+  // Refs let pressKey read current state without being recreated on every digit press.
+  const rawDigitsRef = useRef(rawDigits);
+  rawDigitsRef.current = rawDigits;
+  const pendingOpRef = useRef(pendingOp);
+  pendingOpRef.current = pendingOp;
+  const pendingValueRef = useRef(pendingValue);
+  pendingValueRef.current = pendingValue;
 
   const displayValue = useMemo(() => {
     if (!rawDigits) return '';
@@ -59,5 +69,35 @@ export function useAmountMask() {
     setRawDigits(String(Math.round(num * 100)));
   }, []);
 
-  return { displayValue, handleKeyDown, handlePaste, setFromAmount };
+  /** Handle a single keypad key press from the mobile keypad. Stable reference — reads state via refs. */
+  const pressKey = useCallback((key: string) => {
+    if (key >= '0' && key <= '9') {
+      setRawDigits(prev => (prev + key).replace(/^0+(\d)/, '$1'));
+    } else if (key === 'Backspace') {
+      setRawDigits(prev => prev.slice(0, -1));
+    } else if (key === 'Clear') {
+      setRawDigits('');
+      setPendingOp(null);
+      setPendingValue(null);
+    } else if (key === '+' || key === '-') {
+      const current = rawDigitsRef.current ? parseInt(rawDigitsRef.current, 10) / 100 : 0;
+      setPendingValue(current);
+      setPendingOp(key);
+      setRawDigits('');
+    } else if (key === '=') {
+      const op = pendingOpRef.current;
+      const pv = pendingValueRef.current;
+      const rd = rawDigitsRef.current;
+      if (op && pv !== null && rd) {
+        const right = parseInt(rd, 10) / 100;
+        const result = op === '+' ? pv + right : Math.max(0, pv - right);
+        setRawDigits(String(Math.round(result * 100)));
+      }
+      setPendingOp(null);
+      setPendingValue(null);
+    }
+    // '.' is a no-op — decimal is implicit (2 places from right)
+  }, []);
+
+  return { displayValue, handleKeyDown, handlePaste, setFromAmount, pressKey };
 }
