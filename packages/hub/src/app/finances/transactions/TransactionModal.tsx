@@ -218,8 +218,9 @@ export function TransactionModal({
             <Input
               {...register('amount')}
               autoFocus={!isEdit}
-              type="number"
-              step="any"
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9]*\.?[0-9]*"
               placeholder="0.00"
               variant="ghost"
               className="flex-1 text-[28px] font-bold"

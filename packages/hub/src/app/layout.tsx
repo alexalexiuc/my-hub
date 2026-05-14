@@ -6,6 +6,11 @@ import { Providers } from '@/components';
 export const metadata: Metadata = {
   title: 'My Hub',
   description: 'Personal platform admin panel',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'My Hub',
+  },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const size = { width: 64, height: 64 };
+export const size = { width: 512, height: 512 };
 export const contentType = 'image/png';
 
 export default function Icon() {
@@ -13,12 +13,12 @@ export default function Icon() {
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #0b1f3a 0%, #0f766e 100%)',
-        borderRadius: '12px',
+        borderRadius: '112px',
         fontFamily: 'Verdana, Geneva, sans-serif',
         fontWeight: 700,
-        fontSize: 18,
+        fontSize: 160,
         color: '#f8fafc',
-        letterSpacing: '0.5px',
+        letterSpacing: '6px',
       }}
     >
       HUB
