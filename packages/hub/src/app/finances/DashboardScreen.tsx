@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Bar, Divider, Sparkline, CategoryIcon } from './ui';
+import { fmt, Card, SectionLabel, Bar, Divider, CategoryIcon } from './ui';
 import { TransactionModal } from './transactions/TransactionModal';
 import { TransactionList } from './transactions/TransactionList';
 import type { FinanceDashboardData } from '@/app/api/finances/dashboard/route';
@@ -28,13 +28,10 @@ type DashboardScreenProps = {
 export function DashboardScreen({ data, userName }: DashboardScreenProps) {
   const router = useRouter();
   const [showAddTx, setShowAddTx] = useState(false);
-  const { currency, netWorth, netWorthHistory, monthlyIncome, monthlyExpense, categories, goals, recentTransactions } =
-    data;
+  const { currency, availableBalance, monthlyIncome, monthlyExpense, categories, goals, recentTransactions } = data;
   const categoriesBySpent = sortBySpentDesc(categories);
 
   const saved = monthlyIncome - monthlyExpense;
-  const firstSnapshot = netWorthHistory[0];
-  const nwChange = netWorthHistory.length >= 2 && firstSnapshot != null ? netWorth - firstSnapshot : null;
 
   return (
     <div className="flex flex-col gap-[14px]">
@@ -52,22 +49,13 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
         </div>
       </div>
 
-      {/* Net worth + cashflow row */}
+      {/* Available balance + cashflow row */}
       <div className="grid gap-2.5 md:grid-cols-2">
         <Card className="p-[14px]">
-          <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Net Worth</div>
-          <div className="mb-2 text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">
-            {fmt(netWorth, currency)}
+          <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Available</div>
+          <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">
+            {fmt(availableBalance, currency)}
           </div>
-          <Sparkline data={netWorthHistory} color={'var(--fin-green)'} width={90} height={28} />
-          {nwChange !== null && (
-            <div
-              className={cn('mt-1 text-[10px]', nwChange >= 0 ? 'text-[var(--fin-green)]' : 'text-[var(--fin-red)]')}
-            >
-              {nwChange >= 0 ? '+' : '-'}
-              {fmt(Math.abs(nwChange), currency)} this year
-            </div>
-          )}
         </Card>
 
         <Card className="p-[14px]">

@@ -3,6 +3,9 @@ import { route, routeHttpError, created } from '@/lib/api/route';
 import {
   getAccounts,
   getNetWorthHistory,
+  getAvailabilityPreferences,
+  isIncludedInAvailable,
+  LIABILITY_TYPES,
   createAccount,
   addTransaction,
   getUserActiveBudget,
@@ -81,6 +84,7 @@ export const accountItemSchema = z
     direction: z.enum(LentDirections).optional(),
     dueDate: z.string().optional(),
     settled: z.boolean().optional(),
+    includedInAvailable: z.boolean(),
     amortizationSummary: z
       .object({
         monthlyPayment: z.number(),
@@ -109,6 +113,7 @@ export const accountCreateSchema = z.object({
 
 export const accountsListResponseSchema = z.object({
   currency: supportedCurrencySchema,
+  availableBalance: z.number(),
   netWorth: z.number(),
   netWorthHistory: z.array(z.number()),
   accounts: z.array(accountItemSchema),
@@ -176,45 +181,50 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
   const budgetId = budget.id;
-  const liabilityTypes = new Set<string>([AccountTypes.Loan, AccountTypes.CreditCard]);
 
-  const [rawAccounts, nwHistory] = await Promise.all([
+  const [rawAccounts, nwHistory, prefs] = await Promise.all([
     getAccounts(user.id, budgetId, { includeArchived: true }),
     getNetWorthHistory(user.id, budgetId, 6),
+    getAvailabilityPreferences(user.id, budgetId),
   ]);
 
   const accountCurrencyById = new Map(rawAccounts.map(account => [account.id, account.currency]));
+
+  let netWorth = 0;
+  let availableBalance = 0;
   const accounts: AccountItem[] = await Promise.all(
     rawAccounts.map(async account => {
       const loanSnapshot =
         account.type === AccountTypes.Loan
           ? await getLoanBalanceSnapshotForAccount(user.id, budgetId, account, { accountCurrencyById })
           : null;
+      const bal = loanSnapshot?.balance ?? account.balance;
+      const isLiability = LIABILITY_TYPES.has(account.type);
+      const includedInAvailable = isIncludedInAvailable(account.type, prefs.get(account.id) ?? null);
+      if (!account.archived) {
+        netWorth += isLiability ? -bal : bal;
+        if (includedInAvailable) availableBalance += isLiability ? -bal : bal;
+      }
       return {
         id: account.id,
         name: account.name,
         description: account.description ?? null,
         type: account.type,
         currency: account.currency,
-        balance: loanSnapshot?.balance ?? account.balance,
+        balance: bal,
         archived: account.archived,
+        includedInAvailable,
         ...flattenDetails(account.type, account.details),
         ...(loanSnapshot ? { amortizationSummary: loanSnapshot.amortizationSummary } : {}),
       };
     }),
   );
 
-  let netWorth = 0;
-  for (const account of accounts) {
-    if (!account.archived) {
-      netWorth += liabilityTypes.has(account.type) ? -account.balance : account.balance;
-    }
-  }
-
   const netWorthHistory = nwHistory.length > 0 ? nwHistory.map(s => s.netWorth) : [netWorth];
 
   const data: AccountsListData = {
     currency: budget.defaultCurrency,
+    availableBalance,
     netWorth,
     netWorthHistory,
     accounts,

@@ -8,6 +8,13 @@
       "when": 1778654703488,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778757850875,
+      "tag": "0001_worried_swordsman",
+      "breakpoints": true
     }
   ]
 }

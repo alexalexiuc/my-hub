@@ -347,9 +347,25 @@ export const financeMonthlyPlanItems = pgTable(
   ],
 );
 
+// Stores explicit per-user inclusion preferences for available-balance calculation.
+// Only rows for non-default preferences are kept (default: bank+cash included, all others excluded).
+// If a row exists: use its `include` value. No row: fall back to the default.
+export const financeAccountAvailability = pgTable(
+  'finance_account_availability',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    accountId: integer('account_id')
+      .notNull()
+      .references(() => financeAccounts.id, { onDelete: 'cascade' }),
+    include: boolean('include').notNull(),
+  },
+  table => [primaryKey({ columns: [table.userId, table.accountId] })],
+);
+
 // ─── Net worth snapshots ──────────────────────────────────────────────────
 // Written by a nightly/weekly job. One row per budget per month.
-
 export const financeNetWorthSnapshots = pgTable(
   'finance_net_worth_snapshots',
   {

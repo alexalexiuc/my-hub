@@ -22,6 +22,7 @@ import {
   deleteAllUserTripBookings,
   deleteAllUserTrips,
   deleteAllUserFinanceBudgets,
+  deleteAllUserAvailableOverrides,
 } from '@my-hub/shared/services';
 
 /**
@@ -75,6 +76,7 @@ export const POST = route(async ({ user }) => {
     deleteAllUserTripBookings(user.id),
     deleteAllUserTrips(user.id),
     deleteAllUserFinanceBudgets(user.id),
+    deleteAllUserAvailableOverrides(user.id),
   ]);
 
   return {

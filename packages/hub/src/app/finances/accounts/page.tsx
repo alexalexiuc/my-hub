@@ -2,14 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { apiFetch } from '@/lib/utils';
-import { fmt, Card, SectionLabel, AddButton } from '../ui';
+import { cn, apiFetch } from '@/lib/utils';
+import { fmt, Card, SectionLabel, AddButton, Sparkline } from '../ui';
+import { IconButton } from '@/components';
+import { QuestionMarkIcon } from '@/components/icons';
 import { AddAccountModal } from './AddAccountModal';
 import { AccountProgressBar } from './AccountProgressBar';
 import { BorrowedLentDetails } from './BorrowedLentDetails';
-import { NetWorthSummary } from './NetWorthSummary';
 import { AccountsPageSkeleton } from './AccountsPageSkeleton';
+import { AvailableBalanceSheet } from './AvailableBalanceSheet';
+import { NetWorthSheet } from './NetWorthSheet';
 import type { AccountItem, AccountsListData } from '@/app/api/finances/accounts/route';
 
 const ACCOUNT_GROUPS = [
@@ -29,7 +31,6 @@ function AccountCard({
   onClick,
 }: {
   acc: AccountItem;
-  currency: string;
   onSettle: (id: number) => void;
   onClick: () => void;
 }) {
@@ -87,6 +88,8 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [showAvailableSheet, setShowAvailableSheet] = useState(false);
+  const [showNetWorthSheet, setShowNetWorthSheet] = useState(false);
 
   const load = useCallback(async () => {
     const result = await apiFetch<AccountsListData>('/api/finances/accounts', { silentToast: true });
@@ -103,13 +106,22 @@ export default function AccountsPage() {
     load();
   }
 
+  async function handleToggleInclusion(accountId: number, currentlyIncluded: boolean) {
+    await apiFetch(`/api/finances/accounts/${accountId}`, {
+      method: 'PATCH',
+      body: { action: 'setAvailableInclusion', include: !currentlyIncluded },
+      silentToast: true,
+    });
+    load();
+  }
+
   if (loading) {
     return <AccountsPageSkeleton />;
   }
 
   if (!data) return null;
 
-  const { currency, netWorth, netWorthHistory, accounts } = data;
+  const { currency, availableBalance, netWorth, netWorthHistory, accounts } = data;
   const activeAccounts = accounts.filter(a => !a.archived);
   const archivedAccounts = accounts.filter(a => a.archived);
   const byType = (type: string) => activeAccounts.filter(a => a.type === type);
@@ -121,7 +133,34 @@ export default function AccountsPage() {
         <AddButton onClick={() => setShowAddModal(true)} title="Add account" />
       </div>
 
-      <NetWorthSummary netWorth={netWorth} currency={currency} history={netWorthHistory} />
+      <div className="grid grid-cols-2 gap-2.5">
+        <Card className="relative p-[14px]">
+          <IconButton
+            label="What is net worth?"
+            icon={<QuestionMarkIcon className="size-3.5" />}
+            onClick={() => setShowNetWorthSheet(true)}
+            className="absolute right-[10px] top-[10px] bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
+          />
+          <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Net Worth</div>
+          <div className="mb-2 text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">
+            {fmt(netWorth, currency)}
+          </div>
+          <Sparkline data={netWorthHistory} color="var(--fin-green)" width={80} height={28} />
+        </Card>
+
+        <Card className="relative p-[14px]">
+          <IconButton
+            label="How is this calculated?"
+            icon={<QuestionMarkIcon className="size-3.5" />}
+            onClick={() => setShowAvailableSheet(true)}
+            className="absolute right-[10px] top-[10px] bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
+          />
+          <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Available</div>
+          <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">
+            {fmt(availableBalance, currency)}
+          </div>
+        </Card>
+      </div>
 
       {ACCOUNT_GROUPS.map(({ key, label, icon }) => {
         const accs = byType(key);
@@ -136,7 +175,6 @@ export default function AccountsPage() {
                 <AccountCard
                   key={acc.id}
                   acc={acc}
-                  currency={currency}
                   onSettle={handleSettle}
                   onClick={() => router.push(`/finances/accounts/${acc.id}`)}
                 />
@@ -167,7 +205,6 @@ export default function AccountsPage() {
                 <AccountCard
                   key={acc.id}
                   acc={acc}
-                  currency={currency}
                   onSettle={handleSettle}
                   onClick={() => router.push(`/finances/accounts/${acc.id}`)}
                 />
@@ -185,6 +222,25 @@ export default function AccountsPage() {
             setShowAddModal(false);
             load();
           }}
+        />
+      )}
+
+      {showAvailableSheet && (
+        <AvailableBalanceSheet
+          accounts={activeAccounts}
+          availableBalance={availableBalance}
+          currency={currency}
+          onToggle={handleToggleInclusion}
+          onClose={() => setShowAvailableSheet(false)}
+        />
+      )}
+
+      {showNetWorthSheet && (
+        <NetWorthSheet
+          accounts={activeAccounts}
+          netWorth={netWorth}
+          currency={currency}
+          onClose={() => setShowNetWorthSheet(false)}
         />
       )}
     </div>

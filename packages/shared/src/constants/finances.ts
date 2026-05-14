@@ -118,6 +118,21 @@ export { getAccountDetails } from '../types/account-details';
 
 // ---- Account type metadata ----
 
+/** Short display names for account types. */
+export const ACCOUNT_TYPE_NAMES: Record<AccountType, string> = {
+  [AccountTypes.Bank]: 'Bank',
+  [AccountTypes.Cash]: 'Cash',
+  [AccountTypes.CreditCard]: 'Credit Card',
+  [AccountTypes.Investment]: 'Investment',
+  [AccountTypes.Goal]: 'Goal',
+  [AccountTypes.Loan]: 'Loan',
+  [AccountTypes.Tracking]: 'Tracking',
+  [AccountTypes.BorrowedLent]: 'Borrowed/Lent',
+};
+
+/** Account types treated as liabilities — their balance subtracts from net worth and available balance. */
+export const LIABILITY_ACCOUNT_TYPES = new Set<AccountType>([AccountTypes.CreditCard, AccountTypes.Loan]);
+
 /** Human-readable description shown in the Add Account form. */
 export const ACCOUNT_TYPE_DESCRIPTIONS: Record<AccountType, string> = {
   [AccountTypes.Bank]: 'Checking or savings account at a bank. Tracks day-to-day spending and deposits.',

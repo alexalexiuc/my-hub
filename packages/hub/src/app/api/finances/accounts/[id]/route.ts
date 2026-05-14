@@ -5,6 +5,9 @@ import {
   getAccounts,
   getTransactionListItems,
   updateAccount,
+  setAccountAvailableInclusion,
+  getAvailabilityPreferences,
+  isIncludedInAvailable,
   getUserActiveBudget,
   getLoanBalanceSnapshotForAccount,
 } from '@my-hub/shared/services';
@@ -50,9 +53,10 @@ const AccountPatchSchema = z.discriminatedUnion('action', [
     description: z.string().trim().nullable().optional(),
     details: accountDetailsSchema.nullable().optional(),
   }),
+  z.object({ action: z.literal('setAvailableInclusion'), include: z.boolean() }),
 ]);
 
-function flattenAccount(a: FinanceAccount): AccountItem {
+function flattenAccount(a: FinanceAccount, includedInAvailable: boolean): AccountItem {
   const details = a.details as Record<string, unknown> | null;
   return {
     id: a.id,
@@ -62,6 +66,7 @@ function flattenAccount(a: FinanceAccount): AccountItem {
     currency: a.currency,
     balance: a.balance,
     archived: a.archived,
+    includedInAvailable,
     ...(details ?? {}),
   } as AccountItem;
 }
@@ -77,14 +82,15 @@ export const GET = route({
 
   const budgetId = budget.id;
 
-  const [rawAccount, txns] = await Promise.all([
+  const [rawAccount, txns, prefs] = await Promise.all([
     getAccountById(user.id, budgetId, accountId),
     getTransactionListItems(user.id, budgetId, { accountId, limit: 50, includeCorrections: true }),
+    getAvailabilityPreferences(user.id, budgetId),
   ]);
 
   if (!rawAccount) routeHttpError(404, { error: 'Account not found' });
 
-  let account = flattenAccount(rawAccount);
+  let account = flattenAccount(rawAccount, isIncludedInAvailable(rawAccount.type, prefs.get(accountId) ?? null));
   if (rawAccount.type === AccountTypes.Loan) {
     const allAccounts = await getAccounts(user.id, budgetId, { includeArchived: true });
     const accountCurrencyById = new Map(allAccounts.map(current => [current.id, current.currency]));
@@ -130,23 +136,33 @@ export const PATCH = route({
   const existing = await getAccountById(user.id, budget.id, accountId);
   if (!existing) routeHttpError(404, { error: 'Account not found' });
 
+  // setAvailableInclusion knows the new inclusion state from body.include — no need to query overrides
+  if (body.action === 'setAvailableInclusion') {
+    await setAccountAvailableInclusion(user.id, budget.id, accountId, body.include);
+    return { account: flattenAccount(existing, body.include) };
+  }
+
+  // All other actions need the current inclusion state for the response
+  const prefs = await getAvailabilityPreferences(user.id, budget.id);
+  const currentIncluded = isIncludedInAvailable(existing.type, prefs.get(accountId) ?? null);
+
   if (body.action === 'settle') {
     const currentDetails = (existing.details ?? {}) as BorrowedLentAccountDetails;
     const updated = await updateAccount(user.id, budget.id, accountId, {
       details: { ...currentDetails, settled: true },
       archived: true,
     });
-    return { account: updated };
+    return { account: flattenAccount(updated, currentIncluded) };
   }
 
   if (body.action === 'archive') {
     const updated = await updateAccount(user.id, budget.id, accountId, { archived: true });
-    return { account: updated };
+    return { account: flattenAccount(updated, currentIncluded) };
   }
 
   if (body.action === 'unarchive') {
     const updated = await updateAccount(user.id, budget.id, accountId, { archived: false });
-    return { account: updated };
+    return { account: flattenAccount(updated, currentIncluded) };
   }
 
   if (body.action === 'edit') {
@@ -154,7 +170,7 @@ export const PATCH = route({
     if (body.description !== undefined) patch.description = body.description ?? null;
     if (body.details !== undefined) patch.details = body.details ?? null;
     const updated = await updateAccount(user.id, budget.id, accountId, patch);
-    return { account: updated };
+    return { account: flattenAccount(updated, currentIncluded) };
   }
 
   routeHttpError(400, { error: 'Unknown action' });

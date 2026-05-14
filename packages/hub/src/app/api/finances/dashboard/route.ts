@@ -5,7 +5,7 @@ import {
   getCategories,
   getTransactions,
   getTransactionListItems,
-  getNetWorthHistory,
+  getAvailableBalance,
   getUserActiveBudget,
   getUserBudgets,
 } from '@my-hub/shared/services';
@@ -56,8 +56,7 @@ export const financeDashboardDataSchema = z.object({
   budgetId: z.number().int(),
   budgetName: z.string(),
   currency: supportedCurrencySchema,
-  netWorth: z.number(),
-  netWorthHistory: z.array(z.number()),
+  availableBalance: z.number(),
   monthlyIncome: z.number(),
   monthlyExpense: z.number(),
   categories: z.array(dashboardCategorySchema),
@@ -102,7 +101,7 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   const today = now.toISOString().slice(0, 10);
 
-  const [accounts, categories, expenseTxns, incomeTxns, recentTxns, nwHistory] = await Promise.all([
+  const [accounts, categories, expenseTxns, incomeTxns, recentTxns, availableBalance] = await Promise.all([
     getAccounts(user.id, budgetId),
     getCategories(user.id, budgetId),
     getTransactions(user.id, budgetId, {
@@ -118,16 +117,8 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
       limit: 2000,
     }),
     getTransactionListItems(user.id, budgetId, { limit: 5 }),
-    getNetWorthHistory(user.id, budgetId, 6),
+    getAvailableBalance(user.id, budgetId),
   ]);
-
-  // Net worth: assets minus liabilities
-  const liabilityTypes = new Set<string>([AccountTypes.Loan, AccountTypes.CreditCard]);
-  let netWorth = 0;
-  for (const acc of accounts) {
-    const bal = acc.balance;
-    netWorth += liabilityTypes.has(acc.type) ? -bal : bal;
-  }
 
   // Monthly totals
   const monthlyExpense = expenseTxns.reduce((sum, t) => sum + t.amount, 0);
@@ -169,16 +160,12 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
     })
     .filter(g => g.target > 0);
 
-  // Net worth sparkline: use snapshots if available, else single current point
-  const netWorthHistory = nwHistory.length > 0 ? nwHistory.map(s => s.netWorth) : [netWorth];
-
   const data: FinanceDashboardData = {
     hasBudget: true,
     budgetId,
     budgetName: budget.name,
     currency,
-    netWorth,
-    netWorthHistory,
+    availableBalance,
     monthlyIncome,
     monthlyExpense,
     categories: budgetCategories,
