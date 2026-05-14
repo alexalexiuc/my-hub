@@ -4,18 +4,31 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Fuse from 'fuse.js';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components';
+import { MobileSelectSheet } from './MobileSelectSheet';
 
 export type DropdownOption = {
   id: number | string;
   value: number | string;
 };
 
-type FinancialDropdownCreateOption = {
+export type FinancialDropdownCreateOption = {
   onCreate: (query: string) => void;
   shouldShow?: (query: string, options: DropdownOption[]) => boolean;
   renderLabel?: (query: string) => React.ReactNode;
   className?: string;
 };
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isMobile;
+}
 
 type FinancialDropdownBaseProps = {
   options: DropdownOption[];
@@ -72,6 +85,7 @@ export function FinancialDropdown({
 }: FinancialDropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const selectedLabel = String(options.find(o => o.id === value)?.value ?? '');
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,6 +134,7 @@ export function FinancialDropdown({
 
   useEffect(() => {
     function handlePointerOutside(event: MouseEvent | TouchEvent) {
+      if (isMobile) return;
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
         closeDropdown();
       }
@@ -140,10 +155,29 @@ export function FinancialDropdown({
       document.removeEventListener('touchstart', handlePointerOutside);
       document.removeEventListener('keydown', handleEscape);
     };
-  }, []);
+  }, [isMobile]);
 
   return (
     <div ref={rootRef} className="relative">
+      {isMobile && open && (
+        <MobileSelectSheet
+          options={typeof maxResults === 'number' ? options.slice(0, maxResults) : options}
+          value={value}
+          onChange={item => {
+            onChange(item);
+            setOpen(false);
+          }}
+          onClose={() => setOpen(false)}
+          placeholder={placeholder}
+          searchable={searchable !== false}
+          fuse={fuse}
+          renderOption={renderOption}
+          noResultsText={noResultsText}
+          clearable={clearable}
+          clearAriaLabel={clearAriaLabel}
+          createOption={createOption}
+        />
+      )}
       <div className="relative">
         {searchable ? (
           <Input
@@ -212,7 +246,7 @@ export function FinancialDropdown({
         )}
       </div>
 
-      {open && (results.length > 0 || showCreateOption || (trimmedQuery.length > 0 && noResultsText)) && (
+      {!isMobile && open && (results.length > 0 || showCreateOption || (trimmedQuery.length > 0 && noResultsText)) && (
         <div
           className={cn(
             'absolute left-0 right-0 top-full z-20 mt-1 max-h-[200px] overflow-y-auto rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] shadow-lg',
