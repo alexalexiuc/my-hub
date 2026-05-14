@@ -16,7 +16,13 @@ export default function FinancesLayout({ children }: { children: React.ReactNode
             <span className="font-normal text-[var(--fin-muted)]">Hub</span>
           </Link>
           <span className="text-sm text-[var(--fin-border)]">/</span>
-          <span className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--fin-text)]">Finances</span>
+          <Link
+            href="/finances"
+            className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--fin-text)] no-underline"
+          >
+            Finances
+          </Link>
+          {/* <span className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--fin-text)]">Finances</span> */}
         </div>
       </div>
 

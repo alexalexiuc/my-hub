@@ -3,212 +3,21 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import type { CategoriesResponse, CategoryGroup, CategoryRow } from '@/app/api/finances/categories/route';
 import type { CategoryDeleteResponse } from '@/app/api/finances/categories/[id]/route';
-import { fmt, Card, SectionLabel, Bar, Divider, CategoryIcon, MonthCarousel } from '../ui';
-import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
+import { fmt, Card, SectionLabel, Divider, MonthCarousel } from '../ui';
+import { dateToString } from '@my-hub/shared/utils';
 import { AddCategoryModal } from './AddCategoryModal';
 import { AddGroupModal } from './AddGroupModal';
 import { EditCategoryModal } from './EditCategoryModal';
 import { EditGroupModal } from './EditGroupModal';
+import { GroupSection } from './GroupSection';
+import { CatRow } from './CatRow';
 import { categoryToEditValues } from '../finances-form.schema';
-import { currentMonthString, getCategoryFallbackLetter, normalizeYearMonth } from '../finances.utils';
+import { normalizeYearMonth } from '../finances.utils';
 
-function groupColor(group: CategoryGroup): string {
-  return group.categories.find(c => c.color)?.color ?? 'var(--fin-muted)';
-}
-
-function CatRow({
-  cat,
-  currency,
-  onEdit,
-  onDelete,
-  onOpen,
-}: {
-  cat: CategoryRow;
-  currency: string;
-  onEdit: (cat: CategoryRow) => void;
-  onDelete: (cat: CategoryRow) => void;
-  onOpen: (cat: CategoryRow) => void;
-}) {
-  const pct =
-    cat.monthlyTarget && cat.monthlyTarget > 0
-      ? Math.min(100, Math.round((cat.spent / cat.monthlyTarget) * 100))
-      : null;
-  const barColor =
-    pct !== null
-      ? pct >= 100
-        ? 'var(--fin-red)'
-        : pct >= 80
-          ? 'var(--fin-amber)'
-          : (cat.color ?? 'var(--fin-green)')
-      : 'var(--fin-muted)';
-
-  return (
-    <div className="group px-[14px] py-[10px]">
-      <div className={cn('flex items-center gap-2.5', pct !== null ? 'mb-2' : 'mb-0')}>
-        <button
-          type="button"
-          onClick={() => onOpen(cat)}
-          aria-label={`View details for ${cat.name} category`}
-          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left"
-        >
-          <CategoryIcon color={cat.color} icon={cat.icon} size="lg" fallback={getCategoryFallbackLetter(cat.name)} />
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[13px] font-medium text-[var(--fin-text)]">{cat.name}</div>
-            {cat.monthlyTarget && (
-              <div className="text-[10px] text-[var(--fin-subtle)]">Target {fmt(cat.monthlyTarget, currency)}/mo</div>
-            )}
-          </div>
-          <div className="shrink-0 text-right">
-            <div
-              className={cn(
-                'text-sm font-semibold',
-                pct !== null && pct >= 100 ? 'text-[var(--fin-red)]' : 'text-[var(--fin-text)]',
-              )}
-            >
-              {fmt(cat.spent, currency)}
-            </div>
-            {pct !== null && (
-              <div className="text-[10px]" style={{ color: barColor }}>
-                {pct}%
-              </div>
-            )}
-          </div>
-        </button>
-        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-          <button
-            aria-label={`Edit category ${cat.name}`}
-            onClick={() => onEdit(cat)}
-            className="cursor-pointer rounded p-1 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
-          >
-            <PencilIcon className="size-3" />
-          </button>
-          <button
-            aria-label={`Delete category ${cat.name}`}
-            onClick={() => onDelete(cat)}
-            className="cursor-pointer rounded p-1 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-red-400"
-          >
-            <TrashOutlineIcon className="size-3" />
-          </button>
-        </div>
-      </div>
-      {pct !== null && cat.monthlyTarget && (
-        <Bar value={cat.spent} max={cat.monthlyTarget} color={cat.color ?? 'var(--fin-green)'} height={4} />
-      )}
-    </div>
-  );
-}
-
-function GroupSection({
-  group,
-  currency,
-  onAddCategory,
-  onEditGroup,
-  onEditCategory,
-  onDeleteCategory,
-  onOpenCategory,
-  onChanged,
-}: {
-  group: CategoryGroup;
-  currency: string;
-  onAddCategory: (groupId: number) => void;
-  onEditGroup: (group: CategoryGroup) => void;
-  onEditCategory: (cat: CategoryRow) => void;
-  onDeleteCategory: (cat: CategoryRow) => void;
-  onOpenCategory: (cat: CategoryRow) => void;
-  onChanged: () => void;
-}) {
-  const [collapsed, setCollapsed] = useState(false);
-  const color = groupColor(group);
-  const groupSpent = group.categories.reduce((s, c) => s + c.spent, 0);
-  const groupTarget = group.categories.reduce((s, c) => s + (c.monthlyTarget ?? 0), 0);
-  const groupPct = groupTarget > 0 ? Math.min(100, Math.round((groupSpent / groupTarget) * 100)) : null;
-
-  async function deleteGroup() {
-    if (!window.confirm(`Delete group "${group.name}"? Categories in this group will become ungrouped.`)) return;
-    await apiFetch(`/api/finances/groups/${group.id}`, { method: 'DELETE', silentToast: true });
-    onChanged();
-  }
-
-  return (
-    <div>
-      <div className="group/header mb-1.5 flex items-center justify-between px-1 py-[6px]">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
-          <>
-            <button
-              onClick={() => setCollapsed(v => !v)}
-              className="flex cursor-pointer items-center gap-1 border-none bg-transparent p-0"
-            >
-              <span className="text-[13px] font-semibold text-[var(--fin-text)]">{group.name}</span>
-              <span className="text-[10px] text-[var(--fin-subtle)]">{collapsed ? '▶' : '▾'}</span>
-            </button>
-            <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/header:opacity-100">
-              <button
-                aria-label={`Edit group ${group.name}`}
-                onClick={() => onEditGroup(group)}
-                className="cursor-pointer rounded p-0.5 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
-              >
-                <PencilIcon className="size-[11px]" />
-              </button>
-              <button
-                aria-label={`Delete group ${group.name}`}
-                onClick={deleteGroup}
-                className="cursor-pointer rounded p-0.5 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-red-400"
-              >
-                <TrashOutlineIcon className="size-[11px]" />
-              </button>
-            </div>
-          </>
-        </div>
-        <div className="flex items-center gap-2">
-          {groupTarget > 0 && (
-            <span className="text-[11px] text-[var(--fin-subtle)]">
-              {fmt(groupSpent, currency)} / {fmt(groupTarget, currency)}
-            </span>
-          )}
-          {groupPct !== null && (
-            <span
-              className="rounded-[20px] px-[7px] py-[2px] text-[10px] font-semibold"
-              style={{ background: color + '22', color }}
-            >
-              {groupPct}%
-            </span>
-          )}
-        </div>
-      </div>
-      {!collapsed && (
-        <Card className="py-[6px]">
-          {group.categories.map((cat, i) => (
-            <div key={cat.id}>
-              {i > 0 && <Divider />}
-              <CatRow
-                cat={cat}
-                currency={currency}
-                onEdit={onEditCategory}
-                onDelete={onDeleteCategory}
-                onOpen={onOpenCategory}
-              />
-            </div>
-          ))}
-          {group.categories.length === 0 && (
-            <div className="p-[14px] text-center text-xs text-[var(--fin-subtle)]">No categories in this group</div>
-          )}
-          {group.categories.length > 0 && <Divider />}
-          <button
-            onClick={() => onAddCategory(group.id)}
-            className="w-full cursor-pointer border-none bg-transparent px-[14px] py-[10px] text-left text-[12px] text-[var(--fin-subtle)] hover:text-[var(--fin-text)]"
-          >
-            + Add category
-          </button>
-        </Card>
-      )}
-    </div>
-  );
-}
+const CURRENT_MONTH = dateToString(new Date(), 'YYYY-MM');
 
 export default function CategoriesPage() {
   const router = useRouter();
@@ -222,6 +31,7 @@ export default function CategoriesPage() {
   const [addCategoryGroupId, setAddCategoryGroupId] = useState<number | null>(null);
   const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null);
   const [editingGroup, setEditingGroup] = useState<CategoryGroup | null>(null);
+  const [ungroupedOpenId, setUngroupedOpenId] = useState<number | null>(null);
 
   const load = useCallback(async (month: string) => {
     setLoading(true);
@@ -273,12 +83,13 @@ export default function CategoriesPage() {
   }
 
   const groupOptions = data?.groups.map(g => ({ id: g.id, name: g.name })) ?? [];
+  const spentCategories = data?.allCategories.filter(c => c.spent > 0) ?? [];
 
   return (
     <div className="flex flex-col gap-[14px]">
       <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Categories</div>
 
-      <MonthCarousel month={selectedMonth} onNavigate={setSelectedMonth} currentMonth={currentMonthString()} />
+      <MonthCarousel month={selectedMonth} onNavigate={setSelectedMonth} currentMonth={CURRENT_MONTH} />
 
       {loading ? (
         <div className="flex flex-col gap-[14px]">
@@ -303,31 +114,27 @@ export default function CategoriesPage() {
               {data.totalSpent > 0 && (
                 <>
                   <div className="flex h-2 gap-px overflow-hidden rounded">
-                    {data.allCategories
-                      .filter(c => c.spent > 0)
-                      .map(cat => {
-                        const pct = (cat.spent / data.totalSpent) * 100;
-                        return pct > 0.5 ? (
-                          <div
-                            key={cat.id}
-                            title={`${cat.name}: ${fmt(cat.spent, data.currency)}`}
-                            style={{ width: `${pct}%`, background: cat.color ?? 'var(--fin-muted)', minWidth: 3 }}
-                          />
-                        ) : null;
-                      })}
+                    {spentCategories.map(cat => {
+                      const pct = (cat.spent / data.totalSpent) * 100;
+                      return pct > 0.5 ? (
+                        <div
+                          key={cat.id}
+                          title={`${cat.name}: ${fmt(cat.spent, data.currency)}`}
+                          style={{ width: `${pct}%`, background: cat.color ?? 'var(--fin-muted)', minWidth: 3 }}
+                        />
+                      ) : null;
+                    })}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2.5">
-                    {data.allCategories
-                      .filter(c => c.spent > 0)
-                      .map(cat => (
-                        <div key={cat.id} className="flex items-center gap-1">
-                          <div
-                            className="rounded-sm"
-                            style={{ width: 7, height: 7, background: cat.color ?? 'var(--fin-muted)' }}
-                          />
-                          <span className="text-[10px] text-[var(--fin-muted)]">{cat.name}</span>
-                        </div>
-                      ))}
+                    {spentCategories.map(cat => (
+                      <div key={cat.id} className="flex items-center gap-1">
+                        <div
+                          className="rounded-sm"
+                          style={{ width: 7, height: 7, background: cat.color ?? 'var(--fin-muted)' }}
+                        />
+                        <span className="text-[10px] text-[var(--fin-muted)]">{cat.name}</span>
+                      </div>
+                    ))}
                   </div>
                 </>
               )}
@@ -366,6 +173,9 @@ export default function CategoriesPage() {
                       <CatRow
                         cat={cat}
                         currency={data.currency}
+                        isSwipeOpen={ungroupedOpenId === cat.id}
+                        onSwipeOpen={() => setUngroupedOpenId(cat.id)}
+                        onSwipeClose={() => setUngroupedOpenId(null)}
                         onEdit={setEditingCategory}
                         onDelete={handleDeleteCategory}
                         onOpen={openCategory}

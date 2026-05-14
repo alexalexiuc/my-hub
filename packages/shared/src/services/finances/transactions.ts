@@ -27,7 +27,7 @@ import { hasAccessToBudget } from './budgets';
 import { syncTransactionWithPlan } from './monthly-plans';
 import { getExchangeRate } from './exchangeRates';
 import type { FinanceTransaction, NewFinanceTransaction } from '../../types';
-import { TransactionTypes, type TransactionType } from '../../constants/finances';
+import { CategoryIcon, TransactionTypes, type TransactionType } from '../../constants/finances';
 
 export type TransactionInsert = Omit<
   NewFinanceTransaction,
@@ -88,7 +88,7 @@ export interface TransactionListItem {
   toAccountName: string | null;
   categoryName: string | null;
   categoryColor: string | null;
-  categoryIcon: string | null;
+  categoryIcon: CategoryIcon | null;
   payeeName: string | null;
   addedByInitials: string | null;
   fromAccountBalanceAfter: number | null;

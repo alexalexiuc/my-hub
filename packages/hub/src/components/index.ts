@@ -16,4 +16,5 @@ export { Providers } from './Providers';
 export { SectionCard } from './SectionCard';
 export { Select } from './Select';
 export type { SelectOption } from './Select';
+export { SwipeRow } from './SwipeRow';
 export { Textarea } from './Textarea';
