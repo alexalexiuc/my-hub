@@ -14,6 +14,7 @@ type GroupSectionProps = {
   onEditGroup: (group: CategoryGroup) => void;
   onEditCategory: (cat: CategoryRow) => void;
   onDeleteCategory: (cat: CategoryRow) => void;
+  onOpenCategory?: (cat: CategoryRow) => void;
   onChanged: () => void;
 };
 
@@ -28,6 +29,7 @@ export function GroupSection({
   onEditGroup,
   onEditCategory,
   onDeleteCategory,
+  onOpenCategory,
   onChanged,
 }: GroupSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -103,6 +105,7 @@ export function GroupSection({
                 onSwipeClose={() => setOpenSwipeId(null)}
                 onEdit={onEditCategory}
                 onDelete={onDeleteCategory}
+                onOpen={onOpenCategory}
               />
             </div>
           ))}

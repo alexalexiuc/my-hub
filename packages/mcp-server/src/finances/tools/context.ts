@@ -8,7 +8,6 @@ import {
   getAccounts,
   getCategories,
   getGroups,
-  getPayees,
   getLoanBalanceSnapshotForAccount,
 } from '@my-hub/shared/services';
 

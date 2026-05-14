@@ -14,9 +14,10 @@ type CatRowProps = {
   onSwipeClose: () => void;
   onEdit: (cat: CategoryRow) => void;
   onDelete: (cat: CategoryRow) => void;
+  onOpen?: (cat: CategoryRow) => void;
 };
 
-function CatRowContent({ cat, currency }: { cat: CategoryRow; currency: string }) {
+function CatRowContent({ cat, currency, onClick }: { cat: CategoryRow; currency: string; onClick?: () => void }) {
   const pct =
     cat.monthlyTarget && cat.monthlyTarget > 0
       ? Math.min(100, Math.round((cat.spent / cat.monthlyTarget) * 100))
@@ -31,7 +32,7 @@ function CatRowContent({ cat, currency }: { cat: CategoryRow; currency: string }
           : (cat.color ?? 'var(--fin-green)');
 
   return (
-    <div className="px-[14px] py-[10px]">
+    <div className={cn('px-[14px] py-[10px]', onClick && 'cursor-pointer')} onClick={onClick}>
       <div className={cn('flex items-center gap-2.5', pct !== null ? 'mb-2' : 'mb-0')}>
         <CategoryIcon color={cat.color} icon={cat.icon} size="lg" fallback={cat.name[0]?.toUpperCase() ?? '?'} />
         <div className="min-w-0 flex-1">
@@ -63,7 +64,16 @@ function CatRowContent({ cat, currency }: { cat: CategoryRow; currency: string }
   );
 }
 
-export function CatRow({ cat, currency, isSwipeOpen, onSwipeOpen, onSwipeClose, onEdit, onDelete }: CatRowProps) {
+export function CatRow({
+  cat,
+  currency,
+  isSwipeOpen,
+  onSwipeOpen,
+  onSwipeClose,
+  onEdit,
+  onDelete,
+  onOpen,
+}: CatRowProps) {
   return (
     <>
       {/* Mobile: swipe to reveal */}
@@ -75,13 +85,13 @@ export function CatRow({ cat, currency, isSwipeOpen, onSwipeOpen, onSwipeClose, 
           onEdit={() => onEdit(cat)}
           onDelete={() => onDelete(cat)}
         >
-          <CatRowContent cat={cat} currency={currency} />
+          <CatRowContent cat={cat} currency={currency} onClick={onOpen ? () => onOpen(cat) : undefined} />
         </SwipeRow>
       </div>
 
       {/* Desktop: hover to reveal */}
       <div data-layout="desktop" className="group relative hidden md:block">
-        <CatRowContent cat={cat} currency={currency} />
+        <CatRowContent cat={cat} currency={currency} onClick={onOpen ? () => onOpen(cat) : undefined} />
         <div className="pointer-events-none absolute inset-y-0 right-[14px] flex items-center opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
           <div className="flex items-center gap-1 rounded-md border border-[var(--fin-border)] bg-[var(--fin-card)] px-1.5 py-1 shadow-sm">
             <button
