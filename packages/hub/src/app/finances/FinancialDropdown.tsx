@@ -30,7 +30,6 @@ function useIsMobile() {
   return isMobile;
 }
 
-/** Creates a Fuse instance for fuzzy-searching dropdown options. */
 export function buildDropdownFuse(
   options: DropdownOption[],
   config: boolean | { threshold: number } | undefined,
@@ -40,7 +39,6 @@ export function buildDropdownFuse(
   return new Fuse(options, { keys: ['value'], threshold });
 }
 
-/** Filters dropdown options by query string, using a Fuse instance for fuzzy search when provided. */
 export function applyDropdownFilter(
   options: DropdownOption[],
   trimmedQuery: string,
@@ -125,7 +123,7 @@ export function FinancialDropdown({
   const trimmedQuery = searchQuery.trim();
 
   const results = useMemo(() => {
-    const matches = applyDropdownFilter(options, trimmedQuery, searchable !== false, fuseInstance);
+    const matches = applyDropdownFilter(options, trimmedQuery, searchable, fuseInstance);
     return typeof maxResults === 'number' ? matches.slice(0, maxResults) : matches;
   }, [searchable, trimmedQuery, options, fuseInstance, maxResults]);
 

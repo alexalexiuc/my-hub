@@ -25,7 +25,11 @@ export function useAmountMask() {
     } else if (e.key === 'Delete') {
       e.preventDefault();
       setRawDigits('');
-    } else if (!['Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+    } else if (
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !['Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)
+    ) {
       e.preventDefault();
     }
   }, []);
