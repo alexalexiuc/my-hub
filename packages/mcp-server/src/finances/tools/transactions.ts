@@ -26,6 +26,21 @@ import type { TransactionInsert } from '@my-hub/shared/services';
 import { currentDateString, isPayeeRequired, omitUndefined } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
 
+function getAccountAvailable(
+  acc: { type: string; balance: number; details: unknown } | null | undefined,
+): number | null {
+  if (!acc) return null;
+  if (acc.type === AccountTypes.CreditCard) {
+    const creditLimit = (acc.details as { creditLimit?: number } | null)?.creditLimit ?? 0;
+    return creditLimit - acc.balance;
+  }
+  if (acc.type === AccountTypes.Goal) {
+    const targetAmount = (acc.details as { targetAmount?: number } | null)?.targetAmount ?? 0;
+    return targetAmount - acc.balance;
+  }
+  return null;
+}
+
 // ─── add_transactions ─────────────────────────────────────────────────────────
 
 const BaseExtrasSchema = z.object({
@@ -66,7 +81,6 @@ const TransactionItemSchema = z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional(),
-    accountId: z.number().int().positive(),
     toAccountId: z.number().int().positive().optional(),
     categoryId: z.number().int().positive().optional(),
     payeeName: z.string().min(1).optional(),
@@ -93,6 +107,14 @@ const TransactionItemSchema = z
   });
 
 export const AddTransactionsSchema = z.object({
+  accountId: z
+    .number()
+    .int()
+    .positive()
+    .describe(
+      'The account all transactions in this batch are recorded against. ' +
+        'Use finances_list_context to find available account IDs.',
+    ),
   transactions: z.array(TransactionItemSchema).min(1).max(50),
   createPayee: z
     .boolean()
@@ -110,7 +132,12 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
   const budget = await getUserActiveBudget(userId);
   if (!budget) throw new HandledError('No active budget. Set an active budget in the Hub first.');
 
-  const results = [];
+  const account = await getAccountById(userId, budget.id, input.accountId);
+  if (!account) throw new HandledError(`Account ${input.accountId} not found`);
+
+  const results: Array<Record<string, unknown>> = [];
+  let lastBalanceAfter: number | null = null;
+  const categoryMonthsUsed = new Map<number, Set<string>>();
   let categoryTargetsById: Map<number, number | null> | null = null;
 
   const getCategoryTargetsById = async (): Promise<Map<number, number | null>> => {
@@ -128,7 +155,6 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
     try {
       const date = item.date ?? currentDateString();
 
-      // Resolve payee (block if not found, or auto-create if createPayee flag is set)
       let payeeId: number | null = null;
       if (isPayeeRequired(item.type) && item.payeeName) {
         const resolvedPayeeId = await resolvePayeeIdByNameOrAlias(userId, budget.id, item.payeeName);
@@ -151,16 +177,12 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         }
       }
 
-      // Duplicate check
       const duplicate = await checkDuplicateTransaction(userId, budget.id, {
-        accountId: item.accountId,
+        accountId: input.accountId,
         date,
         amount: item.amount,
         payeeId,
       });
-
-      const account = await getAccountById(userId, budget.id, item.accountId);
-      if (!account) throw new HandledError(`Account ${item.accountId} not found`);
 
       const amountCurrency = item.currency?.toUpperCase();
 
@@ -211,11 +233,11 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         }
       }
 
-      const txData: TransactionInsert = {
+      const tx = await addTransaction(userId, budget.id, {
         type: item.type,
         amount: item.amount,
         date,
-        accountId: item.accountId,
+        accountId: input.accountId,
         toAccountId: item.toAccountId ?? null,
         categoryId: item.categoryId ?? null,
         payeeId,
@@ -224,42 +246,27 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         source: 'mcp',
         amountCurrency,
         extras: inferredExtras,
-      };
+      });
 
-      const tx = await addTransaction(userId, budget.id, txData);
+      lastBalanceAfter = tx.fromAccountBalanceAfter;
 
-      // Helper to calculate available amount for an account
-      const getAccountAvailable = (acc: typeof account): number | null => {
-        if (acc.type === AccountTypes.CreditCard) {
-          const details = acc.details as { creditLimit?: number } | null;
-          const creditLimit = details?.creditLimit ?? 0;
-          return creditLimit - acc.balance;
-        }
-        if (acc.type === AccountTypes.Goal) {
-          const details = acc.details as { targetAmount?: number } | null;
-          const targetAmount = details?.targetAmount ?? 0;
-          return targetAmount - acc.balance;
-        }
-        // For other account types, available is typically the balance itself (for bank/cash)
-        return null;
-      };
+      if (item.categoryId != null) {
+        const month = date.slice(0, 7);
+        const existing = categoryMonthsUsed.get(item.categoryId);
+        if (existing) existing.add(month);
+        else categoryMonthsUsed.set(item.categoryId, new Set([month]));
+      }
 
       const result: Record<string, unknown> = {
         index: i,
         transactionId: tx.id,
-        fromAccountBalanceAfter: tx.fromAccountBalanceAfter,
-        fromAccountAvailableAfter: getAccountAvailable(account),
-        resolvedAccount: account.name,
-        resolvedCategory: item.categoryId != null ? String(item.categoryId) : null,
+        date,
+        amount: item.amount,
         resolvedPayee: item.payeeName ?? null,
       };
 
       if (tx.toAccountBalanceAfter != null) {
         result.toAccountBalanceAfter = tx.toAccountBalanceAfter;
-        const toAccount = await getAccountById(userId, budget.id, item.toAccountId!);
-        if (toAccount) {
-          result.toAccountAvailableAfter = getAccountAvailable(toAccount);
-        }
       }
 
       if (duplicate) {
@@ -272,26 +279,6 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         };
       }
 
-      if (item.categoryId != null) {
-        const targetsById = await getCategoryTargetsById();
-        const monthlyTarget = targetsById.get(item.categoryId) ?? null;
-
-        if (monthlyTarget != null) {
-          const month = date.slice(0, 7);
-          const budgetProgress = await getBudgetProgress(userId, budget.id, month);
-          const categoryProgress = budgetProgress.categories.find(category => category.id === item.categoryId);
-
-          if (categoryProgress?.monthlyTarget != null) {
-            result.categoryBudgetProgress = {
-              month,
-              monthlyTarget: categoryProgress.monthlyTarget,
-              spentSoFar: categoryProgress.spent,
-              remaining: categoryProgress.monthlyTarget - categoryProgress.spent,
-            };
-          }
-        }
-      }
-
       results.push(result);
     } catch (err) {
       results.push({
@@ -301,7 +288,59 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
     }
   }
 
-  return toolResponse({ results });
+  const finalBalance = lastBalanceAfter ?? account.balance;
+
+  const accountSummary = {
+    id: account.id,
+    name: account.name,
+    balance: finalBalance,
+    availableAfter: getAccountAvailable({ type: account.type, balance: finalBalance, details: account.details }),
+  };
+
+  const categoryProgress: Array<{
+    categoryId: number;
+    categoryName: string;
+    month: string;
+    monthlyTarget: number;
+    spentSoFar: number;
+    remaining: number;
+  }> = [];
+
+  if (categoryMonthsUsed.size > 0) {
+    const targetsById = await getCategoryTargetsById();
+
+    const uniqueMonths = new Set<string>();
+    for (const [catId, months] of categoryMonthsUsed) {
+      if (targetsById.get(catId) != null) {
+        for (const month of months) uniqueMonths.add(month);
+      }
+    }
+
+    const progressByMonth = new Map<string, Awaited<ReturnType<typeof getBudgetProgress>>>();
+    await Promise.all(
+      Array.from(uniqueMonths).map(async month => {
+        progressByMonth.set(month, await getBudgetProgress(userId, budget.id, month));
+      }),
+    );
+
+    for (const [catId, months] of categoryMonthsUsed) {
+      if (targetsById.get(catId) == null) continue;
+      for (const month of months) {
+        const catProgress = progressByMonth.get(month)?.categories.find(c => c.id === catId);
+        if (catProgress?.monthlyTarget == null) continue;
+        categoryProgress.push({
+          categoryId: catId,
+          categoryName: catProgress.name,
+          month,
+          monthlyTarget: catProgress.monthlyTarget,
+          spentSoFar: catProgress.spent,
+          remaining: catProgress.monthlyTarget - catProgress.spent,
+        });
+      }
+    }
+  }
+
+  return toolResponse({ results, account: accountSummary, categoryProgress });
 };
 
 // ─── update_transaction ───────────────────────────────────────────────────────
@@ -380,22 +419,6 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
 
   const updated = await updateTransaction(userId, budget.id, input.transactionId, updateData);
   const resolvedAccount = await getAccountById(userId, budget.id, updated.accountId);
-
-  // Helper to calculate available amount for an account
-  const getAccountAvailable = (acc: typeof resolvedAccount): number | null => {
-    if (!acc) return null;
-    if (acc.type === AccountTypes.CreditCard) {
-      const details = acc.details as { creditLimit?: number } | null;
-      const creditLimit = details?.creditLimit ?? 0;
-      return creditLimit - acc.balance;
-    }
-    if (acc.type === AccountTypes.Goal) {
-      const details = acc.details as { targetAmount?: number } | null;
-      const targetAmount = details?.targetAmount ?? 0;
-      return targetAmount - acc.balance;
-    }
-    return null;
-  };
 
   const responseData: Record<string, unknown> = {
     index: 0,

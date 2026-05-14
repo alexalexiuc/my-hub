@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { HubAuthExtra } from '../../shared/types';
 import { CategoryIcons } from '@my-hub/shared/constants';
 import { createCategory, createGroup, getGroups, getUserActiveBudget } from '@my-hub/shared/services';
-import { UpsertCategorySchema, upsertCategoryTool } from './accounts-categories';
+import { UpsertCategorySchema, upsertCategoryTool } from './categories';
+import { financesContext, parseToolPayload } from './test-utils';
 
 vi.mock('@my-hub/shared/services', () => ({
   getUserActiveBudget: vi.fn(),
@@ -16,23 +16,6 @@ vi.mock('@my-hub/shared/services', () => ({
   createGroup: vi.fn(),
   addTransaction: vi.fn(),
 }));
-
-const context: HubAuthExtra = {
-  userId: 'user-1',
-  email: 'user@example.com',
-  clientId: 'client-1',
-  serverName: 'finances',
-  timezone: 'Europe/Bucharest',
-};
-
-function parseToolPayload(result: { content: Array<{ type: string; text?: string }> }): unknown {
-  const textContent = result.content.find(item => item.type === 'text' && typeof item.text === 'string');
-  if (!textContent?.text) {
-    throw new Error('Expected text content in tool response');
-  }
-
-  return JSON.parse(textContent.text);
-}
 
 describe('UpsertCategorySchema', () => {
   it('requires icon and color', () => {
@@ -81,7 +64,7 @@ describe('upsertCategoryTool', () => {
         groupName: 'Auto Group',
         monthlyTarget: undefined,
       },
-      context,
+      financesContext,
     );
 
     expect(createGroup).toHaveBeenCalledWith('user-1', 1, { name: 'Auto Group' });

@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { HubAuthExtra } from '../../shared/types';
 import {
   AddTransactionsSchema,
   UpdateTransactionSchema,
@@ -21,6 +20,7 @@ import {
   getBudgetProgress,
 } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
+import { financesContext, parseToolPayload } from './test-utils';
 
 vi.mock('@my-hub/shared/services', () => ({
   getUserActiveBudget: vi.fn(),
@@ -41,34 +41,25 @@ vi.mock('@my-hub/shared/services', () => ({
   getBudgetProgress: vi.fn(),
 }));
 
-const context: HubAuthExtra = {
-  userId: 'user-1',
-  email: 'user@example.com',
-  clientId: 'client-1',
-  serverName: 'finances',
-  timezone: 'Europe/Bucharest',
-};
-
-function parseToolPayload(result: { content: Array<{ type: string; text?: string }> }): unknown {
-  const textContent = result.content.find(item => item.type === 'text' && typeof item.text === 'string');
-  if (!textContent?.text) {
-    throw new Error('Expected text content in tool response');
-  }
-
-  return JSON.parse(textContent.text);
-}
-
 describe('finances transaction schemas', () => {
   it('rejects transfer items without a destination account', () => {
     const parsed = AddTransactionsSchema.safeParse({
+      accountId: 1,
       transactions: [
         {
           type: TransactionTypes.Transfer,
           amount: 125,
-          accountId: 1,
           notes: 'Move funds',
         },
       ],
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
+  it('rejects schema when accountId is missing at root', () => {
+    const parsed = AddTransactionsSchema.safeParse({
+      transactions: [{ type: TransactionTypes.Expense, amount: 50, notes: 'Lunch' }],
     });
 
     expect(parsed.success).toBe(false);
@@ -85,11 +76,11 @@ describe('finances transaction schemas', () => {
 
   it('accepts extras without kind for receipt details', () => {
     const parsed = AddTransactionsSchema.safeParse({
+      accountId: 1,
       transactions: [
         {
           type: TransactionTypes.Expense,
           amount: 42,
-          accountId: 1,
           notes: 'Groceries',
           extras: {
             rawInput: 'Milk 2x, Bread 1x',
@@ -107,7 +98,14 @@ describe('addTransactionsTool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getUserActiveBudget).mockResolvedValue({ id: 1, defaultCurrency: 'USD' } as never);
-    vi.mocked(getAccountById).mockResolvedValue({ id: 1, name: 'Checking', currency: 'USD' } as never);
+    vi.mocked(getAccountById).mockResolvedValue({
+      id: 1,
+      name: 'Checking',
+      currency: 'USD',
+      type: 'bank',
+      balance: 1000,
+      details: null,
+    } as never);
     vi.mocked(getCategories).mockResolvedValue([] as never);
     vi.mocked(checkDuplicateTransaction).mockResolvedValue(null as never);
     vi.mocked(addTransaction).mockResolvedValue({
@@ -120,18 +118,18 @@ describe('addTransactionsTool', () => {
   it('stores null extras when none are provided', async () => {
     await addTransactionsTool(
       {
+        accountId: 1,
         transactions: [
           {
             type: TransactionTypes.Expense,
             amount: 50,
-            accountId: 1,
             notes: 'Lunch',
             date: '2026-04-28',
           },
         ],
         createPayee: undefined,
       },
-      context,
+      financesContext,
     );
 
     expect(addTransaction).toHaveBeenCalledWith('user-1', 1, expect.objectContaining({ extras: null, notes: 'Lunch' }));
@@ -140,11 +138,11 @@ describe('addTransactionsTool', () => {
   it('infers receipt extras kind when receipt fields are present', async () => {
     await addTransactionsTool(
       {
+        accountId: 1,
         transactions: [
           {
             type: TransactionTypes.Expense,
             amount: 80,
-            accountId: 1,
             notes: 'Groceries',
             date: '2026-04-28',
             extras: {
@@ -156,7 +154,7 @@ describe('addTransactionsTool', () => {
         ],
         createPayee: undefined,
       },
-      context,
+      financesContext,
     );
 
     expect(addTransaction).toHaveBeenCalledWith(
@@ -172,7 +170,7 @@ describe('addTransactionsTool', () => {
     );
   });
 
-  it('returns category budget progress for categories with monthly targets', async () => {
+  it('returns category budget progress in root summary for categories with monthly targets', async () => {
     vi.mocked(getCategories).mockResolvedValue([{ id: 10, monthlyTarget: 300 }] as never);
     vi.mocked(getBudgetProgress).mockResolvedValue({
       month: '2026-04',
@@ -193,11 +191,11 @@ describe('addTransactionsTool', () => {
 
     const result = await addTransactionsTool(
       {
+        accountId: 1,
         transactions: [
           {
             type: TransactionTypes.Expense,
             amount: 20,
-            accountId: 1,
             categoryId: 10,
             notes: 'Market',
             date: '2026-04-28',
@@ -205,40 +203,82 @@ describe('addTransactionsTool', () => {
         ],
         createPayee: undefined,
       },
-      context,
+      financesContext,
     );
 
     const payload = parseToolPayload(result) as {
-      results: Array<{
-        categoryBudgetProgress?: {
-          month: string;
-          monthlyTarget: string;
-          remaining: string;
-          spentSoFar: string;
-        };
+      results: Array<Record<string, unknown>>;
+      account: { id: number; name: string; balance: number; availableAfter: number | null };
+      categoryProgress: Array<{
+        categoryId: number;
+        categoryName: string;
+        month: string;
+        monthlyTarget: number;
+        spentSoFar: number;
+        remaining: number;
       }>;
     };
 
-    expect(payload.results[0]?.categoryBudgetProgress).toEqual({
+    expect(payload.results[0]).not.toHaveProperty('categoryBudgetProgress');
+
+    expect(payload.account).toEqual({
+      id: 1,
+      name: 'Checking',
+      balance: 950,
+      availableAfter: null,
+    });
+
+    expect(payload.categoryProgress).toHaveLength(1);
+    expect(payload.categoryProgress[0]).toEqual({
+      categoryId: 10,
+      categoryName: 'Groceries',
       month: '2026-04',
       monthlyTarget: 300,
-      remaining: 150,
       spentSoFar: 150,
+      remaining: 150,
     });
+
+    expect(getBudgetProgress).toHaveBeenCalledTimes(1);
     expect(getBudgetProgress).toHaveBeenCalledWith('user-1', 1, '2026-04');
   });
 
-  it('passes transfer payload and relies on shared service for FX resolution', async () => {
-    vi.mocked(getUserActiveBudget).mockResolvedValue({ id: 1, defaultCurrency: 'USD' } as never);
-    vi.mocked(getAccountById).mockResolvedValue({ id: 1, name: 'EUR Account', currency: 'EUR' } as never);
-
-    await addTransactionsTool(
+  it('returns empty categoryProgress when no categories are used', async () => {
+    const result = await addTransactionsTool(
       {
+        accountId: 1,
+        transactions: [
+          {
+            type: TransactionTypes.Expense,
+            amount: 30,
+            notes: 'Coffee',
+            date: '2026-04-28',
+          },
+        ],
+        createPayee: undefined,
+      },
+      financesContext,
+    );
+
+    const payload = parseToolPayload(result) as { categoryProgress: unknown[] };
+
+    expect(payload.categoryProgress).toEqual([]);
+    expect(getBudgetProgress).not.toHaveBeenCalled();
+  });
+
+  it('passes transfer payload with root accountId and relies on shared service for FX resolution', async () => {
+    vi.mocked(addTransaction).mockResolvedValue({
+      id: 55,
+      fromAccountBalanceAfter: 800,
+      toAccountBalanceAfter: 1500,
+    } as never);
+
+    const result = await addTransactionsTool(
+      {
+        accountId: 1,
         transactions: [
           {
             type: TransactionTypes.Transfer,
             amount: 100,
-            accountId: 1,
             toAccountId: 2,
             notes: 'Move funds',
             date: '2026-04-28',
@@ -246,7 +286,7 @@ describe('addTransactionsTool', () => {
         ],
         createPayee: undefined,
       },
-      context,
+      financesContext,
     );
 
     expect(addTransaction).toHaveBeenCalledWith(
@@ -258,24 +298,32 @@ describe('addTransactionsTool', () => {
         toAccountId: 2,
       }),
     );
+
+    const payload = parseToolPayload(result) as {
+      results: Array<{ toAccountBalanceAfter?: number }>;
+      account: { balance: number };
+    };
+
+    expect(payload.results[0]?.toAccountBalanceAfter).toBe(1500);
+    expect(payload.account.balance).toBe(800);
   });
 
   it('includes original amount currency in extras for shared conversion', async () => {
     await addTransactionsTool(
       {
+        accountId: 1,
         transactions: [
           {
             type: TransactionTypes.Expense,
             amount: 100,
             currency: 'EUR',
-            accountId: 1,
             notes: 'Taxi',
             date: '2026-04-28',
           },
         ],
         createPayee: undefined,
       },
-      context,
+      financesContext,
     );
 
     expect(addTransaction).toHaveBeenCalledWith(
@@ -286,6 +334,57 @@ describe('addTransactionsTool', () => {
         amountCurrency: 'EUR',
       }),
     );
+  });
+
+  it('returns each transaction id in results for subsequent update or delete calls', async () => {
+    vi.mocked(addTransaction)
+      .mockResolvedValueOnce({ id: 10, fromAccountBalanceAfter: 980, toAccountBalanceAfter: null } as never)
+      .mockResolvedValueOnce({ id: 11, fromAccountBalanceAfter: 960, toAccountBalanceAfter: null } as never);
+
+    const result = await addTransactionsTool(
+      {
+        accountId: 1,
+        transactions: [
+          { type: TransactionTypes.Expense, amount: 20, notes: 'Coffee', date: '2026-04-28' },
+          { type: TransactionTypes.Expense, amount: 20, notes: 'Lunch', date: '2026-04-28' },
+        ],
+        createPayee: undefined,
+      },
+      financesContext,
+    );
+
+    const payload = parseToolPayload(result) as {
+      results: Array<{ transactionId: number; index: number }>;
+      account: { balance: number };
+    };
+
+    expect(payload.results).toHaveLength(2);
+    expect(payload.results[0]?.transactionId).toBe(10);
+    expect(payload.results[1]?.transactionId).toBe(11);
+    expect(payload.account.balance).toBe(960);
+  });
+
+  it('falls back to initial account balance when all transactions fail', async () => {
+    vi.mocked(addTransaction).mockRejectedValue(new Error('DB error'));
+
+    const result = await addTransactionsTool(
+      {
+        accountId: 1,
+        transactions: [{ type: TransactionTypes.Expense, amount: 50, notes: 'Fail', date: '2026-04-28' }],
+        createPayee: undefined,
+      },
+      financesContext,
+    );
+
+    const payload = parseToolPayload(result) as {
+      results: Array<{ error: string }>;
+      account: { balance: number };
+      categoryProgress: unknown[];
+    };
+
+    expect(payload.results[0]).toHaveProperty('error');
+    expect(payload.account.balance).toBe(1000);
+    expect(payload.categoryProgress).toEqual([]);
   });
 });
 
@@ -331,7 +430,7 @@ describe('updateTransactionTool', () => {
           notes: undefined,
           isCorrection: undefined,
         },
-        context,
+        financesContext,
       ),
     ).rejects.toThrow('Transfer transactions require toAccountId');
 
@@ -386,7 +485,7 @@ describe('updateTransactionTool', () => {
         notes: 'Updated note',
         isCorrection: undefined,
       },
-      context,
+      financesContext,
     );
     const payload = parseToolPayload(result) as { resolvedAccount: string };
 
@@ -439,7 +538,7 @@ describe('updateTransactionTool', () => {
         notes: undefined,
         isCorrection: undefined,
       },
-      context,
+      financesContext,
     );
 
     expect(updateTransaction).toHaveBeenCalledWith('user-1', 1, 10, expect.objectContaining({ toAccountId: null }));
@@ -468,7 +567,7 @@ describe('queryTransactionsTool', () => {
         limit: undefined,
         offset: undefined,
       },
-      context,
+      financesContext,
     );
     const payload = parseToolPayload(result) as { transactions: unknown[]; total: number };
 

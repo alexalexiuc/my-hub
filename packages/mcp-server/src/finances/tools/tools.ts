@@ -23,22 +23,18 @@ import {
   getNetWorthSummaryTool,
 } from './reporting';
 import { ListContextSchema, listContextTool } from './context';
-import {
-  UpsertAccountSchema,
-  upsertAccountTool,
-  UpsertCategorySchema,
-  upsertCategoryTool,
-} from './accounts-categories';
+import { UpsertAccountSchema, upsertAccountTool } from './accounts';
 import { MergePayeesSchema, mergePayeesTool, UpsertPayeeSchema, upsertPayeeTool } from './payees';
+import { UpsertCategorySchema, upsertCategoryTool } from './categories';
 
 const financeTools = [
   defineTool({
     name: 'finances_list_context',
     description:
-      'Returns all accounts, categories, groups, and payees in a single call. ' +
-      'Call this first before using any other finances tool that requires an accountId, categoryId, or payee name. ' +
-      'Use account IDs for transaction tools, category IDs for budget tools, and payee IDs for merge operations. ' +
-      'Includes archived accounts so you can reference them in historical queries.',
+      'Returns all accounts, categories, and groups in a single call. ' +
+      'Call this first before using any other finances tool that requires an accountId or categoryId. ' +
+      'Use account IDs for transaction tools and category IDs for budget tools. ' +
+      'Archived accounts are excluded by default; pass includeArchived: true to include them.',
     inputSchema: ListContextSchema.shape,
     annotations: { readOnlyHint: true },
     callback: listContextTool,
@@ -74,7 +70,7 @@ const financeTools = [
     description:
       'Create a new payee or update an existing one. ' +
       'If a payee with the given name (or matching alias) already exists, it is returned as-is. ' +
-      'Provide alias to add an alternative name that will be recognised during transaction entry — ' +
+      'Provide alias to add an alternative name that will be recognized during transaction entry — ' +
       'for example, alias "Starbucks Coffee" maps to the canonical payee "Starbucks". ' +
       'Use this tool before adding transactions when you know the payee does not yet exist, ' +
       'or after adding transactions that returned a payee_not_found error.',
@@ -88,7 +84,7 @@ const financeTools = [
       'Merge duplicate payees: all transactions from sourceIds are reassigned to targetId, ' +
       'then the source payees are deleted. ' +
       'Optionally rename the target payee to a canonical name after the merge. ' +
-      'This operation is irreversible — use finances_list_context to confirm IDs before calling.',
+      'This operation is irreversible — confirm payee IDs from finances_upsert_payee or prior tool responses before calling.',
     inputSchema: MergePayeesSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: true },
     callback: mergePayeesTool,
@@ -96,13 +92,14 @@ const financeTools = [
   defineTool({
     name: 'finances_add_transactions',
     description:
-      'Record one or more transactions (expenses, income, or transfers) in a single call. ' +
+      'Record one or more transactions (expenses, income, or transfers) against a single account in one call. ' +
+      'Provide accountId at the root — all transactions in the batch go to the same account. ' +
       'Accepts an array so a full batch parsed from a bank screenshot can be submitted in one step. ' +
       'If payeeName matches an existing canonical payee alias, the existing payee is reused instead of creating a duplicate. ' +
       'Each item is processed independently — a duplicate warning on one does not block the others. ' +
-      'Always populate the notes field with a plain-language summary of the transaction. ' +
+      'Only populate the notes field when you have meaningful information to add. ' +
       'The tool automatically detects possible duplicates and includes a warning in the result if found. ' +
-      'If a payeeName is not recognised and createPayee is false (default), the call returns a payee_not_found error — ' +
+      'If a payeeName is not recognized and createPayee is false (default), the call returns a payee_not_found error — ' +
       'use finances_upsert_payee to create the payee first, or set createPayee: true to create it automatically. ' +
       '\n\nExtras field guidance:\n' +
       '- extras is optional. Provide it only when you have meaningful structured metadata beyond the core transaction fields. ' +
