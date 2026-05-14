@@ -85,10 +85,7 @@ export function MobileSelectSheet({
   if (!mounted) return null;
 
   const content = (
-    <div
-      className="finances-theme fixed inset-0 z-[1100] flex flex-col justify-end bg-black/60"
-      onClick={onClose}
-    >
+    <div className="finances-theme fixed inset-0 z-[1100] flex flex-col justify-end bg-black/60" onClick={onClose}>
       <div
         className="flex max-h-[80vh] flex-col rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
         onClick={e => e.stopPropagation()}
@@ -126,8 +123,7 @@ export function MobileSelectSheet({
         {selectedLabel && (
           <div className="flex shrink-0 items-center justify-between border-b border-[var(--fin-border)] px-4 py-2">
             <span className="text-xs text-[var(--fin-subtle)]">
-              Selected:{' '}
-              <span className="font-medium text-[var(--fin-text)]">{selectedLabel}</span>
+              Selected: <span className="font-medium text-[var(--fin-text)]">{selectedLabel}</span>
             </span>
             {canClear && (
               <button
