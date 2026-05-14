@@ -30,6 +30,29 @@ function useIsMobile() {
   return isMobile;
 }
 
+/** Creates a Fuse instance for fuzzy-searching dropdown options. */
+export function buildDropdownFuse(
+  options: DropdownOption[],
+  config: boolean | { threshold: number } | undefined,
+): Fuse<DropdownOption> | null {
+  if (!config || options.length === 0) return null;
+  const threshold = typeof config === 'object' ? config.threshold : 0.35;
+  return new Fuse(options, { keys: ['value'], threshold });
+}
+
+/** Filters dropdown options by query string, using a Fuse instance for fuzzy search when provided. */
+export function applyDropdownFilter(
+  options: DropdownOption[],
+  trimmedQuery: string,
+  searchable: boolean,
+  fuseInstance: Fuse<DropdownOption> | null,
+): DropdownOption[] {
+  if (!searchable || !trimmedQuery) return options;
+  if (fuseInstance) return fuseInstance.search(trimmedQuery).map(r => r.item);
+  const lowered = trimmedQuery.toLowerCase();
+  return options.filter(item => String(item.value).toLowerCase().includes(lowered));
+}
+
 type FinancialDropdownBaseProps = {
   options: DropdownOption[];
   /** ID of the selected option. The display label is derived from `options`. */
@@ -97,26 +120,12 @@ export function FinancialDropdown({
     setSearchQuery('');
   }
 
-  const fuseInstance = useMemo(() => {
-    if (!fuse || options.length === 0) return null;
-    const threshold = typeof fuse === 'object' ? fuse.threshold : 0.35;
-    return new Fuse(options, { keys: ['value'], threshold });
-  }, [fuse, options]);
+  const fuseInstance = useMemo(() => buildDropdownFuse(options, fuse), [options, fuse]);
 
   const trimmedQuery = searchQuery.trim();
 
   const results = useMemo(() => {
-    let matches: DropdownOption[];
-
-    if (!searchable || !trimmedQuery) {
-      matches = options;
-    } else if (fuseInstance) {
-      matches = fuseInstance.search(trimmedQuery).map(result => result.item);
-    } else {
-      const lowered = trimmedQuery.toLowerCase();
-      matches = options.filter(item => String(item.value).toLowerCase().includes(lowered));
-    }
-
+    const matches = applyDropdownFilter(options, trimmedQuery, searchable !== false, fuseInstance);
     return typeof maxResults === 'number' ? matches.slice(0, maxResults) : matches;
   }, [searchable, trimmedQuery, options, fuseInstance, maxResults]);
 
@@ -161,7 +170,8 @@ export function FinancialDropdown({
     <div ref={rootRef} className="relative">
       {isMobile && open && (
         <MobileSelectSheet
-          options={typeof maxResults === 'number' ? options.slice(0, maxResults) : options}
+          options={options}
+          maxResults={maxResults}
           value={value}
           onChange={item => {
             onChange(item);

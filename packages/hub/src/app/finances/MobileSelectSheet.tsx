@@ -1,14 +1,20 @@
 'use client';
 
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import Fuse from 'fuse.js';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components';
-import type { DropdownOption, FinancialDropdownCreateOption } from './FinancialDropdown';
+import {
+  applyDropdownFilter,
+  buildDropdownFuse,
+  type DropdownOption,
+  type FinancialDropdownCreateOption,
+} from './FinancialDropdown';
+import { useState } from 'react';
 
 type MobileSelectSheetProps = {
   options: DropdownOption[];
+  maxResults?: number;
   value?: string | number;
   onChange: (item: DropdownOption | null) => void;
   onClose: () => void;
@@ -25,10 +31,12 @@ type MobileSelectSheetProps = {
 
 /**
  * Full-screen bottom sheet for picking a dropdown option on mobile.
- * Portals to document.body so it renders above all modal layers.
+ * Portals to document.body to render above all modal layers (z-[1100]).
+ * Only ever rendered client-side (gated by isMobile && open in FinancialDropdown).
  */
 export function MobileSelectSheet({
   options,
+  maxResults,
   value,
   onChange,
   onClose,
@@ -42,36 +50,23 @@ export function MobileSelectSheet({
   clearAriaLabel = 'Clear selection',
   createOption,
 }: MobileSelectSheetProps) {
-  const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+    if (!searchable) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 80);
+    return () => clearTimeout(t);
+  }, [searchable]);
 
-  useEffect(() => {
-    if (mounted && searchable) {
-      const t = setTimeout(() => inputRef.current?.focus(), 80);
-      return () => clearTimeout(t);
-    }
-  }, [mounted, searchable]);
-
-  const fuseInstance = useMemo(() => {
-    if (!fuse || options.length === 0) return null;
-    const threshold = typeof fuse === 'object' ? fuse.threshold : 0.35;
-    return new Fuse(options, { keys: ['value'], threshold });
-  }, [fuse, options]);
+  const fuseInstance = useMemo(() => buildDropdownFuse(options, fuse), [options, fuse]);
 
   const trimmedQuery = query.trim();
 
   const results = useMemo(() => {
-    if (!searchable || !trimmedQuery) return options;
-    if (fuseInstance) return fuseInstance.search(trimmedQuery).map(r => r.item);
-    const lowered = trimmedQuery.toLowerCase();
-    return options.filter(item => String(item.value).toLowerCase().includes(lowered));
-  }, [searchable, trimmedQuery, options, fuseInstance]);
+    const matches = applyDropdownFilter(options, trimmedQuery, searchable, fuseInstance);
+    return typeof maxResults === 'number' ? matches.slice(0, maxResults) : matches;
+  }, [options, trimmedQuery, searchable, fuseInstance, maxResults]);
 
   const showCreateOption = useMemo(() => {
     if (!createOption || !trimmedQuery) return false;
@@ -82,9 +77,7 @@ export function MobileSelectSheet({
   const selectedLabel = String(options.find(o => o.id === value)?.value ?? '');
   const canClear = clearable && value != null;
 
-  if (!mounted) return null;
-
-  const content = (
+  return createPortal(
     <div className="finances-theme fixed inset-0 z-[1100] flex flex-col justify-end bg-black/60" onClick={onClose}>
       <div
         className="flex max-h-[80vh] flex-col rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
@@ -102,7 +95,6 @@ export function MobileSelectSheet({
           </button>
         </div>
 
-        {/* Search input */}
         {searchable && (
           <div className="shrink-0 border-b border-[var(--fin-border)] px-4 py-2.5">
             <Input
@@ -119,7 +111,6 @@ export function MobileSelectSheet({
           </div>
         )}
 
-        {/* Selected indicator + clear */}
         {selectedLabel && (
           <div className="flex shrink-0 items-center justify-between border-b border-[var(--fin-border)] px-4 py-2">
             <span className="text-xs text-[var(--fin-subtle)]">
@@ -141,7 +132,6 @@ export function MobileSelectSheet({
           </div>
         )}
 
-        {/* Options list */}
         <div className="overflow-y-auto">
           {results.map(item => (
             <button
@@ -190,8 +180,7 @@ export function MobileSelectSheet({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
-
-  return createPortal(content, document.body);
 }
