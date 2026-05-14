@@ -61,7 +61,12 @@ export function TransactionModal({
   const [selToAccId, setSelToAccId] = useState<number | null>(prefilledToAccountId ?? null);
   const [selPayeeId, setSelPayeeId] = useState<number | null>(null);
 
-  const { displayValue: amountDisplay, handleKeyDown: amountKeyDown, handlePaste: amountPaste, setFromAmount } = useAmountMask();
+  const {
+    displayValue: amountDisplay,
+    handleKeyDown: amountKeyDown,
+    handlePaste: amountPaste,
+    setFromAmount,
+  } = useAmountMask();
 
   const mostUsedPayees = useMemo(() => {
     return [...payees]
@@ -300,7 +305,9 @@ export function TransactionModal({
               {txType === TransactionTypes.Transfer ? (
                 <FieldCard label="To Account">
                   {prefilledToAccountId != null ? (
-                    <div className="py-0.5 text-[13px] font-medium text-[var(--fin-text)]">{prefilledToAccountName}</div>
+                    <div className="py-0.5 text-[13px] font-medium text-[var(--fin-text)]">
+                      {prefilledToAccountName}
+                    </div>
                   ) : (
                     <FinancialDropdown
                       searchable={false}
@@ -314,7 +321,9 @@ export function TransactionModal({
                         return (
                           <span className="flex w-full items-center justify-between">
                             <span>{String(item.value)}</span>
-                            {acc && <span className="ml-auto text-[10px] text-[var(--fin-subtle)]">{acc.currency}</span>}
+                            {acc && (
+                              <span className="ml-auto text-[10px] text-[var(--fin-subtle)]">{acc.currency}</span>
+                            )}
                           </span>
                         );
                       }}
