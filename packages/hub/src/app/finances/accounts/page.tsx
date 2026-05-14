@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn, apiFetch } from '@/lib/utils';
-import { fmt, Card, SectionLabel, AddButton, Sparkline } from '../ui';
+import { fmt, Card, AddButton, Sparkline } from '../ui';
 import { IconButton } from '@/components';
 import { QuestionMarkIcon } from '@/components/icons';
 import { AddAccountModal } from './AddAccountModal';
@@ -25,6 +25,15 @@ const ACCOUNT_GROUPS = [
   { key: 'tracking', label: 'Tracking', icon: '👁' },
 ] as const;
 
+const LIABILITY_TYPES = ['credit_card', 'loan'];
+
+function amountColor(balance: number, type: string): string {
+  if (LIABILITY_TYPES.includes(type)) return 'text-[var(--fin-red)]';
+  if (balance > 0) return 'text-[var(--fin-green)]';
+  if (balance < 0) return 'text-[var(--fin-red)]';
+  return 'text-[var(--fin-text)]';
+}
+
 function AccountCard({
   acc,
   onSettle,
@@ -34,21 +43,20 @@ function AccountCard({
   onSettle: (id: number) => void;
   onClick: () => void;
 }) {
-  const isLiability = acc.type === 'credit_card' || acc.type === 'loan';
   const hasExtra = acc.type === 'credit_card' || acc.type === 'goal';
 
   return (
     <Card onClick={onClick} className="cursor-pointer px-[14px] py-3">
       <div className={cn('flex items-center justify-between', hasExtra ? 'mb-[10px]' : 'mb-0')}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <div className="h-2 w-2 shrink-0 rounded-full bg-[var(--fin-muted)]" />
-          <div>
-            <div className="text-sm font-semibold text-[var(--fin-text)]">{acc.name}</div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-[var(--fin-text)] truncate">{acc.name}</div>
             {acc.cardLastFour && <div className="text-[10px] text-[var(--fin-subtle)]">•••• {acc.cardLastFour}</div>}
           </div>
         </div>
-        <div className="text-right">
-          <div className={cn('text-base font-bold', isLiability ? 'text-[var(--fin-red)]' : 'text-[var(--fin-text)]')}>
+        <div className="text-right shrink-0 ml-2">
+          <div className={cn('text-base font-bold tabular-nums', amountColor(acc.balance, acc.type))}>
             {fmt(acc.balance, acc.currency)}
           </div>
         </div>
@@ -88,6 +96,7 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [showAvailableSheet, setShowAvailableSheet] = useState(false);
   const [showNetWorthSheet, setShowNetWorthSheet] = useState(false);
 
@@ -113,6 +122,15 @@ export default function AccountsPage() {
       silentToast: true,
     });
     load();
+  }
+
+  function toggleGroup(key: string) {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }
 
   if (loading) {
@@ -142,7 +160,7 @@ export default function AccountsPage() {
             className="absolute right-[10px] top-[10px] bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
           />
           <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Net Worth</div>
-          <div className="mb-2 text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">
+          <div className="mb-2 text-[15px] font-bold tracking-[-0.02em] text-[var(--fin-text)] break-all leading-tight">
             {fmt(netWorth, currency)}
           </div>
           <Sparkline data={netWorthHistory} color="var(--fin-green)" width={80} height={28} />
@@ -156,7 +174,7 @@ export default function AccountsPage() {
             className="absolute right-[10px] top-[10px] bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
           />
           <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Available</div>
-          <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">
+          <div className="text-[15px] font-bold tracking-[-0.02em] text-[var(--fin-text)] break-all leading-tight">
             {fmt(availableBalance, currency)}
           </div>
         </Card>
@@ -165,21 +183,44 @@ export default function AccountsPage() {
       {ACCOUNT_GROUPS.map(({ key, label, icon }) => {
         const accs = byType(key);
         if (!accs.length) return null;
+        const isCollapsed = collapsedGroups.has(key);
+        const groupTotal = accs.reduce((sum, a) => sum + a.balance, 0);
+        const groupCurrency = accs.every(a => a.currency === accs[0].currency) ? accs[0].currency : currency;
         return (
           <div key={key}>
-            <SectionLabel>
-              {icon} {label}
-            </SectionLabel>
-            <div className="flex flex-col gap-2">
-              {accs.map(acc => (
-                <AccountCard
-                  key={acc.id}
-                  acc={acc}
-                  onSettle={handleSettle}
-                  onClick={() => router.push(`/finances/accounts/${acc.id}`)}
-                />
-              ))}
-            </div>
+            <button
+              onClick={() => toggleGroup(key)}
+              className="mb-1 flex w-full cursor-pointer items-center justify-between"
+            >
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-[var(--fin-subtle)]">
+                {icon} {label}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-semibold tabular-nums text-[var(--fin-muted)]">
+                  {fmt(groupTotal, groupCurrency)}
+                </span>
+                <span
+                  className={cn(
+                    'text-[9px] text-[var(--fin-subtle)] transition-transform duration-200',
+                    isCollapsed ? 'rotate-0' : 'rotate-90',
+                  )}
+                >
+                  ▶
+                </span>
+              </div>
+            </button>
+            {!isCollapsed && (
+              <div className="flex flex-col gap-2">
+                {accs.map(acc => (
+                  <AccountCard
+                    key={acc.id}
+                    acc={acc}
+                    onSettle={handleSettle}
+                    onClick={() => router.push(`/finances/accounts/${acc.id}`)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
