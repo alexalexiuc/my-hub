@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components';
@@ -10,7 +10,6 @@ import {
   type DropdownOption,
   type FinancialDropdownCreateOption,
 } from './FinancialDropdown';
-import { useState } from 'react';
 
 type MobileSelectSheetProps = {
   options: DropdownOption[];

@@ -158,6 +158,16 @@ export function TransactionModal({
 
   const typeColor = TYPE_COLORS[txType];
 
+  const payeeCreateOption = useMemo(
+    () => ({
+      onCreate: (name: string) => {
+        setValue('payee', name);
+        setSelPayeeId(null);
+      },
+    }),
+    [setValue],
+  );
+
   async function onSubmit(values: AddTransactionValues) {
     if (!selAccId) return;
     if (txType === TransactionTypes.Expense && !selCatId) return;
@@ -265,12 +275,7 @@ export function TransactionModal({
                   }}
                   fuse
                   placeholder="e.g. Kaufland, Netflix…"
-                  createOption={{
-                    onCreate: name => {
-                      setValue('payee', name);
-                      setSelPayeeId(null);
-                    },
-                  }}
+                  createOption={payeeCreateOption}
                 />
                 {mostUsedPayees.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-2">
