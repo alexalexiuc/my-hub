@@ -1,65 +1,88 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiFetch } from '@/lib/utils';
 import type { PayeesResponse, PayeeWithSuggestion } from '@/app/api/finances/payees/route';
-import type { PayeesReportResponse } from '@/app/api/finances/payees/report/route';
+import type { PayeesReportResponse, PayeeReportItem } from '@/app/api/finances/payees/report/route';
 import { Card } from '../ui';
 import { EditPayeeModal } from './EditPayeeModal';
+import { MergePayeeModal } from './MergePayeeModal';
 import { PayeesRangeFilter } from './PayeesRangeFilter';
 import { PayeesTableHeader } from './PayeesTableHeader';
 import { PayeeRow } from './PayeeRow';
 import { PAYEE_RANGES, type Range, type SortKey } from './types';
+import { Input } from '@/components';
+import Fuse from 'fuse.js';
 
 export default function PayeesPage() {
   const [range, setRange] = useState<Range>('30d');
   const [sortBy, setSortBy] = useState<SortKey>('totalSpent');
-  const [data, setData] = useState<PayeesReportResponse | null>(null);
-  const [payeesById, setPayeesById] = useState<Map<number, PayeeWithSuggestion>>(new Map());
+  const [search, setSearch] = useState('');
+  const [reportData, setReportData] = useState<PayeesReportResponse | null>(null);
+  const [allPayees, setAllPayees] = useState<PayeeWithSuggestion[]>([]);
   const [editingPayee, setEditingPayee] = useState<PayeeWithSuggestion | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [mergingPayee, setMergingPayee] = useState<PayeeWithSuggestion | null>(null);
+  const [payeesLoading, setPayeesLoading] = useState(true);
 
-  const load = useCallback(async (r: Range) => {
-    setLoading(true);
-    try {
-      const result = await apiFetch<PayeesReportResponse>(`/api/finances/payees/report?range=${r}`, {
-        silentToast: true,
-      });
-      setData(result);
-    } finally {
-      setLoading(false);
-    }
+  const loadReport = useCallback(async (r: Range) => {
+    const result = await apiFetch<PayeesReportResponse>(`/api/finances/payees/report?range=${r}`, {
+      silentToast: true,
+    });
+    setReportData(result);
   }, []);
 
   const loadPayees = useCallback(async () => {
-    const result = await apiFetch<PayeesResponse>('/api/finances/payees', {
-      silentToast: true,
-    });
-    setPayeesById(new Map(result.payees.map(payee => [payee.id, payee])));
+    setPayeesLoading(true);
+    try {
+      const result = await apiFetch<PayeesResponse>('/api/finances/payees', { silentToast: true });
+      setAllPayees(result.payees);
+    } finally {
+      setPayeesLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    load(range);
-  }, [range, load]);
+    loadReport(range);
+  }, [range, loadReport]);
 
   useEffect(() => {
     loadPayees();
   }, [loadPayees]);
 
-  // TODO: Get currency from budget
-  const currency = data?.currency ?? 'EUR';
-  const sorted = [...(data?.payees ?? [])].sort((a, b) => {
-    if (sortBy === 'name') return a.name.localeCompare(b.name);
-    return b[sortBy] - a[sortBy];
-  });
+  const currency = reportData?.currency ?? 'EUR';
+  const reportById = useMemo<Map<number, PayeeReportItem>>(() => {
+    return new Map((reportData?.payees ?? []).map(p => [p.id, p]));
+  }, [reportData]);
+
+  const fuse = useMemo(() => new Fuse(allPayees, { keys: ['name', 'aliases'], threshold: 0.3 }), [allPayees]);
+
+  const sorted = useMemo(() => {
+    const filtered = search ? fuse.search(search).map(r => r.item) : allPayees;
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      const ra = reportById.get(a.id);
+      const rb = reportById.get(b.id);
+      if (sortBy === 'totalSpent') return (rb?.totalSpent ?? 0) - (ra?.totalSpent ?? 0);
+      if (sortBy === 'txCount') return (rb?.txCount ?? 0) - (ra?.txCount ?? 0);
+      return 0;
+    });
+  }, [fuse, allPayees, search, sortBy, reportById]);
 
   return (
     <div className="flex flex-col gap-[14px]">
       <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Payees</div>
 
-      <PayeesRangeFilter range={range} onChange={setRange} ranges={PAYEE_RANGES} />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <Input
+          placeholder="Search payees…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="flex-1"
+        />
+        <PayeesRangeFilter range={range} onChange={setRange} ranges={PAYEE_RANGES} />
+      </div>
 
-      {loading ? (
+      {payeesLoading ? (
         <div
           className="h-[300px] rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
           style={{ opacity: 0.6 }}
@@ -69,17 +92,20 @@ export default function PayeesPage() {
           <PayeesTableHeader sortBy={sortBy} onSort={setSortBy} />
 
           {sorted.length === 0 && (
-            <div className="py-8 text-center text-xs text-[var(--fin-subtle)]">No payee data for this period</div>
+            <div className="py-8 text-center text-xs text-[var(--fin-subtle)]">
+              {search ? 'No payees match your search' : 'No payees yet'}
+            </div>
           )}
 
           {sorted.map((p, i) => (
             <PayeeRow
               key={p.id}
               payee={p}
-              fullPayee={payeesById.get(p.id)}
+              reportItem={reportById.get(p.id)}
               currency={currency}
               showDivider={i > 0}
               onEdit={setEditingPayee}
+              onMerge={setMergingPayee}
             />
           ))}
         </Card>
@@ -91,7 +117,19 @@ export default function PayeesPage() {
           onClose={() => setEditingPayee(null)}
           onSaved={async () => {
             setEditingPayee(null);
-            await Promise.all([loadPayees(), load(range)]);
+            await Promise.all([loadPayees(), loadReport(range)]);
+          }}
+        />
+      )}
+
+      {mergingPayee && (
+        <MergePayeeModal
+          payee={mergingPayee}
+          allPayees={allPayees}
+          onClose={() => setMergingPayee(null)}
+          onMerged={async () => {
+            setMergingPayee(null);
+            await Promise.all([loadPayees(), loadReport(range)]);
           }}
         />
       )}

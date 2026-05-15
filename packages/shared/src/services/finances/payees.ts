@@ -235,7 +235,8 @@ export interface MergePayeesResult {
 /**
  * Merges one or more source payees into a target payee.
  * All transactions referencing the source payees are reassigned to targetId,
- * then the source payees are deleted. Optionally renames the target payee.
+ * then the source payees are deleted. Source payee names and aliases are merged
+ * into the target's alias list (deduplicated, case-insensitive). Optionally renames the target.
  */
 export async function mergePayees(
   userId: string,
@@ -264,7 +265,7 @@ export async function mergePayees(
   let finalCanonicalName = '';
   await db.transaction(async tx => {
     const [target] = await tx
-      .select({ id: financePayees.id, name: financePayees.name })
+      .select({ id: financePayees.id, name: financePayees.name, aliases: financePayees.aliases })
       .from(financePayees)
       .where(and(eq(financePayees.id, targetId), eq(financePayees.budgetId, budgetId)))
       .for('update');
@@ -274,7 +275,7 @@ export async function mergePayees(
     }
 
     const sources = await tx
-      .select({ id: financePayees.id })
+      .select({ id: financePayees.id, name: financePayees.name, aliases: financePayees.aliases })
       .from(financePayees)
       .where(and(inArray(financePayees.id, uniqueSourceIds), eq(financePayees.budgetId, budgetId)))
       .for('update');
@@ -286,6 +287,17 @@ export async function mergePayees(
     }
 
     finalCanonicalName = target.name;
+
+    const seenNormalized = new Set<string>();
+    const mergedAliases: string[] = [];
+    for (const alias of [...(target.aliases ?? []), ...sources.flatMap(s => [s.name, ...(s.aliases ?? [])])]) {
+      const norm = alias.trim().toLowerCase();
+      if (!norm || seenNormalized.has(norm)) continue;
+      seenNormalized.add(norm);
+      mergedAliases.push(alias.trim());
+    }
+    const targetNameNorm = target.name.trim().toLowerCase();
+    const finalAliases = mergedAliases.filter(a => a.toLowerCase() !== targetNameNorm);
 
     // Count transactions affected
     const [countRow] = await tx
@@ -308,16 +320,19 @@ export async function mergePayees(
       .delete(financePayees)
       .where(and(eq(financePayees.budgetId, budgetId), inArray(financePayees.id, uniqueSourceIds)));
 
-    // Optionally rename target
+    // Update target: apply merged aliases and optional rename
+    const targetUpdates: Partial<typeof financePayees.$inferInsert> = { aliases: finalAliases };
     if (canonicalName !== undefined) {
       const trimmed = canonicalName.trim();
       if (!trimmed) throw new Error('canonicalName cannot be empty');
       finalCanonicalName = trimmed;
-      await tx
-        .update(financePayees)
-        .set({ name: trimmed, normalizedName: normalizePayeeName(trimmed) })
-        .where(and(eq(financePayees.id, targetId), eq(financePayees.budgetId, budgetId)));
+      targetUpdates.name = trimmed;
+      targetUpdates.normalizedName = normalizePayeeName(trimmed);
     }
+    await tx
+      .update(financePayees)
+      .set(targetUpdates)
+      .where(and(eq(financePayees.id, targetId), eq(financePayees.budgetId, budgetId)));
   });
 
   return { mergedCount, targetId, canonicalName: finalCanonicalName };
