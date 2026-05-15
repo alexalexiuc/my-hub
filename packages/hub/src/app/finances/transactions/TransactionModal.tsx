@@ -37,6 +37,19 @@ function formatMobileAmount(value: string, currencyCode: string): string {
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + currencyCode;
 }
 
+/** Format raw cents (e.g. "110050") as a currency-suffixed string: "1,100.50MDL". */
+function formatDigitsWithCurrency(digits: string, currency: string): string {
+  const n = digits ? parseInt(digits, 10) / 100 : 0;
+  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + currency;
+}
+
+/** Format raw cents without trailing zeros for the compact expression strip: "1100.50" → "1100.5". */
+function formatDigitsCompact(digits: string): string {
+  if (!digits) return '0';
+  const n = parseInt(digits, 10) / 100;
+  return n.toFixed(2).replace(/\.?0+$/, '');
+}
+
 function FieldCard({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="cursor-default rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)] px-3 py-2.5">
@@ -103,11 +116,14 @@ export function TransactionModal({
   const [selToAccId, setSelToAccId] = useState<number | null>(prefilledToAccountId ?? null);
   const [selPayeeId, setSelPayeeId] = useState<number | null>(null);
 
-  const [keypadOpen, setKeypadOpen] = useState(false);
+  const [keypadOpen, setKeypadOpen] = useState(!isEdit);
   const [preKeypadAmount, setPreKeypadAmount] = useState('');
 
   const {
     displayValue: amountDisplay,
+    rawDigits,
+    tokens,
+    expressionResult,
     handleKeyDown: amountKeyDown,
     handlePaste: amountPaste,
     setFromAmount,
@@ -239,9 +255,32 @@ export function TransactionModal({
     !watch('amount') || !selAccId || (txType === TransactionTypes.Expense && !selCatId) || isSubmitting;
 
   const currencyCode = formData?.currency ?? '';
+  const currencySymbol = formData ? getCurrencySymbol(formData.currency ?? '') : '';
+
   const mobileAmountText = useMemo(
     () => (amountDisplay ? formatMobileAmount(amountDisplay, currencyCode) : `0.00${currencyCode}`),
     [amountDisplay, currencyCode],
+  );
+
+  // Flat token list for display — omit rawDigits when empty so a trailing operator
+  // ("11 +") doesn't render a phantom "0.00MDL" as the next term.
+  const expressionTerms = useMemo(
+    () => (tokens.length === 0 ? null : rawDigits ? [...tokens, rawDigits] : tokens),
+    [tokens, rawDigits],
+  );
+
+  // Large display: each term with currency code, wraps naturally. "0.22MDL + 5,521.17MDL - …"
+  const largeExpression = useMemo(
+    () =>
+      expressionTerms?.map(t => (t === '+' || t === '-' ? t : formatDigitsWithCurrency(t, currencyCode))).join(' ') ??
+      null,
+    [expressionTerms, currencyCode],
+  );
+
+  // Compact strip inside the keypad: "0.22 + 5521.17 - …"
+  const expressionText = useMemo(
+    () => expressionTerms?.map(t => (t === '+' || t === '-' ? t : formatDigitsCompact(t))).join(' '),
+    [expressionTerms],
   );
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -339,13 +378,17 @@ export function TransactionModal({
         )}
 
         {/* Amount display */}
-        <div onClick={openKeypad} className="shrink-0 flex flex-col items-center py-6 cursor-pointer active:opacity-70">
-          <span className="text-5xl font-bold tracking-tight" style={{ color: typeColor }}>
-            {mobileAmountText}
-          </span>
-          {!amountDisplay ? (
-            <span className="mt-1.5 text-xs text-[var(--fin-muted)]">Tap to Enter Amount</span>
+        <div onClick={openKeypad} className="shrink-0 flex flex-col items-center py-5 cursor-pointer active:opacity-70">
+          {largeExpression ? (
+            <p className="px-5 text-center text-2xl font-bold leading-snug" style={{ color: typeColor }}>
+              {largeExpression}
+            </p>
           ) : (
+            <span className="text-5xl font-bold tracking-tight" style={{ color: typeColor }}>
+              {mobileAmountText}
+            </span>
+          )}
+          {amountDisplay || largeExpression ? (
             <Button
               type="button"
               variant="transparent"
@@ -354,11 +397,13 @@ export function TransactionModal({
                 e.stopPropagation();
                 pressKey('Clear');
               }}
-              className="mt-1.5 flex items-center gap-1 rounded-full border border-[var(--fin-border)] px-2.5 py-0.5 text-xs text-[var(--fin-muted)] active:opacity-60"
+              className="mt-2 flex items-center gap-1 rounded-full border border-[var(--fin-border)] px-2.5 py-0.5 text-xs text-[var(--fin-muted)] active:opacity-60"
             >
               × Clear
             </Button>
-          )}
+          ) : !keypadOpen ? (
+            <span className="mt-1.5 text-xs text-[var(--fin-muted)]">Tap to Enter Amount</span>
+          ) : null}
         </div>
 
         {/* Fields — scrollable */}
@@ -504,7 +549,17 @@ export function TransactionModal({
         {/* Keypad overlay */}
         {keypadOpen && (
           <div className="absolute inset-x-0 bottom-0 z-10 border-t border-[var(--fin-border)] bg-[var(--fin-card)]">
-            <MobileAmountKeypad onKey={pressKey} onDone={() => setKeypadOpen(false)} onCancel={cancelKeypad} />
+            <MobileAmountKeypad
+              onKey={pressKey}
+              onDone={() => {
+                pressKey('=');
+                setKeypadOpen(false);
+              }}
+              onCancel={cancelKeypad}
+              expressionText={expressionText}
+              expressionResult={expressionResult}
+              currencySymbol={currencySymbol}
+            />
           </div>
         )}
       </div>
