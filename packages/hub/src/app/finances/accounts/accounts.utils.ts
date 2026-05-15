@@ -1,5 +1,5 @@
-import { AccountItem } from '@/app/api/finances/accounts/route';
-import { SupportedCurrency } from '@my-hub/shared/constants';
+import type { AccountItem } from '@/app/api/finances/accounts/route';
+import type { SupportedCurrency } from '@my-hub/shared/constants';
 
 export function groupAccountsByCurrency(accounts: AccountItem[]): [SupportedCurrency, AccountItem[]][] {
   const groups: Record<SupportedCurrency, AccountItem[]> = {} as Record<SupportedCurrency, AccountItem[]>;
