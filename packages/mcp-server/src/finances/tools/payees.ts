@@ -8,6 +8,7 @@ import {
   upsertPayee,
   updatePayee,
   findPayeeByNameOrAlias,
+  getPayees,
 } from '@my-hub/shared/services';
 
 // ─── upsert_payee ─────────────────────────────────────────────────────────────
@@ -89,4 +90,64 @@ export const mergePayeesTool: ToolHandler<typeof MergePayeesSchema.shape> = asyn
   const result = await mergePayees(userId, budget.id, input.targetId, input.sourceIds, input.canonicalName);
 
   return toolResponse(result);
+};
+
+// ─── list_payees ───────────────────────────────────────────────────────────────
+
+function fuzzyMatch(haystack: string, needle: string): boolean {
+  const h = haystack.toLowerCase();
+  const n = needle.toLowerCase();
+  let hi = 0;
+  for (const ch of n) {
+    const found = h.indexOf(ch, hi);
+    if (found === -1) return false;
+    hi = found + 1;
+  }
+  return true;
+}
+
+export const ListPayeesSchema = z.object({
+  search: z
+    .string()
+    .optional()
+    .describe(
+      'Optional fuzzy search term. Matches against payee name and all aliases. ' +
+        'Fuzzy matching — characters must appear in order but need not be adjacent.',
+    ),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .max(200)
+    .default(50)
+    .describe('Maximum number of payees to return (default 50, max 200).'),
+  offset: z.number().int().min(0).default(0).describe('Number of payees to skip for pagination (default 0).'),
+});
+
+export const listPayeesTool: ToolHandler<typeof ListPayeesSchema.shape> = async (input, context) => {
+  const { userId } = context;
+
+  const budget = await getUserActiveBudget(userId);
+  if (!budget) throw new HandledError('No active budget. Set an active budget in the Hub first.');
+
+  const all = await getPayees(userId, budget.id);
+
+  const filtered = input.search
+    ? all.filter(p => fuzzyMatch(p.name, input.search!) || p.aliases.some(alias => fuzzyMatch(alias, input.search!)))
+    : all;
+
+  const page = filtered.slice(input.offset, input.offset + input.limit);
+
+  return toolResponse({
+    payees: page.map(p => ({
+      id: p.id,
+      name: p.name,
+      aliases: p.aliases,
+      description: p.description,
+      useCount: p.useCount,
+    })),
+    total: filtered.length,
+    limit: input.limit,
+    offset: input.offset,
+  });
 };

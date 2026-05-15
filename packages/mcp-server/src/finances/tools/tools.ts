@@ -24,7 +24,14 @@ import {
 } from './reporting';
 import { ListContextSchema, listContextTool } from './context';
 import { UpsertAccountSchema, upsertAccountTool } from './accounts';
-import { MergePayeesSchema, mergePayeesTool, UpsertPayeeSchema, upsertPayeeTool } from './payees';
+import {
+  ListPayeesSchema,
+  listPayeesTool,
+  MergePayeesSchema,
+  mergePayeesTool,
+  UpsertPayeeSchema,
+  upsertPayeeTool,
+} from './payees';
 import { UpsertCategorySchema, upsertCategoryTool } from './categories';
 
 const financeTools = [
@@ -64,6 +71,17 @@ const financeTools = [
     inputSchema: UpsertCategorySchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: upsertCategoryTool,
+  }),
+  defineTool({
+    name: 'finances_list_payees',
+    description:
+      'List all payees for the active budget, with optional fuzzy search and pagination. ' +
+      'Fuzzy search matches against payee name and aliases — characters must appear in order but need not be adjacent. ' +
+      'Results are sorted by usage frequency (most-used first), then by most-recently used, then alphabetically. ' +
+      'Use limit and offset for pagination.',
+    inputSchema: ListPayeesSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: listPayeesTool,
   }),
   defineTool({
     name: 'finances_upsert_payee',
