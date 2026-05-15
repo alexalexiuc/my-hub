@@ -10,6 +10,7 @@ import {
   findPayeeByNameOrAlias,
   getPayees,
 } from '@my-hub/shared/services';
+import { fuzzyMatch } from '@my-hub/shared/utils';
 
 // ─── upsert_payee ─────────────────────────────────────────────────────────────
 
@@ -93,18 +94,6 @@ export const mergePayeesTool: ToolHandler<typeof MergePayeesSchema.shape> = asyn
 };
 
 // ─── list_payees ───────────────────────────────────────────────────────────────
-
-function fuzzyMatch(haystack: string, needle: string): boolean {
-  const h = haystack.toLowerCase();
-  const n = needle.toLowerCase();
-  let hi = 0;
-  for (const ch of n) {
-    const found = h.indexOf(ch, hi);
-    if (found === -1) return false;
-    hi = found + 1;
-  }
-  return true;
-}
 
 export const ListPayeesSchema = z.object({
   search: z

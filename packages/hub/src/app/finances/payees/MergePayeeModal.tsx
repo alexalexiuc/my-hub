@@ -43,7 +43,7 @@ export function MergePayeeModal({ payee, allPayees, onClose, onMerged }: MergePa
       className="md:max-w-[420px]"
       onSubmit={handleSubmit}
       submitLabel="Merge"
-      submitDisabled={!sourceId || submitting}
+      submitDisabled={!sourceId}
       submitLoading={submitting}
     >
       <div className="flex flex-col gap-3">

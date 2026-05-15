@@ -12,19 +12,7 @@ import { PayeesTableHeader } from './PayeesTableHeader';
 import { PayeeRow } from './PayeeRow';
 import { PAYEE_RANGES, type Range, type SortKey } from './types';
 import { Input } from '@/components';
-
-function fuzzyMatch(haystack: string, needle: string): boolean {
-  if (!needle) return true;
-  const h = haystack.toLowerCase();
-  const n = needle.toLowerCase();
-  let hi = 0;
-  for (const ch of n) {
-    const found = h.indexOf(ch, hi);
-    if (found === -1) return false;
-    hi = found + 1;
-  }
-  return true;
-}
+import { fuzzyMatch } from '@my-hub/shared/utils';
 
 function payeeMatchesSearch(payee: PayeeWithSuggestion, search: string): boolean {
   if (!search) return true;
@@ -74,7 +62,7 @@ export default function PayeesPage() {
 
   const sorted = useMemo(() => {
     const filtered = allPayees.filter(p => payeeMatchesSearch(p, search));
-    return [...filtered].sort((a, b) => {
+    return filtered.sort((a, b) => {
       if (sortBy === 'name') return a.name.localeCompare(b.name);
       const ra = reportById.get(a.id);
       const rb = reportById.get(b.id);
@@ -84,25 +72,21 @@ export default function PayeesPage() {
     });
   }, [allPayees, search, sortBy, reportById]);
 
-  const loading = payeesLoading;
-
   return (
     <div className="flex flex-col gap-[14px]">
       <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Payees</div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <Input
-            placeholder="Search payees…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full"
-          />
-        </div>
+        <Input
+          placeholder="Search payees…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="flex-1"
+        />
         <PayeesRangeFilter range={range} onChange={setRange} ranges={PAYEE_RANGES} />
       </div>
 
-      {loading ? (
+      {payeesLoading ? (
         <div
           className="h-[300px] rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
           style={{ opacity: 0.6 }}

@@ -288,7 +288,6 @@ export async function mergePayees(
 
     finalCanonicalName = target.name;
 
-    // Merge aliases: target aliases ∪ source names ∪ source aliases, deduplicated case-insensitively
     const seenNormalized = new Set<string>();
     const mergedAliases: string[] = [];
     for (const alias of [...(target.aliases ?? []), ...sources.flatMap(s => [s.name, ...(s.aliases ?? [])])]) {
@@ -297,7 +296,6 @@ export async function mergePayees(
       seenNormalized.add(norm);
       mergedAliases.push(alias.trim());
     }
-    // Remove the target's own name from aliases
     const targetNameNorm = target.name.trim().toLowerCase();
     const finalAliases = mergedAliases.filter(a => a.toLowerCase() !== targetNameNorm);
 
