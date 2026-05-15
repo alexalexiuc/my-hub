@@ -12,13 +12,7 @@ import { PayeesTableHeader } from './PayeesTableHeader';
 import { PayeeRow } from './PayeeRow';
 import { PAYEE_RANGES, type Range, type SortKey } from './types';
 import { Input } from '@/components';
-import { fuzzyMatch } from '@my-hub/shared/utils';
-
-function payeeMatchesSearch(payee: PayeeWithSuggestion, search: string): boolean {
-  if (!search) return true;
-  if (fuzzyMatch(payee.name, search)) return true;
-  return payee.aliases.some(alias => fuzzyMatch(alias, search));
-}
+import Fuse from 'fuse.js';
 
 export default function PayeesPage() {
   const [range, setRange] = useState<Range>('30d');
@@ -60,9 +54,11 @@ export default function PayeesPage() {
     return new Map((reportData?.payees ?? []).map(p => [p.id, p]));
   }, [reportData]);
 
+  const fuse = useMemo(() => new Fuse(allPayees, { keys: ['name', 'aliases'], threshold: 0.3 }), [allPayees]);
+
   const sorted = useMemo(() => {
-    const filtered = allPayees.filter(p => payeeMatchesSearch(p, search));
-    return filtered.sort((a, b) => {
+    const filtered = search ? fuse.search(search).map(r => r.item) : allPayees;
+    return [...filtered].sort((a, b) => {
       if (sortBy === 'name') return a.name.localeCompare(b.name);
       const ra = reportById.get(a.id);
       const rb = reportById.get(b.id);
@@ -70,7 +66,7 @@ export default function PayeesPage() {
       if (sortBy === 'txCount') return (rb?.txCount ?? 0) - (ra?.txCount ?? 0);
       return 0;
     });
-  }, [allPayees, search, sortBy, reportById]);
+  }, [fuse, allPayees, search, sortBy, reportById]);
 
   return (
     <div className="flex flex-col gap-[14px]">

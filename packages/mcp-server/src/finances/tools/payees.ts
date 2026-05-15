@@ -10,7 +10,7 @@ import {
   findPayeeByNameOrAlias,
   getPayees,
 } from '@my-hub/shared/services';
-import { fuzzyMatch } from '@my-hub/shared/utils';
+import Fuse from 'fuse.js';
 
 // ─── upsert_payee ─────────────────────────────────────────────────────────────
 
@@ -122,7 +122,7 @@ export const listPayeesTool: ToolHandler<typeof ListPayeesSchema.shape> = async 
   const all = await getPayees(userId, budget.id);
 
   const filtered = input.search
-    ? all.filter(p => fuzzyMatch(p.name, input.search!) || p.aliases.some(alias => fuzzyMatch(alias, input.search!)))
+    ? new Fuse(all, { keys: ['name', 'aliases'], threshold: 0.3 }).search(input.search).map(r => r.item)
     : all;
 
   const page = filtered.slice(input.offset, input.offset + input.limit);
