@@ -5,8 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import type { AccountMutationResponse, AccountCreateData } from '@/app/api/finances/accounts/route';
 import { FinModalShell } from '../FinModalShell';
-import { Field, Input } from '@/components';
+import { Input } from '@/components';
 import { FinancialDropdown } from '../FinancialDropdown';
+import { FinFieldCard } from '../ui';
 import { AccountTypes, ACCOUNT_TYPE_DESCRIPTIONS, SupportedCurrency } from '@my-hub/shared/constants';
 import {
   AddAccountSchema,
@@ -21,6 +22,9 @@ type AddAccountModalProps = {
   onClose: () => void;
   onCreated: () => void;
 };
+
+const dropdownInputClass = 'py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]';
+const ghostInputClass = 'w-full text-[13px] text-[var(--fin-text)]';
 
 export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAccountModalProps) {
   const {
@@ -65,12 +69,18 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
       submitLabel="Create Account"
       submitLoading={isSubmitting}
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-        <Field label="Name">
-          <Input {...register('name')} placeholder="e.g. Salary" autoFocus />
-        </Field>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2">
+        <FinFieldCard label="Name">
+          <Input
+            {...register('name')}
+            placeholder="e.g. Salary"
+            autoFocus
+            variant="ghost"
+            className={ghostInputClass}
+          />
+        </FinFieldCard>
 
-        <Field label="Type">
+        <FinFieldCard label="Type">
           <Controller
             name="type"
             control={control}
@@ -80,136 +90,214 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
                 options={ACCOUNT_TYPE_OPTIONS}
                 value={field.value}
                 onChange={item => field.onChange(item?.id)}
+                inputClassName={dropdownInputClass}
               />
             )}
           />
-        </Field>
+        </FinFieldCard>
 
         {type && ACCOUNT_TYPE_DESCRIPTIONS[type as keyof typeof ACCOUNT_TYPE_DESCRIPTIONS] && (
-          <p className="-mt-1 text-[11px] leading-[1.5] text-[var(--fin-subtle)]">
+          <p className="-mt-0.5 text-[11px] leading-[1.5] text-[var(--fin-subtle)]">
             {ACCOUNT_TYPE_DESCRIPTIONS[type as keyof typeof ACCOUNT_TYPE_DESCRIPTIONS]}
           </p>
         )}
 
-        <Field label="Description (optional)">
-          <Input {...register('description')} placeholder="e.g. Main salary account" />
-        </Field>
+        <FinFieldCard label="Description (optional)">
+          <Input
+            {...register('description')}
+            placeholder="e.g. Main salary account"
+            variant="ghost"
+            className={ghostInputClass}
+          />
+        </FinFieldCard>
 
         {type !== AccountTypes.Loan && type !== AccountTypes.Investment && (
-          <Field label="Opening Balance">
-            <Input {...register('openingBalance')} type="number" step="0.01" />
-          </Field>
+          <FinFieldCard label="Opening Balance">
+            <Input
+              {...register('openingBalance')}
+              type="number"
+              step="0.01"
+              variant="ghost"
+              className={ghostInputClass}
+            />
+          </FinFieldCard>
         )}
 
         {type === AccountTypes.CreditCard && (
           <>
-            <Field label="Credit Limit">
-              <Input {...register('creditLimit')} type="number" step="0.01" placeholder="5000" />
-            </Field>
-            <div className="flex gap-2.5">
-              <div className="flex-1">
-                <Field label="Statement Day">
-                  <Input {...register('statementDay')} type="number" min={1} max={31} placeholder="1" />
-                </Field>
-              </div>
-              <div className="flex-1">
-                <Field label="Last 4 Digits">
-                  <Input {...register('cardLastFour')} maxLength={4} placeholder="1234" />
-                </Field>
-              </div>
+            <FinFieldCard label="Credit Limit">
+              <Input
+                {...register('creditLimit')}
+                type="number"
+                step="0.01"
+                placeholder="5000"
+                variant="ghost"
+                className={ghostInputClass}
+              />
+            </FinFieldCard>
+            <div className="grid grid-cols-2 gap-2">
+              <FinFieldCard label="Statement Day">
+                <Input
+                  {...register('statementDay')}
+                  type="number"
+                  min={1}
+                  max={31}
+                  placeholder="1"
+                  variant="ghost"
+                  className={ghostInputClass}
+                />
+              </FinFieldCard>
+              <FinFieldCard label="Last 4 Digits">
+                <Input
+                  {...register('cardLastFour')}
+                  maxLength={4}
+                  placeholder="1234"
+                  variant="ghost"
+                  className={ghostInputClass}
+                />
+              </FinFieldCard>
             </div>
-            <Field label="Card Name (optional)">
-              <Input {...register('cardName')} placeholder="Visa Platinum" />
-            </Field>
+            <FinFieldCard label="Card Name (optional)">
+              <Input
+                {...register('cardName')}
+                placeholder="Visa Platinum"
+                variant="ghost"
+                className={ghostInputClass}
+              />
+            </FinFieldCard>
           </>
         )}
 
         {type === AccountTypes.Bank && (
-          <div className="flex gap-2.5">
+          <div className="flex gap-2">
             <div className="flex-1">
-              <Field label="Last 4 Digits (optional)">
-                <Input {...register('bankCardLastFour')} maxLength={4} placeholder="1234" />
-              </Field>
+              <FinFieldCard label="Last 4 Digits (optional)">
+                <Input
+                  {...register('bankCardLastFour')}
+                  maxLength={4}
+                  placeholder="1234"
+                  variant="ghost"
+                  className={ghostInputClass}
+                />
+              </FinFieldCard>
             </div>
             <div className="flex-[2]">
-              <Field label="Card Name (optional)">
-                <Input {...register('bankCardName')} placeholder="Debit card" />
-              </Field>
+              <FinFieldCard label="Card Name (optional)">
+                <Input
+                  {...register('bankCardName')}
+                  placeholder="Debit card"
+                  variant="ghost"
+                  className={ghostInputClass}
+                />
+              </FinFieldCard>
             </div>
           </div>
         )}
 
         {type === AccountTypes.Goal && (
-          <Field label="Target Amount">
-            <Input {...register('targetAmount')} type="number" step="0.01" placeholder="10000" />
-          </Field>
+          <FinFieldCard label="Target Amount">
+            <Input
+              {...register('targetAmount')}
+              type="number"
+              step="0.01"
+              placeholder="10000"
+              variant="ghost"
+              className={ghostInputClass}
+            />
+          </FinFieldCard>
         )}
 
         {type === AccountTypes.Investment && (
-          <Field label="Deposited So Far">
-            <Input {...register('deposited')} type="number" step="0.01" placeholder="0" />
-          </Field>
+          <FinFieldCard label="Deposited So Far">
+            <Input
+              {...register('deposited')}
+              type="number"
+              step="0.01"
+              placeholder="0"
+              variant="ghost"
+              className={ghostInputClass}
+            />
+          </FinFieldCard>
         )}
 
         {type === AccountTypes.Loan && (
           <>
-            <div className="flex gap-2.5">
-              <div className="flex-1">
-                <Field label="Principal">
-                  <Input {...register('principal')} type="number" step="0.01" placeholder="10000" />
-                </Field>
-              </div>
-              <div className="flex-1">
-                <Field label="Interest Rate %">
-                  <Input {...register('interestRate')} type="number" step="0.01" placeholder="5.5" />
-                </Field>
-              </div>
+            <div className="grid grid-cols-2 gap-2">
+              <FinFieldCard label="Principal">
+                <Input
+                  {...register('principal')}
+                  type="number"
+                  step="0.01"
+                  placeholder="10000"
+                  variant="ghost"
+                  className={ghostInputClass}
+                />
+              </FinFieldCard>
+              <FinFieldCard label="Interest Rate %">
+                <Input
+                  {...register('interestRate')}
+                  type="number"
+                  step="0.01"
+                  placeholder="5.5"
+                  variant="ghost"
+                  className={ghostInputClass}
+                />
+              </FinFieldCard>
             </div>
-            <div className="flex gap-2.5">
-              <div className="flex-1">
-                <Field label="Term (months)">
-                  <Input {...register('termMonths')} type="number" placeholder="60" />
-                </Field>
-              </div>
-              <div className="flex-1">
-                <Field label="Start Date">
-                  <Input {...register('loanStartDate')} type="date" />
-                </Field>
-              </div>
+            <div className="grid grid-cols-2 gap-2">
+              <FinFieldCard label="Term (months)">
+                <Input
+                  {...register('termMonths')}
+                  type="number"
+                  placeholder="60"
+                  variant="ghost"
+                  className={ghostInputClass}
+                />
+              </FinFieldCard>
+              <FinFieldCard label="Start Date">
+                <Input {...register('loanStartDate')} type="date" variant="ghost" className={ghostInputClass} />
+              </FinFieldCard>
             </div>
-            <Field label="Linked Item (optional)">
-              <Input {...register('linkedItemName')} placeholder="iPhone 15" />
-            </Field>
+            <FinFieldCard label="Linked Item (optional)">
+              <Input
+                {...register('linkedItemName')}
+                placeholder="iPhone 15"
+                variant="ghost"
+                className={ghostInputClass}
+              />
+            </FinFieldCard>
           </>
         )}
 
         {type === AccountTypes.BorrowedLent && (
           <>
-            <Field label="Counterparty Name">
-              <Input {...register('counterpartyName')} placeholder="John Doe" />
-            </Field>
-            <div className="flex gap-2.5">
-              <div className="flex-1">
-                <Field label="Direction">
-                  <Controller
-                    name="direction"
-                    control={control}
-                    render={({ field }) => (
-                      <FinancialDropdown
-                        searchable={false}
-                        options={DIRECTION_OPTIONS}
-                        value={field.value}
-                        onChange={item => field.onChange(item?.id)}
-                      />
-                    )}
-                  />
-                </Field>
-              </div>
-              <div className="flex-1">
-                <Field label="Due Date (optional)">
-                  <Input {...register('dueDate')} type="date" />
-                </Field>
-              </div>
+            <FinFieldCard label="Counterparty Name">
+              <Input
+                {...register('counterpartyName')}
+                placeholder="John Doe"
+                variant="ghost"
+                className={ghostInputClass}
+              />
+            </FinFieldCard>
+            <div className="grid grid-cols-2 gap-2">
+              <FinFieldCard label="Direction">
+                <Controller
+                  name="direction"
+                  control={control}
+                  render={({ field }) => (
+                    <FinancialDropdown
+                      searchable={false}
+                      options={DIRECTION_OPTIONS}
+                      value={field.value}
+                      onChange={item => field.onChange(item?.id)}
+                      inputClassName={dropdownInputClass}
+                    />
+                  )}
+                />
+              </FinFieldCard>
+              <FinFieldCard label="Due Date (optional)">
+                <Input {...register('dueDate')} type="date" variant="ghost" className={ghostInputClass} />
+              </FinFieldCard>
             </div>
           </>
         )}

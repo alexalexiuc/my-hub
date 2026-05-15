@@ -5,8 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import type { CategoryMutationResponse, CategoryCreateBody } from '@/app/api/finances/categories/route';
 import { FinModalShell } from '../FinModalShell';
-import { ColorPicker, Field, Input, Textarea } from '@/components';
+import { ColorPicker, Input, Textarea } from '@/components';
 import { FinancialDropdown } from '../FinancialDropdown';
+import { FinFieldCard } from '../ui';
 import { ICON_OPTIONS } from '../categoryIcons';
 import {
   AddCategorySchema,
@@ -47,6 +48,9 @@ const PRESET_COLORS = [
   '#ef4444',
 ];
 
+const ghostInputClass = 'w-full text-[13px] text-[var(--fin-text)]';
+const dropdownInputClass = 'py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]';
+
 export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }: AddCategoryModalProps) {
   const {
     register,
@@ -75,17 +79,23 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
       submitLabel="Create"
       submitLoading={isSubmitting}
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-        <Field label="Name">
-          <Input {...register('name')} placeholder="e.g. Groceries" autoFocus />
-        </Field>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2">
+        <FinFieldCard label="Name">
+          <Input
+            {...register('name')}
+            placeholder="e.g. Groceries"
+            autoFocus
+            variant="ghost"
+            className={ghostInputClass}
+          />
+        </FinFieldCard>
 
         <Controller
           name="icon"
           control={control}
           render={({ field }) => (
-            <Field label="Icon">
-              <div className="flex flex-wrap gap-1.5">
+            <FinFieldCard label="Icon">
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {ICON_OPTIONS.map(opt => (
                   <button
                     key={opt.value}
@@ -102,7 +112,7 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
                 ))}
               </div>
               {errors.icon && <p className="mt-1 text-xs text-red-400">{errors.icon.message}</p>}
-            </Field>
+            </FinFieldCard>
           )}
         />
 
@@ -110,8 +120,8 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
           name="color"
           control={control}
           render={({ field }) => (
-            <Field label="Color">
-              <div className="flex flex-wrap items-center gap-2">
+            <FinFieldCard label="Color">
+              <div className="flex flex-wrap items-center gap-2 pt-0.5">
                 {PRESET_COLORS.map(c => (
                   <button
                     key={c}
@@ -126,24 +136,32 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
                 ))}
                 <ColorPicker value={field.value} onChange={e => field.onChange(e.target.value)} />
               </div>
-            </Field>
+            </FinFieldCard>
           )}
         />
 
-        <Field label="Monthly Target (optional)">
-          <Input {...register('monthlyTarget')} type="number" step="0.01" min="0" placeholder="e.g. 500" />
-        </Field>
+        <FinFieldCard label="Monthly Target (optional)">
+          <Input
+            {...register('monthlyTarget')}
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="e.g. 500"
+            variant="ghost"
+            className={ghostInputClass}
+          />
+        </FinFieldCard>
 
-        <Field label="Notes (optional)">
+        <FinFieldCard label="Notes (optional)">
           <Textarea
             {...register('notes')}
             rows={3}
-            className="resize-none"
             placeholder="Context, budgeting intent, or reminders"
+            className="resize-none bg-transparent border-0 px-0 py-0 rounded-none shadow-none text-[13px] text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)] focus:ring-0 focus:outline-none w-full"
           />
-        </Field>
+        </FinFieldCard>
 
-        <Field label="Group (optional)">
+        <FinFieldCard label="Group (optional)">
           <Controller
             name="groupId"
             control={control}
@@ -155,10 +173,11 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
                 onChange={item => field.onChange(item?.id ?? '')}
                 placeholder="— None —"
                 clearable
+                inputClassName={dropdownInputClass}
               />
             )}
           />
-        </Field>
+        </FinFieldCard>
       </form>
     </FinModalShell>
   );
