@@ -1,11 +1,13 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import { FinModalShell } from '../FinModalShell';
-import { Field, Input, Select } from '@/components';
-import { AccountTypes, LentDirections } from '@my-hub/shared/constants';
+import { Field, Input } from '@/components';
+import { FinancialDropdown } from '../FinancialDropdown';
+import { AccountTypes } from '@my-hub/shared/constants';
+import { DIRECTION_OPTIONS } from './accountOptions';
 import {
   EditAccountSchema,
   accountToEditValues,
@@ -24,6 +26,7 @@ export function EditAccountModal({ acc, onClose, onSaved }: EditAccountModalProp
   const {
     register,
     handleSubmit,
+    control,
     formState: { isSubmitting },
   } = useForm<EditAccountValues>({
     resolver: zodResolver(EditAccountSchema),
@@ -152,10 +155,18 @@ export function EditAccountModal({ acc, onClose, onSaved }: EditAccountModalProp
             <div className="flex gap-2.5">
               <div className="flex-1">
                 <Field label="Direction">
-                  <Select {...register('direction')}>
-                    <option value={LentDirections.Gave}>Lent (gave)</option>
-                    <option value={LentDirections.Received}>Borrowed (received)</option>
-                  </Select>
+                  <Controller
+                    name="direction"
+                    control={control}
+                    render={({ field }) => (
+                      <FinancialDropdown
+                        searchable={false}
+                        options={DIRECTION_OPTIONS}
+                        value={field.value}
+                        onChange={item => field.onChange(item?.id)}
+                      />
+                    )}
+                  />
                 </Field>
               </div>
               <div className="flex-1">

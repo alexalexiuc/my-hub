@@ -81,6 +81,7 @@ export function FinancialDropdown({
   inputProps,
 }: FinancialDropdownProps) {
   const [open, setOpen] = useState(false);
+  const [menuAbove, setMenuAbove] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
@@ -114,6 +115,16 @@ export function FinancialDropdown({
   }, [createOption, trimmedQuery, options]);
 
   const canClear = clearable && value != null;
+
+  useEffect(() => {
+    if (!open || isMobile) {
+      setMenuAbove(false);
+      return;
+    }
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMenuAbove(window.innerHeight - rect.bottom < 220);
+  }, [open, isMobile]);
 
   useEffect(() => {
     function handlePointerOutside(event: MouseEvent | TouchEvent) {
@@ -233,7 +244,8 @@ export function FinancialDropdown({
       {!isMobile && open && (results.length > 0 || showCreateOption || (trimmedQuery.length > 0 && noResultsText)) && (
         <div
           className={cn(
-            'absolute left-0 right-0 top-full z-20 mt-1 max-h-[200px] overflow-y-auto rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] shadow-lg',
+            'absolute left-0 right-0 z-20 max-h-[200px] overflow-y-auto rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] shadow-lg',
+            menuAbove ? 'bottom-full mb-1' : 'top-full mt-1',
             menuClassName,
           )}
         >

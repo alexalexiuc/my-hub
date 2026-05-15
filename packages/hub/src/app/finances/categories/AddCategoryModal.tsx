@@ -5,7 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import type { CategoryMutationResponse, CategoryCreateBody } from '@/app/api/finances/categories/route';
 import { FinModalShell } from '../FinModalShell';
-import { ColorPicker, Field, Input, Select, Textarea } from '@/components';
+import { ColorPicker, Field, Input, Textarea } from '@/components';
+import { FinancialDropdown } from '../FinancialDropdown';
 import { ICON_OPTIONS } from '../categoryIcons';
 import {
   AddCategorySchema,
@@ -143,14 +144,20 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
         </Field>
 
         <Field label="Group (optional)">
-          <Select {...register('groupId')}>
-            <option value="">— None —</option>
-            {groups.map(g => (
-              <option key={g.id} value={String(g.id)}>
-                {g.name}
-              </option>
-            ))}
-          </Select>
+          <Controller
+            name="groupId"
+            control={control}
+            render={({ field }) => (
+              <FinancialDropdown
+                searchable={false}
+                options={groups.map(g => ({ id: String(g.id), value: g.name }))}
+                value={field.value || undefined}
+                onChange={item => field.onChange(item?.id ?? '')}
+                placeholder="— None —"
+                clearable
+              />
+            )}
+          />
         </Field>
       </form>
     </FinModalShell>

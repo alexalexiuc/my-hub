@@ -1,29 +1,20 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import type { AccountMutationResponse, AccountCreateData } from '@/app/api/finances/accounts/route';
 import { FinModalShell } from '../FinModalShell';
-import { Field, Input, Select } from '@/components';
-import { AccountTypes, LentDirections, ACCOUNT_TYPE_DESCRIPTIONS, SupportedCurrency } from '@my-hub/shared/constants';
+import { Field, Input } from '@/components';
+import { FinancialDropdown } from '../FinancialDropdown';
+import { AccountTypes, ACCOUNT_TYPE_DESCRIPTIONS, SupportedCurrency } from '@my-hub/shared/constants';
 import {
   AddAccountSchema,
   defaultAddAccountValues,
   formToAccountDetails,
   type AddAccountValues,
 } from '../finances-form.schema';
-
-const ACCOUNT_TYPE_OPTIONS = [
-  { value: AccountTypes.Bank, label: '🏦 Bank' },
-  { value: AccountTypes.Investment, label: '📈 Investment' },
-  { value: AccountTypes.CreditCard, label: '💳 Credit Card' },
-  { value: AccountTypes.Loan, label: '🏷 Loan' },
-  { value: AccountTypes.Goal, label: '🎯 Goal' },
-  { value: AccountTypes.Cash, label: '💵 Cash' },
-  { value: AccountTypes.Tracking, label: '👁 Tracking' },
-  { value: AccountTypes.BorrowedLent, label: '🤝 Borrowed / Lent' },
-];
+import { ACCOUNT_TYPE_OPTIONS, DIRECTION_OPTIONS } from './accountOptions';
 
 type AddAccountModalProps = {
   defaultCurrency: SupportedCurrency;
@@ -36,6 +27,7 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
     register,
     handleSubmit,
     watch,
+    control,
     formState: { isSubmitting },
   } = useForm<AddAccountValues>({
     resolver: zodResolver(AddAccountSchema),
@@ -79,7 +71,18 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
         </Field>
 
         <Field label="Type">
-          <Select {...register('type')} options={ACCOUNT_TYPE_OPTIONS} />
+          <Controller
+            name="type"
+            control={control}
+            render={({ field }) => (
+              <FinancialDropdown
+                searchable={false}
+                options={ACCOUNT_TYPE_OPTIONS}
+                value={field.value}
+                onChange={item => field.onChange(item?.id)}
+              />
+            )}
+          />
         </Field>
 
         {type && ACCOUNT_TYPE_DESCRIPTIONS[type as keyof typeof ACCOUNT_TYPE_DESCRIPTIONS] && (
@@ -188,10 +191,18 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
             <div className="flex gap-2.5">
               <div className="flex-1">
                 <Field label="Direction">
-                  <Select {...register('direction')}>
-                    <option value={LentDirections.Gave}>Lent (gave)</option>
-                    <option value={LentDirections.Received}>Borrowed (received)</option>
-                  </Select>
+                  <Controller
+                    name="direction"
+                    control={control}
+                    render={({ field }) => (
+                      <FinancialDropdown
+                        searchable={false}
+                        options={DIRECTION_OPTIONS}
+                        value={field.value}
+                        onChange={item => field.onChange(item?.id)}
+                      />
+                    )}
+                  />
                 </Field>
               </div>
               <div className="flex-1">

@@ -1,12 +1,14 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import type { BudgetCreateResponse } from '@/app/api/finances/budgets/route';
-import { Button, Field, Input, Select } from '@/components';
+import { Button, Field, Input } from '@/components';
+import { FinancialDropdown } from './FinancialDropdown';
 import { Card } from './ui';
 import { SupportedCurrencies } from '@my-hub/shared/constants';
+import { SupportedCurrency } from '@my-hub/shared/constants';
 import { CreateBudgetSchema, defaultCreateBudgetValues, type CreateBudgetValues } from './finances-form.schema';
 import type { BudgetCreateBody } from '../api/finances/budgets/route';
 
@@ -18,11 +20,15 @@ export function CreateBudgetScreen({ onCreated }: CreateBudgetScreenProps) {
   const {
     register,
     handleSubmit,
+    control,
+    setValue,
     formState: { isSubmitting, errors },
   } = useForm<CreateBudgetValues>({
     resolver: zodResolver(CreateBudgetSchema),
     defaultValues: defaultCreateBudgetValues,
   });
+
+  const defaultCurrency = useWatch({ control, name: 'defaultCurrency' });
 
   async function onSubmit(values: CreateBudgetValues) {
     await apiFetch<BudgetCreateResponse, BudgetCreateBody>('/api/finances/budgets', {
@@ -52,13 +58,12 @@ export function CreateBudgetScreen({ onCreated }: CreateBudgetScreenProps) {
           </Field>
 
           <Field label="Default currency">
-            <Select {...register('defaultCurrency')}>
-              {SupportedCurrencies.map(c => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </Select>
+            <FinancialDropdown
+              searchable={false}
+              options={SupportedCurrencies.map(c => ({ id: c, value: c }))}
+              value={defaultCurrency}
+              onChange={item => setValue('defaultCurrency', item?.id as SupportedCurrency)}
+            />
           </Field>
 
           <Button type="submit" className="mt-1 w-full" loading={isSubmitting}>

@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
-import { Button, Field, Input, Select } from '@/components';
-import { SupportedCurrencies } from '@my-hub/shared/constants';
+import { Button, Field, Input } from '@/components';
+import { FinancialDropdown } from '../FinancialDropdown';
+import { SupportedCurrencies, SupportedCurrency } from '@my-hub/shared/constants';
 import { Card, SectionLabel } from '../ui';
 import { CreateBudgetSchema, defaultCreateBudgetValues, type CreateBudgetValues } from '../finances-form.schema';
 import type { BudgetInfo } from '@/app/api/finances/budget/budget.schema';
@@ -25,11 +26,15 @@ export function BudgetsSection({ onChanged }: BudgetsSectionProps) {
     register,
     handleSubmit,
     reset,
+    control,
+    setValue,
     formState: { isSubmitting, errors },
   } = useForm<CreateBudgetValues>({
     resolver: zodResolver(CreateBudgetSchema),
     defaultValues: defaultCreateBudgetValues,
   });
+
+  const defaultCurrency = useWatch({ control, name: 'defaultCurrency' });
 
   const load = useCallback(async () => {
     const result = await apiFetch<BudgetsListResponse>('/api/finances/budgets', { silentToast: true });
@@ -124,13 +129,12 @@ export function BudgetsSection({ onChanged }: BudgetsSectionProps) {
             {errors.name && <p className="mt-1 text-xs text-[var(--fin-red)]">{errors.name.message}</p>}
           </Field>
           <Field label="Default currency">
-            <Select {...register('defaultCurrency')}>
-              {SupportedCurrencies.map(c => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </Select>
+            <FinancialDropdown
+              searchable={false}
+              options={SupportedCurrencies.map(c => ({ id: c, value: c }))}
+              value={defaultCurrency}
+              onChange={item => setValue('defaultCurrency', item?.id as SupportedCurrency)}
+            />
           </Field>
           <div className="flex gap-2">
             <Button type="submit" size="sm" loading={isSubmitting}>
