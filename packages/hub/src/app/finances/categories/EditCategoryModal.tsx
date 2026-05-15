@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import type { CategoryMutationResponse } from '@/app/api/finances/categories/route';
 import type { CategoryUpdateBody } from '@/app/api/finances/categories/[id]/route';
 import { FinModalShell } from '../FinModalShell';
-import { Button, ColorPicker, Field, Input, Select, Textarea } from '@/components';
+import { ColorPicker, Field, Input, Select, Textarea } from '@/components';
 import { ICON_OPTIONS } from '../categoryIcons';
 import { EditCategorySchema, formToCategoryBody, type EditCategoryValues } from '../finances-form.schema';
 
@@ -63,7 +63,14 @@ export function EditCategoryModal({ categoryId, initialValues, groups, onClose, 
   }
 
   return (
-    <FinModalShell onClose={onClose} title="Edit Category" className="md:max-w-[400px]">
+    <FinModalShell
+      onClose={onClose}
+      title="Edit Category"
+      className="md:max-w-[400px]"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel="Save"
+      submitLoading={isSubmitting}
+    >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <Field label="Name">
           <Input {...register('name')} placeholder="e.g. Groceries" autoFocus />
@@ -142,15 +149,6 @@ export function EditCategoryModal({ categoryId, initialValues, groups, onClose, 
             ))}
           </Select>
         </Field>
-
-        <div className="mt-1 flex justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" size="sm" loading={isSubmitting}>
-            Save
-          </Button>
-        </div>
       </form>
     </FinModalShell>
   );

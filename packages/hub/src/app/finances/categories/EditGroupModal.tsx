@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import type { GroupMutationResponse } from '@/app/api/finances/groups/route';
 import type { GroupUpdateBody } from '@/app/api/finances/groups/[id]/route';
 import { FinModalShell } from '../FinModalShell';
-import { Button, Field, Input, Textarea } from '@/components';
+import { Field, Input, Textarea } from '@/components';
 import { AddGroupSchema, type AddGroupValues } from '../finances-form.schema';
 
 export type EditGroupModalProps = {
@@ -38,7 +38,14 @@ export function EditGroupModal({ groupId, initialValues, onClose, onSaved }: Edi
   }
 
   return (
-    <FinModalShell onClose={onClose} title="Edit Group" className="md:max-w-[360px]">
+    <FinModalShell
+      onClose={onClose}
+      title="Edit Group"
+      className="md:max-w-[360px]"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel="Save"
+      submitLoading={isSubmitting}
+    >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <Field label="Name">
           <Input {...register('name')} placeholder="e.g. Living Expenses" autoFocus />
@@ -52,15 +59,6 @@ export function EditGroupModal({ groupId, initialValues, onClose, onSaved }: Edi
             placeholder="Shared context for this group"
           />
         </Field>
-
-        <div className="mt-1 flex justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" size="sm" loading={isSubmitting}>
-            Save
-          </Button>
-        </div>
       </form>
     </FinModalShell>
   );

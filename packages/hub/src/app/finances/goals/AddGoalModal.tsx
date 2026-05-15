@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import type { AccountCreateData, AccountMutationResponse } from '@/app/api/finances/accounts/route';
 import { FinModalShell } from '../FinModalShell';
-import { Button, Field, Input } from '@/components';
+import { Field, Input } from '@/components';
 import { AddGoalSchema, defaultAddGoalValues, formToGoalBody, type AddGoalValues } from '../finances-form.schema';
 import { SupportedCurrency } from '@my-hub/shared/constants';
 
@@ -34,7 +34,14 @@ export function AddGoalModal({ defaultCurrency, onClose, onCreated }: AddGoalMod
   }
 
   return (
-    <FinModalShell onClose={onClose} title="New Goal" className="md:max-w-[420px]">
+    <FinModalShell
+      onClose={onClose}
+      title="New Goal"
+      className="md:max-w-[420px]"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel="Create Goal"
+      submitLoading={isSubmitting}
+    >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <Field label="Goal Name">
           <Input {...register('name')} placeholder="e.g. Emergency Fund" autoFocus />
@@ -47,15 +54,6 @@ export function AddGoalModal({ defaultCurrency, onClose, onCreated }: AddGoalMod
         <Field label="Current Savings">
           <Input {...register('openingBalance')} type="number" step="0.01" min="0" placeholder="0" />
         </Field>
-
-        <div className="mt-1 flex gap-2">
-          <Button type="button" variant="secondary" size="sm" className="flex-1" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" size="sm" className="flex-[2]" loading={isSubmitting}>
-            Create Goal
-          </Button>
-        </div>
       </form>
     </FinModalShell>
   );

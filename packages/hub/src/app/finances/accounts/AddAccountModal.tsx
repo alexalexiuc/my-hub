@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import type { AccountMutationResponse, AccountCreateData } from '@/app/api/finances/accounts/route';
 import { FinModalShell } from '../FinModalShell';
-import { Button, Field, Input, Select } from '@/components';
+import { Field, Input, Select } from '@/components';
 import { AccountTypes, LentDirections, ACCOUNT_TYPE_DESCRIPTIONS, SupportedCurrency } from '@my-hub/shared/constants';
 import {
   AddAccountSchema,
@@ -65,7 +65,14 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
   }
 
   return (
-    <FinModalShell onClose={onClose} title="New Account" className="md:max-w-[420px]">
+    <FinModalShell
+      onClose={onClose}
+      title="New Account"
+      className="md:max-w-[420px]"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel="Create Account"
+      submitLoading={isSubmitting}
+    >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <Field label="Name">
           <Input {...register('name')} placeholder="e.g. Salary" autoFocus />
@@ -195,15 +202,6 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
             </div>
           </>
         )}
-
-        <div className="mt-1 flex gap-2">
-          <Button type="button" variant="secondary" size="sm" className="flex-1" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" size="sm" className="flex-[2]" loading={isSubmitting}>
-            Create Account
-          </Button>
-        </div>
       </form>
     </FinModalShell>
   );

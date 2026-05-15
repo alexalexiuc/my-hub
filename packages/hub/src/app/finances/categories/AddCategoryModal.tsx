@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import type { CategoryMutationResponse, CategoryCreateBody } from '@/app/api/finances/categories/route';
 import { FinModalShell } from '../FinModalShell';
-import { Button, ColorPicker, Field, Input, Select, Textarea } from '@/components';
+import { ColorPicker, Field, Input, Select, Textarea } from '@/components';
 import { ICON_OPTIONS } from '../categoryIcons';
 import {
   AddCategorySchema,
@@ -66,7 +66,14 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
   }
 
   return (
-    <FinModalShell onClose={onClose} title="New Category" className="md:max-w-[400px]">
+    <FinModalShell
+      onClose={onClose}
+      title="New Category"
+      className="md:max-w-[400px]"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel="Create"
+      submitLoading={isSubmitting}
+    >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <Field label="Name">
           <Input {...register('name')} placeholder="e.g. Groceries" autoFocus />
@@ -145,15 +152,6 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
             ))}
           </Select>
         </Field>
-
-        <div className="mt-1 flex justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" size="sm" loading={isSubmitting}>
-            Create
-          </Button>
-        </div>
       </form>
     </FinModalShell>
   );

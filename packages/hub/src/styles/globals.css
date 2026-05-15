@@ -17,3 +17,60 @@
            focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500;
   }
 }
+
+@keyframes slideUpSheet {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Mobile: full-screen shell slides up */
+.fin-modal-shell {
+  animation: slideUpSheet 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Desktop: backdrop fades in, inner card scales+fades */
+@media (min-width: 768px) {
+  .fin-modal-shell {
+    animation: fadeIn 200ms ease-out;
+  }
+  .fin-modal-card {
+    animation: fadeScaleIn 180ms ease-out;
+  }
+}
+
+/* Bottom sheet slide-up for picker overlays (always mobile, no responsive variant) */
+.fin-slide-up {
+  animation: slideUpSheet 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Prevent iOS/Android auto-zoom on input focus (requires font-size >= 16px) */
+@media (max-width: 767px) {
+  .finances-theme input,
+  .finances-theme textarea {
+    font-size: 16px;
+  }
+}

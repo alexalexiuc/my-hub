@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import { FinModalShell } from '../FinModalShell';
-import { Button, Field, Input, Textarea } from '@/components';
+import { Field, Input, Textarea } from '@/components';
 import type { PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 
 const EditPayeeSchema = z.object({
@@ -52,7 +52,14 @@ export function EditPayeeModal({ payee, onClose, onSaved }: EditPayeeModalProps)
   }
 
   return (
-    <FinModalShell onClose={onClose} title="Edit Payee" className="md:max-w-[420px]">
+    <FinModalShell
+      onClose={onClose}
+      title="Edit Payee"
+      className="md:max-w-[420px]"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel="Save"
+      submitLoading={isSubmitting}
+    >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <Field label="Name">
           <Input {...register('name')} autoFocus placeholder="e.g. Kaufland" />
@@ -71,15 +78,6 @@ export function EditPayeeModal({ payee, onClose, onSaved }: EditPayeeModalProps)
             placeholder="Helpful context for matching this payee"
           />
         </Field>
-
-        <div className="mt-1 flex justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" size="sm" loading={isSubmitting}>
-            Save
-          </Button>
-        </div>
       </form>
     </FinModalShell>
   );

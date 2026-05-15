@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import type { GroupMutationResponse, GroupCreateBody } from '@/app/api/finances/groups/route';
 import { FinModalShell } from '../FinModalShell';
-import { Button, Field, Input, Textarea } from '@/components';
+import { Field, Input, Textarea } from '@/components';
 import { AddGroupSchema, defaultAddGroupValues, type AddGroupValues } from '../finances-form.schema';
 
 type AddGroupModalProps = {
@@ -32,7 +32,14 @@ export function AddGroupModal({ onClose, onCreated }: AddGroupModalProps) {
   }
 
   return (
-    <FinModalShell onClose={onClose} title="New Group" className="md:max-w-[360px]">
+    <FinModalShell
+      onClose={onClose}
+      title="New Group"
+      className="md:max-w-[360px]"
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel="Create"
+      submitLoading={isSubmitting}
+    >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <Field label="Name">
           <Input {...register('name')} placeholder="e.g. Living Expenses" autoFocus />
@@ -46,15 +53,6 @@ export function AddGroupModal({ onClose, onCreated }: AddGroupModalProps) {
             placeholder="Shared context for this group"
           />
         </Field>
-
-        <div className="mt-1 flex justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" size="sm" loading={isSubmitting}>
-            Create
-          </Button>
-        </div>
       </form>
     </FinModalShell>
   );
