@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
-import { AddButton, Card } from '../ui';
+import { AddButton } from '../ui';
 import { Button } from '@/components';
 import { TransactionModal } from './TransactionModal';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
@@ -215,7 +215,7 @@ export default function TransactionsPage() {
         </div>
       ) : (
         <>
-          <Card className="p-[14px]">
+          <div className="-mx-7 border-y border-[var(--fin-border)] bg-[var(--fin-card)] md:mx-0 md:rounded-[10px] md:border md:p-[14px]">
             <TransactionList
               transactions={data?.transactions ?? []}
               currency={currency}
@@ -223,7 +223,7 @@ export default function TransactionsPage() {
               onEdit={id => setEditId(id)}
               onDelete={id => setPendingDeleteId(id)}
             />
-          </Card>
+          </div>
 
           {hasMore && (
             <button
