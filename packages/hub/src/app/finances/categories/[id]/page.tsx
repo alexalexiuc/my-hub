@@ -170,7 +170,7 @@ export default function CategoryDetailPage() {
         {category.notes && <div className="mt-2 text-[12px] text-[var(--fin-muted)]">{category.notes}</div>}
       </Card>
 
-      <div className="-mx-7 border-y border-[var(--fin-border)] bg-[var(--fin-card)] md:mx-0 md:rounded-[10px] md:border md:p-[14px]">
+      <Card className="p-0 md:p-[14px]">
         <SectionLabel className="mb-2.5 mt-[14px] px-[14px] md:mt-0 md:px-0">Transactions</SectionLabel>
         <TransactionList transactions={transactions} currency={currency} showAccount />
         {hasMore && (
@@ -184,7 +184,7 @@ export default function CategoryDetailPage() {
             </button>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

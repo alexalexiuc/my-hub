@@ -101,7 +101,7 @@ export default function CashflowPage() {
             color: net >= 0 ? 'var(--fin-green)' : 'var(--fin-red)',
           },
         ].map(s => (
-          <Card key={s.label} className="px-3 py-2.5 text-center">
+          <Card compact key={s.label} className="px-3 py-2.5 text-center">
             <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">{s.label}</div>
             <div className="text-[15px] font-bold" style={{ color: s.color }}>
               {s.value}

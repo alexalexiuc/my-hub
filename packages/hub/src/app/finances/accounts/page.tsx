@@ -156,7 +156,7 @@ export default function AccountsPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-2.5">
-        <Card className="relative p-[14px]">
+        <Card compact className="relative p-[14px]">
           <IconButton
             label="What is net worth?"
             icon={<QuestionMarkIcon className="size-3.5" />}
@@ -170,7 +170,7 @@ export default function AccountsPage() {
           <Sparkline data={netWorthHistory} color="var(--fin-green)" width={80} height={28} />
         </Card>
 
-        <Card className="relative p-[14px]">
+        <Card compact className="relative p-[14px]">
           <IconButton
             label="How is this calculated?"
             icon={<QuestionMarkIcon className="size-3.5" />}

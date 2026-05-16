@@ -51,14 +51,14 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
 
       {/* Available balance + cashflow row */}
       <div className="grid gap-2.5 md:grid-cols-2">
-        <Card className="p-[14px]">
+        <Card compact className="p-[14px]">
           <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Available</div>
           <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">
             {fmt(availableBalance, currency)}
           </div>
         </Card>
 
-        <Card className="p-[14px]">
+        <Card compact className="p-[14px]">
           <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">This Month</div>
           <div className="mt-1 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
@@ -146,7 +146,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
       )}
 
       {/* Recent transactions */}
-      <div className="-mx-7 border-y border-[var(--fin-border)] bg-[var(--fin-card)] md:mx-0 md:rounded-[10px] md:border md:p-[14px]">
+      <Card className="p-0 md:p-[14px]">
         <div className="mb-2.5 flex justify-between px-[14px] pt-[14px] md:px-0 md:pt-0">
           <SectionLabel className="mb-0">Recent</SectionLabel>
           <span
@@ -158,7 +158,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
         </div>
 
         <TransactionList transactions={recentTransactions} currency={currency} />
-      </div>
+      </Card>
     </div>
   );
 }

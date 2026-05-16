@@ -32,7 +32,7 @@ export function BudgetSelectorScreen({ budgets, onActivated, onCreateNew }: Budg
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <Card className="w-full max-w-[440px] p-7">
+      <Card compact className="w-full max-w-[440px] p-7">
         <div className="mb-6 text-center">
           <div className="mb-2.5 text-[32px]">₤</div>
           <div className="mb-1.5 text-lg font-bold text-[var(--fin-text)]">Select a budget</div>

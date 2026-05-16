@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Pill, IconButton } from '@/components';
 import { PlusOutlineIcon, PencilIcon, ArchiveBoxIcon } from '@/components/icons';
 import { cn, apiFetch } from '@/lib/utils';
-import { fmt, SectionLabel, Bar, TYPE_META } from '../ui';
+import { fmt, Card, SectionLabel, Bar, TYPE_META } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { TransactionList } from '../transactions/TransactionList';
 import { EditAccountModal } from './EditAccountModal';
@@ -435,10 +435,10 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
         </button>
       )}
 
-      <div className="-mx-7 border-y border-[var(--fin-border)] bg-[var(--fin-card)] md:mx-0 md:rounded-[10px] md:border md:p-[14px]">
+      <Card className="p-0 md:p-[14px]">
         <SectionLabel className="mb-2.5 mt-[14px] px-[14px] md:mt-0 md:px-0">Ledger</SectionLabel>
         <TransactionList transactions={transactions} currency={acc.currency} />
-      </div>
+      </Card>
 
       {editOpen && (
         <EditAccountModal

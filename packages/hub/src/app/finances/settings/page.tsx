@@ -169,7 +169,7 @@ export default function FinancesSettingsPage() {
           <ClaudePromptSection budget={data.budget} />
 
           {/* Danger zone */}
-          <Card className="p-[18px]" style={{ border: `1px solid var(--fin-red)33` }}>
+          <Card compact className="p-[18px]" style={{ border: `1px solid var(--fin-red)33` }}>
             <SectionLabel className="mb-2 text-[var(--fin-red)]">Danger zone</SectionLabel>
             <p className="mb-3 text-xs text-[var(--fin-muted)]">
               Permanently deletes this budget and all associated accounts, categories, and transactions. This cannot be
