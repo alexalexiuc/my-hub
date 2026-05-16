@@ -12,6 +12,7 @@ import type {
 import type { TripBookingExtended } from './types';
 import { TravelTimeDisplay } from './TravelTimeDisplay';
 import { isTransportBookingType } from '@my-hub/shared/utils';
+import { IconButton } from '@/components';
 
 type BookingExpandedPanelProps = {
   booking: TripBookingExtended;
@@ -83,14 +84,12 @@ function MealTypeButton({ mealType }: { mealType: MealType }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
-        type="button"
+      <IconButton
+        label="Meal plan included"
+        icon={<span>🍽</span>}
         onClick={() => setOpen(true)}
-        title="Meal plan included"
-        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30 transition-colors text-sm"
-      >
-        🍽
-      </button>
+        className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30 rounded-full p-1"
+      />
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setOpen(false)}>
           <div
