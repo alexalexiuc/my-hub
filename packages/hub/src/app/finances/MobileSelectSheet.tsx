@@ -77,9 +77,9 @@ export function MobileSelectSheet({
   const canClear = clearable && value != null;
 
   return createPortal(
-    <div className="finances-theme fixed inset-0 z-[1100] flex flex-col justify-end bg-black/60" onClick={onClose}>
+    <div className="finances-theme fixed inset-x-0 top-0 h-[100dvh] z-[1100] flex flex-col justify-end bg-black/60" onClick={onClose}>
       <div
-        className="fin-slide-up flex max-h-[80vh] flex-col rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+        className="fin-slide-up flex max-h-[80dvh] flex-col rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

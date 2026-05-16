@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components';
 
@@ -39,6 +39,8 @@ export function FinModalShell({
   submitDisabled,
   submitLoading,
 }: FinModalShellProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -47,9 +49,25 @@ export function FinModalShell({
     };
   }, []);
 
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handle = (e: FocusEvent) => {
+      const t = e.target as HTMLElement;
+      if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') {
+        setTimeout(() => t.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 300);
+      }
+    };
+    el.addEventListener('focusin', handle);
+    return () => el.removeEventListener('focusin', handle);
+  }, []);
+
   return (
-    <div className="fin-modal-shell finances-theme fixed inset-0 z-[1000] flex flex-col bg-[var(--fin-card)] md:items-center md:justify-center md:bg-[var(--fin-overlay)] md:p-4">
-      {/* Desktop backdrop — absolutely positioned so it doesn't affect flex layout */}
+    <div
+      ref={containerRef}
+      className="fin-modal-shell finances-theme fixed inset-x-0 top-0 h-[100dvh] z-[1000] flex flex-col bg-[var(--fin-card)] md:inset-0 md:h-auto md:items-center md:justify-center md:bg-[var(--fin-overlay)] md:p-4"
+    >
+      {/* Desktop backdrop — absolute so it doesn't affect flex layout */}
       <div className="absolute inset-0 hidden md:block" onClick={onClose} />
 
       {/* Mobile header */}
