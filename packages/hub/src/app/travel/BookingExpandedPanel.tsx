@@ -1,7 +1,14 @@
 'use client';
 
-import { Fragment } from 'react';
-import type { BookingDetails, FlightDetails, TransportDetails, TripDocument } from '@my-hub/shared/types';
+import { Fragment, useState } from 'react';
+import type {
+  AccommodationDetails,
+  BookingDetails,
+  FlightDetails,
+  MealType,
+  TransportDetails,
+  TripDocument,
+} from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { TravelTimeDisplay } from './TravelTimeDisplay';
 import { isTransportBookingType } from '@my-hub/shared/utils';
@@ -72,21 +79,67 @@ function ExtraDetailsSection({ booking }: { booking: TripBookingExtended }) {
   );
 }
 
+function MealTypeButton({ mealType }: { mealType: MealType }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        title="Meal plan included"
+        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30 transition-colors text-sm"
+      >
+        🍽
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setOpen(false)}>
+          <div
+            className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 max-w-xs w-full mx-4 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">🍽</span>
+              <h3 className="text-sm font-semibold text-zinc-100">{mealType.short}</h3>
+            </div>
+            <p className="text-xs text-zinc-400 leading-relaxed">{mealType.description}</p>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="mt-4 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function SourceTextSection({ booking }: { booking: TripBookingExtended }) {
   const d = booking.details as BookingDetails | null;
-  if (!d?.rawText) return null;
+  if (!d?.rawText && !d?.source) return null;
 
   return (
-    <details className="border-t border-zinc-700/40 pt-2 group">
-      <summary className="text-[11px] uppercase tracking-wide text-zinc-500 cursor-pointer select-none list-none flex items-center gap-1">
-        <span className="group-open:hidden">▸</span>
-        <span className="hidden group-open:inline">▾</span>
-        Source text
-      </summary>
-      <blockquote className="mt-1 text-xs text-zinc-400 italic leading-relaxed whitespace-pre-wrap">
-        {d.rawText}
-      </blockquote>
-    </details>
+    <div className="border-t border-zinc-700/40 pt-2 space-y-1">
+      {d.source && (
+        <p className="text-[11px] text-zinc-500">
+          Source: <span className="text-zinc-400">{d.source}</span>
+        </p>
+      )}
+      {d.rawText && (
+        <details className="group">
+          <summary className="text-[11px] uppercase tracking-wide text-zinc-500 cursor-pointer select-none list-none flex items-center gap-1">
+            <span className="group-open:hidden">▸</span>
+            <span className="hidden group-open:inline">▾</span>
+            Source text
+          </summary>
+          <blockquote className="mt-1 text-xs text-zinc-400 italic leading-relaxed whitespace-pre-wrap">
+            {d.rawText}
+          </blockquote>
+        </details>
+      )}
+    </div>
   );
 }
 
@@ -96,6 +149,11 @@ export function BookingExpandedPanel({ booking, documents }: BookingExpandedPane
       {booking.bookingType === 'flight' && <FlightDetailsPill booking={booking} />}
 
       {isTransportBookingType(booking.bookingType) && <TransportDetailsPill booking={booking} />}
+
+      {(booking.details as AccommodationDetails | null)?.kind === 'accommodation' &&
+        (booking.details as AccommodationDetails).mealType && (
+          <MealTypeButton mealType={(booking.details as AccommodationDetails).mealType!} />
+        )}
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
         {booking.location && (
