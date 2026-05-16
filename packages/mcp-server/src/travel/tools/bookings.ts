@@ -10,6 +10,7 @@ import {
   upsertFlightData,
 } from '@my-hub/shared/services';
 import type {
+  AccommodationDetails,
   BaseBookingDetails,
   FlightDetails,
   TransportDetails,
@@ -92,6 +93,23 @@ export const TravelAddReservationFromTextInputSchema = z.object({
     })
     .optional()
     .describe('Destination location for transport bookings. Extract from text when possible.'),
+  source: z
+    .string()
+    .optional()
+    .describe(
+      'Human-readable origin of this reservation — something that lets the user trace it back. For emails, use the subject line (e.g. "Your Hilton booking confirmation – Ref #12345"). For SMS, the sender name. For apps, the app name. Omit only if truly unknown.',
+    ),
+  mealType: z
+    .object({
+      short: z.string().describe('Short label shown in the UI, e.g. "BB", "HB", "AI", "Breakfast included".'),
+      description: z
+        .string()
+        .describe(
+          'Full description shown in the detail panel, e.g. "Bed & Breakfast — daily breakfast included in the room rate".',
+        ),
+    })
+    .optional()
+    .describe('Meal plan included with the reservation, if any. Primarily for hotels/accommodation.'),
   extra: z
     .record(z.string(), z.unknown())
     .optional()
@@ -134,22 +152,32 @@ export const travelAddReservationFromTextTool: ToolHandler<
       ? `${input.origin!.name} → ${input.destination!.name}`
       : `Imported ${bookingType} reservation`);
 
-  const details: TransportDetails | BaseBookingDetails =
+  const source = input.source ?? 'nl_import';
+
+  const details: TransportDetails | AccommodationDetails | BaseBookingDetails =
     isTransport && hasRoute
       ? {
           kind: 'transport',
           origin: input.origin as TransportLocation,
           destination: input.destination as TransportLocation,
-          source: 'nl_import',
+          source,
           rawText: input.bookingText,
           ...(input.extra && { extra: input.extra }),
         }
-      : {
-          kind: 'base',
-          source: 'nl_import',
-          rawText: input.bookingText,
-          ...(input.extra && { extra: input.extra }),
-        };
+      : bookingType === TripBookingTypes.Accommodation
+        ? {
+            kind: 'accommodation',
+            source,
+            rawText: input.bookingText,
+            ...(input.mealType && { mealType: input.mealType }),
+            ...(input.extra && { extra: input.extra }),
+          }
+        : {
+            kind: 'base',
+            source,
+            rawText: input.bookingText,
+            ...(input.extra && { extra: input.extra }),
+          };
 
   const booking = await addTripBooking(userId, input.tripId, {
     bookingType,

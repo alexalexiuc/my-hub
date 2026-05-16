@@ -81,10 +81,12 @@ export type NewApiaryTask = InferInsertModel<typeof apiaryTasks>;
 
 // Travel — booking details discriminated union
 export type {
+  MealType,
   BookingDetails,
   FlightDetails,
   TransportLocation,
   TransportDetails,
+  AccommodationDetails,
   BaseBookingDetails,
 } from './booking-details';
 
