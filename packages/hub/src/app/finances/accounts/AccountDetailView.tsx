@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Pill } from '@/components';
+import { Pill, IconButton } from '@/components';
 import { PlusOutlineIcon, PencilIcon, ArchiveBoxIcon } from '@/components/icons';
-import { cn } from '@/lib/utils';
-import { apiFetch } from '@/lib/utils';
+import { cn, apiFetch } from '@/lib/utils';
 import { fmt, SectionLabel, Bar, TYPE_META } from '../ui';
+import { FinModalShell } from '../FinModalShell';
 import { TransactionList } from '../transactions/TransactionList';
 import { EditAccountModal } from './EditAccountModal';
 import type { AccountItem } from '@/app/api/finances/accounts/route';
@@ -197,39 +197,20 @@ function ArchiveConfirmModal({
   }
 
   return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-[var(--fin-overlay)]"
+    <FinModalShell
+      onClose={onClose}
+      title={isArchived ? 'Unarchive Account' : 'Archive Account'}
+      className="md:max-w-[360px]"
+      onSubmit={handle}
+      submitLabel={isArchived ? 'Unarchive' : 'Archive'}
+      submitLoading={confirming}
     >
-      <div
-        onClick={e => e.stopPropagation()}
-        className="flex w-full max-w-[360px] flex-col gap-4 rounded-[14px] border border-[var(--fin-border)] bg-[var(--fin-card)] p-5"
-      >
-        <div className="text-base font-bold text-[var(--fin-text)]">
-          {isArchived ? 'Unarchive Account' : 'Archive Account'}
-        </div>
-        <p className="text-[13px] text-[var(--fin-muted)]">
-          {isArchived
-            ? `Restore "${name}" so it appears in the main accounts list?`
-            : `Archive "${name}"? It will be hidden from the main list but can be restored later.`}
-        </p>
-        <div className="flex gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 cursor-pointer rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] py-2.5 text-[13px] font-semibold text-[var(--fin-muted)]"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handle}
-            disabled={confirming}
-            className="flex-[2] cursor-pointer rounded-lg border-none bg-amber-500/20 py-2.5 text-[13px] font-bold text-amber-400 transition-colors hover:bg-amber-500/30 disabled:opacity-50"
-          >
-            {confirming ? 'Saving…' : isArchived ? 'Unarchive' : 'Archive'}
-          </button>
-        </div>
-      </div>
-    </div>
+      <p className="text-[13px] text-[var(--fin-muted)]">
+        {isArchived
+          ? `Restore "${name}" so it appears in the main accounts list?`
+          : `Archive "${name}"? It will be hidden from the main list but can be restored later.`}
+      </p>
+    </FinModalShell>
   );
 }
 
@@ -421,30 +402,24 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
           <TypeBadge type={acc.type} />
         </div>
         <div className="flex items-center gap-1.5">
-          <button
+          <IconButton
+            label="Balance Correction"
+            icon={<PlusOutlineIcon className="size-3.5" />}
             onClick={() => setCorrectionOpen(true)}
-            title="Balance Correction"
-            aria-label="Balance Correction"
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-[var(--fin-border)] bg-transparent text-[var(--fin-muted)] transition-colors hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
-          >
-            <PlusOutlineIcon className="size-3.5" />
-          </button>
-          <button
+            className="h-7 w-7 flex items-center justify-center p-0 border border-[var(--fin-border)] bg-transparent text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
+          />
+          <IconButton
+            label="Edit account"
+            icon={<PencilIcon className="size-3.5" />}
             onClick={() => setEditOpen(true)}
-            title="Edit account"
-            aria-label="Edit account"
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-[var(--fin-border)] bg-transparent text-[var(--fin-muted)] transition-colors hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
-          >
-            <PencilIcon className="size-3.5" />
-          </button>
-          <button
+            className="h-7 w-7 flex items-center justify-center p-0 border border-[var(--fin-border)] bg-transparent text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
+          />
+          <IconButton
+            label={acc.archived ? 'Unarchive account' : 'Archive account'}
+            icon={<ArchiveBoxIcon className="size-3.5" />}
             onClick={() => setArchiveConfirmOpen(true)}
-            title={acc.archived ? 'Unarchive account' : 'Archive account'}
-            aria-label={acc.archived ? 'Unarchive account' : 'Archive account'}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-[var(--fin-border)] bg-transparent text-amber-400 transition-colors hover:bg-amber-900/20 hover:text-amber-300"
-          >
-            <ArchiveBoxIcon className="size-3.5" />
-          </button>
+            className="h-7 w-7 flex items-center justify-center p-0 border border-[var(--fin-border)] bg-transparent text-amber-400 hover:bg-amber-900/20 hover:text-amber-300"
+          />
         </div>
       </div>
 
