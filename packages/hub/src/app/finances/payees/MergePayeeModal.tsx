@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { apiFetch } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { useState, useRef, useMemo } from 'react';
+import { apiFetch, cn } from '@/lib/utils';
 import { FinModalShell } from '../FinModalShell';
 import { Field } from '@/components';
 import { ChevronDownOutlineIcon } from '@/components/icons';
@@ -27,14 +26,18 @@ function SearchablePayeeSelect({
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const blurTimeout = useRef<ReturnType<typeof setTimeout>>();
 
-  const selected = payees.find(p => p.id === value);
+  const selected = useMemo(() => payees.find(p => p.id === value), [payees, value]);
 
-  const filtered = query.trim()
-    ? payees.filter(p => p.name.toLowerCase().includes(query.toLowerCase()))
-    : payees;
+  const filtered = useMemo(
+    () =>
+      query.trim() ? payees.filter(p => p.name.toLowerCase().includes(query.toLowerCase())) : payees,
+    [payees, query],
+  );
 
   function handleSelect(id: number) {
+    clearTimeout(blurTimeout.current);
     onChange(id);
     setOpen(false);
     setQuery('');
@@ -60,7 +63,7 @@ function SearchablePayeeSelect({
             setQuery('');
             setOpen(true);
           }}
-          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          onBlur={() => { blurTimeout.current = setTimeout(() => setOpen(false), 150); }}
         />
         <ChevronDownOutlineIcon
           className={cn(
