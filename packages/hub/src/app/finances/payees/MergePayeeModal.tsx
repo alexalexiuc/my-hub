@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { apiFetch } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { FinModalShell } from '../FinModalShell';
-import { Field, Select } from '@/components';
+import { Field } from '@/components';
+import { ChevronDownOutlineIcon } from '@/components/icons';
 import type { PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 
 type MergePayeeModalProps = {
@@ -12,6 +14,86 @@ type MergePayeeModalProps = {
   onClose: () => void;
   onMerged: () => void;
 };
+
+function SearchablePayeeSelect({
+  payees,
+  value,
+  onChange,
+}: {
+  payees: PayeeWithSuggestion[];
+  value: number | '';
+  onChange: (id: number | '') => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const selected = payees.find(p => p.id === value);
+
+  const filtered = query.trim()
+    ? payees.filter(p => p.name.toLowerCase().includes(query.toLowerCase()))
+    : payees;
+
+  function handleSelect(id: number) {
+    onChange(id);
+    setOpen(false);
+    setQuery('');
+  }
+
+  return (
+    <div className="relative">
+      <div
+        className="flex cursor-text items-center gap-2 rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2.5"
+        onClick={() => inputRef.current?.focus()}
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          className="flex-1 bg-transparent text-[13px] text-[var(--fin-text)] outline-none placeholder:text-[var(--fin-subtle)]"
+          placeholder={selected ? selected.name : 'Search payee…'}
+          value={open ? query : (selected?.name ?? '')}
+          onChange={e => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => {
+            setQuery('');
+            setOpen(true);
+          }}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+        />
+        <ChevronDownOutlineIcon
+          className={cn(
+            'size-3.5 shrink-0 text-[var(--fin-subtle)] transition-transform duration-150',
+            open && 'rotate-180',
+          )}
+        />
+      </div>
+
+      {open && (
+        <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card)] shadow-lg">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-3 text-center text-[12px] text-[var(--fin-subtle)]">No payees found</div>
+          ) : (
+            filtered.map(p => (
+              <button
+                key={p.id}
+                type="button"
+                onMouseDown={() => handleSelect(p.id)}
+                className={cn(
+                  'flex w-full items-center px-3 py-2 text-left text-[13px] transition-colors hover:bg-[var(--fin-card2)]',
+                  p.id === value ? 'font-semibold text-[var(--fin-text)]' : 'text-[var(--fin-muted)]',
+                )}
+              >
+                {p.name}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function MergePayeeModal({ payee, allPayees, onClose, onMerged }: MergePayeeModalProps) {
   const [sourceId, setSourceId] = useState<number | ''>('');
@@ -53,13 +135,7 @@ export function MergePayeeModal({ payee, allPayees, onClose, onMerged }: MergePa
         </p>
 
         <Field label="Payee to merge in">
-          <Select
-            value={sourceId}
-            onChange={e => setSourceId(e.target.value ? Number(e.target.value) : '')}
-            options={options.map(p => ({ value: p.id, label: p.name }))}
-          >
-            <option value="">Select payee…</option>
-          </Select>
+          <SearchablePayeeSelect payees={options} value={sourceId} onChange={setSourceId} />
         </Field>
 
         {error && <p className="text-xs text-red-400">{error}</p>}

@@ -127,7 +127,7 @@ export function TransactionList({
                 onEdit={onEdit ? () => onEdit(tx.id) : undefined}
                 onDelete={onDelete ? () => onDelete(tx.id) : undefined}
               >
-                <div className="flex items-center gap-2.5 py-2.5 pr-2">
+                <div className="flex items-center gap-2.5 py-2.5 pl-[14px] pr-[14px] md:pl-0 md:pr-2">
                   {/* Left: icon */}
                   <CategoryIcon color={catColor} size="sm">
                     {tx.isCorrection ? '⚖' : isTransfer ? '↔' : categoryIconEmoji(tx.categoryIcon)}
