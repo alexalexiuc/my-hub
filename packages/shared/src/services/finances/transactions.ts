@@ -1,8 +1,8 @@
 /**
  * Finance transaction CRUD
  * - addTransaction(userId, budgetId, data) — inserts a transaction; updates account balances and payee stats
- * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (accountId, categoryId, type, fromDate, toDate, includeCorrections, search, limit, offset)
- * - getTransactionListItems(userId, budgetId, opts?) — same filters as getTransactions; returns pre-resolved display fields (accountName, toAccountName, payeeName, categoryName/Color/Icon, addedByInitials) via JOIN
+ * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (accountId, categoryId, type, fromDate, toDate, includeCorrections, search, label, limit, offset)
+ * - getTransactionListItems(userId, budgetId, opts?) — same filters as getTransactions; returns pre-resolved display fields (accountName, toAccountName, payeeName, categoryName/Color/Icon, addedByInitials, labels) via JOIN
  * - getTransactionListItemById(userId, budgetId, transactionId) — single TransactionListItem with resolved display fields; null if not found
  * - countTransactions(userId, budgetId, opts?) — same filters; returns total count
  * - getTransactionById(userId, budgetId, transactionId) — single transaction with access check
@@ -48,6 +48,7 @@ export type TransactionUpdate = Partial<
     | 'categoryId'
     | 'payeeId'
     | 'notes'
+    | 'labels'
     | 'extras'
     | 'isCorrection'
     | 'fromAccountBalanceAfter'
@@ -64,6 +65,7 @@ export interface GetTransactionsOpts {
   toDate?: string;
   includeCorrections?: boolean;
   search?: string;
+  label?: string;
   limit?: number;
   offset?: number;
 }
@@ -82,6 +84,7 @@ export interface TransactionListItem {
   type: TransactionType;
   isCorrection: boolean;
   notes: string | null;
+  labels: string[];
   accountId: number;
   accountName: string;
   toAccountId: number | null;
@@ -135,6 +138,9 @@ function buildListConditions(budgetId: number, opts: GetTransactionsOpts) {
   if (opts.search !== undefined && opts.search.trim() !== '') {
     conditions.push(ilike(financeTransactions.notes, `%${opts.search}%`));
   }
+  if (opts.label !== undefined) {
+    conditions.push(sql`${financeTransactions.labels} @> ${JSON.stringify([opts.label])}::jsonb`);
+  }
   return conditions;
 }
 
@@ -151,6 +157,7 @@ function buildListQuery(budgetId: number, opts: GetTransactionsOpts, extraCondit
       type: financeTransactions.type,
       isCorrection: financeTransactions.isCorrection,
       notes: financeTransactions.notes,
+      labels: financeTransactions.labels,
       accountId: financeTransactions.accountId,
       accountName: fromAcct.name,
       toAccountId: financeTransactions.toAccountId,
@@ -190,6 +197,7 @@ function rowToListItem(row: Awaited<ReturnType<typeof buildListQuery>>[number]):
     type: row.type,
     isCorrection: row.isCorrection,
     notes: row.notes ?? null,
+    labels: (row.labels as string[]) ?? [],
     accountId: row.accountId,
     accountName: row.accountName,
     toAccountId: row.toAccountId ?? null,

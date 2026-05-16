@@ -33,6 +33,7 @@ import {
   upsertPayeeTool,
 } from './payees';
 import { UpsertCategorySchema, upsertCategoryTool } from './categories';
+import { ListLabelsSchema, listLabelsTool } from './labels';
 
 const financeTools = [
   defineTool({
@@ -106,6 +107,15 @@ const financeTools = [
     inputSchema: MergePayeesSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: true },
     callback: mergePayeesTool,
+  }),
+  defineTool({
+    name: 'finances_list_labels',
+    description:
+      'List all known label strings for the active budget. ' +
+      'Use the returned values for autocomplete when adding or updating transactions with labels.',
+    inputSchema: ListLabelsSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: listLabelsTool,
   }),
   defineTool({
     name: 'finances_add_transactions',

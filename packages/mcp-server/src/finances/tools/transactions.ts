@@ -20,6 +20,7 @@ import {
   getTransactionById,
   getPayees,
   getBudgetProgress,
+  syncLabels,
 } from '@my-hub/shared/services';
 import { TransactionTypes, AccountTypes } from '@my-hub/shared/constants';
 import type { TransactionInsert } from '@my-hub/shared/services';
@@ -85,6 +86,7 @@ const TransactionItemSchema = z
     categoryId: z.number().int().positive().optional(),
     payeeName: z.string().min(1).optional(),
     notes: z.string().min(1),
+    labels: z.array(z.string().min(1)).optional(),
     isCorrection: z.boolean().optional(),
     extras: TransactionExtrasSchema.optional(),
   })
@@ -233,6 +235,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         }
       }
 
+      const labels = item.labels ?? [];
       const tx = await addTransaction(userId, budget.id, {
         type: item.type,
         amount: item.amount,
@@ -242,11 +245,15 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         categoryId: item.categoryId ?? null,
         payeeId,
         notes: item.notes,
+        labels,
         isCorrection: item.isCorrection ?? false,
         source: 'mcp',
         amountCurrency,
         extras: inferredExtras,
       });
+      if (labels.length > 0) {
+        await syncLabels(userId, budget.id, labels);
+      }
 
       lastBalanceAfter = tx.fromAccountBalanceAfter;
 
@@ -358,6 +365,7 @@ export const UpdateTransactionSchema = z.object({
   categoryId: z.number().int().positive().optional(),
   payeeName: z.string().min(1).optional(),
   notes: z.string().min(1).optional(),
+  labels: z.array(z.string().min(1)).optional(),
   isCorrection: z.boolean().optional(),
 });
 
@@ -414,10 +422,14 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
     categoryId: input.categoryId,
     payeeId,
     notes: input.notes,
+    labels: input.labels,
     isCorrection: input.isCorrection,
   });
 
   const updated = await updateTransaction(userId, budget.id, input.transactionId, updateData);
+  if (input.labels !== undefined && input.labels.length > 0) {
+    await syncLabels(userId, budget.id, input.labels);
+  }
   const resolvedAccount = await getAccountById(userId, budget.id, updated.accountId);
 
   const responseData: Record<string, unknown> = {
@@ -487,6 +499,7 @@ export const QueryTransactionsSchema = z.object({
   accountId: z.number().int().positive().optional(),
   categoryId: z.number().int().positive().optional(),
   payeeName: z.string().optional(),
+  label: z.string().optional(),
   type: z.enum(TransactionTypes).optional(),
   dateFrom: z
     .string()
@@ -526,6 +539,7 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema.s
     accountId: input.accountId,
     categoryId,
     payeeId,
+    label: input.label,
     type: input.type as (typeof TransactionTypes)[keyof typeof TransactionTypes] | undefined,
     fromDate: input.dateFrom,
     toDate: input.dateTo,
@@ -569,6 +583,7 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema.s
       amount: tx.amount,
       date: tx.date,
       notes: tx.notes,
+      labels: (tx.labels as string[]) ?? [],
       isCorrection: tx.isCorrection,
       account: fromAcct ? { id: fromAcct.id, name: fromAcct.name, currency: fromAcct.currency } : null,
       ...(toAcct ? { toAccount: { id: toAcct.id, name: toAcct.name, currency: toAcct.currency } } : {}),

@@ -159,6 +159,25 @@ export const financePayees = pgTable(
   ],
 );
 
+// ─── Labels ───────────────────────────────────────────────────────────────────
+// Stores known label strings per budget for autocomplete suggestions only.
+// Labels are stored directly on transaction rows as a jsonb string array — no FK.
+
+export const financeLabels = pgTable(
+  'finance_labels',
+  {
+    id: serial('id').primaryKey(),
+    budgetId: integer('budget_id')
+      .notNull()
+      .references(() => financeBudgets.id, { onDelete: 'cascade' }),
+    label: text('label').notNull(),
+  },
+  table => [
+    uniqueIndex('uq_finance_labels_budget_label').on(table.budgetId, table.label),
+    index('idx_finance_labels_budget').on(table.budgetId),
+  ],
+);
+
 // ─── Import batches ──────────────────────────────────────────────────────
 // One row per CSV import; transactions link back via importBatchId.
 // Enables durable undo and import history.
@@ -221,6 +240,10 @@ export const financeTransactions = pgTable(
     // Human-readable note — shown in UI, indexed for search.
     // AI entries are encouraged to populate this with a plain-language summary.
     notes: text('notes'),
+
+    // User-defined string tags stored directly on the row for fast read access.
+    // financeLabels table stores the known values for autocomplete (no FK relationship).
+    labels: jsonb('labels').$type<string[]>().notNull().default([]),
 
     // Structured metadata — optionally populated by MCP/AI at insert time.
     // See TransactionDetails in src/types/transaction-details.ts for typed shapes.

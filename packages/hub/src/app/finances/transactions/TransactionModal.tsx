@@ -12,9 +12,11 @@ import { categoryIconEmoji } from '../categoryIcons';
 import { AddTransactionSchema, defaultAddTransactionValues, type AddTransactionValues } from '../finances-form.schema';
 import { useAmountMask } from './useAmountMask';
 import { MobileAmountKeypad } from './MobileAmountKeypad';
+import { LabelMultiSelect } from './LabelMultiSelect';
 import type { PayeesResponse, PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
 import type { TransactionDetail, TransactionMutationResponse } from '@/app/api/finances/transactions/[id]/route';
+import type { LabelsResponse } from '@/app/api/finances/labels/route';
 import { getCurrencySymbol, isPayeeRequired } from '@my-hub/shared/utils';
 import { EXPENSE_ACCOUNT_TYPES, TransactionType, TransactionTypes } from '@my-hub/shared/constants';
 import { TYPE_META } from '../ui';
@@ -111,6 +113,7 @@ export function TransactionModal({
 
   const [formData, setFormData] = useState<TransactionFormDataResponse | null>(null);
   const [payees, setPayees] = useState<PayeeWithSuggestion[]>([]);
+  const [allLabels, setAllLabels] = useState<string[]>([]);
   const [selCatId, setSelCatId] = useState<number | null>(null);
   const [selAccId, setSelAccId] = useState<number | null>(null);
   const [selToAccId, setSelToAccId] = useState<number | null>(prefilledToAccountId ?? null);
@@ -159,9 +162,10 @@ export function TransactionModal({
   const payeeRequired = isPayeeRequired(txType);
 
   const load = useCallback(async () => {
-    const [fd, pd, detail] = await Promise.all([
+    const [fd, pd, labelsData, detail] = await Promise.all([
       apiFetch<TransactionFormDataResponse>('/api/finances/transactions/form-data', { silentToast: true }),
       apiFetch<PayeesResponse>('/api/finances/payees', { silentToast: true }),
+      apiFetch<LabelsResponse>('/api/finances/labels', { silentToast: true }),
       isEdit
         ? apiFetch<TransactionDetail>(`/api/finances/transactions/${editId}`, { silentToast: true })
         : Promise.resolve(null),
@@ -169,6 +173,7 @@ export function TransactionModal({
 
     setFormData(fd);
     if (pd) setPayees(pd.payees);
+    if (labelsData) setAllLabels(labelsData.labels);
 
     if (detail) {
       setValue('txType', detail.type);
@@ -176,6 +181,7 @@ export function TransactionModal({
       setValue('date', detail.date);
       setValue('payee', detail.payeeName ?? '');
       setValue('note', detail.notes ?? '');
+      setValue('labels', detail.labels ?? []);
       setSelPayeeId(detail.payeeId ?? null);
 
       setSelAccId(detail.accountId);
@@ -233,6 +239,7 @@ export function TransactionModal({
       categoryId: txType === TransactionTypes.Transfer ? null : selCatId,
       payeeName: values.payee.trim() || undefined,
       notes: values.note.trim() || undefined,
+      labels: values.labels,
     };
 
     if (isEdit) {
@@ -482,6 +489,15 @@ export function TransactionModal({
               className="flex-1 text-[13px] text-[var(--fin-text)]"
             />
           </MobileFieldRow>
+
+          <MobileFieldRow label="Labels">
+            <LabelMultiSelect
+              allLabels={allLabels}
+              value={watch('labels')}
+              onChange={vals => setValue('labels', vals)}
+              inputClassName="border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+            />
+          </MobileFieldRow>
         </div>
       </div>
 
@@ -636,6 +652,14 @@ export function TransactionModal({
                 />
               </FieldCard>
             </div>
+
+            <FieldCard label="Labels">
+              <LabelMultiSelect
+                allLabels={allLabels}
+                value={watch('labels')}
+                onChange={vals => setValue('labels', vals)}
+              />
+            </FieldCard>
           </>
         )}
       </form>

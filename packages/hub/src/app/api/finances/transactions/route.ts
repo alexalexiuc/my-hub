@@ -6,6 +6,7 @@ import {
   upsertPayee,
   getTransactionListItems,
   getTransactionListItemById,
+  syncLabels,
 } from '@my-hub/shared/services';
 import type { TransactionInsert } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
@@ -20,6 +21,7 @@ export const transactionListItemSchema = z.object({
   type: z.enum(TransactionTypes),
   isCorrection: z.boolean(),
   notes: z.string().nullable(),
+  labels: z.array(z.string()),
   payeeName: z.string().nullable(),
   categoryName: z.string().nullable(),
   categoryColor: categoryColorSchema,
@@ -53,11 +55,13 @@ const TransactionCreateSchema = z.object({
   payeeName: z.string().optional(),
   notes: z.string().optional(),
   isCorrection: z.boolean().optional(),
+  labels: z.array(z.string()).optional(),
 });
 
 const TransactionQuerySchema = z.object({
   type: z.enum(TransactionTypes).optional(),
   categoryId: z.coerce.number().int().positive().optional(),
+  label: z.string().optional(),
   month: z
     .string()
     .regex(/^\d{4}-\d{2}$/)
@@ -88,6 +92,7 @@ export const GET = route({ query: TransactionQuerySchema, response: transactions
   const transactions = await getTransactionListItems(user.id, budgetId, {
     type: query.type,
     categoryId: query.categoryId,
+    label: query.label,
     fromDate,
     toDate,
     includeCorrections: true,
@@ -112,6 +117,8 @@ export const POST = route({ body: TransactionCreateSchema, response: transaction
     payeeId = (await upsertPayee(user.id, budgetId, body.payeeName.trim())).id;
   }
 
+  const labels = body.labels ?? [];
+
   const data: TransactionInsert = {
     type: body.type as TransactionInsert['type'],
     accountId: body.accountId,
@@ -122,6 +129,7 @@ export const POST = route({ body: TransactionCreateSchema, response: transaction
     payeeId,
     notes: body.notes?.trim() || null,
     isCorrection: body.isCorrection === true,
+    labels,
     source: 'hub',
     fromAccountBalanceAfter: null,
     toAccountBalanceAfter: null,
@@ -129,6 +137,9 @@ export const POST = route({ body: TransactionCreateSchema, response: transaction
   };
 
   const transaction = await addTransaction(user.id, budgetId, data);
+  if (labels.length > 0) {
+    await syncLabels(user.id, budgetId, labels);
+  }
   const listItem = (await getTransactionListItemById(user.id, budgetId, transaction.id)) ?? undefined;
 
   return created({ transaction, listItem });

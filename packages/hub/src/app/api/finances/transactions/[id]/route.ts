@@ -7,6 +7,7 @@ import {
   deleteTransaction,
   getPayees,
   upsertPayee,
+  syncLabels,
 } from '@my-hub/shared/services';
 import type { TransactionUpdate } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
@@ -26,6 +27,7 @@ export const transactionDetailSchema = z.object({
   amount: z.number(),
   date: z.string(),
   notes: z.string().nullable(),
+  labels: z.array(z.string()),
   isCorrection: z.boolean(),
 });
 
@@ -43,6 +45,7 @@ const TransactionPatchSchema = z.object({
   categoryId: z.number().int().positive().nullable().optional(),
   payeeName: z.string().optional(),
   notes: z.string().optional(),
+  labels: z.array(z.string()).optional(),
 });
 
 export const GET = route({ params: paramsSchema, response: transactionDetailSchema })(async ({ user, params }) => {
@@ -69,6 +72,7 @@ export const GET = route({ params: paramsSchema, response: transactionDetailSche
     amount: tx.amount,
     date: tx.date,
     notes: tx.notes ?? null,
+    labels: (tx.labels as string[]) ?? [],
     isCorrection: tx.isCorrection,
   };
 });
@@ -103,9 +107,13 @@ export const PATCH = route({
     categoryId: body.categoryId,
     payeeId,
     notes: body.notes !== undefined ? body.notes.trim() || null : undefined,
+    labels: body.labels,
   });
 
   const transaction = await updateTransaction(user.id, budgetId, params.id, update);
+  if (body.labels !== undefined && body.labels.length > 0) {
+    await syncLabels(user.id, budgetId, body.labels);
+  }
   return { transaction };
 });
 
