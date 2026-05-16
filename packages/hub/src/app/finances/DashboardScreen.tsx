@@ -146,8 +146,8 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
       )}
 
       {/* Recent transactions */}
-      <Card className="p-[14px]">
-        <div className="mb-2.5 flex justify-between">
+      <div className="-mx-7 border-y border-[var(--fin-border)] bg-[var(--fin-card)] md:mx-0 md:rounded-[10px] md:border md:p-[14px]">
+        <div className="mb-2.5 flex justify-between px-[14px] pt-[14px] md:px-0 md:pt-0">
           <SectionLabel className="mb-0">Recent</SectionLabel>
           <span
             className="cursor-pointer text-[10px] text-[var(--fin-accent)]"
@@ -158,7 +158,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
         </div>
 
         <TransactionList transactions={recentTransactions} currency={currency} />
-      </Card>
+      </div>
     </div>
   );
 }

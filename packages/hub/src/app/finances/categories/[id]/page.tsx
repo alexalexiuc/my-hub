@@ -170,19 +170,21 @@ export default function CategoryDetailPage() {
         {category.notes && <div className="mt-2 text-[12px] text-[var(--fin-muted)]">{category.notes}</div>}
       </Card>
 
-      <Card className="p-[14px]">
-        <SectionLabel className="mb-2.5">Transactions</SectionLabel>
+      <div className="-mx-7 border-y border-[var(--fin-border)] bg-[var(--fin-card)] md:mx-0 md:rounded-[10px] md:border md:p-[14px]">
+        <SectionLabel className="mb-2.5 mt-[14px] px-[14px] md:mt-0 md:px-0">Transactions</SectionLabel>
         <TransactionList transactions={transactions} currency={currency} showAccount />
         {hasMore && (
-          <button
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="mt-2.5 w-full cursor-pointer rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] p-2 text-xs text-[var(--fin-muted)] disabled:cursor-default disabled:opacity-60"
-          >
-            {loadingMore ? 'Loading…' : 'Load more'}
-          </button>
+          <div className="px-[14px] pb-[14px] md:px-0 md:pb-0">
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="mt-2.5 w-full cursor-pointer rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] p-2 text-xs text-[var(--fin-muted)] disabled:cursor-default disabled:opacity-60"
+            >
+              {loadingMore ? 'Loading…' : 'Load more'}
+            </button>
+          </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
