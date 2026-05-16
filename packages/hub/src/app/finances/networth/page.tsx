@@ -128,11 +128,11 @@ export default function NetWorthPage() {
 
       {/* Assets vs Liabilities summary */}
       <div className="grid gap-2 sm:grid-cols-2">
-        <Card className="px-[14px] py-3">
+        <Card compact className="px-[14px] py-3">
           <div className="mb-1 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-green)]">Assets</div>
           <div className="text-xl font-bold text-[var(--fin-green)]">{fmt(totalAssets, currency)}</div>
         </Card>
-        <Card className="px-[14px] py-3">
+        <Card compact className="px-[14px] py-3">
           <div className="mb-1 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-red)]">Liabilities</div>
           <div className="text-xl font-bold text-[var(--fin-red)]">{fmt(totalLiabilities, currency)}</div>
         </Card>

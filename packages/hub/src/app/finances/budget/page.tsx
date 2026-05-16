@@ -103,7 +103,7 @@ export default function BudgetPage() {
                   color: left < 0 ? 'var(--fin-red)' : 'var(--fin-green)',
                 },
               ].map(s => (
-                <Card key={s.label} className="px-3 py-2.5 text-center">
+                <Card compact key={s.label} className="px-3 py-2.5 text-center">
                   <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">{s.label}</div>
                   <div className="text-base font-bold" style={{ color: s.color }}>
                     {s.value}

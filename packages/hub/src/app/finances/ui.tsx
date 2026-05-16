@@ -45,24 +45,27 @@ export function Card({
   className,
   style,
   onClick,
+  compact,
 }: {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
   onClick?: () => void;
+  compact?: boolean;
 }) {
   return (
     <div
       data-card
       onClick={onClick}
       className={cn(
-        'rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)] px-4 py-[14px] transition-colors',
+        'bg-[var(--fin-card)] px-4 py-[14px] transition-colors',
         onClick ? 'cursor-pointer' : 'cursor-default',
+        !compact && '-mx-7 rounded-none border-y border-[var(--fin-border)] border-x-0',
+        compact && 'rounded-[10px] border border-[var(--fin-border)]',
+        'md:mx-0 md:rounded-[10px] md:border md:border-[var(--fin-border)]',
         className,
       )}
-      style={{
-        ...style,
-      }}
+      style={style}
     >
       {children}
     </div>
