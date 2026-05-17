@@ -62,20 +62,31 @@ export function EditPayeeModal({ payee, onClose, onSaved }: EditPayeeModalProps)
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <Field label="Name">
-          <Input {...register('name')} autoFocus placeholder="e.g. Kaufland" />
+          <Input
+            {...register('name')}
+            autoFocus
+            placeholder="e.g. Kaufland"
+            variant="ghost"
+            className="w-full text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+          />
           {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name.message}</p>}
         </Field>
 
         <Field label="Aliases (optional, comma-separated)">
-          <Input {...register('aliases')} placeholder="e.g. Kaufland SRL, Kaufland Romania, KL" />
+          <Input
+            {...register('aliases')}
+            placeholder="e.g. Kaufland SRL, Kaufland Romania, KL"
+            variant="ghost"
+            className="w-full text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+          />
         </Field>
 
         <Field label="Description (optional)">
           <Textarea
             {...register('description')}
             rows={3}
-            className="resize-none"
             placeholder="Helpful context for matching this payee"
+            className="resize-none bg-transparent border-0 px-0 py-0 rounded-none shadow-none text-sm text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)] focus:ring-0 focus:outline-none w-full"
           />
         </Field>
       </form>

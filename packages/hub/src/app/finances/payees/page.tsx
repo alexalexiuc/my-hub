@@ -77,7 +77,8 @@ export default function PayeesPage() {
           placeholder="Search payees…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="flex-1"
+          variant="ghost"
+          className="flex-1 text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
         />
         <PayeesRangeFilter range={range} onChange={setRange} ranges={PAYEE_RANGES} />
       </div>

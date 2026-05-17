@@ -17,6 +17,7 @@ import { categoryIconSchema, categoryColorSchema } from '../shared.schema';
 export const dashboardCategorySchema = z.object({
   id: z.number().int(),
   name: z.string(),
+  icon: categoryIconSchema,
   color: categoryColorSchema,
   spent: z.number(),
 });
@@ -171,13 +172,14 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
     .map(c => ({
       id: c.id,
       name: c.name,
+      icon: c.icon ?? null,
       color: c.color ?? null,
       spent: spentByCategory.get(c.id)!,
     }));
 
   const uncategorized = monthlyExpense - categorizedTotal;
   if (uncategorized > 0.01) {
-    categorySpending.push({ id: -1, name: 'Other', color: null, spent: uncategorized });
+    categorySpending.push({ id: -1, name: 'Other', icon: null, color: null, spent: uncategorized });
   }
 
   const todayDay = now.getDate();

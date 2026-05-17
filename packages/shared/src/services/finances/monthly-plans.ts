@@ -4,7 +4,7 @@
  * - createMonthlyPlan(userId, budgetId, month, availableAmount?) — create a new plan row for the given month
  * - checkMonthlyPlanExists(userId, budgetId, month) — returns true if a plan row exists for that month (without creating one)
  * - getOrCreateMonthlyPlan(userId, budgetId, month) — fetch or create the plan row for a given YYYY-MM month
- * - getMonthlyPlanFull(userId, budgetId, month) — plan + items + computed summary (planned, remaining potential/real, progress)
+ * - getMonthlyPlanFull(userId, budgetId, month, autoCreate?) — plan + items + computed summary (planned, remaining potential/real, progress). If autoCreate is true (default), will create the plan row if it doesn't exist; if false, will return undefined if not found
  * - computeSummary(plan, items, budgetCurrency) — compute planned/remaining/assigned summary in budget currency
  * - updateMonthlyPlan(userId, budgetId, planId, patch) — update plan metadata (availableAmount, amountToAdd, and/or incomeAccountId)
  * - addPlanItem(userId, planId, data) — append a new line item (or array of items) to the plan
@@ -217,10 +217,26 @@ export async function getOrCreateMonthlyPlan(
  * Fetches the monthly plan along with its items and computed summary.
  * If the plan for the given month doesn't exist, it will be created with an availableAmount of 0.
  */
-export async function getMonthlyPlanFull(userId: string, budgetId: number, month: string): Promise<MonthlyPlanFull> {
+export async function getMonthlyPlanFull(
+  userId: string,
+  budgetId: number,
+  month: string,
+  autoCreate: false,
+): Promise<MonthlyPlanFull | undefined>;
+export async function getMonthlyPlanFull(userId: string, budgetId: number, month: string): Promise<MonthlyPlanFull>;
+export async function getMonthlyPlanFull(
+  userId: string,
+  budgetId: number,
+  month: string,
+  autoCreate = true,
+): Promise<MonthlyPlanFull | undefined> {
   await enforceBudgetAccess(userId, budgetId);
 
-  const plan = await getOrCreateMonthlyPlan(userId, budgetId, month);
+  const plan = autoCreate
+    ? await getOrCreateMonthlyPlan(userId, budgetId, month)
+    : await getMonthlyPlan(userId, budgetId, month);
+
+  if (!plan) return undefined;
 
   const rawItems = await db
     .select({

@@ -34,6 +34,7 @@ import {
 } from './payees';
 import { UpsertCategorySchema, upsertCategoryTool } from './categories';
 import { ListLabelsSchema, listLabelsTool } from './labels';
+import { GetMonthlyPlanSchema, getMonthlyPlanTool } from './monthly-plan';
 
 const financeTools = [
   defineTool({
@@ -204,6 +205,22 @@ const financeTools = [
     inputSchema: GetSpendingAggregatesSchema.shape,
     annotations: { readOnlyHint: true },
     callback: getSpendingAggregatesTool,
+  }),
+  defineTool({
+    name: 'finances_get_monthly_plan',
+    description:
+      'Fetch the monthly budget plan for a given YYYY-MM month. Returns the plan header ' +
+      '(availableAmount, incomeAccountId), all line items with resolved category/merchant/account names, ' +
+      'and a computed summary (planned, remainingPotential, remainingReal, assignedCount, totalCount). ' +
+      'Returns exists:false when no plan has been created for that month. ' +
+      'Use this to understand what the user has budgeted before suggesting transactions or plan edits.' +
+      "Monthly plan is only meant ot give a general idea of the user's intentions for the month, not to be an exact source of truth — it is not used in any calculations or enforcement, " +
+      'and the user is not expected to keep it perfectly up to date. ' +
+      'The user may create a plan at the start of the month and forget about it, or update it sporadically as their intentions change. ' +
+      "The key is to use it as a signal of the user's general intentions and priorities for the month, and to be forgiving when the actual transactions don't perfectly match the plan.",
+    inputSchema: GetMonthlyPlanSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getMonthlyPlanTool,
   }),
   defineTool({
     name: 'finances_get_net_worth_summary',

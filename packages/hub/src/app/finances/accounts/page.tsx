@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn, apiFetch } from '@/lib/utils';
-import { fmt, Card, SectionLabel, AddButton, Sparkline } from '../ui';
+import { fmt, Card, Divider, SectionLabel, AddButton, Sparkline } from '../ui';
 import { IconButton } from '@/components';
 import { QuestionMarkIcon } from '@/components/icons';
 import { AddAccountModal } from './AddAccountModal';
@@ -47,7 +47,7 @@ function AccountCard({
   const hasExtra = acc.type === 'credit_card' || acc.type === 'goal';
 
   return (
-    <Card onClick={onClick} className="cursor-pointer px-[14px] py-3">
+    <div onClick={onClick} className="cursor-pointer px-[14px] py-3">
       <div className={cn('flex items-center justify-between', hasExtra ? 'mb-[10px]' : 'mb-0')}>
         <div className="flex items-center gap-2 min-w-0">
           <div className="h-2 w-2 shrink-0 rounded-full bg-[var(--fin-muted)]" />
@@ -90,7 +90,7 @@ function AccountCard({
       )}
 
       {acc.type === 'borrowed_lent' && <BorrowedLentDetails acc={acc} onSettle={onSettle} />}
-    </Card>
+    </div>
   );
 }
 
@@ -220,16 +220,18 @@ export default function AccountsPage() {
               </div>
             </button>
             {!isCollapsed && (
-              <div className="flex flex-col gap-2">
-                {accs.map(acc => (
-                  <AccountCard
-                    key={acc.id}
-                    acc={acc}
-                    onSettle={handleSettle}
-                    onClick={() => router.push(`/finances/accounts/${acc.id}`)}
-                  />
+              <Card className="p-0">
+                {accs.map((acc, i) => (
+                  <div key={acc.id}>
+                    {i > 0 && <Divider />}
+                    <AccountCard
+                      acc={acc}
+                      onSettle={handleSettle}
+                      onClick={() => router.push(`/finances/accounts/${acc.id}`)}
+                    />
+                  </div>
                 ))}
-              </div>
+              </Card>
             )}
           </div>
         );
@@ -245,22 +247,31 @@ export default function AccountsPage() {
         <div>
           <button
             onClick={() => setShowArchived(v => !v)}
-            className="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-[10px] text-left text-[13px] text-[var(--fin-muted)]"
+            className="mb-1 flex w-full cursor-pointer items-center justify-between"
           >
-            <span className={cn('transition-transform', showArchived ? 'rotate-90' : 'rotate-0')}>▶</span>
-            <span>Archived accounts ({archivedAccounts.length})</span>
+            <SectionLabel className="mb-0">🗄 Archived ({archivedAccounts.length})</SectionLabel>
+            <span
+              className={cn(
+                'text-[9px] text-[var(--fin-subtle)] transition-transform duration-200',
+                showArchived && 'rotate-90',
+              )}
+            >
+              ▶
+            </span>
           </button>
           {showArchived && (
-            <div className="mt-2 flex flex-col gap-2">
-              {archivedAccounts.map(acc => (
-                <AccountCard
-                  key={acc.id}
-                  acc={acc}
-                  onSettle={handleSettle}
-                  onClick={() => router.push(`/finances/accounts/${acc.id}`)}
-                />
+            <Card className="p-0">
+              {archivedAccounts.map((acc, i) => (
+                <div key={acc.id}>
+                  {i > 0 && <Divider />}
+                  <AccountCard
+                    acc={acc}
+                    onSettle={handleSettle}
+                    onClick={() => router.push(`/finances/accounts/${acc.id}`)}
+                  />
+                </div>
               ))}
-            </div>
+            </Card>
           )}
         </div>
       )}
