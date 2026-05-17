@@ -494,7 +494,11 @@ export function TransactionModal({
             <LabelMultiSelect
               allLabels={allLabels}
               value={watch('labels')}
-              onChange={vals => setValue('labels', vals)}
+              onChange={vals => {
+                const newOnes = vals.filter(v => !allLabels.includes(v));
+                if (newOnes.length > 0) setAllLabels(prev => [...new Set([...prev, ...newOnes])].sort());
+                setValue('labels', vals);
+              }}
               inputClassName="border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
             />
           </MobileFieldRow>
@@ -657,7 +661,11 @@ export function TransactionModal({
               <LabelMultiSelect
                 allLabels={allLabels}
                 value={watch('labels')}
-                onChange={vals => setValue('labels', vals)}
+                onChange={vals => {
+                  const newOnes = vals.filter(v => !allLabels.includes(v));
+                  if (newOnes.length > 0) setAllLabels(prev => [...new Set([...prev, ...newOnes])].sort());
+                  setValue('labels', vals);
+                }}
               />
             </FieldCard>
           </>

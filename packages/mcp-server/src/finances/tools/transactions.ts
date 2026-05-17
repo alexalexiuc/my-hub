@@ -24,7 +24,7 @@ import {
 } from '@my-hub/shared/services';
 import { TransactionTypes, AccountTypes } from '@my-hub/shared/constants';
 import type { TransactionInsert } from '@my-hub/shared/services';
-import { currentDateString, isPayeeRequired, omitUndefined } from '@my-hub/shared/utils';
+import { currentDateString, isPayeeRequired, omitUndefined, logger } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
 
 function getAccountAvailable(
@@ -252,7 +252,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         extras: inferredExtras,
       });
       if (labels.length > 0) {
-        await syncLabels(userId, budget.id, labels);
+        syncLabels(userId, budget.id, labels).catch(err => logger.warn('[finances] label sync failed:', err));
       }
 
       lastBalanceAfter = tx.fromAccountBalanceAfter;
@@ -428,7 +428,7 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
 
   const updated = await updateTransaction(userId, budget.id, input.transactionId, updateData);
   if (input.labels !== undefined && input.labels.length > 0) {
-    await syncLabels(userId, budget.id, input.labels);
+    syncLabels(userId, budget.id, input.labels).catch(err => logger.warn('[finances] label sync failed:', err));
   }
   const resolvedAccount = await getAccountById(userId, budget.id, updated.accountId);
 
@@ -554,20 +554,17 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema.s
     countTransactions(userId, budget.id, opts),
   ]);
 
-  // Fetch related entities for inline resolution
-  const [accounts, categories, payees] = await Promise.all([
+  const [accounts, categories, payees, groups] = await Promise.all([
     getAccounts(userId, budget.id, { includeArchived: true }),
     getCategories(userId, budget.id),
     // TODO: Review payees list, to not overwhelm UI. We can order by last used and limit to 100, then if search term is provided we can do a separate search query to find the right payee.
     getPayees(userId, budget.id),
+    getGroups(userId, budget.id),
   ]);
 
   const accountMap = new Map(accounts.map(a => [a.id, a]));
   const categoryMap = new Map(categories.map(c => [c.id, c]));
   const payeeMap = new Map(payees.map(p => [p.id, p]));
-
-  // Get groups for category displayName
-  const groups = await getGroups(userId, budget.id);
   const groupMap = new Map(groups.map(g => [g.id, g.name]));
 
   const transactions = txns.map(tx => {

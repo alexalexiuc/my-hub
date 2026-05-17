@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { Pill } from '@/components';
 import { FinancialDropdown } from '../FinancialDropdown';
 
 type LabelMultiSelectProps = {
@@ -16,7 +17,7 @@ export function LabelMultiSelect({ allLabels, value, onChange, inputClassName }:
 
   const availableOptions = useMemo(
     () => allLabels.filter(l => !selectedSet.has(l)).map((l, i) => ({ id: i, value: l })),
-    [allLabels, value], // selectedSet is derived from value
+    [allLabels, value],
   );
 
   const createOption = useMemo(
@@ -28,7 +29,7 @@ export function LabelMultiSelect({ allLabels, value, onChange, inputClassName }:
         }
       },
     }),
-    [value, onChange], // selectedSet is derived from value
+    [value, onChange],
   );
 
   return (
@@ -36,26 +37,17 @@ export function LabelMultiSelect({ allLabels, value, onChange, inputClassName }:
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {value.map(label => (
-            <span
+            <Pill
               key={label}
-              className="inline-flex items-center gap-1 rounded-full border border-[var(--fin-border)] bg-[var(--fin-card2)] px-2 py-0.5 text-[11px] text-[var(--fin-text)]"
-            >
-              {label}
-              <button
-                type="button"
-                onClick={() => onChange(value.filter(l => l !== label))}
-                className="ml-0.5 text-[var(--fin-muted)] hover:text-[var(--fin-text)]"
-                aria-label={`Remove label ${label}`}
-              >
-                ×
-              </button>
-            </span>
+              label={label}
+              color="var(--fin-accent)"
+              onRemove={() => onChange(value.filter(l => l !== label))}
+            />
           ))}
         </div>
       )}
       <FinancialDropdown
         options={availableOptions}
-        value={undefined}
         onChange={item => {
           if (item) {
             const label = String(item.value);
@@ -67,7 +59,7 @@ export function LabelMultiSelect({ allLabels, value, onChange, inputClassName }:
         fuse
         placeholder={value.length === 0 ? 'Add labels...' : 'Add another label...'}
         createOption={createOption}
-        closeOnChange={true}
+        closeOnChange
         inputClassName={cn(
           'border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]',
           inputClassName,

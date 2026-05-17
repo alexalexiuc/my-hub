@@ -138,7 +138,7 @@ export const POST = route({ body: TransactionCreateSchema, response: transaction
 
   const transaction = await addTransaction(user.id, budgetId, data);
   if (labels.length > 0) {
-    await syncLabels(user.id, budgetId, labels);
+    syncLabels(user.id, budgetId, labels).catch(err => console.warn('[finances] label sync failed:', err));
   }
   const listItem = (await getTransactionListItemById(user.id, budgetId, transaction.id)) ?? undefined;
 

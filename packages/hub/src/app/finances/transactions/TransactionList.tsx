@@ -152,7 +152,7 @@ export function TransactionList({
                         <Pill key={label} label={label} color="var(--fin-accent)" />
                       ))}
                       {(tx.labels?.length ?? 0) > 2 && (
-                        <span className="text-[10px] text-[var(--fin-subtle)]">+{tx.labels!.length - 2}</span>
+                        <span className="text-[10px] text-[var(--fin-subtle)]">+{(tx.labels?.length ?? 0) - 2}</span>
                       )}
                       {tx.notes && !tx.isCorrection && tx.payeeName && (
                         <span className="truncate text-[11px] text-[var(--fin-subtle)]">{tx.accountName}</span>
@@ -206,7 +206,7 @@ export function TransactionList({
                   <Pill key={label} label={label} color="var(--fin-accent)" />
                 ))}
                 {(tx.labels?.length ?? 0) > 2 && (
-                  <span className="text-[10px] text-[var(--fin-subtle)]">+{tx.labels!.length - 2}</span>
+                  <span className="text-[10px] text-[var(--fin-subtle)]">+{(tx.labels?.length ?? 0) - 2}</span>
                 )}
                 <span className="min-w-0 truncate text-[12px] text-[var(--fin-subtle)]" title={desktopMemo ?? ''}>
                   {desktopMemo}

@@ -112,7 +112,7 @@ export const PATCH = route({
 
   const transaction = await updateTransaction(user.id, budgetId, params.id, update);
   if (body.labels !== undefined && body.labels.length > 0) {
-    await syncLabels(user.id, budgetId, body.labels);
+    syncLabels(user.id, budgetId, body.labels).catch(err => console.warn('[finances] label sync failed:', err));
   }
   return { transaction };
 });
