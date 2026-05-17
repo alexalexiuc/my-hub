@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Bar, Divider, CategoryIcon } from './ui';
+import { fmt, Card, SectionLabel, Bar, Divider } from './ui';
+import { CategoryPieChart, SpendingTrendChart } from './DashboardCharts';
 import { TransactionModal } from './transactions/TransactionModal';
 import { TransactionList } from './transactions/TransactionList';
 import type { FinanceDashboardData } from '@/app/api/finances/dashboard/route';
-import { sortBySpentDesc } from './finances.utils';
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -28,8 +28,16 @@ type DashboardScreenProps = {
 export function DashboardScreen({ data, userName }: DashboardScreenProps) {
   const router = useRouter();
   const [showAddTx, setShowAddTx] = useState(false);
-  const { currency, availableBalance, monthlyIncome, monthlyExpense, categories, goals, recentTransactions } = data;
-  const categoriesBySpent = sortBySpentDesc(categories);
+  const {
+    currency,
+    availableBalance,
+    monthlyIncome,
+    monthlyExpense,
+    categories,
+    dailySpending,
+    goals,
+    recentTransactions,
+  } = data;
 
   const saved = monthlyIncome - monthlyExpense;
 
@@ -51,14 +59,14 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
 
       {/* Available balance + cashflow row */}
       <div className="grid gap-2.5 md:grid-cols-2">
-        <Card compact className="p-[14px]">
+        <Card className="p-[14px]">
           <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Available</div>
           <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">
             {fmt(availableBalance, currency)}
           </div>
         </Card>
 
-        <Card compact className="p-[14px]">
+        <Card className="p-[14px]">
           <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">This Month</div>
           <div className="mt-1 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
@@ -82,38 +90,44 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
         </Card>
       </div>
 
-      {/* Budget snapshot */}
-      {categories.length > 0 && (
-        <Card className="p-[14px]">
-          <div className="mb-2.5 flex justify-between">
-            <SectionLabel className="mb-0">Budget</SectionLabel>
-            <span
-              className="cursor-pointer text-[10px] text-[var(--fin-accent)]"
-              onClick={() => router.push('/finances/categories')}
-            >
-              See all →
-            </span>
-          </div>
-          <div className="flex flex-col gap-2.5">
-            {categoriesBySpent.map(cat => (
-              <div key={cat.id}>
-                <div className="mb-1 flex justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <CategoryIcon color={cat.color} icon={cat.icon} size="sm" />
-                    <span className="text-xs text-[var(--fin-text)]">{cat.name}</span>
-                  </div>
-                  <div className="text-[11px] text-[var(--fin-muted)]">
-                    <span className={cat.spent >= cat.target ? 'text-[var(--fin-red)]' : 'text-[var(--fin-text)]'}>
-                      {fmt(cat.spent, currency)}
-                    </span>
-                    <span className="text-[var(--fin-subtle)]"> / {fmt(cat.target, currency)}</span>
-                  </div>
-                </div>
-                <Bar value={cat.spent} max={cat.target} color={cat.color ?? 'var(--fin-green)'} height={5} />
+      {/* Spending charts row */}
+      {(categories.length > 0 || dailySpending.length > 0) && (
+        <div className="grid gap-2.5 md:grid-cols-2">
+          {categories.length > 0 && (
+            <Card className="p-[14px]">
+              <div className="mb-2 flex justify-between">
+                <SectionLabel className="mb-0">By Category</SectionLabel>
+                <span
+                  className="cursor-pointer text-[10px] text-[var(--fin-accent)]"
+                  onClick={() => router.push('/finances/categories')}
+                >
+                  See all →
+                </span>
               </div>
-            ))}
-          </div>
-        </Card>
+              <CategoryPieChart categories={categories} currency={currency} />
+            </Card>
+          )}
+          {dailySpending.length > 0 && (
+            <Card className="p-[14px]">
+              <div className="mb-2 flex justify-between">
+                <SectionLabel className="mb-0">Spending</SectionLabel>
+                <div className="flex items-center gap-2 text-[9px] text-[var(--fin-muted)]">
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block h-[2px] w-4 bg-[var(--fin-accent)]" />
+                    This month
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block h-[2px] w-4 border-t border-dashed border-[var(--fin-subtle)]" />
+                    Prev
+                  </span>
+                </div>
+              </div>
+              <div className="h-[200px]">
+                <SpendingTrendChart dailySpending={dailySpending} currency={currency} />
+              </div>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Goals */}

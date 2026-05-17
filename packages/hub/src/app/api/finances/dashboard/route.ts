@@ -17,10 +17,14 @@ import { categoryIconSchema, categoryColorSchema } from '../shared.schema';
 export const dashboardCategorySchema = z.object({
   id: z.number().int(),
   name: z.string(),
-  icon: categoryIconSchema,
   color: categoryColorSchema,
   spent: z.number(),
-  target: z.number(),
+});
+
+export const dailySpendingPointSchema = z.object({
+  day: z.number().int(),
+  current: z.number().nullable(),
+  prev: z.number(),
 });
 
 export const dashboardGoalSchema = z.object({
@@ -60,6 +64,7 @@ export const financeDashboardDataSchema = z.object({
   monthlyIncome: z.number(),
   monthlyExpense: z.number(),
   categories: z.array(dashboardCategorySchema),
+  dailySpending: z.array(dailySpendingPointSchema),
   goals: z.array(dashboardGoalSchema),
   recentTransactions: z.array(dashboardTransactionSchema),
 });
@@ -72,6 +77,7 @@ export const noBudgetResponseSchema = z.object({
 export const dashboardResponseSchema = z.union([financeDashboardDataSchema, noBudgetResponseSchema]);
 
 export type DashboardCategory = z.infer<typeof dashboardCategorySchema>;
+export type DailySpendingPoint = z.infer<typeof dailySpendingPointSchema>;
 export type DashboardGoal = z.infer<typeof dashboardGoalSchema>;
 export type DashboardTransaction = z.infer<typeof dashboardTransactionSchema>;
 export type AvailableBudget = z.infer<typeof availableBudgetSchema>;
@@ -101,50 +107,91 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   const today = now.toISOString().slice(0, 10);
 
-  const [accounts, categories, expenseTxns, incomeTxns, recentTxns, availableBalance] = await Promise.all([
-    getAccounts(user.id, budgetId),
-    getCategories(user.id, budgetId),
-    getTransactions(user.id, budgetId, {
-      type: TransactionTypes.Expense,
-      fromDate: monthStart,
-      toDate: today,
-      limit: 2000,
-    }),
-    getTransactions(user.id, budgetId, {
-      type: TransactionTypes.Income,
-      fromDate: monthStart,
-      toDate: today,
-      limit: 2000,
-    }),
-    getTransactionListItems(user.id, budgetId, { limit: 5 }),
-    getAvailableBalance(user.id, budgetId),
-  ]);
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevYear = prevMonthDate.getFullYear();
+  const prevMonth = prevMonthDate.getMonth() + 1;
+  const prevMonthStart = `${prevYear}-${String(prevMonth).padStart(2, '0')}-01`;
+  const prevMonthLastDay = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+  const prevMonthEnd = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(prevMonthLastDay).padStart(2, '0')}`;
+
+  const [accounts, categories, expenseTxns, incomeTxns, recentTxns, availableBalance, prevExpenseTxns] =
+    await Promise.all([
+      getAccounts(user.id, budgetId),
+      getCategories(user.id, budgetId),
+      getTransactions(user.id, budgetId, {
+        type: TransactionTypes.Expense,
+        fromDate: monthStart,
+        toDate: today,
+        limit: 2000,
+      }),
+      getTransactions(user.id, budgetId, {
+        type: TransactionTypes.Income,
+        fromDate: monthStart,
+        toDate: today,
+        limit: 2000,
+      }),
+      getTransactionListItems(user.id, budgetId, { limit: 5 }),
+      getAvailableBalance(user.id, budgetId),
+      getTransactions(user.id, budgetId, {
+        type: TransactionTypes.Expense,
+        fromDate: prevMonthStart,
+        toDate: prevMonthEnd,
+        limit: 2000,
+      }),
+    ]);
 
   // Monthly totals
   const monthlyExpense = expenseTxns.reduce((sum, t) => sum + t.amount, 0);
   const monthlyIncome = incomeTxns.reduce((sum, t) => sum + t.amount, 0);
 
-  // Spending per category this month
+  // Single pass: category totals + daily map for current month
   const spentByCategory = new Map<number, number>();
+  const currentDayMap = new Map<number, number>();
   for (const t of expenseTxns) {
     if (t.categoryId != null) {
       spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.amount);
     }
+    const day = +t.date.slice(8, 10);
+    currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.amount);
   }
 
-  // Top categories that have a monthly target
-  const budgetCategories = categories
-    .filter(c => c.monthlyTarget != null)
-    .sort((a, b) => b.monthlyTarget! - a.monthlyTarget!)
-    .slice(0, 4)
+  const prevDayMap = new Map<number, number>();
+  for (const t of prevExpenseTxns) {
+    const day = +t.date.slice(8, 10);
+    prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.amount);
+  }
+
+  // All categories with spending this month (for pie chart)
+  let categorizedTotal = 0;
+  for (const v of spentByCategory.values()) categorizedTotal += v;
+
+  const categorySpending = categories
+    .filter(c => (spentByCategory.get(c.id) ?? 0) > 0)
+    .sort((a, b) => (spentByCategory.get(b.id) ?? 0) - (spentByCategory.get(a.id) ?? 0))
     .map(c => ({
       id: c.id,
       name: c.name,
-      icon: c.icon ?? null,
       color: c.color ?? null,
-      spent: spentByCategory.get(c.id) ?? 0,
-      target: c.monthlyTarget!,
+      spent: spentByCategory.get(c.id)!,
     }));
+
+  const uncategorized = monthlyExpense - categorizedTotal;
+  if (uncategorized > 0.01) {
+    categorySpending.push({ id: -1, name: 'Other', color: null, spent: uncategorized });
+  }
+
+  const todayDay = now.getDate();
+  const currentMonthLastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const dailySpending: { day: number; current: number | null; prev: number }[] = [];
+  let currentCumulative = 0;
+  let prevCumulative = 0;
+  for (let d = 1; d <= currentMonthLastDay; d++) {
+    if (d <= todayDay) {
+      currentCumulative += currentDayMap.get(d) ?? 0;
+    }
+    prevCumulative += prevDayMap.get(d) ?? 0;
+    dailySpending.push({ day: d, current: d <= todayDay ? currentCumulative : null, prev: prevCumulative });
+  }
 
   // Goals — accounts of type 'goal'
   const goals = accounts
@@ -168,7 +215,8 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
     availableBalance,
     monthlyIncome,
     monthlyExpense,
-    categories: budgetCategories,
+    categories: categorySpending,
+    dailySpending,
     goals,
     recentTransactions: recentTxns,
   };
