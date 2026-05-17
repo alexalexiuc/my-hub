@@ -269,9 +269,15 @@ export async function getAllAccountIds(): Promise<number[]> {
  *
  * Returns the new balance, or null if the account does not exist.
  */
-export async function recalculateAccountBalance(accountId: number): Promise<number | null> {
+export async function recalculateAccountBalance(
+  accountId: number,
+): Promise<{ name: string; oldBalance: number; newBalance: number } | null> {
   const [account] = await db
-    .select({ openingBalance: financeAccounts.openingBalance })
+    .select({
+      name: financeAccounts.name,
+      openingBalance: financeAccounts.openingBalance,
+      balance: financeAccounts.balance,
+    })
     .from(financeAccounts)
     .where(eq(financeAccounts.id, accountId));
 
@@ -293,12 +299,13 @@ export async function recalculateAccountBalance(accountId: number): Promise<numb
       and(eq(financeTransactions.toAccountId, accountId), eq(financeTransactions.type, TransactionTypes.Transfer)),
     );
 
-  const newBalance = account.openingBalance + (fromEffect?.net ?? 0) + (toEffect?.net ?? 0);
+  const newBalance =
+    Math.round((account.openingBalance + (fromEffect?.net ?? 0) + (toEffect?.net ?? 0)) * 10000) / 10000;
 
   await db
     .update(financeAccounts)
     .set({ balance: newBalance, updatedAt: new Date() })
     .where(eq(financeAccounts.id, accountId));
 
-  return newBalance;
+  return { name: account.name, oldBalance: account.balance, newBalance };
 }

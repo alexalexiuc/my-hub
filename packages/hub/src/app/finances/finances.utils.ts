@@ -50,3 +50,17 @@ export function normalizeYearMonth(raw: string | null, fallback: string = curren
 export function getCategoryFallbackLetter(name: string): string {
   return name[0]?.toUpperCase() ?? '?';
 }
+
+/** Returns relative day (Today/Yesterday), month & date if in current year, or full date otherwise. */
+export function formatTransactionDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (date.getFullYear() === now.getFullYear()) {
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  return date.toLocaleDateString();
+}

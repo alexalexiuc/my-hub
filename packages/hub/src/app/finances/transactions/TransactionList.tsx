@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { fmt, Divider, CategoryIcon } from '../ui';
 import { categoryIconEmoji } from '../categoryIcons';
 import { TransactionTypes } from '@my-hub/shared/constants';
+import { formatTransactionDate } from '../finances.utils';
 
 export interface TransactionItem {
   id: number;
@@ -166,7 +167,7 @@ export function TransactionList({
                       {fmt(tx.amount, currency)}
                     </div>
                     <div className="flex items-center justify-end gap-1.5 mt-0.5">
-                      <span className="text-[10px] text-[var(--fin-subtle)]">{tx.date}</span>
+                      <span className="text-[10px] text-[var(--fin-subtle)]">{formatTransactionDate(tx.date)}</span>
                       <UserAvatar initials={tx.addedByInitials} />
                     </div>
                   </div>
@@ -187,7 +188,9 @@ export function TransactionList({
               </div>
 
               {/* Date — 88px */}
-              <span className="w-[88px] shrink-0 text-right text-[11px] text-[var(--fin-subtle)]">{tx.date}</span>
+              <span className="w-[88px] shrink-0 text-right text-[11px] text-[var(--fin-subtle)]">
+                {formatTransactionDate(tx.date)}
+              </span>
 
               {/* Payee — 140px */}
               <span

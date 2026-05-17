@@ -13,8 +13,15 @@ export async function recalculateFinanceBalances(): Promise<void> {
 
   for (const id of accountIds) {
     try {
-      await recalculateAccountBalance(id);
-      updated++;
+      const result = await recalculateAccountBalance(id);
+      if (result) {
+        const hasChanged = result.oldBalance !== result.newBalance;
+        const diffText = hasChanged ? `${result.newBalance - result.oldBalance}` : 'no change';
+        logger.info(
+          `[worker] Recalculated balance for account ${id} (${result.name}): ${result.oldBalance} -> ${result.newBalance} ~ ${diffText}`,
+        );
+        if (hasChanged) updated++;
+      }
     } catch (err) {
       logger.error(`[worker] Failed to recalculate balance for account ${id}:`, err);
       failed++;

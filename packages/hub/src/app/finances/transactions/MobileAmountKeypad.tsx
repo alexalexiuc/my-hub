@@ -58,9 +58,9 @@ export function MobileAmountKeypad({
       : null;
 
   return (
-    <div className="flex flex-col gap-2 p-3">
+    <div className="flex flex-col gap-1.5 p-2">
       {/* Operator row */}
-      <div className="flex gap-2">
+      <div className="flex gap-1.5">
         {OPERATOR_ROW.map(key => (
           <KeypadButton
             key={key}
@@ -73,7 +73,7 @@ export function MobileAmountKeypad({
 
       {/* Expression strip — only shown when an expression is being built */}
       {expressionText && (
-        <div className="flex items-center gap-2 rounded-[8px] bg-[var(--fin-card2)] px-3 py-1.5">
+        <div className="flex items-center gap-2 rounded-[8px] bg-[var(--fin-card2)] px-3 py-1">
           <div className="min-w-0 flex-1 overflow-hidden">
             <p className="whitespace-nowrap text-right text-[11px] text-[var(--fin-muted)]">{expressionText}</p>
           </div>
@@ -85,7 +85,7 @@ export function MobileAmountKeypad({
 
       {/* Digit rows */}
       {DIGIT_ROWS.map((row, ri) => (
-        <div key={ri} className="flex gap-2">
+        <div key={ri} className="flex gap-1.5">
           {row.map(key => (
             <KeypadButton
               key={key}
@@ -98,7 +98,7 @@ export function MobileAmountKeypad({
       ))}
 
       {/* Cancel / Done */}
-      <div className="mt-1 flex gap-2">
+      <div className="flex gap-1.5">
         <Button
           type="button"
           variant="transparent"
@@ -107,7 +107,7 @@ export function MobileAmountKeypad({
             e.preventDefault();
             onCancel();
           }}
-          className="flex-1 rounded-[10px] py-3.5 text-sm font-medium text-[var(--fin-muted)] active:opacity-60"
+          className="flex-1 rounded-[10px] py-2.5 text-sm font-medium text-[var(--fin-muted)] active:opacity-60"
         >
           Cancel
         </Button>
@@ -119,7 +119,7 @@ export function MobileAmountKeypad({
             e.preventDefault();
             onDone();
           }}
-          className="flex-[2] rounded-[10px] py-3.5 text-sm font-semibold text-white active:opacity-80"
+          className="flex-[2] rounded-[10px] py-2.5 text-sm font-semibold text-white active:opacity-80"
           style={{ background: 'var(--fin-accent)' }}
         >
           Done

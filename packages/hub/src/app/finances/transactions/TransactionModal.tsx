@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { cn } from '@/lib/utils';
@@ -118,6 +119,7 @@ export function TransactionModal({
   const [selAccId, setSelAccId] = useState<number | null>(null);
   const [selToAccId, setSelToAccId] = useState<number | null>(prefilledToAccountId ?? null);
   const [selPayeeId, setSelPayeeId] = useState<number | null>(null);
+  const [extraPayees, setExtraPayees] = useState<{ id: number; name: string }[]>([]);
 
   const [keypadOpen, setKeypadOpen] = useState(!isEdit);
   const [preKeypadAmount, setPreKeypadAmount] = useState('');
@@ -223,8 +225,10 @@ export function TransactionModal({
   const payeeCreateOption = useMemo(
     () => ({
       onCreate: (name: string) => {
+        const tempId = -Date.now();
+        setExtraPayees(prev => [...prev, { id: tempId, name }]);
+        setSelPayeeId(tempId);
         setValue('payee', name);
-        setSelPayeeId(null);
       },
     }),
     [setValue],
@@ -317,7 +321,10 @@ export function TransactionModal({
     [formData?.accounts, selAccId],
   );
 
-  const payeeOptions = useMemo(() => payees.map(p => ({ id: p.id, value: p.name })), [payees]);
+  const payeeOptions = useMemo(
+    () => [...payees.map(p => ({ id: p.id, value: p.name })), ...extraPayees.map(p => ({ id: p.id, value: p.name }))],
+    [payees, extraPayees],
+  );
 
   function openKeypad() {
     setPreKeypadAmount(amountDisplay);
@@ -492,8 +499,9 @@ export function TransactionModal({
 
           <MobileFieldRow label="Date">
             <Input
-              {...register('date')}
+              name="date"
               value={watch('date')}
+              onChange={e => setValue('date', e.target.value)}
               type="date"
               variant="ghost"
               className="flex-1 text-[13px] text-[var(--fin-text)]"
@@ -707,22 +715,32 @@ export function TransactionModal({
         )}
       </form>
 
-      {/* Keypad overlay — absolute within FinModalShell content area */}
-      {keypadOpen && (
-        <div className="absolute inset-x-0 bottom-0 z-10 border-t border-[var(--fin-border)] bg-[var(--fin-card)] md:hidden">
-          <MobileAmountKeypad
-            onKey={pressKey}
-            onDone={() => {
-              pressKey('=');
-              setKeypadOpen(false);
-            }}
-            onCancel={cancelKeypad}
-            expressionText={expressionText}
-            expressionResult={expressionResult}
-            currencySymbol={currencySymbol}
-          />
-        </div>
-      )}
+      {/* Keypad overlay — portalled bottom sheet on mobile */}
+      {keypadOpen &&
+        createPortal(
+          <div
+            className="finances-theme fixed inset-x-0 top-0 z-[1100] flex h-[100dvh] flex-col justify-end md:hidden"
+            onClick={cancelKeypad}
+          >
+            <div
+              className="fin-slide-up rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+              onClick={e => e.stopPropagation()}
+            >
+              <MobileAmountKeypad
+                onKey={pressKey}
+                onDone={() => {
+                  pressKey('=');
+                  setKeypadOpen(false);
+                }}
+                onCancel={cancelKeypad}
+                expressionText={expressionText}
+                expressionResult={expressionResult}
+                currencySymbol={currencySymbol}
+              />
+            </div>
+          </div>,
+          document.body,
+        )}
     </FinModalShell>
   );
 }
