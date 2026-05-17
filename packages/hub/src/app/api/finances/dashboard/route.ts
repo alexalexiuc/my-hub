@@ -46,6 +46,7 @@ export const dashboardTransactionSchema = z.object({
   categoryColor: categoryColorSchema,
   categoryIcon: categoryIconSchema,
   accountName: z.string(),
+  toAccountName: z.string().nullable(),
   addedByInitials: z.string().nullable(),
 });
 
