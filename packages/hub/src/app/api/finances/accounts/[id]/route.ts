@@ -31,6 +31,7 @@ export const accountTransactionSchema = z.object({
   balanceAfter: z.number().nullable(),
   isCorrection: z.boolean(),
   accountName: z.string(),
+  toAccountName: z.string().nullable(),
   addedByInitials: z.string().nullable(),
 });
 
@@ -116,6 +117,7 @@ export const GET = route({
     balanceAfter: t.accountId === accountId ? t.fromAccountBalanceAfter : t.toAccountBalanceAfter,
     isCorrection: t.isCorrection,
     accountName: t.accountName,
+    toAccountName: t.toAccountName,
     addedByInitials: t.addedByInitials,
   }));
 
