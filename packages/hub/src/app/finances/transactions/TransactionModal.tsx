@@ -17,7 +17,7 @@ import type { PayeesResponse, PayeeWithSuggestion } from '@/app/api/finances/pay
 import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
 import type { TransactionDetail, TransactionMutationResponse } from '@/app/api/finances/transactions/[id]/route';
 import type { LabelsResponse } from '@/app/api/finances/labels/route';
-import { getCurrencySymbol, isPayeeRequired } from '@my-hub/shared/utils';
+import { getCurrencySymbol, isPayeeRequired, localDateString } from '@my-hub/shared/utils';
 import { EXPENSE_ACCOUNT_TYPES, TransactionType, TransactionTypes } from '@my-hub/shared/constants';
 import { TYPE_META } from '../ui';
 
@@ -151,7 +151,11 @@ export function TransactionModal({
     formState: { isSubmitting },
   } = useForm<AddTransactionValues>({
     resolver: zodResolver(AddTransactionSchema),
-    defaultValues: { ...defaultAddTransactionValues, txType: initialType ?? TransactionTypes.Expense },
+    defaultValues: {
+      ...defaultAddTransactionValues,
+      txType: initialType ?? TransactionTypes.Expense,
+      date: localDateString(),
+    },
   });
 
   useEffect(() => {
@@ -489,6 +493,7 @@ export function TransactionModal({
           <MobileFieldRow label="Date">
             <Input
               {...register('date')}
+              value={watch('date')}
               type="date"
               variant="ghost"
               className="flex-1 text-[13px] text-[var(--fin-text)]"
@@ -671,6 +676,7 @@ export function TransactionModal({
               <FieldCard label="Date">
                 <Input
                   {...register('date')}
+                  value={watch('date')}
                   type="date"
                   variant="ghost"
                   className="w-full text-[13px] text-[var(--fin-text)]"
