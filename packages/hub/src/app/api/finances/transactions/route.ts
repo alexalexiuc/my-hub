@@ -10,7 +10,7 @@ import {
 } from '@my-hub/shared/services';
 import type { TransactionInsert } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
-import { isPayeeRequired } from '@my-hub/shared/utils';
+import { isPayeeRequired, monthToDateRange } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../currency.schema';
 import { categoryIconSchema, categoryColorSchema } from '../shared.schema';
 
@@ -60,14 +60,24 @@ const TransactionCreateSchema = z.object({
 
 const TransactionQuerySchema = z.object({
   type: z.enum(TransactionTypes).optional(),
-  categoryId: z.coerce.number().int().positive().optional(),
+  categoryId: z.coerce.number().int().positive().optional().nullable(),
   accountId: z.coerce.number().int().positive().optional(),
-  payeeId: z.coerce.number().int().positive().optional(),
+  payeeId: z.coerce.number().int().positive().optional().nullable(),
   label: z.string().optional(),
   month: z
     .string()
     .regex(/^\d{4}-\d{2}$/)
     .optional(),
+  fromDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  toDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  addedByUserId: z.string().optional(),
+  search: z.string().optional(),
   limit: z.coerce.number().int().positive().max(200).optional(),
   offset: z.coerce.number().int().nonnegative().optional(),
 });
@@ -76,6 +86,9 @@ export const GET = route({ query: TransactionQuerySchema, response: transactions
   user,
   query,
 }) => {
+  if ((query.toDate || query.fromDate) && query.month) {
+    routeHttpError(400, { error: 'Cannot specify month with fromDate/toDate' });
+  }
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
@@ -83,13 +96,7 @@ export const GET = route({ query: TransactionQuerySchema, response: transactions
   const limit = Math.min(query.limit ?? 50, 200);
   const offset = query.offset ?? 0;
 
-  const fromDate = query.month ? `${query.month}-01` : undefined;
-  let toDate: string | undefined;
-  if (query.month) {
-    const [y, m] = query.month.split('-').map(Number);
-    // first of next month − 1 day = last day of this month
-    toDate = new Date(Date.UTC(y!, m!, 0)).toISOString().slice(0, 10);
-  }
+  const { fromDate, toDate } = query.month ? monthToDateRange(query.month) : query;
 
   const transactions = await getTransactionListItems(user.id, budgetId, {
     type: query.type,
@@ -97,11 +104,13 @@ export const GET = route({ query: TransactionQuerySchema, response: transactions
     accountId: query.accountId,
     payeeId: query.payeeId,
     label: query.label,
+    search: query.search,
     fromDate,
     toDate,
     includeCorrections: true,
     limit,
     offset,
+    addedByUserId: query.addedByUserId,
   });
 
   return { transactions, currency: budget.defaultCurrency };

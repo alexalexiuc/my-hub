@@ -2,7 +2,7 @@
  * Finance transaction CRUD
  * - addTransaction(userId, budgetId, data) — inserts a transaction; updates account balances and payee stats
  * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (accountId, categoryId, type, fromDate, toDate, includeCorrections, search, label, limit, offset)
- * - getTransactionListItems(userId, budgetId, opts?) — same filters as getTransactions; returns pre-resolved display fields (accountName, toAccountName, payeeName, categoryName/Color/Icon, addedByInitials, labels) via JOIN
+ * - getTransactionListItems(userId, budgetId, opts?) — same filters as getTransactions; returns pre-resolved display fields (accountName/Currency, toAccountName/Currency, categoryId/Name/Color/Icon, payeeId/Name, addedByUserId/Initials, createdAt, balances) via JOIN
  * - getTransactionListItemById(userId, budgetId, transactionId) — single TransactionListItem with resolved display fields; null if not found
  * - countTransactions(userId, budgetId, opts?) — same filters; returns total count
  * - getTransactionById(userId, budgetId, transactionId) — single transaction with access check
@@ -18,6 +18,7 @@ import {
   financeAccounts,
   financeBudgets,
   financeCategories,
+  financeGroups,
   financePayees,
   financeTransactions,
 } from '../../db/schema/finances';
@@ -66,6 +67,7 @@ export interface GetTransactionsOpts {
   includeCorrections?: boolean;
   search?: string;
   label?: string;
+  addedByUserId?: string;
   limit?: number;
   offset?: number;
 }
@@ -87,13 +89,20 @@ export interface TransactionListItem {
   labels: string[];
   accountId: number;
   accountName: string;
+  accountCurrency: string;
   toAccountId: number | null;
   toAccountName: string | null;
+  toAccountCurrency: string | null;
+  categoryId: number | null;
+  groupName: string | null;
   categoryName: string | null;
   categoryColor: string | null;
   categoryIcon: CategoryIcon | null;
+  payeeId: number | null;
   payeeName: string | null;
+  addedByUserId: string;
   addedByInitials: string | null;
+  createdAt: Date;
   fromAccountBalanceAfter: number | null;
   toAccountBalanceAfter: number | null;
 }
@@ -141,6 +150,9 @@ function buildListConditions(budgetId: number, opts: GetTransactionsOpts) {
   if (opts.label !== undefined) {
     conditions.push(sql`${financeTransactions.labels} @> ${JSON.stringify([opts.label])}::jsonb`);
   }
+  if (opts.addedByUserId !== undefined) {
+    conditions.push(eq(financeTransactions.addedByUserId, opts.addedByUserId));
+  }
   return conditions;
 }
 
@@ -160,14 +172,21 @@ function buildListQuery(budgetId: number, opts: GetTransactionsOpts, extraCondit
       labels: financeTransactions.labels,
       accountId: financeTransactions.accountId,
       accountName: fromAcct.name,
+      accountCurrency: fromAcct.currency,
       toAccountId: financeTransactions.toAccountId,
       toAccountName: toAcct.name,
+      toAccountCurrency: toAcct.currency,
+      categoryId: financeTransactions.categoryId,
       categoryName: financeCategories.name,
       categoryColor: financeCategories.color,
       categoryIcon: financeCategories.icon,
+      groupName: financeGroups.name,
+      payeeId: financeTransactions.payeeId,
       payeeName: financePayees.name,
+      addedByUserId: financeTransactions.addedByUserId,
       addedByUserName: users.name,
       addedByUserEmail: users.email,
+      createdAt: financeTransactions.createdAt,
       fromAccountBalanceAfter: financeTransactions.fromAccountBalanceAfter,
       toAccountBalanceAfter: financeTransactions.toAccountBalanceAfter,
     })
@@ -176,6 +195,7 @@ function buildListQuery(budgetId: number, opts: GetTransactionsOpts, extraCondit
     .leftJoin(toAcct, eq(financeTransactions.toAccountId, toAcct.id))
     .leftJoin(financeCategories, eq(financeTransactions.categoryId, financeCategories.id))
     .leftJoin(financePayees, eq(financeTransactions.payeeId, financePayees.id))
+    .leftJoin(financeGroups, eq(financeCategories.groupId, financeGroups.id))
     .innerJoin(users, eq(financeTransactions.addedByUserId, users.id))
     .where(and(...conditions))
     .orderBy(desc(financeTransactions.date), desc(financeTransactions.id));
@@ -200,13 +220,20 @@ function rowToListItem(row: Awaited<ReturnType<typeof buildListQuery>>[number]):
     labels: (row.labels as string[]) ?? [],
     accountId: row.accountId,
     accountName: row.accountName,
+    accountCurrency: row.accountCurrency,
     toAccountId: row.toAccountId ?? null,
     toAccountName: row.toAccountName ?? null,
+    toAccountCurrency: row.toAccountCurrency ?? null,
+    categoryId: row.categoryId ?? null,
     categoryName: row.categoryName ?? null,
     categoryColor: row.categoryColor ?? null,
     categoryIcon: row.categoryIcon ?? null,
+    groupName: row.groupName ?? null,
+    payeeId: row.payeeId ?? null,
     payeeName: row.payeeName ?? null,
+    addedByUserId: row.addedByUserId,
     addedByInitials: computeInitials(row.addedByUserName, row.addedByUserEmail),
+    createdAt: row.createdAt,
     fromAccountBalanceAfter: row.fromAccountBalanceAfter ?? null,
     toAccountBalanceAfter: row.toAccountBalanceAfter ?? null,
   };

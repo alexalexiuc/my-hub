@@ -7,24 +7,21 @@ import {
   addTransaction,
   updateTransaction,
   deleteTransaction,
-  getTransactions,
+  getTransactionListItems,
   countTransactions,
   checkDuplicateTransaction,
   findPayeeByNameOrAlias,
   upsertPayee,
   resolvePayeeIdByNameOrAlias,
   getAccountById,
-  getAccounts,
   getCategories,
-  getGroups,
   getTransactionById,
-  getPayees,
   getBudgetProgress,
   syncLabels,
 } from '@my-hub/shared/services';
 import { TransactionTypes, AccountTypes } from '@my-hub/shared/constants';
 import type { TransactionInsert } from '@my-hub/shared/services';
-import { currentDateString, isPayeeRequired, omitUndefined, logger } from '@my-hub/shared/utils';
+import { currentDateString, isPayeeRequired, omitUndefined, trimOrNull, logger } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
 
 function getAccountAvailable(
@@ -514,8 +511,20 @@ export const deleteTransactionTool: ToolHandler<typeof DeleteTransactionSchema.s
 
 export const QueryTransactionsSchema = z.object({
   accountId: z.number().int().positive().optional(),
-  categoryId: z.number().int().positive().optional(),
-  payeeName: z.string().optional(),
+  categoryId: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .nullable()
+    .describe('Filter by category. Pass null to find transactions with no category.'),
+  payeeName: z
+    .string()
+    .optional()
+    .nullable()
+    .describe(
+      'Filter by payee name. Performs a case-insensitive partial match against payee names and aliases. Pass null to find transactions with no payee.',
+    ),
   label: z.string().optional(),
   type: z.enum(TransactionTypes).optional(),
   dateFrom: z
@@ -527,6 +536,7 @@ export const QueryTransactionsSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
   includeCorrections: z.boolean().optional(),
+  addedByUserId: z.string().optional(),
   search: z.string().optional(),
   limit: z.number().int().min(1).max(200).optional(),
   offset: z.number().int().min(0).optional(),
@@ -539,83 +549,66 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema.s
   if (!budget) throw new HandledError('No active budget.');
 
   // Resolve payee name to ID if provided
-  let payeeId: number | undefined = undefined;
-  if (input.payeeName !== undefined) {
-    const match = await findPayeeByNameOrAlias(userId, budget.id, input.payeeName);
-    if (!match) {
-      return toolResponse({ transactions: [], total: 0 });
+  let payeeId: number | null | undefined = undefined;
+  if (input.payeeName === null) {
+    payeeId = null;
+  } else {
+    const payeeNameTrimmed = trimOrNull(input.payeeName);
+    if (payeeNameTrimmed != null) {
+      const match = await findPayeeByNameOrAlias(userId, budget.id, payeeNameTrimmed);
+      if (!match) return toolResponse({ transactions: [], total: 0 });
+      payeeId = match.id;
     }
-
-    payeeId = match.id;
   }
 
-  let categoryId: number | null | undefined = undefined;
-  if (input.categoryId !== undefined) categoryId = input.categoryId;
-
-  const opts = {
+  const opts = omitUndefined({
     accountId: input.accountId,
-    categoryId,
+    categoryId: input.categoryId,
     payeeId,
     label: input.label,
     type: input.type as (typeof TransactionTypes)[keyof typeof TransactionTypes] | undefined,
     fromDate: input.dateFrom,
     toDate: input.dateTo,
     includeCorrections: input.includeCorrections,
+    addedByUserId: input.addedByUserId,
     search: input.search,
     limit: input.limit ?? 50,
     offset: input.offset ?? 0,
-  };
+  });
 
   const [txns, total] = await Promise.all([
-    getTransactions(userId, budget.id, opts),
+    getTransactionListItems(userId, budget.id, opts),
     countTransactions(userId, budget.id, opts),
   ]);
 
-  const [accounts, categories, payees, groups] = await Promise.all([
-    getAccounts(userId, budget.id, { includeArchived: true }),
-    getCategories(userId, budget.id),
-    // TODO: Review payees list, to not overwhelm UI. We can order by last used and limit to 100, then if search term is provided we can do a separate search query to find the right payee.
-    getPayees(userId, budget.id),
-    getGroups(userId, budget.id),
-  ]);
-
-  const accountMap = new Map(accounts.map(a => [a.id, a]));
-  const categoryMap = new Map(categories.map(c => [c.id, c]));
-  const payeeMap = new Map(payees.map(p => [p.id, p]));
-  const groupMap = new Map(groups.map(g => [g.id, g.name]));
-
-  const transactions = txns.map(tx => {
-    const fromAcct = accountMap.get(tx.accountId);
-    const toAcct = tx.toAccountId != null ? accountMap.get(tx.toAccountId) : null;
-    const cat = tx.categoryId != null ? categoryMap.get(tx.categoryId) : null;
-    const payee = tx.payeeId != null ? payeeMap.get(tx.payeeId) : null;
-    const groupName = cat?.groupId ? groupMap.get(cat.groupId) : null;
-
-    return {
-      id: tx.id,
-      type: tx.type,
-      amount: tx.amount,
-      date: tx.date,
-      notes: tx.notes,
-      labels: (tx.labels as string[]) ?? [],
-      isCorrection: tx.isCorrection,
-      account: fromAcct ? { id: fromAcct.id, name: fromAcct.name, currency: fromAcct.currency } : null,
-      ...(toAcct ? { toAccount: { id: toAcct.id, name: toAcct.name, currency: toAcct.currency } } : {}),
-      ...(cat
-        ? {
-            category: {
-              id: cat.id,
-              name: cat.name,
-              displayName: groupName ? `${groupName} > ${cat.name}` : cat.name,
-            },
-          }
-        : {}),
-      ...(payee ? { payee: { id: payee.id, name: payee.name } } : {}),
-      addedByUserId: tx.addedByUserId,
-      fromAccountBalanceAfter: tx.fromAccountBalanceAfter,
-      createdAt: tx.createdAt,
-    };
-  });
+  const transactions = txns.map(tx => ({
+    id: tx.id,
+    type: tx.type,
+    amount: tx.amount,
+    date: tx.date,
+    notes: tx.notes,
+    labels: tx.labels,
+    isCorrection: tx.isCorrection,
+    account: { id: tx.accountId, name: tx.accountName, currency: tx.accountCurrency },
+    ...(tx.toAccountId != null
+      ? { toAccount: { id: tx.toAccountId, name: tx.toAccountName, currency: tx.toAccountCurrency } }
+      : {}),
+    ...(tx.categoryId != null
+      ? {
+          category: {
+            id: tx.categoryId,
+            name: tx.categoryName,
+            displayName: tx.groupName ? `${tx.groupName} > ${tx.categoryName}` : tx.categoryName,
+          },
+        }
+      : {}),
+    ...(tx.payeeId != null ? { payee: { id: tx.payeeId, name: tx.payeeName } } : {}),
+    addedByUserId: tx.addedByUserId,
+    addedByInitials: tx.addedByInitials,
+    createdAt: tx.createdAt,
+    fromAccountBalanceAfter: tx.fromAccountBalanceAfter,
+    toAccountBalanceAfter: tx.toAccountBalanceAfter,
+  }));
 
   return toolResponse({ transactions, total });
 };

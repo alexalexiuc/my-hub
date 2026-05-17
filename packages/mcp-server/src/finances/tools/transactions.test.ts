@@ -567,6 +567,7 @@ describe('queryTransactionsTool', () => {
         dateFrom: undefined,
         dateTo: undefined,
         includeCorrections: undefined,
+        addedByUserId: undefined,
         search: undefined,
         limit: undefined,
         offset: undefined,

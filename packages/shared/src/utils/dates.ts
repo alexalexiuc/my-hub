@@ -23,6 +23,7 @@
  * - formatDayHeading(dateStr) — YYYY-MM-DD → locale short heading e.g. "Mon, 1 Jan"
  * - fmtDuration(ms) — milliseconds → human-readable duration e.g. "2h 30m" or "45 min"
  * - formatSegmentTime(datetime, timezone, now?) — timezone-aware relative time string + isSoon flag
+ * - monthToDateRange(month) — YYYY-MM → { fromDate, toDate } as YYYY-MM-DD strings (UTC-safe)
  * - getMonthStart(date) — first day of the month at local midnight
  * - getMonthEnd(date) — last day of the month at local midnight
  * - startOfWeekMonday(date) — Monday of the week containing date, at local midnight
@@ -344,6 +345,22 @@ export function formatSegmentTime(
 
   return { text: `${dateFormatter.format(target)} · ${timeStr}`, isSoon: false };
 }
+
+/**
+ * Converts a YYYY-MM month string to a { fromDate, toDate } date range (both YYYY-MM-DD).
+ * Computed in UTC so server timezone does not affect the result.
+ */
+export function monthToDateRange(month: string): { fromDate: string; toDate: string } {
+  const [y, m] = month.split('-').map(Number);
+  return {
+    fromDate: `${month}-01`,
+    toDate: new Date(Date.UTC(y!, m!, 0)).toISOString().slice(0, 10),
+  };
+}
+
+// TODO: These functions use local-time methods (getFullYear, getMonth) and are unsafe when the
+// input Date was parsed from a UTC date string (e.g. new Date("2024-01-01")). Audit callers and
+// consider adding UTC-based variants or making these UTC-safe internally.
 
 /** Returns a new Date set to the first day of the month containing `date`, at local midnight. */
 export function getMonthStart(date: Date): Date {
