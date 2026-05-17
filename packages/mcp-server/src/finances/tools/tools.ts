@@ -33,7 +33,7 @@ import {
   upsertPayeeTool,
 } from './payees';
 import { UpsertCategorySchema, upsertCategoryTool } from './categories';
-import { ListLabelsSchema, listLabelsTool } from './labels';
+import { ListLabelsSchema, listLabelsTool, GetTransactionsByLabelSchema, getTransactionsByLabelTool } from './labels';
 
 const financeTools = [
   defineTool({
@@ -116,6 +116,16 @@ const financeTools = [
     inputSchema: ListLabelsSchema.shape,
     annotations: { readOnlyHint: true },
     callback: listLabelsTool,
+  }),
+  defineTool({
+    name: 'finances_get_transactions_by_label',
+    description:
+      'Fetch all transactions tagged with a specific label, with optional payee, date range, and pagination filters. ' +
+      'Returns resolved account, category, and payee names inline. ' +
+      'Use finances_list_labels first to discover available label strings.',
+    inputSchema: GetTransactionsByLabelSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getTransactionsByLabelTool,
   }),
   defineTool({
     name: 'finances_add_transactions',
