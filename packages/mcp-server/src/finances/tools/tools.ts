@@ -33,7 +33,7 @@ import {
   upsertPayeeTool,
 } from './payees';
 import { UpsertCategorySchema, upsertCategoryTool } from './categories';
-import { ListLabelsSchema, listLabelsTool, GetTransactionsByLabelSchema, getTransactionsByLabelTool } from './labels';
+import { ListLabelsSchema, listLabelsTool } from './labels';
 
 const financeTools = [
   defineTool({
@@ -112,20 +112,11 @@ const financeTools = [
     name: 'finances_list_labels',
     description:
       'List all known label strings for the active budget. ' +
-      'Use the returned values for autocomplete when adding or updating transactions with labels.',
+      'Use the returned values for autocomplete when adding or updating transactions with labels. ' +
+      'To fetch transactions by label, use finances_query_transactions with the label filter.',
     inputSchema: ListLabelsSchema.shape,
     annotations: { readOnlyHint: true },
     callback: listLabelsTool,
-  }),
-  defineTool({
-    name: 'finances_get_transactions_by_label',
-    description:
-      'Fetch all transactions tagged with a specific label, with optional payee, date range, and pagination filters. ' +
-      'Returns resolved account, category, and payee names inline. ' +
-      'Use finances_list_labels first to discover available label strings.',
-    inputSchema: GetTransactionsByLabelSchema.shape,
-    annotations: { readOnlyHint: true },
-    callback: getTransactionsByLabelTool,
   }),
   defineTool({
     name: 'finances_add_transactions',
