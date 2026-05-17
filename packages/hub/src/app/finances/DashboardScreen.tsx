@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar, Divider } from './ui';
 import { CategoryPieChart, SpendingTrendChart } from './DashboardCharts';
-import { TransactionModal } from './transactions/TransactionModal';
 import { TransactionList } from './transactions/TransactionList';
 import type { FinanceDashboardData } from '@/app/api/finances/dashboard/route';
 
@@ -27,25 +25,12 @@ type DashboardScreenProps = {
 
 export function DashboardScreen({ data, userName }: DashboardScreenProps) {
   const router = useRouter();
-  const [showAddTx, setShowAddTx] = useState(false);
-  const {
-    currency,
-    availableBalance,
-    monthlyIncome,
-    monthlyExpense,
-    categories,
-    dailySpending,
-    goals,
-    recentTransactions,
-  } = data;
+  const { currency, availableBalance, monthlyIncome, monthlyExpense, categories, dailySpending, goals } = data;
 
   const saved = monthlyIncome - monthlyExpense;
 
   return (
     <div className="flex flex-col gap-[14px]">
-      {showAddTx && (
-        <TransactionModal onCloseAction={() => setShowAddTx(false)} onSavedAction={() => setShowAddTx(false)} />
-      )}
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -171,7 +156,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
           </span>
         </div>
 
-        <TransactionList transactions={recentTransactions} currency={currency} />
+        <TransactionList limit={5} />
       </Card>
     </div>
   );

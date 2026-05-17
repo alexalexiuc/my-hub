@@ -61,6 +61,8 @@ const TransactionCreateSchema = z.object({
 const TransactionQuerySchema = z.object({
   type: z.enum(TransactionTypes).optional(),
   categoryId: z.coerce.number().int().positive().optional(),
+  accountId: z.coerce.number().int().positive().optional(),
+  payeeId: z.coerce.number().int().positive().optional(),
   label: z.string().optional(),
   month: z
     .string()
@@ -92,6 +94,8 @@ export const GET = route({ query: TransactionQuerySchema, response: transactions
   const transactions = await getTransactionListItems(user.id, budgetId, {
     type: query.type,
     categoryId: query.categoryId,
+    accountId: query.accountId,
+    payeeId: query.payeeId,
     label: query.label,
     fromDate,
     toDate,

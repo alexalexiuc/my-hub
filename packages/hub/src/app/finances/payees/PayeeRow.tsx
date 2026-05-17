@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Button, Pill } from '@/components';
 import type { PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 import type { PayeeReportItem } from '@/app/api/finances/payees/report/route';
@@ -74,9 +75,11 @@ export function PayeeRow({ payee, reportItem, currency, showDivider, onEdit, onM
           <CategoryIcon color={categoryColor} icon={reportItem?.categoryIcon} size="lg" />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <SectionLabel className="!mb-0 !text-[13px] !font-medium !normal-case !tracking-normal !text-[var(--fin-text)] p-0">
-                {payee.name}
-              </SectionLabel>
+              <Link href={`/finances/payees/${payee.id}`}>
+                <SectionLabel className="!mb-0 !text-[13px] !font-medium !normal-case !tracking-normal !text-[var(--fin-accent)] p-0 hover:underline">
+                  {payee.name}
+                </SectionLabel>
+              </Link>
               <PayeeChips aliases={aliases} description={description} />
             </div>
 
@@ -137,7 +140,12 @@ export function PayeeRow({ payee, reportItem, currency, showDivider, onEdit, onM
           <div className="flex min-w-0 items-start gap-2.5">
             <CategoryIcon color={categoryColor} icon={reportItem?.categoryIcon} size="md" />
             <div className="min-w-0">
-              <div className="truncate text-[13px] font-semibold text-[var(--fin-text)]">{payee.name}</div>
+              <Link
+                href={`/finances/payees/${payee.id}`}
+                className="truncate text-[13px] font-semibold text-[var(--fin-accent)] hover:underline"
+              >
+                {payee.name}
+              </Link>
               <div className="mt-1 flex flex-wrap gap-1.5">
                 <PayeeChips aliases={aliases} description={description} />
               </div>

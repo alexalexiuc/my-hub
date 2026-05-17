@@ -12,19 +12,11 @@ import { EditAccountModal } from './EditAccountModal';
 import type { AccountItem } from '@/app/api/finances/accounts/route';
 import type { AccountDetailData } from '@/app/api/finances/accounts/[id]/route';
 import type { TransactionMutationResponse } from '@/app/api/finances/transactions/route';
-import { TransactionType, TransactionTypes } from '@my-hub/shared/constants';
+import { transactionEvents } from '../transactions/transactionEvents';
+import { TransactionTypes } from '@my-hub/shared/constants';
 
 function today() {
   return new Date().toISOString().slice(0, 10);
-}
-
-function sortAccountTransactions(transactions: AccountDetailData['transactions']) {
-  return [...transactions].sort((left, right) => {
-    if (left.date !== right.date) {
-      return right.date.localeCompare(left.date);
-    }
-    return right.id - left.id;
-  });
 }
 
 function CorrectionModal({
@@ -377,7 +369,7 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
 
   if (!data) return null;
 
-  const { account: acc, transactions } = data;
+  const { account: acc } = data;
 
   async function handleArchive() {
     await apiFetch(`/api/finances/accounts/${acc.id}`, {
@@ -437,7 +429,7 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
 
       <Card className="p-0 md:p-[14px]">
         <SectionLabel className="mb-2.5 mt-[14px] px-[14px] md:mt-0 md:px-0">Ledger</SectionLabel>
-        <TransactionList transactions={transactions} currency={acc.currency} />
+        <TransactionList accountId={acc.id} />
       </Card>
 
       {editOpen && (
@@ -466,46 +458,10 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
           currency={acc.currency}
           currentBalance={acc.balance}
           onClose={() => setCorrectionOpen(false)}
-          onSaved={result => {
+          onSaved={() => {
             setCorrectionOpen(false);
-
-            if (!result?.transaction) {
-              load();
-              return;
-            }
-
-            setData(prev => {
-              if (!prev) return prev;
-
-              const tx = result.transaction as Record<string, unknown>;
-              const nextTransaction = {
-                id: result.transaction.id,
-                date: tx.date as string,
-                amount: tx.amount as number,
-                type: tx.type as TransactionType,
-                notes: (tx.notes as string | null | undefined) ?? null,
-                payeeName: null,
-                categoryName: null,
-                categoryColor: null,
-                categoryIcon: null,
-                balanceAfter: (tx.fromAccountBalanceAfter as number | null | undefined) ?? null,
-                isCorrection: (tx.isCorrection as boolean | undefined) ?? true,
-                accountName: prev.account.name,
-                toAccountName: null,
-                addedByInitials: null,
-              };
-
-              return {
-                account: {
-                  ...prev.account,
-                  balance: (tx.fromAccountBalanceAfter as number | null | undefined) ?? prev.account.balance,
-                },
-                transactions: sortAccountTransactions([
-                  nextTransaction,
-                  ...prev.transactions.filter(transaction => transaction.id !== nextTransaction.id),
-                ]),
-              };
-            });
+            load();
+            transactionEvents.emit('changed');
           }}
         />
       )}

@@ -1,39 +1,30 @@
 'use client';
 
-import { useState } from 'react';
-import { Pill, SwipeRow } from '@/components';
+import { useState, useEffect, useCallback } from 'react';
+import { Button, IconButton, Pill, SwipeRow } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
-import { cn } from '@/lib/utils';
-import { fmt, Divider, CategoryIcon } from '../ui';
+import { cn, apiFetch } from '@/lib/utils';
+import { fmt, Divider, CategoryIcon, SectionLabel } from '../ui';
 import { categoryIconEmoji } from '../categoryIcons';
 import { TransactionTypes } from '@my-hub/shared/constants';
 import { formatTransactionDate } from '../finances.utils';
+import { transactionEvents } from './transactionEvents';
+import { TransactionModal } from './TransactionModal';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import type { TransactionListItem, TransactionsListResponse } from '@/app/api/finances/transactions/route';
+import type { TransactionType } from '@my-hub/shared/constants';
 
-export interface TransactionItem {
-  id: number;
-  date: string;
-  amount: number;
-  type: string;
-  notes: string | null;
-  labels?: string[];
-  payeeName: string | null;
-  categoryName: string | null;
-  categoryColor: string | null;
-  categoryIcon: string | null;
-  accountName: string;
-  toAccountName?: string | null;
-  balanceAfter?: number | null;
-  isCorrection?: boolean;
-  addedByInitials: string | null;
-}
+export type { TransactionListItem as TransactionItem };
 
 type TransactionListProps = {
-  transactions: TransactionItem[];
-  currency: string;
+  month?: string;
+  type?: TransactionType;
+  categoryId?: number;
+  accountId?: number;
+  payeeId?: number;
+  label?: string;
+  limit?: number;
   emptyMessage?: string;
-  showAccount?: boolean;
-  onEdit?: (id: number) => void;
-  onDelete?: (id: number) => void;
 };
 
 function UserAvatar({ initials }: { initials: string | null | undefined }) {
@@ -46,42 +37,94 @@ function UserAvatar({ initials }: { initials: string | null | undefined }) {
 }
 
 export function TransactionList({
-  transactions,
-  currency,
+  month,
+  type,
+  categoryId,
+  accountId,
+  payeeId,
+  label,
+  limit = 50,
   emptyMessage = 'No transactions yet',
-  showAccount: _showAccount = false,
-  onEdit,
-  onDelete,
 }: TransactionListProps) {
+  const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
+  const [currency, setCurrency] = useState('EUR');
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [openRowId, setOpenRowId] = useState<number | null>(null);
+
+  const fetchPage = useCallback(
+    async (reset: boolean, currentOffset: number) => {
+      if (reset) setLoading(true);
+      else setLoadingMore(true);
+      try {
+        const result = await apiFetch<TransactionsListResponse>('/api/finances/transactions', {
+          query: { type, categoryId, accountId, payeeId, label, month, limit, offset: currentOffset },
+          silentToast: true,
+        });
+        setCurrency(result.currency);
+        if (reset) {
+          setTransactions(result.transactions);
+          setOffset(result.transactions.length);
+        } else {
+          setTransactions(prev => [...prev, ...result.transactions]);
+          setOffset(currentOffset + result.transactions.length);
+        }
+        setHasMore(result.transactions.length === limit);
+      } finally {
+        if (reset) setLoading(false);
+        else setLoadingMore(false);
+      }
+    },
+    [type, categoryId, accountId, payeeId, label, month, limit],
+  );
+
+  useEffect(() => {
+    fetchPage(true, 0);
+  }, [fetchPage]);
+
+  useEffect(() => {
+    const handler = () => fetchPage(true, 0);
+    transactionEvents.on('changed', handler);
+    return () => transactionEvents.off('changed', handler);
+  }, [fetchPage]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-0">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-[52px]"
+            style={{
+              borderBottom: `1px solid var(--fin-border)22`,
+              background: i % 2 === 0 ? 'var(--fin-card)' : 'transparent',
+              opacity: 0.5,
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
 
   if (transactions.length === 0) {
     return <div className="py-6 text-center text-[13px] text-[var(--fin-subtle)]">{emptyMessage}</div>;
   }
-
-  const hasActions = onEdit || onDelete;
 
   return (
     <>
       {/* Desktop column headers */}
       <div className="hidden md:flex items-center gap-3 pb-1.5 border-b border-[var(--fin-border)]">
         <span className="size-6 shrink-0" />
-        <span className="w-[110px] shrink-0 text-[10px] font-medium uppercase tracking-wide text-[var(--fin-subtle)]">
-          Category
-        </span>
-        <span className="w-[88px] shrink-0 text-right text-[10px] font-medium uppercase tracking-wide text-[var(--fin-subtle)]">
-          Date
-        </span>
-        <span className="w-[140px] shrink-0 text-[10px] font-medium uppercase tracking-wide text-[var(--fin-subtle)]">
-          Payee
-        </span>
-        <span className="flex-1 text-[10px] font-medium uppercase tracking-wide text-[var(--fin-subtle)]">Memo</span>
-        <span className="w-[100px] shrink-0 text-[10px] font-medium uppercase tracking-wide text-[var(--fin-subtle)]">
-          Account
-        </span>
-        <span className="w-[120px] shrink-0 text-right text-[10px] font-medium uppercase tracking-wide text-[var(--fin-subtle)]">
-          Amount
-        </span>
+        <SectionLabel className="!mb-0 w-[110px] shrink-0">Category</SectionLabel>
+        <SectionLabel className="!mb-0 w-[88px] shrink-0 text-right">Date</SectionLabel>
+        <SectionLabel className="!mb-0 w-[140px] shrink-0">Payee</SectionLabel>
+        <SectionLabel className="!mb-0 flex-1">Memo</SectionLabel>
+        <SectionLabel className="!mb-0 w-[100px] shrink-0">Account</SectionLabel>
+        <SectionLabel className="!mb-0 w-[120px] shrink-0 text-right">Amount</SectionLabel>
         <span className="w-7 shrink-0" />
       </div>
 
@@ -89,20 +132,15 @@ export function TransactionList({
         const isTransfer = tx.type === TransactionTypes.Transfer;
         const catColor = tx.categoryColor ?? (tx.isCorrection ? 'var(--fin-amber)' : 'var(--fin-muted)');
 
-        // Payee col: for transfers show "From ↔ To", for corrections show label, else payeeName
         const desktopPayee = tx.isCorrection
           ? (tx.notes ?? 'Balance Correction')
           : isTransfer && tx.accountName && tx.toAccountName
             ? `${tx.accountName} ↔ ${tx.toAccountName}`
             : (tx.payeeName ?? '—');
 
-        // Account col: source account (for transfers just the from-account)
         const desktopAccount = tx.accountName ?? '—';
-
-        // Memo: notes (except when notes IS the label for corrections)
         const desktopMemo = !tx.isCorrection ? (tx.notes ?? null) : null;
 
-        // Mobile label
         const mobileLabel = tx.isCorrection
           ? (tx.notes ?? 'Balance Correction')
           : isTransfer && tx.accountName && tx.toAccountName
@@ -126,18 +164,15 @@ export function TransactionList({
                 isOpen={openRowId === tx.id}
                 onOpen={() => setOpenRowId(tx.id)}
                 onClose={() => setOpenRowId(null)}
-                onEdit={onEdit ? () => onEdit(tx.id) : undefined}
-                onDelete={onDelete ? () => onDelete(tx.id) : undefined}
+                onEdit={() => setEditId(tx.id)}
+                onDelete={() => setPendingDeleteId(tx.id)}
               >
                 <div className="flex items-center gap-2.5 py-2.5 pl-[14px] pr-[14px] md:pl-0 md:pr-2">
-                  {/* Left: icon */}
                   <CategoryIcon color={catColor} size="sm">
                     {tx.isCorrection ? '⚖' : isTransfer ? '↔' : categoryIconEmoji(tx.categoryIcon)}
                   </CategoryIcon>
 
-                  {/* Centre: 2-line label block */}
                   <div className="min-w-0 flex-1">
-                    {/* Line 1: payee / main label */}
                     <div
                       className={cn(
                         'truncate text-[13px] font-medium leading-snug',
@@ -146,11 +181,10 @@ export function TransactionList({
                     >
                       {mobileLabel}
                     </div>
-                    {/* Line 2: category + labels + memo */}
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                       {tx.categoryName && <Pill label={tx.categoryName} color={catColor} />}
-                      {tx.labels?.slice(0, 2).map(label => (
-                        <Pill key={label} label={label} color="var(--fin-accent)" />
+                      {tx.labels?.slice(0, 2).map(lbl => (
+                        <Pill key={lbl} label={lbl} color="var(--fin-accent)" />
                       ))}
                       {(tx.labels?.length ?? 0) > 2 && (
                         <span className="text-[10px] text-[var(--fin-subtle)]">+{(tx.labels?.length ?? 0) - 2}</span>
@@ -161,7 +195,6 @@ export function TransactionList({
                     </div>
                   </div>
 
-                  {/* Right: amount + date + avatar stacked */}
                   <div className="shrink-0 text-right">
                     <div className={cn('text-[13px] font-semibold tabular-nums leading-snug', amountColorClass)}>
                       {fmt(tx.amount, currency)}
@@ -177,22 +210,18 @@ export function TransactionList({
 
             {/* ── Desktop row (md+) ── */}
             <div data-layout="desktop" className="group relative hidden md:flex items-center gap-3 py-1.5">
-              {/* Icon */}
               <CategoryIcon color={catColor} size="sm">
                 {tx.isCorrection ? '⚖' : isTransfer ? '↔' : categoryIconEmoji(tx.categoryIcon)}
               </CategoryIcon>
 
-              {/* Category — 110px */}
               <div className="w-[110px] shrink-0">
                 {tx.categoryName && <Pill label={tx.categoryName} color={catColor} />}
               </div>
 
-              {/* Date — 88px */}
               <span className="w-[88px] shrink-0 text-right text-[11px] text-[var(--fin-subtle)]">
                 {formatTransactionDate(tx.date)}
               </span>
 
-              {/* Payee — 140px */}
               <span
                 className={cn(
                   'w-[140px] shrink-0 truncate text-[13px] font-medium',
@@ -203,10 +232,9 @@ export function TransactionList({
                 {desktopPayee}
               </span>
 
-              {/* Memo + labels — flex-1 */}
               <div className="flex flex-1 min-w-0 items-center gap-1.5">
-                {tx.labels?.slice(0, 2).map(label => (
-                  <Pill key={label} label={label} color="var(--fin-accent)" />
+                {tx.labels?.slice(0, 2).map(lbl => (
+                  <Pill key={lbl} label={lbl} color="var(--fin-accent)" />
                 ))}
                 {(tx.labels?.length ?? 0) > 2 && (
                   <span className="text-[10px] text-[var(--fin-subtle)]">+{(tx.labels?.length ?? 0) - 2}</span>
@@ -216,66 +244,76 @@ export function TransactionList({
                 </span>
               </div>
 
-              {/* Account — 100px */}
               <span className="w-[100px] shrink-0 truncate text-[11px] text-[var(--fin-subtle)]" title={desktopAccount}>
                 {desktopAccount}
               </span>
 
-              {/* Amount — 120px */}
               <div className="w-[120px] shrink-0 text-right">
                 <div className={cn('text-[13px] font-semibold tabular-nums', amountColorClass)}>
                   {fmt(tx.amount, currency)}
                 </div>
-                {tx.balanceAfter != null && (
-                  <div className="text-[10px] tabular-nums text-[var(--fin-subtle)]">
-                    {fmt(tx.balanceAfter, currency)}
-                  </div>
-                )}
               </div>
 
-              {/* Avatar — always visible */}
               <div className="w-7 shrink-0 flex items-center justify-center">
                 <UserAvatar initials={tx.addedByInitials} />
               </div>
 
-              {/* Hover action buttons — absolute overlay fading in from right */}
-              {hasActions && (
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto">
-                  <div className="flex items-center gap-1 rounded-md border border-[var(--fin-border)] bg-[var(--fin-card)] px-1.5 py-1 shadow-sm">
-                    {onEdit && (
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          onEdit(tx.id);
-                        }}
-                        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)] transition-colors"
-                        title="Edit"
-                      >
-                        <PencilIcon className="size-3" />
-                        Edit
-                      </button>
-                    )}
-                    {onEdit && onDelete && <span className="h-3 w-px bg-[var(--fin-border)]" />}
-                    {onDelete && (
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          onDelete(tx.id);
-                        }}
-                        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-[var(--fin-muted)] hover:bg-[var(--fin-red)]/10 hover:text-[var(--fin-red)] transition-colors"
-                        title="Delete"
-                      >
-                        <TrashIcon className="size-3" />
-                        Delete
-                      </button>
-                    )}
-                  </div>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto">
+                <div className="flex items-center gap-1 rounded-md border border-[var(--fin-border)] bg-[var(--fin-card)] px-1.5 py-1 shadow-sm">
+                  <IconButton
+                    label="Edit"
+                    icon={<PencilIcon className="size-3.5" />}
+                    onClick={() => setEditId(tx.id)}
+                    className="bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
+                  />
+                  <span className="h-3 w-px bg-[var(--fin-border)]" />
+                  <IconButton
+                    label="Delete"
+                    icon={<TrashIcon className="size-3.5" />}
+                    onClick={() => setPendingDeleteId(tx.id)}
+                    className="bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-red)]/10 hover:text-[var(--fin-red)]"
+                  />
                 </div>
-              )}
+              </div>
             </div>
           </div>
         );
       })}
+
+      {hasMore && (
+        <div className="px-[14px] pb-[14px] md:px-0 md:pb-0">
+          <Button
+            variant="ghost"
+            onClick={() => fetchPage(false, offset)}
+            disabled={loadingMore}
+            className={cn('mt-2.5 w-full p-2 text-xs text-[var(--fin-muted)]', loadingMore && 'opacity-60')}
+          >
+            {loadingMore ? 'Loading…' : 'Load more'}
+          </Button>
+        </div>
+      )}
+
+      {editId !== null && (
+        <TransactionModal
+          editId={editId}
+          onCloseAction={() => setEditId(null)}
+          onSavedAction={() => {
+            setEditId(null);
+            transactionEvents.emit('changed');
+          }}
+        />
+      )}
+
+      {pendingDeleteId !== null && (
+        <ConfirmDeleteModal
+          transactionId={pendingDeleteId}
+          onClose={() => setPendingDeleteId(null)}
+          onDeleted={() => {
+            setPendingDeleteId(null);
+            transactionEvents.emit('changed');
+          }}
+        />
+      )}
     </>
   );
 }
