@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Input } from '@/components';
+import { Button, Input } from '@/components';
+import { ChevronDownOutlineIcon, XOutlineIcon } from '@/components/icons';
 import { MobileSelectSheet } from './MobileSelectSheet';
 import {
   applyDropdownFilter,
@@ -193,11 +194,13 @@ export function FinancialDropdown({
             className={cn('w-full text-[15px]', canClear && 'pr-7', inputClassName)}
           />
         ) : (
-          <button
+          <Button
             type="button"
+            variant="transparent"
+            size="xs"
             onClick={() => setOpen(prev => !prev)}
             className={cn(
-              'flex w-full cursor-pointer items-center justify-between gap-1 bg-transparent text-left',
+              'flex w-full cursor-pointer items-center justify-between gap-1 rounded-none p-0 text-left font-normal',
               canClear && 'pr-7',
               inputClassName,
             )}
@@ -205,28 +208,20 @@ export function FinancialDropdown({
             <span className="truncate">
               {selectedLabel || <span className="text-[var(--fin-subtle)]">{placeholder}</span>}
             </span>
-            <svg
-              className="ml-1 shrink-0 text-[var(--fin-subtle)]"
-              width="10"
-              height="10"
-              viewBox="0 0 10 10"
-              fill="none"
-              style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 150ms' }}
-            >
-              <path
-                d="M1 3l4 4 4-4"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
+            <ChevronDownOutlineIcon
+              className={cn(
+                'ml-1 size-[10px] shrink-0 text-[var(--fin-subtle)] transition-transform duration-150',
+                open && 'rotate-180',
+              )}
+            />
+          </Button>
         )}
 
         {canClear && (
-          <button
+          <Button
             type="button"
+            variant="transparent"
+            size="xs"
             aria-label={clearAriaLabel}
             title={clearAriaLabel}
             onMouseDown={event => {
@@ -234,10 +229,10 @@ export function FinancialDropdown({
               onChange(null);
               closeDropdown();
             }}
-            className="absolute right-0 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-[14px] text-[var(--fin-red)] hover:bg-[var(--fin-red-d)]"
+            className="absolute right-0 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded p-0 text-[var(--fin-red)] hover:bg-[var(--fin-red-d)]"
           >
-            X
-          </button>
+            <XOutlineIcon className="size-3.5" />
+          </Button>
         )}
       </div>
 
@@ -250,9 +245,11 @@ export function FinancialDropdown({
           )}
         >
           {results.map(item => (
-            <button
+            <Button
               key={item.id}
               type="button"
+              variant="transparent"
+              size="xs"
               onMouseDown={event => {
                 event.preventDefault();
                 onChange(item);
@@ -262,12 +259,12 @@ export function FinancialDropdown({
                 }
               }}
               className={cn(
-                'flex w-full items-center gap-2 border-none bg-transparent px-3 py-[8px] text-left text-[13px] text-[var(--fin-text)] hover:bg-[var(--fin-card3)]',
+                'flex w-full items-center gap-2 rounded-none px-3 py-[8px] text-left text-[13px] font-normal text-[var(--fin-text)] hover:bg-[var(--fin-card3)]',
                 optionClassName,
               )}
             >
               {renderOption ? renderOption(item) : <span>{String(item.value)}</span>}
-            </button>
+            </Button>
           ))}
 
           {results.length === 0 && trimmedQuery.length > 0 && noResultsText && (
@@ -275,15 +272,17 @@ export function FinancialDropdown({
           )}
 
           {showCreateOption && createOption && (
-            <button
+            <Button
               type="button"
+              variant="transparent"
+              size="xs"
               onMouseDown={event => {
                 event.preventDefault();
                 createOption.onCreate(trimmedQuery);
                 closeDropdown();
               }}
               className={cn(
-                'flex w-full items-center gap-1.5 border-none bg-transparent px-3 py-[8px] text-left text-[13px] text-[var(--fin-accent)] hover:bg-[var(--fin-card3)]',
+                'flex w-full items-center gap-1.5 rounded-none px-3 py-[8px] text-left text-[13px] font-normal text-[var(--fin-accent)] hover:bg-[var(--fin-card3)]',
                 createOption.className,
               )}
             >
@@ -295,7 +294,7 @@ export function FinancialDropdown({
                   <span>Create "{trimmedQuery}"</span>
                 </>
               )}
-            </button>
+            </Button>
           )}
         </div>
       )}

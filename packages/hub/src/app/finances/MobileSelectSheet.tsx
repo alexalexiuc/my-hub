@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
-import { Input } from '@/components';
+import { Button, IconButton, Input } from '@/components';
+import { XOutlineIcon } from '@/components/icons';
 import {
   applyDropdownFilter,
   buildDropdownFuse,
@@ -82,21 +83,18 @@ export function MobileSelectSheet({
       onClick={onClose}
     >
       <div
-        className="fin-slide-up flex max-h-[80dvh] flex-col rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+        className="fin-slide-up flex max-h-[95dvh] h-full flex-col rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-[var(--fin-border)] px-4 py-3.5">
           <span className="text-sm font-semibold text-[var(--fin-text)]">{title ?? placeholder}</span>
-          <button
-            type="button"
-            aria-label="Close"
-            title="Close"
+          <IconButton
+            label="Close"
+            icon={<XOutlineIcon className="size-3" />}
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--fin-card2)] text-xs text-[var(--fin-subtle)]"
-          >
-            ✕
-          </button>
+            className="h-7 w-7 rounded-full bg-[var(--fin-card2)] text-[var(--fin-subtle)]"
+          />
         </div>
 
         {searchable && (
@@ -121,48 +119,54 @@ export function MobileSelectSheet({
               Selected: <span className="font-medium text-[var(--fin-text)]">{selectedLabel}</span>
             </span>
             {canClear && (
-              <button
+              <Button
                 type="button"
+                variant="transparent"
+                size="xs"
                 aria-label={clearAriaLabel}
                 onClick={() => {
                   onChange(null);
                   onClose();
                 }}
-                className="text-xs text-[var(--fin-red)]"
+                className="p-0 text-xs text-[var(--fin-red)]"
               >
                 Clear
-              </button>
+              </Button>
             )}
           </div>
         )}
 
         <div className="overflow-y-auto">
           {results.map(item => (
-            <button
+            <Button
               key={item.id}
               type="button"
+              variant="transparent"
+              size="xs"
               onClick={() => {
                 onChange(item);
                 onClose();
               }}
               className={cn(
-                'flex w-full items-center gap-2 border-b border-[var(--fin-border)] bg-transparent px-4 py-3.5 text-left text-[14px] text-[var(--fin-text)] active:bg-[var(--fin-card3)]',
+                'flex w-full items-center gap-2 rounded-none border-b border-[var(--fin-border)] px-4 py-3.5 text-left text-[14px] font-normal text-[var(--fin-text)] active:bg-[var(--fin-card3)]',
                 value === item.id && 'bg-[var(--fin-card2)] font-medium',
               )}
             >
               {renderOption ? renderOption(item) : <span>{String(item.value)}</span>}
-            </button>
+            </Button>
           ))}
 
           {showCreateOption && createOption && (
-            <button
+            <Button
               type="button"
+              variant="transparent"
+              size="xs"
               onClick={() => {
                 createOption.onCreate(trimmedQuery);
                 onClose();
               }}
               className={cn(
-                'flex w-full items-center gap-1.5 border-b border-[var(--fin-border)] bg-transparent px-4 py-3.5 text-left text-[14px] text-[var(--fin-accent)] active:bg-[var(--fin-card3)]',
+                'flex w-full items-center gap-1.5 rounded-none border-b border-[var(--fin-border)] px-4 py-3.5 text-left text-[14px] font-normal text-[var(--fin-accent)] active:bg-[var(--fin-card3)]',
                 createOption.className,
               )}
             >
@@ -174,7 +178,7 @@ export function MobileSelectSheet({
                   <span>{`Create "${trimmedQuery}"`}</span>
                 </>
               )}
-            </button>
+            </Button>
           )}
 
           {results.length === 0 && !showCreateOption && (

@@ -40,3 +40,4 @@ export { EyeOutlineIcon } from './EyeOutlineIcon';
 export { EyeOffOutlineIcon } from './EyeOffOutlineIcon';
 export { QuestionMarkIcon } from './QuestionMarkIcon';
 export { ArchiveBoxIcon } from './ArchiveBoxIcon';
+export { XOutlineIcon } from './XOutlineIcon';
