@@ -389,6 +389,7 @@ export const AddTransactionSchema = z.object({
   amount: z.string().min(1, 'Amount is required'),
   date: z.string().min(1),
   note: z.string(),
+  labels: z.array(z.string()),
 });
 
 export type AddTransactionValues = z.infer<typeof AddTransactionSchema>;
@@ -399,4 +400,5 @@ export const defaultAddTransactionValues: AddTransactionValues = {
   amount: '',
   date: new Date().toISOString().slice(0, 10),
   note: '',
+  labels: [],
 };

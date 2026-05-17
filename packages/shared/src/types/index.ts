@@ -107,6 +107,7 @@ import type {
   financeGroups,
   financeCategories,
   financePayees,
+  financeLabels,
   financeImportBatches,
   financeTransactions,
   financeCurrencyRates,
@@ -139,6 +140,8 @@ export type FinanceCategory = InferSelectModel<typeof financeCategories>;
 export type NewFinanceCategory = InferInsertModel<typeof financeCategories>;
 export type FinancePayee = InferSelectModel<typeof financePayees>;
 export type NewFinancePayee = InferInsertModel<typeof financePayees>;
+export type FinanceLabel = InferSelectModel<typeof financeLabels>;
+export type NewFinanceLabel = InferInsertModel<typeof financeLabels>;
 export type FinanceImportBatch = InferSelectModel<typeof financeImportBatches>;
 export type NewFinanceImportBatch = InferInsertModel<typeof financeImportBatches>;
 export type FinanceTransaction = InferSelectModel<typeof financeTransactions>;

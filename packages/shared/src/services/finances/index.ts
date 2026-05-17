@@ -8,3 +8,4 @@ export * from './reporting';
 export * from './loan-amortization';
 export * from './monthly-plans';
 export * from './import-batches';
+export * from './labels';

@@ -14,6 +14,7 @@ export interface TransactionItem {
   amount: number;
   type: string;
   notes: string | null;
+  labels?: string[];
   payeeName: string | null;
   categoryName: string | null;
   categoryColor: string | null;
@@ -144,9 +145,15 @@ export function TransactionList({
                     >
                       {mobileLabel}
                     </div>
-                    {/* Line 2: category + memo */}
-                    <div className="flex items-center gap-1.5 mt-0.5">
+                    {/* Line 2: category + labels + memo */}
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                       {tx.categoryName && <Pill label={tx.categoryName} color={catColor} />}
+                      {tx.labels?.slice(0, 2).map(label => (
+                        <Pill key={label} label={label} color="var(--fin-accent)" />
+                      ))}
+                      {(tx.labels?.length ?? 0) > 2 && (
+                        <span className="text-[10px] text-[var(--fin-subtle)]">+{(tx.labels?.length ?? 0) - 2}</span>
+                      )}
                       {tx.notes && !tx.isCorrection && tx.payeeName && (
                         <span className="truncate text-[11px] text-[var(--fin-subtle)]">{tx.accountName}</span>
                       )}
@@ -193,10 +200,18 @@ export function TransactionList({
                 {desktopPayee}
               </span>
 
-              {/* Memo — flex-1 */}
-              <span className="flex-1 min-w-0 truncate text-[12px] text-[var(--fin-subtle)]" title={desktopMemo ?? ''}>
-                {desktopMemo}
-              </span>
+              {/* Memo + labels — flex-1 */}
+              <div className="flex flex-1 min-w-0 items-center gap-1.5">
+                {tx.labels?.slice(0, 2).map(label => (
+                  <Pill key={label} label={label} color="var(--fin-accent)" />
+                ))}
+                {(tx.labels?.length ?? 0) > 2 && (
+                  <span className="text-[10px] text-[var(--fin-subtle)]">+{(tx.labels?.length ?? 0) - 2}</span>
+                )}
+                <span className="min-w-0 truncate text-[12px] text-[var(--fin-subtle)]" title={desktopMemo ?? ''}>
+                  {desktopMemo}
+                </span>
+              </div>
 
               {/* Account — 100px */}
               <span className="w-[100px] shrink-0 truncate text-[11px] text-[var(--fin-subtle)]" title={desktopAccount}>

@@ -15,6 +15,13 @@
       "when": 1778757850875,
       "tag": "0001_worried_swordsman",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778959498714,
+      "tag": "0002_rainy_dormammu",
+      "breakpoints": true
     }
   ]
 }
