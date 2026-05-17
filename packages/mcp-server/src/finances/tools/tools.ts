@@ -129,6 +129,8 @@ const financeTools = [
       'Each item is processed independently — a duplicate warning on one does not block the others. ' +
       'Only populate the notes field when you have meaningful information to add. ' +
       'The tool automatically detects possible duplicates and includes a warning in the result if found. ' +
+      'categoryId is optional for all transaction types including transfers. ' +
+      'For loan repayments and other categorised transfers, set categoryId to track the spending. ' +
       'If a payeeName is not recognized and createPayee is false (default), the call returns a payee_not_found error — ' +
       'use finances_upsert_payee to create the payee first, or set createPayee: true to create it automatically. ' +
       '\n\nExtras field guidance:\n' +
@@ -146,7 +148,8 @@ const financeTools = [
     name: 'finances_update_transaction',
     description:
       'Edit an existing transaction. Only transactions you added can be updated. ' +
-      'Account balances are recomputed atomically when amount, account, or type changes.',
+      'Account balances are recomputed atomically when amount, account, or type changes. ' +
+      'categoryId is supported for all transaction types including transfers; pass null to clear it.',
     inputSchema: UpdateTransactionSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: updateTransactionTool,

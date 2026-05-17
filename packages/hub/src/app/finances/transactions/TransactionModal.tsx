@@ -236,7 +236,7 @@ export function TransactionModal({
       toAccountId: txType === TransactionTypes.Transfer ? selToAccId : null,
       amount: parseFloat(values.amount),
       date: values.date,
-      categoryId: txType === TransactionTypes.Transfer ? null : selCatId,
+      categoryId: selCatId,
       payeeName: values.payee.trim() || undefined,
       notes: values.note.trim() || undefined,
       labels: values.labels,
@@ -428,21 +428,35 @@ export function TransactionModal({
           )}
 
           {txType === TransactionTypes.Transfer ? (
-            <MobileFieldRow label="To Account">
-              {prefilledToAccountId != null ? (
-                <span className="text-[13px] font-medium text-[var(--fin-text)]">{prefilledToAccountName}</span>
-              ) : (
+            <>
+              <MobileFieldRow label="To Account">
+                {prefilledToAccountId != null ? (
+                  <span className="text-[13px] font-medium text-[var(--fin-text)]">{prefilledToAccountName}</span>
+                ) : (
+                  <FinancialDropdown
+                    searchable={false}
+                    options={toAccountOptions}
+                    value={selToAccId ?? undefined}
+                    onChange={item => setSelToAccId(item ? (item.id as number) : null)}
+                    renderOption={item => renderAccountOption(item, formData?.accounts ?? [])}
+                    placeholder="Choose..."
+                    inputClassName={mobileDropdownInputClass}
+                  />
+                )}
+              </MobileFieldRow>
+              <MobileFieldRow label="Category">
                 <FinancialDropdown
                   searchable={false}
-                  options={toAccountOptions}
-                  value={selToAccId ?? undefined}
-                  onChange={item => setSelToAccId(item ? (item.id as number) : null)}
-                  renderOption={item => renderAccountOption(item, formData?.accounts ?? [])}
-                  placeholder="Choose..."
+                  options={categoryOptions}
+                  value={selCatId ?? undefined}
+                  onChange={item => setSelCatId(item ? (item.id as number) : null)}
+                  clearable
+                  noResultsText="No categories yet — add one in the Categories tab."
+                  placeholder="⬡ Choose..."
                   inputClassName={mobileDropdownInputClass}
                 />
-              )}
-            </MobileFieldRow>
+              </MobileFieldRow>
+            </>
           ) : (
             <MobileFieldRow label="Category">
               <FinancialDropdown
@@ -637,6 +651,21 @@ export function TransactionModal({
                 </FieldCard>
               )}
             </div>
+
+            {txType === TransactionTypes.Transfer && (
+              <FieldCard label="Category">
+                <FinancialDropdown
+                  searchable={false}
+                  options={categoryOptions}
+                  value={selCatId ?? undefined}
+                  onChange={item => setSelCatId(item ? (item.id as number) : null)}
+                  clearable
+                  noResultsText="No categories yet — add one in the Categories tab."
+                  placeholder="⬡ Choose…"
+                  inputClassName="border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+                />
+              </FieldCard>
+            )}
 
             <div className="grid grid-cols-2 gap-2">
               <FieldCard label="Date">

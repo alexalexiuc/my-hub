@@ -83,7 +83,15 @@ const TransactionItemSchema = z
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional(),
     toAccountId: z.number().int().positive().optional(),
-    categoryId: z.number().int().positive().optional(),
+    categoryId: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe(
+        'Optional category ID for this transaction. Supported for all transaction types including transfers. ' +
+          'Use finances_list_context to find available category IDs.',
+      ),
     payeeName: z.string().min(1).optional(),
     notes: z.string().min(1),
     labels: z.array(z.string().min(1)).optional(),
@@ -362,7 +370,16 @@ export const UpdateTransactionSchema = z.object({
     .optional(),
   accountId: z.number().int().positive().optional(),
   toAccountId: z.number().int().positive().optional(),
-  categoryId: z.number().int().positive().optional(),
+  categoryId: z
+    .number()
+    .int()
+    .positive()
+    .nullable()
+    .optional()
+    .describe(
+      'Category to assign. Supported for all transaction types including transfers. ' +
+        'Pass null to explicitly clear an existing category.',
+    ),
   payeeName: z.string().min(1).optional(),
   notes: z.string().min(1).optional(),
   labels: z.array(z.string().min(1)).optional(),
