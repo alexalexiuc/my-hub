@@ -389,20 +389,7 @@ export function TransactionModal({
               {mobileAmountText}
             </span>
           )}
-          {amountDisplay || largeExpression ? (
-            <Button
-              type="button"
-              variant="transparent"
-              size="xs"
-              onClick={e => {
-                e.stopPropagation();
-                pressKey('Clear');
-              }}
-              className="mt-2 flex items-center gap-1 rounded-full border border-[var(--fin-border)] px-2.5 py-0.5 text-xs text-[var(--fin-muted)] active:opacity-60"
-            >
-              × Clear
-            </Button>
-          ) : !keypadOpen ? (
+          {!amountDisplay && !largeExpression && !keypadOpen ? (
             <span className="mt-1.5 text-xs text-[var(--fin-muted)]">Tap to Enter Amount</span>
           ) : null}
         </div>
@@ -410,7 +397,10 @@ export function TransactionModal({
         {/* Fields — scrollable */}
         <div
           className="flex-1 divide-y divide-[var(--fin-border)] overflow-y-auto border-t border-[var(--fin-border)]"
-          onClickCapture={() => setKeypadOpen(false)}
+          onClickCapture={() => {
+            pressKey('=');
+            setKeypadOpen(false);
+          }}
         >
           {payeeRequired && (
             <>
@@ -718,14 +708,8 @@ export function TransactionModal({
       {/* Keypad overlay — portalled bottom sheet on mobile */}
       {keypadOpen &&
         createPortal(
-          <div
-            className="finances-theme fixed inset-x-0 top-0 z-[1100] flex h-[100dvh] flex-col justify-end md:hidden"
-            onClick={cancelKeypad}
-          >
-            <div
-              className="fin-slide-up rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
-              onClick={e => e.stopPropagation()}
-            >
+          <div className="finances-theme fixed inset-x-0 top-0 z-[1100] flex h-[100dvh] flex-col justify-end md:hidden pointer-events-none">
+            <div className="fin-slide-up rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)] pointer-events-auto">
               <MobileAmountKeypad
                 onKey={pressKey}
                 onDone={() => {
