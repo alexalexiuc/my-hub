@@ -708,12 +708,8 @@ export function TransactionModal({
       {/* Keypad overlay — portalled bottom sheet on mobile */}
       {keypadOpen &&
         createPortal(
-          <div
-            className="finances-theme fixed inset-x-0 top-0 z-[1100] flex h-[100dvh] flex-col justify-end md:hidden pointer-events-none"
-          >
-            <div
-              className="fin-slide-up rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)] pointer-events-auto"
-            >
+          <div className="finances-theme fixed inset-x-0 top-0 z-[1100] flex h-[100dvh] flex-col justify-end md:hidden pointer-events-none">
+            <div className="fin-slide-up rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)] pointer-events-auto">
               <MobileAmountKeypad
                 onKey={pressKey}
                 onDone={() => {

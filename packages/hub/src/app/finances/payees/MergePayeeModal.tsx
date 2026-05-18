@@ -19,9 +19,7 @@ export function MergePayeeModal({ payee, allPayees, onClose, onMerged }: MergePa
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const options: DropdownOption[] = allPayees
-    .filter(p => p.id !== payee.id)
-    .map(p => ({ id: p.id, value: p.name }));
+  const options: DropdownOption[] = allPayees.filter(p => p.id !== payee.id).map(p => ({ id: p.id, value: p.name }));
 
   async function handleSubmit() {
     if (!sourceId) return;
