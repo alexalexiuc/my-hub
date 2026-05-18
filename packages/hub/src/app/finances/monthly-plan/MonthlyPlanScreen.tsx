@@ -9,8 +9,7 @@ import type { TransactionFormDataResponse } from '@/app/api/finances/transaction
 import { SummaryBar } from './SummaryBar';
 import { MonthHeader } from './MonthHeader';
 import { PlanItemRow } from './PlanItemRow';
-import { AddItemRow, type NewItemState } from './AddItemRow';
-import { EditPlanItemModal } from './EditPlanItemModal';
+import { PlanItemModal } from './PlanItemModal';
 import { fmtNum } from './monthly-plan.utils';
 import { dateToString } from '@my-hub/shared/utils';
 import { SupportedCurrencies } from '@my-hub/shared/constants';
@@ -154,45 +153,19 @@ export function MonthlyPlanScreen() {
                   />
                 ))}
               </div>
-              {showAddItem && (
-                <AddItemRow
-                  defaultCurrency={addItemDefaultCurrency}
-                  formData={formData}
-                  onSave={async (form: NewItemState) => {
-                    await withRefresh(() =>
-                      apiFetch(`/api/finances/monthly-plans/${month}/items`, {
-                        method: 'POST',
-                        body: {
-                          name: form.name,
-                          amount: parseFloat(form.amount),
-                          currency: form.currency || data.currency || 'MDL',
-                          linkedAccountId: form.linkedAccountId ? parseInt(form.linkedAccountId, 10) : null,
-                          categoryId: form.categoryId ? parseInt(form.categoryId, 10) : null,
-                        },
-                      }),
-                    );
-                    setShowAddItem(false);
-                  }}
-                  onCancel={() => setShowAddItem(false)}
-                />
-              )}
             </>
           )}
 
           {!loading && !error && data && (
             <div className="flex flex-col gap-2 border-t border-[var(--fin-border)] px-3 py-3 md:flex-row md:items-center md:justify-between md:px-4">
-              {!showAddItem ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowAddItem(true)}
-                  className="border-[var(--fin-border)] text-[var(--fin-muted)] hover:border-[var(--fin-accent)] hover:text-[var(--fin-accent)]"
-                >
-                  + Add item
-                </Button>
-              ) : (
-                <div />
-              )}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowAddItem(true)}
+                className="border-[var(--fin-border)] text-[var(--fin-muted)] hover:border-[var(--fin-accent)] hover:text-[var(--fin-accent)]"
+              >
+                + Add item
+              </Button>
               <div className="flex items-center gap-4 text-[11px] text-[var(--fin-muted)]">
                 <span>
                   Planned: <strong className="text-[var(--fin-text)]">{fmtNum(data.summary.planned)}</strong>
@@ -209,10 +182,24 @@ export function MonthlyPlanScreen() {
         </Card>
       </div>
 
+      {showAddItem && data && (
+        <PlanItemModal
+          defaultCurrency={addItemDefaultCurrency}
+          formData={formData}
+          onSave={async patch => {
+            await withRefresh(() =>
+              apiFetch(`/api/finances/monthly-plans/${month}/items`, { method: 'POST', body: patch }),
+            );
+            setShowAddItem(false);
+          }}
+          onClose={() => setShowAddItem(false)}
+        />
+      )}
+
       {editingItem && data && (
-        <EditPlanItemModal
+        <PlanItemModal
           item={editingItem}
-          currency={data.currency}
+          defaultCurrency={addItemDefaultCurrency}
           formData={formData}
           onClose={() => setEditingItem(null)}
           onSave={async patch => {

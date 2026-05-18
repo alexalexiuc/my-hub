@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button, Input } from '@/components';
 import { ChevronDownOutlineIcon, XOutlineIcon } from '@/components/icons';
@@ -15,6 +15,18 @@ import {
 // Re-export so existing consumers can keep importing from this file.
 export type { DropdownOption, FinancialDropdownCreateOption } from './financialDropdown.utils';
 export { buildDropdownFuse, applyDropdownFilter } from './financialDropdown.utils';
+
+function getScrollParentBottom(node: HTMLElement): number {
+  let el: HTMLElement | null = node.parentElement;
+  while (el && el !== document.body) {
+    const { overflowY, overflow } = window.getComputedStyle(el);
+    if (overflowY === 'auto' || overflowY === 'scroll' || overflow === 'auto' || overflow === 'scroll') {
+      return el.getBoundingClientRect().bottom;
+    }
+    el = el.parentElement;
+  }
+  return window.innerHeight;
+}
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -117,14 +129,15 @@ export function FinancialDropdown({
 
   const canClear = clearable && value != null;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open || isMobile) {
-      setMenuAbove(false);
+      setMenuAbove(prev => (prev ? false : prev));
       return;
     }
     const rect = rootRef.current?.getBoundingClientRect();
     if (!rect) return;
-    setMenuAbove(window.innerHeight - rect.bottom < 220);
+    const containerBottom = getScrollParentBottom(rootRef.current);
+    setMenuAbove(containerBottom - rect.bottom < 220);
   }, [open, isMobile]);
 
   useEffect(() => {

@@ -140,16 +140,14 @@ test.describe('Finances — Monthly Plan', () => {
     await expect(page.getByText('No items yet — add your first planned expense below.')).toBeVisible();
     await expect(page.getByRole('button', { name: '+ Add item' })).toBeVisible();
 
-    // ── 2. Open inline add form ───────────────────────────────────────────────
+    // ── 2. Open add modal ─────────────────────────────────────────────────────
     await page.getByRole('button', { name: '+ Add item' }).click();
-    await expect(page.getByPlaceholder('Item name')).toBeVisible();
+    await expect(page.locator('[data-layout="desktop"]').getByText('Add Plan Item')).toBeVisible();
+    await expect(page.getByPlaceholder('e.g. Rent')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible();
 
-    // ── 3. Validation: disabled submit with empty name ────────────────────────
-    await expect(page.getByRole('button', { name: 'Add plan item' })).toBeDisabled();
-
-    // ── 4. Fill and submit ────────────────────────────────────────────────────
-    await page.getByPlaceholder('Item name').fill(itemName);
+    // ── 3. Fill and submit ────────────────────────────────────────────────────
+    await page.getByPlaceholder('e.g. Rent').fill(itemName);
     await page.locator('input[placeholder="0"]').fill('1200');
     const createItemRes = page.waitForResponse(
       r =>
@@ -158,24 +156,24 @@ test.describe('Finances — Monthly Plan', () => {
         !r.url().includes('/items/') &&
         r.request().method() === 'POST',
     );
-    await page.getByRole('button', { name: 'Add plan item' }).click();
+    await page.getByRole('button', { name: 'Add Item', exact: true }).click();
     await createItemRes;
     await expect(page.getByText(itemName).first()).toBeVisible();
-    await expect(page.getByPlaceholder('Item name')).not.toBeVisible();
+    await expect(page.locator('[data-layout="desktop"]').getByText('Add Plan Item')).not.toBeVisible();
 
     // ── 5. Open EditPlanItemModal by clicking item name ───────────────────────
     await page.getByText(itemName).first().click();
-    await expect(page.getByText('Edit Item')).toBeVisible();
+    await expect(page.locator('[data-layout="desktop"]').getByText('Edit Item')).toBeVisible();
 
     // ── 6. Edit name and planned amount ──────────────────────────────────────
     await page.getByLabel('Name').fill(updatedName);
     await page.getByLabel('Planned amount').fill('1500');
     await page.getByRole('button', { name: 'Save Changes' }).click();
     // Wait for modal to close - the modal should disappear after save
-    await page.locator('text=Edit Item').waitFor({ state: 'hidden', timeout: 10_000 });
+    await page.locator('[data-layout="desktop"]').getByText('Edit Item').waitFor({ state: 'hidden', timeout: 10_000 });
     await expect(page.getByText(updatedName).first()).toBeVisible();
     // Check the planned amount in the table
-    await expect(page.getByText('1,500').first()).toBeVisible();
+    await expect(page.getByText('1.500').first()).toBeVisible();
 
     // ── 7. Delete item ────────────────────────────────────────────────────────
     const deleteItemRes = page.waitForResponse(
@@ -214,9 +212,9 @@ test.describe('Finances — Monthly Plan', () => {
     await patchPlanRes;
 
     // ── 3. Updated figures ────────────────────────────────────────────────────
-    await expect(page.getByText('2,000').first()).toBeVisible(); // Available Funds
+    await expect(page.getByText('2.000').first()).toBeVisible(); // Available Funds
     await expect(page.getByText('400').first()).toBeVisible(); // Planned
-    await expect(page.getByText('1,600').first()).toBeVisible(); // Remaining (Potential) = 2000 - 400
+    await expect(page.getByText('1.600').first()).toBeVisible(); // Remaining (Potential) = 2000 - 400
     await expect(page.getByText('0 of 1 items done · 0%')).toBeVisible();
   });
 

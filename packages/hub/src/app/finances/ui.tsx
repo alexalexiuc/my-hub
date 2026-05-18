@@ -6,6 +6,7 @@ import { Button, IconButton } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons/PlusOutlineIcon';
 import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon } from '@/components/icons';
 import { shiftMonthStr, formatMonthStr } from '@my-hub/shared/utils';
+import type { DropdownOption } from './financialDropdown.utils';
 
 // ─── Currency formatter ───────────────────────────────────────────────────────
 export function fmt(value: number, currency = 'EUR', reverseSign = false) {
@@ -296,6 +297,40 @@ export function AddButton({ onClick, title }: AddButtonProps) {
       <PlusOutlineIcon className="size-3" />
       {title}
     </Button>
+  );
+}
+
+// ─── Dropdown option renderers ───────────────────────────────────────────────
+
+export function renderAccountOption(item: DropdownOption, accounts: { id: number; type: string; currency: string }[]) {
+  const acc = accounts.find(a => String(a.id) === String(item.id));
+  const meta = acc ? (TYPE_META[acc.type] ?? null) : null;
+  return (
+    <span className="flex w-full items-center gap-2">
+      {meta && (
+        <span
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[11px]"
+          style={{ background: meta.color + '28' }}
+        >
+          {meta.icon}
+        </span>
+      )}
+      <span className="flex-1 truncate">{String(item.value)}</span>
+      {acc && <span className="ml-auto shrink-0 text-[10px] text-[var(--fin-subtle)]">{acc.currency}</span>}
+    </span>
+  );
+}
+
+export function renderCategoryOption(
+  item: DropdownOption,
+  categories: { id: number; icon: string | null; color: string | null }[],
+) {
+  const cat = categories.find(c => String(c.id) === String(item.id));
+  return (
+    <span className="flex w-full items-center gap-2">
+      {cat && <CategoryIcon color={cat.color} icon={cat.icon} size="sm" />}
+      <span className="flex-1 truncate">{String(item.value)}</span>
+    </span>
   );
 }
 

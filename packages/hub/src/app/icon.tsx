@@ -12,13 +12,13 @@ export default function Icon() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #0b1f3a 0%, #0f766e 100%)',
-        borderRadius: '112px',
-        fontFamily: 'Verdana, Geneva, sans-serif',
-        fontWeight: 700,
-        fontSize: 160,
-        color: '#f8fafc',
-        letterSpacing: '6px',
+        background: 'linear-gradient(145deg, #0a1628 0%, #0d5c54 60%, #0f766e 100%)',
+        borderRadius: '96px',
+        fontFamily: 'Arial Black, Arial, sans-serif',
+        fontWeight: 900,
+        fontSize: 172,
+        color: '#ffffff',
+        letterSpacing: '4px',
       }}
     >
       HUB

@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
-import { FinancialDropdown, type DropdownOption } from '../FinancialDropdown';
+import { FinancialDropdown } from '../FinancialDropdown';
 import { FinModalShell } from '../FinModalShell';
 import { Button, Input, Pill } from '@/components';
 import { categoryIconEmoji } from '../categoryIcons';
@@ -20,7 +20,7 @@ import type { TransactionDetail, TransactionMutationResponse } from '@/app/api/f
 import type { LabelsResponse } from '@/app/api/finances/labels/route';
 import { getCurrencySymbol, isPayeeRequired, localDateString } from '@my-hub/shared/utils';
 import { EXPENSE_ACCOUNT_TYPES, TransactionType, TransactionTypes } from '@my-hub/shared/constants';
-import { TYPE_META } from '../ui';
+import { renderAccountOption } from '../ui';
 
 const TYPE_COLORS: Record<TransactionType, string> = {
   [TransactionTypes.Expense]: 'var(--fin-red)',
@@ -68,25 +68,6 @@ function MobileFieldRow({ label, children }: { label: string; children: React.Re
       <div className="w-20 shrink-0 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">{label}</div>
       <div className="min-w-0 flex-1">{children}</div>
     </div>
-  );
-}
-
-function renderAccountOption(item: DropdownOption, accounts: { id: number; type: string; currency: string }[]) {
-  const acc = accounts.find(a => a.id === item.id);
-  const meta = acc ? (TYPE_META[acc.type] ?? null) : null;
-  return (
-    <span className="flex w-full items-center gap-2">
-      {meta && (
-        <span
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[11px]"
-          style={{ background: meta.color + '28' }}
-        >
-          {meta.icon}
-        </span>
-      )}
-      <span className="flex-1 truncate">{String(item.value)}</span>
-      {acc && <span className="ml-auto shrink-0 text-[10px] text-[var(--fin-subtle)]">{acc.currency}</span>}
-    </span>
   );
 }
 
