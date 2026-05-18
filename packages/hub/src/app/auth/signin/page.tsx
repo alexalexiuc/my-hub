@@ -6,7 +6,7 @@ import { signIn, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { GoogleIcon } from '@/components/icons';
-import { Input } from '@/components';
+import { Input, PasswordInput } from '@/components';
 
 export default function SignInPage() {
   return (
@@ -93,9 +93,8 @@ function SignInContent() {
                 Forgot password?
               </Link>
             </div>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"

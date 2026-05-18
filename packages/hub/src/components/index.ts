@@ -8,6 +8,7 @@ export { Field } from './Field';
 export { FilePicker } from './FilePicker';
 export { IconButton } from './IconButton';
 export { Input } from './Input';
+export { PasswordInput } from './PasswordInput';
 export { MultiButtonGroup } from './MultiButtonGroup';
 export { PageHeader } from './PageHeader';
 export { PasswordStrength } from './PasswordStrength';

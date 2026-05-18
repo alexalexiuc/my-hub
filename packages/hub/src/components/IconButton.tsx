@@ -10,16 +10,21 @@ interface Props {
   href?: string;
   loading?: boolean;
   className?: string;
+  variant?: 'default' | 'ghost';
 }
 
-const baseClassName = 'rounded-md bg-zinc-800 p-1.5 text-zinc-300 hover:bg-zinc-700';
+const variantClassName = {
+  default: 'rounded-md bg-zinc-800 p-1.5 text-zinc-300 hover:bg-zinc-700',
+  ghost: 'text-zinc-400 hover:text-zinc-200 transition-colors',
+};
 
-export function IconButton({ label, icon, onClick, href, loading = false, className }: Props) {
+export function IconButton({ label, icon, onClick, href, loading = false, className, variant = 'default' }: Props) {
   const content = loading ? <SpinnerIcon className="opacity-70" /> : icon;
+  const base = variantClassName[variant];
 
   if (href) {
     return (
-      <Link href={href} className={cn(baseClassName, className)} aria-label={label} title={label}>
+      <Link href={href} className={cn(base, className)} aria-label={label} title={label}>
         {content}
       </Link>
     );
@@ -29,7 +34,7 @@ export function IconButton({ label, icon, onClick, href, loading = false, classN
     <button
       onClick={onClick}
       disabled={loading}
-      className={cn(baseClassName, 'disabled:opacity-50', className)}
+      className={cn(base, 'disabled:opacity-50', className)}
       aria-label={label}
       title={label}
     >

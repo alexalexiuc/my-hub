@@ -28,7 +28,7 @@ setup('write seeds, create test user and authenticate', async ({ request, page }
   // Sign in via the credentials form
   await page.goto(`${BASE_URL}/auth/signin`);
   await page.getByLabel('Email').fill(TEST_USER.email);
-  await page.getByLabel('Password').fill(TEST_USER.password);
+  await page.getByRole('textbox', { name: 'Password' }).fill(TEST_USER.password);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
 
   // Should land on the dashboard

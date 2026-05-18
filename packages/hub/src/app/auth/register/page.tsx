@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { apiFetch, ApiError } from '@/lib/utils';
-import { Input, PasswordStrength } from '@/components';
+import { Input, PasswordInput, PasswordStrength } from '@/components';
 import { PASSWORD_RULES } from '@my-hub/shared/constants';
 
 function RegisterForm() {
@@ -111,9 +111,8 @@ function RegisterForm() {
             <label htmlFor="password" className="text-xs text-zinc-400 block mb-1">
               Password
             </label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -124,9 +123,8 @@ function RegisterForm() {
             <label htmlFor="confirm" className="text-xs text-zinc-400 block mb-1">
               Confirm password
             </label>
-            <Input
+            <PasswordInput
               id="confirm"
-              type="password"
               value={confirm}
               onChange={e => setConfirm(e.target.value)}
               placeholder="••••••••"

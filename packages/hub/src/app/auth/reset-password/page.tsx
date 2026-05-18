@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ResetPasswordSchema, type ResetPasswordInput } from '@/lib/schemas/auth';
 import { apiFetch, ApiError } from '@/lib/utils';
-import { Button, Field, Input, PasswordStrength } from '@/components';
+import { Button, Field, PasswordInput, PasswordStrength } from '@/components';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -79,11 +79,11 @@ function ResetPasswordForm() {
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
             <Field label="New password">
-              <Input id="password" type="password" placeholder="••••••••" autoFocus {...register('password')} />
+              <PasswordInput id="password" placeholder="••••••••" autoFocus {...register('password')} />
               {errors.password && <p className="text-xs text-red-400 mt-1">{errors.password.message}</p>}
             </Field>
             <Field label="Confirm new password">
-              <Input id="confirm" type="password" placeholder="••••••••" {...register('confirm')} />
+              <PasswordInput id="confirm" placeholder="••••••••" {...register('confirm')} />
             </Field>
             <PasswordStrength password={watch('password') ?? ''} confirm={watch('confirm') ?? ''} />
             {errors.root && <p className="text-sm text-red-400">{errors.root.message}</p>}
