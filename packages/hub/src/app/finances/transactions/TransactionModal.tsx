@@ -323,7 +323,7 @@ export function TransactionModal({
   return (
     <FinModalShell
       onClose={onCloseAction}
-      title={isEdit ? 'Edit Transaction' : 'Add Transaction'}
+      title={isEdit ? 'Edit Transaction' : 'New Transaction'}
       scrollable={false}
       className="md:max-w-[480px]"
       onSubmit={handleSubmit(onSubmit)}

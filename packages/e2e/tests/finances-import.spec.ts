@@ -1,45 +1,12 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-
-function uniqueName(prefix: string): string {
-  return `${prefix} ${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-}
-
-/** Wipe all finances data for the authenticated test user. */
-async function deleteFinances(page: Page) {
-  await page.request.post('/api/user/delete-data', { data: { features: ['finances'] } });
-}
-
-/** Create a budget via the API. */
-async function createBudgetViaAPI(page: Page, name: string, currency = 'EUR') {
-  const res = await page.request.post('/api/finances/budgets', {
-    data: { name, defaultCurrency: currency },
-  });
-  expect(res.status()).toBe(201);
-  const body = (await res.json()) as { budget: { id: number } };
-  return body.budget.id;
-}
-
-/** Create an account via the API. Returns `{ id, name }`. */
-async function createAccount(
-  page: Page,
-  data: { name: string; type: string; currency?: string; openingBalance?: number },
-) {
-  const res = await page.request.post('/api/finances/accounts', {
-    data: { currency: 'EUR', openingBalance: 0, ...data },
-  });
-  expect(res.status()).toBe(201);
-  const body = (await res.json()) as { account: { id: number; name: string } };
-  return body.account;
-}
-
-/** Create a category via the API. Returns the category id. */
-async function createCategoryViaAPI(page: Page, name: string): Promise<number> {
-  const res = await page.request.post('/api/finances/categories', { data: { name } });
-  expect(res.status()).toBe(201);
-  const body = (await res.json()) as { id: number };
-  return body.id;
-}
+import {
+  uniqueName,
+  deleteFinances,
+  createBudgetViaAPI,
+  createAccount,
+  createCategoryViaAPI,
+} from './finances-helpers';
 
 /**
  * Import transactions via the API directly (bypasses the UI wizard).

@@ -34,10 +34,15 @@ export function FinFieldCard({
   className?: string;
 }) {
   return (
-    <div className={cn('rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)] px-3 py-2.5', className)}>
-      <div className="mb-[3px] text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">{label}</div>
+    <label
+      className={cn(
+        'block rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)] px-3 py-2.5',
+        className,
+      )}
+    >
+      <span className="mb-[3px] block text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">{label}</span>
       {children}
-    </div>
+    </label>
   );
 }
 

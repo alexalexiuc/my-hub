@@ -136,7 +136,7 @@ export function FinancialDropdown({
     }
     const rect = rootRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const containerBottom = getScrollParentBottom(rootRef.current);
+    const containerBottom = getScrollParentBottom(rootRef.current!);
     setMenuAbove(containerBottom - rect.bottom < 220);
   }, [open, isMobile]);
 

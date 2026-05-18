@@ -95,6 +95,7 @@ export function CatRow({
         <div className="pointer-events-none absolute inset-y-0 right-[14px] flex items-center opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
           <div className="flex items-center gap-1 rounded-md border border-[var(--fin-border)] bg-[var(--fin-card)] px-1.5 py-1 shadow-sm">
             <button
+              aria-label={`Edit category ${cat.name}`}
               onClick={e => {
                 e.stopPropagation();
                 onEdit(cat);
@@ -105,6 +106,7 @@ export function CatRow({
             </button>
             <span className="h-3 w-px bg-[var(--fin-border)]" />
             <button
+              aria-label={`Delete category ${cat.name}`}
               onClick={e => {
                 e.stopPropagation();
                 onDelete(cat);

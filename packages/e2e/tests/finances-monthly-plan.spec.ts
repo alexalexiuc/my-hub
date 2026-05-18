@@ -1,9 +1,12 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-
-function uniqueName(prefix: string): string {
-  return `${prefix} ${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-}
+import {
+  uniqueName,
+  deleteFinances,
+  createBudgetViaAPI,
+  createAccount,
+  createCategoryViaAPI,
+} from './finances-helpers';
 
 function currentMonth(): string {
   return new Date().toISOString().slice(0, 7);
@@ -14,42 +17,6 @@ function nextMonthStr(): string {
   const nm = (m ?? 1) === 12 ? 1 : (m ?? 1) + 1;
   const ny = (m ?? 1) === 12 ? (y ?? 2026) + 1 : (y ?? 2026);
   return `${ny}-${String(nm).padStart(2, '0')}`;
-}
-
-async function deleteFinances(page: Page) {
-  await page.request.post('/api/user/delete-data', {
-    data: { features: ['finances'] },
-  });
-}
-
-async function createBudgetViaAPI(page: Page, name: string, currency = 'EUR') {
-  const res = await page.request.post('/api/finances/budgets', {
-    data: { name, defaultCurrency: currency },
-  });
-  expect(res.status()).toBe(201);
-  const body = (await res.json()) as { budget: { id: number } };
-  return body.budget.id;
-}
-
-async function createAccount(
-  page: Page,
-  data: { name: string; type: string; currency?: string; openingBalance?: number },
-) {
-  const res = await page.request.post('/api/finances/accounts', {
-    data: { currency: 'EUR', openingBalance: 0, ...data },
-  });
-  expect(res.status()).toBe(201);
-  const body = (await res.json()) as { account: { id: number; name: string } };
-  return body.account;
-}
-
-async function createCategoryViaAPI(page: Page, name: string): Promise<number> {
-  const res = await page.request.post('/api/finances/categories', {
-    data: { name },
-  });
-  expect(res.status()).toBe(201);
-  const body = (await res.json()) as { id: number };
-  return body.id;
 }
 
 async function createTransactionViaAPI(
