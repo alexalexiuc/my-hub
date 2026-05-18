@@ -51,13 +51,54 @@ export function MobileSelectSheet({
   createOption,
 }: MobileSelectSheetProps) {
   const [query, setQuery] = useState('');
+  const [vp, setVp] = useState(() => ({
+    top: window.visualViewport?.offsetTop ?? 0,
+    height: window.visualViewport?.height ?? window.innerHeight,
+  }));
   const inputRef = useRef<HTMLInputElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!searchable) return;
     const t = setTimeout(() => inputRef.current?.focus(), 80);
     return () => clearTimeout(t);
   }, [searchable]);
+
+  // On iOS, opening the keyboard scrolls the layout viewport (window.scrollY > 0)
+  // which visually offsets position:fixed elements upward. visualViewport.offsetTop
+  // reflects that scroll so we can counteract it by pinning `top` to offsetTop.
+  // visualViewport.height gives the visible area above the keyboard.
+  useEffect(() => {
+    const update = () => {
+      const top = window.visualViewport?.offsetTop ?? 0;
+      const height = window.visualViewport?.height ?? window.innerHeight;
+      setVp(prev => (prev.top === top && prev.height === height ? prev : { top, height }));
+    };
+    window.visualViewport?.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('scroll', update);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', update);
+      window.visualViewport?.removeEventListener('scroll', update);
+    };
+  }, []);
+
+  // passive:false is required here to call preventDefault and block the modal behind from scrolling.
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+    const block = (e: TouchEvent) => e.preventDefault();
+    overlay.addEventListener('touchmove', block, { passive: false });
+    return () => overlay.removeEventListener('touchmove', block);
+  }, []);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const allow = (e: TouchEvent) => e.stopPropagation();
+    list.addEventListener('touchmove', allow);
+    return () => list.removeEventListener('touchmove', allow);
+  }, []);
 
   const fuseInstance = useMemo(() => buildDropdownFuse(options, fuse), [options, fuse]);
 
@@ -79,11 +120,13 @@ export function MobileSelectSheet({
 
   return createPortal(
     <div
-      className="finances-theme fixed inset-x-0 top-0 h-[100dvh] z-[1100] flex flex-col justify-end bg-black/60"
+      ref={overlayRef}
+      className="finances-theme fixed inset-x-0 z-[1100] flex flex-col justify-end bg-black/60"
+      style={{ top: vp.top, height: vp.height }}
       onClick={onClose}
     >
       <div
-        className="fin-slide-up flex max-h-[95dvh] h-full flex-col rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+        className="fin-slide-up flex h-full max-h-[calc(100%-24px)] flex-col rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -136,7 +179,7 @@ export function MobileSelectSheet({
           </div>
         )}
 
-        <div className="overflow-y-auto">
+        <div ref={listRef} className="overflow-y-auto">
           {results.map(item => (
             <Button
               key={item.id}
