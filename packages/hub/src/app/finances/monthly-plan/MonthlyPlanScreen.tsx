@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { cn, apiFetch } from '@/lib/utils';
+import { apiFetch } from '@/lib/utils';
 import { Button } from '@/components';
-import { Card } from '../ui';
+import { Card, SectionLabel } from '../ui';
 import type { MonthlyPlanResponse, MonthlyPlanItem } from '@/app/api/finances/monthly-plans/[month]/route';
 import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
 import { SummaryBar } from './SummaryBar';
@@ -15,6 +15,14 @@ import { fmtNum } from './monthly-plan.utils';
 import { dateToString } from '@my-hub/shared/utils';
 import { SupportedCurrencies } from '@my-hub/shared/constants';
 import type { SupportedCurrency } from '@my-hub/shared/constants';
+
+const DESKTOP_HEADERS = [
+  { label: 'Item', align: '' },
+  { label: 'Planned', align: 'text-right' },
+  { label: 'Assigned', align: 'text-right' },
+  { label: 'Linked to', align: '' },
+  { label: 'Done', align: 'text-right' },
+] as const;
 
 export function MonthlyPlanScreen() {
   const [month, setMonth] = useState(dateToString(new Date(), 'YYYY-MM'));
@@ -94,18 +102,25 @@ export function MonthlyPlanScreen() {
         )}
 
         <Card className="overflow-hidden p-0">
-          <div className="hidden grid-cols-[1fr_8rem_8rem_15rem_3rem] gap-3 border-b border-[var(--fin-border)] px-4 py-2.5 md:grid">
-            {(['Item', 'Planned', 'Assigned', 'Linked to', 'Done'] as const).map((label, i) => (
-              <span
-                key={label}
-                className={cn(
-                  'text-[10px] font-semibold uppercase tracking-widest text-[var(--fin-subtle)]',
-                  i === 1 || i === 2 || i === 4 ? 'text-right' : '',
-                )}
-              >
+          <div
+            data-layout="desktop"
+            className="hidden grid-cols-[1fr_8rem_8rem_15rem_3rem] gap-3 border-b border-[var(--fin-border)] px-4 py-2.5 md:grid"
+          >
+            {DESKTOP_HEADERS.map(({ label, align }) => (
+              <SectionLabel key={label} className={align}>
                 {label}
-              </span>
+              </SectionLabel>
             ))}
+          </div>
+          <div
+            data-layout="mobile"
+            className="flex items-center border-b border-[var(--fin-border)] px-4 py-2 md:hidden"
+          >
+            <SectionLabel className="flex-1">Item</SectionLabel>
+            <div className="flex shrink-0 gap-3">
+              <SectionLabel className="text-right">Planned</SectionLabel>
+              <SectionLabel className="text-right">Assigned</SectionLabel>
+            </div>
           </div>
 
           {loading && <div className="py-12 text-center text-[13px] text-[var(--fin-muted)]">Loading…</div>}

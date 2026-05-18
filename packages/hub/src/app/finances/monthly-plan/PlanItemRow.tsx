@@ -142,30 +142,24 @@ export function PlanItemRow({ item, currency, onToggle, onDelete, onEdit, isOpen
                 {item.name}
               </span>
             </div>
-            <div className="flex shrink-0 items-center gap-3 text-right">
-              <div>
-                <div className="text-[10px] text-[var(--fin-subtle)]">Planned</div>
-                <div className="text-[13px] font-semibold tabular-nums text-[var(--fin-text)]">
-                  {isNonDefault && <span className="mr-0.5 text-[10px] text-[var(--fin-subtle)]">{item.currency}</span>}
-                  {fmtNum(item.amount)}
-                </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <div className="w-16 text-right text-[13px] font-semibold tabular-nums text-[var(--fin-text)]">
+                {isNonDefault && <span className="mr-0.5 text-[10px] text-[var(--fin-subtle)]">{item.currency}</span>}
+                {fmtNum(item.amount)}
               </div>
-              <div>
-                <div className="text-[10px] text-[var(--fin-subtle)]">Assigned</div>
-                <div
-                  className={cn(
-                    'text-[13px] font-semibold tabular-nums',
-                    isDone
-                      ? 'text-[var(--fin-green)]'
-                      : isPartial
-                        ? 'text-[var(--fin-amber)]'
-                        : 'text-[var(--fin-subtle)]',
-                  )}
-                >
-                  {item.assignedAmount > 0 ? fmtNum(item.assignedAmount) : '—'}
-                </div>
+              <div
+                className={cn(
+                  'w-16 text-right text-[13px] font-semibold tabular-nums',
+                  isDone
+                    ? 'text-[var(--fin-green)]'
+                    : isPartial
+                      ? 'text-[var(--fin-amber)]'
+                      : 'text-[var(--fin-subtle)]',
+                )}
+              >
+                {item.assignedAmount > 0 ? fmtNum(item.assignedAmount) : '—'}
               </div>
-              {isDone && <span className="text-[var(--fin-green)]">✓</span>}
+              <span className={cn('text-[var(--fin-green)]', !isDone && 'invisible')}>✓</span>
             </div>
           </div>
         </SwipeRow>
