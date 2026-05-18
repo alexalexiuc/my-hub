@@ -24,6 +24,7 @@ export function MonthlyPlanScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [editingItem, setEditingItem] = useState<MonthlyPlanItem | null>(null);
+  const [openRowId, setOpenRowId] = useState<number | null>(null);
 
   const load = useCallback(async (m: string) => {
     setLoading(true);
@@ -117,7 +118,7 @@ export function MonthlyPlanScreen() {
                   No items yet — add your first planned expense below.
                 </div>
               )}
-              <div className="space-y-2 px-3 py-3 md:space-y-0 md:p-0">
+              <div className="md:p-0">
                 {data.items.map(item => (
                   <PlanItemRow
                     key={item.id}
@@ -132,6 +133,9 @@ export function MonthlyPlanScreen() {
                       withRefresh(() => apiFetch(itemUrl(item.id), { method: 'DELETE', silentToast: true }))
                     }
                     onEdit={() => setEditingItem(item)}
+                    isOpen={openRowId === item.id}
+                    onOpen={() => setOpenRowId(item.id)}
+                    onClose={() => setOpenRowId(null)}
                   />
                 ))}
               </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Button } from '@/components';
+import { Button, SwipeRow } from '@/components';
 import { TrashOutlineIcon } from '@/components/icons';
 import type { MonthlyPlanItem } from '@/app/api/finances/monthly-plans/[month]/route';
 import { fmtNum } from './monthly-plan.utils';
@@ -32,9 +32,12 @@ type PlanItemRowProps = {
   onToggle: (isAssigned: boolean) => void;
   onDelete: () => void;
   onEdit: () => void;
+  isOpen: boolean;
+  onOpen: () => void;
+  onClose: () => void;
 };
 
-export function PlanItemRow({ item, currency, onToggle, onDelete, onEdit }: PlanItemRowProps) {
+export function PlanItemRow({ item, currency, onToggle, onDelete, onEdit, isOpen, onOpen, onClose }: PlanItemRowProps) {
   const isDone = item.isAssigned || (item.assignedAmount >= item.amount && item.amount > 0);
   const isPartial = item.assignedAmount > 0 && !isDone;
   const progress = item.amount > 0 ? Math.min(100, (item.assignedAmount / item.amount) * 100) : 0;
@@ -118,86 +121,54 @@ export function PlanItemRow({ item, currency, onToggle, onDelete, onEdit }: Plan
       </div>
 
       {/* Mobile View */}
-      <div
-        data-layout="mobile"
-        className={cn(
-          'rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-3 transition-opacity md:hidden',
-          isDone && 'opacity-50',
-        )}
-      >
-        <div className="mb-2 flex items-start justify-between gap-2">
-          <span
-            className={cn(
-              'truncate text-left text-[14px] font-semibold text-[var(--fin-text)]',
-              isDone && 'line-through',
-            )}
-          >
-            {item.name}
-          </span>
-          <Button
-            type="button"
-            onClick={() => onToggle(!isDone)}
-            className={cn(
-              'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border p-0 text-[12px]',
-              isDone
-                ? 'border-[var(--fin-green)] bg-[var(--fin-green)] text-white hover:bg-[var(--fin-green)]'
-                : 'border-[var(--fin-border)] bg-transparent text-[var(--fin-subtle)] hover:bg-transparent',
-            )}
-          >
-            ✓
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--fin-subtle)]">Planned</div>
-            <div className="text-[15px] font-semibold tabular-nums text-[var(--fin-text)]">
-              {isNonDefault && <span className="mr-1 text-[11px] text-[var(--fin-subtle)]">{item.currency}</span>}
-              {fmtNum(item.amount)}
+      <div data-layout="mobile" className="border-b border-[var(--fin-border)] md:hidden">
+        <SwipeRow
+          isOpen={isOpen}
+          onOpen={onOpen}
+          onClose={onClose}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onComplete={() => onToggle(!isDone)}
+          completeDone={isDone}
+        >
+          <div className={cn('flex items-center gap-3 px-4 py-2 transition-opacity', isDone && 'opacity-50')}>
+            <div className="min-w-0 flex-1">
+              <span
+                className={cn(
+                  'block truncate text-[13px] font-medium text-[var(--fin-text)]',
+                  isDone && 'line-through',
+                )}
+              >
+                {item.name}
+              </span>
+            </div>
+            <div className="flex shrink-0 items-center gap-3 text-right">
+              <div>
+                <div className="text-[10px] text-[var(--fin-subtle)]">Planned</div>
+                <div className="text-[13px] font-semibold tabular-nums text-[var(--fin-text)]">
+                  {isNonDefault && <span className="mr-0.5 text-[10px] text-[var(--fin-subtle)]">{item.currency}</span>}
+                  {fmtNum(item.amount)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-[var(--fin-subtle)]">Assigned</div>
+                <div
+                  className={cn(
+                    'text-[13px] font-semibold tabular-nums',
+                    isDone
+                      ? 'text-[var(--fin-green)]'
+                      : isPartial
+                        ? 'text-[var(--fin-amber)]'
+                        : 'text-[var(--fin-subtle)]',
+                  )}
+                >
+                  {item.assignedAmount > 0 ? fmtNum(item.assignedAmount) : '—'}
+                </div>
+              </div>
+              {isDone && <span className="text-[var(--fin-green)]">✓</span>}
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--fin-subtle)]">Assigned</div>
-            <div
-              className={cn(
-                'text-[15px] font-semibold tabular-nums',
-                isDone ? 'text-[var(--fin-green)]' : isPartial ? 'text-[var(--fin-amber)]' : 'text-[var(--fin-subtle)]',
-              )}
-            >
-              {item.assignedAmount > 0 ? fmtNum(item.assignedAmount) : '—'}
-            </div>
-          </div>
-        </div>
-
-        {isPartial && (
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--fin-card3)]">
-            <div className="h-full rounded-full bg-[var(--fin-amber)]" style={{ width: `${progress}%` }} />
-          </div>
-        )}
-
-        <div className="mt-3 flex items-center justify-between gap-2">
-          <LinkedToChip item={item} />
-          <div className="flex items-center gap-1.5">
-            <Button
-              type="button"
-              variant="secondary"
-              size="xs"
-              onClick={onEdit}
-              className="border-[var(--fin-border)] text-[var(--fin-subtle)] hover:text-[var(--fin-text)]"
-            >
-              Edit
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="xs"
-              onClick={onDelete}
-              className="border-[var(--fin-border)] text-[var(--fin-subtle)] hover:text-[var(--fin-red)]"
-            >
-              Delete
-            </Button>
-          </div>
-        </div>
+        </SwipeRow>
       </div>
     </>
   );
