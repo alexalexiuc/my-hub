@@ -384,7 +384,7 @@ test.describe('Finances – CSV Import', () => {
     await batchRow.getByRole('button', { name: 'Rollback' }).click();
 
     // Confirmation modal appears
-    await expect(page.getByText('Rollback Import?')).toBeVisible();
+    await expect(page.locator('[data-layout="desktop"]').getByText('Rollback Import?')).toBeVisible();
     await expect(page.locator('span').filter({ hasText: batchFilename })).toBeVisible();
 
     // Confirm rollback
@@ -399,7 +399,9 @@ test.describe('Finances – CSV Import', () => {
     expect(rollbackBody.deletedCount).toBe(2); // importViaAPI creates 2 rows
 
     // Modal closes and row status updates to "Rolled back"
-    await expect(page.getByText('Rollback Import?')).not.toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[data-layout="desktop"]').getByText('Rollback Import?')).not.toBeVisible({
+      timeout: 10_000,
+    });
     await expect(batchRow.getByText('Rolled back')).toBeVisible();
 
     // Rollback button no longer shown for the rolled-back batch
@@ -427,11 +429,13 @@ test.describe('Finances – CSV Import', () => {
     const batchRow = page.getByText(batchFilename).locator('xpath=ancestor::tr').first();
 
     await batchRow.getByRole('button', { name: 'Rollback' }).click();
-    await expect(page.getByText('Rollback Import?')).toBeVisible();
+    await expect(page.locator('[data-layout="desktop"]').getByText('Rollback Import?')).toBeVisible();
 
     // Cancel — modal should close without any DELETE request
     await page.getByRole('button', { name: 'Cancel' }).click();
-    await expect(page.getByText('Rollback Import?')).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('[data-layout="desktop"]').getByText('Rollback Import?')).not.toBeVisible({
+      timeout: 5_000,
+    });
 
     // Batch still shows "Imported" status
     await expect(batchRow.getByText('Imported')).toBeVisible();

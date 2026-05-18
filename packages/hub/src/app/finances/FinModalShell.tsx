@@ -68,10 +68,13 @@ export function FinModalShell({
       className="fin-modal-shell finances-theme fixed inset-x-0 top-0 h-[100dvh] z-[1000] flex flex-col bg-[var(--fin-card)] md:inset-0 md:h-auto md:items-center md:justify-center md:bg-[var(--fin-overlay)] md:p-4"
     >
       {/* Desktop backdrop — absolute so it doesn't affect flex layout */}
-      <div className="absolute inset-0 hidden md:block" onClick={onClose} />
+      <div data-layout="desktop" className="absolute inset-0 hidden md:block" onClick={onClose} />
 
       {/* Mobile header */}
-      <div className="flex shrink-0 items-center border-b border-[var(--fin-border)] px-4 py-4 md:hidden">
+      <div
+        data-layout="mobile"
+        className="flex shrink-0 items-center border-b border-[var(--fin-border)] px-4 py-4 md:hidden"
+      >
         <Button
           type="button"
           variant="transparent"
@@ -98,11 +101,13 @@ export function FinModalShell({
         )}
       >
         {/* Desktop title */}
-        <div className="mb-4 hidden text-base font-bold text-[var(--fin-text)] md:block">{title}</div>
+        <div data-layout="desktop" className="mb-4 hidden text-base font-bold text-[var(--fin-text)] md:block">
+          {title}
+        </div>
         {children}
         {/* Desktop footer — inside scrollable card, after content */}
         {onSubmit && (
-          <div className="mt-4 hidden gap-2 md:flex">
+          <div data-layout="desktop" className="mt-4 hidden gap-2 md:flex">
             <Button type="button" variant="secondary" size="sm" className="flex-1" onClick={onClose}>
               Cancel
             </Button>
@@ -122,7 +127,7 @@ export function FinModalShell({
 
       {/* Mobile footer — pinned at bottom of full-screen, outside scrollable area */}
       {onSubmit && (
-        <div className="flex shrink-0 gap-2 border-t border-[var(--fin-border)] p-4 md:hidden">
+        <div data-layout="mobile" className="flex shrink-0 gap-2 border-t border-[var(--fin-border)] p-4 md:hidden">
           <Button type="button" variant="secondary" size="sm" className="flex-1" onClick={onClose}>
             Cancel
           </Button>
