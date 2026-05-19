@@ -53,7 +53,14 @@ const PRESET_COLORS = [
   '#ef4444',
 ];
 
-export function CategoryModal({ categoryId, initialValues, defaultGroupId, groups, onClose, onDone }: CategoryModalProps) {
+export function CategoryModal({
+  categoryId,
+  initialValues,
+  defaultGroupId,
+  groups,
+  onClose,
+  onDone,
+}: CategoryModalProps) {
   const isEdit = categoryId !== undefined;
 
   const groupOptions = useMemo(() => groups.map(g => ({ id: String(g.id), value: g.name })), [groups]);
