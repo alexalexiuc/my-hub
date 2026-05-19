@@ -66,9 +66,7 @@ export function currentDateString(timezone?: string | null): string {
 /** Returns the date string for N calendar days ago in the provided timezone. */
 export function dateStringDaysAgo(daysAgo: number, timezone?: string | null): string {
   const [year, month, day] = currentDateString(timezone).split('-').map(Number) as [number, number, number];
-  const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCDate(date.getUTCDate() - daysAgo);
-  return toUTCDateStr(date);
+  return toUTCDateStr(addDays(new Date(Date.UTC(year, month - 1, day)), -daysAgo));
 }
 
 /** Returns true when the string is a UTC offset like "+2", "-5", "+5:30". */
@@ -106,8 +104,7 @@ export function localDateString(timezone?: string | null): string {
         // components. Because UTC + offsetMs gives a Date whose UTC components equal
         // the local date/time in the target timezone (no DST adjustments needed for a
         // fixed offset).
-        const d = new Date(Date.now() + offsetMinutes * 60000);
-        return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+        return toUTCDateStr(new Date(Date.now() + offsetMinutes * 60000));
       }
     } else {
       try {
@@ -177,11 +174,7 @@ export function addDays(d: Date, n: number): Date {
  * Week 1 is the week containing the first Thursday of the year.
  */
 export function getISOWeek(d: Date): number {
-  const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-  const dayOfWeek = date.getUTCDay() || 7; // Sun=0 → 7, Mon=1 … Sat=6
-  date.setUTCDate(date.getUTCDate() + 4 - dayOfWeek); // Thursday of current week
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  return Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return isoWeekAndYear(d).week;
 }
 
 /** Returns the start of the previous month at UTC midnight. */
@@ -202,20 +195,24 @@ export function monthLabel(monthStart: Date): string {
   return monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
+/** Parses a YYYY-MM string to a UTC Date at the first of that month. */
+function parseMonthStr(month: string): Date {
+  const [y, m] = month.split('-').map(Number);
+  return new Date(Date.UTC(y ?? 2000, (m ?? 1) - 1, 1));
+}
+
 /**
  * Shifts a YYYY-MM string by delta months and returns a new YYYY-MM string.
  * e.g. shiftMonthStr('2026-01', -1) → '2025-12'
  */
 export function shiftMonthStr(month: string, delta: number): string {
-  const [y, m] = month.split('-').map(Number);
-  const d = addMonths(new Date(Date.UTC(y ?? 2000, (m ?? 1) - 1, 1)), delta);
+  const d = addMonths(parseMonthStr(month), delta);
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 /** Formats a YYYY-MM string as "Month YYYY", e.g. '2026-05' → 'May 2026'. */
 export function formatMonthStr(month: string): string {
-  const [y, m] = month.split('-').map(Number);
-  return monthLabel(new Date(Date.UTC(y ?? 2000, (m ?? 1) - 1, 1)));
+  return monthLabel(parseMonthStr(month));
 }
 
 /** Returns the start (Monday) of the previous ISO week at UTC midnight. */
@@ -326,12 +323,10 @@ export function formatSegmentTime(
   }
 
   // Check if target is tomorrow in the given timezone
-  const isoInTz = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
-  const nowDateStr = isoInTz(now);
-  const [y, mo, day] = nowDateStr.split('-').map(Number) as [number, number, number];
-  const tomorrowDateStr = isoInTz(new Date(Date.UTC(y, mo - 1, day + 1)));
+  const tzFmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz });
+  const tomorrowDateStr = tzFmt.format(addDays(now, 1));
 
-  if (isoInTz(target) === tomorrowDateStr) {
+  if (tzFmt.format(target) === tomorrowDateStr) {
     return { text: `Tomorrow · ${timeStr}`, isSoon: false };
   }
 
@@ -354,7 +349,7 @@ export function monthToDateRange(month: string): { fromDate: string; toDate: str
   const [y, m] = month.split('-').map(Number);
   return {
     fromDate: `${month}-01`,
-    toDate: new Date(Date.UTC(y!, m!, 0)).toISOString().slice(0, 10),
+    toDate: toUTCDateStr(new Date(Date.UTC(y!, m!, 0))),
   };
 }
 
@@ -407,16 +402,19 @@ export function startOfDay(date: Date): Date {
   return next;
 }
 
+function localISOValue(value: Date | string | null | undefined, length: 10 | 16): string {
+  if (!value) return '';
+  const date = new Date(value as string);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, length);
+}
+
 /**
  * Formats a date value as a YYYY-MM-DD string suitable for `<input type="date">`.
  * Uses local time (adjusted for the environment's UTC offset). Returns '' for invalid input.
  */
 export function toDateInputValue(value: Date | string | null | undefined): string {
-  if (!value) return '';
-  const date = new Date(value as string);
-  if (Number.isNaN(date.getTime())) return '';
-  const timezoneOffsetMs = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
+  return localISOValue(value, 10);
 }
 
 /**
@@ -424,11 +422,7 @@ export function toDateInputValue(value: Date | string | null | undefined): strin
  * Uses local time (adjusted for the environment's UTC offset). Returns '' for invalid input.
  */
 export function toDateTimeLocalValue(value: Date | string | null | undefined): string {
-  if (!value) return '';
-  const date = new Date(value as string);
-  if (Number.isNaN(date.getTime())) return '';
-  const timezoneOffsetMs = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 16);
+  return localISOValue(value, 16);
 }
 
 /**
@@ -495,10 +489,9 @@ export function getCurrentWeekDays(): { date: string; label: string }[] {
   monday.setDate(today.getDate() - daysSinceMonday);
   const cursor = new Date(monday);
   for (let i = 0; i < 7; i += 1) {
-    const d = new Date(cursor);
     days.push({
-      date: dateToString(d),
-      label: d.toDateString() === today.toDateString() ? 'Today' : dayNamesShort[(d.getDay() + 6) % 7]!,
+      date: dateToString(cursor),
+      label: cursor.toDateString() === today.toDateString() ? 'Today' : dayNamesShort[(cursor.getDay() + 6) % 7]!,
     });
     cursor.setDate(cursor.getDate() + 1);
   }
