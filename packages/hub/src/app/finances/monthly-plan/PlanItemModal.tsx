@@ -19,6 +19,7 @@ import {
 import type { MonthlyPlanItem } from '@/app/api/finances/monthly-plans/[month]/route';
 import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
 import { fmtNum } from './monthly-plan.utils';
+import { finGhostInputClass as ghostInputClass, finDropdownInputClass as dropdownInputClass } from '../finances.utils';
 
 type PlanItemModalProps = {
   defaultCurrency: SupportedCurrency;
@@ -27,9 +28,6 @@ type PlanItemModalProps = {
   item?: MonthlyPlanItem;
   onSave: (patch: ReturnType<typeof formToEditPlanItem>) => Promise<void>;
 };
-
-const dropdownInputClass = 'py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]';
-const ghostInputClass = 'w-full text-[13px] text-[var(--fin-text)]';
 
 export function PlanItemModal({ defaultCurrency, formData, onClose, item, onSave }: PlanItemModalProps) {
   const isEdit = item != null;

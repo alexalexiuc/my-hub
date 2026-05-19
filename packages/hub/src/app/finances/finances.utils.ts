@@ -51,6 +51,10 @@ export function getCategoryFallbackLetter(name: string): string {
   return name[0]?.toUpperCase() ?? '?';
 }
 
+/** Shared Tailwind class strings for ghost-style inputs and dropdown triggers inside FinFieldCard. */
+export const finGhostInputClass = 'w-full text-[13px] text-[var(--fin-text)]';
+export const finDropdownInputClass = 'py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]';
+
 /** Returns relative day (Today/Yesterday), month & date if in current year, or full date otherwise. */
 export function formatTransactionDate(dateStr: string): string {
   const date = new Date(dateStr);
