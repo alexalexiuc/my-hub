@@ -309,7 +309,10 @@ export function AddButton({ onClick, title }: AddButtonProps) {
 
 // ─── Dropdown option renderers ───────────────────────────────────────────────
 
-export function renderAccountOption(item: DropdownOption, accounts: { id: number; type: string; currency: string }[]) {
+export function renderAccountOption(
+  item: DropdownOption,
+  accounts: { id: number; type: string; currency: string; archived?: boolean }[],
+) {
   const acc = accounts.find(a => String(a.id) === String(item.id));
   const meta = acc ? (TYPE_META[acc.type] ?? null) : null;
   return (
@@ -322,7 +325,12 @@ export function renderAccountOption(item: DropdownOption, accounts: { id: number
           {meta.icon}
         </span>
       )}
-      <span className="flex-1 truncate">{String(item.value)}</span>
+      <span className={cn('flex-1 truncate', acc?.archived && 'text-[var(--fin-subtle)]')}>{String(item.value)}</span>
+      {acc?.archived && (
+        <span className="shrink-0 rounded bg-[var(--fin-card3)] px-1 text-[9px] uppercase tracking-wide text-[var(--fin-subtle)]">
+          archived
+        </span>
+      )}
       {acc && <span className="ml-auto shrink-0 text-[10px] text-[var(--fin-subtle)]">{acc.currency}</span>}
     </span>
   );
