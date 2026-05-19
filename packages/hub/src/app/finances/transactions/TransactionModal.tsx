@@ -140,41 +140,36 @@ export function TransactionModal({
   const payeeRequired = isPayeeRequired(txType);
 
   const load = useCallback(async () => {
-    // In edit mode, fetch the transaction first so we know which archived accounts to include in form-data
-    const detail = isEdit
-      ? await apiFetch<TransactionDetail>(`/api/finances/transactions/${editId}`, { silentToast: true })
-      : null;
-
-    const [fd, pd, labelsData] = await Promise.all([
-      apiFetch<TransactionFormDataResponse>('/api/finances/transactions/form-data', {
-        silentToast: true,
-        query: detail ? { accountId: detail.accountId, toAccountId: detail.toAccountId ?? undefined } : undefined,
-      }),
+    const [fd, pd, labelsData, selectedTransaction] = await Promise.all([
+      apiFetch<TransactionFormDataResponse>('/api/finances/transactions/form-data', { silentToast: true }),
       apiFetch<PayeesResponse>('/api/finances/payees', { silentToast: true }),
       apiFetch<LabelsResponse>('/api/finances/labels', { silentToast: true }),
+      isEdit
+        ? apiFetch<TransactionDetail>(`/api/finances/transactions/${editId}`, { silentToast: true })
+        : Promise.resolve(null),
     ]);
 
     setFormData(fd);
     if (pd) setPayees(pd.payees);
     if (labelsData) setAllLabels(labelsData.labels);
 
-    if (detail) {
-      setValue('txType', detail.type);
-      setFromAmount(String(detail.amount));
-      setValue('date', detail.date);
-      setValue('payee', detail.payeeName ?? '');
-      setValue('note', detail.notes ?? '');
-      setValue('labels', detail.labels ?? []);
-      setSelPayeeId(detail.payeeId ?? null);
+    if (selectedTransaction) {
+      setValue('txType', selectedTransaction.type);
+      setFromAmount(String(selectedTransaction.amount));
+      setValue('date', selectedTransaction.date);
+      setValue('payee', selectedTransaction.payeeName ?? '');
+      setValue('note', selectedTransaction.notes ?? '');
+      setValue('labels', selectedTransaction.labels ?? []);
+      setSelPayeeId(selectedTransaction.payeeId ?? null);
 
-      setSelAccId(detail.accountId);
+      setSelAccId(selectedTransaction.accountId);
 
-      if (detail.toAccountId != null) {
-        setSelToAccId(detail.toAccountId);
+      if (selectedTransaction.toAccountId != null) {
+        setSelToAccId(selectedTransaction.toAccountId);
       }
 
-      if (detail.categoryId != null) {
-        setSelCatId(detail.categoryId);
+      if (selectedTransaction.categoryId != null) {
+        setSelCatId(selectedTransaction.categoryId);
       }
     }
   }, [editId, isEdit, setValue, setFromAmount]);
@@ -275,18 +270,16 @@ export function TransactionModal({
     [expressionTerms],
   );
 
-  const accountOptions = useMemo(() => {
-    const base =
-      txType === TransactionTypes.Expense
+  const accountOptions = useMemo(
+    () =>
+      (txType === TransactionTypes.Expense
         ? (formData?.accounts ?? []).filter(a => EXPENSE_ACCOUNT_TYPES.has(a.type as never))
-        : (formData?.accounts ?? []);
-    const active = base.filter(a => !a.archived);
-    const archived = base.filter(a => a.archived);
-    return [
-      ...active.map(a => ({ id: a.id, value: a.name })),
-      ...archived.map(a => ({ id: a.id, value: `${a.name} (archived)` })),
-    ];
-  }, [txType, formData?.accounts]);
+        : (formData?.accounts ?? [])
+      )
+        .filter(a => !a.archived || a.id === selAccId) // filter archived transactions except if already selected
+        .map(a => ({ id: a.id, value: a.name })),
+    [txType, formData?.accounts, selAccId],
+  );
 
   const categoryOptions = useMemo(
     () =>
@@ -297,15 +290,14 @@ export function TransactionModal({
     [formData?.categories],
   );
 
-  const toAccountOptions = useMemo(() => {
-    const base = (formData?.accounts ?? []).filter(a => a.id !== selAccId);
-    const active = base.filter(a => !a.archived);
-    const archived = base.filter(a => a.archived);
-    return [
-      ...active.map(a => ({ id: a.id, value: a.name })),
-      ...archived.map(a => ({ id: a.id, value: `${a.name} (archived)` })),
-    ];
-  }, [formData?.accounts, selAccId]);
+  const toAccountOptions = useMemo(
+    () =>
+      (formData?.accounts ?? [])
+        .filter(a => a.id !== selAccId)
+        .filter(a => !a.archived || a.id === selToAccId) // filter archived transactions except if already selected
+        .map(a => ({ id: a.id, value: a.name })),
+    [formData?.accounts, selAccId, selToAccId],
+  );
 
   const payeeOptions = useMemo(
     () => [...payees.map(p => ({ id: p.id, value: p.name })), ...extraPayees.map(p => ({ id: p.id, value: p.name }))],
