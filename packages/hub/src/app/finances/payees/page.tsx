@@ -12,15 +12,9 @@ import { PayeesRangeFilter } from './PayeesRangeFilter';
 import { PayeesTableHeader } from './PayeesTableHeader';
 import { PayeeRow } from './PayeeRow';
 import { PAYEE_RANGES, type Range, type SortKey } from './types';
+import { parseRange } from './payees.utils';
 import { Input } from '@/components';
 import Fuse from 'fuse.js';
-
-const VALID_RANGES = new Set<Range>(['30d', '3m', 'ytd', 'all']);
-
-function parseRange(value: string | null): Range {
-  if (value && VALID_RANGES.has(value as Range)) return value as Range;
-  return '30d';
-}
 
 export default function PayeesPage() {
   const router = useRouter();
