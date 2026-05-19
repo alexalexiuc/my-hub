@@ -140,7 +140,7 @@ export function TransactionModal({
   const payeeRequired = isPayeeRequired(txType);
 
   const load = useCallback(async () => {
-    const [fd, pd, labelsData, detail] = await Promise.all([
+    const [fd, pd, labelsData, selectedTransaction] = await Promise.all([
       apiFetch<TransactionFormDataResponse>('/api/finances/transactions/form-data', { silentToast: true }),
       apiFetch<PayeesResponse>('/api/finances/payees', { silentToast: true }),
       apiFetch<LabelsResponse>('/api/finances/labels', { silentToast: true }),
@@ -153,23 +153,23 @@ export function TransactionModal({
     if (pd) setPayees(pd.payees);
     if (labelsData) setAllLabels(labelsData.labels);
 
-    if (detail) {
-      setValue('txType', detail.type);
-      setFromAmount(String(detail.amount));
-      setValue('date', detail.date);
-      setValue('payee', detail.payeeName ?? '');
-      setValue('note', detail.notes ?? '');
-      setValue('labels', detail.labels ?? []);
-      setSelPayeeId(detail.payeeId ?? null);
+    if (selectedTransaction) {
+      setValue('txType', selectedTransaction.type);
+      setFromAmount(String(selectedTransaction.amount));
+      setValue('date', selectedTransaction.date);
+      setValue('payee', selectedTransaction.payeeName ?? '');
+      setValue('note', selectedTransaction.notes ?? '');
+      setValue('labels', selectedTransaction.labels ?? []);
+      setSelPayeeId(selectedTransaction.payeeId ?? null);
 
-      setSelAccId(detail.accountId);
+      setSelAccId(selectedTransaction.accountId);
 
-      if (detail.toAccountId != null) {
-        setSelToAccId(detail.toAccountId);
+      if (selectedTransaction.toAccountId != null) {
+        setSelToAccId(selectedTransaction.toAccountId);
       }
 
-      if (detail.categoryId != null) {
-        setSelCatId(detail.categoryId);
+      if (selectedTransaction.categoryId != null) {
+        setSelCatId(selectedTransaction.categoryId);
       }
     }
   }, [editId, isEdit, setValue, setFromAmount]);
@@ -275,8 +275,10 @@ export function TransactionModal({
       (txType === TransactionTypes.Expense
         ? (formData?.accounts ?? []).filter(a => EXPENSE_ACCOUNT_TYPES.has(a.type as never))
         : (formData?.accounts ?? [])
-      ).map(a => ({ id: a.id, value: a.name })),
-    [txType, formData?.accounts],
+      )
+        .filter(a => !a.archived || a.id === selAccId) // filter archived transactions except if already selected
+        .map(a => ({ id: a.id, value: a.name })),
+    [txType, formData?.accounts, selAccId],
   );
 
   const categoryOptions = useMemo(
@@ -289,8 +291,12 @@ export function TransactionModal({
   );
 
   const toAccountOptions = useMemo(
-    () => (formData?.accounts ?? []).filter(a => a.id !== selAccId).map(a => ({ id: a.id, value: a.name })),
-    [formData?.accounts, selAccId],
+    () =>
+      (formData?.accounts ?? [])
+        .filter(a => a.id !== selAccId)
+        .filter(a => !a.archived || a.id === selToAccId) // filter archived transactions except if already selected
+        .map(a => ({ id: a.id, value: a.name })),
+    [formData?.accounts, selAccId, selToAccId],
   );
 
   const payeeOptions = useMemo(

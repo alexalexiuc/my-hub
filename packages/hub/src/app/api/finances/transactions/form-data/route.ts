@@ -10,6 +10,7 @@ export const transactionFormAccountSchema = z.object({
   name: z.string(),
   type: z.enum(AccountTypes),
   currency: supportedCurrencySchema,
+  archived: z.boolean(),
 });
 
 export const transactionFormCategorySchema = z.object({
@@ -34,11 +35,20 @@ export const GET = route({ response: transactionFormDataResponseSchema })(async 
 
   const budgetId = budget.id;
 
-  const [accounts, categories] = await Promise.all([getAccounts(user.id, budgetId), getCategories(user.id, budgetId)]);
+  const [accounts, categories] = await Promise.all([
+    getAccounts(user.id, budgetId, { includeArchived: true }),
+    getCategories(user.id, budgetId),
+  ]);
 
   return {
     currency: budget.defaultCurrency,
-    accounts: accounts.map(a => ({ id: a.id, name: a.name, type: a.type, currency: a.currency })),
+    accounts: accounts.map(a => ({
+      id: a.id,
+      name: a.name,
+      type: a.type,
+      currency: a.currency,
+      archived: a.archived,
+    })),
     categories: categories.map(c => ({
       id: c.id,
       name: c.name,
