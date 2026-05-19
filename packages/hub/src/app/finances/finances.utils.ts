@@ -58,9 +58,12 @@ export const finDropdownInputClass =
 
 /** Returns relative day (Today/Yesterday), month & date if in current year, or full date otherwise. */
 export function formatTransactionDate(dateStr: string): string {
-  const date = new Date(dateStr);
+  // Parse as local midnight to avoid UTC-offset shifting "Today" to "Yesterday" in negative-offset zones.
+  const parts = dateStr.split('-');
+  const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
   const now = new Date();
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((todayStart.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';

@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import { cn } from '@/lib/utils';
 import { categoryIconEmoji } from './categoryIcons';
 import { Button, IconButton } from '@/components';
@@ -156,6 +157,7 @@ export function Sparkline({
   width?: number;
   height?: number;
 }) {
+  const gradientId = useId();
   if (data.length < 2) {
     return <div style={{ width, height }} />;
   }
@@ -173,12 +175,12 @@ export function Sparkline({
   return (
     <svg width={width} height={height} className="block">
       <defs>
-        <linearGradient id="finances-sg" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.3" />
           <stop offset="100%" stopColor={color} stopOpacity="0.02" />
         </linearGradient>
       </defs>
-      <path d={area} fill="url(#finances-sg)" />
+      <path d={area} fill={`url(#${gradientId})`} />
       <polyline
         points={pts}
         fill="none"
