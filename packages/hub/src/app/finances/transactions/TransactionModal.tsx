@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { cn } from '@/lib/utils';
-import { apiFetch } from '@/lib/utils';
+import { cn, apiFetch } from '@/lib/utils';
 import { FinancialDropdown } from '../FinancialDropdown';
 import { FinModalShell } from '../FinModalShell';
 import { Button, Input, Pill } from '@/components';
@@ -20,7 +19,8 @@ import type { TransactionDetail, TransactionMutationResponse } from '@/app/api/f
 import type { LabelsResponse } from '@/app/api/finances/labels/route';
 import { getCurrencySymbol, isPayeeRequired, localDateString } from '@my-hub/shared/utils';
 import { EXPENSE_ACCOUNT_TYPES, TransactionType, TransactionTypes } from '@my-hub/shared/constants';
-import { renderAccountOption } from '../ui';
+import { FinFieldCard, renderAccountOption } from '../ui';
+import { finDropdownInputClass } from '../finances.utils';
 
 const TYPE_COLORS: Record<TransactionType, string> = {
   [TransactionTypes.Expense]: 'var(--fin-red)',
@@ -51,15 +51,6 @@ function formatDigitsCompact(digits: string): string {
   if (!digits) return '0';
   const n = parseInt(digits, 10) / 100;
   return n.toFixed(2).replace(/\.?0+$/, '');
-}
-
-function FieldCard({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="cursor-default rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)] px-3 py-2.5">
-      <div className="mb-[3px] text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">{label}</div>
-      {children}
-    </div>
-  );
 }
 
 function MobileFieldRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -317,8 +308,7 @@ export function TransactionModal({
     setKeypadOpen(false);
   }
 
-  const mobileDropdownInputClass =
-    'border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]';
+  const dropdownInputClass = cn(finDropdownInputClass, 'border-b-0');
 
   return (
     <FinModalShell
@@ -396,7 +386,7 @@ export function TransactionModal({
                   fuse
                   placeholder="Select or add payee..."
                   createOption={payeeCreateOption}
-                  inputClassName={mobileDropdownInputClass}
+                  inputClassName={dropdownInputClass}
                 />
               </MobileFieldRow>
               {mostUsedPayees.length > 0 && (
@@ -422,7 +412,7 @@ export function TransactionModal({
                     onChange={item => setSelToAccId(item ? (item.id as number) : null)}
                     renderOption={item => renderAccountOption(item, formData?.accounts ?? [])}
                     placeholder="Choose..."
-                    inputClassName={mobileDropdownInputClass}
+                    inputClassName={dropdownInputClass}
                   />
                 )}
               </MobileFieldRow>
@@ -435,7 +425,7 @@ export function TransactionModal({
                   clearable
                   noResultsText="No categories yet — add one in the Categories tab."
                   placeholder="⬡ Choose..."
-                  inputClassName={mobileDropdownInputClass}
+                  inputClassName={dropdownInputClass}
                 />
               </MobileFieldRow>
             </>
@@ -451,7 +441,7 @@ export function TransactionModal({
                 placeholder={
                   selPayeeId == null && txType === TransactionTypes.Expense ? 'Select payee first' : '⬡ Choose...'
                 }
-                inputClassName={mobileDropdownInputClass}
+                inputClassName={dropdownInputClass}
               />
             </MobileFieldRow>
           )}
@@ -464,7 +454,7 @@ export function TransactionModal({
               onChange={item => setSelAccId(item ? (item.id as number) : null)}
               renderOption={item => renderAccountOption(item, formData?.accounts ?? [])}
               placeholder="Choose..."
-              inputClassName={mobileDropdownInputClass}
+              inputClassName={dropdownInputClass}
             />
           </MobileFieldRow>
 
@@ -497,7 +487,7 @@ export function TransactionModal({
                 if (newOnes.length > 0) setAllLabels(prev => [...new Set([...prev, ...newOnes])].sort());
                 setValue('labels', vals);
               }}
-              inputClassName="border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+              inputClassName={dropdownInputClass}
             />
           </MobileFieldRow>
         </div>
@@ -590,7 +580,7 @@ export function TransactionModal({
             )}
 
             <div className="grid grid-cols-2 gap-2">
-              <FieldCard label="Account">
+              <FinFieldCard className="cursor-default" label="Account">
                 <FinancialDropdown
                   searchable={false}
                   options={accountOptions}
@@ -598,12 +588,12 @@ export function TransactionModal({
                   onChange={item => setSelAccId(item ? (item.id as number) : null)}
                   renderOption={item => renderAccountOption(item, formData.accounts)}
                   placeholder="Choose…"
-                  inputClassName="border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+                  inputClassName={dropdownInputClass}
                 />
-              </FieldCard>
+              </FinFieldCard>
 
               {txType === TransactionTypes.Transfer ? (
-                <FieldCard label="To Account">
+                <FinFieldCard className="cursor-default" label="To Account">
                   {prefilledToAccountId != null ? (
                     <div className="py-0.5 text-[13px] font-medium text-[var(--fin-text)]">
                       {prefilledToAccountName}
@@ -616,12 +606,12 @@ export function TransactionModal({
                       onChange={item => setSelToAccId(item ? (item.id as number) : null)}
                       renderOption={item => renderAccountOption(item, formData.accounts)}
                       placeholder="Choose…"
-                      inputClassName="border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+                      inputClassName={dropdownInputClass}
                     />
                   )}
-                </FieldCard>
+                </FinFieldCard>
               ) : (
-                <FieldCard label="Category">
+                <FinFieldCard className="cursor-default" label="Category">
                   <FinancialDropdown
                     searchable={false}
                     options={categoryOptions}
@@ -630,14 +620,14 @@ export function TransactionModal({
                     clearable={txType !== TransactionTypes.Expense}
                     noResultsText="No categories yet — add one in the Categories tab."
                     placeholder="⬡ Choose…"
-                    inputClassName="border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+                    inputClassName={dropdownInputClass}
                   />
-                </FieldCard>
+                </FinFieldCard>
               )}
             </div>
 
             {txType === TransactionTypes.Transfer && (
-              <FieldCard label="Category">
+              <FinFieldCard className="cursor-default" label="Category">
                 <FinancialDropdown
                   searchable={false}
                   options={categoryOptions}
@@ -646,13 +636,13 @@ export function TransactionModal({
                   clearable
                   noResultsText="No categories yet — add one in the Categories tab."
                   placeholder="⬡ Choose…"
-                  inputClassName="border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+                  inputClassName={dropdownInputClass}
                 />
-              </FieldCard>
+              </FinFieldCard>
             )}
 
             <div className="grid grid-cols-2 gap-2">
-              <FieldCard label="Date">
+              <FinFieldCard className="cursor-default" label="Date">
                 <Input
                   {...register('date')}
                   value={watch('date')}
@@ -660,18 +650,18 @@ export function TransactionModal({
                   variant="ghost"
                   className="w-full text-[13px] text-[var(--fin-text)]"
                 />
-              </FieldCard>
-              <FieldCard label="Notes">
+              </FinFieldCard>
+              <FinFieldCard className="cursor-default" label="Notes">
                 <Input
                   {...register('note')}
                   placeholder="Optional…"
                   variant="ghost"
                   className="w-full text-[13px] text-[var(--fin-text)]"
                 />
-              </FieldCard>
+              </FinFieldCard>
             </div>
 
-            <FieldCard label="Labels">
+            <FinFieldCard className="cursor-default" label="Labels">
               <LabelMultiSelect
                 allLabels={allLabels}
                 value={watch('labels')}
@@ -681,7 +671,7 @@ export function TransactionModal({
                   setValue('labels', vals);
                 }}
               />
-            </FieldCard>
+            </FinFieldCard>
           </>
         )}
       </form>

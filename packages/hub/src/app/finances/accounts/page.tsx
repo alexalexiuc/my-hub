@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn, apiFetch } from '@/lib/utils';
-import { fmt, Card, Divider, SectionLabel, AddButton, Sparkline } from '../ui';
+import { fmt, Card, Divider, SectionLabel, AddButton, Sparkline, TYPE_META } from '../ui';
 import { IconButton } from '@/components';
 import { QuestionMarkIcon } from '@/components/icons';
 import { AddAccountModal } from './AddAccountModal';
@@ -18,14 +18,14 @@ import type { AccountType } from '@my-hub/shared/constants';
 import { groupAccountsByCurrency } from './accounts.utils';
 
 const ACCOUNT_GROUPS = [
-  { key: 'bank', label: 'Bank', icon: '🏦' },
-  { key: 'cash', label: 'Cash', icon: '💵' },
-  { key: 'credit_card', label: 'Credit Cards', icon: '💳' },
-  { key: 'goal', label: 'Goals', icon: '🎯' },
-  { key: 'loan', label: 'Loans', icon: '🏷' },
-  { key: 'borrowed_lent', label: 'Borrowed/Lent', icon: '🤝' },
-  { key: 'investment', label: 'Investments', icon: '📈' },
-  { key: 'tracking', label: 'Tracking', icon: '👁' },
+  { key: 'bank', label: 'Bank' },
+  { key: 'cash', label: 'Cash' },
+  { key: 'credit_card', label: 'Credit Cards' },
+  { key: 'goal', label: 'Goals' },
+  { key: 'loan', label: 'Loans' },
+  { key: 'borrowed_lent', label: 'Borrowed/Lent' },
+  { key: 'investment', label: 'Investments' },
+  { key: 'tracking', label: 'Tracking' },
 ] as const;
 
 function amountColor(balance: number, type: AccountType): string {
@@ -184,7 +184,8 @@ export default function AccountsPage() {
         </Card>
       </div>
 
-      {ACCOUNT_GROUPS.map(({ key, label, icon }) => {
+      {ACCOUNT_GROUPS.map(({ key, label }) => {
+        const icon = TYPE_META[key]?.icon ?? '';
         const accs = byType(key);
         if (!accs.length) return null;
         const isCollapsed = collapsedGroups.has(key);

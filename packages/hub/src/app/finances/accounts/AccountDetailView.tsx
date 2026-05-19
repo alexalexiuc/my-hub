@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Pill, IconButton } from '@/components';
+import { Input, Pill, IconButton } from '@/components';
 import { PlusOutlineIcon, PencilIcon, ArchiveBoxIcon } from '@/components/icons';
 import { cn, apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar, TYPE_META } from '../ui';
@@ -106,33 +106,36 @@ function CorrectionModal({
           <div className="mb-1 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">
             Actual Balance ({currency})
           </div>
-          <input
+          <Input
             autoFocus
             type="number"
             placeholder={String(currentBalance)}
             value={newBalance}
             onChange={e => setNewBalance(e.target.value)}
-            className="w-full border-none bg-transparent text-[20px] font-bold text-[var(--fin-text)] outline-none"
+            variant="ghost"
+            className="w-full border-none text-[20px] font-bold text-[var(--fin-text)]"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-[10px]">
             <div className="mb-1 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Date</div>
-            <input
+            <Input
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
-              className="w-full border-none bg-transparent text-[13px] text-[var(--fin-text)] outline-none"
+              variant="ghost"
+              className="w-full border-none text-[13px] text-[var(--fin-text)]"
             />
           </div>
           <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-[10px]">
             <div className="mb-1 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Notes</div>
-            <input
+            <Input
               placeholder="Balance Correction"
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="w-full border-none bg-transparent text-[13px] text-[var(--fin-text)] outline-none"
+              variant="ghost"
+              className="w-full border-none text-[13px] text-[var(--fin-text)]"
             />
           </div>
         </div>
