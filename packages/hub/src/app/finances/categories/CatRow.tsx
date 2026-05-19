@@ -60,6 +60,11 @@ function CatRowContent({ cat, currency, onClick }: { cat: CategoryRow; currency:
       {pct !== null && (
         <Bar value={cat.spent} max={cat.monthlyTarget!} color={cat.color ?? 'var(--fin-green)'} height={4} />
       )}
+      {cat.transferAmount > 0 && (
+        <div className="mt-1 text-[10px] text-[var(--fin-subtle)]">
+          + {fmt(cat.transferAmount, currency)} repayments
+        </div>
+      )}
     </div>
   );
 }
