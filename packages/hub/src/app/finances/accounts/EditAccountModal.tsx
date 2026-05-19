@@ -16,15 +16,13 @@ import {
   type EditAccountValues,
 } from '../finances-form.schema';
 import type { AccountItem } from '@/app/api/finances/accounts/route';
+import { finGhostInputClass as ghostInputClass, finDropdownInputClass as dropdownInputClass } from '../finances.utils';
 
 type EditAccountModalProps = {
   acc: AccountItem;
   onClose: () => void;
   onSaved: () => void;
 };
-
-const dropdownInputClass = 'py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]';
-const ghostInputClass = 'w-full text-[13px] text-[var(--fin-text)]';
 
 export function EditAccountModal({ acc, onClose, onSaved }: EditAccountModalProps) {
   const {

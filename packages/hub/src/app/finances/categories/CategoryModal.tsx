@@ -1,11 +1,13 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { apiFetch } from '@/lib/utils';
+import { cn, apiFetch } from '@/lib/utils';
 import type { CategoryMutationResponse, CategoryCreateBody } from '@/app/api/finances/categories/route';
+import type { CategoryUpdateBody } from '@/app/api/finances/categories/[id]/route';
 import { FinModalShell } from '../FinModalShell';
-import { ColorPicker, Input, Textarea } from '@/components';
+import { Button, ColorPicker, Input, Textarea } from '@/components';
 import { FinancialDropdown } from '../FinancialDropdown';
 import { FinFieldCard } from '../ui';
 import { ICON_OPTIONS } from '../categoryIcons';
@@ -15,14 +17,17 @@ import {
   formToCategoryBody,
   type AddCategoryValues,
 } from '../finances-form.schema';
+import { finGhostInputClass, finDropdownInputClass } from '../finances.utils';
 
 type GroupOption = { id: number; name: string };
 
-type AddCategoryModalProps = {
+type AddMode = { categoryId?: undefined; initialValues?: undefined; defaultGroupId?: number | null };
+type EditMode = { categoryId: number; initialValues: AddCategoryValues; defaultGroupId?: undefined };
+
+type CategoryModalProps = (AddMode | EditMode) & {
   groups: GroupOption[];
-  defaultGroupId?: number | null;
   onClose: () => void;
-  onCreated: () => void;
+  onDone: () => void;
 };
 
 const PRESET_COLORS = [
@@ -48,10 +53,18 @@ const PRESET_COLORS = [
   '#ef4444',
 ];
 
-const ghostInputClass = 'w-full text-[13px] text-[var(--fin-text)]';
-const dropdownInputClass = 'py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]';
+export function CategoryModal({
+  categoryId,
+  initialValues,
+  defaultGroupId,
+  groups,
+  onClose,
+  onDone,
+}: CategoryModalProps) {
+  const isEdit = categoryId !== undefined;
 
-export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }: AddCategoryModalProps) {
+  const groupOptions = useMemo(() => groups.map(g => ({ id: String(g.id), value: g.name })), [groups]);
+
   const {
     register,
     control,
@@ -59,24 +72,31 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
     formState: { isSubmitting, errors },
   } = useForm<AddCategoryValues>({
     resolver: zodResolver(AddCategorySchema),
-    defaultValues: defaultAddCategoryValues(defaultGroupId),
+    defaultValues: initialValues ?? defaultAddCategoryValues(defaultGroupId),
   });
 
   async function onSubmit(values: AddCategoryValues) {
-    await apiFetch<CategoryMutationResponse, CategoryCreateBody>('/api/finances/categories', {
-      method: 'POST',
-      body: formToCategoryBody(values),
-    });
-    onCreated();
+    if (isEdit) {
+      await apiFetch<CategoryMutationResponse, CategoryUpdateBody>(`/api/finances/categories/${categoryId}`, {
+        method: 'PATCH',
+        body: formToCategoryBody(values),
+      });
+    } else {
+      await apiFetch<CategoryMutationResponse, CategoryCreateBody>('/api/finances/categories', {
+        method: 'POST',
+        body: formToCategoryBody(values),
+      });
+    }
+    onDone();
   }
 
   return (
     <FinModalShell
       onClose={onClose}
-      title="New Category"
+      title={isEdit ? 'Edit Category' : 'New Category'}
       className="md:max-w-[400px]"
       onSubmit={handleSubmit(onSubmit)}
-      submitLabel="Create"
+      submitLabel={isEdit ? 'Save' : 'Create'}
       submitLoading={isSubmitting}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2">
@@ -86,7 +106,7 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
             placeholder="e.g. Groceries"
             autoFocus
             variant="ghost"
-            className={ghostInputClass}
+            className={finGhostInputClass}
           />
         </FinFieldCard>
 
@@ -97,18 +117,22 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
             <FinFieldCard label="Icon">
               <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {ICON_OPTIONS.map(opt => (
-                  <button
+                  <Button
                     key={opt.value}
                     type="button"
+                    variant="transparent"
                     onClick={() => field.onChange(field.value === opt.value ? '' : opt.value)}
                     title={opt.label}
-                    className={`min-w-9 cursor-pointer rounded-md px-[7px] py-1 text-sm ${field.value === opt.value ? 'bg-[var(--fin-accent-d)]' : 'bg-[var(--fin-card2)]'}`}
+                    className={cn(
+                      'min-w-9 cursor-pointer rounded-md px-[7px] py-1 text-sm',
+                      field.value === opt.value ? 'bg-[var(--fin-accent-d)]' : 'bg-[var(--fin-card2)]',
+                    )}
                     style={{
                       border: `1px solid ${field.value === opt.value ? 'var(--fin-accent)44' : 'var(--fin-border)'}`,
                     }}
                   >
                     {opt.emoji}
-                  </button>
+                  </Button>
                 ))}
               </div>
               {errors.icon && <p className="mt-1 text-xs text-red-400">{errors.icon.message}</p>}
@@ -123,11 +147,12 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
             <FinFieldCard label="Color">
               <div className="flex flex-wrap items-center gap-2 pt-0.5">
                 {PRESET_COLORS.map(c => (
-                  <button
+                  <Button
                     key={c}
                     type="button"
+                    variant="transparent"
                     onClick={() => field.onChange(c)}
-                    className="h-6 w-6 shrink-0 cursor-pointer rounded-full"
+                    className="h-6 w-6 shrink-0 cursor-pointer rounded-full p-0"
                     style={{
                       background: c,
                       border: field.value === c ? '2px solid var(--fin-text)' : '2px solid transparent',
@@ -148,7 +173,7 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
             min="0"
             placeholder="e.g. 500"
             variant="ghost"
-            className={ghostInputClass}
+            className={finGhostInputClass}
           />
         </FinFieldCard>
 
@@ -168,12 +193,12 @@ export function AddCategoryModal({ groups, defaultGroupId, onClose, onCreated }:
             render={({ field }) => (
               <FinancialDropdown
                 searchable={false}
-                options={groups.map(g => ({ id: String(g.id), value: g.name }))}
+                options={groupOptions}
                 value={field.value || undefined}
                 onChange={item => field.onChange(item?.id ?? '')}
                 placeholder="— None —"
                 clearable
-                inputClassName={dropdownInputClass}
+                inputClassName={finDropdownInputClass}
               />
             )}
           />

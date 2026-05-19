@@ -16,15 +16,13 @@ import {
   type AddAccountValues,
 } from '../finances-form.schema';
 import { ACCOUNT_TYPE_OPTIONS, DIRECTION_OPTIONS } from './accountOptions';
+import { finGhostInputClass as ghostInputClass, finDropdownInputClass as dropdownInputClass } from '../finances.utils';
 
 type AddAccountModalProps = {
   defaultCurrency: SupportedCurrency;
   onClose: () => void;
   onCreated: () => void;
 };
-
-const dropdownInputClass = 'py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]';
-const ghostInputClass = 'w-full text-[13px] text-[var(--fin-text)]';
 
 export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAccountModalProps) {
   const {

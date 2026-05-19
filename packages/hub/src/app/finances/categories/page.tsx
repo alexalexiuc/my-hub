@@ -8,10 +8,9 @@ import type { CategoriesResponse, CategoryGroup, CategoryRow } from '@/app/api/f
 import type { CategoryDeleteResponse } from '@/app/api/finances/categories/[id]/route';
 import { fmt, Card, SectionLabel, Divider, MonthCarousel } from '../ui';
 import { dateToString } from '@my-hub/shared/utils';
-import { AddCategoryModal } from './AddCategoryModal';
-import { AddGroupModal } from './AddGroupModal';
-import { EditCategoryModal } from './EditCategoryModal';
-import { EditGroupModal } from './EditGroupModal';
+import { Button } from '@/components';
+import { CategoryModal } from './CategoryModal';
+import { GroupModal } from './GroupModal';
 import { GroupSection } from './GroupSection';
 import { CatRow } from './CatRow';
 import { categoryToEditValues } from '../finances-form.schema';
@@ -164,12 +163,13 @@ export default function CategoriesPage() {
                 onChanged={() => load(selectedMonth)}
               />
             ))}
-            <button
+            <Button
+              variant="transparent"
               onClick={() => setShowAddGroup(true)}
-              className="cursor-pointer rounded-md border border-dashed border-[var(--fin-border)] bg-transparent px-3 py-[5px] text-[11px] text-[var(--fin-subtle)]"
+              className="cursor-pointer rounded-md border border-dashed border-[var(--fin-border)] px-3 py-[5px] text-[11px] text-[var(--fin-subtle)]"
             >
               + New Group
-            </button>
+            </Button>
 
             {data.ungrouped.length > 0 && (
               <div>
@@ -204,22 +204,22 @@ export default function CategoriesPage() {
       )}
 
       {showAddCategory && (
-        <AddCategoryModal
+        <CategoryModal
           groups={groupOptions}
           defaultGroupId={addCategoryGroupId}
           onClose={() => setShowAddCategory(false)}
-          onCreated={handleCreated}
+          onDone={handleCreated}
         />
       )}
 
-      {showAddGroup && <AddGroupModal onClose={() => setShowAddGroup(false)} onCreated={handleCreated} />}
+      {showAddGroup && <GroupModal onClose={() => setShowAddGroup(false)} onDone={handleCreated} />}
 
       {editingGroup && (
-        <EditGroupModal
+        <GroupModal
           groupId={editingGroup.id}
           initialValues={{ name: editingGroup.name, notes: editingGroup.notes ?? '' }}
           onClose={() => setEditingGroup(null)}
-          onSaved={() => {
+          onDone={() => {
             setEditingGroup(null);
             load(selectedMonth);
           }}
@@ -227,12 +227,12 @@ export default function CategoriesPage() {
       )}
 
       {editingCategory && (
-        <EditCategoryModal
+        <CategoryModal
           categoryId={editingCategory.id}
           initialValues={categoryToEditValues(editingCategory)}
           groups={groupOptions}
           onClose={() => setEditingCategory(null)}
-          onSaved={() => {
+          onDone={() => {
             setEditingCategory(null);
             load(selectedMonth);
           }}
