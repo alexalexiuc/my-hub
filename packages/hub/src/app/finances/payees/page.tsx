@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import type { PayeesResponse, PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 import type { PayeesReportResponse, PayeeReportItem } from '@/app/api/finances/payees/report/route';
@@ -11,11 +12,23 @@ import { PayeesRangeFilter } from './PayeesRangeFilter';
 import { PayeesTableHeader } from './PayeesTableHeader';
 import { PayeeRow } from './PayeeRow';
 import { PAYEE_RANGES, type Range, type SortKey } from './types';
+import { parseRange } from './payees.utils';
 import { Input } from '@/components';
 import Fuse from 'fuse.js';
 
 export default function PayeesPage() {
-  const [range, setRange] = useState<Range>('30d');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const range = parseRange(searchParams.get('range'));
+
+  const setRange = useCallback(
+    (r: Range) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('range', r);
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
   const [sortBy, setSortBy] = useState<SortKey>('totalSpent');
   const [search, setSearch] = useState('');
   const [reportData, setReportData] = useState<PayeesReportResponse | null>(null);
