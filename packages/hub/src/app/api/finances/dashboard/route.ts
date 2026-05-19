@@ -117,37 +117,52 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
   const prevMonthLastDay = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
   const prevMonthEnd = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(prevMonthLastDay).padStart(2, '0')}`;
 
-  const [accounts, categories, expenseTxns, incomeTxns, transferTxns, recentTxns, availableBalance, prevExpenseTxns] =
-    await Promise.all([
-      getAccounts(user.id, budgetId),
-      getCategories(user.id, budgetId),
-      getTransactions(user.id, budgetId, {
-        type: TransactionTypes.Expense,
-        fromDate: monthStart,
-        toDate: today,
-        limit: 2000,
-      }),
-      getTransactions(user.id, budgetId, {
-        type: TransactionTypes.Income,
-        fromDate: monthStart,
-        toDate: today,
-        limit: 2000,
-      }),
-      getTransactions(user.id, budgetId, {
-        type: TransactionTypes.Transfer,
-        fromDate: monthStart,
-        toDate: today,
-        limit: 2000,
-      }),
-      getTransactionListItems(user.id, budgetId, { limit: 5 }),
-      getAvailableBalance(user.id, budgetId),
-      getTransactions(user.id, budgetId, {
-        type: TransactionTypes.Expense,
-        fromDate: prevMonthStart,
-        toDate: prevMonthEnd,
-        limit: 2000,
-      }),
-    ]);
+  const [
+    accounts,
+    categories,
+    expenseTxns,
+    incomeTxns,
+    transferTxns,
+    recentTxns,
+    availableBalance,
+    prevExpenseTxns,
+    prevTransferTxns,
+  ] = await Promise.all([
+    getAccounts(user.id, budgetId),
+    getCategories(user.id, budgetId),
+    getTransactions(user.id, budgetId, {
+      type: TransactionTypes.Expense,
+      fromDate: monthStart,
+      toDate: today,
+      limit: 2000,
+    }),
+    getTransactions(user.id, budgetId, {
+      type: TransactionTypes.Income,
+      fromDate: monthStart,
+      toDate: today,
+      limit: 2000,
+    }),
+    getTransactions(user.id, budgetId, {
+      type: TransactionTypes.Transfer,
+      fromDate: monthStart,
+      toDate: today,
+      limit: 2000,
+    }),
+    getTransactionListItems(user.id, budgetId, { limit: 5 }),
+    getAvailableBalance(user.id, budgetId),
+    getTransactions(user.id, budgetId, {
+      type: TransactionTypes.Expense,
+      fromDate: prevMonthStart,
+      toDate: prevMonthEnd,
+      limit: 2000,
+    }),
+    getTransactions(user.id, budgetId, {
+      type: TransactionTypes.Transfer,
+      fromDate: prevMonthStart,
+      toDate: prevMonthEnd,
+      limit: 2000,
+    }),
+  ]);
 
   // Monthly totals
   const monthlyExpense = expenseTxns.reduce((sum, t) => sum + t.amount, 0);
@@ -164,11 +179,24 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
     const day = +t.date.slice(8, 10);
     currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.amount);
   }
+  for (const t of transferTxns) {
+    if (t.categoryId != null) {
+      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.amount);
+      const day = +t.date.slice(8, 10);
+      currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.amount);
+    }
+  }
 
   const prevDayMap = new Map<number, number>();
   for (const t of prevExpenseTxns) {
     const day = +t.date.slice(8, 10);
     prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.amount);
+  }
+  for (const t of prevTransferTxns) {
+    if (t.categoryId != null) {
+      const day = +t.date.slice(8, 10);
+      prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.amount);
+    }
   }
 
   // All categories with spending this month (for pie chart)

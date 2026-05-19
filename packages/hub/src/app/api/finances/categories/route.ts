@@ -21,7 +21,6 @@ export const categoryRowSchema = z.object({
   notes: z.string().nullable(),
   monthlyTarget: z.number().nullable(),
   spent: z.number(),
-  transferAmount: z.number(),
   groupId: z.number().int().nullable(),
   sortOrder: z.number().int(),
 });
@@ -40,7 +39,6 @@ export const categoriesResponseSchema = z.object({
   groups: z.array(categoryGroupSchema),
   ungrouped: z.array(categoryRowSchema),
   totalSpent: z.number(),
-  totalTransfers: z.number(),
   allCategories: z.array(categoryRowSchema),
 });
 
@@ -106,11 +104,9 @@ export const GET = route({ query: CategoryQuerySchema, response: categoriesRespo
       spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.amount);
     }
   }
-
-  const transferByCategory = new Map<number, number>();
   for (const t of transferTxns) {
     if (t.categoryId != null) {
-      transferByCategory.set(t.categoryId, (transferByCategory.get(t.categoryId) ?? 0) + t.amount);
+      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.amount);
     }
   }
 
@@ -122,7 +118,6 @@ export const GET = route({ query: CategoryQuerySchema, response: categoriesRespo
     notes: c.notes ?? null,
     monthlyTarget: c.monthlyTarget ?? null,
     spent: spentByCategory.get(c.id) ?? 0,
-    transferAmount: transferByCategory.get(c.id) ?? 0,
     groupId: c.groupId ?? null,
     sortOrder: c.sortOrder,
   }));
@@ -137,10 +132,8 @@ export const GET = route({ query: CategoryQuerySchema, response: categoriesRespo
 
   const ungrouped = catRows.filter(c => c.groupId === null);
   let totalSpent = 0;
-  let totalTransfers = 0;
   for (const c of catRows) {
     totalSpent += c.spent;
-    totalTransfers += c.transferAmount;
   }
 
   return {
@@ -149,7 +142,6 @@ export const GET = route({ query: CategoryQuerySchema, response: categoriesRespo
     groups: groupRows,
     ungrouped,
     totalSpent,
-    totalTransfers,
     allCategories: catRows,
   };
 });

@@ -36,7 +36,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
     goals,
   } = data;
 
-  const saved = monthlyIncome - monthlyExpense;
+  const saved = monthlyIncome - monthlyExpense - monthlyTransfers;
 
   return (
     <div className="flex flex-col gap-[14px]">

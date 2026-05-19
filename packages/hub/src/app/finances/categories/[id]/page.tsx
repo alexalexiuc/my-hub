@@ -104,14 +104,6 @@ export default function CategoryDetailPage() {
             </div>
           </div>
         </div>
-        {category.transferAmount > 0 && (
-          <div className="mt-2 rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] p-2.5">
-            <div className="text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Loan repayments</div>
-            <div className="text-[16px] font-semibold text-[var(--fin-text)]">
-              {fmt(category.transferAmount, currency)}
-            </div>
-          </div>
-        )}
         {progress !== null && (
           <div className="mt-2 text-[11px] text-[var(--fin-subtle)]">
             Progress: <span className="font-semibold text-[var(--fin-text)]">{progress}%</span>
