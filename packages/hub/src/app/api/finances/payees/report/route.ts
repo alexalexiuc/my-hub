@@ -24,7 +24,7 @@ export const payeesReportResponseSchema = z.object({
 export type PayeeReportItem = z.infer<typeof payeeReportItemSchema>;
 export type PayeesReportResponse = z.infer<typeof payeesReportResponseSchema>;
 
-function getFromDate(range: string): string {
+function getFromDate(range: string): string | undefined {
   const now = new Date();
   if (range === '3m') {
     const d = new Date(now);
@@ -32,6 +32,7 @@ function getFromDate(range: string): string {
     return d.toISOString().slice(0, 10);
   }
   if (range === 'ytd') return `${now.getFullYear()}-01-01`;
+  if (range === 'all') return undefined;
   // default: 30d
   const d = new Date(now);
   d.setDate(d.getDate() - 30);
@@ -39,7 +40,7 @@ function getFromDate(range: string): string {
 }
 
 export const GET = route({
-  query: z.object({ range: z.enum(['30d', '3m', 'ytd']).default('30d') }),
+  query: z.object({ range: z.enum(['30d', '3m', 'ytd', 'all']).default('30d') }),
   response: payeesReportResponseSchema,
 })(async ({ user, query }) => {
   const { range } = query;
