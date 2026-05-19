@@ -136,8 +136,12 @@ export const GET = route({ query: CategoryQuerySchema, response: categoriesRespo
   }));
 
   const ungrouped = catRows.filter(c => c.groupId === null);
-  const totalSpent = catRows.reduce((s, c) => s + c.spent, 0);
-  const totalTransfers = catRows.reduce((s, c) => s + c.transferAmount, 0);
+  let totalSpent = 0;
+  let totalTransfers = 0;
+  for (const c of catRows) {
+    totalSpent += c.spent;
+    totalTransfers += c.transferAmount;
+  }
 
   return {
     currency: budget.defaultCurrency,

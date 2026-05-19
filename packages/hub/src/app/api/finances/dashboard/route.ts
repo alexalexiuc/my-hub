@@ -152,7 +152,7 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
   // Monthly totals
   const monthlyExpense = expenseTxns.reduce((sum, t) => sum + t.amount, 0);
   const monthlyIncome = incomeTxns.reduce((sum, t) => sum + t.amount, 0);
-  const monthlyTransfers = transferTxns.filter(t => t.categoryId != null).reduce((sum, t) => sum + t.amount, 0);
+  const monthlyTransfers = transferTxns.reduce((sum, t) => (t.categoryId != null ? sum + t.amount : sum), 0);
 
   // Single pass: category totals + daily map for current month
   const spentByCategory = new Map<number, number>();
