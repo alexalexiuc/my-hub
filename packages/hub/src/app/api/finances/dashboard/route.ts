@@ -65,6 +65,7 @@ export const financeDashboardDataSchema = z.object({
   availableBalance: z.number(),
   monthlyIncome: z.number(),
   monthlyExpense: z.number(),
+  monthlyTransfers: z.number(),
   categories: z.array(dashboardCategorySchema),
   dailySpending: z.array(dailySpendingPointSchema),
   goals: z.array(dashboardGoalSchema),
@@ -116,7 +117,7 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
   const prevMonthLastDay = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
   const prevMonthEnd = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(prevMonthLastDay).padStart(2, '0')}`;
 
-  const [accounts, categories, expenseTxns, incomeTxns, recentTxns, availableBalance, prevExpenseTxns] =
+  const [accounts, categories, expenseTxns, incomeTxns, transferTxns, recentTxns, availableBalance, prevExpenseTxns] =
     await Promise.all([
       getAccounts(user.id, budgetId),
       getCategories(user.id, budgetId),
@@ -128,6 +129,12 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
       }),
       getTransactions(user.id, budgetId, {
         type: TransactionTypes.Income,
+        fromDate: monthStart,
+        toDate: today,
+        limit: 2000,
+      }),
+      getTransactions(user.id, budgetId, {
+        type: TransactionTypes.Transfer,
         fromDate: monthStart,
         toDate: today,
         limit: 2000,
@@ -145,6 +152,7 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
   // Monthly totals
   const monthlyExpense = expenseTxns.reduce((sum, t) => sum + t.amount, 0);
   const monthlyIncome = incomeTxns.reduce((sum, t) => sum + t.amount, 0);
+  const monthlyTransfers = transferTxns.filter(t => t.categoryId != null).reduce((sum, t) => sum + t.amount, 0);
 
   // Single pass: category totals + daily map for current month
   const spentByCategory = new Map<number, number>();
@@ -218,6 +226,7 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
     availableBalance,
     monthlyIncome,
     monthlyExpense,
+    monthlyTransfers,
     categories: categorySpending,
     dailySpending,
     goals,

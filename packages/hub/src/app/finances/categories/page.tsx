@@ -111,6 +111,14 @@ export default function CategoriesPage() {
                   {fmt(data.totalSpent, data.currency)}
                 </span>
               </div>
+              {data.totalTransfers > 0 && (
+                <div className="mb-2 flex justify-between">
+                  <span className="text-[13px] text-[var(--fin-muted)]">Loan repayments</span>
+                  <span className="text-base font-bold text-[var(--fin-text)]">
+                    {fmt(data.totalTransfers, data.currency)}
+                  </span>
+                </div>
+              )}
               {data.totalSpent > 0 && (
                 <>
                   <div className="flex h-2 gap-px overflow-hidden rounded">

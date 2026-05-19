@@ -25,7 +25,16 @@ type DashboardScreenProps = {
 
 export function DashboardScreen({ data, userName }: DashboardScreenProps) {
   const router = useRouter();
-  const { currency, availableBalance, monthlyIncome, monthlyExpense, categories, dailySpending, goals } = data;
+  const {
+    currency,
+    availableBalance,
+    monthlyIncome,
+    monthlyExpense,
+    monthlyTransfers,
+    categories,
+    dailySpending,
+    goals,
+  } = data;
 
   const saved = monthlyIncome - monthlyExpense;
 
@@ -62,6 +71,12 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
               <span className="text-[10px] text-[var(--fin-muted)]">Expenses</span>
               <span className="text-sm font-semibold text-[var(--fin-red)]">{fmt(monthlyExpense, currency)}</span>
             </div>
+            {monthlyTransfers > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-[var(--fin-muted)]">Loan repayments</span>
+                <span className="text-sm font-semibold text-[var(--fin-red)]">{fmt(monthlyTransfers, currency)}</span>
+              </div>
+            )}
             <Divider />
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-[var(--fin-muted)]">Saved</span>
