@@ -9,6 +9,7 @@ import {
   getCategories,
   getGroups,
   getLoanBalanceSnapshotForAccount,
+  getLoanSummaryForAccount,
 } from '@my-hub/shared/services';
 
 // ─── list_context ─────────────────────────────────────────────────────────────
@@ -38,10 +39,13 @@ export const listContextTool: ToolHandler<typeof ListContextSchema.shape> = asyn
 
   const accountsOut = await Promise.all(
     accounts.map(async account => {
-      const loanSnapshot =
+      const [loanSnapshot, loanSummary] =
         account.type === AccountTypes.Loan
-          ? await getLoanBalanceSnapshotForAccount(userId, budget.id, account, { accountCurrencyById })
-          : null;
+          ? await Promise.all([
+              getLoanBalanceSnapshotForAccount(userId, budget.id, account, { accountCurrencyById }),
+              getLoanSummaryForAccount(userId, budget.id, account),
+            ])
+          : [null, null];
 
       return {
         id: account.id,
@@ -51,6 +55,7 @@ export const listContextTool: ToolHandler<typeof ListContextSchema.shape> = asyn
         balance: loanSnapshot?.balance ?? account.balance,
         archived: account.archived,
         ...(loanSnapshot ? { amortizationSummary: loanSnapshot.amortizationSummary } : {}),
+        ...(loanSummary ? { loanSummary } : {}),
       };
     }),
   );

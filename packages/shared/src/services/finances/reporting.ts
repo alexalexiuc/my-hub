@@ -5,7 +5,7 @@
  * - getSpendingByPayee(userId, budgetId, dateFrom, dateTo, limit?) — aggregated spend per payee
  * - getSpendingAggregates(userId, budgetId, opts) — flexible groupBy aggregation
  * - getNetWorthSummary(userId, budgetId) — current net worth with account breakdown and history
- * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, NetWorthSummaryResult
+ * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
  */
 import { and, eq, gte, lte, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -21,7 +21,7 @@ import type { AccountType, TransactionType } from '../../constants/finances';
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
 import { hasAccessToBudget, getBudgetById } from './budgets';
 import { getExchangeRate } from './exchangeRates';
-import { getLoanBalanceSnapshotForAccount } from './loan-amortization';
+import { getLoanBalanceSnapshotForAccount, getLoanSummaryForAccount, type LoanSummary } from './loan-amortization';
 import { currentDateString, dateToString } from '../../utils';
 
 // ─── Budget Progress ──────────────────────────────────────────────────────────
@@ -458,6 +458,7 @@ export interface AccountNetWorth {
   balance: number;
   currency: string;
   balanceInDefaultCurrency: number;
+  loanSummary?: LoanSummary;
 }
 
 export interface NetWorthByType {
@@ -505,13 +506,17 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
   for (const acct of accounts) {
     const { balance: accountBalance } = acct;
     let balance = accountBalance;
+    let loanSummary: LoanSummary | undefined;
     if (acct.type === AccountTypes.Loan) {
-      const loanSnapshot = await getLoanBalanceSnapshotForAccount(userId, budgetId, acct, {
-        accountCurrencyById,
-        asOfDate: today,
-      });
+      const [loanSnapshot, summary] = await Promise.all([
+        getLoanBalanceSnapshotForAccount(userId, budgetId, acct, { accountCurrencyById, asOfDate: today }),
+        getLoanSummaryForAccount(userId, budgetId, acct, { asOfDate: today }),
+      ]);
       if (loanSnapshot) {
         balance = loanSnapshot.balance;
+      }
+      if (summary) {
+        loanSummary = summary;
       }
     }
     const rate = await getExchangeRate(acct.currency, budget.defaultCurrency, today);
@@ -523,6 +528,7 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
       balance,
       currency: acct.currency,
       balanceInDefaultCurrency: balanceDefault,
+      ...(loanSummary ? { loanSummary } : {}),
     };
 
     if (!byType[acct.type]) {

@@ -3,7 +3,9 @@
  * - getMonthlyPayment(principal, monthlyRate, termMonths) — standard amortization payment formula (unrounded)
  * - calculateLoanAmortizationSummary(details, opts?) — computes schedule-derived and hybrid payment summary for a loan
  * - getLoanBalanceSnapshotForAccount(userId, budgetId, account, opts?) — computes remaining principal + amortization summary for a loan account
- * Types: LoanPaymentHistoryEntry, LoanAmortizationSummary, LoanBalanceSnapshot
+ * - buildLoanSummary(details, paymentsCompleted, totalPaid, today) — pure closed-form loan summary (no DB access); safe for direct testing
+ * - getLoanSummaryForAccount(userId, budgetId, account, opts?) — fetches transactions then calls buildLoanSummary
+ * Types: LoanPaymentHistoryEntry, LoanAmortizationSummary, LoanBalanceSnapshot, LoanSummary
  */
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
 import { currentDateString } from '../../utils';
@@ -298,4 +300,151 @@ export async function getLoanBalanceSnapshotForAccount(
     balance: amortizationSummary.remainingPrincipal,
     amortizationSummary,
   };
+}
+
+// ─── LoanSummary (closed-form, count-based) ───────────────────────────────────
+
+export interface LoanSummary {
+  originalPrincipal: number;
+  /** monthlyPayment × termMonths − principal */
+  totalInterestScheduled: number;
+  /** originalPrincipal + totalInterestScheduled */
+  originalObligation: number;
+  /** sum of all payment transactions in loan currency */
+  totalPaid: number;
+  /** originalObligation − totalPaid */
+  remainingObligation: number;
+  /** closed-form amortization at k payments; absent when paramsIncomplete */
+  remainingPrincipal?: number;
+  /** remainingObligation − remainingPrincipal; absent when paramsIncomplete */
+  remainingInterest?: number;
+  paymentsCompleted: number;
+  /** termMonths − paymentsCompleted */
+  paymentsRemaining: number;
+  /** ISO date: today + paymentsRemaining months */
+  projectedPayoffDate: string;
+  paramsIncomplete?: true;
+}
+
+/**
+ * Closed-form remaining principal after k scheduled payments.
+ * Uses the standard amortization formula; clamps to [0, principal].
+ */
+function computeRemainingPrincipal(principal: number, annualRate: number, termMonths: number, k: number): number {
+  if (k <= 0) return roundToTwoDecimals(principal);
+  if (k >= termMonths) return 0;
+  const r = annualRate / 100 / 12;
+  if (r === 0) {
+    return roundToTwoDecimals(Math.max(0, principal * (1 - k / termMonths)));
+  }
+  const monthlyPayment = getMonthlyPayment(principal, r, termMonths);
+  const factor = Math.pow(1 + r, k);
+  return roundToTwoDecimals(Math.max(0, principal * factor - (monthlyPayment * (factor - 1)) / r));
+}
+
+/**
+ * Pure (no DB access) loan summary using the closed-form amortization formula.
+ * Pass paymentsCompleted = count of actual payment transactions and totalPaid = their sum.
+ * If any required loan param is missing or invalid the result has paramsIncomplete: true and
+ * omits remainingPrincipal / remainingInterest — it never throws.
+ */
+export function buildLoanSummary(
+  details: LoanAccountDetails | null | undefined,
+  paymentsCompleted: number,
+  totalPaid: number,
+  today: string,
+): LoanSummary {
+  const principal = details?.principal ?? null;
+  const interestRate = details?.interestRate ?? null;
+  const termMonths = details?.termMonths ?? null;
+
+  const safePaymentsCompleted = Math.max(0, paymentsCompleted);
+  const roundedTotalPaid = roundToTwoDecimals(Math.max(0, totalPaid));
+
+  const paramsIncomplete =
+    principal == null ||
+    principal <= 0 ||
+    interestRate == null ||
+    interestRate < 0 ||
+    termMonths == null ||
+    termMonths <= 0;
+
+  if (paramsIncomplete) {
+    const safeTermMonths = termMonths != null && termMonths > 0 ? termMonths : 0;
+    const safePrincipal = principal != null && principal > 0 ? principal : 0;
+    const paymentsRemaining = Math.max(0, safeTermMonths - safePaymentsCompleted);
+    return {
+      originalPrincipal: safePrincipal,
+      totalInterestScheduled: 0,
+      originalObligation: safePrincipal,
+      totalPaid: roundedTotalPaid,
+      remainingObligation: roundToTwoDecimals(Math.max(0, safePrincipal - roundedTotalPaid)),
+      paymentsCompleted: safePaymentsCompleted,
+      paymentsRemaining,
+      projectedPayoffDate: toDateString(addMonths(new Date(today), paymentsRemaining)),
+      paramsIncomplete: true,
+    };
+  }
+
+  const r = interestRate! / 100 / 12;
+  const monthlyPayment = getMonthlyPayment(principal!, r, termMonths!);
+  const totalInterestScheduled = roundToTwoDecimals(Math.max(0, monthlyPayment * termMonths! - principal!));
+  const originalObligation = roundToTwoDecimals(principal! + totalInterestScheduled);
+  const remainingObligation = roundToTwoDecimals(Math.max(0, originalObligation - roundedTotalPaid));
+
+  const k = Math.min(safePaymentsCompleted, termMonths!);
+  const remainingPrincipal = computeRemainingPrincipal(principal!, interestRate!, termMonths!, k);
+  const remainingInterest = roundToTwoDecimals(Math.max(0, remainingObligation - remainingPrincipal));
+  const paymentsRemaining = Math.max(0, termMonths! - safePaymentsCompleted);
+
+  return {
+    originalPrincipal: roundToTwoDecimals(principal!),
+    totalInterestScheduled,
+    originalObligation,
+    totalPaid: roundedTotalPaid,
+    remainingObligation,
+    remainingPrincipal,
+    remainingInterest,
+    paymentsCompleted: safePaymentsCompleted,
+    paymentsRemaining,
+    projectedPayoffDate: toDateString(addMonths(new Date(today), paymentsRemaining)),
+  };
+}
+
+/**
+ * Fetches payment transactions for a loan account and returns its LoanSummary.
+ * Returns null for non-loan accounts.
+ */
+export async function getLoanSummaryForAccount(
+  userId: string,
+  budgetId: number,
+  account: FinanceAccount,
+  opts: {
+    asOfDate?: string;
+  } = {},
+): Promise<LoanSummary | null> {
+  if (account.type !== AccountTypes.Loan) return null;
+
+  const details = getAccountDetails('loan', account.details);
+  const today = opts.asOfDate ?? currentDateString();
+
+  const transactions = await getTransactions(userId, budgetId, {
+    accountId: account.id,
+    ...(details?.startDate ? { fromDate: details.startDate } : {}),
+    includeCorrections: false,
+  });
+
+  const payments = transactions
+    .filter(txn => isLoanPaymentTransaction(account.id, txn) && txn.date <= today)
+    .sort(compareTransactionsByDateAndId);
+
+  const paymentsCompleted = payments.length;
+  const totalPaid = payments.reduce((sum, txn) => {
+    if (txn.type === TransactionTypes.Transfer && txn.toAccountId === account.id) {
+      return sum + txn.amount * (txn.toExchangeRate ?? 1);
+    }
+    return sum + txn.amount;
+  }, 0);
+
+  return buildLoanSummary(details, paymentsCompleted, totalPaid, today);
 }
