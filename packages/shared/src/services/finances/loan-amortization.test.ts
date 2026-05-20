@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LoanAccountDetails } from '../../types';
-import { calculateLoanAmortizationSummary } from './loan-amortization';
+import { calculateLoanAmortizationSummary, buildLoanSummary } from './loan-amortization';
 
 describe('calculateLoanAmortizationSummary', () => {
   it('uses the schedule formula when no payment history is provided', () => {
@@ -84,5 +84,75 @@ describe('calculateLoanAmortizationSummary', () => {
     expect(summary.remainingPrincipal).toBe(650);
     expect(summary.totalInterestPaid).toBe(0);
     expect(summary.totalInterestRemaining).toBe(0);
+  });
+});
+
+describe('buildLoanSummary', () => {
+  const today = '2024-06-01';
+  const base: LoanAccountDetails = {
+    type: 'loan',
+    principal: 12000,
+    interestRate: 12,
+    termMonths: 24,
+    startDate: '2024-01-01',
+  };
+
+  it('full params: remainingPrincipal + remainingInterest === remainingObligation (±rounding)', () => {
+    const summary = buildLoanSummary(base, 5, 2700, today);
+    expect(summary.paramsIncomplete).toBeUndefined();
+    expect(summary.remainingPrincipal).toBeDefined();
+    expect(summary.remainingInterest).toBeDefined();
+    expect(summary.remainingPrincipal! + summary.remainingInterest!).toBeCloseTo(summary.remainingObligation, 1);
+  });
+
+  it('missing params (null details): paramsIncomplete true, no crash, omits remainingPrincipal/Interest', () => {
+    const summary = buildLoanSummary(null, 3, 300, today);
+    expect(summary.paramsIncomplete).toBe(true);
+    expect(summary.remainingPrincipal).toBeUndefined();
+    expect(summary.remainingInterest).toBeUndefined();
+    expect(summary.totalPaid).toBe(300);
+    expect(summary.paymentsCompleted).toBe(3);
+  });
+
+  it('missing params (null termMonths): paramsIncomplete true', () => {
+    const partial = { ...base, termMonths: null as unknown as number };
+    const summary = buildLoanSummary(partial, 2, 200, today);
+    expect(summary.paramsIncomplete).toBe(true);
+    expect(summary.remainingPrincipal).toBeUndefined();
+  });
+
+  it('k=0: remainingPrincipal === originalPrincipal', () => {
+    const summary = buildLoanSummary(base, 0, 0, today);
+    expect(summary.remainingPrincipal).toBe(summary.originalPrincipal);
+    expect(summary.paymentsCompleted).toBe(0);
+    expect(summary.paymentsRemaining).toBe(24);
+  });
+
+  it('k=termMonths: remainingPrincipal ≈ 0', () => {
+    const details: LoanAccountDetails = {
+      type: 'loan',
+      principal: 10000,
+      interestRate: 6,
+      termMonths: 36,
+      startDate: '2024-01-01',
+    };
+    const summary = buildLoanSummary(details, 36, 0, today);
+    expect(summary.remainingPrincipal).toBeCloseTo(0, 1);
+    expect(summary.paymentsRemaining).toBe(0);
+  });
+
+  it('r=0: linear principal reduction', () => {
+    const details: LoanAccountDetails = {
+      type: 'loan',
+      principal: 1200,
+      interestRate: 0,
+      termMonths: 12,
+      startDate: '2024-01-01',
+    };
+    // After 4 payments: remainingPrincipal = 1200 - 4*(1200/12) = 800
+    const summary = buildLoanSummary(details, 4, 400, today);
+    expect(summary.remainingPrincipal).toBe(800);
+    expect(summary.totalInterestScheduled).toBe(0);
+    expect(summary.originalObligation).toBe(1200);
   });
 });

@@ -1,6 +1,11 @@
 import { ResourceHandler } from '../../shared/types';
 import { resourceResponse } from '../../shared/resourcesUtils';
-import { getUserActiveBudget, getAccountById, getNetWorthHistory } from '@my-hub/shared/services';
+import {
+  getUserActiveBudget,
+  getAccountById,
+  getNetWorthHistory,
+  getLoanSummaryForAccount,
+} from '@my-hub/shared/services';
 
 export const getFinancesAccountResource: ResourceHandler = async (uri, context) => {
   const { userId } = context;
@@ -24,7 +29,10 @@ export const getFinancesAccountResource: ResourceHandler = async (uri, context) 
     return resourceResponse(uri, { error: `Account ${accountId} not found.` });
   }
 
-  const history = await getNetWorthHistory(userId, budget.id, 12);
+  const [history, loanSummary] = await Promise.all([
+    getNetWorthHistory(userId, budget.id, 12),
+    getLoanSummaryForAccount(userId, budget.id, account),
+  ]);
 
   return resourceResponse(uri, {
     account: {
@@ -36,6 +44,7 @@ export const getFinancesAccountResource: ResourceHandler = async (uri, context) 
       isArchived: account.archived,
       details: account.details,
       createdAt: account.createdAt,
+      ...(loanSummary ? { loanSummary } : {}),
     },
     netWorthHistory: history,
   });

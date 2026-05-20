@@ -9,9 +9,11 @@ import {
   getAccountById,
   addTransaction,
   getMonthlyPayment,
+  getLoanSummaryForAccount,
+  buildLoanSummary,
 } from '@my-hub/shared/services';
 import { AccountTypes, LentDirections, TransactionTypes } from '@my-hub/shared/constants';
-import { omitUndefined } from '@my-hub/shared/utils';
+import { omitUndefined, currentDateString } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
 
 // ─── upsert_account ───────────────────────────────────────────────────────────
@@ -190,6 +192,9 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
 
   const finalAccount = openingTx != null ? await getAccountById(userId, budget.id, account.id) : account;
 
+  const loanSummary =
+    finalAccount!.type === AccountTypes.Loan ? await getLoanSummaryForAccount(userId, budget.id, finalAccount!) : null;
+
   return toolResponse({
     id: finalAccount!.id,
     name: finalAccount!.name,
@@ -198,6 +203,7 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
     balance: finalAccount!.balance,
     archived: finalAccount!.archived,
     ...(openingTx ? { openingTransaction: openingTx } : {}),
+    ...(loanSummary ? { loanSummary } : {}),
   });
 };
 
@@ -256,6 +262,15 @@ export const addLoanTool: ToolHandler<typeof AddLoanSchema.shape> = async (input
   });
 
   const monthlyRate = input.interestRate / 100 / 12;
+  const loanDetails = {
+    type: 'loan' as const,
+    principal: input.principal,
+    interestRate: input.interestRate,
+    termMonths: input.termMonths,
+    startDate: input.startDate,
+    ...(input.linkedItemName !== undefined ? { linkedItemName: input.linkedItemName } : {}),
+  };
+  const loanSummary = buildLoanSummary(loanDetails, 0, 0, currentDateString());
   return toolResponse(
     omitUndefined({
       id: account.id,
@@ -268,6 +283,7 @@ export const addLoanTool: ToolHandler<typeof AddLoanSchema.shape> = async (input
       startDate: input.startDate,
       monthlyPayment: Math.round(getMonthlyPayment(input.principal, monthlyRate, input.termMonths) * 100) / 100,
       linkedItemName: input.linkedItemName,
+      loanSummary,
     }),
   );
 };

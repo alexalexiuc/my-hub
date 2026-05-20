@@ -1,6 +1,13 @@
 import { ResourceHandler } from '../../shared/types';
 import { resourceResponse } from '../../shared/resourcesUtils';
-import { getUserActiveBudget, getAccounts, getCategories, getGroups } from '@my-hub/shared/services';
+import {
+  getUserActiveBudget,
+  getAccounts,
+  getCategories,
+  getGroups,
+  getLoanSummaryForAccount,
+} from '@my-hub/shared/services';
+import { AccountTypes } from '@my-hub/shared/constants';
 export const getFinancesContextResource: ResourceHandler = async (uri, context) => {
   const { userId } = context;
 
@@ -17,20 +24,25 @@ export const getFinancesContextResource: ResourceHandler = async (uri, context) 
 
   const groupMap = new Map(groups.map(g => [g.id, g.name]));
 
-  const accountsOut = accounts.map(acct => {
-    const details = acct.details as { cardLastFour?: string; cardName?: string; targetAmount?: number } | null;
-    return {
-      id: acct.id,
-      name: acct.name,
-      type: acct.type,
-      currency: acct.currency,
-      balance: acct.balance,
-      isArchived: acct.archived,
-      ...(details?.cardLastFour ? { cardLastFour: details.cardLastFour } : {}),
-      ...(details?.cardName ? { cardName: details.cardName } : {}),
-      ...(details?.targetAmount != null ? { targetAmount: String(details.targetAmount) } : {}),
-    };
-  });
+  const accountsOut = await Promise.all(
+    accounts.map(async acct => {
+      const details = acct.details as { cardLastFour?: string; cardName?: string; targetAmount?: number } | null;
+      const loanSummary =
+        acct.type === AccountTypes.Loan ? await getLoanSummaryForAccount(userId, budget.id, acct) : null;
+      return {
+        id: acct.id,
+        name: acct.name,
+        type: acct.type,
+        currency: acct.currency,
+        balance: acct.balance,
+        isArchived: acct.archived,
+        ...(details?.cardLastFour ? { cardLastFour: details.cardLastFour } : {}),
+        ...(details?.cardName ? { cardName: details.cardName } : {}),
+        ...(details?.targetAmount != null ? { targetAmount: String(details.targetAmount) } : {}),
+        ...(loanSummary ? { loanSummary } : {}),
+      };
+    }),
+  );
 
   const categoriesOut = categories.map(cat => {
     const groupName = cat.groupId ? groupMap.get(cat.groupId) : null;
