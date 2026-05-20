@@ -4,6 +4,9 @@ import {
   getAccountById,
   getAccounts,
   getTransactionListItems,
+  getTransactions,
+  addTransaction,
+  deleteTransaction,
   updateAccount,
   setAccountAvailableInclusion,
   getAvailabilityPreferences,
@@ -12,6 +15,7 @@ import {
   getLoanBalanceSnapshotForAccount,
 } from '@my-hub/shared/services';
 import { AccountTypes, TransactionTypes, type BorrowedLentAccountDetails } from '@my-hub/shared/constants';
+import type { LoanAccountDetails } from '@my-hub/shared/types';
 import type { AccountUpdate } from '@my-hub/shared/services';
 import { FinanceAccount } from '@my-hub/shared/types';
 import { categoryIconSchema, categoryColorSchema } from '../../shared.schema';
@@ -38,6 +42,7 @@ export const accountTransactionSchema = z.object({
 export const accountDetailResponseSchema = z.object({
   account: accountItemSchema,
   transactions: z.array(accountTransactionSchema),
+  hasInitialBalanceTx: z.boolean().optional(),
 });
 
 export type AccountTransaction = z.infer<typeof accountTransactionSchema>;
@@ -54,6 +59,7 @@ const AccountPatchSchema = z.discriminatedUnion('action', [
     details: accountDetailsSchema.nullable().optional(),
   }),
   z.object({ action: z.literal('setAvailableInclusion'), include: z.boolean() }),
+  z.object({ action: z.literal('recreateInitialBalance') }),
 ]);
 
 function flattenAccount(a: FinanceAccount, includedInAvailable: boolean): AccountItem {
@@ -91,16 +97,20 @@ export const GET = route({
   if (!rawAccount) routeHttpError(404, { error: 'Account not found' });
 
   let account = flattenAccount(rawAccount, isIncludedInAvailable(rawAccount.type, prefs.get(accountId) ?? null));
+  let hasInitialBalanceTx: boolean | undefined;
+
   if (rawAccount.type === AccountTypes.Loan) {
-    const allAccounts = await getAccounts(user.id, budgetId, { includeArchived: true });
+    const [allAccounts, correctionTxs] = await Promise.all([
+      getAccounts(user.id, budgetId, { includeArchived: true }),
+      getTransactions(user.id, budgetId, { accountId, includeCorrections: true, type: TransactionTypes.Expense }),
+    ]);
+    hasInitialBalanceTx = correctionTxs.some(t => t.isCorrection && t.notes === 'Initial Balance');
     const accountCurrencyById = new Map(allAccounts.map(current => [current.id, current.currency]));
     const loanSnapshot = await getLoanBalanceSnapshotForAccount(user.id, budgetId, rawAccount, { accountCurrencyById });
     if (loanSnapshot) {
       account = {
         ...account,
-        balance: -(
-          loanSnapshot.amortizationSummary.remainingPrincipal + loanSnapshot.amortizationSummary.totalInterestRemaining
-        ),
+        balance: rawAccount.balance - loanSnapshot.amortizationSummary.totalInterestRemaining,
         amortizationSummary: loanSnapshot.amortizationSummary,
       };
     }
@@ -123,7 +133,7 @@ export const GET = route({
     addedByInitials: t.addedByInitials,
   }));
 
-  return { account, transactions };
+  return { account, transactions, hasInitialBalanceTx };
 });
 
 export const PATCH = route({
@@ -174,6 +184,36 @@ export const PATCH = route({
     if (body.details !== undefined) patch.details = body.details ?? null;
     const updated = await updateAccount(user.id, budget.id, accountId, patch);
     return { account: flattenAccount(updated, currentIncluded) };
+  }
+
+  if (body.action === 'recreateInitialBalance') {
+    if (existing.type !== AccountTypes.Loan) routeHttpError(400, { error: 'Only supported for loan accounts' });
+    const details = existing.details as LoanAccountDetails | null;
+    if (!details?.principal || !details?.startDate) {
+      routeHttpError(400, { error: 'Loan is missing principal or startDate in details' });
+    }
+
+    const allTxs = await getTransactions(user.id, budget.id, { accountId, includeCorrections: true });
+    const existingInitial = allTxs.filter(t => t.isCorrection && t.notes === 'Initial Balance');
+    await Promise.all(existingInitial.map(t => deleteTransaction(user.id, budget.id, t.id)));
+
+    await addTransaction(user.id, budget.id, {
+      type: TransactionTypes.Expense,
+      accountId,
+      toAccountId: null,
+      amount: details.principal,
+      exchangeRate: 1,
+      date: details.startDate,
+      categoryId: null,
+      payeeId: null,
+      notes: 'Initial Balance',
+      isCorrection: true,
+      fromAccountBalanceAfter: null,
+      toAccountBalanceAfter: null,
+      extras: null,
+    });
+
+    return { account: flattenAccount(existing, currentIncluded) };
   }
 
   routeHttpError(400, { error: 'Unknown action' });

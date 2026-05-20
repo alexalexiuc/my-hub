@@ -203,10 +203,7 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
       // total still owed and handles overpayments and floating rates correctly.
       // Other liabilities (credit cards etc.) use account.balance directly.
       const bal = loanSnapshot
-        ? -(
-            loanSnapshot.amortizationSummary.remainingPrincipal +
-            loanSnapshot.amortizationSummary.totalInterestRemaining
-          )
+        ? account.balance - loanSnapshot.amortizationSummary.totalInterestRemaining
         : account.balance;
       const isOtherLiability = !isLoan && LIABILITY_TYPES.has(account.type);
       const includedInAvailable = isIncludedInAvailable(account.type, prefs.get(account.id) ?? null);

@@ -350,6 +350,7 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
+  const [recreatingInitialBalance, setRecreatingInitialBalance] = useState(false);
 
   const load = useCallback(async () => {
     const result = await apiFetch<AccountDetailData>(`/api/finances/accounts/${params.id}`, { silentToast: true });
@@ -382,6 +383,21 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
   if (!data) return null;
 
   const { account: acc } = data;
+  const hasInitialBalanceTx = data.hasInitialBalanceTx ?? true;
+
+  async function handleRecreateInitialBalance() {
+    setRecreatingInitialBalance(true);
+    try {
+      await apiFetch(`/api/finances/accounts/${acc.id}`, {
+        method: 'PATCH',
+        body: { action: 'recreateInitialBalance' },
+      });
+      load();
+      transactionEvents.emit('changed');
+    } finally {
+      setRecreatingInitialBalance(false);
+    }
+  }
 
   async function handleArchive() {
     await apiFetch(`/api/finances/accounts/${acc.id}`, {
@@ -436,6 +452,17 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
         >
           <span>View amortization schedule</span>
           <span className="text-[var(--fin-accent)]">→</span>
+        </button>
+      )}
+
+      {acc.type === 'loan' && !hasInitialBalanceTx && (
+        <button
+          onClick={handleRecreateInitialBalance}
+          disabled={recreatingInitialBalance}
+          className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 px-[14px] py-[10px] text-left text-[13px] text-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <span>⚠ Initial balance transaction missing — recreate</span>
+          <span>↺</span>
         </button>
       )}
 

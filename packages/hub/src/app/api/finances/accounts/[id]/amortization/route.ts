@@ -1,11 +1,8 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
-import { getAccountById, getUserActiveBudget, getLoanBalanceSnapshotForAccount } from '@my-hub/shared/services';
+import { getAccountById, getUserActiveBudget } from '@my-hub/shared/services';
 import type { LoanAccountDetails } from '@my-hub/shared/types';
 import { supportedCurrencySchema } from '../../../currency.schema';
-
-/** Currency-unit tolerance used to account for floating-point drift in schedule balance comparisons. */
-const BALANCE_COMPARISON_TOLERANCE = 0.01;
 
 export const scheduleRowSchema = z.object({
   n: z.number().int(),
@@ -13,29 +10,22 @@ export const scheduleRowSchema = z.object({
   principalPart: z.number(),
   interestPart: z.number(),
   balance: z.number(),
-  paid: z.boolean(),
-  current: z.boolean(),
+  past: z.boolean(),
+  next: z.boolean(),
 });
 
 export const amortizationResponseSchema = z.object({
   accountId: z.number().int(),
   name: z.string(),
   currency: supportedCurrencySchema,
-  currentBalance: z.number(),
   principal: z.number(),
   interestRate: z.number(),
   termMonths: z.number().int(),
   monthlyPayment: z.number(),
   startDate: z.string(),
-  nextPaymentDate: z.string(),
-  paymentsMade: z.number().int(),
-  paymentsRemaining: z.number().int(),
-  totalInterestPaid: z.number(),
-  totalInterestRemaining: z.number(),
+  payoffDate: z.string(),
   totalCost: z.number(),
-  scheduledPayoffDate: z.string(),
-  actualPayoffDate: z.string().nullable(),
-  interestSavedVsSchedule: z.number().nullable(),
+  totalInterest: z.number(),
   rows: z.array(scheduleRowSchema),
 });
 
@@ -68,79 +58,52 @@ export const GET = route({
 
   const rawDetails = account.details;
   if (!rawDetails || (rawDetails as { type?: string }).type !== 'loan') {
-    routeHttpError(400, {
-      error: 'Loan account is missing required details (principal, interestRate, termMonths, startDate).',
-    });
+    routeHttpError(400, { error: 'Loan account is missing required details.' });
   }
 
-  const details = rawDetails as LoanAccountDetails;
-  const { principal, interestRate, termMonths, startDate } = details;
-  const loanSnapshot = await getLoanBalanceSnapshotForAccount(user.id, budget.id, account);
-  const amortizationSummary = loanSnapshot?.amortizationSummary;
-  const currentBalance = loanSnapshot?.balance ?? account.balance;
-
-  // Monthly payment
+  const { principal, interestRate, termMonths, startDate } = rawDetails as LoanAccountDetails;
   const r = interestRate / 100 / 12;
   const monthlyPayment =
     r === 0
       ? principal / termMonths
       : (principal * r * Math.pow(1 + r, termMonths)) / (Math.pow(1 + r, termMonths) - 1);
+  const monthlyPaymentRounded = Math.round(monthlyPayment * 100) / 100;
 
-  // Build schedule
+  const payoffDate = toDateStr(addMonths(new Date(startDate), termMonths));
+  const totalCost = Math.round(monthlyPaymentRounded * termMonths * 100) / 100;
+  const totalInterest = Math.round((totalCost - principal) * 100) / 100;
+
+  const today = new Date().toISOString().slice(0, 10);
   const start = new Date(startDate);
   const rows: ScheduleRow[] = [];
   let balance = principal;
 
   for (let n = 1; n <= termMonths; n++) {
-    const interestPart = balance * r;
-    const principalPart = Math.min(monthlyPayment - interestPart, balance);
-    balance = Math.max(0, balance - principalPart);
+    const interestPart = Math.round(balance * r * 100) / 100;
+    const principalPart = Math.round(Math.min(monthlyPaymentRounded - interestPart, balance) * 100) / 100;
+    balance = Math.round(Math.max(0, balance - principalPart) * 100) / 100;
     const date = toDateStr(addMonths(start, n));
-
-    rows.push({
-      n,
-      date,
-      principalPart: Math.round(principalPart * 100) / 100,
-      interestPart: Math.round(interestPart * 100) / 100,
-      balance: Math.round(balance * 100) / 100,
-      paid: false,
-      current: false,
-    });
+    rows.push({ n, date, principalPart, interestPart, balance, past: false, next: false });
   }
 
-  let nextIdx = rows.findIndex(r => r.balance <= currentBalance + BALANCE_COMPARISON_TOLERANCE);
-  if (nextIdx === -1) nextIdx = rows.length;
-  if (amortizationSummary) {
-    // Prefer hybrid-derived payment count when available because balance-based lookup assumes fixed scheduled payments.
-    nextIdx = Math.min(amortizationSummary.paymentsMade, rows.length);
-  }
+  // Mark rows purely by date — no transaction inference
+  const nextIdx = rows.findIndex(r => r.date > today);
+  const cutoff = nextIdx === -1 ? rows.length : nextIdx;
+  for (let i = 0; i < cutoff; i++) rows[i]!.past = true;
+  if (nextIdx !== -1) rows[nextIdx]!.next = true;
 
-  for (let i = 0; i < nextIdx; i++) rows[i]!.paid = true;
-  if (nextIdx < rows.length && currentBalance > 0) rows[nextIdx]!.current = true;
-
-  const nextPaymentDate = nextIdx < rows.length && currentBalance > 0 ? rows[nextIdx]!.date : '';
-
-  const data: AmortizationData = {
+  return {
     accountId,
     name: account.name,
     currency: account.currency,
-    currentBalance,
     principal,
     interestRate,
     termMonths,
-    monthlyPayment: Math.round(monthlyPayment * 100) / 100,
+    monthlyPayment: monthlyPaymentRounded,
     startDate,
-    nextPaymentDate,
-    paymentsMade: amortizationSummary?.paymentsMade ?? 0,
-    paymentsRemaining: amortizationSummary?.paymentsRemaining ?? Math.max(0, termMonths - nextIdx),
-    totalInterestPaid: amortizationSummary?.totalInterestPaid ?? 0,
-    totalInterestRemaining: amortizationSummary?.totalInterestRemaining ?? 0,
-    totalCost: amortizationSummary?.totalCost ?? principal,
-    scheduledPayoffDate: amortizationSummary?.scheduledPayoffDate ?? '',
-    actualPayoffDate: amortizationSummary?.actualPayoffDate ?? null,
-    interestSavedVsSchedule: amortizationSummary?.interestSavedVsSchedule ?? null,
+    payoffDate,
+    totalCost,
+    totalInterest,
     rows,
   };
-
-  return data;
 });

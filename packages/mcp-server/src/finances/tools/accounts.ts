@@ -174,7 +174,7 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
       accountId: account.id,
       categoryId: null,
       payeeId: null,
-      notes: 'Opening balance',
+      notes: 'Initial Balance',
       isCorrection: true,
       source: 'mcp',
     });

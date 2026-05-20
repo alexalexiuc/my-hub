@@ -12,6 +12,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { users } from './users';
 import { numericCasted } from './numeric-casted';
 import type {
@@ -283,6 +284,9 @@ export const financeTransactions = pgTable(
     index('idx_finance_txns_import_batch').on(table.importBatchId),
     // Composite — most common query pattern: budget + date range
     index('idx_finance_txns_budget_date').on(table.budgetId, table.date),
+    index('idx_finance_txns_is_correction')
+      .on(table.isCorrection)
+      .where(sql`${table.isCorrection} IS TRUE`),
   ],
 );
 

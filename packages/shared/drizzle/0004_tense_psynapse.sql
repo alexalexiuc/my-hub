@@ -1,0 +1,1 @@
+CREATE INDEX "idx_finance_txns_is_correction" ON "finance_transactions" USING btree ("is_correction") WHERE "finance_transactions"."is_correction" IS TRUE;
