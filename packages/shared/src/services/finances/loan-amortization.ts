@@ -306,22 +306,14 @@ export async function getLoanBalanceSnapshotForAccount(
 
 export interface LoanSummary {
   originalPrincipal: number;
-  /** monthlyPayment × termMonths − principal */
   totalInterestScheduled: number;
-  /** originalPrincipal + totalInterestScheduled */
   originalObligation: number;
-  /** sum of all payment transactions in loan currency */
   totalPaid: number;
-  /** originalObligation − totalPaid */
   remainingObligation: number;
-  /** closed-form amortization at k payments; absent when paramsIncomplete */
   remainingPrincipal?: number;
-  /** remainingObligation − remainingPrincipal; absent when paramsIncomplete */
   remainingInterest?: number;
   paymentsCompleted: number;
-  /** termMonths − paymentsCompleted */
   paymentsRemaining: number;
-  /** ISO date: today + paymentsRemaining months */
   projectedPayoffDate: string;
   paramsIncomplete?: true;
 }
@@ -370,8 +362,8 @@ export function buildLoanSummary(
     termMonths <= 0;
 
   if (paramsIncomplete) {
-    const safeTermMonths = termMonths != null && termMonths > 0 ? termMonths : 0;
-    const safePrincipal = principal != null && principal > 0 ? principal : 0;
+    const safePrincipal = Math.max(0, principal ?? 0);
+    const safeTermMonths = Math.max(0, termMonths ?? 0);
     const paymentsRemaining = Math.max(0, safeTermMonths - safePaymentsCompleted);
     return {
       originalPrincipal: safePrincipal,
