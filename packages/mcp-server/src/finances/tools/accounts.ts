@@ -12,6 +12,7 @@ import {
   getLoanSummaryForAccount,
   buildLoanSummary,
 } from '@my-hub/shared/services';
+import { getAccountDetails } from '@my-hub/shared/types';
 import { AccountTypes, LentDirections, TransactionTypes } from '@my-hub/shared/constants';
 import { omitUndefined, currentDateString } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
@@ -262,15 +263,7 @@ export const addLoanTool: ToolHandler<typeof AddLoanSchema.shape> = async (input
   });
 
   const monthlyRate = input.interestRate / 100 / 12;
-  const loanDetails = {
-    type: 'loan' as const,
-    principal: input.principal,
-    interestRate: input.interestRate,
-    termMonths: input.termMonths,
-    startDate: input.startDate,
-    ...(input.linkedItemName !== undefined ? { linkedItemName: input.linkedItemName } : {}),
-  };
-  const loanSummary = buildLoanSummary(loanDetails, 0, 0, currentDateString());
+  const loanSummary = buildLoanSummary(getAccountDetails('loan', account.details), 0, 0, currentDateString());
   return toolResponse(
     omitUndefined({
       id: account.id,
