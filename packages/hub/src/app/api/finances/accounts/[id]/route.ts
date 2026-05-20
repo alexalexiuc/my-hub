@@ -98,7 +98,9 @@ export const GET = route({
     if (loanSnapshot) {
       account = {
         ...account,
-        balance: loanSnapshot.balance,
+        balance: -(
+          loanSnapshot.amortizationSummary.remainingPrincipal + loanSnapshot.amortizationSummary.totalInterestRemaining
+        ),
         amortizationSummary: loanSnapshot.amortizationSummary,
       };
     }

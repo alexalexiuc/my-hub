@@ -1,0 +1,1 @@
+ALTER TABLE "finance_accounts" DROP COLUMN "opening_balance";

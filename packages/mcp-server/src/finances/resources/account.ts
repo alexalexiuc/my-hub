@@ -33,7 +33,6 @@ export const getFinancesAccountResource: ResourceHandler = async (uri, context) 
       type: account.type,
       currency: account.currency,
       balance: account.balance,
-      openingBalance: account.openingBalance,
       isArchived: account.archived,
       details: account.details,
       createdAt: account.createdAt,

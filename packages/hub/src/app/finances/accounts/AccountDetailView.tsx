@@ -274,7 +274,7 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
         </div>
       )}
 
-      {acc.type === 'loan' && acc.principal != null && (
+      {acc.type === 'loan' && acc.amortizationSummary != null && (
         <div className="flex gap-5">
           {acc.interestRate != null && (
             <div>
@@ -282,11 +282,21 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
               <div className="text-[var(--fin-muted)]">{acc.interestRate}%</div>
             </div>
           )}
-          {acc.principal > 0 && (
+          <div>
+            <SubText className="block">Monthly</SubText>
+            <div className="text-[var(--fin-muted)]">{fmt(acc.amortizationSummary.monthlyPayment, acc.currency)}</div>
+          </div>
+          {acc.amortizationSummary.totalCost > 0 && (
             <div>
               <SubText className="block">Paid off</SubText>
               <div className="text-[var(--fin-green)]">
-                {Math.round(((acc.principal + acc.balance) / acc.principal) * 100)}%
+                {Math.max(
+                  0,
+                  Math.round(
+                    ((acc.amortizationSummary.totalCost + acc.balance) / acc.amortizationSummary.totalCost) * 100,
+                  ),
+                )}
+                %
               </div>
             </div>
           )}

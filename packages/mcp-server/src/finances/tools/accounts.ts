@@ -10,7 +10,7 @@ import {
   addTransaction,
   getMonthlyPayment,
 } from '@my-hub/shared/services';
-import { AccountTypes, LentDirections } from '@my-hub/shared/constants';
+import { AccountTypes, LentDirections, TransactionTypes } from '@my-hub/shared/constants';
 import { omitUndefined } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
 
@@ -155,10 +155,6 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
       name: input.name,
       type: input.type,
       currency: input.currency ?? budget.defaultCurrency,
-      // openingBalance stays 0; the correction transaction (below) is the sole
-      // representation of the opening balance, which recalculateAccountBalance
-      // picks up via the transaction SUM.
-      openingBalance: 0,
       balance: 0,
       archived: input.archived ?? false,
       details: input.details ?? null,
@@ -231,15 +227,11 @@ export const addLoanTool: ToolHandler<typeof AddLoanSchema.shape> = async (input
   const budget = await getUserActiveBudget(userId);
   if (!budget) throw new HandledError('No active budget. Set an active budget in the Hub first.');
 
-  // Loans store a negative balance: -principal at creation, moving toward 0 as debt is repaid.
-  // Standard transfer logic applies — each repayment adds a positive amount to the negative
-  // balance. No correction transaction is created; the amortization service drives the display.
   const account = await createAccount(userId, budget.id, {
     name: input.name,
     type: AccountTypes.Loan,
     currency: input.currency ?? budget.defaultCurrency,
-    openingBalance: -input.principal,
-    balance: -input.principal,
+    balance: 0,
     archived: false,
     details: {
       type: 'loan',
@@ -249,6 +241,18 @@ export const addLoanTool: ToolHandler<typeof AddLoanSchema.shape> = async (input
       startDate: input.startDate,
       ...(input.linkedItemName !== undefined ? { linkedItemName: input.linkedItemName } : {}),
     },
+  });
+
+  await addTransaction(userId, budget.id, {
+    type: TransactionTypes.Expense,
+    amount: input.principal,
+    date: input.startDate,
+    accountId: account.id,
+    categoryId: null,
+    payeeId: null,
+    notes: 'Initial Balance',
+    isCorrection: true,
+    source: 'mcp',
   });
 
   const monthlyRate = input.interestRate / 100 / 12;

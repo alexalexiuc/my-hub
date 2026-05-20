@@ -198,10 +198,16 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
       const loanSnapshot = isLoan
         ? await getLoanBalanceSnapshotForAccount(user.id, budgetId, account, { accountCurrencyById })
         : null;
-      // Loans store a negative balance (debt); use account.balance directly — it is already
-      // the right sign and adding it naturally subtracts from net worth.
-      // Other liabilities (credit cards etc.) store positive values and need sign-flip.
-      const bal = isLoan ? account.balance : (loanSnapshot?.balance ?? account.balance);
+      // For loans, display balance = -(remainingPrincipal + totalInterestRemaining), dynamically
+      // computed from actual payment history by the amortization service. This reflects the true
+      // total still owed and handles overpayments and floating rates correctly.
+      // Other liabilities (credit cards etc.) use account.balance directly.
+      const bal = loanSnapshot
+        ? -(
+            loanSnapshot.amortizationSummary.remainingPrincipal +
+            loanSnapshot.amortizationSummary.totalInterestRemaining
+          )
+        : account.balance;
       const isOtherLiability = !isLoan && LIABILITY_TYPES.has(account.type);
       const includedInAvailable = isIncludedInAvailable(account.type, prefs.get(account.id) ?? null);
       if (!account.archived) {
@@ -243,10 +249,6 @@ export const POST = route({ body: accountCreateSchema, response: accountMutation
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
-  // Loans store a negative balance: -principal at creation, moving toward 0 as debt is repaid.
-  // This lets standard transfer logic work — each repayment adds a positive amount to the
-  // negative balance. No correction transaction is created for loans.
-  // Other accounts: balance starts at openingBalance and a correction transaction records it.
   const isLoan = body.type === AccountTypes.Loan;
   const openingBal = isLoan ? -((body.details as LoanAccountDetails).principal ?? 0) : (body.openingBalance ?? 0);
 
@@ -255,13 +257,12 @@ export const POST = route({ body: accountCreateSchema, response: accountMutation
     description: body.description?.trim() || null,
     type: body.type as AccountType,
     currency: body.currency,
-    openingBalance: openingBal,
-    balance: openingBal,
+    balance: 0,
     archived: false,
     details: body.details ?? null,
   });
 
-  if (!isLoan && openingBal !== 0) {
+  if (openingBal !== 0) {
     await addTransaction(user.id, budget.id, {
       type: openingBal > 0 ? TransactionTypes.Income : TransactionTypes.Expense,
       accountId: account.id,

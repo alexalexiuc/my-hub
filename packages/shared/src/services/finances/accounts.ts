@@ -11,7 +11,7 @@
  * - setAccountAvailableInclusion(userId, budgetId, accountId, include) — stores or removes a preference row; no-op if the value matches the default
  * - deleteAllUserAvailableOverrides(userId) — removes all availability preferences for a user (used by delete-all-data flow)
  * - getAllAccountIds() — system maintenance: returns all account IDs across all budgets (worker use only)
- * - recalculateAccountBalance(accountId) — system maintenance: recomputes balance from openingBalance + full transaction history (corrections included); for loans openingBalance equals the original principal; returns the new balance
+ * - recalculateAccountBalance(accountId) — system maintenance: recomputes balance from full transaction history (corrections included); returns the new balance
  * Types: AccountInsert, AccountUpdate, GetAccountsOpts, NetWorthSnapshot
  */
 import { and, desc, eq, sql } from 'drizzle-orm';
@@ -36,10 +36,7 @@ export interface NetWorthSnapshot {
 
 export type AccountInsert = Omit<NewFinanceAccount, 'id' | 'budgetId' | 'createdAt' | 'updatedAt'>;
 export type AccountUpdate = Partial<
-  Pick<
-    AccountInsert,
-    'name' | 'description' | 'type' | 'currency' | 'openingBalance' | 'balance' | 'archived' | 'details'
-  >
+  Pick<AccountInsert, 'name' | 'description' | 'type' | 'currency' | 'balance' | 'archived' | 'details'>
 >;
 
 export interface GetAccountsOpts {
@@ -258,17 +255,16 @@ export async function getAllAccountIds(): Promise<number[]> {
 
 /**
  * System maintenance: recomputes a single account's balance from scratch using
- * openingBalance + net transaction history (including user corrections). No user auth
+ * the full transaction history (including user corrections). No user auth
  * required — intended for use by the worker only.
  *
  * Balance formula:
- *   openingBalance  (stored on the account row; for loans this equals the original principal)
- *   + SUM(income transactions where accountId = account.id: amount)
+ *   SUM(income transactions where accountId = account.id: amount)
  *   - SUM(expense/transfer transactions where accountId = account.id: amount)
  *   + SUM(transfer transactions where toAccountId = account.id: amount * toExchangeRate)
  *
  * Correction transactions are included — they represent intentional balance adjustments
- * (e.g. catching a missed expense) and must be part of the running total.
+ * (e.g. opening balance, reconciliation) and must be part of the running total.
  *
  * Returns the new balance, or null if the account does not exist.
  */
@@ -278,7 +274,6 @@ export async function recalculateAccountBalance(
   const [account] = await db
     .select({
       name: financeAccounts.name,
-      openingBalance: financeAccounts.openingBalance,
       balance: financeAccounts.balance,
     })
     .from(financeAccounts)
@@ -302,10 +297,7 @@ export async function recalculateAccountBalance(
       and(eq(financeTransactions.toAccountId, accountId), eq(financeTransactions.type, TransactionTypes.Transfer)),
     );
 
-  // Loans store a negative opening balance (-principal); repayment transfers add positive
-  // amounts to it, naturally moving toward zero. No sign-flip needed here.
-  const newBalance =
-    Math.round((account.openingBalance + (fromEffect?.net ?? 0) + (toEffect?.net ?? 0)) * 10000) / 10000;
+  const newBalance = Math.round(((fromEffect?.net ?? 0) + (toEffect?.net ?? 0)) * 10000) / 10000;
 
   await db
     .update(financeAccounts)

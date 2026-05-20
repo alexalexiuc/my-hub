@@ -72,7 +72,6 @@ export const financeAccounts = pgTable(
     description: text('description'),
     type: text('type').$type<AccountType>().notNull(),
     currency: text('currency').$type<SupportedCurrency>().notNull(),
-    openingBalance: numericCasted('opening_balance', { precision: 18, scale: 4 }).notNull().default(0),
     // Running balance — updated on every transaction insert/update/delete.
     // For Investment/Tracking: manually-overridden current value.
     balance: numericCasted('balance', { precision: 18, scale: 4 }).notNull().default(0),
