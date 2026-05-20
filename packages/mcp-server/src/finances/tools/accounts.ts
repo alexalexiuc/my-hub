@@ -263,7 +263,7 @@ export const addLoanTool: ToolHandler<typeof AddLoanSchema.shape> = async (input
   });
 
   const monthlyRate = input.interestRate / 100 / 12;
-  const loanSummary = buildLoanSummary(getAccountDetails('loan', account.details), 0, 0, currentDateString());
+  const loanSummary = buildLoanSummary(getAccountDetails('loan', account.details), 0, currentDateString());
   return toolResponse(
     omitUndefined({
       id: account.id,

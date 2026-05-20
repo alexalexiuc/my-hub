@@ -88,6 +88,8 @@ describe('calculateLoanAmortizationSummary', () => {
 });
 
 describe('buildLoanSummary', () => {
+  // base loan: startDate 2024-01-01, 24 months
+  // with today = '2024-06-01' → 5 months elapsed → k=5
   const today = '2024-06-01';
   const base: LoanAccountDetails = {
     type: 'loan',
@@ -98,37 +100,44 @@ describe('buildLoanSummary', () => {
   };
 
   it('full params: remainingPrincipal + remainingInterest === remainingObligation (±rounding)', () => {
-    const summary = buildLoanSummary(base, 5, 2700, today);
+    const summary = buildLoanSummary(base, 2700, today);
     expect(summary.paramsIncomplete).toBeUndefined();
+    expect(summary.paymentsCompleted).toBe(5);
     expect(summary.remainingPrincipal).toBeDefined();
     expect(summary.remainingInterest).toBeDefined();
     expect(summary.remainingPrincipal! + summary.remainingInterest!).toBeCloseTo(summary.remainingObligation, 1);
   });
 
+  it('projectedPayoffDate is startDate + termMonths (fixed, not derived from today)', () => {
+    const summary = buildLoanSummary(base, 0, today);
+    expect(summary.projectedPayoffDate).toBe('2026-01-01');
+  });
+
   it('missing params (null details): paramsIncomplete true, no crash, omits remainingPrincipal/Interest', () => {
-    const summary = buildLoanSummary(null, 3, 300, today);
+    const summary = buildLoanSummary(null, 300, today);
     expect(summary.paramsIncomplete).toBe(true);
     expect(summary.remainingPrincipal).toBeUndefined();
     expect(summary.remainingInterest).toBeUndefined();
     expect(summary.totalPaid).toBe(300);
-    expect(summary.paymentsCompleted).toBe(3);
+    expect(summary.paymentsCompleted).toBe(0);
   });
 
   it('missing params (null termMonths): paramsIncomplete true', () => {
     const partial = { ...base, termMonths: null as unknown as number };
-    const summary = buildLoanSummary(partial, 2, 200, today);
+    const summary = buildLoanSummary(partial, 200, today);
     expect(summary.paramsIncomplete).toBe(true);
     expect(summary.remainingPrincipal).toBeUndefined();
   });
 
-  it('k=0: remainingPrincipal === originalPrincipal', () => {
-    const summary = buildLoanSummary(base, 0, 0, today);
+  it('k=0 when today === startDate: remainingPrincipal === originalPrincipal', () => {
+    // today == startDate → 0 months elapsed → k=0
+    const summary = buildLoanSummary(base, 0, base.startDate);
     expect(summary.remainingPrincipal).toBe(summary.originalPrincipal);
     expect(summary.paymentsCompleted).toBe(0);
     expect(summary.paymentsRemaining).toBe(24);
   });
 
-  it('k=termMonths: remainingPrincipal ≈ 0', () => {
+  it('k=termMonths when today is at end of term: remainingPrincipal ≈ 0', () => {
     const details: LoanAccountDetails = {
       type: 'loan',
       principal: 10000,
@@ -136,12 +145,14 @@ describe('buildLoanSummary', () => {
       termMonths: 36,
       startDate: '2024-01-01',
     };
-    const summary = buildLoanSummary(details, 36, 0, today);
+    // 2027-01-01 is exactly 36 months after startDate → k=36=termMonths
+    const summary = buildLoanSummary(details, 0, '2027-01-01');
+    expect(summary.paymentsCompleted).toBe(36);
     expect(summary.remainingPrincipal).toBeCloseTo(0, 1);
     expect(summary.paymentsRemaining).toBe(0);
   });
 
-  it('r=0: linear principal reduction', () => {
+  it('r=0: linear schedule-based principal reduction', () => {
     const details: LoanAccountDetails = {
       type: 'loan',
       principal: 1200,
@@ -149,8 +160,10 @@ describe('buildLoanSummary', () => {
       termMonths: 12,
       startDate: '2024-01-01',
     };
-    // After 4 payments: remainingPrincipal = 1200 - 4*(1200/12) = 800
-    const summary = buildLoanSummary(details, 4, 400, today);
+    // 2024-05-01 is 4 months after startDate → k=4
+    // remainingPrincipal = 1200 - 4*(1200/12) = 800
+    const summary = buildLoanSummary(details, 400, '2024-05-01');
+    expect(summary.paymentsCompleted).toBe(4);
     expect(summary.remainingPrincipal).toBe(800);
     expect(summary.totalInterestScheduled).toBe(0);
     expect(summary.originalObligation).toBe(1200);
