@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { TransactionModal } from './transactions/TransactionModal';
 import type { BudgetDetailResponse } from '@/app/api/finances/budget/route';
+import { Button } from '@/components';
 
 interface NavItem {
   id: string;
@@ -96,12 +97,9 @@ export function FinancesSidebar() {
       {showAddTx && (
         <TransactionModal onCloseAction={() => setShowAddTx(false)} onSavedAction={() => setShowAddTx(false)} />
       )}
-      <button
-        onClick={() => setShowAddTx(true)}
-        className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border-none p-2.5 text-[13px] font-semibold bg-[var(--fin-accent)] text-[var(--fin-on-solid)]"
-      >
-        <span className="text-base">+</span> Add Transaction
-      </button>
+      <Button onClick={() => setShowAddTx(true)} variant="accent">
+        Add Transaction
+      </Button>
     </div>
   );
 }

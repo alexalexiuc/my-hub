@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn, apiFetch } from '@/lib/utils';
-import { fmt, Card, Divider, SectionLabel, AddButton, Sparkline, TYPE_META } from '../ui';
+import { fmt, Card, Divider, SectionLabel, AddButton, Sparkline, TYPE_META, SubText } from '../ui';
 import { IconButton } from '@/components';
 import { QuestionMarkIcon } from '@/components/icons';
 import { AddAccountModal } from './AddAccountModal';
@@ -53,7 +53,7 @@ function AccountCard({
           <div className="h-2 w-2 shrink-0 rounded-full bg-[var(--fin-muted)]" />
           <div className="min-w-0">
             <div className="text-sm font-semibold text-[var(--fin-text)] truncate">{acc.name}</div>
-            {acc.cardLastFour && <div className="text-[10px] text-[var(--fin-subtle)]">•••• {acc.cardLastFour}</div>}
+            {acc.cardLastFour && <SubText className="block">•••• {acc.cardLastFour}</SubText>}
           </div>
         </div>
         <div
@@ -85,9 +85,7 @@ function AccountCard({
         />
       )}
 
-      {acc.type === 'tracking' && (
-        <div className="text-[10px] text-[var(--fin-subtle)]">Manually tracked value · read-only</div>
-      )}
+      {acc.type === 'tracking' && <SubText className="block">Manually tracked value · read-only</SubText>}
 
       {acc.type === 'borrowed_lent' && <BorrowedLentDetails acc={acc} onSettle={onSettle} />}
     </div>
@@ -163,7 +161,7 @@ export default function AccountsPage() {
             onClick={() => setShowNetWorthSheet(true)}
             className="absolute right-[10px] top-[10px] bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
           />
-          <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Net Worth</div>
+          <SubText className="block mb-1.5 uppercase tracking-[0.08em]">Net Worth</SubText>
           <div className="mb-2 text-[15px] font-bold tracking-[-0.02em] text-[var(--fin-text)] break-all leading-tight">
             {fmt(netWorth, currency)}
           </div>
@@ -177,7 +175,7 @@ export default function AccountsPage() {
             onClick={() => setShowAvailableSheet(true)}
             className="absolute right-[10px] top-[10px] bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
           />
-          <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Available</div>
+          <SubText className="block mb-1.5 uppercase tracking-[0.08em]">Available</SubText>
           <div className="text-[15px] font-bold tracking-[-0.02em] text-[var(--fin-text)] break-all leading-tight">
             {fmt(availableBalance, currency)}
           </div>

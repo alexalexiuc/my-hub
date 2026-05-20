@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import type { CategoriesResponse, CategoryRow } from '@/app/api/finances/categories/route';
-import { Card, CategoryIcon, SectionLabel, fmt } from '../../ui';
+import { Card, CategoryIcon, SectionLabel, fmt, SubText } from '../../ui';
 import { TransactionList } from '../../transactions/TransactionList';
 import { Button } from '@/components';
 import { getCategoryFallbackLetter, normalizeYearMonth } from '../../finances.utils';
@@ -76,7 +76,7 @@ export default function CategoryDetailPage() {
         <Button variant="ghost" size="sm" onClick={() => router.push(backPath)}>
           ← Back
         </Button>
-        <span className="text-[11px] text-[var(--fin-subtle)]">{month}</span>
+        <SubText>{month}</SubText>
       </div>
 
       <Card className="p-[14px]">
@@ -89,25 +89,25 @@ export default function CategoryDetailPage() {
           />
           <div>
             <div className="text-[17px] font-bold text-[var(--fin-text)]">{category.name}</div>
-            {groupName && <div className="text-[11px] text-[var(--fin-subtle)]">{groupName}</div>}
+            {groupName && <SubText className="block">{groupName}</SubText>}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] p-2.5">
-            <div className="text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Spent</div>
+            <SubText className="block uppercase tracking-[0.08em]">Spent</SubText>
             <div className="text-[16px] font-semibold text-[var(--fin-text)]">{fmt(category.spent, currency)}</div>
           </div>
           <div className="rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] p-2.5">
-            <div className="text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Target</div>
+            <SubText className="block uppercase tracking-[0.08em]">Target</SubText>
             <div className="text-[16px] font-semibold text-[var(--fin-text)]">
               {target > 0 ? fmt(target, currency) : '—'}
             </div>
           </div>
         </div>
         {progress !== null && (
-          <div className="mt-2 text-[11px] text-[var(--fin-subtle)]">
+          <SubText className="block mt-2">
             Progress: <span className="font-semibold text-[var(--fin-text)]">{progress}%</span>
-          </div>
+          </SubText>
         )}
         {category.notes && <div className="mt-2 text-[12px] text-[var(--fin-muted)]">{category.notes}</div>}
       </Card>

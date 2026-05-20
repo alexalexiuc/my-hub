@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Divider, Bar } from '../ui';
+import { fmt, Card, SectionLabel, Divider, Bar, SubText } from '../ui';
 import type { ReportsData } from '@/app/api/finances/reports/route';
 import type { CategoriesResponse } from '@/app/api/finances/categories/route';
 
@@ -216,9 +216,9 @@ export default function CashflowPage() {
                     </div>
                     <div className="shrink-0 text-right">
                       <div className="text-[13px] font-semibold text-[var(--fin-text)]">{fmt(cat.spent, currency)}</div>
-                      <div className="text-[10px] text-[var(--fin-subtle)]">
+                      <SubText className="block">
                         {catData.totalSpent > 0 ? Math.round((cat.spent / catData.totalSpent) * 100) : 0}% of total
-                      </div>
+                      </SubText>
                     </div>
                   </div>
                 </div>

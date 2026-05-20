@@ -1,5 +1,6 @@
 /**
  * Loan amortization helpers
+ * - getMonthlyPayment(principal, monthlyRate, termMonths) — standard amortization payment formula (unrounded)
  * - calculateLoanAmortizationSummary(details, opts?) — computes schedule-derived and hybrid payment summary for a loan
  * - getLoanBalanceSnapshotForAccount(userId, budgetId, account, opts?) — computes remaining principal + amortization summary for a loan account
  * Types: LoanPaymentHistoryEntry, LoanAmortizationSummary, LoanBalanceSnapshot
@@ -71,7 +72,7 @@ function countScheduledPayments(startDate: string, asOfDate: string): number {
   return Math.max(0, months);
 }
 
-function getMonthlyPayment(principal: number, monthlyRate: number, termMonths: number): number {
+export function getMonthlyPayment(principal: number, monthlyRate: number, termMonths: number): number {
   if (termMonths <= 0) return 0;
   if (monthlyRate === 0) return principal / termMonths;
   return (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -termMonths));

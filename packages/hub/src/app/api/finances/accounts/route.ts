@@ -194,16 +194,19 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
   let availableBalance = 0;
   const accounts: AccountItem[] = await Promise.all(
     rawAccounts.map(async account => {
-      const loanSnapshot =
-        account.type === AccountTypes.Loan
-          ? await getLoanBalanceSnapshotForAccount(user.id, budgetId, account, { accountCurrencyById })
-          : null;
-      const bal = loanSnapshot?.balance ?? account.balance;
-      const isLiability = LIABILITY_TYPES.has(account.type);
+      const isLoan = account.type === AccountTypes.Loan;
+      const loanSnapshot = isLoan
+        ? await getLoanBalanceSnapshotForAccount(user.id, budgetId, account, { accountCurrencyById })
+        : null;
+      // Loans store a negative balance (debt); use account.balance directly — it is already
+      // the right sign and adding it naturally subtracts from net worth.
+      // Other liabilities (credit cards etc.) store positive values and need sign-flip.
+      const bal = isLoan ? account.balance : (loanSnapshot?.balance ?? account.balance);
+      const isOtherLiability = !isLoan && LIABILITY_TYPES.has(account.type);
       const includedInAvailable = isIncludedInAvailable(account.type, prefs.get(account.id) ?? null);
       if (!account.archived) {
-        netWorth += isLiability ? -bal : bal;
-        if (includedInAvailable) availableBalance += isLiability ? -bal : bal;
+        netWorth += isOtherLiability ? -bal : bal;
+        if (includedInAvailable) availableBalance += isOtherLiability ? -bal : bal;
       }
       return {
         id: account.id,
@@ -240,25 +243,30 @@ export const POST = route({ body: accountCreateSchema, response: accountMutation
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
-  const balanceNum = body.openingBalance ?? 0;
+  // Loans store a negative balance: -principal at creation, moving toward 0 as debt is repaid.
+  // This lets standard transfer logic work — each repayment adds a positive amount to the
+  // negative balance. No correction transaction is created for loans.
+  // Other accounts: balance starts at openingBalance and a correction transaction records it.
+  const isLoan = body.type === AccountTypes.Loan;
+  const openingBal = isLoan ? -((body.details as LoanAccountDetails).principal ?? 0) : (body.openingBalance ?? 0);
 
   const account = await createAccount(user.id, budget.id, {
     name: body.name.trim(),
     description: body.description?.trim() || null,
     type: body.type as AccountType,
     currency: body.currency,
-    openingBalance: balanceNum,
-    balance: balanceNum,
+    openingBalance: openingBal,
+    balance: openingBal,
     archived: false,
     details: body.details ?? null,
   });
 
-  if (balanceNum !== 0) {
+  if (!isLoan && openingBal !== 0) {
     await addTransaction(user.id, budget.id, {
-      type: balanceNum > 0 ? TransactionTypes.Income : TransactionTypes.Expense,
+      type: openingBal > 0 ? TransactionTypes.Income : TransactionTypes.Expense,
       accountId: account.id,
       toAccountId: null,
-      amount: Math.abs(balanceNum),
+      amount: Math.abs(openingBal),
       exchangeRate: 1,
       date: new Date().toISOString().slice(0, 10),
       categoryId: null,

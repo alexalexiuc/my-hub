@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Bar, Divider } from './ui';
+import { fmt, Card, SectionLabel, Bar, Divider, SubText } from './ui';
 import { CategoryPieChart, SpendingTrendChart } from './DashboardCharts';
 import { TransactionList } from './transactions/TransactionList';
 import type { FinanceDashboardData } from '@/app/api/finances/dashboard/route';
@@ -54,14 +54,14 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
       {/* Available balance + cashflow row */}
       <div className="grid gap-2.5 md:grid-cols-2">
         <Card className="p-[14px]">
-          <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Available</div>
+          <SubText className="block mb-1.5 uppercase tracking-[0.08em]">Available</SubText>
           <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">
             {fmt(availableBalance, currency)}
           </div>
         </Card>
 
         <Card className="p-[14px]">
-          <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">This Month</div>
+          <SubText className="block mb-1.5 uppercase tracking-[0.08em]">This Month</SubText>
           <div className="mt-1 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-[var(--fin-muted)]">Income</span>
@@ -149,7 +149,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
                 <div key={g.id} className="rounded-lg px-3 py-2.5 bg-[var(--fin-card2)]">
                   <div className="mb-1 text-[11px] text-[var(--fin-muted)]">{g.name}</div>
                   <div className="text-[15px] font-bold text-[var(--fin-text)]">{fmt(g.balance, currency)}</div>
-                  <div className="mb-1.5 text-[10px] text-[var(--fin-subtle)]">of {fmt(g.target, currency)}</div>
+                  <SubText className="block mb-1.5">of {fmt(g.target, currency)}</SubText>
                   <Bar value={g.balance} max={g.target} color={'var(--fin-green)'} height={4} />
                   <div className="mt-1 text-[10px] text-[var(--fin-green)]">{pct}%</div>
                 </div>

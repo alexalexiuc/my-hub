@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { Button, Pill } from '@/components';
+import { IconButton, Pill, SwipeRow } from '@/components';
+import { PencilIcon } from '@/components/icons';
 import type { PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 import type { PayeeReportItem } from '@/app/api/finances/payees/report/route';
-import { CategoryIcon, Divider, fmt, SectionLabel } from '../ui';
+import { CategoryIcon, Divider, fmt, SectionLabel, SubText } from '../ui';
 import { dateToString } from '@my-hub/shared/utils';
 
 type PayeeRowProps = {
@@ -10,6 +11,9 @@ type PayeeRowProps = {
   reportItem: PayeeReportItem | undefined;
   currency: string;
   showDivider: boolean;
+  isSwipeOpen: boolean;
+  onSwipeOpen: () => void;
+  onSwipeClose: () => void;
   onEdit: (payee: PayeeWithSuggestion) => void;
   onMerge: (payee: PayeeWithSuggestion) => void;
 };
@@ -59,7 +63,17 @@ function MergeIcon() {
   );
 }
 
-export function PayeeRow({ payee, reportItem, currency, showDivider, onEdit, onMerge }: PayeeRowProps) {
+export function PayeeRow({
+  payee,
+  reportItem,
+  currency,
+  showDivider,
+  isSwipeOpen,
+  onSwipeOpen,
+  onSwipeClose,
+  onEdit,
+  onMerge,
+}: PayeeRowProps) {
   const aliases = payee.aliases ?? [];
   const description = payee.description?.trim() || null;
   const categoryColor = reportItem?.categoryColor ?? 'var(--fin-muted)';
@@ -70,7 +84,11 @@ export function PayeeRow({ payee, reportItem, currency, showDivider, onEdit, onM
     <div>
       {showDivider && <Divider />}
 
-      <div data-layout="desktop" className="hidden grid-cols-[1fr_80px_90px] items-center px-[14px] py-[10px] md:grid">
+      {/* Desktop: hover to reveal actions */}
+      <div
+        data-layout="desktop"
+        className="group relative hidden grid-cols-[1fr_80px_90px] items-center px-[14px] py-[10px] md:grid"
+      >
         <div className="flex items-center gap-2.5">
           <CategoryIcon color={categoryColor} icon={reportItem?.categoryIcon} size="lg" />
           <div className="min-w-0">
@@ -104,25 +122,6 @@ export function PayeeRow({ payee, reportItem, currency, showDivider, onEdit, onM
                   All-time last: {lastOverall}
                 </SectionLabel>
               )}
-              <Button
-                type="button"
-                size="xs"
-                variant="transparent"
-                className="px-0 py-0 text-[var(--fin-accent)] hover:underline"
-                onClick={() => onEdit(payee)}
-              >
-                Edit
-              </Button>
-              <Button
-                type="button"
-                size="xs"
-                variant="transparent"
-                className="flex items-center gap-1 px-0 py-0 text-[var(--fin-muted)] hover:text-[var(--fin-accent)]"
-                onClick={() => onMerge(payee)}
-                title="Merge into this payee"
-              >
-                <MergeIcon />
-              </Button>
             </div>
           </div>
         </div>
@@ -133,74 +132,65 @@ export function PayeeRow({ payee, reportItem, currency, showDivider, onEdit, onM
         <div className="text-right text-[13px] font-semibold tabular-nums text-[var(--fin-text)]">
           {reportItem ? fmt(reportItem.totalSpent, currency) : '—'}
         </div>
+
+        <div className="pointer-events-none absolute inset-y-0 right-[14px] flex items-center opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+          <div className="flex items-center gap-1 rounded-md border border-[var(--fin-border)] bg-[var(--fin-card)] px-1.5 py-1 shadow-sm">
+            <IconButton
+              label="Edit"
+              icon={<PencilIcon className="size-3.5" />}
+              onClick={() => onEdit(payee)}
+              className="bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
+            />
+            <span className="h-3 w-px bg-[var(--fin-border)]" />
+            <IconButton
+              label="Merge into this payee"
+              icon={<MergeIcon />}
+              onClick={() => onMerge(payee)}
+              className="bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
+            />
+          </div>
+        </div>
       </div>
 
-      <div data-layout="mobile" className="px-4 py-3 md:hidden">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex min-w-0 items-start gap-2.5">
-            <CategoryIcon color={categoryColor} icon={reportItem?.categoryIcon} size="md" />
-            <div className="min-w-0">
-              <Link
-                href={`/finances/payees/${payee.id}`}
-                className="truncate text-[13px] font-semibold text-[var(--fin-accent)] hover:underline"
-              >
-                {payee.name}
-              </Link>
-              <div className="mt-1 flex flex-wrap gap-1.5">
-                <PayeeChips aliases={aliases} description={description} />
+      {/* Mobile: swipe to reveal edit + merge */}
+      <div data-layout="mobile" className="md:hidden">
+        <SwipeRow
+          isOpen={isSwipeOpen}
+          onOpen={onSwipeOpen}
+          onClose={onSwipeClose}
+          onEdit={() => onEdit(payee)}
+          secondAction={{ icon: <MergeIcon />, onClick: () => onMerge(payee) }}
+        >
+          <div className="bg-[var(--fin-card)] px-4 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <CategoryIcon color={categoryColor} icon={reportItem?.categoryIcon} size="md" />
+                <div className="min-w-0">
+                  <Link
+                    href={`/finances/payees/${payee.id}`}
+                    className="block truncate text-[13px] font-semibold text-[var(--fin-accent)] hover:underline"
+                  >
+                    {payee.name}
+                  </Link>
+                  {lastInRange && <SubText className="block">{lastInRange}</SubText>}
+                </div>
+              </div>
+
+              <div className="shrink-0 text-right">
+                {reportItem ? (
+                  <>
+                    <div className="text-[13px] font-semibold tabular-nums text-[var(--fin-text)]">
+                      {fmt(reportItem.totalSpent, currency)}
+                    </div>
+                    <SubText className="tabular-nums">{reportItem.txCount} txns</SubText>
+                  </>
+                ) : (
+                  <SubText className="block">No data</SubText>
+                )}
               </div>
             </div>
           </div>
-
-          <div className="text-right">
-            {reportItem ? (
-              <>
-                <div className="text-[13px] font-semibold tabular-nums text-[var(--fin-text)]">
-                  {fmt(reportItem.totalSpent, currency)}
-                </div>
-                <div className="text-[11px] tabular-nums text-[var(--fin-muted)]">{reportItem.txCount} txns</div>
-              </>
-            ) : (
-              <div className="text-[11px] text-[var(--fin-subtle)]">No data</div>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--fin-subtle)]">
-          {reportItem?.categoryName && (
-            <Pill color="var(--fin-subtle)" label={reportItem.categoryName} className="text-[10px]" />
-          )}
-          {lastInRange && <Pill color="var(--fin-subtle)" label={`Last: ${lastInRange}`} className="text-[10px]" />}
-          {payee.useCount > 0 && (
-            <Pill
-              color="var(--fin-subtle)"
-              label={`Used ${payee.useCount} time${payee.useCount === 1 ? '' : 's'}`}
-              className="text-[10px]"
-            />
-          )}
-          {lastOverall && lastOverall !== lastInRange && (
-            <Pill color="var(--fin-subtle)" label={`All-time: ${lastOverall}`} className="text-[10px]" />
-          )}
-          <Button
-            type="button"
-            size="xs"
-            variant="transparent"
-            className="px-0 py-0 text-[var(--fin-accent)] hover:underline"
-            onClick={() => onEdit(payee)}
-          >
-            Edit
-          </Button>
-          <Button
-            type="button"
-            size="xs"
-            variant="transparent"
-            className="flex items-center gap-1 px-0 py-0 text-[var(--fin-muted)] hover:text-[var(--fin-accent)]"
-            onClick={() => onMerge(payee)}
-            title="Merge into this payee"
-          >
-            <MergeIcon />
-          </Button>
-        </div>
+        </SwipeRow>
       </div>
     </div>
   );

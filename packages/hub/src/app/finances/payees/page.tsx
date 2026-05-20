@@ -35,6 +35,7 @@ export default function PayeesPage() {
   const [allPayees, setAllPayees] = useState<PayeeWithSuggestion[]>([]);
   const [editingPayee, setEditingPayee] = useState<PayeeWithSuggestion | null>(null);
   const [mergingPayee, setMergingPayee] = useState<PayeeWithSuggestion | null>(null);
+  const [openRowId, setOpenRowId] = useState<number | null>(null);
   const [payeesLoading, setPayeesLoading] = useState(true);
 
   const loadReport = useCallback(async (r: Range) => {
@@ -118,6 +119,9 @@ export default function PayeesPage() {
               reportItem={reportById.get(p.id)}
               currency={currency}
               showDivider={i > 0}
+              isSwipeOpen={openRowId === p.id}
+              onSwipeOpen={() => setOpenRowId(p.id)}
+              onSwipeClose={() => setOpenRowId(null)}
               onEdit={setEditingPayee}
               onMerge={setMergingPayee}
             />

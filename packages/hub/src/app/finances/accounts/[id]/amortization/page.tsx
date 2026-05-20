@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { apiFetch, cn } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Bar } from '../../../ui';
+import { fmt, Card, SectionLabel, Bar, SubText } from '../../../ui';
 import { LoanPaydownChart } from './LoanPaydownChart';
 import type { AmortizationData } from '@/app/api/finances/accounts/[id]/amortization/route';
 
@@ -91,9 +91,7 @@ export default function AmortizationPage() {
         </div>
         <div className="mt-4">
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fin-subtle)]">
-              Progress
-            </span>
+            <SubText className="font-semibold uppercase tracking-[0.08em]">Progress</SubText>
             <span className="text-[11px] font-semibold text-[var(--fin-green)]">
               {paidPct}% · {fmt(paidAmount, data.currency)} paid
             </span>

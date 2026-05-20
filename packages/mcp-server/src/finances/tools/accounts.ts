@@ -8,8 +8,10 @@ import {
   updateAccount,
   getAccountById,
   addTransaction,
+  getMonthlyPayment,
 } from '@my-hub/shared/services';
 import { AccountTypes, LentDirections } from '@my-hub/shared/constants';
+import { omitUndefined } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
 
 // ─── upsert_account ───────────────────────────────────────────────────────────
@@ -118,7 +120,7 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
     throw new HandledError(`details.type "${input.details.type}" does not match account type "${input.type}"`);
   }
 
-  const DETAILS_REQUIRED: string[] = ['loan', 'credit_card', 'borrowed_lent', 'goal', 'investment'];
+  const DETAILS_REQUIRED: string[] = ['credit_card', 'borrowed_lent', 'goal', 'investment'];
 
   let account;
 
@@ -136,6 +138,12 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
   } else {
     if (!input.name) throw new HandledError('name is required when creating an account');
     if (!input.type) throw new HandledError('type is required when creating an account');
+    if (input.type === AccountTypes.Loan) {
+      throw new HandledError(
+        'Use the finances_add_loan tool to create loan accounts. ' +
+          'It sets the opening balance from the principal automatically.',
+      );
+    }
     if (DETAILS_REQUIRED.includes(input.type) && !input.details) {
       throw new HandledError(
         `details is required when creating a "${input.type}" account. ` +
@@ -147,6 +155,9 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
       name: input.name,
       type: input.type,
       currency: input.currency ?? budget.defaultCurrency,
+      // openingBalance stays 0; the correction transaction (below) is the sole
+      // representation of the opening balance, which recalculateAccountBalance
+      // picks up via the transaction SUM.
       openingBalance: 0,
       balance: 0,
       archived: input.archived ?? false,
@@ -192,4 +203,67 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
     archived: finalAccount!.archived,
     ...(openingTx ? { openingTransaction: openingTx } : {}),
   });
+};
+
+// ─── add_loan ────────────────────────────────────────────────────────────────
+
+export const AddLoanSchema = z.object({
+  name: z.string().trim().min(1).describe('Account display name (e.g. "Car loan", "iPhone installment").'),
+  currency: supportedCurrencySchema
+    .optional()
+    .describe('Supported currency code (e.g. EUR, USD, MDL). Defaults to the budget default currency.'),
+  principal: z.number().positive().describe('Original loan amount disbursed.'),
+  interestRate: z
+    .number()
+    .min(0)
+    .describe('Annual interest rate in percent. Use 0 for interest-free installment plans.'),
+  termMonths: z.number().int().positive().describe('Total loan term in months.'),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .describe('Loan start / disbursement date (YYYY-MM-DD).'),
+  linkedItemName: z.string().optional().describe('Optional label for the purchased item (e.g. "iPhone 15 Pro").'),
+});
+
+export const addLoanTool: ToolHandler<typeof AddLoanSchema.shape> = async (input, context) => {
+  const { userId } = context;
+
+  const budget = await getUserActiveBudget(userId);
+  if (!budget) throw new HandledError('No active budget. Set an active budget in the Hub first.');
+
+  // Loans store a negative balance: -principal at creation, moving toward 0 as debt is repaid.
+  // Standard transfer logic applies — each repayment adds a positive amount to the negative
+  // balance. No correction transaction is created; the amortization service drives the display.
+  const account = await createAccount(userId, budget.id, {
+    name: input.name,
+    type: AccountTypes.Loan,
+    currency: input.currency ?? budget.defaultCurrency,
+    openingBalance: -input.principal,
+    balance: -input.principal,
+    archived: false,
+    details: {
+      type: 'loan',
+      principal: input.principal,
+      interestRate: input.interestRate,
+      termMonths: input.termMonths,
+      startDate: input.startDate,
+      ...(input.linkedItemName !== undefined ? { linkedItemName: input.linkedItemName } : {}),
+    },
+  });
+
+  const monthlyRate = input.interestRate / 100 / 12;
+  return toolResponse(
+    omitUndefined({
+      id: account.id,
+      name: account.name,
+      type: account.type,
+      currency: account.currency,
+      principal: input.principal,
+      interestRate: input.interestRate,
+      termMonths: input.termMonths,
+      startDate: input.startDate,
+      monthlyPayment: Math.round(getMonthlyPayment(input.principal, monthlyRate, input.termMonths) * 100) / 100,
+      linkedItemName: input.linkedItemName,
+    }),
+  );
 };

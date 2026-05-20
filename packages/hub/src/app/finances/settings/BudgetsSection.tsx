@@ -7,7 +7,7 @@ import { apiFetch } from '@/lib/utils';
 import { Button, Field, Input } from '@/components';
 import { FinancialDropdown } from '../FinancialDropdown';
 import { SupportedCurrencies, SupportedCurrency } from '@my-hub/shared/constants';
-import { Card, SectionLabel } from '../ui';
+import { Card, SectionLabel, SubText } from '../ui';
 import { CreateBudgetSchema, defaultCreateBudgetValues, type CreateBudgetValues } from '../finances-form.schema';
 import type { BudgetInfo } from '@/app/api/finances/budget/budget.schema';
 import type { BudgetCreateResponse } from '@/app/api/finances/budgets/route';
@@ -93,9 +93,9 @@ export function BudgetsSection({ onChanged }: BudgetsSectionProps) {
           >
             <div>
               <div className="text-[14px] font-medium text-[var(--fin-text)]">{b.name}</div>
-              <div className="text-[11px] text-[var(--fin-subtle)]">
+              <SubText className="block">
                 {b.defaultCurrency} · {b.isOwner ? 'Owner' : 'Member'}
-              </div>
+              </SubText>
             </div>
             {b.isActive ? (
               <span

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Divider, TYPE_META } from '../ui';
+import { fmt, Card, SectionLabel, Divider, TYPE_META, SubText } from '../ui';
 import type { NetWorthData } from '@/app/api/finances/networth/route';
 
 function NwChart({
@@ -120,9 +120,7 @@ export default function NetWorthPage() {
             </div>
           </>
         ) : (
-          <div className="text-[11px] text-[var(--fin-subtle)]">
-            History builds up monthly after the first snapshot.
-          </div>
+          <SubText className="block">History builds up monthly after the first snapshot.</SubText>
         )}
       </div>
 
@@ -155,7 +153,7 @@ export default function NetWorthPage() {
                     <span className="text-base">{meta?.icon ?? '•'}</span>
                     <div className="flex-1">
                       <div className="text-[13px] text-[var(--fin-text)]">{a.name}</div>
-                      <div className="text-[10px] text-[var(--fin-subtle)]">{meta?.label ?? a.type}</div>
+                      <SubText className="block">{meta?.label ?? a.type}</SubText>
                     </div>
                     <div className="text-sm font-semibold text-[var(--fin-text)]">{fmt(a.balance, a.currency)}</div>
                   </div>
@@ -183,7 +181,7 @@ export default function NetWorthPage() {
                     <span className="text-base">{meta?.icon ?? '•'}</span>
                     <div className="flex-1">
                       <div className="text-[13px] text-[var(--fin-text)]">{a.name}</div>
-                      <div className="text-[10px] text-[var(--fin-subtle)]">{meta?.label ?? a.type}</div>
+                      <SubText className="block">{meta?.label ?? a.type}</SubText>
                     </div>
                     <div className="text-sm font-semibold text-[var(--fin-red)]">-{fmt(a.balance, a.currency)}</div>
                   </div>

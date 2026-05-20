@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { Button } from '@/components';
-import { Card } from './ui';
+import { Card, SubText } from './ui';
 import type { AvailableBudget } from '@/app/api/finances/dashboard/route';
 import type { BudgetActivateBody } from '../api/finances/budgets/route';
 
@@ -49,9 +49,9 @@ export function BudgetSelectorScreen({ budgets, onActivated, onCreateNew }: Budg
             >
               <div>
                 <div className="text-[14px] font-medium text-[var(--fin-text)]">{b.name}</div>
-                <div className="text-[11px] text-[var(--fin-subtle)]">
+                <SubText className="block">
                   {b.defaultCurrency} · {b.isOwner ? 'Owner' : 'Member'}
-                </div>
+                </SubText>
               </div>
               <Button
                 size="sm"

@@ -98,30 +98,11 @@ export function MobileAmountKeypad({
       ))}
 
       {/* Cancel / Done */}
-      <div className="flex gap-1.5">
-        <Button
-          type="button"
-          variant="transparent"
-          size="sm"
-          onPointerDown={e => {
-            e.preventDefault();
-            onCancel();
-          }}
-          className="flex-1 rounded-[10px] py-2.5 text-sm font-medium text-[var(--fin-muted)] active:opacity-60"
-        >
+      <div className="flex gap-1.5 h-12">
+        <Button type="button" variant="transparent" size="md" onClick={onCancel} className="flex-1">
           Cancel
         </Button>
-        <Button
-          type="button"
-          variant="transparent"
-          size="sm"
-          onPointerDown={e => {
-            e.preventDefault();
-            onDone();
-          }}
-          className="flex-[2] rounded-[10px] py-2.5 text-sm font-semibold text-white active:opacity-80"
-          style={{ background: 'var(--fin-accent)' }}
-        >
+        <Button type="button" variant="accent" size="md" onClick={onDone} className="flex-[2] font-semibold">
           Done
         </Button>
       </div>

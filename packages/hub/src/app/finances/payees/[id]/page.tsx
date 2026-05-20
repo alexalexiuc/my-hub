@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import type { PayeesResponse, PayeeWithSuggestion } from '@/app/api/finances/payees/route';
-import { Card, SectionLabel, CategoryIcon } from '../../ui';
+import { Card, SectionLabel, SubText } from '../../ui';
 import { TransactionList } from '../../transactions/TransactionList';
 import { EditPayeeModal } from '../EditPayeeModal';
 import { Button } from '@/components';
@@ -64,10 +64,9 @@ export default function PayeeDetailPage() {
       <Card className="p-[14px]">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <CategoryIcon color="var(--fin-muted)" size="lg" />
             <div>
               <div className="text-[17px] font-bold text-[var(--fin-text)]">{payee.name}</div>
-              {payee.description && <div className="text-[11px] text-[var(--fin-subtle)]">{payee.description}</div>}
+              {payee.description && <SubText className="block">{payee.description}</SubText>}
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>
@@ -76,7 +75,16 @@ export default function PayeeDetailPage() {
         </div>
 
         {payee.aliases.length > 0 && (
-          <div className="mt-3 text-[11px] text-[var(--fin-subtle)]">Aliases: {payee.aliases.join(', ')}</div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {payee.aliases.map(alias => (
+              <span
+                key={alias}
+                className="rounded-full border border-[var(--fin-border)] px-2.5 py-0.5 text-[12px] text-[var(--fin-muted)]"
+              >
+                {alias}
+              </span>
+            ))}
+          </div>
         )}
       </Card>
 

@@ -87,6 +87,15 @@ export function SectionLabel({ children, className }: { children: React.ReactNod
   );
 }
 
+type SubTextProps = React.HTMLAttributes<HTMLSpanElement>;
+export function SubText({ children, className, ...rest }: SubTextProps) {
+  return (
+    <span className={cn('text-[11px] text-[var(--fin-subtle)]', className)} {...rest}>
+      {children}
+    </span>
+  );
+}
+
 export function Bar({
   value,
   max,
@@ -331,7 +340,7 @@ export function renderAccountOption(
           archived
         </span>
       )}
-      {acc && <span className="ml-auto shrink-0 text-[10px] text-[var(--fin-subtle)]">{acc.currency}</span>}
+      {acc && <SubText className="ml-auto shrink-0">{acc.currency}</SubText>}
     </span>
   );
 }

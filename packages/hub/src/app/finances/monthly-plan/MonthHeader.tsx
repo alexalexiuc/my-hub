@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { cn, apiFetch } from '@/lib/utils';
 import { Button } from '@/components';
-import { SectionLabel, MonthCarousel } from '../ui';
+import { SectionLabel, MonthCarousel, SubText } from '../ui';
 import type { MonthlyPlanCopyResponse } from '@/app/api/finances/monthly-plans/[month]/copy-next/route';
 
 type MonthHeaderProps = {
@@ -76,9 +76,7 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
       {/* Desktop */}
       <div data-layout="desktop" className="mb-5 hidden items-center justify-between md:flex">
         <div>
-          <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--fin-subtle)]">
-            Monthly Plan
-          </div>
+          <SubText className="block mb-0.5 font-semibold uppercase tracking-widest">Monthly Plan</SubText>
           <MonthCarousel month={month} onNavigate={onNavigate} />
         </div>
         <div className="flex items-center gap-2">

@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Input, Pill, IconButton } from '@/components';
 import { PlusOutlineIcon, PencilIcon, ArchiveBoxIcon } from '@/components/icons';
 import { cn, apiFetch } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Bar, TYPE_META } from '../ui';
+import { fmt, Card, SectionLabel, Bar, TYPE_META, SubText } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { TransactionList } from '../transactions/TransactionList';
 import { EditAccountModal } from './EditAccountModal';
@@ -233,7 +233,6 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
           isLiability ? 'text-[var(--fin-red)]' : 'text-[var(--fin-text)]',
         )}
       >
-        {acc.type === 'loan' ? '-' : ''}
         {fmt(acc.balance, acc.currency)}
       </div>
 
@@ -260,11 +259,11 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
       {acc.type === 'investment' && acc.deposited != null && (
         <div className="flex gap-5">
           <div>
-            <div className="text-[10px] text-[var(--fin-subtle)]">Deposited</div>
+            <SubText className="block">Deposited</SubText>
             <div className="text-[var(--fin-muted)]">{fmt(acc.deposited, acc.currency)}</div>
           </div>
           <div>
-            <div className="text-[10px] text-[var(--fin-subtle)]">Unrealised P&L</div>
+            <SubText className="block">Unrealised P&L</SubText>
             <div className={acc.balance >= acc.deposited ? 'text-[var(--fin-green)]' : 'text-[var(--fin-red)]'}>
               {acc.balance >= acc.deposited ? '+' : '-'}
               {fmt(Math.abs(acc.balance - acc.deposited), acc.currency)}
@@ -279,15 +278,15 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
         <div className="flex gap-5">
           {acc.interestRate != null && (
             <div>
-              <div className="text-[10px] text-[var(--fin-subtle)]">Rate</div>
+              <SubText className="block">Rate</SubText>
               <div className="text-[var(--fin-muted)]">{acc.interestRate}%</div>
             </div>
           )}
           {acc.principal > 0 && (
             <div>
-              <div className="text-[10px] text-[var(--fin-subtle)]">Paid off</div>
+              <SubText className="block">Paid off</SubText>
               <div className="text-[var(--fin-green)]">
-                {Math.round(((acc.principal - acc.balance) / acc.principal) * 100)}%
+                {Math.round(((acc.principal + acc.balance) / acc.principal) * 100)}%
               </div>
             </div>
           )}
@@ -298,7 +297,7 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
         <div className="flex gap-5">
           {acc.direction && (
             <div>
-              <div className="text-[10px] text-[var(--fin-subtle)]">Direction</div>
+              <SubText className="block">Direction</SubText>
               <div
                 className={cn(
                   'font-semibold',
@@ -311,13 +310,13 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
           )}
           {acc.counterpartyName && (
             <div>
-              <div className="text-[10px] text-[var(--fin-subtle)]">With</div>
+              <SubText className="block">With</SubText>
               <div className="text-[var(--fin-muted)]">{acc.counterpartyName}</div>
             </div>
           )}
           {acc.dueDate && (
             <div>
-              <div className="text-[10px] text-[var(--fin-subtle)]">Due</div>
+              <SubText className="block">Due</SubText>
               <div className="text-[var(--fin-amber)]">{acc.dueDate}</div>
             </div>
           )}

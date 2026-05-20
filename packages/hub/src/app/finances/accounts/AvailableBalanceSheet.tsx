@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { fmt, Divider, AmountText } from '../ui';
+import { fmt, Divider, AmountText, SubText } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { ACCOUNT_TYPE_NAMES, LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
@@ -26,9 +26,9 @@ function AccountListSection({ accounts, currency, included, onToggle }: AccountL
   if (!accounts.length) return null;
   return (
     <div className={included ? 'mb-4' : undefined}>
-      <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--fin-subtle)]">
+      <SubText className="block mb-2 font-semibold uppercase tracking-wider">
         {included ? 'Included' : 'Excluded'}
-      </div>
+      </SubText>
       <div className="overflow-hidden rounded-[10px] border border-[var(--fin-border)]">
         {accounts.map((acc, i) => {
           const isLiability = LIABILITY_ACCOUNT_TYPES.has(acc.type as AccountType);
@@ -48,9 +48,7 @@ function AccountListSection({ accounts, currency, included, onToggle }: AccountL
                   >
                     {acc.name}
                   </div>
-                  <div className="text-[10px] text-[var(--fin-subtle)]">
-                    {ACCOUNT_TYPE_NAMES[acc.type as AccountType]}
-                  </div>
+                  <SubText className="block">{ACCOUNT_TYPE_NAMES[acc.type as AccountType]}</SubText>
                 </div>
                 {included ? (
                   <AmountText value={isLiability ? -acc.balance : acc.balance} currency={currency} size="sm" sign />

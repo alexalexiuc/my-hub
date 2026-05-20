@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
-import { fmt, Card, Divider } from '../ui';
+import { fmt, Card, Divider, SubText } from '../ui';
 import { CatRow } from './CatRow';
 import type { CategoryGroup, CategoryRow } from '@/app/api/finances/categories/route';
 
@@ -56,7 +56,7 @@ export function GroupSection({
             className="flex cursor-pointer items-center gap-1 border-none bg-transparent p-0"
           >
             <span className="text-[13px] font-semibold text-[var(--fin-text)]">{group.name}</span>
-            <span className="text-[10px] text-[var(--fin-subtle)]">{collapsed ? '▶' : '▾'}</span>
+            <SubText>{collapsed ? '▶' : '▾'}</SubText>
           </button>
           {/* Always visible on mobile, hover-only on desktop */}
           <div className="flex items-center gap-0.5 transition-opacity md:opacity-0 md:group-hover/header:opacity-100">
@@ -78,9 +78,9 @@ export function GroupSection({
         </div>
         <div className="flex items-center gap-2">
           {groupTarget > 0 && (
-            <span className="text-[11px] text-[var(--fin-subtle)]">
+            <SubText>
               {fmt(groupSpent, currency)} / {fmt(groupTarget, currency)}
-            </span>
+            </SubText>
           )}
           {groupPct !== null && (
             <span

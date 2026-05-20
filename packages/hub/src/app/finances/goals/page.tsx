@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
-import { fmt, Card, Bar } from '../ui';
+import { fmt, Card, Bar, SubText } from '../ui';
 import { TransactionModal } from '../transactions/TransactionModal';
 import { AddGoalModal } from './AddGoalModal';
 import type { GoalsResponse } from '@/app/api/finances/goals/route';
@@ -112,13 +112,13 @@ export default function GoalsPage() {
                 <div className="mb-[3px] text-[15px] font-semibold text-[var(--fin-text)]">{g.name}</div>
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-bold text-[var(--fin-text)]">{fmt(g.balance, g.currency)}</span>
-                  <span className="text-[11px] text-[var(--fin-subtle)]">of {fmt(g.targetAmount, g.currency)}</span>
+                  <SubText>of {fmt(g.targetAmount, g.currency)}</SubText>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-xl font-bold text-[var(--fin-green)]">{pct}%</div>
                 {g.projectedMonths != null && (
-                  <div className="mt-0.5 text-[10px] text-[var(--fin-subtle)]">~{projectedDate(g.projectedMonths)}</div>
+                  <SubText className="block mt-0.5">~{projectedDate(g.projectedMonths)}</SubText>
                 )}
               </div>
             </div>

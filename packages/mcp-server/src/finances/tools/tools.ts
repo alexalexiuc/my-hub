@@ -23,7 +23,7 @@ import {
   getNetWorthSummaryTool,
 } from './reporting';
 import { ListContextSchema, listContextTool } from './context';
-import { UpsertAccountSchema, upsertAccountTool } from './accounts';
+import { UpsertAccountSchema, upsertAccountTool, AddLoanSchema, addLoanTool } from './accounts';
 import {
   ListPayeesSchema,
   listPayeesTool,
@@ -55,10 +55,22 @@ const financeTools = [
       'Omit id to create; provide id to update only the fields you supply. ' +
       'Use openingBalance + openingDate to record a starting balance as a correction transaction — ' +
       'this does not overwrite existing transaction history. ' +
-      'Loan and credit card accounts accept negative opening balances.',
+      'To create a loan account use finances_add_loan instead.',
     inputSchema: UpsertAccountSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: upsertAccountTool,
+  }),
+  defineTool({
+    name: 'finances_add_loan',
+    description:
+      'Create a loan account from the key loan parameters. ' +
+      'The opening balance is set automatically from the principal — do not use finances_upsert_account for loans. ' +
+      'Record each repayment as a transfer from your bank/cash account to this loan account using finances_add_transactions. ' +
+      'The amortization schedule (remaining principal, monthly payment, payoff date) is computed automatically and ' +
+      'visible in the Hub under the account detail view.',
+    inputSchema: AddLoanSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: addLoanTool,
   }),
   defineTool({
     name: 'finances_upsert_category',

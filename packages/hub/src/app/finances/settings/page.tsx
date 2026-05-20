@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import { Button, Input } from '@/components';
-import { Card, SectionLabel } from '../ui';
+import { Card, SectionLabel, SubText } from '../ui';
 import { ClaudePromptSection } from './ClaudePromptSection';
 import { BudgetsSection } from './BudgetsSection';
 import type { BudgetDetailResponse } from '@/app/api/finances/budget/route';
@@ -107,7 +107,7 @@ export default function FinancesSettingsPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-[13px] font-medium text-[var(--fin-text)]">{m.name ?? m.email}</div>
-                      {m.name && <div className="text-[11px] text-[var(--fin-subtle)]">{m.email}</div>}
+                      {m.name && <SubText className="block">{m.email}</SubText>}
                     </div>
                     {isCreator && (
                       <span
@@ -135,7 +135,7 @@ export default function FinancesSettingsPage() {
 
             {data.budget.isOwner && (
               <div className="mt-4 border-t border-[var(--fin-border)] pt-4">
-                <div className="mb-1.5 text-[11px] text-[var(--fin-subtle)]">Invite member by email</div>
+                <SubText className="block mb-1.5">Invite member by email</SubText>
                 <div className="flex gap-2">
                   <Input
                     value={inviteEmail}
@@ -169,7 +169,7 @@ export default function FinancesSettingsPage() {
           <ClaudePromptSection budget={data.budget} />
 
           {/* Danger zone */}
-          <Card compact className="p-[18px]" style={{ border: `1px solid var(--fin-red)33` }}>
+          <Card className="p-[18px]" style={{ border: `1px solid var(--fin-red)33` }}>
             <SectionLabel className="mb-2 text-[var(--fin-red)]">Danger zone</SectionLabel>
             <p className="mb-3 text-xs text-[var(--fin-muted)]">
               Permanently deletes this budget and all associated accounts, categories, and transactions. This cannot be

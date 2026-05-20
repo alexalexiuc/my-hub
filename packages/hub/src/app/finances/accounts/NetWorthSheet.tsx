@@ -1,6 +1,6 @@
 'use client';
 
-import { fmt, Divider, AmountText } from '../ui';
+import { fmt, Divider, AmountText, SubText } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { ACCOUNT_TYPE_NAMES, LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
@@ -29,7 +29,7 @@ export function NetWorthSheet({ accounts, netWorth, currency, onClose }: NetWort
 
       {assets.length > 0 && (
         <div className="mb-4">
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--fin-subtle)]">Assets</div>
+          <SubText className="block mb-2 font-semibold uppercase tracking-wider">Assets</SubText>
           <div className="overflow-hidden rounded-[10px] border border-[var(--fin-border)]">
             {assets.map((acc, i) => (
               <div key={acc.id}>
@@ -37,9 +37,7 @@ export function NetWorthSheet({ accounts, netWorth, currency, onClose }: NetWort
                 <div className="flex items-center gap-3 px-3 py-2.5">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] font-medium text-[var(--fin-text)]">{acc.name}</div>
-                    <div className="text-[10px] text-[var(--fin-subtle)]">
-                      {ACCOUNT_TYPE_NAMES[acc.type as AccountType]}
-                    </div>
+                    <SubText className="block">{ACCOUNT_TYPE_NAMES[acc.type as AccountType]}</SubText>
                   </div>
                   <AmountText value={acc.balance} currency={currency} size="sm" />
                 </div>
@@ -51,9 +49,7 @@ export function NetWorthSheet({ accounts, netWorth, currency, onClose }: NetWort
 
       {liabilities.length > 0 && (
         <div>
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--fin-subtle)]">
-            Liabilities
-          </div>
+          <SubText className="block mb-2 font-semibold uppercase tracking-wider">Liabilities</SubText>
           <div className="overflow-hidden rounded-[10px] border border-[var(--fin-border)]">
             {liabilities.map((acc, i) => (
               <div key={acc.id}>
@@ -61,9 +57,7 @@ export function NetWorthSheet({ accounts, netWorth, currency, onClose }: NetWort
                 <div className="flex items-center gap-3 px-3 py-2.5">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] font-medium text-[var(--fin-text)]">{acc.name}</div>
-                    <div className="text-[10px] text-[var(--fin-subtle)]">
-                      {ACCOUNT_TYPE_NAMES[acc.type as AccountType]}
-                    </div>
+                    <SubText className="block">{ACCOUNT_TYPE_NAMES[acc.type as AccountType]}</SubText>
                   </div>
                   <AmountText value={-acc.balance} currency={currency} size="sm" sign />
                 </div>

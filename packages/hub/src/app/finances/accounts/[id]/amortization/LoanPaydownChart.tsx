@@ -1,5 +1,5 @@
 import type { ScheduleRow } from '@/app/api/finances/accounts/[id]/amortization/route';
-import { fmt } from '../../../ui';
+import { fmt, SubText } from '../../../ui';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 type LoanPaydownChartProps = {
@@ -31,7 +31,7 @@ export function LoanPaydownChart({ rows, principal, currency, height = 110 }: Lo
   return (
     <div className="w-full">
       <div className="mb-2 flex items-center justify-between">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fin-subtle)]">Paydown</div>
+        <SubText className="block font-semibold uppercase tracking-[0.08em]">Paydown</SubText>
         <div className="text-[10px] font-semibold text-[var(--fin-green)]">{paidPct}% paid</div>
       </div>
 

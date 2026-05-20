@@ -5,6 +5,7 @@ import { Button, SwipeRow } from '@/components';
 import { TrashOutlineIcon } from '@/components/icons';
 import type { MonthlyPlanItem } from '@/app/api/finances/monthly-plans/[month]/route';
 import { fmtNum } from './monthly-plan.utils';
+import { SubText } from '../ui';
 
 function LinkedToChip({ item }: { item: MonthlyPlanItem }) {
   if (!item.linkedAccountName && !item.categoryName) {
@@ -59,7 +60,7 @@ export function PlanItemRow({ item, currency, onToggle, onDelete, onEdit, isOpen
         </span>
 
         <div className="text-right">
-          {isNonDefault && <span className="mr-1 text-[10px] text-[var(--fin-subtle)]">{item.currency}</span>}
+          {isNonDefault && <SubText className="mr-1">{item.currency}</SubText>}
           <span className="text-[13px] font-semibold tabular-nums text-[var(--fin-text)]">{fmtNum(item.amount)}</span>
         </div>
 
@@ -144,7 +145,7 @@ export function PlanItemRow({ item, currency, onToggle, onDelete, onEdit, isOpen
             </div>
             <div className="flex shrink-0 items-center gap-3">
               <div className="w-16 text-right text-[13px] font-semibold tabular-nums text-[var(--fin-text)]">
-                {isNonDefault && <span className="mr-0.5 text-[10px] text-[var(--fin-subtle)]">{item.currency}</span>}
+                {isNonDefault && <SubText className="mr-0.5">{item.currency}</SubText>}
                 {fmtNum(item.amount)}
               </div>
               <div

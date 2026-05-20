@@ -12,6 +12,8 @@ type SwipeRowProps = {
   onClose: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  /** Custom second action rendered instead of / alongside onDelete. */
+  secondAction?: { icon: React.ReactNode; onClick: () => void };
   /** Swipe-right action (e.g. mark done). Triggers at threshold; no persistent open state. */
   onComplete?: () => void;
   /** When true the swipe-right hint shows an undo icon (item is already done). */
@@ -25,6 +27,7 @@ export function SwipeRow({
   onClose,
   onEdit,
   onDelete,
+  secondAction,
   onComplete,
   completeDone,
   children,
@@ -32,7 +35,7 @@ export function SwipeRow({
   const contentRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
-  const hasActions = onEdit || onDelete;
+  const hasActions = onEdit || onDelete || secondAction;
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -116,6 +119,17 @@ export function SwipeRow({
               }}
             >
               <TrashIcon className="size-5" />
+            </button>
+          )}
+          {secondAction && (
+            <button
+              className="flex flex-1 items-center justify-center bg-[var(--fin-card2)] text-[var(--fin-muted)]"
+              onClick={() => {
+                onClose();
+                secondAction.onClick();
+              }}
+            >
+              {secondAction.icon}
             </button>
           )}
         </div>

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button, IconButton, Pill, SwipeRow } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
 import { cn, apiFetch } from '@/lib/utils';
-import { fmt, Divider, CategoryIcon, SectionLabel } from '../ui';
+import { fmt, Divider, CategoryIcon, SectionLabel, SubText } from '../ui';
 import { categoryIconEmoji } from '../categoryIcons';
 import { TransactionTypes } from '@my-hub/shared/constants';
 import { formatTransactionDate } from '../finances.utils';
@@ -138,7 +138,7 @@ export function TransactionList({
             ? `${tx.accountName} ↔ ${tx.toAccountName}`
             : (tx.payeeName ?? '—');
 
-        const desktopAccount = tx.accountName ?? '—';
+        const accountName = tx.accountName ?? '—';
         const desktopMemo = !tx.isCorrection ? (tx.notes ?? null) : null;
 
         const mobileLabel = tx.isCorrection
@@ -186,12 +186,8 @@ export function TransactionList({
                       {tx.labels?.slice(0, 2).map(lbl => (
                         <Pill key={lbl} label={lbl} color="var(--fin-accent)" />
                       ))}
-                      {(tx.labels?.length ?? 0) > 2 && (
-                        <span className="text-[10px] text-[var(--fin-subtle)]">+{(tx.labels?.length ?? 0) - 2}</span>
-                      )}
-                      {tx.notes && !tx.isCorrection && tx.payeeName && (
-                        <span className="truncate text-[11px] text-[var(--fin-subtle)]">{tx.accountName}</span>
-                      )}
+                      {(tx.labels?.length ?? 0) > 2 && <SubText>+{(tx.labels?.length ?? 0) - 2}</SubText>}
+                      <SubText className="truncate">{accountName}</SubText>
                     </div>
                   </div>
 
@@ -200,7 +196,7 @@ export function TransactionList({
                       {fmt(tx.amount, currency)}
                     </div>
                     <div className="flex items-center justify-end gap-1.5 mt-0.5">
-                      <span className="text-[10px] text-[var(--fin-subtle)]">{formatTransactionDate(tx.date)}</span>
+                      <SubText>{formatTransactionDate(tx.date)}</SubText>
                       <UserAvatar initials={tx.addedByInitials} />
                     </div>
                   </div>
@@ -218,9 +214,7 @@ export function TransactionList({
                 {tx.categoryName && <Pill label={tx.categoryName} color={catColor} />}
               </div>
 
-              <span className="w-[88px] shrink-0 text-right text-[11px] text-[var(--fin-subtle)]">
-                {formatTransactionDate(tx.date)}
-              </span>
+              <SubText className="w-[88px] shrink-0 text-right">{formatTransactionDate(tx.date)}</SubText>
 
               <span
                 className={cn(
@@ -236,17 +230,15 @@ export function TransactionList({
                 {tx.labels?.slice(0, 2).map(lbl => (
                   <Pill key={lbl} label={lbl} color="var(--fin-accent)" />
                 ))}
-                {(tx.labels?.length ?? 0) > 2 && (
-                  <span className="text-[10px] text-[var(--fin-subtle)]">+{(tx.labels?.length ?? 0) - 2}</span>
-                )}
+                {(tx.labels?.length ?? 0) > 2 && <SubText>+{(tx.labels?.length ?? 0) - 2}</SubText>}
                 <span className="min-w-0 truncate text-[12px] text-[var(--fin-subtle)]" title={desktopMemo ?? ''}>
                   {desktopMemo}
                 </span>
               </div>
 
-              <span className="w-[100px] shrink-0 truncate text-[11px] text-[var(--fin-subtle)]" title={desktopAccount}>
-                {desktopAccount}
-              </span>
+              <SubText className="w-[100px] shrink-0 truncate" title={accountName}>
+                {accountName}
+              </SubText>
 
               <div className="w-[120px] shrink-0 text-right">
                 <div className={cn('text-[13px] font-semibold tabular-nums', amountColorClass)}>

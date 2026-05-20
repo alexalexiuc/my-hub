@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils';
 import { SwipeRow } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
-import { fmt, Bar, CategoryIcon } from '../ui';
+import { fmt, Bar, CategoryIcon, SubText } from '../ui';
 import type { CategoryRow } from '@/app/api/finances/categories/route';
 
 type CatRowProps = {
@@ -37,9 +37,7 @@ function CatRowContent({ cat, currency, onClick }: { cat: CategoryRow; currency:
         <CategoryIcon color={cat.color} icon={cat.icon} size="lg" fallback={cat.name[0]?.toUpperCase() ?? '?'} />
         <div className="min-w-0 flex-1">
           <div className="text-[13px] font-medium text-[var(--fin-text)]">{cat.name}</div>
-          {cat.monthlyTarget ? (
-            <div className="text-[10px] text-[var(--fin-subtle)]">Target {fmt(cat.monthlyTarget, currency)}/mo</div>
-          ) : null}
+          {cat.monthlyTarget ? <SubText className="block">Target {fmt(cat.monthlyTarget, currency)}/mo</SubText> : null}
         </div>
         <div className="text-right">
           <div

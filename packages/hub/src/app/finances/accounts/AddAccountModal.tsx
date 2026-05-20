@@ -7,7 +7,7 @@ import type { AccountMutationResponse, AccountCreateData } from '@/app/api/finan
 import { FinModalShell } from '../FinModalShell';
 import { Input } from '@/components';
 import { FinancialDropdown } from '../FinancialDropdown';
-import { FinFieldCard } from '../ui';
+import { FinFieldCard, SubText } from '../ui';
 import { AccountTypes, ACCOUNT_TYPE_DESCRIPTIONS, SupportedCurrency } from '@my-hub/shared/constants';
 import {
   AddAccountSchema,
@@ -95,9 +95,9 @@ export function AddAccountModal({ defaultCurrency, onClose, onCreated }: AddAcco
         </FinFieldCard>
 
         {type && ACCOUNT_TYPE_DESCRIPTIONS[type as keyof typeof ACCOUNT_TYPE_DESCRIPTIONS] && (
-          <p className="-mt-0.5 text-[11px] leading-[1.5] text-[var(--fin-subtle)]">
+          <SubText className="block -mt-0.5 leading-[1.5]">
             {ACCOUNT_TYPE_DESCRIPTIONS[type as keyof typeof ACCOUNT_TYPE_DESCRIPTIONS]}
-          </p>
+          </SubText>
         )}
 
         <FinFieldCard label="Description (optional)">

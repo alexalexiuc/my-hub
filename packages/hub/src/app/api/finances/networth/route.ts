@@ -1,11 +1,6 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
-import {
-  getUserActiveBudget,
-  getAccounts,
-  getNetWorthHistory,
-  getLoanBalanceSnapshotForAccount,
-} from '@my-hub/shared/services';
+import { getUserActiveBudget, getAccounts, getNetWorthHistory } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import { supportedCurrencySchema } from '../currency.schema';
 
@@ -49,19 +44,15 @@ export const GET = route({ response: netWorthResponseSchema })(async ({ user }) 
     getAccounts(user.id, budgetId),
     getNetWorthHistory(user.id, budgetId, 12),
   ]);
-  const accountCurrencyById = new Map(accounts.map(account => [account.id, account.currency]));
-
   let totalAssets = 0;
   let totalLiabilities = 0;
   const assets: NetWorthData['assets'] = [];
   const liabilities: NetWorthData['liabilities'] = [];
 
   for (const account of accounts) {
-    const loanSnapshot =
-      account.type === AccountTypes.Loan
-        ? await getLoanBalanceSnapshotForAccount(user.id, budgetId, account, { accountCurrencyById })
-        : null;
-    const balance = loanSnapshot?.balance ?? account.balance;
+    // Loans store a negative balance (-remaining principal). Take absolute value so
+    // totalLiabilities and the breakdown item show the conventional positive debt amount.
+    const balance = account.type === AccountTypes.Loan ? Math.abs(account.balance) : account.balance;
     const item = { id: account.id, name: account.name, type: account.type, balance, currency: account.currency };
     if (LIABILITY_TYPES.has(account.type)) {
       totalLiabilities += balance;

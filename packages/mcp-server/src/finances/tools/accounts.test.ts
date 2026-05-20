@@ -112,9 +112,9 @@ describe('upsertAccountTool', () => {
     );
   });
 
-  it('throws when creating a loan account without details', async () => {
+  it('throws when creating a loan account (redirects to add_loan tool)', async () => {
     await expect(upsertAccountTool({ ...baseInput, name: 'Car Loan', type: 'loan' }, financesContext)).rejects.toThrow(
-      'details is required when creating a "loan" account',
+      'Use the finances_add_loan tool to create loan accounts.',
     );
   });
 

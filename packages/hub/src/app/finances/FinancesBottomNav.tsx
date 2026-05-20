@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { PlusOutlineIcon } from '@/components/icons';
 import { TransactionModal } from './transactions/TransactionModal';
+import { SubText } from './ui';
 import type { BudgetDetailResponse } from '@/app/api/finances/budget/route';
 
 const LEFT_ITEMS = [
@@ -58,7 +59,7 @@ function MoreSheet({ onClose }: { onClose: () => void }) {
         )}
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--fin-border)]" />
-        <div className="mb-3 px-1 text-[11px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">More</div>
+        <SubText className="block mb-3 px-1 uppercase tracking-[0.08em]">More</SubText>
         <div className="grid grid-cols-2 gap-2">
           {MORE_ITEMS.map(({ id, icon, label, path }) => {
             const active = isActive(path);
