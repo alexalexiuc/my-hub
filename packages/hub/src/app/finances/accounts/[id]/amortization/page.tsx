@@ -1,18 +1,18 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { apiFetch, cn } from '@/lib/utils';
 import { fmt, Card, SectionLabel, SubText } from '../../../ui';
 import { LoanPaydownChart } from './LoanPaydownChart';
 import type { AmortizationData } from '@/app/api/finances/accounts/[id]/amortization/route';
+import { Button } from '@/components/Button';
 
 function fmtDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-IE', { month: 'short', year: 'numeric' });
 }
 
 export default function AmortizationPage() {
-  const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<AmortizationData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,12 +55,9 @@ export default function AmortizationPage() {
           <SectionLabel className="mb-0">Amortization Schedule</SectionLabel>
           <div className="truncate text-base font-bold text-[var(--fin-text)] md:text-lg">{data.name}</div>
         </div>
-        <button
-          onClick={() => router.push(`/finances/accounts/${id}`)}
-          className="shrink-0 cursor-pointer rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-1.5 text-xs font-semibold text-[var(--fin-muted)] hover:border-[var(--fin-accent)] hover:text-[var(--fin-accent)]"
-        >
+        <Button href={`/finances/accounts/${id}`} size="sm" variant="ghost">
           ← Back
-        </button>
+        </Button>
       </div>
 
       {/* Summary */}

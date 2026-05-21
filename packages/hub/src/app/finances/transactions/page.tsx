@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { AddButton, Card } from '../ui';
 import { Button } from '@/components';
@@ -89,32 +88,19 @@ export default function TransactionsPage() {
           <span>
             Imported {lastImport.count} transaction{lastImport.count !== 1 ? 's' : ''}
           </span>
-          <button onClick={handleUndo} className="text-[var(--fin-red)] font-medium cursor-pointer">
+          <Button variant="transparent" onClick={handleUndo} className="text-[var(--fin-red)] font-medium">
             Undo import
-          </button>
+          </Button>
         </div>
       )}
 
       {/* Type filter */}
       <div className="flex flex-wrap gap-1.5">
-        {FILTERS.map(({ key, label }) => {
-          const active = filter === key;
-          return (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={cn(
-                'cursor-pointer rounded-[20px] px-3 py-[5px] text-[11px]',
-                active
-                  ? 'bg-[var(--fin-accent-d)] text-[var(--fin-accent)] font-semibold'
-                  : 'bg-[var(--fin-card2)] text-[var(--fin-muted)]',
-              )}
-              style={{ border: active ? `1px solid var(--fin-accent)44` : `1px solid var(--fin-border)` }}
-            >
-              {label}
-            </button>
-          );
-        })}
+        {FILTERS.map(({ key, label }) => (
+          <Button key={key} active={filter === key} variant="fin-pill" size="xs" onClick={() => setFilter(key)}>
+            {label}
+          </Button>
+        ))}
       </div>
 
       <Card className="p-0 md:p-[14px]">

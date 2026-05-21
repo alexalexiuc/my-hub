@@ -45,7 +45,7 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
     <Button
       size="sm"
       onClick={handleBulkAssign}
-      disabled={bulkAssigning || itemCount === 0}
+      disabled={allDone || bulkAssigning || itemCount === 0}
       loading={bulkAssigning}
       className={cn(
         className,

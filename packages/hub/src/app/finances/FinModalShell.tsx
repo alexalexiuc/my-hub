@@ -107,15 +107,21 @@ export function FinModalShell({
         {children}
         {/* Desktop footer — inside scrollable card, after content */}
         {onSubmit && (
-          <div data-layout="desktop" className="mt-4 hidden gap-2 h-12 md:flex">
-            <Button type="button" variant="transparent" size="sm" className="flex-1" onClick={onClose}>
+          <div data-layout="desktop" className="mt-4 hidden gap-2 md:flex">
+            <Button
+              type="button"
+              variant="neutral"
+              size="sm"
+              className="flex-1 py-2.5 text-[13px] font-semibold hover:border-[var(--fin-red)] hover:text-[var(--fin-red)]"
+              onClick={onClose}
+            >
               Cancel
             </Button>
             <Button
               type="button"
               size="sm"
               variant="accent"
-              className="flex-[2]"
+              className="flex-[2] py-2.5 text-[13px]"
               disabled={submitDisabled}
               loading={submitLoading}
               onClick={onSubmit}
@@ -128,18 +134,21 @@ export function FinModalShell({
 
       {/* Mobile footer — pinned at bottom of full-screen, outside scrollable area */}
       {onSubmit && (
-        <div
-          data-layout="mobile"
-          className="flex shrink-0 gap-2 border-t border-[var(--fin-border)] p-2 h-16 md:hidden"
-        >
-          <Button type="button" variant="transparent" size="sm" className="flex-1" onClick={onClose}>
+        <div data-layout="mobile" className="flex shrink-0 gap-2 border-t border-[var(--fin-border)] p-2 md:hidden">
+          <Button
+            type="button"
+            variant="neutral"
+            size="sm"
+            className="flex-1 py-2.5 text-[13px] font-semibold hover:border-[var(--fin-red)] hover:text-[var(--fin-red)]"
+            onClick={onClose}
+          >
             Cancel
           </Button>
           <Button
             type="button"
             variant="accent"
             size="sm"
-            className="flex-[2]"
+            className="flex-[2] py-2.5 text-[13px]"
             disabled={submitDisabled}
             loading={submitLoading}
             onClick={onSubmit}

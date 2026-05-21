@@ -79,7 +79,7 @@ export function BudgetsSection({ onChanged }: BudgetsSectionProps) {
       <div className="mb-3 flex items-center justify-between">
         <SectionLabel>Budgets</SectionLabel>
         {!showCreate && (
-          <Button size="xs" variant="secondary" onClick={() => setShowCreate(true)}>
+          <Button size="sm" variant="secondary" onClick={() => setShowCreate(true)}>
             + New budget
           </Button>
         )}

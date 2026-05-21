@@ -8,6 +8,7 @@ import {
   updateAccount,
   getAccountById,
   addTransaction,
+  addCorrectionTransaction,
   getMonthlyPayment,
   getLoanSummaryForAccount,
   buildLoanSummary,
@@ -279,4 +280,59 @@ export const addLoanTool: ToolHandler<typeof AddLoanSchema.shape> = async (input
       loanSummary,
     }),
   );
+};
+
+// ─── correct_account_balance ──────────────────────────────────────────────────
+
+export const CorrectAccountBalanceSchema = z.object({
+  accountId: z
+    .number()
+    .int()
+    .positive()
+    .describe('ID of the account to correct. Use finances_list_context to look up the account ID.'),
+  targetBalance: z
+    .number()
+    .describe(
+      'The correct current balance the account should have. ' +
+        'Do NOT pre-compute the delta — send the actual balance value and the system will derive the correction amount atomically from the live database balance.',
+    ),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .describe('Date of the correction (YYYY-MM-DD).'),
+  notes: z
+    .string()
+    .optional()
+    .describe('Optional note to attach to the correction transaction. Defaults to "Balance Correction".'),
+});
+
+export const correctAccountBalanceTool: ToolHandler<typeof CorrectAccountBalanceSchema.shape> = async (
+  input,
+  context,
+) => {
+  const { userId } = context;
+
+  const budget = await getUserActiveBudget(userId);
+  if (!budget) throw new HandledError('No active budget. Set an active budget in the Hub first.');
+
+  const result = await addCorrectionTransaction(userId, budget.id, {
+    accountId: input.accountId,
+    targetBalance: input.targetBalance,
+    date: input.date,
+    notes: input.notes ?? 'Balance Correction',
+    source: 'mcp',
+  });
+
+  if (result == null) {
+    throw new HandledError('The account balance already matches the target — no correction needed.');
+  }
+
+  return toolResponse({
+    transactionId: result.transaction.id,
+    correctionAmount: result.correctionAmount,
+    type: result.type,
+    targetBalance: input.targetBalance,
+    balanceAfter: result.transaction.fromAccountBalanceAfter,
+    date: input.date,
+  });
 };

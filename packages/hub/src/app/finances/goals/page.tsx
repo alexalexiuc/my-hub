@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import { fmt, Card, Bar, SubText } from '../ui';
+import { Button } from '@/components';
 import { TransactionModal } from '../transactions/TransactionModal';
 import { AddGoalModal } from './AddGoalModal';
 import type { GoalsResponse } from '@/app/api/finances/goals/route';
@@ -76,12 +77,9 @@ export default function GoalsPage() {
       )}
       <div className="flex items-center justify-between">
         <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Goals</div>
-        <button
-          onClick={() => setShowAddGoal(true)}
-          className="cursor-pointer rounded-[20px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-1.5 text-[11px] text-[var(--fin-muted)]"
-        >
+        <Button variant="fin-pill" onClick={() => setShowAddGoal(true)} size="sm">
           + New Goal
-        </button>
+        </Button>
       </div>
 
       {/* Summary banner */}
@@ -139,15 +137,9 @@ export default function GoalsPage() {
               >
                 + Add Funds
               </button>
-              <button
-                onClick={e => {
-                  e.stopPropagation();
-                  router.push(`/finances/goals/${g.id}`);
-                }}
-                className="cursor-pointer rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-2 text-xs text-[var(--fin-muted)]"
-              >
+              <Button variant="neutral" size="sm" href={`/finances/goals/${g.id}`}>
                 Edit
-              </button>
+              </Button>
             </div>
           </Card>
         );

@@ -1,6 +1,7 @@
 /**
  * Finance transaction CRUD
  * - addTransaction(userId, budgetId, data) — inserts a transaction; updates account balances and payee stats
+ * - addCorrectionTransaction(userId, budgetId, data) — balance correction by target value; delta computed atomically from live DB balance; returns CorrectionResult or null if already at target
  * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (accountId, categoryId, type, fromDate, toDate, includeCorrections, search, label, amountGte, amountLte, limit, offset)
  * - getTransactionListItems(userId, budgetId, opts?) — same filters as getTransactions; returns pre-resolved display fields (accountName/Currency, toAccountName/Currency, categoryId/Name/Color/Icon, payeeId/Name, addedByUserId/Initials, createdAt, balances) via JOIN
  * - getTransactionListItemById(userId, budgetId, transactionId) — single TransactionListItem with resolved display fields; null if not found
@@ -9,7 +10,7 @@
  * - updateTransaction(userId, budgetId, transactionId, data) — partial update; recomputes account balances; adjusts payee stats when payeeId changes
  * - deleteTransaction(userId, budgetId, transactionId) — hard delete; reverses account balance effects; decrements payee stats
  * - checkDuplicateTransaction(userId, budgetId, opts) — checks for existing transaction matching (accountId, date, amount, payeeId)
- * Types: TransactionInsert, TransactionUpdate, GetTransactionsOpts, DuplicateCheckOpts, TransactionListItem
+ * Types: TransactionInsert, TransactionUpdate, GetTransactionsOpts, DuplicateCheckOpts, TransactionListItem, CorrectionInsert, CorrectionResult
  */
 import { and, desc, eq, gte, ilike, isNull, lte, or, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
@@ -402,6 +403,107 @@ export async function addTransaction(
   syncTransactionWithPlan(userId, budgetId, null, result).catch(err => {
     logger.error('Error syncing plan items after transaction insert:', err);
   });
+  return result;
+}
+
+export interface CorrectionInsert {
+  accountId: number;
+  targetBalance: number;
+  date: string;
+  notes?: string | null;
+  source: 'hub' | 'mcp';
+}
+
+export interface CorrectionResult {
+  transaction: FinanceTransaction;
+  /** Signed delta applied: positive = credit, negative = debit. */
+  correctionAmount: number;
+  type: string;
+}
+
+/**
+ * Create a balance-correction transaction by specifying the desired final balance.
+ * The delta is computed atomically inside a DB transaction against the live balance,
+ * preventing race conditions from stale UI or MCP data.
+ * Returns null if the account balance already equals targetBalance.
+ */
+export async function addCorrectionTransaction(
+  userId: string,
+  budgetId: number,
+  data: CorrectionInsert,
+): Promise<CorrectionResult | null> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const result = await db.transaction(async tx => {
+    const [account] = await tx
+      .select({ balance: financeAccounts.balance, currency: financeAccounts.currency })
+      .from(financeAccounts)
+      .where(and(eq(financeAccounts.id, data.accountId), eq(financeAccounts.budgetId, budgetId)));
+
+    if (!account) throw new Error('Account not found');
+
+    const delta = data.targetBalance - account.balance;
+
+    // Treat sub-0.0001 deltas as zero (matches 4-decimal DB precision)
+    if (Math.abs(delta) < 0.00005) return null;
+
+    const type = delta > 0 ? TransactionTypes.Income : TransactionTypes.Expense;
+    const amount = Math.round(Math.abs(delta) * 10000) / 10000;
+    const balanceAfter = Math.round(data.targetBalance * 10000) / 10000;
+
+    const [budget] = await tx
+      .select({ defaultCurrency: financeBudgets.defaultCurrency })
+      .from(financeBudgets)
+      .where(eq(financeBudgets.id, budgetId));
+    if (!budget) throw new Error('Budget not found');
+
+    const exchangeRate =
+      account.currency !== budget.defaultCurrency
+        ? await getExchangeRate(account.currency, budget.defaultCurrency, data.date)
+        : 1;
+
+    await tx
+      .update(financeAccounts)
+      .set({ balance: balanceAfter, updatedAt: new Date() })
+      .where(and(eq(financeAccounts.id, data.accountId), eq(financeAccounts.budgetId, budgetId)));
+
+    const [row] = await tx
+      .insert(financeTransactions)
+      .values({
+        type,
+        amount,
+        date: data.date,
+        accountId: data.accountId,
+        budgetId,
+        addedByUserId: userId,
+        categoryId: null,
+        payeeId: null,
+        toAccountId: null,
+        notes: data.notes ?? null,
+        isCorrection: true,
+        source: data.source,
+        exchangeRate,
+        toExchangeRate: null,
+        fromAccountBalanceAfter: balanceAfter,
+        toAccountBalanceAfter: null,
+        extras: null,
+        labels: [],
+      })
+      .returning();
+
+    if (!row) throw new Error('Insert did not return a row');
+
+    return { transaction: row, correctionAmount: delta, type };
+  });
+
+  if (result == null) return null;
+
+  syncTransactionWithPlan(userId, budgetId, null, result.transaction).catch(err => {
+    logger.error('Error syncing plan items after correction:', err);
+  });
+
   return result;
 }
 

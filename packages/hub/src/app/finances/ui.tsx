@@ -304,7 +304,7 @@ export function AddButton({ onClick, title }: AddButtonProps) {
   return (
     <Button
       variant="ghost"
-      size="xs"
+      size="sm"
       onClick={onClick}
       title={title}
       aria-label={title}
@@ -368,8 +368,6 @@ type MonthCarouselProps = {
   labelClassName?: string;
 };
 
-const MONTH_LABEL_WIDTH = 160; // px, enough for longest month name
-
 export function MonthCarousel({ month, onNavigate, currentMonth, className, labelClassName }: MonthCarouselProps) {
   return (
     <div className={cn('flex items-center gap-3', className)}>
@@ -380,8 +378,7 @@ export function MonthCarousel({ month, onNavigate, currentMonth, className, labe
         className="bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)]"
       />
       <h2
-        className={cn('text-[22px] font-bold tracking-tight text-[var(--fin-text)] text-center', labelClassName)}
-        style={{ minWidth: MONTH_LABEL_WIDTH, maxWidth: MONTH_LABEL_WIDTH, width: MONTH_LABEL_WIDTH }}
+        className={cn('text-[22px] font-bold tracking-tight text-[var(--fin-text)] text-center w-44', labelClassName)}
       >
         {formatMonthStr(month)}
       </h2>
@@ -392,12 +389,9 @@ export function MonthCarousel({ month, onNavigate, currentMonth, className, labe
         className="bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)]"
       />
       {currentMonth !== undefined && month !== currentMonth && (
-        <button
-          onClick={() => onNavigate(currentMonth)}
-          className="cursor-pointer rounded-[20px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-[5px] text-[11px] text-[var(--fin-muted)] hover:text-[var(--fin-text)]"
-        >
+        <Button variant="fin-pill" size="xs" onClick={() => onNavigate(currentMonth)}>
           Today
-        </button>
+        </Button>
       )}
     </div>
   );

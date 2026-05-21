@@ -23,7 +23,14 @@ import {
   getNetWorthSummaryTool,
 } from './reporting';
 import { ListContextSchema, listContextTool } from './context';
-import { UpsertAccountSchema, upsertAccountTool, AddLoanSchema, addLoanTool } from './accounts';
+import {
+  UpsertAccountSchema,
+  upsertAccountTool,
+  AddLoanSchema,
+  addLoanTool,
+  CorrectAccountBalanceSchema,
+  correctAccountBalanceTool,
+} from './accounts';
 import {
   ListPayeesSchema,
   listPayeesTool,
@@ -59,6 +66,19 @@ const financeTools = [
     inputSchema: UpsertAccountSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: upsertAccountTool,
+  }),
+  defineTool({
+    name: 'finances_correct_account_balance',
+    description:
+      'Reconcile an account by setting it to its correct real-world balance. ' +
+      'Provide the actual balance the account should have — the tool computes and records the correction amount atomically ' +
+      'from the live database balance, so you must NOT pre-compute or pass a delta. ' +
+      'The correction is recorded as a marked transaction (excluded from spending reports and cashflow) ' +
+      'and is visible in the account ledger. ' +
+      'Use this after importing statements, syncing with a bank, or spotting a discrepancy.',
+    inputSchema: CorrectAccountBalanceSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: correctAccountBalanceTool,
   }),
   defineTool({
     name: 'finances_add_loan',

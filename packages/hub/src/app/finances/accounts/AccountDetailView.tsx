@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Input, Pill, IconButton } from '@/components';
+import { Input, Pill, IconButton, Button } from '@/components';
 import { ScaleIcon, PencilIcon, ArchiveBoxIcon } from '@/components/icons';
 import { cn, apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar, TYPE_META, SubText } from '../ui';
@@ -13,7 +13,6 @@ import type { AccountItem } from '@/app/api/finances/accounts/route';
 import type { AccountDetailData } from '@/app/api/finances/accounts/[id]/route';
 import type { TransactionMutationResponse } from '@/app/api/finances/transactions/route';
 import { transactionEvents } from '../transactions/transactionEvents';
-import { TransactionTypes } from '@my-hub/shared/constants';
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -43,18 +42,16 @@ function CorrectionModal({
   const correctionColor = correction > 0 ? 'var(--fin-green)' : correction < 0 ? 'var(--fin-red)' : 'var(--fin-subtle)';
 
   async function handleSave() {
-    if (isZero || saving) return;
+    if (isNaN(parsed) || isZero || saving) return;
     setSaving(true);
     try {
-      const result = await apiFetch<TransactionMutationResponse>('/api/finances/transactions', {
+      const result = await apiFetch<TransactionMutationResponse>('/api/finances/corrections', {
         method: 'POST',
         body: {
-          type: correction > 0 ? TransactionTypes.Income : TransactionTypes.Expense,
           accountId,
-          amount: Math.abs(correction),
+          targetBalance: parsed,
           date,
           notes: notes.trim() || 'Balance Correction',
-          isCorrection: true,
         },
         silentToast: true,
       });
@@ -393,12 +390,9 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
     <div className="flex flex-col gap-[14px]">
       <div className="flex items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => router.push(backPath)}
-            className="cursor-pointer rounded-md border border-[var(--fin-border)] bg-transparent px-2.5 py-[5px] text-xs text-[var(--fin-muted)]"
-          >
+          <Button href={backPath} size="sm" variant="ghost">
             ← Back
-          </button>
+          </Button>
           <TypeBadge type={acc.type} />
         </div>
         <div className="flex items-center gap-1.5">
@@ -479,7 +473,6 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
           onClose={() => setCorrectionOpen(false)}
           onSaved={() => {
             setCorrectionOpen(false);
-            load();
             transactionEvents.emit('changed');
           }}
         />

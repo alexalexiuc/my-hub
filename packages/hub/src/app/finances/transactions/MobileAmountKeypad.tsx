@@ -99,7 +99,7 @@ export function MobileAmountKeypad({
 
       {/* Cancel / Done */}
       <div className="flex gap-1.5 h-12">
-        <Button type="button" variant="transparent" size="md" onClick={onCancel} className="flex-1">
+        <Button type="button" variant="neutral" size="md" onClick={onCancel} className="flex-1">
           Cancel
         </Button>
         <Button type="button" variant="accent" size="md" onClick={onDone} className="flex-[2] font-semibold">

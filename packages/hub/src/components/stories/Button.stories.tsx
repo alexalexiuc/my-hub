@@ -33,6 +33,18 @@ export const Transparent: Story = {
   args: { variant: 'transparent' },
 };
 
+export const Accent: Story = {
+  args: { variant: 'accent' },
+};
+
+export const Neutral: Story = {
+  args: { variant: 'neutral' },
+};
+
+export const FinPill: Story = {
+  args: { variant: 'fin-pill', children: 'Today' },
+};
+
 export const Small: Story = {
   args: { size: 'sm' },
 };
@@ -47,4 +59,49 @@ export const Loading: Story = {
 
 export const Disabled: Story = {
   args: { disabled: true },
+};
+
+export const ActivePrimary: Story = {
+  name: 'Active / Primary',
+  render: args => (
+    <div className="flex gap-3">
+      <Button {...args} active={false}>
+        Inactive
+      </Button>
+      <Button {...args} active={true}>
+        Active
+      </Button>
+    </div>
+  ),
+  args: { variant: 'primary' },
+};
+
+export const ActiveGhost: Story = {
+  name: 'Active / Ghost',
+  render: args => (
+    <div className="flex gap-3">
+      <Button {...args} active={false}>
+        Inactive
+      </Button>
+      <Button {...args} active={true}>
+        Active
+      </Button>
+    </div>
+  ),
+  args: { variant: 'ghost' },
+};
+
+export const ActiveFinPill: Story = {
+  name: 'Active / FinPill',
+  render: args => (
+    <div className="flex gap-3">
+      <Button {...args} active={false}>
+        Today
+      </Button>
+      <Button {...args} active={true}>
+        Today
+      </Button>
+    </div>
+  ),
+  args: { variant: 'fin-pill' },
 };
