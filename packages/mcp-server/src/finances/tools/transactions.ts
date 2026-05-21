@@ -527,12 +527,12 @@ export const QueryTransactionsSchema = z.object({
     ),
   label: z.string().optional(),
   type: z.enum(TransactionTypes).optional(),
-  startDate: z
+  fromDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
     .describe('Start date in YYYY-MM-DD format (inclusive). Example: "2024-01-01".'),
-  endDate: z
+  toDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
@@ -577,8 +577,8 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema> 
     payeeId,
     label: input.label,
     type: input.type as (typeof TransactionTypes)[keyof typeof TransactionTypes] | undefined,
-    fromDate: input.startDate,
-    toDate: input.endDate,
+    fromDate: input.fromDate,
+    toDate: input.toDate,
     amountGte: input.amountGte,
     amountLte: input.amountLte,
     includeCorrections: input.includeCorrections,
