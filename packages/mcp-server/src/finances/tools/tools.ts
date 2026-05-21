@@ -181,7 +181,7 @@ const financeTools = [
       'Search and list transactions with optional filters. Returns resolved account, category, and payee names inline. ' +
       'payeeName matching is alias-aware for existing payees. ' +
       'Correction transactions are excluded by default. Supports pagination via limit/offset.',
-    inputSchema: QueryTransactionsSchema.shape,
+    inputSchema: QueryTransactionsSchema.strict(),
     annotations: { readOnlyHint: true },
     callback: queryTransactionsTool,
   }),
