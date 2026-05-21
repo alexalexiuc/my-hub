@@ -1,7 +1,7 @@
 /**
  * Finance transaction CRUD
  * - addTransaction(userId, budgetId, data) — inserts a transaction; updates account balances and payee stats
- * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (accountId, categoryId, type, fromDate, toDate, includeCorrections, search, label, limit, offset)
+ * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (accountId, categoryId, type, fromDate, toDate, includeCorrections, search, label, amountGte, amountLte, limit, offset)
  * - getTransactionListItems(userId, budgetId, opts?) — same filters as getTransactions; returns pre-resolved display fields (accountName/Currency, toAccountName/Currency, categoryId/Name/Color/Icon, payeeId/Name, addedByUserId/Initials, createdAt, balances) via JOIN
  * - getTransactionListItemById(userId, budgetId, transactionId) — single TransactionListItem with resolved display fields; null if not found
  * - countTransactions(userId, budgetId, opts?) — same filters; returns total count
@@ -68,6 +68,8 @@ export interface GetTransactionsOpts {
   search?: string;
   label?: string;
   addedByUserId?: string;
+  amountGte?: number;
+  amountLte?: number;
   limit?: number;
   offset?: number;
 }
@@ -152,6 +154,12 @@ function buildListConditions(budgetId: number, opts: GetTransactionsOpts) {
   }
   if (opts.addedByUserId !== undefined) {
     conditions.push(eq(financeTransactions.addedByUserId, opts.addedByUserId));
+  }
+  if (opts.amountGte !== undefined) {
+    conditions.push(gte(financeTransactions.amount, opts.amountGte));
+  }
+  if (opts.amountLte !== undefined) {
+    conditions.push(lte(financeTransactions.amount, opts.amountLte));
   }
   return conditions;
 }
