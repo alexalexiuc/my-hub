@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import type { CategoriesResponse, CategoryRow } from '@/app/api/finances/categories/route';
 import { Card, CategoryIcon, SectionLabel, fmt, SubText } from '../../ui';
 import { TransactionList } from '../../transactions/TransactionList';
+import { transactionEvents } from '../../transactions/transactionEvents';
 import { Button } from '@/components';
 import { getCategoryFallbackLetter, normalizeYearMonth } from '../../finances.utils';
 
@@ -27,12 +28,7 @@ export default function CategoryDetailPage() {
 
   const backPath = useMemo(() => `/finances/categories?month=${month}`, [month]);
 
-  useEffect(() => {
-    if (Number.isNaN(categoryId) || !Number.isInteger(categoryId) || categoryId <= 0) {
-      router.replace('/finances/categories');
-      return;
-    }
-
+  const load = useCallback(() => {
     setLoading(true);
     apiFetch<CategoriesResponse>(`/api/finances/categories?month=${month}`, { silentToast: true })
       .then(categories => {
@@ -49,6 +45,19 @@ export default function CategoryDetailPage() {
       })
       .finally(() => setLoading(false));
   }, [categoryId, month, router]);
+
+  useEffect(() => {
+    if (Number.isNaN(categoryId) || !Number.isInteger(categoryId) || categoryId <= 0) {
+      router.replace('/finances/categories');
+      return;
+    }
+    load();
+  }, [load, categoryId, router]);
+
+  useEffect(() => {
+    transactionEvents.on('changed', load);
+    return () => transactionEvents.off('changed', load);
+  }, [load]);
 
   if (loading) {
     return (

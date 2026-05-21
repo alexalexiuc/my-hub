@@ -41,3 +41,4 @@ export { EyeOffOutlineIcon } from './EyeOffOutlineIcon';
 export { QuestionMarkIcon } from './QuestionMarkIcon';
 export { ArchiveBoxIcon } from './ArchiveBoxIcon';
 export { XOutlineIcon } from './XOutlineIcon';
+export { ScaleIcon } from './ScaleIcon';

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Input, Pill, IconButton } from '@/components';
-import { PlusOutlineIcon, PencilIcon, ArchiveBoxIcon } from '@/components/icons';
+import { ScaleIcon, PencilIcon, ArchiveBoxIcon } from '@/components/icons';
 import { cn, apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar, TYPE_META, SubText } from '../ui';
 import { FinModalShell } from '../FinModalShell';
@@ -66,16 +66,16 @@ function CorrectionModal({
   }
 
   return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-[var(--fin-overlay)]"
+    <FinModalShell
+      onClose={onClose}
+      title="Balance Correction"
+      className="md:max-w-[400px]"
+      onSubmit={handleSave}
+      submitLabel="Apply Correction"
+      submitDisabled={isZero}
+      submitLoading={saving}
     >
-      <div
-        onClick={e => e.stopPropagation()}
-        className="flex w-full max-w-[400px] flex-col gap-3 rounded-[14px] border border-[var(--fin-border)] bg-[var(--fin-card)] p-5"
-      >
-        <div className="text-base font-bold text-[var(--fin-text)]">Balance Correction</div>
-
+      <div className="flex flex-col gap-3">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-3">
           <div>
             <div className="mb-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Current</div>
@@ -139,33 +139,8 @@ function CorrectionModal({
             />
           </div>
         </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 cursor-pointer rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] py-2.5 text-[13px] font-semibold text-[var(--fin-muted)]"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isZero || saving}
-            className={cn(
-              'flex-[2] rounded-lg border-none py-2.5 text-[13px] font-bold',
-              isZero || saving
-                ? 'cursor-not-allowed text-[var(--fin-subtle)]'
-                : 'cursor-pointer text-[var(--fin-on-solid)]',
-            )}
-            style={{
-              background: isZero || saving ? 'var(--fin-card3)' : correctionColor,
-              transition: 'background .15s',
-            }}
-          >
-            {saving ? 'Saving…' : 'Apply Correction'}
-          </button>
-        </div>
       </div>
-    </div>
+    </FinModalShell>
   );
 }
 
@@ -366,6 +341,11 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
     load();
   }, [load, numericId, router, backPath]);
 
+  useEffect(() => {
+    transactionEvents.on('changed', load);
+    return () => transactionEvents.off('changed', load);
+  }, [load]);
+
   if (loading) {
     return (
       <div className="flex flex-col gap-[14px]">
@@ -424,7 +404,7 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
         <div className="flex items-center gap-1.5">
           <IconButton
             label="Balance Correction"
-            icon={<PlusOutlineIcon className="size-3.5" />}
+            icon={<ScaleIcon className="size-3.5" />}
             onClick={() => setCorrectionOpen(true)}
             className="h-7 w-7 flex items-center justify-center p-0 border border-[var(--fin-border)] bg-transparent text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
           />
