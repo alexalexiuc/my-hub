@@ -552,7 +552,7 @@ export const QueryTransactionsSchema = z.object({
   offset: z.number().int().min(0).optional(),
 });
 
-export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema.shape> = async (input, context) => {
+export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema> = async (input, context) => {
   const { userId } = context;
 
   const budget = await getUserActiveBudget(userId);
