@@ -530,11 +530,21 @@ export const QueryTransactionsSchema = z.object({
   dateFrom: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
+    .optional()
+    .describe('Start date in YYYY-MM-DD format (inclusive). Example: "2024-01-01".'),
   dateTo: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
+    .optional()
+    .describe('End date in YYYY-MM-DD format (inclusive). Example: "2024-01-31".'),
+  amountGte: z
+    .number()
+    .optional()
+    .describe('Filter transactions with amount greater than or equal to this value (in account currency).'),
+  amountLte: z
+    .number()
+    .optional()
+    .describe('Filter transactions with amount less than or equal to this value (in account currency).'),
   includeCorrections: z.boolean().optional(),
   addedByUserId: z.string().optional(),
   search: z.string().optional(),
@@ -569,6 +579,8 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema.s
     type: input.type as (typeof TransactionTypes)[keyof typeof TransactionTypes] | undefined,
     fromDate: input.dateFrom,
     toDate: input.dateTo,
+    amountGte: input.amountGte,
+    amountLte: input.amountLte,
     includeCorrections: input.includeCorrections,
     addedByUserId: input.addedByUserId,
     search: input.search,
