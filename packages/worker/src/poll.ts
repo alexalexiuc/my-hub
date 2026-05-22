@@ -46,9 +46,8 @@ export const tasks: Task[] = [
     fn: sendCaloriesMonthlyReports,
   },
   {
-    // Observe for a few periods and see if balance drifts.
     name: 'finances-balance-recalc',
-    cron: '0 0 1 1 1', // every January 1st at 00:00
+    cron: '0 3 * * *', // every day at 03:00
     fn: recalculateFinanceBalances,
   },
 ];
