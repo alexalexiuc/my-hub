@@ -162,14 +162,12 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
       const date = item.date ?? currentDateString();
 
       let payeeId: number | null = null;
-      let payeeDefaultCategoryId: number | null = null;
       if (isPayeeRequired(item.type) && item.payeeName) {
         const resolvedPayee = await findPayeeByNameOrAlias(userId, budget.id, item.payeeName);
         if (resolvedPayee == null) {
           if (input.createPayee) {
             const newPayee = await upsertPayee(userId, budget.id, item.payeeName);
             payeeId = newPayee.id;
-            payeeDefaultCategoryId = newPayee.defaultCategoryId ?? null;
           } else {
             return toolResponse({
               error: {
@@ -182,12 +180,10 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
           }
         } else {
           payeeId = resolvedPayee.id;
-          payeeDefaultCategoryId = resolvedPayee.defaultCategoryId ?? null;
         }
       }
 
-      // Inherit payee's default category when no explicit category is provided
-      const resolvedCategoryId = item.categoryId ?? payeeDefaultCategoryId ?? null;
+      const resolvedCategoryId = item.categoryId ?? null;
 
       const duplicate = await checkDuplicateTransaction(userId, budget.id, {
         accountId: input.accountId,
