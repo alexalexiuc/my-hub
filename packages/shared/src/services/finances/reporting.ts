@@ -2,10 +2,11 @@
  * Finance reporting queries (read-only aggregations for MCP reporting tools)
  * - getBudgetProgress(userId, budgetId, month?) — category spending vs monthly target
  * - getCashflowSummary(userId, budgetId, dateFrom, dateTo) — income vs expenses by period
- * - getSpendingByPayee(userId, budgetId, dateFrom, dateTo, limit?) — aggregated spend per payee
+ * - getSpendingByPayee(userId, budgetId, dateFrom, dateTo, limit?, categoryId?) — aggregated spend per payee, optional category filter
  * - getSpendingAggregates(userId, budgetId, opts) — flexible groupBy aggregation
+ * - getComparison(userId, budgetId, opts) — side-by-side period comparison with absolute and percentage delta
  * - getNetWorthSummary(userId, budgetId) — current net worth with account breakdown and history
- * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
+ * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, ComparisonResult, ComparisonGroup, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
  */
 import { and, eq, gte, lte, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -234,9 +235,23 @@ export async function getSpendingByPayee(
   dateFrom: string,
   dateTo: string,
   limit = 20,
+  categoryId?: number,
 ): Promise<SpendingByPayeeResult> {
   if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
+  }
+
+  const conditions = [
+    eq(financeTransactions.budgetId, budgetId),
+    eq(financeTransactions.type, TransactionTypes.Expense),
+    eq(financeTransactions.isCorrection, false),
+    gte(financeTransactions.date, dateFrom),
+    lte(financeTransactions.date, dateTo),
+    sql`${financeTransactions.payeeId} is not null`,
+  ];
+
+  if (categoryId !== undefined) {
+    conditions.push(eq(financeTransactions.categoryId, categoryId));
   }
 
   const rows = await db
@@ -248,16 +263,7 @@ export async function getSpendingByPayee(
     })
     .from(financeTransactions)
     .leftJoin(financePayees, eq(financePayees.id, financeTransactions.payeeId))
-    .where(
-      and(
-        eq(financeTransactions.budgetId, budgetId),
-        eq(financeTransactions.type, TransactionTypes.Expense),
-        eq(financeTransactions.isCorrection, false),
-        gte(financeTransactions.date, dateFrom),
-        lte(financeTransactions.date, dateTo),
-        sql`${financeTransactions.payeeId} is not null`,
-      ),
-    )
+    .where(and(...conditions))
     .groupBy(financeTransactions.payeeId, financePayees.name)
     .orderBy(sql`sum(${financeTransactions.amount}) desc`)
     .limit(limit);
@@ -448,6 +454,79 @@ export async function getSpendingAggregates(
   }
 
   return { dateFrom: opts.dateFrom, dateTo: opts.dateTo, groupBy: opts.groupBy, groups };
+}
+
+// ─── Period Comparison ────────────────────────────────────────────────────────
+
+export type ComparisonGroupBy = 'category' | 'payee' | 'account' | 'month';
+
+export interface ComparisonGroup {
+  key: string;
+  id?: number;
+  period1: { transactionCount: number; total: number; average: number };
+  period2: { transactionCount: number; total: number; average: number };
+  /** Absolute change: period2.total - period1.total */
+  absoluteDelta: number;
+  /** Percentage change relative to period1, null when period1.total is 0 */
+  percentDelta: number | null;
+}
+
+export interface ComparisonOpts {
+  period1: { dateFrom: string; dateTo: string };
+  period2: { dateFrom: string; dateTo: string };
+  groupBy: ComparisonGroupBy;
+  accountId?: number;
+  categoryId?: number;
+  type?: TransactionType;
+}
+
+export interface ComparisonResult {
+  period1: { dateFrom: string; dateTo: string };
+  period2: { dateFrom: string; dateTo: string };
+  groupBy: string;
+  groups: ComparisonGroup[];
+}
+
+export async function getComparison(userId: string, budgetId: number, opts: ComparisonOpts): Promise<ComparisonResult> {
+  const [r1, r2] = await Promise.all([
+    getSpendingAggregates(userId, budgetId, { ...opts, ...opts.period1 }),
+    getSpendingAggregates(userId, budgetId, { ...opts, ...opts.period2 }),
+  ]);
+
+  // Index period1 groups by key for O(1) lookup
+  const p1ByKey = new Map<string, AggregateGroup>();
+  for (const g of r1.groups) p1ByKey.set(g.key, g);
+
+  // Union of all keys from both periods
+  const allKeys = new Map<string, { id?: number }>();
+  for (const g of r1.groups) allKeys.set(g.key, { id: g.id });
+  for (const g of r2.groups) if (!allKeys.has(g.key)) allKeys.set(g.key, { id: g.id });
+
+  const groups: ComparisonGroup[] = [];
+  for (const [key, meta] of allKeys) {
+    const p1 = p1ByKey.get(key) ?? { transactionCount: 0, total: 0, average: 0 };
+    const p2 = r2.groups.find(g => g.key === key) ?? { transactionCount: 0, total: 0, average: 0 };
+    const absoluteDelta = p2.total - p1.total;
+    const percentDelta = p1.total !== 0 ? Math.round((absoluteDelta / p1.total) * 10000) / 100 : null;
+    groups.push({
+      key,
+      ...(meta.id !== undefined ? { id: meta.id } : {}),
+      period1: { transactionCount: p1.transactionCount, total: p1.total, average: p1.average },
+      period2: { transactionCount: p2.transactionCount, total: p2.total, average: p2.average },
+      absoluteDelta,
+      percentDelta,
+    });
+  }
+
+  // Sort by period2 total descending (highest current spend first)
+  groups.sort((a, b) => b.period2.total - a.period2.total);
+
+  return {
+    period1: opts.period1,
+    period2: opts.period2,
+    groupBy: opts.groupBy,
+    groups,
+  };
 }
 
 // ─── Net Worth Summary ────────────────────────────────────────────────────────

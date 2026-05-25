@@ -12,7 +12,6 @@ import {
   checkDuplicateTransaction,
   findPayeeByNameOrAlias,
   upsertPayee,
-  resolvePayeeIdByNameOrAlias,
   getAccountById,
   getCategories,
   getTransactionById,
@@ -163,12 +162,14 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
       const date = item.date ?? currentDateString();
 
       let payeeId: number | null = null;
+      let payeeDefaultCategoryId: number | null = null;
       if (isPayeeRequired(item.type) && item.payeeName) {
-        const resolvedPayeeId = await resolvePayeeIdByNameOrAlias(userId, budget.id, item.payeeName);
-        if (resolvedPayeeId === undefined) {
+        const resolvedPayee = await findPayeeByNameOrAlias(userId, budget.id, item.payeeName);
+        if (resolvedPayee == null) {
           if (input.createPayee) {
-            const resolvedPayee = await upsertPayee(userId, budget.id, item.payeeName);
-            payeeId = resolvedPayee.id;
+            const newPayee = await upsertPayee(userId, budget.id, item.payeeName);
+            payeeId = newPayee.id;
+            payeeDefaultCategoryId = newPayee.defaultCategoryId ?? null;
           } else {
             return toolResponse({
               error: {
@@ -180,9 +181,13 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
             });
           }
         } else {
-          payeeId = resolvedPayeeId;
+          payeeId = resolvedPayee.id;
+          payeeDefaultCategoryId = resolvedPayee.defaultCategoryId ?? null;
         }
       }
+
+      // Inherit payee's default category when no explicit category is provided
+      const resolvedCategoryId = item.categoryId ?? payeeDefaultCategoryId ?? null;
 
       const duplicate = await checkDuplicateTransaction(userId, budget.id, {
         accountId: input.accountId,
@@ -247,7 +252,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         date,
         accountId: input.accountId,
         toAccountId: item.toAccountId ?? null,
-        categoryId: item.categoryId ?? null,
+        categoryId: resolvedCategoryId,
         payeeId,
         notes: item.notes,
         labels,
@@ -262,11 +267,11 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
 
       lastBalanceAfter = tx.fromAccountBalanceAfter;
 
-      if (item.categoryId != null) {
+      if (resolvedCategoryId != null) {
         const month = date.slice(0, 7);
-        const existing = categoryMonthsUsed.get(item.categoryId);
+        const existing = categoryMonthsUsed.get(resolvedCategoryId);
         if (existing) existing.add(month);
-        else categoryMonthsUsed.set(item.categoryId, new Set([month]));
+        else categoryMonthsUsed.set(resolvedCategoryId, new Set([month]));
       }
 
       const result: Record<string, unknown> = {
@@ -550,6 +555,14 @@ export const QueryTransactionsSchema = z.object({
   search: z.string().optional(),
   limit: z.number().int().min(1).max(200).optional(),
   offset: z.number().int().min(0).optional(),
+  fields: z
+    .array(z.enum(['id', 'type', 'amount', 'date', 'notes', 'categoryId', 'payeeId', 'accountId', 'labels']))
+    .optional()
+    .describe(
+      'When provided, only return the listed fields per transaction. ' +
+        'Omit to get full transaction objects (default behavior). ' +
+        'Useful for large result sets where only a subset of fields is needed.',
+    ),
 });
 
 export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema> = async (input, context) => {
@@ -593,34 +606,52 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema> 
     countTransactions(userId, budget.id, opts),
   ]);
 
-  const transactions = txns.map(tx => ({
-    id: tx.id,
-    type: tx.type,
-    amount: tx.amount,
-    date: tx.date,
-    notes: tx.notes,
-    labels: tx.labels,
-    isCorrection: tx.isCorrection,
-    account: { id: tx.accountId, name: tx.accountName, currency: tx.accountCurrency },
-    ...(tx.toAccountId != null
-      ? { toAccount: { id: tx.toAccountId, name: tx.toAccountName, currency: tx.toAccountCurrency } }
-      : {}),
-    ...(tx.categoryId != null
-      ? {
-          category: {
-            id: tx.categoryId,
-            name: tx.categoryName,
-            displayName: tx.groupName ? `${tx.groupName} > ${tx.categoryName}` : tx.categoryName,
-          },
-        }
-      : {}),
-    ...(tx.payeeId != null ? { payee: { id: tx.payeeId, name: tx.payeeName } } : {}),
-    addedByUserId: tx.addedByUserId,
-    addedByInitials: tx.addedByInitials,
-    createdAt: tx.createdAt,
-    fromAccountBalanceAfter: tx.fromAccountBalanceAfter,
-    toAccountBalanceAfter: tx.toAccountBalanceAfter,
-  }));
+  const fields = input.fields ? new Set(input.fields) : null;
+
+  const transactions = txns.map(tx => {
+    if (fields) {
+      const row: Record<string, unknown> = {};
+      if (fields.has('id')) row.id = tx.id;
+      if (fields.has('type')) row.type = tx.type;
+      if (fields.has('amount')) row.amount = tx.amount;
+      if (fields.has('date')) row.date = tx.date;
+      if (fields.has('notes')) row.notes = tx.notes;
+      if (fields.has('labels')) row.labels = tx.labels;
+      if (fields.has('categoryId')) row.categoryId = tx.categoryId ?? null;
+      if (fields.has('payeeId')) row.payeeId = tx.payeeId ?? null;
+      if (fields.has('accountId')) row.accountId = tx.accountId;
+      return row;
+    }
+
+    return {
+      id: tx.id,
+      type: tx.type,
+      amount: tx.amount,
+      date: tx.date,
+      notes: tx.notes,
+      labels: tx.labels,
+      isCorrection: tx.isCorrection,
+      account: { id: tx.accountId, name: tx.accountName, currency: tx.accountCurrency },
+      ...(tx.toAccountId != null
+        ? { toAccount: { id: tx.toAccountId, name: tx.toAccountName, currency: tx.toAccountCurrency } }
+        : {}),
+      ...(tx.categoryId != null
+        ? {
+            category: {
+              id: tx.categoryId,
+              name: tx.categoryName,
+              displayName: tx.groupName ? `${tx.groupName} > ${tx.categoryName}` : tx.categoryName,
+            },
+          }
+        : {}),
+      ...(tx.payeeId != null ? { payee: { id: tx.payeeId, name: tx.payeeName } } : {}),
+      addedByUserId: tx.addedByUserId,
+      addedByInitials: tx.addedByInitials,
+      createdAt: tx.createdAt,
+      fromAccountBalanceAfter: tx.fromAccountBalanceAfter,
+      toAccountBalanceAfter: tx.toAccountBalanceAfter,
+    };
+  });
 
   return toolResponse({ transactions, total });
 };

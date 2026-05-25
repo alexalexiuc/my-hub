@@ -151,6 +151,10 @@ export const financePayees = pgTable(
     normalizedName: text('normalized_name').notNull(),
     // Optional context for AI — e.g. "Main grocery supermarket", "Landlord — rent"
     description: text('description'),
+    // When set, new transactions for this payee auto-inherit this category (no retroactive update)
+    defaultCategoryId: integer('default_category_id').references(() => financeCategories.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   table => [

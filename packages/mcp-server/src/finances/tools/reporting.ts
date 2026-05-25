@@ -8,6 +8,7 @@ import {
   getCashflowSummary,
   getSpendingByPayee,
   getSpendingAggregates,
+  getComparison,
   getNetWorthSummary,
 } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
@@ -52,6 +53,12 @@ export const GetSpendingByPayeeSchema = z.object({
   dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   limit: z.number().int().min(1).max(100).optional(),
+  categoryId: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('When provided, only include transactions matching this category ID (top payees within a category).'),
 });
 
 export const getSpendingByPayeeTool: ToolHandler<typeof GetSpendingByPayeeSchema.shape> = async (input, context) => {
@@ -59,7 +66,14 @@ export const getSpendingByPayeeTool: ToolHandler<typeof GetSpendingByPayeeSchema
   const budget = await getUserActiveBudget(userId);
   if (!budget) throw new HandledError('No active budget.');
 
-  const result = await getSpendingByPayee(userId, budget.id, input.dateFrom, input.dateTo, input.limit);
+  const result = await getSpendingByPayee(
+    userId,
+    budget.id,
+    input.dateFrom,
+    input.dateTo,
+    input.limit,
+    input.categoryId,
+  );
   return toolResponse(result);
 };
 
@@ -85,6 +99,40 @@ export const getSpendingAggregatesTool: ToolHandler<typeof GetSpendingAggregates
   const result = await getSpendingAggregates(userId, budget.id, {
     dateFrom: input.dateFrom,
     dateTo: input.dateTo,
+    groupBy: input.groupBy,
+    accountId: input.accountId,
+    categoryId: input.categoryId,
+    type: input.type,
+  });
+  return toolResponse(result);
+};
+
+// ─── get_comparison ───────────────────────────────────────────────────────────
+
+const PeriodSchema = z.object({
+  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+export const GetComparisonSchema = z.object({
+  period1: PeriodSchema.describe('The baseline period (e.g. last year).'),
+  period2: PeriodSchema.describe('The comparison period (e.g. this year).'),
+  groupBy: z
+    .enum(['category', 'payee', 'account', 'month'])
+    .describe('Dimension to group spending by for the side-by-side comparison.'),
+  accountId: z.number().int().positive().optional(),
+  categoryId: z.number().int().positive().optional(),
+  type: z.enum(TransactionTypes).optional(),
+});
+
+export const getComparisonTool: ToolHandler<typeof GetComparisonSchema.shape> = async (input, context) => {
+  const { userId } = context;
+  const budget = await getUserActiveBudget(userId);
+  if (!budget) throw new HandledError('No active budget.');
+
+  const result = await getComparison(userId, budget.id, {
+    period1: input.period1,
+    period2: input.period2,
     groupBy: input.groupBy,
     accountId: input.accountId,
     categoryId: input.categoryId,

@@ -714,3 +714,221 @@ describe.sequential('finances — add_transactions with createPayee flag', () =>
     expect(found).toBeDefined();
   });
 });
+
+// ─── finances_get_comparison ──────────────────────────────────────────────────
+
+interface ComparisonGroupEntry {
+  key: string;
+  id?: number;
+  period1: { transactionCount: number; total: number; average: number };
+  period2: { transactionCount: number; total: number; average: number };
+  absoluteDelta: number;
+  percentDelta: number | null;
+}
+
+interface ComparisonResult {
+  period1: { dateFrom: string; dateTo: string };
+  period2: { dateFrom: string; dateTo: string };
+  groupBy: string;
+  groups: ComparisonGroupEntry[];
+}
+
+describe.sequential('finances — get_comparison', () => {
+  let client: McpClient;
+
+  beforeAll(async () => {
+    const { baseUrl } = getE2eEnv();
+    const token = await generateToken();
+    client = await createMcpClient(baseUrl, '/finances/mcp', token);
+  });
+
+  afterAll(async () => {
+    await client.close();
+  });
+
+  it('returns comparison result with correct shape', async () => {
+    const result = await client.callTool({
+      name: 'finances_get_comparison',
+      arguments: {
+        period1: { dateFrom: '2023-01-01', dateTo: '2023-12-31' },
+        period2: { dateFrom: '2024-01-01', dateTo: '2024-12-31' },
+        groupBy: 'category',
+      },
+    });
+
+    const data = parseToolResult<ComparisonResult>(result);
+
+    expect(data.period1.dateFrom).toBe('2023-01-01');
+    expect(data.period1.dateTo).toBe('2023-12-31');
+    expect(data.period2.dateFrom).toBe('2024-01-01');
+    expect(data.period2.dateTo).toBe('2024-12-31');
+    expect(data.groupBy).toBe('category');
+    expect(Array.isArray(data.groups)).toBe(true);
+  });
+
+  it('each comparison group has required fields', async () => {
+    const result = await client.callTool({
+      name: 'finances_get_comparison',
+      arguments: {
+        period1: { dateFrom: '2023-01-01', dateTo: '2023-12-31' },
+        period2: { dateFrom: '2024-01-01', dateTo: '2024-12-31' },
+        groupBy: 'category',
+      },
+    });
+
+    const data = parseToolResult<ComparisonResult>(result);
+
+    if (data.groups.length > 0) {
+      const g = data.groups[0]!;
+      expect(typeof g.key).toBe('string');
+      expect(typeof g.period1.total).toBe('number');
+      expect(typeof g.period1.transactionCount).toBe('number');
+      expect(typeof g.period1.average).toBe('number');
+      expect(typeof g.period2.total).toBe('number');
+      expect(typeof g.period2.transactionCount).toBe('number');
+      expect(typeof g.period2.average).toBe('number');
+      expect(typeof g.absoluteDelta).toBe('number');
+      // percentDelta is number or null
+      expect(g.percentDelta === null || typeof g.percentDelta === 'number').toBe(true);
+    }
+  });
+
+  it('absoluteDelta equals period2.total minus period1.total', async () => {
+    const result = await client.callTool({
+      name: 'finances_get_comparison',
+      arguments: {
+        period1: { dateFrom: '2023-01-01', dateTo: '2023-12-31' },
+        period2: { dateFrom: '2024-01-01', dateTo: '2024-12-31' },
+        groupBy: 'payee',
+      },
+    });
+
+    const data = parseToolResult<ComparisonResult>(result);
+
+    for (const g of data.groups) {
+      const expected = parseFloat((g.period2.total - g.period1.total).toFixed(4));
+      const actual = parseFloat(g.absoluteDelta.toFixed(4));
+      expect(actual).toBeCloseTo(expected, 2);
+    }
+  });
+
+  it('supports month groupBy', async () => {
+    const result = await client.callTool({
+      name: 'finances_get_comparison',
+      arguments: {
+        period1: { dateFrom: '2023-01-01', dateTo: '2023-03-31' },
+        period2: { dateFrom: '2024-01-01', dateTo: '2024-03-31' },
+        groupBy: 'month',
+      },
+    });
+
+    const data = parseToolResult<ComparisonResult>(result);
+    expect(data.groupBy).toBe('month');
+    expect(Array.isArray(data.groups)).toBe(true);
+  });
+
+  it('returns error for invalid groupBy value', async () => {
+    const result = await client.callTool({
+      name: 'finances_get_comparison',
+      arguments: {
+        period1: { dateFrom: '2023-01-01', dateTo: '2023-12-31' },
+        period2: { dateFrom: '2024-01-01', dateTo: '2024-12-31' },
+        groupBy: 'type',
+      },
+    });
+
+    // 'type' is not allowed in get_comparison (only category/payee/account/month)
+    expect(result.isError).toBe(true);
+  });
+});
+
+// ─── finances_upsert_payee — defaultCategoryId ────────────────────────────────
+
+interface UpsertPayeeWithCategoryResult {
+  message: string;
+  payeeId: number;
+  name: string;
+  defaultCategoryId: number | null;
+}
+
+describe.sequential('finances — upsert_payee defaultCategoryId', () => {
+  let client: McpClient;
+  let testCategoryId: number | undefined;
+  let testPayeeId: number | undefined;
+  const runId = Date.now().toString(36);
+  const testPayeeName = `[e2e:${runId}] DefaultCat Payee`;
+
+  beforeAll(async () => {
+    const { baseUrl } = getE2eEnv();
+    const token = await generateToken();
+    client = await createMcpClient(baseUrl, '/finances/mcp', token);
+
+    // Find an existing category to use as the default
+    const contextResult = await client.callTool({
+      name: 'finances_list_context',
+      arguments: {},
+    });
+    const context = parseToolResult<ListContextResult>(contextResult);
+    testCategoryId = context.categories[0]?.id;
+  });
+
+  afterAll(async () => {
+    await client.close();
+  });
+
+  it('creates a payee with a defaultCategoryId', async () => {
+    if (!testCategoryId) {
+      console.log('No categories found, skipping defaultCategoryId test');
+      return;
+    }
+
+    const result = await client.callTool({
+      name: 'finances_upsert_payee',
+      arguments: { name: testPayeeName, defaultCategoryId: testCategoryId },
+    });
+
+    const data = parseToolResult<UpsertPayeeWithCategoryResult>(result);
+
+    expect(typeof data.payeeId).toBe('number');
+    expect(data.name).toBe(testPayeeName);
+    expect(data.defaultCategoryId).toBe(testCategoryId);
+    expect(data.message).toContain('created');
+
+    testPayeeId = data.payeeId;
+  });
+
+  it('returns defaultCategoryId when payee already exists', async () => {
+    if (!testCategoryId || !testPayeeId) {
+      console.log('Skipping: prerequisites not set up');
+      return;
+    }
+
+    const result = await client.callTool({
+      name: 'finances_upsert_payee',
+      arguments: { name: testPayeeName },
+    });
+
+    const data = parseToolResult<UpsertPayeeWithCategoryResult>(result);
+
+    expect(data.payeeId).toBe(testPayeeId);
+    expect(data.defaultCategoryId).toBe(testCategoryId);
+    expect(data.message).toContain('already exists');
+  });
+
+  it('clears defaultCategoryId by passing null', async () => {
+    if (!testPayeeId) {
+      console.log('Skipping: payee not created');
+      return;
+    }
+
+    const result = await client.callTool({
+      name: 'finances_upsert_payee',
+      arguments: { name: testPayeeName, defaultCategoryId: null },
+    });
+
+    const data = parseToolResult<UpsertPayeeWithCategoryResult>(result);
+
+    expect(data.payeeId).toBe(testPayeeId);
+    expect(data.defaultCategoryId).toBeNull();
+  });
+});
