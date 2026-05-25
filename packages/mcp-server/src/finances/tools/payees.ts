@@ -31,17 +31,6 @@ export const UpsertPayeeSchema = z.object({
         'Aliases are matched when resolving payee names during transaction entry, so adding an alias lets you ' +
         'use that alternate spelling without creating a duplicate payee.',
     ),
-  defaultCategoryId: z
-    .number()
-    .int()
-    .positive()
-    .nullable()
-    .optional()
-    .describe(
-      'Records a preferred/default category for this payee. ' +
-        'Pass null to clear it. ' +
-        'Use finances_list_context to find available category IDs.',
-    ),
 });
 
 export const upsertPayeeTool: ToolHandler<typeof UpsertPayeeSchema.shape> = async (input, context) => {
@@ -66,13 +55,6 @@ export const upsertPayeeTool: ToolHandler<typeof UpsertPayeeSchema.shape> = asyn
     }
   }
 
-  // Apply defaultCategoryId update when explicitly provided (including null to clear)
-  let updatedDefaultCategoryId = payee.defaultCategoryId ?? null;
-  if (input.defaultCategoryId !== undefined) {
-    updatedDefaultCategoryId = input.defaultCategoryId ?? null;
-    await updatePayee(userId, budget.id, payee.id, { defaultCategoryId: input.defaultCategoryId ?? null });
-  }
-
   let message: string;
   if (isNew) {
     message = input.alias
@@ -86,7 +68,7 @@ export const upsertPayeeTool: ToolHandler<typeof UpsertPayeeSchema.shape> = asyn
     message = `Payee "${payee.name}" already exists.`;
   }
 
-  return toolResponse({ message, payeeId: payee.id, name: payee.name, defaultCategoryId: updatedDefaultCategoryId });
+  return toolResponse({ message, payeeId: payee.id, name: payee.name });
 };
 
 // ─── merge_payees ─────────────────────────────────────────────────────────────
