@@ -15,11 +15,13 @@ import {
   GetCashflowSummarySchema,
   GetSpendingByPayeeSchema,
   GetSpendingAggregatesSchema,
+  GetComparisonSchema,
   GetNetWorthSummarySchema,
   getBudgetProgressTool,
   getCashflowSummaryTool,
   getSpendingByPayeeTool,
   getSpendingAggregatesTool,
+  getComparisonTool,
   getNetWorthSummaryTool,
 } from './reporting';
 import { ListContextSchema, listContextTool } from './context';
@@ -124,6 +126,8 @@ const financeTools = [
       'If a payee with the given name (or matching alias) already exists, it is returned as-is. ' +
       'Provide alias to add an alternative name that will be recognized during transaction entry — ' +
       'for example, alias "Starbucks Coffee" maps to the canonical payee "Starbucks". ' +
+      'Provide defaultCategoryId to make new transactions for this payee auto-inherit that category — ' +
+      'existing transactions are not affected. Pass null to clear the default. ' +
       'Use this tool before adding transactions when you know the payee does not yet exist, ' +
       'or after adding transactions that returned a payee_not_found error.',
     inputSchema: UpsertPayeeSchema.shape,
@@ -227,7 +231,9 @@ const financeTools = [
     name: 'finances_get_spending_by_payee',
     description:
       'Show total spend per payee for a date range, sorted by highest spend. ' +
-      'Use to answer "where am I spending the most?" or "how much did I spend at [shop]?"',
+      'Optionally filter by categoryId to see top payees within a specific category. ' +
+      'Use to answer "where am I spending the most?" or "how much did I spend at [shop]?" ' +
+      'or "which restaurants did I visit most in the Food category?"',
     inputSchema: GetSpendingByPayeeSchema.shape,
     annotations: { readOnlyHint: true },
     callback: getSpendingByPayeeTool,
@@ -240,6 +246,18 @@ const financeTools = [
     inputSchema: GetSpendingAggregatesSchema.shape,
     annotations: { readOnlyHint: true },
     callback: getSpendingAggregatesTool,
+  }),
+  defineTool({
+    name: 'finances_get_comparison',
+    description:
+      'Compare spending between two time periods side by side. ' +
+      'Returns each group (category, payee, account, or month) with period1 and period2 totals, ' +
+      'plus absoluteDelta (period2 - period1) and percentDelta (% change relative to period1). ' +
+      'Use for year-over-year analysis, "how did last month compare to the same month last year?", ' +
+      'or any two arbitrary date ranges.',
+    inputSchema: GetComparisonSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getComparisonTool,
   }),
   defineTool({
     name: 'finances_get_monthly_plan',
