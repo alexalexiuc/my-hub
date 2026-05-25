@@ -118,7 +118,7 @@ export const GetComparisonSchema = z.object({
   period1: PeriodSchema.describe('The baseline period (e.g. last year).'),
   period2: PeriodSchema.describe('The comparison period (e.g. this year).'),
   groupBy: z
-    .enum(['category', 'payee', 'account'])
+    .enum(['category', 'payee', 'account', 'month'])
     .describe('Dimension to group spending by for the side-by-side comparison.'),
   accountId: z.number().int().positive().optional(),
   categoryId: z.number().int().positive().optional(),

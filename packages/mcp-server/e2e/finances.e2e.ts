@@ -812,6 +812,30 @@ describe.sequential('finances — get_comparison', () => {
     }
   });
 
+  it('supports month groupBy and matches across years by calendar month', async () => {
+    const result = await client.callTool({
+      name: 'finances_get_comparison',
+      arguments: {
+        period1: { dateFrom: '2023-01-01', dateTo: '2023-03-31' },
+        period2: { dateFrom: '2024-01-01', dateTo: '2024-03-31' },
+        groupBy: 'month',
+      },
+    });
+
+    const data = parseToolResult<ComparisonResult>(result);
+    expect(data.groupBy).toBe('month');
+    expect(Array.isArray(data.groups)).toBe(true);
+    // Keys should be month names, not YYYY-MM strings
+    for (const g of data.groups) {
+      expect(g.key).toMatch(/^[A-Z][a-z]+$/);
+    }
+    // Deltas must be consistent with period totals
+    for (const g of data.groups) {
+      const expected = parseFloat((g.period2.total - g.period1.total).toFixed(4));
+      expect(parseFloat(g.absoluteDelta.toFixed(4))).toBeCloseTo(expected, 2);
+    }
+  });
+
   it('returns error for invalid groupBy value', async () => {
     const result = await client.callTool({
       name: 'finances_get_comparison',
@@ -822,7 +846,7 @@ describe.sequential('finances — get_comparison', () => {
       },
     });
 
-    // 'type' and 'month' are not allowed in get_comparison (only category/payee/account)
+    // 'type' is not a valid groupBy (only category/payee/account/month)
     expect(result.isError).toBe(true);
   });
 });

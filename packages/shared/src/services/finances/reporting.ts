@@ -458,7 +458,7 @@ export async function getSpendingAggregates(
 
 // ─── Period Comparison ────────────────────────────────────────────────────────
 
-export type ComparisonGroupBy = 'category' | 'payee' | 'account';
+export type ComparisonGroupBy = 'category' | 'payee' | 'account' | 'month';
 
 export interface ComparisonGroup {
   key: string;
@@ -487,29 +487,64 @@ export interface ComparisonResult {
   groups: ComparisonGroup[];
 }
 
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
 export async function getComparison(userId: string, budgetId: number, opts: ComparisonOpts): Promise<ComparisonResult> {
   const [r1, r2] = await Promise.all([
     getSpendingAggregates(userId, budgetId, { ...opts, ...opts.period1 }),
     getSpendingAggregates(userId, budgetId, { ...opts, ...opts.period2 }),
   ]);
 
-  // Index period1 groups by key for O(1) lookup
-  const p1ByKey = new Map<string, AggregateGroup>();
-  for (const g of r1.groups) p1ByKey.set(g.key, g);
+  // For month groupBy, strip the year so "2023-01" and "2024-01" both match on "01".
+  // This lets YoY and any cross-year comparisons align by calendar month.
+  const isMonthGroupBy = opts.groupBy === 'month';
+  const toMatchKey = (key: string) => (isMonthGroupBy ? key.slice(5) : key);
+  const toDisplayKey = (key: string) => {
+    if (!isMonthGroupBy) return key;
+    const month = parseInt(key.slice(5), 10);
+    return MONTH_NAMES[month - 1] ?? key;
+  };
+  const toMonthId = (key: string) => (isMonthGroupBy ? parseInt(key.slice(5), 10) : undefined);
 
-  // Union of all keys from both periods
-  const allKeys = new Map<string, { id?: number }>();
-  for (const g of r1.groups) allKeys.set(g.key, { id: g.id });
-  for (const g of r2.groups) if (!allKeys.has(g.key)) allKeys.set(g.key, { id: g.id });
+  // Index both periods by match key for O(1) lookup
+  const p1ByKey = new Map<string, AggregateGroup>();
+  for (const g of r1.groups) p1ByKey.set(toMatchKey(g.key), g);
+  const p2ByKey = new Map<string, AggregateGroup>();
+  for (const g of r2.groups) p2ByKey.set(toMatchKey(g.key), g);
+
+  // Union of all match keys from both periods
+  const allKeys = new Map<string, { id?: number; displayKey: string }>();
+  for (const g of r1.groups) {
+    const mk = toMatchKey(g.key);
+    allKeys.set(mk, { id: isMonthGroupBy ? toMonthId(g.key) : g.id, displayKey: toDisplayKey(g.key) });
+  }
+  for (const g of r2.groups) {
+    const mk = toMatchKey(g.key);
+    if (!allKeys.has(mk))
+      allKeys.set(mk, { id: isMonthGroupBy ? toMonthId(g.key) : g.id, displayKey: toDisplayKey(g.key) });
+  }
 
   const groups: ComparisonGroup[] = [];
-  for (const [key, meta] of allKeys) {
-    const p1 = p1ByKey.get(key) ?? { transactionCount: 0, total: 0, average: 0 };
-    const p2 = r2.groups.find(g => g.key === key) ?? { transactionCount: 0, total: 0, average: 0 };
+  for (const [mk, meta] of allKeys) {
+    const p1 = p1ByKey.get(mk) ?? { transactionCount: 0, total: 0, average: 0 };
+    const p2 = p2ByKey.get(mk) ?? { transactionCount: 0, total: 0, average: 0 };
     const absoluteDelta = p2.total - p1.total;
     const percentDelta = p1.total !== 0 ? Math.round((absoluteDelta / p1.total) * 10000) / 100 : null;
     groups.push({
-      key,
+      key: meta.displayKey,
       ...(meta.id !== undefined ? { id: meta.id } : {}),
       period1: { transactionCount: p1.transactionCount, total: p1.total, average: p1.average },
       period2: { transactionCount: p2.transactionCount, total: p2.total, average: p2.average },
@@ -518,8 +553,12 @@ export async function getComparison(userId: string, budgetId: number, opts: Comp
     });
   }
 
-  // Sort by period2 total descending (highest current spend first)
-  groups.sort((a, b) => b.period2.total - a.period2.total);
+  // Month groupBy: sort chronologically; all others: sort by period2 total descending
+  if (isMonthGroupBy) {
+    groups.sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+  } else {
+    groups.sort((a, b) => b.period2.total - a.period2.total);
+  }
 
   return {
     period1: opts.period1,
