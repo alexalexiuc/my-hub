@@ -126,8 +126,8 @@ const financeTools = [
       'If a payee with the given name (or matching alias) already exists, it is returned as-is. ' +
       'Provide alias to add an alternative name that will be recognized during transaction entry — ' +
       'for example, alias "Starbucks Coffee" maps to the canonical payee "Starbucks". ' +
-      'Provide defaultCategoryId to make new transactions for this payee auto-inherit that category — ' +
-      'existing transactions are not affected. Pass null to clear the default. ' +
+      'Provide defaultCategoryId to record a preferred category for this payee — ' +
+      'pass null to clear it. ' +
       'Use this tool before adding transactions when you know the payee does not yet exist, ' +
       'or after adding transactions that returned a payee_not_found error.',
     inputSchema: UpsertPayeeSchema.shape,

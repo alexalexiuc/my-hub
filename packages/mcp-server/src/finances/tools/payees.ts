@@ -38,8 +38,8 @@ export const UpsertPayeeSchema = z.object({
     .nullable()
     .optional()
     .describe(
-      'When set, new transactions created for this payee will automatically inherit this category. ' +
-        'Existing transactions are not updated. Pass null to clear the default category. ' +
+      'Records a preferred/default category for this payee. ' +
+        'Pass null to clear it. ' +
         'Use finances_list_context to find available category IDs.',
     ),
 });
