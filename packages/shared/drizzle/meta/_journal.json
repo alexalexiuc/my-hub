@@ -36,13 +36,6 @@
       "when": 1779279675185,
       "tag": "0004_tense_psynapse",
       "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1779727107197,
-      "tag": "0005_bitter_galactus",
-      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@
  * - findPayeeByNameOrAlias(userId, budgetId, name) — resolves a payee by canonical name or aliases
  * - upsertPayee(userId, budgetId, name) — insert-or-return, case-insensitive via normalizedName/aliases matching
  * - resolvePayeeIdByNameOrAlias(userId, budgetId, name) — resolves payee id or undefined
- * - updatePayee(userId, budgetId, payeeId, patch) — updates payee name/aliases/description/defaultCategoryId
+ * - updatePayee(userId, budgetId, payeeId, patch) — updates payee name/aliases/description
  * - getPayees(userId, budgetId) — returns all payees ranked by user usage; includes aliases, description, and stats
  * - deletePayee(userId, budgetId, payeeId) — hard delete
  * - incrementPayeeStats(tx, payeeId, userId, categoryId, accountId?) — called inside transaction writes
@@ -22,7 +22,6 @@ export interface Payee {
   name: string;
   aliases: string[];
   description: string | null;
-  defaultCategoryId: number | null;
 }
 
 export type PayeeStats = {
@@ -38,7 +37,6 @@ export interface PayeeUpdate {
   name?: string;
   aliases?: string[];
   description?: string | null;
-  defaultCategoryId?: number | null;
 }
 
 function normalizePayeeName(name: string): string {
@@ -135,9 +133,6 @@ export async function updatePayee(
   if (patch.description !== undefined) {
     changes.description = patch.description?.trim() || null;
   }
-  if (patch.defaultCategoryId !== undefined) {
-    changes.defaultCategoryId = patch.defaultCategoryId;
-  }
 
   const [updated] = await db
     .update(financePayees)
@@ -206,7 +201,6 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
       name: p.name,
       aliases: p.aliases,
       description: p.description,
-      defaultCategoryId: p.defaultCategoryId ?? null,
       useCount: 0,
       ...stats,
     };
