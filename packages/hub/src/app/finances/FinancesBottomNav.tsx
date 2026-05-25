@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { PlusOutlineIcon } from '@/components/icons';
 import { TransactionModal } from './transactions/TransactionModal';
+import { transactionEvents } from './transactions/transactionEvents';
 import { SubText } from './ui';
 import type { BudgetDetailResponse } from '@/app/api/finances/budget/route';
 
@@ -115,7 +116,13 @@ export function FinancesBottomNav({ className }: FinancesBottomNavProps) {
   return (
     <>
       {showAddTx && (
-        <TransactionModal onCloseAction={() => setShowAddTx(false)} onSavedAction={() => setShowAddTx(false)} />
+        <TransactionModal
+          onCloseAction={() => setShowAddTx(false)}
+          onSavedAction={() => {
+            setShowAddTx(false);
+            transactionEvents.emit('changed');
+          }}
+        />
       )}
       {showMore && <MoreSheet onClose={() => setShowMore(false)} />}
       <div
