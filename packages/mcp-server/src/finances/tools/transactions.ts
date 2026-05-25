@@ -551,14 +551,6 @@ export const QueryTransactionsSchema = z.object({
   search: z.string().optional(),
   limit: z.number().int().min(1).max(200).optional(),
   offset: z.number().int().min(0).optional(),
-  fields: z
-    .array(z.enum(['id', 'type', 'amount', 'date', 'notes', 'categoryId', 'payeeId', 'accountId', 'labels']))
-    .optional()
-    .describe(
-      'When provided, only return the listed fields per transaction. ' +
-        'Omit to get full transaction objects (default behavior). ' +
-        'Useful for large result sets where only a subset of fields is needed.',
-    ),
 });
 
 export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema> = async (input, context) => {
@@ -602,23 +594,7 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema> 
     countTransactions(userId, budget.id, opts),
   ]);
 
-  const fields = input.fields ? new Set(input.fields) : null;
-
   const transactions = txns.map(tx => {
-    if (fields) {
-      const row: Record<string, unknown> = {};
-      if (fields.has('id')) row.id = tx.id;
-      if (fields.has('type')) row.type = tx.type;
-      if (fields.has('amount')) row.amount = tx.amount;
-      if (fields.has('date')) row.date = tx.date;
-      if (fields.has('notes')) row.notes = tx.notes;
-      if (fields.has('labels')) row.labels = tx.labels;
-      if (fields.has('categoryId')) row.categoryId = tx.categoryId ?? null;
-      if (fields.has('payeeId')) row.payeeId = tx.payeeId ?? null;
-      if (fields.has('accountId')) row.accountId = tx.accountId;
-      return row;
-    }
-
     return {
       id: tx.id,
       type: tx.type,
