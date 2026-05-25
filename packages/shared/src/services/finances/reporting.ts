@@ -458,7 +458,7 @@ export async function getSpendingAggregates(
 
 // ─── Period Comparison ────────────────────────────────────────────────────────
 
-export type ComparisonGroupBy = 'category' | 'payee' | 'account' | 'month';
+export type ComparisonGroupBy = 'category' | 'payee' | 'account';
 
 export interface ComparisonGroup {
   key: string;

@@ -162,18 +162,19 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
       const date = item.date ?? currentDateString();
 
       let payeeId: number | null = null;
-      if (isPayeeRequired(item.type) && item.payeeName) {
-        const resolvedPayee = await findPayeeByNameOrAlias(userId, budget.id, item.payeeName);
+      const trimmedPayeeName = item.payeeName?.trim();
+      if (isPayeeRequired(item.type) && trimmedPayeeName) {
+        const resolvedPayee = await findPayeeByNameOrAlias(userId, budget.id, trimmedPayeeName);
         if (resolvedPayee == null) {
           if (input.createPayee) {
-            const newPayee = await upsertPayee(userId, budget.id, item.payeeName);
+            const newPayee = await upsertPayee(userId, budget.id, trimmedPayeeName);
             payeeId = newPayee.id;
           } else {
             return toolResponse({
               error: {
                 code: 'payee_not_found',
-                message: `Payee not found: ${item.payeeName}`,
-                normalizedName: item.payeeName.trim().toLowerCase(),
+                message: `Payee not found: ${trimmedPayeeName}`,
+                normalizedName: trimmedPayeeName.toLowerCase(),
                 requirePayeeCreation: true,
               },
             });
