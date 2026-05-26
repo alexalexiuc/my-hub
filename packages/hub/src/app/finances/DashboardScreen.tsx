@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Bar, Divider, SubText } from './ui';
+import { fmt, Card, SectionLabel, Bar, Divider, SubText, MonthCarousel } from './ui';
 import { CategoryPieChart, SpendingTrendChart } from './DashboardCharts';
 import { TransactionList } from './transactions/TransactionList';
 import type { FinanceDashboardData } from '@/app/api/finances/dashboard/route';
@@ -14,16 +14,15 @@ function getGreeting() {
   return 'Good evening';
 }
 
-function currentMonthLabel() {
-  return new Date().toLocaleDateString('en-IE', { month: 'long', year: 'numeric' });
-}
-
 type DashboardScreenProps = {
   data: FinanceDashboardData;
   userName?: string;
+  selectedMonth: string;
+  currentMonth: string;
+  onMonthChange: (month: string) => void;
 };
 
-export function DashboardScreen({ data, userName }: DashboardScreenProps) {
+export function DashboardScreen({ data, userName, selectedMonth, currentMonth, onMonthChange }: DashboardScreenProps) {
   const router = useRouter();
   const {
     currency,
@@ -41,14 +40,12 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
   return (
     <div className="flex flex-col gap-[14px]">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="mb-0.5 text-xs text-[var(--fin-subtle)]">
-            {getGreeting()}
-            {userName ? `, ${userName}` : ''}
-          </div>
-          <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">{currentMonthLabel()}</div>
+      <div>
+        <div className="mb-1 text-xs text-[var(--fin-subtle)]">
+          {getGreeting()}
+          {userName ? `, ${userName}` : ''}
         </div>
+        <MonthCarousel month={selectedMonth} onNavigate={onMonthChange} currentMonth={currentMonth} />
       </div>
 
       {/* Available balance + cashflow row */}
