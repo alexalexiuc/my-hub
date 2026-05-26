@@ -125,15 +125,20 @@ export default function CategoriesPage() {
                     })}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2.5">
-                    {spentCategories.map(cat => (
-                      <div key={cat.id} className="flex items-center gap-1">
-                        <div
-                          className="rounded-sm"
-                          style={{ width: 7, height: 7, background: cat.color ?? 'var(--fin-muted)' }}
-                        />
-                        <span className="text-[10px] text-[var(--fin-muted)]">{cat.name}</span>
-                      </div>
-                    ))}
+                    {spentCategories.map(cat => {
+                      const pct = Math.round((cat.spent / data.totalSpent) * 100);
+                      return (
+                        <div key={cat.id} className="flex items-center gap-1">
+                          <div
+                            className="rounded-sm"
+                            style={{ width: 7, height: 7, background: cat.color ?? 'var(--fin-muted)' }}
+                          />
+                          <span className="text-[10px] text-[var(--fin-muted)]">
+                            {cat.name} <span className="text-[var(--fin-subtle)]">{pct}%</span>
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </>
               )}
