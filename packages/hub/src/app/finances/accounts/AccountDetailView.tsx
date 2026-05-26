@@ -258,6 +258,14 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
             <SubText className="block">Monthly</SubText>
             <div className="text-[var(--fin-muted)]">{fmt(acc.amortizationSummary.monthlyPayment, acc.currency)}</div>
           </div>
+          {acc.amortizationSummary.totalInterestRemaining > 0 && (
+            <div>
+              <SubText className="block">Remaining interest</SubText>
+              <div className="text-[var(--fin-amber)]">
+                {fmt(acc.amortizationSummary.totalInterestRemaining, acc.currency)}
+              </div>
+            </div>
+          )}
           {acc.amortizationSummary.totalCost > 0 && (
             <div>
               <SubText className="block">Paid off</SubText>
@@ -265,7 +273,11 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
                 {Math.max(
                   0,
                   Math.round(
-                    ((acc.amortizationSummary.totalCost + acc.balance) / acc.amortizationSummary.totalCost) * 100,
+                    ((acc.amortizationSummary.totalCost -
+                      acc.balance -
+                      acc.amortizationSummary.totalInterestRemaining) /
+                      acc.amortizationSummary.totalCost) *
+                      100,
                   ),
                 )}
                 %

@@ -198,18 +198,17 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
       const loanSnapshot = isLoan
         ? await getLoanBalanceSnapshotForAccount(user.id, budgetId, account, { accountCurrencyById })
         : null;
-      // For loans, display balance = -(remainingPrincipal + totalInterestRemaining), dynamically
-      // computed from actual payment history by the amortization service. This reflects the true
-      // total still owed and handles overpayments and floating rates correctly.
-      // Other liabilities (credit cards etc.) use account.balance directly.
-      const bal = loanSnapshot
-        ? account.balance - loanSnapshot.amortizationSummary.totalInterestRemaining
-        : account.balance;
+      // For loans, use the amortization-derived remaining principal (positive) as the display
+      // balance. This matches what the MCP context tool returns and correctly reflects how much
+      // principal still needs to be repaid, independent of the interest included in each payment.
+      const bal = loanSnapshot ? loanSnapshot.balance : account.balance;
       const isOtherLiability = !isLoan && LIABILITY_TYPES.has(account.type);
       const includedInAvailable = isIncludedInAvailable(account.type, prefs.get(account.id) ?? null);
       if (!account.archived) {
-        netWorth += isOtherLiability ? -bal : bal;
-        if (includedInAvailable) availableBalance += isOtherLiability ? -bal : bal;
+        // Loans: positive remaining principal must be subtracted from net worth (it's a liability).
+        // Other liabilities and assets keep the existing sign convention.
+        netWorth += isLoan || isOtherLiability ? -bal : bal;
+        if (includedInAvailable) availableBalance += isLoan || isOtherLiability ? -bal : bal;
       }
       return {
         id: account.id,
