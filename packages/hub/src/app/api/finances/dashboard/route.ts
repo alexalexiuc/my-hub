@@ -4,6 +4,7 @@ import {
   getAccounts,
   getCategories,
   getTransactions,
+  getTransactionListItems,
   getAvailableBalance,
   getUserActiveBudget,
   getUserBudgets,
@@ -68,6 +69,7 @@ export const financeDashboardDataSchema = z.object({
   categories: z.array(dashboardCategorySchema),
   dailySpending: z.array(dailySpendingPointSchema),
   goals: z.array(dashboardGoalSchema),
+  recentTransactions: z.array(dashboardTransactionSchema),
 });
 
 export const noBudgetResponseSchema = z.object({
@@ -141,6 +143,7 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     expenseTxns,
     incomeTxns,
     transferTxns,
+    recentTxns,
     availableBalance,
     prevExpenseTxns,
     prevTransferTxns,
@@ -165,6 +168,7 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
       toDate,
       limit: 2000,
     }),
+    getTransactionListItems(user.id, budgetId, { limit: 5 }),
     getAvailableBalance(user.id, budgetId),
     getTransactions(user.id, budgetId, {
       type: TransactionTypes.Expense,
@@ -272,6 +276,7 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     categories: categorySpending,
     dailySpending,
     goals,
+    recentTransactions: recentTxns,
   };
 
   return data;
