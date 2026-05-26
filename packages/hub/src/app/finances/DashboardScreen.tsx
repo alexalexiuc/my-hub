@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
 import { fmt, Card, SectionLabel, Bar, Divider, SubText, MonthCarousel } from './ui';
 import { CategoryPieChart, SpendingTrendChart } from './DashboardCharts';
 import { TransactionList } from './transactions/TransactionList';
@@ -45,7 +46,12 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
           {getGreeting()}
           {userName ? `, ${userName}` : ''}
         </div>
-        <MonthCarousel month={selectedMonth} onNavigate={onMonthChange} currentMonth={currentMonth} />
+        <MonthCarousel
+          month={selectedMonth}
+          onNavigate={onMonthChange}
+          currentMonth={currentMonth}
+          maxMonth={currentMonth}
+        />
       </div>
 
       {/* Available balance + cashflow row */}
@@ -58,7 +64,9 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
         </Card>
 
         <Card className="p-[14px]">
-          <SubText className="block mb-1.5 uppercase tracking-[0.08em]">This Month</SubText>
+          <SubText className="block mb-1.5 uppercase tracking-[0.08em]">
+            {selectedMonth === currentMonth ? 'This Month' : formatMonthStr(selectedMonth)}
+          </SubText>
           <div className="mt-1 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-[var(--fin-muted)]">Income</span>
@@ -111,16 +119,21 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
                 <div className="flex items-center gap-2 text-[9px] text-[var(--fin-muted)]">
                   <span className="flex items-center gap-1">
                     <span className="inline-block h-[2px] w-4 bg-[var(--fin-accent)]" />
-                    This month
+                    {selectedMonth === currentMonth ? 'This month' : formatMonthStr(selectedMonth)}
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="inline-block h-[2px] w-4 border-t border-dashed border-[var(--fin-subtle)]" />
-                    Prev
+                    {formatMonthStr(shiftMonthStr(selectedMonth, -1))}
                   </span>
                 </div>
               </div>
               <div className="h-[200px]">
-                <SpendingTrendChart dailySpending={dailySpending} currency={currency} />
+                <SpendingTrendChart
+                  dailySpending={dailySpending}
+                  currency={currency}
+                  monthLabel={selectedMonth === currentMonth ? 'This month' : formatMonthStr(selectedMonth)}
+                  prevLabel={formatMonthStr(shiftMonthStr(selectedMonth, -1))}
+                />
               </div>
             </Card>
           )}
@@ -168,7 +181,7 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
           </span>
         </div>
 
-        <TransactionList limit={5} />
+        <TransactionList limit={5} month={selectedMonth} />
       </Card>
     </div>
   );

@@ -126,9 +126,11 @@ export function CategoryPieChart({ categories, currency }: CategoryPieChartProps
 type SpendingTrendChartProps = {
   dailySpending: DailySpendingPoint[];
   currency: SupportedCurrency;
+  monthLabel?: string;
+  prevLabel?: string;
 };
 
-export function SpendingTrendChart({ dailySpending, currency }: SpendingTrendChartProps) {
+export function SpendingTrendChart({ dailySpending, currency, monthLabel, prevLabel }: SpendingTrendChartProps) {
   if (dailySpending.length === 0) return null;
 
   return (
@@ -149,7 +151,7 @@ export function SpendingTrendChart({ dailySpending, currency }: SpendingTrendCha
                 <div style={{ color: 'var(--fin-muted)', fontSize: 10, marginBottom: 4 }}>Day {label}</div>
                 {payload.map((p, i) => (
                   <div key={i} style={{ color: p.color as string, marginBottom: 2 }}>
-                    {p.name === 'current' ? 'This month' : 'Prev month'}:{' '}
+                    {p.name === 'current' ? (monthLabel ?? 'This month') : (prevLabel ?? 'Prev month')}:{' '}
                     {typeof p.value === 'number' ? fmt(p.value, currency) : String(p.value)}
                   </div>
                 ))}

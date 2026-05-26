@@ -4,7 +4,6 @@ import {
   getAccounts,
   getCategories,
   getTransactions,
-  getTransactionListItems,
   getAvailableBalance,
   getUserActiveBudget,
   getUserBudgets,
@@ -69,7 +68,6 @@ export const financeDashboardDataSchema = z.object({
   categories: z.array(dashboardCategorySchema),
   dailySpending: z.array(dailySpendingPointSchema),
   goals: z.array(dashboardGoalSchema),
-  recentTransactions: z.array(dashboardTransactionSchema),
 });
 
 export const noBudgetResponseSchema = z.object({
@@ -91,7 +89,7 @@ export type DashboardResponse = z.infer<typeof dashboardResponseSchema>;
 const DashboardQuerySchema = z.object({
   month: z
     .string()
-    .regex(/^\d{4}-\d{2}$/, 'month must be YYYY-MM')
+    .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'month must be YYYY-MM')
     .optional(),
 });
 
@@ -126,8 +124,9 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
   const monthLastDay = new Date(selYear, selMon, 0).getDate();
   const monthEnd = `${selectedMonth}-${String(monthLastDay).padStart(2, '0')}`;
   const today = now.toISOString().slice(0, 10);
+  const isFutureMonth = selectedMonth > currentYearMonth;
   const toDate = isCurrentMonth ? today : monthEnd;
-  const todayDay = isCurrentMonth ? now.getDate() : monthLastDay;
+  const todayDay = isCurrentMonth ? now.getDate() : isFutureMonth ? 0 : monthLastDay;
 
   const prevMonthDate = new Date(selYear, selMon - 2, 1);
   const prevYear = prevMonthDate.getFullYear();
@@ -142,7 +141,6 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     expenseTxns,
     incomeTxns,
     transferTxns,
-    recentTxns,
     availableBalance,
     prevExpenseTxns,
     prevTransferTxns,
@@ -167,7 +165,6 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
       toDate,
       limit: 2000,
     }),
-    getTransactionListItems(user.id, budgetId, { limit: 5 }),
     getAvailableBalance(user.id, budgetId),
     getTransactions(user.id, budgetId, {
       type: TransactionTypes.Expense,
@@ -275,7 +272,6 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     categories: categorySpending,
     dailySpending,
     goals,
-    recentTransactions: recentTxns,
   };
 
   return data;
