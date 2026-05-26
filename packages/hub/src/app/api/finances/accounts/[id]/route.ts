@@ -110,7 +110,7 @@ export const GET = route({
     if (loanSnapshot) {
       account = {
         ...account,
-        balance: rawAccount.balance - loanSnapshot.amortizationSummary.totalInterestRemaining,
+        balance: loanSnapshot.balance,
         amortizationSummary: loanSnapshot.amortizationSummary,
       };
     }
