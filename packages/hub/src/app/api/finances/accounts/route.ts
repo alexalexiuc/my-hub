@@ -198,10 +198,16 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
       const loanSnapshot = isLoan
         ? await getLoanBalanceSnapshotForAccount(user.id, budgetId, account, { accountCurrencyById })
         : null;
-      // For loans, use the amortization-derived remaining principal (positive) as the display
-      // balance. This matches what the MCP context tool returns and correctly reflects how much
-      // principal still needs to be repaid, independent of the interest included in each payment.
-      const bal = loanSnapshot ? loanSnapshot.balance : account.balance;
+      // For non-zero interest loans, use the amortization-derived remaining principal because
+      // each payment includes interest, so the raw DB balance understates the true remaining
+      // principal. For 0% loans every payment is pure principal, so the raw DB balance
+      // (negated, since loans are stored negative) is always correct with no amortization needed.
+      const loanDetails = isLoan ? (account.details as LoanAccountDetails | null) : null;
+      const bal = loanSnapshot
+        ? loanDetails?.interestRate === 0
+          ? -account.balance
+          : loanSnapshot.balance
+        : account.balance;
       const isOtherLiability = !isLoan && LIABILITY_TYPES.has(account.type);
       const includedInAvailable = isIncludedInAvailable(account.type, prefs.get(account.id) ?? null);
       if (!account.archived) {
