@@ -4,7 +4,7 @@ import {
   getUserActiveBudget,
   getMonthlyPlanFull,
   updateMonthlyPlan,
-  checkMonthlyPlanExists,
+  checkMonthlyPlanIsPopulated,
 } from '@my-hub/shared/services';
 import { supportedCurrencySchema } from '../../currency.schema';
 
@@ -64,7 +64,7 @@ function nmOf(month: string): string {
 async function buildResponse(userId: string, budgetId: number, month: string) {
   const [full, nextMonthExists] = await Promise.all([
     getMonthlyPlanFull(userId, budgetId, month),
-    checkMonthlyPlanExists(userId, budgetId, nmOf(month)),
+    checkMonthlyPlanIsPopulated(userId, budgetId, nmOf(month)),
   ]);
 
   return {
