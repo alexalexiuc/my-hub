@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { signOut, useSession } from 'next-auth/react';
+import { signOut } from 'next-auth/react';
 import { UserOutlineIcon, LogOutOutlineIcon } from '@/components/icons';
+import { useUserNameFromSession } from '@/hooks/useUserNameFromSession';
 
 export function DashboardHeader() {
-  const { data: session, status } = useSession();
-  const userName = session?.user?.name ?? null;
+  const { fullName, status } = useUserNameFromSession();
 
   return (
     <header className="border-b border-zinc-800 bg-zinc-950">
@@ -16,7 +16,7 @@ export function DashboardHeader() {
           {status === 'loading' ? (
             <div className="mt-1 h-3.5 w-28 rounded bg-zinc-800 animate-pulse" />
           ) : (
-            userName && <p className="text-sm text-zinc-400">Welcome, {userName}</p>
+            fullName && <p className="text-sm text-zinc-400">Welcome, {fullName}</p>
           )}
         </div>
         <div className="flex items-center gap-1">

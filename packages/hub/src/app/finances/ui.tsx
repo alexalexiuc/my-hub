@@ -406,3 +406,11 @@ export function MonthCarousel({
     </div>
   );
 }
+
+export function SeeAllButton({ href }: { href: string }) {
+  return (
+    <Button variant="ghost" href={href} size="xs" className="text-[var(--fin-accent)]">
+      See all →
+    </Button>
+  );
+}

@@ -1,9 +1,6 @@
-'use client';
-
-import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
-import { fmt, Card, SectionLabel, Bar, Divider, SubText, MonthCarousel } from './ui';
+import { fmt, Card, SectionLabel, Bar, Divider, SubText, MonthCarousel, SeeAllButton } from './ui';
 import { CategoryPieChart, SpendingTrendChart } from './DashboardCharts';
 import { TransactionList } from './transactions/TransactionList';
 import type { FinanceDashboardData } from '@/app/api/finances/dashboard/route';
@@ -24,7 +21,6 @@ type DashboardScreenProps = {
 };
 
 export function DashboardScreen({ data, userName, selectedMonth, currentMonth, onMonthChange }: DashboardScreenProps) {
-  const router = useRouter();
   const {
     currency,
     availableBalance,
@@ -102,12 +98,7 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
             <Card className="p-[14px]">
               <div className="mb-2 flex justify-between">
                 <SectionLabel className="mb-0">By Category</SectionLabel>
-                <span
-                  className="cursor-pointer text-[10px] text-[var(--fin-accent)]"
-                  onClick={() => router.push('/finances/categories')}
-                >
-                  See all →
-                </span>
+                <SeeAllButton href="/finances/categories" />
               </div>
               <CategoryPieChart categories={categories} currency={currency} />
             </Card>
@@ -145,12 +136,7 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
         <Card className="p-[14px]">
           <div className="mb-2.5 flex justify-between">
             <SectionLabel className="mb-0">Goals</SectionLabel>
-            <span
-              className="cursor-pointer text-[10px] text-[var(--fin-accent)]"
-              onClick={() => router.push('/finances/goals')}
-            >
-              See all →
-            </span>
+            <SeeAllButton href="/finances/goals" />
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             {goals.slice(0, 4).map(g => {
@@ -173,12 +159,7 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
       <Card className="p-0 md:p-[14px]">
         <div className="mb-2.5 flex justify-between px-[14px] pt-[14px] md:px-0 md:pt-0">
           <SectionLabel className="mb-0">Recent</SectionLabel>
-          <span
-            className="cursor-pointer text-[10px] text-[var(--fin-accent)]"
-            onClick={() => router.push('/finances/transactions')}
-          >
-            All →
-          </span>
+          <SeeAllButton href="/finances/transactions" />
         </div>
 
         <TransactionList limit={5} month={selectedMonth} />

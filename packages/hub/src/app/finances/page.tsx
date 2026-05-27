@@ -1,18 +1,18 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSession } from 'next-auth/react';
 import { apiFetch } from '@/lib/utils';
 import { dateToString } from '@my-hub/shared/utils';
 import { DashboardScreen } from './DashboardScreen';
 import { CreateBudgetScreen } from './CreateBudgetScreen';
 import { BudgetSelectorScreen } from './BudgetSelectorScreen';
-import type { DashboardResponse, FinanceDashboardData, NoBudgetResponse } from '@/app/api/finances/dashboard/route';
+import type { DashboardResponse, NoBudgetResponse } from '@/app/api/finances/dashboard/route';
+import { useUserNameFromSession } from '@/hooks/useUserNameFromSession';
+import { transactionEvents } from './transactions/transactionEvents';
 
 const CURRENT_MONTH = dateToString(new Date(), 'YYYY-MM');
 
 export default function FinancesPage() {
-  const { data: session } = useSession();
   const [response, setResponse] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -20,6 +20,7 @@ export default function FinancesPage() {
   // Tracks the latest load invocation so stale responses (e.g. from React Strict
   // Mode's second effect run) do not overwrite a fresher result.
   const loadIdRef = useRef(0);
+  const { firstName } = useUserNameFromSession();
 
   const load = useCallback(async (month: string) => {
     const loadId = ++loadIdRef.current;
@@ -36,7 +37,12 @@ export default function FinancesPage() {
   }, []);
 
   useEffect(() => {
+    // Initial load
     load(selectedMonth);
+
+    const handler = () => load(selectedMonth);
+    transactionEvents.on('changed', handler);
+    return () => transactionEvents.off('changed', handler);
   }, [selectedMonth, load]);
 
   if (loading) {
@@ -85,12 +91,9 @@ export default function FinancesPage() {
     );
   }
 
-  const data = response as FinanceDashboardData;
-  const firstName = session?.user?.name?.split(' ')[0];
-
   return (
     <DashboardScreen
-      data={data}
+      data={response}
       userName={firstName}
       selectedMonth={selectedMonth}
       currentMonth={CURRENT_MONTH}
