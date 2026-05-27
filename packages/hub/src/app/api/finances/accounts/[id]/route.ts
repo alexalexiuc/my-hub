@@ -108,9 +108,11 @@ export const GET = route({
     const accountCurrencyById = new Map(allAccounts.map(current => [current.id, current.currency]));
     const loanSnapshot = await getLoanBalanceSnapshotForAccount(user.id, budgetId, rawAccount, { accountCurrencyById });
     if (loanSnapshot) {
+      const loanDetails = rawAccount.details as LoanAccountDetails | null;
+      const displayBalance = loanDetails?.interestRate === 0 ? -rawAccount.balance : loanSnapshot.balance;
       account = {
         ...account,
-        balance: loanSnapshot.balance,
+        balance: displayBalance,
         amortizationSummary: loanSnapshot.amortizationSummary,
       };
     }
