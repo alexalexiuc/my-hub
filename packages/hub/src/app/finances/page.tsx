@@ -3,25 +3,29 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { apiFetch } from '@/lib/utils';
+import { dateToString } from '@my-hub/shared/utils';
 import { DashboardScreen } from './DashboardScreen';
 import { CreateBudgetScreen } from './CreateBudgetScreen';
 import { BudgetSelectorScreen } from './BudgetSelectorScreen';
 import type { DashboardResponse, FinanceDashboardData, NoBudgetResponse } from '@/app/api/finances/dashboard/route';
+
+const CURRENT_MONTH = dateToString(new Date(), 'YYYY-MM');
 
 export default function FinancesPage() {
   const { data: session } = useSession();
   const [response, setResponse] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH);
   // Tracks the latest load invocation so stale responses (e.g. from React Strict
   // Mode's second effect run) do not overwrite a fresher result.
   const loadIdRef = useRef(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (month: string) => {
     const loadId = ++loadIdRef.current;
     setLoading(true);
     try {
-      const result = await apiFetch<DashboardResponse>('/api/finances/dashboard', {
+      const result = await apiFetch<DashboardResponse>(`/api/finances/dashboard?month=${month}`, {
         silentToast: true,
       });
       if (loadId !== loadIdRef.current) return;
@@ -32,8 +36,8 @@ export default function FinancesPage() {
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    load(selectedMonth);
+  }, [selectedMonth, load]);
 
   if (loading) {
     return (
@@ -64,7 +68,7 @@ export default function FinancesPage() {
           budgets={available}
           onActivated={() => {
             setShowCreate(false);
-            void load();
+            void load(selectedMonth);
           }}
           onCreateNew={() => setShowCreate(true)}
         />
@@ -75,7 +79,7 @@ export default function FinancesPage() {
       <CreateBudgetScreen
         onCreated={() => {
           setShowCreate(false);
-          void load();
+          void load(selectedMonth);
         }}
       />
     );
@@ -84,5 +88,13 @@ export default function FinancesPage() {
   const data = response as FinanceDashboardData;
   const firstName = session?.user?.name?.split(' ')[0];
 
-  return <DashboardScreen data={data} userName={firstName} />;
+  return (
+    <DashboardScreen
+      data={data}
+      userName={firstName}
+      selectedMonth={selectedMonth}
+      currentMonth={CURRENT_MONTH}
+      onMonthChange={setSelectedMonth}
+    />
+  );
 }

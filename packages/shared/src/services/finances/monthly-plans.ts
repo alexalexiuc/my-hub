@@ -3,6 +3,7 @@
  * - getMonthlyPlan(userId, budgetId, month, tx?) — fetch plan row for a given YYYY-MM month, returns undefined if not found
  * - createMonthlyPlan(userId, budgetId, month, availableAmount?) — create a new plan row for the given month
  * - checkMonthlyPlanExists(userId, budgetId, month) — returns true if a plan row exists for that month (without creating one)
+ * - checkMonthlyPlanIsPopulated(userId, budgetId, month) — returns true if a plan exists AND has items or availableAmount > 0 (ignores auto-created empty plans)
  * - getOrCreateMonthlyPlan(userId, budgetId, month) — fetch or create the plan row for a given YYYY-MM month
  * - getMonthlyPlanFull(userId, budgetId, month, autoCreate?) — plan + items + computed summary (planned, remaining potential/real, progress). If autoCreate is true (default), will create the plan row if it doesn't exist; if false, will return undefined if not found
  * - computeSummary(plan, items, budgetCurrency) — compute planned/remaining/assigned summary in budget currency
@@ -197,6 +198,19 @@ export async function createMonthlyPlan(
 
 export async function checkMonthlyPlanExists(userId: string, budgetId: number, month: string): Promise<boolean> {
   return !!(await getMonthlyPlan(userId, budgetId, month));
+}
+
+export async function checkMonthlyPlanIsPopulated(userId: string, budgetId: number, month: string): Promise<boolean> {
+  const plan = await getMonthlyPlan(userId, budgetId, month);
+  if (!plan) return false;
+  if (plan.availableAmount > 0) return true;
+
+  const rows = await db
+    .select({ id: financeMonthlyPlanItems.id })
+    .from(financeMonthlyPlanItems)
+    .where(eq(financeMonthlyPlanItems.planId, plan.id))
+    .limit(1);
+  return rows.length > 0;
 }
 
 export async function getOrCreateMonthlyPlan(
@@ -414,13 +428,39 @@ export async function copyToNextMonth(
 
   const nextMonthString = shiftMonthStr(month, 1);
 
-  const [existsNextMonthPlan, current] = await Promise.all([
-    checkMonthlyPlanExists(userId, budgetId, nextMonthString),
+  const [nextMonthPlan, current] = await Promise.all([
+    getMonthlyPlan(userId, budgetId, nextMonthString),
     getMonthlyPlan(userId, budgetId, month),
   ]);
-  if (existsNextMonthPlan || !current) return { created: false, targetMonth: nextMonthString };
+  if (!current) return { created: false, targetMonth: nextMonthString };
 
-  const nextPlan = await createMonthlyPlan(userId, budgetId, nextMonthString, current.availableAmount);
+  // If next month plan is meaningfully populated (has items or availableAmount > 0), skip copy
+  if (nextMonthPlan) {
+    const nextItems = await db
+      .select({ id: financeMonthlyPlanItems.id })
+      .from(financeMonthlyPlanItems)
+      .where(eq(financeMonthlyPlanItems.planId, nextMonthPlan.id))
+      .limit(1);
+    if (nextMonthPlan.availableAmount > 0 || nextItems.length > 0) {
+      return { created: false, targetMonth: nextMonthString };
+    }
+  }
+
+  // Next month plan either doesn't exist or is an empty auto-created placeholder
+  let nextPlan: FinanceMonthlyPlan;
+  if (nextMonthPlan) {
+    // Update the existing empty plan with the current month's availableAmount
+    const updated = await db
+      .update(financeMonthlyPlans)
+      .set({ availableAmount: current.availableAmount })
+      .where(eq(financeMonthlyPlans.id, nextMonthPlan.id))
+      .returning();
+    if (!updated[0]) throw new Error('Failed to update monthly plan');
+    nextPlan = updated[0];
+    monthlyPlanCache.set(`${budgetId}-${nextMonthString}`, nextPlan);
+  } else {
+    nextPlan = await createMonthlyPlan(userId, budgetId, nextMonthString, current.availableAmount);
+  }
 
   const items = await db
     .select()

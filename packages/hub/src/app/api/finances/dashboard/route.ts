@@ -88,7 +88,17 @@ export type FinanceDashboardData = z.infer<typeof financeDashboardDataSchema>;
 export type NoBudgetResponse = z.infer<typeof noBudgetResponseSchema>;
 export type DashboardResponse = z.infer<typeof dashboardResponseSchema>;
 
-export const GET = route({ response: dashboardResponseSchema })(async ({ user }) => {
+const DashboardQuerySchema = z.object({
+  month: z
+    .string()
+    .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'month must be YYYY-MM')
+    .optional(),
+});
+
+export const GET = route({ query: DashboardQuerySchema, response: dashboardResponseSchema })(async ({
+  user,
+  query,
+}) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) {
     const allBudgets = await getUserBudgets(user.id);
@@ -107,14 +117,24 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
   const currency = budget.defaultCurrency;
 
   const now = new Date();
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  const today = now.toISOString().slice(0, 10);
+  const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const selectedMonth = query.month ?? currentYearMonth;
+  const [selYear, selMon] = selectedMonth.split('-').map(Number) as [number, number];
+  const isCurrentMonth = selectedMonth === currentYearMonth;
 
-  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const monthStart = `${selectedMonth}-01`;
+  const monthLastDay = new Date(selYear, selMon, 0).getDate();
+  const monthEnd = `${selectedMonth}-${String(monthLastDay).padStart(2, '0')}`;
+  const today = now.toISOString().slice(0, 10);
+  const isFutureMonth = selectedMonth > currentYearMonth;
+  const toDate = isCurrentMonth ? today : monthEnd;
+  const todayDay = isCurrentMonth ? now.getDate() : isFutureMonth ? 0 : monthLastDay;
+
+  const prevMonthDate = new Date(selYear, selMon - 2, 1);
   const prevYear = prevMonthDate.getFullYear();
   const prevMonth = prevMonthDate.getMonth() + 1;
   const prevMonthStart = `${prevYear}-${String(prevMonth).padStart(2, '0')}-01`;
-  const prevMonthLastDay = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+  const prevMonthLastDay = new Date(selYear, selMon - 1, 0).getDate();
   const prevMonthEnd = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(prevMonthLastDay).padStart(2, '0')}`;
 
   const [
@@ -133,19 +153,19 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
     getTransactions(user.id, budgetId, {
       type: TransactionTypes.Expense,
       fromDate: monthStart,
-      toDate: today,
+      toDate,
       limit: 2000,
     }),
     getTransactions(user.id, budgetId, {
       type: TransactionTypes.Income,
       fromDate: monthStart,
-      toDate: today,
+      toDate,
       limit: 2000,
     }),
     getTransactions(user.id, budgetId, {
       type: TransactionTypes.Transfer,
       fromDate: monthStart,
-      toDate: today,
+      toDate,
       limit: 2000,
     }),
     getTransactionListItems(user.id, budgetId, { limit: 5 }),
@@ -219,12 +239,10 @@ export const GET = route({ response: dashboardResponseSchema })(async ({ user })
     categorySpending.push({ id: -1, name: 'Other', icon: null, color: null, spent: uncategorized });
   }
 
-  const todayDay = now.getDate();
-  const currentMonthLastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const dailySpending: { day: number; current: number | null; prev: number }[] = [];
   let currentCumulative = 0;
   let prevCumulative = 0;
-  for (let d = 1; d <= currentMonthLastDay; d++) {
+  for (let d = 1; d <= monthLastDay; d++) {
     if (d <= todayDay) {
       currentCumulative += currentDayMap.get(d) ?? 0;
     }

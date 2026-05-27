@@ -18,10 +18,7 @@ type CatRowProps = {
 };
 
 function CatRowContent({ cat, currency, onClick }: { cat: CategoryRow; currency: string; onClick?: () => void }) {
-  const pct =
-    cat.monthlyTarget && cat.monthlyTarget > 0
-      ? Math.min(100, Math.round((cat.spent / cat.monthlyTarget) * 100))
-      : null;
+  const pct = cat.monthlyTarget && cat.monthlyTarget > 0 ? Math.round((cat.spent / cat.monthlyTarget) * 100) : null;
   const barColor =
     pct === null
       ? 'var(--fin-muted)'

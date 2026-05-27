@@ -364,11 +364,20 @@ type MonthCarouselProps = {
   onNavigate: (m: string) => void;
   /** When provided, shows a "Today" pill next to the carousel whenever `month` differs from `currentMonth`. */
   currentMonth?: string;
+  /** When provided, the forward chevron is disabled once `month` reaches this value. */
+  maxMonth?: string;
   className?: string;
   labelClassName?: string;
 };
 
-export function MonthCarousel({ month, onNavigate, currentMonth, className, labelClassName }: MonthCarouselProps) {
+export function MonthCarousel({
+  month,
+  onNavigate,
+  currentMonth,
+  maxMonth,
+  className,
+  labelClassName,
+}: MonthCarouselProps) {
   return (
     <div className={cn('flex items-center gap-3', className)}>
       <IconButton
@@ -386,7 +395,8 @@ export function MonthCarousel({ month, onNavigate, currentMonth, className, labe
         label="Next month"
         icon={<ChevronRightOutlineIcon />}
         onClick={() => onNavigate(shiftMonthStr(month, 1))}
-        className="bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)]"
+        disabled={maxMonth !== undefined && month >= maxMonth}
+        className="bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)] disabled:opacity-30"
       />
       {currentMonth !== undefined && month !== currentMonth && (
         <Button variant="fin-pill" size="xs" onClick={() => onNavigate(currentMonth)}>

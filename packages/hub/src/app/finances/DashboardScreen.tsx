@@ -2,7 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Bar, Divider, SubText } from './ui';
+import { formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
+import { fmt, Card, SectionLabel, Bar, Divider, SubText, MonthCarousel } from './ui';
 import { CategoryPieChart, SpendingTrendChart } from './DashboardCharts';
 import { TransactionList } from './transactions/TransactionList';
 import type { FinanceDashboardData } from '@/app/api/finances/dashboard/route';
@@ -14,16 +15,15 @@ function getGreeting() {
   return 'Good evening';
 }
 
-function currentMonthLabel() {
-  return new Date().toLocaleDateString('en-IE', { month: 'long', year: 'numeric' });
-}
-
 type DashboardScreenProps = {
   data: FinanceDashboardData;
   userName?: string;
+  selectedMonth: string;
+  currentMonth: string;
+  onMonthChange: (month: string) => void;
 };
 
-export function DashboardScreen({ data, userName }: DashboardScreenProps) {
+export function DashboardScreen({ data, userName, selectedMonth, currentMonth, onMonthChange }: DashboardScreenProps) {
   const router = useRouter();
   const {
     currency,
@@ -41,14 +41,17 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
   return (
     <div className="flex flex-col gap-[14px]">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="mb-0.5 text-xs text-[var(--fin-subtle)]">
-            {getGreeting()}
-            {userName ? `, ${userName}` : ''}
-          </div>
-          <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">{currentMonthLabel()}</div>
+      <div>
+        <div className="mb-1 text-xs text-[var(--fin-subtle)]">
+          {getGreeting()}
+          {userName ? `, ${userName}` : ''}
         </div>
+        <MonthCarousel
+          month={selectedMonth}
+          onNavigate={onMonthChange}
+          currentMonth={currentMonth}
+          maxMonth={currentMonth}
+        />
       </div>
 
       {/* Available balance + cashflow row */}
@@ -61,7 +64,9 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
         </Card>
 
         <Card className="p-[14px]">
-          <SubText className="block mb-1.5 uppercase tracking-[0.08em]">This Month</SubText>
+          <SubText className="block mb-1.5 uppercase tracking-[0.08em]">
+            {selectedMonth === currentMonth ? 'This Month' : formatMonthStr(selectedMonth)}
+          </SubText>
           <div className="mt-1 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-[var(--fin-muted)]">Income</span>
@@ -114,16 +119,21 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
                 <div className="flex items-center gap-2 text-[9px] text-[var(--fin-muted)]">
                   <span className="flex items-center gap-1">
                     <span className="inline-block h-[2px] w-4 bg-[var(--fin-accent)]" />
-                    This month
+                    {selectedMonth === currentMonth ? 'This month' : formatMonthStr(selectedMonth)}
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="inline-block h-[2px] w-4 border-t border-dashed border-[var(--fin-subtle)]" />
-                    Prev
+                    {formatMonthStr(shiftMonthStr(selectedMonth, -1))}
                   </span>
                 </div>
               </div>
               <div className="h-[200px]">
-                <SpendingTrendChart dailySpending={dailySpending} currency={currency} />
+                <SpendingTrendChart
+                  dailySpending={dailySpending}
+                  currency={currency}
+                  monthLabel={selectedMonth === currentMonth ? 'This month' : formatMonthStr(selectedMonth)}
+                  prevLabel={formatMonthStr(shiftMonthStr(selectedMonth, -1))}
+                />
               </div>
             </Card>
           )}
@@ -171,7 +181,7 @@ export function DashboardScreen({ data, userName }: DashboardScreenProps) {
           </span>
         </div>
 
-        <TransactionList limit={5} />
+        <TransactionList limit={5} month={selectedMonth} />
       </Card>
     </div>
   );
