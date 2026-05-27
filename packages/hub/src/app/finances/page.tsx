@@ -10,13 +10,12 @@ import type { DashboardResponse, NoBudgetResponse } from '@/app/api/finances/das
 import { useUserNameFromSession } from '@/hooks/useUserNameFromSession';
 import { transactionEvents } from './transactions/transactionEvents';
 
-const CURRENT_MONTH = dateToString(new Date(), 'YYYY-MM');
-
 export default function FinancesPage() {
+  const currentMonth = dateToString(new Date(), 'YYYY-MM');
   const [response, setResponse] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH);
+  const [selectedMonth, setSelectedMonth] = useState(() => dateToString(new Date(), 'YYYY-MM'));
   // Tracks the latest load invocation so stale responses (e.g. from React Strict
   // Mode's second effect run) do not overwrite a fresher result.
   const loadIdRef = useRef(0);
@@ -96,7 +95,7 @@ export default function FinancesPage() {
       data={response}
       userName={firstName}
       selectedMonth={selectedMonth}
-      currentMonth={CURRENT_MONTH}
+      currentMonth={currentMonth}
       onMonthChange={setSelectedMonth}
     />
   );

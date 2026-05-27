@@ -552,6 +552,12 @@ export const QueryTransactionsSchema = z.object({
   search: z.string().optional(),
   limit: z.number().int().min(1).max(200).optional(),
   offset: z.number().int().min(0).optional(),
+  includeExtras: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, include the extras field (structured MCP/AI metadata) on each transaction. Omitted by default to keep responses compact.',
+    ),
 });
 
 export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema> = async (input, context) => {
@@ -623,6 +629,7 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema> 
       createdAt: tx.createdAt,
       fromAccountBalanceAfter: tx.fromAccountBalanceAfter,
       toAccountBalanceAfter: tx.toAccountBalanceAfter,
+      ...(input.includeExtras && tx.extras != null ? { extras: tx.extras } : {}),
     };
   });
 

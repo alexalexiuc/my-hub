@@ -10,6 +10,7 @@ import {
   getUserBudgets,
 } from '@my-hub/shared/services';
 import { AccountTypes, TransactionTypes } from '@my-hub/shared/constants';
+import { monthToDateRange, shiftMonthStr } from '@my-hub/shared/utils';
 import type { GoalAccountDetails } from '@my-hub/shared/constants';
 import { supportedCurrencySchema } from '../currency.schema';
 import { categoryIconSchema, categoryColorSchema } from '../shared.schema';
@@ -119,23 +120,16 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
   const now = new Date();
   const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const selectedMonth = query.month ?? currentYearMonth;
-  const [selYear, selMon] = selectedMonth.split('-').map(Number) as [number, number];
   const isCurrentMonth = selectedMonth === currentYearMonth;
 
-  const monthStart = `${selectedMonth}-01`;
-  const monthLastDay = new Date(selYear, selMon, 0).getDate();
-  const monthEnd = `${selectedMonth}-${String(monthLastDay).padStart(2, '0')}`;
+  const { fromDate: monthStart, toDate: monthEnd } = monthToDateRange(selectedMonth);
+  const monthLastDay = Number(monthEnd.slice(8, 10));
   const today = now.toISOString().slice(0, 10);
   const isFutureMonth = selectedMonth > currentYearMonth;
   const toDate = isCurrentMonth ? today : monthEnd;
   const todayDay = isCurrentMonth ? now.getDate() : isFutureMonth ? 0 : monthLastDay;
 
-  const prevMonthDate = new Date(selYear, selMon - 2, 1);
-  const prevYear = prevMonthDate.getFullYear();
-  const prevMonth = prevMonthDate.getMonth() + 1;
-  const prevMonthStart = `${prevYear}-${String(prevMonth).padStart(2, '0')}-01`;
-  const prevMonthLastDay = new Date(selYear, selMon - 1, 0).getDate();
-  const prevMonthEnd = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(prevMonthLastDay).padStart(2, '0')}`;
+  const { fromDate: prevMonthStart, toDate: prevMonthEnd } = monthToDateRange(shiftMonthStr(selectedMonth, -1));
 
   const [
     accounts,
@@ -168,7 +162,7 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
       toDate,
       limit: 2000,
     }),
-    getTransactionListItems(user.id, budgetId, { limit: 5 }),
+    getTransactionListItems(user.id, budgetId, { limit: 5, fromDate: monthStart, toDate }),
     getAvailableBalance(user.id, budgetId),
     getTransactions(user.id, budgetId, {
       type: TransactionTypes.Expense,

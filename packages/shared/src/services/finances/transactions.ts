@@ -28,7 +28,7 @@ import { logger, omitUndefined } from '../../utils';
 import { hasAccessToBudget } from './budgets';
 import { syncTransactionWithPlan } from './monthly-plans';
 import { getExchangeRate } from './exchangeRates';
-import type { FinanceTransaction, NewFinanceTransaction } from '../../types';
+import type { FinanceTransaction, NewFinanceTransaction, TransactionDetails } from '../../types';
 import { CategoryIcon, TransactionTypes, type TransactionType } from '../../constants/finances';
 
 export type TransactionInsert = Omit<
@@ -108,6 +108,7 @@ export interface TransactionListItem {
   createdAt: Date;
   fromAccountBalanceAfter: number | null;
   toAccountBalanceAfter: number | null;
+  extras: TransactionDetails | null;
 }
 
 function computeInitials(name: string | null, email: string): string {
@@ -198,6 +199,7 @@ function buildListQuery(budgetId: number, opts: GetTransactionsOpts, extraCondit
       createdAt: financeTransactions.createdAt,
       fromAccountBalanceAfter: financeTransactions.fromAccountBalanceAfter,
       toAccountBalanceAfter: financeTransactions.toAccountBalanceAfter,
+      extras: financeTransactions.extras,
     })
     .from(financeTransactions)
     .innerJoin(fromAcct, eq(financeTransactions.accountId, fromAcct.id))
@@ -245,6 +247,7 @@ function rowToListItem(row: Awaited<ReturnType<typeof buildListQuery>>[number]):
     createdAt: row.createdAt,
     fromAccountBalanceAfter: row.fromAccountBalanceAfter ?? null,
     toAccountBalanceAfter: row.toAccountBalanceAfter ?? null,
+    extras: row.extras ?? null,
   };
 }
 

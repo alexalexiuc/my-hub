@@ -22,19 +22,17 @@ export interface TransactionExtra {
 
 export interface TransactionDetails {
   readonly kind: string;
-  // Entry channel — where the transaction arrived from: 'mcp' | 'hub' | 'import'
+  /** Entry channel — where the transaction arrived from: 'mcp' | 'hub' | 'import' */
   source?: string;
-  // Raw input the AI parsed this from (user message, OCR text, etc.)
+  /** Raw input the AI parsed this from (user message, OCR text, etc.) */
   rawInput?: string;
-  // Card hint used to match to an account (e.g. "Visa *4242")
+  /** Card hint used to match to an account (e.g. "Visa *4242") */
   cardHint?: string;
-  // Confidence score (0–1) when category/payee was auto-suggested
+  /** Confidence score (0–1) when category/payee was auto-suggested */
   autofillConfidence?: number;
-  // Optional typed conversion metadata for foreign-currency entries.
+  /** Optional typed conversion metadata for foreign-currency entries. */
   conversion?: TransactionConversionMeta;
-  /**
-   * Optional metadata bag for ad-hoc fields not modeled explicitly.
-   */
+  /** Optional metadata bag for ad-hoc fields not modeled explicitly. */
   extra?: TransactionExtra;
 }
 

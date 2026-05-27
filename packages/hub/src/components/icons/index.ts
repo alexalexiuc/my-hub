@@ -42,3 +42,4 @@ export { QuestionMarkIcon } from './QuestionMarkIcon';
 export { ArchiveBoxIcon } from './ArchiveBoxIcon';
 export { XOutlineIcon } from './XOutlineIcon';
 export { ScaleIcon } from './ScaleIcon';
+export { InfoCircleIcon } from './InfoCircleIcon';

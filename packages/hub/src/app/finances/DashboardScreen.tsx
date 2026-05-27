@@ -33,6 +33,7 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
   } = data;
 
   const saved = monthlyIncome - monthlyExpense - monthlyTransfers;
+  const monthLabel = selectedMonth === currentMonth ? 'This month' : formatMonthStr(selectedMonth);
 
   return (
     <div className="flex flex-col gap-[14px]">
@@ -110,7 +111,7 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
                 <div className="flex items-center gap-2 text-[9px] text-[var(--fin-muted)]">
                   <span className="flex items-center gap-1">
                     <span className="inline-block h-[2px] w-4 bg-[var(--fin-accent)]" />
-                    {selectedMonth === currentMonth ? 'This month' : formatMonthStr(selectedMonth)}
+                    {monthLabel}
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="inline-block h-[2px] w-4 border-t border-dashed border-[var(--fin-subtle)]" />
@@ -122,7 +123,7 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
                 <SpendingTrendChart
                   dailySpending={dailySpending}
                   currency={currency}
-                  monthLabel={selectedMonth === currentMonth ? 'This month' : formatMonthStr(selectedMonth)}
+                  monthLabel={monthLabel}
                   prevLabel={formatMonthStr(shiftMonthStr(selectedMonth, -1))}
                 />
               </div>

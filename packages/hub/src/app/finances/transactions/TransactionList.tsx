@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button, IconButton, Pill, SwipeRow } from '@/components';
-import { PencilIcon, TrashIcon } from '@/components/icons';
+import { PencilIcon, TrashIcon, InfoCircleIcon } from '@/components/icons';
 import { cn, apiFetch } from '@/lib/utils';
 import { fmt, Divider, CategoryIcon, SectionLabel, SubText } from '../ui';
 import { categoryIconEmoji } from '../categoryIcons';
@@ -11,6 +11,8 @@ import { formatTransactionDate } from '../finances.utils';
 import { transactionEvents } from './transactionEvents';
 import { TransactionModal } from './TransactionModal';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { TransactionExtrasModal } from './TransactionExtrasModal';
+import type { TransactionDetails } from '@my-hub/shared/types';
 import type { TransactionListItem, TransactionsListResponse } from '@/app/api/finances/transactions/route';
 import type { TransactionType } from '@my-hub/shared/constants';
 
@@ -55,6 +57,7 @@ export function TransactionList({
   const [editId, setEditId] = useState<number | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [openRowId, setOpenRowId] = useState<number | null>(null);
+  const [extrasModal, setExtrasModal] = useState<TransactionDetails | null>(null);
 
   const fetchPage = useCallback(
     async (reset: boolean, currentOffset: number) => {
@@ -196,6 +199,16 @@ export function TransactionList({
                       {fmt(tx.amount, currency)}
                     </div>
                     <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                      {tx.extras && (
+                        <span onClick={e => e.stopPropagation()}>
+                          <IconButton
+                            label="View transaction extras"
+                            icon={<InfoCircleIcon />}
+                            onClick={() => setExtrasModal(tx.extras as unknown as TransactionDetails)}
+                            className="size-4 rounded-full border border-[var(--fin-border)] p-0 text-[var(--fin-muted)] active:opacity-60"
+                          />
+                        </span>
+                      )}
                       <SubText>{formatTransactionDate(tx.date)}</SubText>
                       <UserAvatar initials={tx.addedByInitials} />
                     </div>
@@ -234,6 +247,14 @@ export function TransactionList({
                 <span className="min-w-0 truncate text-[12px] text-[var(--fin-subtle)]" title={desktopMemo ?? ''}>
                   {desktopMemo}
                 </span>
+                {tx.extras && (
+                  <IconButton
+                    label="View transaction extras"
+                    icon={<InfoCircleIcon />}
+                    onClick={() => setExtrasModal(tx.extras as unknown as TransactionDetails)}
+                    className="shrink-0 size-4 rounded-full border border-[var(--fin-border)] p-0 text-[var(--fin-muted)] hover:border-[var(--fin-accent)] hover:text-[var(--fin-accent)]"
+                  />
+                )}
               </div>
 
               <SubText className="w-[100px] shrink-0 truncate" title={accountName}>
@@ -305,6 +326,10 @@ export function TransactionList({
             transactionEvents.emit('changed');
           }}
         />
+      )}
+
+      {extrasModal !== null && (
+        <TransactionExtrasModal extras={extrasModal} currency={currency} onClose={() => setExtrasModal(null)} />
       )}
     </>
   );

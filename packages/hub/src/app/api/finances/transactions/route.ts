@@ -29,6 +29,7 @@ export const transactionListItemSchema = z.object({
   accountName: z.string(),
   toAccountName: z.string().nullable(),
   addedByInitials: z.string().nullable(),
+  extras: z.any().nullable(),
 });
 
 export const transactionsListResponseSchema = z.object({
