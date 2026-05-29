@@ -20,7 +20,7 @@ export const TravelUpsertDayNoteSchema = z.object({
     .optional()
     .describe(
       'Free-text notes for the day. Markdown is supported. ' +
-        'When referencing places in the notes, first ensure they exist as trip places (use travel_get_trip_brief to see existing places). ' +
+        'When referencing places in the notes, first ensure they exist as trip places (use travel_get_places to see existing places). ' +
         'Then pass their IDs via placeIds — this links them as interactive map chips in the UI.',
     ),
   placeIds: z
@@ -28,7 +28,7 @@ export const TravelUpsertDayNoteSchema = z.object({
     .optional()
     .describe(
       'IDs of trip places to associate with this day. ' +
-        'Obtain IDs from existing places returned by travel_get_trip_brief. ' +
+        'Obtain IDs from existing places returned by travel_get_places. ' +
         'If a place does not exist yet and the user mentions visiting a specific location, ' +
         'create it first (with precise coordinates or a full address) so it can be linked here. ' +
         'Location should be a specific street address, landmark name with city, or lat/lng coordinates — ' +
