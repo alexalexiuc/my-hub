@@ -22,6 +22,7 @@ import {
   travelGetDayNotesTool,
   travelDeleteDayNoteTool,
 } from './days';
+import { TravelManagePlacesSchema, TravelGetPlacesSchema, travelManagePlacesTool, travelGetPlacesTool } from './places';
 import {
   TravelAttachDocumentLinkSchema,
   TravelGetTripBriefSchema,
@@ -120,7 +121,10 @@ const travelTools = [
   defineTool({
     name: 'travel_get_trip_brief',
     description:
-      'Get a concise trip brief with itinerary counts, checklist, and companions. Defaults to next upcoming trip if tripId is omitted.',
+      'Get a trip summary with counts for all sections (bookings, places, checklist, companions, documents, day notes). ' +
+      'Defaults to the next upcoming trip if tripId is omitted. ' +
+      'Pass include to retrieve full data for specific sections, e.g. include: ["bookings", "day_notes"]. ' +
+      'Use travel_get_places for a standalone place list and travel_get_day_notes for enriched day notes.',
     inputSchema: TravelGetTripBriefSchema.shape,
     annotations: { readOnlyHint: true },
     callback: travelGetTripBriefTool,
@@ -151,6 +155,26 @@ const travelTools = [
     inputSchema: TravelDeleteDayNoteSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: true },
     callback: travelDeleteDayNoteTool,
+  }),
+  defineTool({
+    name: 'travel_manage_places',
+    description:
+      'Add, update, or remove points of interest for a trip in one call. Returns the updated full places list with IDs. ' +
+      'Always provide a precise address (e.g. "Piazza del Colosseo 1, 00184 Rome, Italy") and lat/lng when available — ' +
+      'these power the map chips in the UI. ' +
+      'After adding places, pass their returned IDs to travel_upsert_day_note to link them to specific days.',
+    inputSchema: TravelManagePlacesSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: travelManagePlacesTool,
+  }),
+  defineTool({
+    name: 'travel_get_places',
+    description:
+      'Get all points of interest for a trip with full details (id, name, location, lat/lng, priority, visited). ' +
+      'Use this when you need place IDs to link to day notes, or to check what places already exist before adding.',
+    inputSchema: TravelGetPlacesSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: travelGetPlacesTool,
   }),
   defineTool({
     name: 'travel_attach_document_link',
