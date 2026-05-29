@@ -17,8 +17,8 @@ export const POST = route({ params: z.object({ id: z.coerce.number().int().posit
   async ({ user, params, body }) => {
     const tripId = params.id;
     const day = await upsertTripDay(user.id, tripId, body.date, {
-      title: body.title ?? null,
-      notes: body.notes ?? null,
+      title: body.title,
+      notes: body.notes,
       placeIds: body.placeIds,
     });
     return { day };

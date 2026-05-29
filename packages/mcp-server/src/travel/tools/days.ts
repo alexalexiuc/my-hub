@@ -40,8 +40,8 @@ export const travelUpsertDayNoteTool: ToolHandler<typeof TravelUpsertDayNoteSche
   const { userId } = context;
 
   const day = await upsertTripDay(userId, input.tripId, input.date, {
-    title: input.title ?? null,
-    notes: input.notes ?? null,
+    title: input.title,
+    notes: input.notes,
     placeIds: input.placeIds,
   });
 
