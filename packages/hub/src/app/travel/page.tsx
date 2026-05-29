@@ -210,6 +210,7 @@ export default function TravelPage() {
                   trip={overview.trip}
                   bookings={overview.bookings}
                   dayNotes={overview.dayNotes}
+                  places={overview.places}
                   canEdit={canEditActiveTrip}
                   onChanged={handleOverviewChanged}
                 />

@@ -23,7 +23,7 @@
 | `bookings.ts`           | Booking CRUD + filters: addTripBooking, getTripBookings, getUpcomingTripBookings, getTripBookingById, updateTripBooking, deleteTripBooking — coordinate validation on insert/update |
 | `checklist.ts`          | Checklist item CRUD: addChecklistItem, getChecklistItems, updateChecklistItem, toggleChecklistItem, deleteChecklistItem                                                             |
 | `companions.ts`         | Travel companion CRUD: addTripCompanion, getTripCompanions, updateTripCompanion, deleteTripCompanion                                                                                |
-| `days.ts`               | Trip day notes: upsertTripDay, getTripDays, deleteTripDay                                                                                                                           |
+| `days.ts`               | Trip day notes: upsertTripDay (supports placeIds; COALESCE preserves associations when not provided), getTripDays, deleteTripDay                                                    |
 | `documents.ts`          | Document records CRUD: addTripDocument, getTripDocuments, getTripDocumentById, updateTripDocument, deleteTripDocument                                                               |
 | `places.ts`             | Points of interest CRUD: addTripPlace, getTripPlaces (filterable by visited/priority), updateTripPlace, deleteTripPlace                                                             |
 | `shares.ts`             | Trip sharing: listTripShares, createTripShare, deleteTripShare, deleteAllUserTripShares                                                                                             |

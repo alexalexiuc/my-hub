@@ -128,14 +128,19 @@ const travelTools = [
   defineTool({
     name: 'travel_upsert_day_note',
     description:
-      'Create or update a planning note for a specific calendar day within a trip. Use when the user wants to add a title or notes to a particular day.',
+      'Create or update a planning note for a specific calendar day within a trip. ' +
+      'Use when the user wants to add a title, notes, or linked places to a particular day. ' +
+      'To link places: obtain place IDs from travel_get_trip_brief; create new places first if they do not exist yet. ' +
+      'Provide precise location data (street address or lat/lng) when creating places so the map chip works correctly.',
     inputSchema: TravelUpsertDayNoteSchema.shape,
     annotations: { idempotentHint: true, destructiveHint: false },
     callback: travelUpsertDayNoteTool,
   }),
   defineTool({
     name: 'travel_get_day_notes',
-    description: 'Get all day-by-day planning notes for a trip, ordered by date.',
+    description:
+      'Get all day-by-day planning notes for a trip, ordered by date. ' +
+      'Returns each day enriched with full place details for any linked place IDs.',
     inputSchema: TravelGetDayNotesSchema.shape,
     annotations: { readOnlyHint: true },
     callback: travelGetDayNotesTool,

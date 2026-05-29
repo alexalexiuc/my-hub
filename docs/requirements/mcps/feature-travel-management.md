@@ -16,15 +16,16 @@ Travel Management adds a Google Trips-inspired domain where users can organize t
 
 ## Functional Requirements
 
-| ID    | Requirement                                                                                                                                                                            |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FR-01 | Users can create and manage trips containing reservations, places, checklist items, companions, and documents.                                                                         |
-| FR-02 | Reservations support multiple booking categories in one merged model (`trip_bookings`) using `bookingType` plus `details` JSONB.                                                       |
-| FR-03 | MCP exposes task-oriented travel tools (planning, importing reservations from text, preparing checklist, managing travel companions, generating trip brief, attaching document links). |
-| FR-04 | MCP exposes read-only resources for quick travel context snapshots.                                                                                                                    |
-| FR-05 | All travel data is scoped to the authenticated user.                                                                                                                                   |
-| FR-06 | Hub provides the primary full CRUD experience for detailed travel editing.                                                                                                             |
-| FR-07 | MCP travel booking tools should capture and persist a direct reservation reference link when one is available in user-provided context.                                                |
+| ID    | Requirement                                                                                                                                                                                                         |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-01 | Users can create and manage trips containing reservations, places, checklist items, companions, and documents.                                                                                                      |
+| FR-02 | Reservations support multiple booking categories in one merged model (`trip_bookings`) using `bookingType` plus `details` JSONB.                                                                                    |
+| FR-03 | MCP exposes task-oriented travel tools (planning, importing reservations from text, preparing checklist, managing travel companions, generating trip brief, attaching document links).                              |
+| FR-04 | MCP exposes read-only resources for quick travel context snapshots.                                                                                                                                                 |
+| FR-05 | All travel data is scoped to the authenticated user.                                                                                                                                                                |
+| FR-06 | Hub provides the primary full CRUD experience for detailed travel editing.                                                                                                                                          |
+| FR-07 | MCP travel booking tools should capture and persist a direct reservation reference link when one is available in user-provided context.                                                                             |
+| FR-08 | Day notes support linked places (placeIds array). `travel_upsert_day_note` accepts `placeIds` and guides AI to provide precise location data. `travel_get_day_notes` returns days enriched with full place details. |
 
 ---
 
@@ -41,6 +42,7 @@ Travel Management adds a Google Trips-inspired domain where users can organize t
 | TR-07 | Document upload/linking uses server-backed storage volume with DB metadata in V1.                                                                                                                       |
 | TR-08 | Travel file constraints (`TRAVEL_FILES_MAX_MB`, `TRAVEL_FILES_ALLOWED_MIME`) are parsed centrally in app config and exposed via MCP resource.                                                           |
 | TR-09 | Travel booking MCP tools (`travel_add_reservation_from_text`, `travel_add_flight`, `travel_add_transport`, and edit tools) accept `reference_link` URL inputs and pass them to shared booking services. |
+| TR-10 | `trip_days.place_ids integer[]` column stores place associations. Migration generated from Drizzle schema; COALESCE in conflict update preserves associations when Hub UI saves without placeIds.       |
 
 ---
 
@@ -65,4 +67,5 @@ Travel Management adds a Google Trips-inspired domain where users can organize t
 - [x] MCP travel booking tools capture optional reservation reference links when available.
 - [x] Hub `/travel` polished UI implemented.
 - [x] Server file upload API + storage volume wiring implemented.
+- [x] Day notes linked to places via placeIds; MCP guides AI to use precise locations; Hub renders place chips with map links.
 - [ ] E2E coverage for travel flows implemented.
