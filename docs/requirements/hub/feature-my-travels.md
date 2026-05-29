@@ -42,6 +42,7 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 | FR-24 | Itinerary Navigate actions should prioritize precise coordinates (`lat`/`lng`) and support common map input formats (Google share links, plus codes, `geo:` URIs, and coordinate strings). |
 | FR-27 | Navigate actions are endpoint-aware per chip: start segments route to origin/start location, end segments route to destination/end location (for example flight departure vs arrival).     |
 | FR-28 | Reservations can store an optional reference link (for example booking portal URLs), editable in Hub and exposed as an itinerary action in Coming Next.                                    |
+| FR-29 | Day notes support linked places (placeIds array). Day cards render linked places as amber map-chip badges; clicking a chip opens Google Maps at the place's coordinates or location text.  |
 | FR-25 | While trip overview data is loading, the right-side travel content should render structured skeleton placeholders to avoid abrupt section pop-in.                                          |
 | FR-26 | Trip map section is collapsible and defaults to collapsed; users can expand it on demand per selected trip.                                                                                |
 | FR-22 | When the travel page opens, it automatically selects the nearest upcoming trip (by start date); falls back to the first trip if none have a future start date.                             |
@@ -83,6 +84,7 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 | TR-28 | `coming-next-utils.ts` resolves Navigate action URLs by priority: valid booking `lat`/`lng`, then direct map links, then structured location strings (plus code, `geo:` URI, coordinate pair), then plain-text fallback query.                                                                      |
 | TR-31 | `coming-next-utils.ts` derives endpoint-specific Navigate actions (`start` vs `end`), using flight origin/destination IATA when present and directional location strings when available.                                                                                                            |
 | TR-32 | `trip_bookings` includes nullable `reference_link`; Hub booking POST/PATCH APIs persist it; `BookingsSection` add/edit forms expose it; `coming-next-utils.ts` emits an "Open link" action when present.                                                                                            |
+| TR-33 | `trip_days` gains `place_ids integer[]` column; `DayByDay.tsx` renders linked places as amber chips using `PinIcon` with `getPlaceMapUrl` (lat/lng preferred, falls back to location text then name).                                                                                               |
 | TR-29 | `TravelOverviewSkeleton` in `packages/hub/src/app/travel/TravelOverviewSkeleton.tsx` provides a placeholder layout shown when `loadingOverview` is true and no overview payload is yet available for the selected trip.                                                                             |
 | TR-30 | `packages/hub/src/app/travel/TripMap.tsx` owns map collapse/expand behavior (including header toggle UI) and resets to collapsed when its `tripId` prop changes.                                                                                                                                    |
 
@@ -132,5 +134,6 @@ The My Travels page provides a clear, visual travel organizer in Hub where users
 - [x] Travel page shows skeleton placeholders while selected-trip overview data is initially loading.
 - [x] Trip map is collapsible and starts collapsed for each selected trip.
 - [x] Travel page opens to the nearest upcoming trip automatically.
+- [x] Day cards show linked places as clickable amber map chips (opens Google Maps at coordinates or location text).
 - [x] Reservation rows expand on click to reveal full details (location, cost, notes, attachments).
 - [x] Flight booking form includes seat field in add and edit modes.

@@ -1,6 +1,6 @@
 /**
  * Trip day notes CRUD
- * - upsertTripDay(userId, tripId, date, data) — creates or updates notes for a calendar day
+ * - upsertTripDay(userId, tripId, date, data) — creates or updates notes for a calendar day; placeIds preserved when not provided
  * - getTripDays(userId, tripId) — lists all day records for a trip, sorted by date
  * - deleteTripDay(userId, dayId) — hard delete
  * - deleteAllUserTripDays(userId) — bulk delete for account removal
@@ -15,6 +15,8 @@ import { verifyTripOwnership } from './trips';
 export interface TripDayUpsert {
   title?: string | null;
   notes?: string | null;
+  /** Place IDs to associate with this day. Pass undefined to preserve existing associations; pass [] to clear. */
+  placeIds?: number[] | null;
 }
 
 export async function upsertTripDay(
@@ -36,6 +38,7 @@ export async function upsertTripDay(
       date,
       title: data.title ?? null,
       notes: data.notes ?? null,
+      placeIds: data.placeIds ?? null,
       createdAt: now,
       updatedAt: now,
     })
@@ -44,6 +47,8 @@ export async function upsertTripDay(
       set: {
         title: sql`excluded.title`,
         notes: sql`excluded.notes`,
+        // Preserve existing placeIds when null is inserted (Hub UI edits don't touch place associations)
+        placeIds: sql`COALESCE(excluded.place_ids, ${tripDays.placeIds})`,
         updatedAt: sql`excluded.updated_at`,
       },
     })

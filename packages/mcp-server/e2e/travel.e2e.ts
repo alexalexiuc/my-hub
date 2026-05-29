@@ -147,14 +147,15 @@ describe.sequential('travel — trip and booking lifecycle', () => {
 
     const result = await client.callTool({
       name: 'travel_get_trip_brief',
-      arguments: { tripId },
+      arguments: { tripId, include: ['bookings'] },
     });
 
     expect(result.isError).toBeFalsy();
     const data = parseToolResult<TripBriefResult>(result);
 
     expect(data.trip.id).toBe(tripId);
-    expect(data.bookings.some(b => b.id === bookingId)).toBe(true);
+    expect(Array.isArray(data.bookings)).toBe(true);
+    expect(data.bookings.some((b: { id: number }) => b.id === bookingId)).toBe(true);
   });
 
   it('travel://trips resource includes the created trip', async () => {

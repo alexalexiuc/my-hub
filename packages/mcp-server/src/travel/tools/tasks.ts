@@ -14,6 +14,7 @@ import {
   suggestChecklistTemplate,
   updateTripCompanion,
 } from '@my-hub/shared/services';
+import type { TripPlace } from '@my-hub/shared/types';
 import { TripDocumentTypes, tripDocumentTypeValues } from '@my-hub/shared/constants';
 import type { TripDocumentType } from '@my-hub/shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -56,8 +57,20 @@ export const TravelWhoIsTravelingSchema = z.object({
     .describe('Companion ids to remove. If omitted, no removals happen.'),
 });
 
+const TripBriefSectionSchema = z.enum(['bookings', 'checklist', 'companions', 'documents', 'day_notes', 'places']);
+
 export const TravelGetTripBriefSchema = z.object({
   tripId: z.number().int().positive().optional().describe('Trip ID. If omitted, use the next upcoming trip.'),
+  include: z
+    .array(TripBriefSectionSchema)
+    .optional()
+    .describe(
+      'Sections to include in the response. ' +
+        'Omit for a lightweight summary (trip info + counts only). ' +
+        'Pass specific sections when you need full data: ' +
+        '"bookings", "checklist", "companions", "documents", "day_notes", "places". ' +
+        'When "day_notes" is included, each day is enriched with its linked place details.',
+    ),
 });
 
 export const TravelAttachDocumentLinkSchema = z.object({
@@ -171,13 +184,13 @@ export const travelGetTripBriefTool: ToolHandler<typeof TravelGetTripBriefSchema
   const overview = await getTripBrief(userId, input.tripId);
 
   if (!overview) {
-    return toolResponse({
-      message: 'No matching trip found.',
-      trip: null,
-    });
+    return toolResponse({ message: 'No matching trip found.', trip: null });
   }
 
-  return toolResponse({
+  const include = new Set(input.include ?? []);
+  const placesById = new Map<number, TripPlace>(overview.places.map(p => [p.id, p]));
+
+  const response: Record<string, unknown> = {
     message: 'Trip brief generated.',
     trip: overview.trip,
     counts: {
@@ -186,11 +199,23 @@ export const travelGetTripBriefTool: ToolHandler<typeof TravelGetTripBriefSchema
       checklist: overview.checklist.length,
       companions: overview.companions.length,
       documents: overview.documents.length,
+      dayNotes: overview.dayNotes.length,
     },
-    bookings: overview.bookings,
-    checklist: overview.checklist,
-    companions: overview.companions,
-  });
+  };
+
+  if (include.has('bookings')) response.bookings = overview.bookings;
+  if (include.has('checklist')) response.checklist = overview.checklist;
+  if (include.has('companions')) response.companions = overview.companions;
+  if (include.has('documents')) response.documents = overview.documents;
+  if (include.has('places')) response.places = overview.places;
+  if (include.has('day_notes')) {
+    response.dayNotes = overview.dayNotes.map(day => ({
+      ...day,
+      places: (day.placeIds ?? []).map(id => placesById.get(id)).filter(Boolean),
+    }));
+  }
+
+  return toolResponse(response);
 };
 
 export const travelAttachDocumentLinkTool: ToolHandler<typeof TravelAttachDocumentLinkSchema.shape> = async (

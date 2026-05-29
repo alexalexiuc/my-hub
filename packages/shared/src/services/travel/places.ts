@@ -15,7 +15,9 @@ import type { NewTripPlace, TripPlace, TripPlacePriority } from '../../types';
 import { verifyTripOwnership } from './trips';
 
 export type TripPlaceInsert = Omit<NewTripPlace, 'id' | 'userId' | 'tripId' | 'createdAt' | 'updatedAt'>;
-export type TripPlaceUpdate = Partial<Pick<TripPlaceInsert, 'name' | 'location' | 'notes' | 'visited' | 'priority'>>;
+export type TripPlaceUpdate = Partial<
+  Pick<TripPlaceInsert, 'name' | 'location' | 'notes' | 'visited' | 'priority' | 'lat' | 'lng'>
+>;
 
 export interface GetTripPlacesOpts {
   visited?: boolean;

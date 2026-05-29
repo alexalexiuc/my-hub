@@ -237,6 +237,7 @@ export const tripDays = pgTable(
     date: date('date').notNull(), // calendar date, e.g. '2026-06-21'
     title: text('title'),
     notes: text('notes'),
+    placeIds: integer('place_ids').array(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
