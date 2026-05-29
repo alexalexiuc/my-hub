@@ -45,8 +45,9 @@ export async function upsertTripDay(
     .onConflictDoUpdate({
       target: [tripDays.tripId, tripDays.date],
       set: {
-        title: sql`excluded.title`,
-        notes: sql`excluded.notes`,
+        // undefined means "not provided — preserve existing"; null means "explicitly clear"
+        title: data.title === undefined ? tripDays.title : sql`excluded.title`,
+        notes: data.notes === undefined ? tripDays.notes : sql`excluded.notes`,
         // Preserve existing placeIds when null is inserted (Hub UI edits don't touch place associations)
         placeIds: sql`COALESCE(excluded.place_ids, ${tripDays.placeIds})`,
         updatedAt: sql`excluded.updated_at`,
