@@ -30,6 +30,8 @@ export interface TransactionDetails {
   cardHint?: string;
   /** Confidence score (0–1) when category/payee was auto-suggested */
   autofillConfidence?: number;
+  /** Time of the transaction in HH:MM 24-hour format (timezone-agnostic). Populated by AI from receipts. */
+  time?: string;
   /** Optional typed conversion metadata for foreign-currency entries. */
   conversion?: TransactionConversionMeta;
   /** Optional metadata bag for ad-hoc fields not modeled explicitly. */
