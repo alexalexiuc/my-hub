@@ -65,6 +65,11 @@ Each section component should:
 - If specific to one feature and not reusable → `[feature].utils.ts` in the same folder.
 - If general purpose → it goes in `packages/shared/src/utils/`. Check the shared CLAUDE.md first.
 
+## React hooks
+
+- **`src/hooks/`** — reusable React hooks used across multiple features (e.g. `useDebounce`, `useUserNameFromSession`). Import via `@/hooks/<name>`.
+- Feature-scoped hooks that are not independently reusable belong co-located with their feature file, not in `src/hooks/`.
+
 ## API fetch rule
 
 **Always use `apiFetch` from `@/lib/utils` — never call the global `fetch` directly in hub client code.**

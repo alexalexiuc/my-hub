@@ -146,7 +146,7 @@ const financeTools = [
   defineTool({
     name: 'finances_list_labels',
     description:
-      'List all known label strings for the active budget. ' +
+      'List known label strings for the active budget, with optional fuzzy search to narrow results. ' +
       'Use the returned values for autocomplete when adding or updating transactions with labels. ' +
       'To fetch transactions by label, use finances_query_transactions with the label filter.',
     inputSchema: ListLabelsSchema.shape,

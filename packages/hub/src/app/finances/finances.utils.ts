@@ -1,5 +1,7 @@
 import type { BudgetInfo } from '@/app/api/finances/budget/budget.schema';
 import { dateToString } from '@my-hub/shared/utils';
+import { TransactionTypes } from '@my-hub/shared/constants';
+import type { TransactionType } from '@my-hub/shared/constants';
 
 /**
  * Sorts budgets with the active budget first, then alphabetically by name.
@@ -50,6 +52,13 @@ export function normalizeYearMonth(raw: string | null, fallback: string = curren
 export function getCategoryFallbackLetter(name: string): string {
   return name[0]?.toUpperCase() ?? '?';
 }
+
+/** Maps each transaction type to its finance theme CSS variable colour. */
+export const TRANSACTION_TYPE_COLORS: Record<TransactionType, string> = {
+  [TransactionTypes.Expense]: 'var(--fin-red)',
+  [TransactionTypes.Income]: 'var(--fin-green)',
+  [TransactionTypes.Transfer]: 'var(--fin-blue)',
+};
 
 /** Shared Tailwind class strings for ghost-style inputs and dropdown triggers inside FinFieldCard. */
 export const finGhostInputClass = 'w-full text-[13px] text-[var(--fin-text)]';

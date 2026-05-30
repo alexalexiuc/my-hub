@@ -3,10 +3,8 @@
 import { useId } from 'react';
 import { cn } from '@/lib/utils';
 import { categoryIconEmoji } from './categoryIcons';
-import { Button, IconButton } from '@/components';
+import { Button } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons/PlusOutlineIcon';
-import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon } from '@/components/icons';
-import { shiftMonthStr, formatMonthStr } from '@my-hub/shared/utils';
 import type { DropdownOption } from './financialDropdown.utils';
 
 // ─── Currency formatter ───────────────────────────────────────────────────────
@@ -358,54 +356,9 @@ export function renderCategoryOption(
   );
 }
 
-// ─── MonthCarousel component ─────────────────────────────────────────────────
-type MonthCarouselProps = {
-  month: string;
-  onNavigate: (m: string) => void;
-  /** When provided, shows a "Today" pill next to the carousel whenever `month` differs from `currentMonth`. */
-  currentMonth?: string;
-  /** When provided, the forward chevron is disabled once `month` reaches this value. */
-  maxMonth?: string;
-  className?: string;
-  labelClassName?: string;
-};
-
-export function MonthCarousel({
-  month,
-  onNavigate,
-  currentMonth,
-  maxMonth,
-  className,
-  labelClassName,
-}: MonthCarouselProps) {
-  return (
-    <div className={cn('flex items-center gap-3', className)}>
-      <IconButton
-        label="Previous month"
-        icon={<ChevronLeftOutlineIcon />}
-        onClick={() => onNavigate(shiftMonthStr(month, -1))}
-        className="bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)]"
-      />
-      <h2
-        className={cn('text-[22px] font-bold tracking-tight text-[var(--fin-text)] text-center w-44', labelClassName)}
-      >
-        {formatMonthStr(month)}
-      </h2>
-      <IconButton
-        label="Next month"
-        icon={<ChevronRightOutlineIcon />}
-        onClick={() => onNavigate(shiftMonthStr(month, 1))}
-        disabled={maxMonth !== undefined && month >= maxMonth}
-        className="bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)] disabled:opacity-30"
-      />
-      {currentMonth !== undefined && month !== currentMonth && (
-        <Button variant="fin-pill" size="xs" onClick={() => onNavigate(currentMonth)}>
-          Today
-        </Button>
-      )}
-    </div>
-  );
-}
+// ─── SmartDatePicker (replaces MonthCarousel) ────────────────────────────────
+export { SmartDatePicker } from './SmartDatePicker';
+export type { DateMode } from './SmartDatePicker';
 
 export function SeeAllButton({ href }: { href: string }) {
   return (

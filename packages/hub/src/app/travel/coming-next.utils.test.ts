@@ -224,12 +224,12 @@ describe('mapBookingsToSegments', () => {
     expect(navAction!.value).toContain('123%20Main%20St');
   });
 
-  it('prioritizes lat/lng over location when deriving navigate action', () => {
+  it('uses location text over lat/lng when deriving navigate action', () => {
     const bookings = [
       makeBooking({
         id: 1,
         startAt: new Date('2026-03-31T12:00:00Z'),
-        location: 'Wrong text location',
+        location: 'Central Park, New York',
         lat: 47.0105,
         lng: 28.8638,
       }),
@@ -238,8 +238,8 @@ describe('mapBookingsToSegments', () => {
     const navAction = segments[0]!.actions.find(a => a.type === 'navigate');
     expect(navAction).toBeDefined();
     expect(navAction!.value).toContain('www.google.com/maps/search');
-    expect(navAction!.value).toContain('47.0105%2C28.8638');
-    expect(navAction!.value).not.toContain('Wrong%20text%20location');
+    expect(navAction!.value).toContain('Central%20Park%2C%20New%20York');
+    expect(navAction!.value).not.toContain('47.0105');
   });
 
   it('keeps Google Maps share links unchanged', () => {

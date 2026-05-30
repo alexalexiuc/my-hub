@@ -4,33 +4,54 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
-import { AddButton, Card } from '../ui';
-import { Button } from '@/components';
+import { cn } from '@/lib/utils';
+import { AddButton, Card, DateMode, SmartDatePicker } from '../ui';
+import { Button, IconButton } from '@/components';
+import { FunnelIcon } from '@/components/icons';
 import { TransactionModal } from './TransactionModal';
 import { TransactionList } from './TransactionList';
 import { transactionEvents } from './transactionEvents';
-import { TransactionType, TransactionTypes } from '@my-hub/shared/constants';
-import { MonthCarousel } from '../ui';
+import { TransactionFilters } from './TransactionFilters';
+import type { ExtraFilterValues } from './TransactionFilters';
+import type { TransactionType } from '@my-hub/shared/constants';
 import { dateToString } from '@my-hub/shared/utils';
+import { useDebounce } from '@/hooks/useDebounce';
 
 type Filter = 'all' | TransactionType;
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: TransactionTypes.Expense, label: 'Expenses' },
-  { key: TransactionTypes.Income, label: 'Income' },
-  { key: TransactionTypes.Transfer, label: 'Transfers' },
-];
 
 function currentMonthStr(): string {
   return dateToString().slice(0, 7);
 }
 
+const EMPTY_EXTRA: ExtraFilterValues = { addedByUserId: '', label: '', amountGte: '', amountLte: '', search: '' };
+
 export default function TransactionsPage() {
   const router = useRouter();
   const [showAddModal, setShowAddModal] = useState(false);
   const [lastImport, setLastImport] = useState<{ batchId: string; count: number } | null>(null);
-  const [filter, setFilter] = useState<Filter>('all');
+
+  const [dateMode, setDateMode] = useState<DateMode>('month');
   const [month, setMonth] = useState(currentMonthStr);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<Filter>('all');
+  const [extra, setExtra] = useState<ExtraFilterValues>(EMPTY_EXTRA);
+
+  const debouncedSearch = useDebounce(extra.search, 400);
+  const debouncedAmountGte = useDebounce(extra.amountGte, 400);
+  const debouncedAmountLte = useDebounce(extra.amountLte, 400);
+
+  const activeFilterCount = [
+    typeFilter !== 'all',
+    dateMode !== 'month',
+    !!extra.addedByUserId,
+    !!extra.label,
+    !!extra.amountGte,
+    !!extra.amountLte,
+    !!extra.search,
+  ].filter(Boolean).length;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -49,10 +70,37 @@ export default function TransactionsPage() {
     transactionEvents.emit('changed');
   }
 
-  function handleCreated() {
-    setShowAddModal(false);
-    transactionEvents.emit('changed');
+  function handleDateChange(patch: { dateMode?: DateMode; month?: string; fromDate?: string; toDate?: string }) {
+    if (patch.dateMode !== undefined) setDateMode(patch.dateMode);
+    if (patch.month !== undefined) setMonth(patch.month);
+    if (patch.dateMode === 'all') {
+      setFromDate('');
+      setToDate('');
+    } else {
+      if (patch.fromDate !== undefined) setFromDate(patch.fromDate);
+      if (patch.toDate !== undefined) setToDate(patch.toDate);
+    }
   }
+
+  const funnelButton = (
+    <IconButton
+      label="Toggle filters"
+      variant="ghost"
+      icon={
+        <>
+          <FunnelIcon className="size-3.5" />
+          {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+        </>
+      }
+      onClick={() => setFiltersOpen(o => !o)}
+      className={cn(
+        'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium',
+        filtersOpen || activeFilterCount > 0
+          ? 'border-[var(--fin-accent)]/40 bg-[var(--fin-accent)]/10 text-[var(--fin-accent)] hover:text-[var(--fin-accent)]'
+          : 'border-[var(--fin-border)] bg-[var(--fin-card)] text-[var(--fin-muted)] hover:text-[var(--fin-text)]',
+      )}
+    />
+  );
 
   return (
     <div className="flex flex-col gap-[14px]">
@@ -60,8 +108,17 @@ export default function TransactionsPage() {
 
       {/* Desktop header */}
       <div className="hidden items-center justify-between md:flex">
-        <MonthCarousel month={month} onNavigate={setMonth} currentMonth={currentMonthStr()} />
+        <SmartDatePicker
+          dateMode={dateMode}
+          month={month}
+          fromDate={fromDate}
+          toDate={toDate}
+          currentMonth={currentMonthStr()}
+          onChange={handleDateChange}
+          extendedFilters
+        />
         <div className="flex items-center gap-2">
+          {funnelButton}
           <Link href="/finances/transactions/import">
             <Button variant="ghost">Import CSV</Button>
           </Link>
@@ -71,14 +128,17 @@ export default function TransactionsPage() {
 
       {/* Mobile header */}
       <div className="md:hidden">
-        <div className="mb-2 flex items-center justify-between rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2.5">
-          <MonthCarousel
+        <div className="flex items-center justify-between rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2.5">
+          <SmartDatePicker
+            dateMode={dateMode}
             month={month}
-            onNavigate={setMonth}
+            fromDate={fromDate}
+            toDate={toDate}
             currentMonth={currentMonthStr()}
-            className="flex-1 justify-between"
+            onChange={handleDateChange}
             labelClassName="text-[32px] font-bold leading-none tracking-tight"
           />
+          {funnelButton}
         </div>
       </div>
 
@@ -88,26 +148,44 @@ export default function TransactionsPage() {
           <span>
             Imported {lastImport.count} transaction{lastImport.count !== 1 ? 's' : ''}
           </span>
-          <Button variant="transparent" onClick={handleUndo} className="text-[var(--fin-red)] font-medium">
+          <Button variant="transparent" onClick={handleUndo} className="font-medium text-[var(--fin-red)]">
             Undo import
           </Button>
         </div>
       )}
 
-      {/* Type filter */}
-      <div className="flex flex-wrap gap-1.5">
-        {FILTERS.map(({ key, label }) => (
-          <Button key={key} active={filter === key} variant="fin-pill" size="xs" onClick={() => setFilter(key)}>
-            {label}
-          </Button>
-        ))}
-      </div>
+      {filtersOpen && (
+        <TransactionFilters
+          typeFilter={typeFilter}
+          extraValues={extra}
+          onTypeChange={setTypeFilter}
+          onExtraChange={patch => setExtra(prev => ({ ...prev, ...patch }))}
+        />
+      )}
 
       <Card className="p-0 md:p-[14px]">
-        <TransactionList month={month} type={filter === 'all' ? undefined : filter} />
+        <TransactionList
+          month={dateMode === 'month' ? month : undefined}
+          fromDate={dateMode === 'range' ? fromDate : undefined}
+          toDate={dateMode === 'range' ? toDate : undefined}
+          type={typeFilter === 'all' ? undefined : typeFilter}
+          addedByUserId={extra.addedByUserId || undefined}
+          label={extra.label || undefined}
+          amountGte={debouncedAmountGte ? parseFloat(debouncedAmountGte) : undefined}
+          amountLte={debouncedAmountLte ? parseFloat(debouncedAmountLte) : undefined}
+          search={debouncedSearch || undefined}
+        />
       </Card>
 
-      {showAddModal && <TransactionModal onCloseAction={() => setShowAddModal(false)} onSavedAction={handleCreated} />}
+      {showAddModal && (
+        <TransactionModal
+          onCloseAction={() => setShowAddModal(false)}
+          onSavedAction={() => {
+            setShowAddModal(false);
+            transactionEvents.emit('changed');
+          }}
+        />
+      )}
     </div>
   );
 }

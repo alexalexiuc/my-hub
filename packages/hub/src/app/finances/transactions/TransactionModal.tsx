@@ -20,13 +20,8 @@ import type { LabelsResponse } from '@/app/api/finances/labels/route';
 import { getCurrencySymbol, isPayeeRequired, localDateString } from '@my-hub/shared/utils';
 import { EXPENSE_ACCOUNT_TYPES, TransactionType, TransactionTypes } from '@my-hub/shared/constants';
 import { FinFieldCard, renderAccountOption } from '../ui';
-import { finDropdownInputClass } from '../finances.utils';
-
-const TYPE_COLORS: Record<TransactionType, string> = {
-  [TransactionTypes.Expense]: 'var(--fin-red)',
-  [TransactionTypes.Income]: 'var(--fin-green)',
-  [TransactionTypes.Transfer]: 'var(--fin-blue)',
-};
+import { finDropdownInputClass, TRANSACTION_TYPE_COLORS } from '../finances.utils';
+import { sortAccountsByGroup } from '../accounts/accounts.utils';
 
 const MOBILE_TYPE_LABELS: Record<TransactionType, string> = {
   [TransactionTypes.Expense]: '- Outflow',
@@ -192,7 +187,7 @@ export function TransactionModal({
     }
   }
 
-  const typeColor = TYPE_COLORS[txType];
+  const typeColor = TRANSACTION_TYPE_COLORS[txType];
 
   const payeeCreateOption = useMemo(
     () => ({
@@ -272,12 +267,12 @@ export function TransactionModal({
 
   const accountOptions = useMemo(
     () =>
-      (txType === TransactionTypes.Expense
-        ? (formData?.accounts ?? []).filter(a => EXPENSE_ACCOUNT_TYPES.has(a.type as never))
-        : (formData?.accounts ?? [])
-      )
-        .filter(a => !a.archived || a.id === selAccId) // filter archived transactions except if already selected
-        .map(a => ({ id: a.id, value: a.name })),
+      sortAccountsByGroup(
+        (txType === TransactionTypes.Expense
+          ? (formData?.accounts ?? []).filter(a => EXPENSE_ACCOUNT_TYPES.has(a.type as never))
+          : (formData?.accounts ?? [])
+        ).filter(a => !a.archived || a.id === selAccId),
+      ).map(a => ({ id: a.id, value: a.name })),
     [txType, formData?.accounts, selAccId],
   );
 
@@ -292,10 +287,9 @@ export function TransactionModal({
 
   const toAccountOptions = useMemo(
     () =>
-      (formData?.accounts ?? [])
-        .filter(a => a.id !== selAccId)
-        .filter(a => !a.archived || a.id === selToAccId) // filter archived transactions except if already selected
-        .map(a => ({ id: a.id, value: a.name })),
+      sortAccountsByGroup(
+        (formData?.accounts ?? []).filter(a => a.id !== selAccId).filter(a => !a.archived || a.id === selToAccId),
+      ).map(a => ({ id: a.id, value: a.name })),
     [formData?.accounts, selAccId, selToAccId],
   );
 
@@ -344,9 +338,9 @@ export function TransactionModal({
                   txType === t ? 'font-semibold' : 'text-[var(--fin-muted)]',
                 )}
                 style={{
-                  background: txType === t ? TYPE_COLORS[t] + '22' : 'var(--fin-card2)',
-                  color: txType === t ? TYPE_COLORS[t] : undefined,
-                  outline: txType === t ? `1px solid ${TYPE_COLORS[t]}44` : 'none',
+                  background: txType === t ? TRANSACTION_TYPE_COLORS[t] + '22' : 'var(--fin-card2)',
+                  color: txType === t ? TRANSACTION_TYPE_COLORS[t] : undefined,
+                  outline: txType === t ? `1px solid ${TRANSACTION_TYPE_COLORS[t]}44` : 'none',
                 }}
               >
                 {MOBILE_TYPE_LABELS[t]}
@@ -405,6 +399,18 @@ export function TransactionModal({
             </>
           )}
 
+          <MobileFieldRow label="Account">
+            <FinancialDropdown
+              searchable={false}
+              options={accountOptions}
+              value={selAccId ?? undefined}
+              onChange={item => setSelAccId(item ? (item.id as number) : null)}
+              renderOption={item => renderAccountOption(item, formData?.accounts ?? [])}
+              placeholder="Choose..."
+              inputClassName={dropdownInputClass}
+            />
+          </MobileFieldRow>
+
           {txType === TransactionTypes.Transfer ? (
             <>
               <MobileFieldRow label="To Account">
@@ -451,18 +457,6 @@ export function TransactionModal({
               />
             </MobileFieldRow>
           )}
-
-          <MobileFieldRow label="Account">
-            <FinancialDropdown
-              searchable={false}
-              options={accountOptions}
-              value={selAccId ?? undefined}
-              onChange={item => setSelAccId(item ? (item.id as number) : null)}
-              renderOption={item => renderAccountOption(item, formData?.accounts ?? [])}
-              placeholder="Choose..."
-              inputClassName={dropdownInputClass}
-            />
-          </MobileFieldRow>
 
           <MobileFieldRow label="Date">
             <Input
@@ -518,9 +512,9 @@ export function TransactionModal({
                   txType === t ? 'font-semibold' : 'bg-transparent text-[var(--fin-muted)]',
                 )}
                 style={{
-                  background: txType === t ? TYPE_COLORS[t] + '22' : undefined,
-                  color: txType === t ? TYPE_COLORS[t] : undefined,
-                  outline: txType === t ? `1px solid ${TYPE_COLORS[t]}44` : 'none',
+                  background: txType === t ? TRANSACTION_TYPE_COLORS[t] + '22' : undefined,
+                  color: txType === t ? TRANSACTION_TYPE_COLORS[t] : undefined,
+                  outline: txType === t ? `1px solid ${TRANSACTION_TYPE_COLORS[t]}44` : 'none',
                 }}
               >
                 {t}

@@ -20,11 +20,17 @@ export type { TransactionListItem as TransactionItem };
 
 type TransactionListProps = {
   month?: string;
+  fromDate?: string;
+  toDate?: string;
   type?: TransactionType;
   categoryId?: number;
   accountId?: number;
   payeeId?: number;
   label?: string;
+  addedByUserId?: string;
+  amountGte?: number;
+  amountLte?: number;
+  search?: string;
   limit?: number;
   emptyMessage?: string;
 };
@@ -40,11 +46,17 @@ function UserAvatar({ initials }: { initials: string | null | undefined }) {
 
 export function TransactionList({
   month,
+  fromDate,
+  toDate,
   type,
   categoryId,
   accountId,
   payeeId,
   label,
+  addedByUserId,
+  amountGte,
+  amountLte,
+  search,
   limit = 50,
   emptyMessage = 'No transactions yet',
 }: TransactionListProps) {
@@ -65,7 +77,22 @@ export function TransactionList({
       else setLoadingMore(true);
       try {
         const result = await apiFetch<TransactionsListResponse>('/api/finances/transactions', {
-          query: { type, categoryId, accountId, payeeId, label, month, limit, offset: currentOffset },
+          query: {
+            type,
+            categoryId,
+            accountId,
+            payeeId,
+            label,
+            month,
+            fromDate,
+            toDate,
+            addedByUserId,
+            amountGte,
+            amountLte,
+            search,
+            limit,
+            offset: currentOffset,
+          },
           silentToast: true,
         });
         setCurrency(result.currency);
@@ -76,13 +103,27 @@ export function TransactionList({
           setTransactions(prev => [...prev, ...result.transactions]);
           setOffset(currentOffset + result.transactions.length);
         }
-        setHasMore(result.transactions.length === limit);
+        setHasMore(result.transactions.length >= limit);
       } finally {
         if (reset) setLoading(false);
         else setLoadingMore(false);
       }
     },
-    [type, categoryId, accountId, payeeId, label, month, limit],
+    [
+      type,
+      categoryId,
+      accountId,
+      payeeId,
+      label,
+      month,
+      fromDate,
+      toDate,
+      addedByUserId,
+      amountGte,
+      amountLte,
+      search,
+      limit,
+    ],
   );
 
   useEffect(() => {
@@ -200,14 +241,13 @@ export function TransactionList({
                     </div>
                     <div className="flex items-center justify-end gap-1.5 mt-0.5">
                       {tx.extras && (
-                        <span onClick={e => e.stopPropagation()}>
-                          <IconButton
-                            label="View transaction extras"
-                            icon={<InfoCircleIcon />}
-                            onClick={() => setExtrasModal(tx.extras as unknown as TransactionDetails)}
-                            className="size-4 rounded-full border border-[var(--fin-border)] p-0 text-[var(--fin-muted)] active:opacity-60"
-                          />
-                        </span>
+                        <IconButton
+                          variant="ghost"
+                          label="View transaction extras"
+                          icon={<InfoCircleIcon className="size-3" />}
+                          onClick={() => setExtrasModal(tx.extras as unknown as TransactionDetails)}
+                          className="p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
+                        />
                       )}
                       <SubText>{formatTransactionDate(tx.date)}</SubText>
                       <UserAvatar initials={tx.addedByInitials} />
@@ -248,12 +288,15 @@ export function TransactionList({
                   {desktopMemo}
                 </span>
                 {tx.extras && (
-                  <IconButton
-                    label="View transaction extras"
-                    icon={<InfoCircleIcon />}
-                    onClick={() => setExtrasModal(tx.extras as unknown as TransactionDetails)}
-                    className="shrink-0 size-4 rounded-full border border-[var(--fin-border)] p-0 text-[var(--fin-muted)] hover:border-[var(--fin-accent)] hover:text-[var(--fin-accent)]"
-                  />
+                  <>
+                    <IconButton
+                      variant="ghost"
+                      label="View transaction extras"
+                      icon={<InfoCircleIcon className="size-3" />}
+                      onClick={() => setExtrasModal(tx.extras as unknown as TransactionDetails)}
+                      className="p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
+                    />
+                  </>
                 )}
               </div>
 

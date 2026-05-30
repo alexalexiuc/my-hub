@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
-import { fmt, Card, SectionLabel, Bar, Divider, SubText, MonthCarousel, SeeAllButton } from './ui';
+import { fmt, Card, SectionLabel, Bar, Divider, SubText, SmartDatePicker, SeeAllButton } from './ui';
 import { CategoryPieChart, SpendingTrendChart } from './DashboardCharts';
 import { TransactionList } from './transactions/TransactionList';
 import type { FinanceDashboardData } from '@/app/api/finances/dashboard/route';
@@ -43,9 +43,9 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
           {getGreeting()}
           {userName ? `, ${userName}` : ''}
         </div>
-        <MonthCarousel
+        <SmartDatePicker
           month={selectedMonth}
-          onNavigate={onMonthChange}
+          onChange={patch => patch.month && onMonthChange(patch.month)}
           currentMonth={currentMonth}
           maxMonth={currentMonth}
         />

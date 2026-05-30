@@ -398,9 +398,9 @@ test.describe('Finances – Journey', () => {
     await page.getByLabel('Previous month').first().click();
     await prevMonthApiPromise;
 
-    // Scope month label assertions to the desktop MonthCarousel h2 to avoid the duplicate
-    // mobile carousel rendering the same text
-    const desktopMonthLabel = page.locator('div.hidden.md\\:flex h2').first();
+    // Scope month label assertions to the desktop SmartDatePicker button (extendedFilters=true
+    // renders a <button>, not <h2>) to avoid the mobile header (which uses <h2>) matching too.
+    const desktopMonthLabel = page.locator('div.hidden.md\\:flex button').first();
 
     // Label has updated to previous month
     await expect(desktopMonthLabel).toHaveText(prevMonthLabel);

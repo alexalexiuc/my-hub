@@ -79,6 +79,8 @@ const TransactionQuerySchema = z.object({
     .optional(),
   addedByUserId: z.string().optional(),
   search: z.string().optional(),
+  amountGte: z.coerce.number().optional(),
+  amountLte: z.coerce.number().optional(),
   limit: z.coerce.number().int().positive().max(200).optional(),
   offset: z.coerce.number().int().nonnegative().optional(),
 });
@@ -112,6 +114,8 @@ export const GET = route({ query: TransactionQuerySchema, response: transactions
     limit,
     offset,
     addedByUserId: query.addedByUserId,
+    amountGte: query.amountGte,
+    amountLte: query.amountLte,
   });
 
   return { transactions, currency: budget.defaultCurrency };

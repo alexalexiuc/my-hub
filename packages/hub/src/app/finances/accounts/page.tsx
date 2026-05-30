@@ -15,18 +15,7 @@ import { NetWorthSheet } from './NetWorthSheet';
 import type { AccountItem, AccountsListData } from '@/app/api/finances/accounts/route';
 import { LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
-import { groupAccountsByCurrency } from './accounts.utils';
-
-const ACCOUNT_GROUPS = [
-  { key: 'bank', label: 'Bank' },
-  { key: 'cash', label: 'Cash' },
-  { key: 'credit_card', label: 'Credit Cards' },
-  { key: 'goal', label: 'Goals' },
-  { key: 'loan', label: 'Loans' },
-  { key: 'borrowed_lent', label: 'Borrowed/Lent' },
-  { key: 'investment', label: 'Investments' },
-  { key: 'tracking', label: 'Tracking' },
-] as const;
+import { ACCOUNT_GROUPS, groupAccountsByCurrency } from './accounts.utils';
 
 function amountColor(balance: number, type: AccountType): string {
   if (LIABILITY_ACCOUNT_TYPES.has(type)) return 'text-[var(--fin-red)]';
@@ -47,7 +36,7 @@ function AccountCard({
   const hasExtra = acc.type === 'credit_card' || acc.type === 'goal';
 
   return (
-    <div onClick={onClick} className="cursor-pointer px-[14px] py-3">
+    <div onClick={onClick} className="cursor-pointer px-[14px] py-2">
       <div className={cn('flex items-center justify-between', hasExtra ? 'mb-[10px]' : 'mb-0')}>
         <div className="flex items-center gap-2 min-w-0">
           <div className="h-2 w-2 shrink-0 rounded-full bg-[var(--fin-muted)]" />
@@ -156,10 +145,11 @@ export default function AccountsPage() {
       <div className="grid grid-cols-2 gap-2.5">
         <Card compact className="relative p-[14px]">
           <IconButton
+            variant="ghost"
             label="What is net worth?"
             icon={<QuestionMarkIcon className="size-3.5" />}
             onClick={() => setShowNetWorthSheet(true)}
-            className="absolute right-[10px] top-[10px] bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
+            className="absolute right-[10px] top-[10px] p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
           />
           <SubText className="block mb-1.5 uppercase tracking-[0.08em]">Net Worth</SubText>
           <div className="mb-2 text-[15px] font-bold tracking-[-0.02em] text-[var(--fin-text)] break-all leading-tight">
@@ -173,7 +163,8 @@ export default function AccountsPage() {
             label="How is this calculated?"
             icon={<QuestionMarkIcon className="size-3.5" />}
             onClick={() => setShowAvailableSheet(true)}
-            className="absolute right-[10px] top-[10px] bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
+            variant="ghost"
+            className="absolute right-[10px] top-[10px] p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
           />
           <SubText className="block mb-1.5 uppercase tracking-[0.08em]">Available</SubText>
           <div className="text-[15px] font-bold tracking-[-0.02em] text-[var(--fin-text)] break-all leading-tight">

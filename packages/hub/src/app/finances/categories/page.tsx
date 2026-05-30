@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { apiFetch } from '@/lib/utils';
 import type { CategoriesResponse, CategoryGroup, CategoryRow } from '@/app/api/finances/categories/route';
 import type { CategoryDeleteResponse } from '@/app/api/finances/categories/[id]/route';
-import { fmt, Card, SectionLabel, Divider, MonthCarousel } from '../ui';
+import { fmt, Card, SectionLabel, Divider, SmartDatePicker } from '../ui';
 import { dateToString } from '@my-hub/shared/utils';
 import { Button } from '@/components';
 import { CategoryModal } from './CategoryModal';
@@ -88,7 +88,11 @@ export default function CategoriesPage() {
     <div className="flex flex-col gap-[14px]">
       <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Categories</div>
 
-      <MonthCarousel month={selectedMonth} onNavigate={setSelectedMonth} currentMonth={CURRENT_MONTH} />
+      <SmartDatePicker
+        month={selectedMonth}
+        onChange={patch => patch.month && setSelectedMonth(patch.month)}
+        currentMonth={CURRENT_MONTH}
+      />
 
       {loading ? (
         <div className="flex flex-col gap-[14px]">

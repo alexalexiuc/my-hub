@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { cn, apiFetch } from '@/lib/utils';
 import { Button } from '@/components';
-import { SectionLabel, MonthCarousel, SubText } from '../ui';
+import { SectionLabel, SmartDatePicker, SubText } from '../ui';
 import type { MonthlyPlanCopyResponse } from '@/app/api/finances/monthly-plans/[month]/copy-next/route';
 
 type MonthHeaderProps = {
@@ -77,7 +77,7 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
       <div data-layout="desktop" className="mb-5 hidden items-center justify-between md:flex">
         <div>
           <SubText className="block mb-0.5 font-semibold uppercase tracking-widest">Monthly Plan</SubText>
-          <MonthCarousel month={month} onNavigate={onNavigate} />
+          <SmartDatePicker month={month} onChange={patch => patch.month && onNavigate(patch.month)} />
         </div>
         <div className="flex items-center gap-2">
           {!nextMonthExists && copyNextBtn('hover:border-[var(--fin-accent)] hover:text-[var(--fin-accent)]')}
@@ -90,9 +90,9 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
       <div data-layout="mobile" className="mb-4 md:hidden">
         <SectionLabel>Monthly Plan</SectionLabel>
         <div className="mb-3 flex items-center justify-between rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2.5">
-          <MonthCarousel
+          <SmartDatePicker
             month={month}
-            onNavigate={onNavigate}
+            onChange={patch => patch.month && onNavigate(patch.month)}
             className="flex-1 justify-between"
             labelClassName="text-[32px] font-bold leading-none tracking-tight"
           />

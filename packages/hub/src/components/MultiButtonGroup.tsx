@@ -1,8 +1,11 @@
 'use client';
 
+import { cn } from '@/lib/utils/cn';
+
 interface Option<T extends string> {
   label: string;
   value: T;
+  className?: string;
 }
 
 interface Props<T extends string> {
@@ -32,9 +35,11 @@ export function MultiButtonGroup<T extends string>({ options, value, onChange, w
           key={option.value}
           type="button"
           onClick={() => onChange(option.value)}
-          className={`relative z-10 flex-1 rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200 ${
-            option.value === value ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
-          }`}
+          className={cn(
+            'relative z-10 flex-1 rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200',
+            option.value === value ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300',
+            option.className,
+          )}
         >
           {option.label}
         </button>

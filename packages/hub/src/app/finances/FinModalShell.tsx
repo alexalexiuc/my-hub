@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components';
+import { Button, IconButton } from '@/components';
+import { XOutlineIcon } from '@/components/icons/XOutlineIcon';
 
 type FinModalShellProps = {
   onClose: () => void;
@@ -75,18 +76,13 @@ export function FinModalShell({
         data-layout="mobile"
         className="flex shrink-0 items-center border-b border-[var(--fin-border)] px-4 py-4 md:hidden"
       >
-        <Button
-          type="button"
-          variant="transparent"
-          size="xs"
+        <IconButton
+          variant="ghost"
+          label="Close"
+          icon={<XOutlineIcon className="size-7" />}
           onClick={onClose}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--fin-muted)] active:opacity-60"
-          aria-label="Close"
-        >
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M2 2l14 14M16 2L2 16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-          </svg>
-        </Button>
+          className="text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
+        />
         <h2 className="flex-1 text-center text-base font-bold text-[var(--fin-text)]">{title}</h2>
         <div className="h-8 w-8" />
       </div>
@@ -102,7 +98,16 @@ export function FinModalShell({
       >
         {/* Desktop title */}
         <div data-layout="desktop" className="mb-4 hidden text-base font-bold text-[var(--fin-text)] md:block">
-          {title}
+          <div className="flex items-center justify-between">
+            {title}
+            <IconButton
+              variant="ghost"
+              label="Close"
+              icon={<XOutlineIcon className="size-6" />}
+              onClick={onClose}
+              className="text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
+            />
+          </div>
         </div>
         {children}
         {/* Desktop footer — inside scrollable card, after content */}
