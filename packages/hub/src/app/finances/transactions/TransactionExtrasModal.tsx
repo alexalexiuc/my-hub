@@ -34,7 +34,9 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
   const isReceipt = extras.kind === 'receipt';
   const receipt = isReceipt ? (extras as ReceiptTransactionDetails) : null;
 
-  const hasBase = extras.source || extras.rawInput || extras.cardHint || extras.autofillConfidence != null;
+  const hasBase =
+    extras.source || extras.rawInput || extras.cardHint || extras.autofillConfidence != null || extras.time != null;
+  const hasExtra = extras.extra != null && Object.keys(extras.extra).length > 0;
   const hasConversion = extras.conversion && Object.keys(extras.conversion).length > 0;
   const hasReceiptMeta =
     receipt &&
@@ -51,6 +53,7 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
         <Section title="Source">
           {extras.source && <Row label="Channel" value={extras.source} />}
           {extras.cardHint && <Row label="Card hint" value={extras.cardHint} />}
+          {extras.time != null && <Row label="Time" value={extras.time} />}
           {extras.autofillConfidence != null && (
             <Row label="AI confidence" value={`${Math.round(extras.autofillConfidence * 100)}%`} />
           )}
@@ -109,6 +112,18 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
                 <span className="shrink-0 tabular-nums text-[var(--fin-muted)]">{fmt(item.totalPrice, currency)}</span>
               )}
             </div>
+          ))}
+        </Section>
+      )}
+
+      {hasExtra && extras.extra && (
+        <Section title="Extra">
+          {Object.entries(extras.extra).map(([key, value]) => (
+            <Row
+              key={key}
+              label={key}
+              value={typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value ?? '')}
+            />
           ))}
         </Section>
       )}

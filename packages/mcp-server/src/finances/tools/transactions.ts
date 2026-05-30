@@ -42,18 +42,41 @@ function getAccountAvailable(
 
 const BaseExtrasSchema = z.object({
   source: z.literal('mcp').optional(),
-  autofillConfidence: z.number().min(0).max(1).optional(),
-  rawInput: z.string().optional(),
-  cardHint: z.string().optional(),
+  autofillConfidence: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe('0–1 confidence score when the AI auto-suggested a category or payee.'),
+  rawInput: z
+    .string()
+    .optional()
+    .describe('Original user message, receipt text, or OCR output this transaction was parsed from.'),
+  cardHint: z
+    .string()
+    .optional()
+    .describe('Card identifier from the source, e.g. "Visa *4242". Helps identify which account was charged.'),
+  time: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional()
+    .describe(
+      'Time of the transaction in HH:MM 24-hour format (timezone-agnostic). Populate from the receipt when available.',
+    ),
 });
 
 const ReceiptLineItemSchema = z.object({
   name: z.string().min(1),
   quantity: z.number().positive().optional(),
-  unit: z.string().optional(),
+  unit: z.string().optional().describe('Unit of measure, e.g. "kg", "pcs", "l".'),
   unitPrice: z.number().positive().optional(),
   totalPrice: z.number().positive().optional(),
-  categoryHint: z.string().optional(),
+  categoryHint: z
+    .string()
+    .optional()
+    .describe(
+      'AI-suggested category for this line item; informational only — does not affect the transaction categoryId.',
+    ),
 });
 
 // Optional structured metadata for AI-assisted inserts.
@@ -62,22 +85,31 @@ const ReceiptLineItemSchema = z.object({
 const TransactionExtrasSchema = BaseExtrasSchema.extend({
   payeeAddress: z.string().optional(),
   receiptNumber: z.string().optional(),
-  taxAmount: z.number().optional(),
-  tipAmount: z.number().optional(),
-  discountAmount: z.number().optional(),
+  taxAmount: z.number().optional().describe('Tax amount in the account currency.'),
+  tipAmount: z.number().optional().describe('Tip amount in the account currency.'),
+  discountAmount: z.number().optional().describe('Discount amount in the account currency.'),
   items: z.array(ReceiptLineItemSchema).optional(),
-  extra: z.record(z.string(), z.unknown()).optional(),
+  extra: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe('Freeform key-value bag for fields not covered by the schema above.'),
 });
 
 const TransactionItemSchema = z
   .object({
     type: z.enum(TransactionTypes),
     amount: z.number().positive(),
-    currency: supportedCurrencySchema.optional(),
+    currency: supportedCurrencySchema
+      .optional()
+      .describe(
+        'ISO 4217 currency code of the original amount when paying in a foreign currency (e.g. "EUR" when the account is USD). ' +
+          'Omit if the transaction is already in the account currency. The system handles conversion automatically.',
+      ),
     date: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .optional(),
+      .optional()
+      .describe('Transaction date in YYYY-MM-DD format. Defaults to today if omitted.'),
     toAccountId: z.number().int().positive().optional(),
     categoryId: z
       .number()
@@ -89,10 +121,23 @@ const TransactionItemSchema = z
           'Use finances_list_context to find available category IDs.',
       ),
     payeeName: z.string().min(1).optional(),
-    notes: z.string().min(1),
+    notes: z
+      .string()
+      .min(1)
+      .describe(
+        'Human-readable description shown in the UI. For AI-entered transactions, use a plain-language summary.',
+      ),
     labels: z.array(z.string().min(1)).optional(),
-    isCorrection: z.boolean().optional(),
-    extras: TransactionExtrasSchema.optional(),
+    isCorrection: z
+      .boolean()
+      .optional()
+      .describe(
+        'Mark as a balance-correction entry (e.g. reconciliation adjustment). Corrections are excluded from spending and cashflow reports.',
+      ),
+    extras: TransactionExtrasSchema.optional().describe(
+      'Structured AI metadata. kind (receipt vs manual) is inferred automatically: ' +
+        'receipt when any of payeeAddress/receiptNumber/taxAmount/tipAmount/discountAmount/items is set, otherwise manual.',
+    ),
   })
   .superRefine((item, ctx) => {
     if (item.type === TransactionTypes.Transfer && item.toAccountId == null) {
@@ -222,6 +267,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
             autofillConfidence: item.extras?.autofillConfidence,
             rawInput: item.extras?.rawInput,
             cardHint: item.extras?.cardHint,
+            time: item.extras?.time,
             payeeAddress: item.extras?.payeeAddress,
             receiptNumber: item.extras?.receiptNumber,
             taxAmount: item.extras?.taxAmount,
@@ -237,6 +283,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
             autofillConfidence: item.extras?.autofillConfidence,
             rawInput: item.extras?.rawInput,
             cardHint: item.extras?.cardHint,
+            time: item.extras?.time,
             extra: item.extras?.extra,
           }) as TransactionInsert['extras'];
         }
