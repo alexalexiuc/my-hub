@@ -322,22 +322,24 @@ export async function addTransaction(
     let resolvedExtras = data.extras;
 
     if (originalCurrency != null) {
-      const originalToAccountRate =
-        originalCurrency !== fromAccount.currency
-          ? await getExchangeRate(originalCurrency, fromAccount.currency, data.date)
-          : 1;
+      const needsConversion = originalCurrency !== fromAccount.currency;
+      const originalToAccountRate = needsConversion
+        ? await getExchangeRate(originalCurrency, fromAccount.currency, data.date)
+        : 1;
       effectiveAmount = Math.round(amt * originalToAccountRate * 10000) / 10000;
-      resolvedExtras = {
-        ...(data.extras ?? { kind: 'base' }),
-        conversion: {
-          ...(data.extras?.conversion ?? {}),
-          originalAmount: amt,
-          originalCurrency,
-          accountCurrency: fromAccount.currency,
-          originalToAccountRate,
-          convertedAmount: effectiveAmount,
-        },
-      } as TransactionInsert['extras'];
+      if (needsConversion) {
+        resolvedExtras = {
+          ...(data.extras ?? { kind: 'base' }),
+          conversion: {
+            ...(data.extras?.conversion ?? {}),
+            originalAmount: amt,
+            originalCurrency,
+            accountCurrency: fromAccount.currency,
+            originalToAccountRate,
+            convertedAmount: effectiveAmount,
+          },
+        } as TransactionInsert['extras'];
+      }
     }
 
     const resolvedExchangeRate =
