@@ -85,9 +85,24 @@ const ReceiptLineItemSchema = z.object({
 const TransactionExtrasSchema = BaseExtrasSchema.extend({
   payeeAddress: z.string().optional(),
   receiptNumber: z.string().optional(),
-  taxAmount: z.number().optional().describe('Tax amount in the account currency.'),
-  tipAmount: z.number().optional().describe('Tip amount in the account currency.'),
-  discountAmount: z.number().optional().describe('Discount amount in the account currency.'),
+  taxAmount: z
+    .number()
+    .optional()
+    .describe(
+      'Tax amount in the same currency as the transaction amount (i.e. the receipt currency, not the account currency).',
+    ),
+  tipAmount: z
+    .number()
+    .optional()
+    .describe(
+      'Tip amount in the same currency as the transaction amount (i.e. the receipt currency, not the account currency).',
+    ),
+  discountAmount: z
+    .number()
+    .optional()
+    .describe(
+      'Discount amount in the same currency as the transaction amount (i.e. the receipt currency, not the account currency).',
+    ),
   items: z.array(ReceiptLineItemSchema).optional(),
   extra: z
     .record(z.string(), z.unknown())
