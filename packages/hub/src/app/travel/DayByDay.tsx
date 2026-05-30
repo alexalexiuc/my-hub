@@ -10,7 +10,7 @@ import { calendarDays, formatDayHeading, toUTCDateStr } from '@my-hub/shared/uti
 import { apiFetch } from '@/lib/utils';
 
 function getPlaceMapUrl(place: TripPlace): string {
-  const query = place.lat != null && place.lng != null ? `${place.lat},${place.lng}` : (place.location ?? place.name);
+  const query = (place.location ?? place.name) ?? (place.lat != null && place.lng != null ? `${place.lat},${place.lng}` : '');
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
