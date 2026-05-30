@@ -264,15 +264,6 @@ function endpointLocationQuery(booking: TripBookingExtended, endpoint: 'start' |
 function buildNavigateUrl(booking: TripBookingExtended, endpoint: 'start' | 'end'): string | null {
   const query = endpointLocationQuery(booking, endpoint);
 
-  // Prefer exact coordinates when we don't have a better endpoint-specific query.
-  if (!query && hasValidLatLng(booking.lat, booking.lng)) {
-    return buildGoogleMapsSearchUrl(`${booking.lat},${booking.lng}`);
-  }
-
-  if (hasValidLatLng(booking.lat, booking.lng) && query === booking.location?.trim()) {
-    return buildGoogleMapsSearchUrl(`${booking.lat},${booking.lng}`);
-  }
-
   if (!query) return null;
 
   if (isDirectMapUrl(query)) {
