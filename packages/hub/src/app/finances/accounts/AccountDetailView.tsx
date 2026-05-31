@@ -8,7 +8,7 @@ import { cn, apiFetch } from '@/lib/utils';
 import { fmt, Card, SectionLabel, Bar, TYPE_META, SubText } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { TransactionList } from '../transactions/TransactionList';
-import { EditAccountModal } from './EditAccountModal';
+import { AccountModal } from './AccountModal';
 import type { AccountItem } from '@/app/api/finances/accounts/route';
 import type { AccountDetailData } from '@/app/api/finances/accounts/[id]/route';
 import type { TransactionMutationResponse } from '@/app/api/finances/transactions/route';
@@ -456,10 +456,10 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
       </Card>
 
       {editOpen && (
-        <EditAccountModal
-          acc={acc}
+        <AccountModal
+          account={acc}
           onClose={() => setEditOpen(false)}
-          onSaved={() => {
+          onDone={() => {
             setEditOpen(false);
             load();
           }}

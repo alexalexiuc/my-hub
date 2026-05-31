@@ -6,7 +6,7 @@ import { cn, apiFetch } from '@/lib/utils';
 import { fmt, Card, Divider, SectionLabel, AddButton, Sparkline, TYPE_META, SubText } from '../ui';
 import { IconButton } from '@/components';
 import { QuestionMarkIcon } from '@/components/icons';
-import { AddAccountModal } from './AddAccountModal';
+import { AccountModal } from './AccountModal';
 import { AccountProgressBar } from './AccountProgressBar';
 import { BorrowedLentDetails } from './BorrowedLentDetails';
 import { AccountsPageSkeleton } from './AccountsPageSkeleton';
@@ -262,10 +262,10 @@ export default function AccountsPage() {
       )}
 
       {showAddModal && (
-        <AddAccountModal
+        <AccountModal
           defaultCurrency={currency}
           onClose={() => setShowAddModal(false)}
-          onCreated={() => {
+          onDone={() => {
             setShowAddModal(false);
             load();
           }}
