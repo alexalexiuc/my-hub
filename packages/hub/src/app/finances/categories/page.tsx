@@ -86,7 +86,7 @@ export default function CategoriesPage() {
 
   return (
     <div className="flex flex-col gap-[14px]">
-      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Categories</div>
+      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Categories</div>
 
       <SmartDatePicker
         month={selectedMonth}
@@ -99,7 +99,7 @@ export default function CategoriesPage() {
           {[80, 140, 120].map((h, i) => (
             <div
               key={i}
-              className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+              className="rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
               style={{ height: h, opacity: 0.6 }}
             />
           ))}
@@ -109,10 +109,8 @@ export default function CategoriesPage() {
           <>
             <Card className="p-[14px]">
               <div className="mb-2 flex justify-between">
-                <span className="text-[13px] text-[var(--fin-muted)]">Total spent</span>
-                <span className="text-base font-bold text-[var(--fin-text)]">
-                  {fmt(data.totalSpent, data.currency)}
-                </span>
+                <span className="text-[13px] text-[var(--muted)]">Total spent</span>
+                <span className="text-base font-bold text-[var(--text)]">{fmt(data.totalSpent, data.currency)}</span>
               </div>
               {data.totalSpent > 0 && (
                 <>
@@ -123,7 +121,7 @@ export default function CategoriesPage() {
                         <div
                           key={cat.id}
                           title={`${cat.name}: ${fmt(cat.spent, data.currency)}`}
-                          style={{ width: `${pct}%`, background: cat.color ?? 'var(--fin-muted)', minWidth: 3 }}
+                          style={{ width: `${pct}%`, background: cat.color ?? 'var(--muted)', minWidth: 3 }}
                         />
                       ) : null;
                     })}
@@ -135,10 +133,10 @@ export default function CategoriesPage() {
                         <div key={cat.id} className="flex items-center gap-1">
                           <div
                             className="rounded-sm"
-                            style={{ width: 7, height: 7, background: cat.color ?? 'var(--fin-muted)' }}
+                            style={{ width: 7, height: 7, background: cat.color ?? 'var(--muted)' }}
                           />
-                          <span className="text-[10px] text-[var(--fin-muted)]">
-                            {cat.name} <span className="text-[var(--fin-subtle)]">{pct}%</span>
+                          <span className="text-[10px] text-[var(--muted)]">
+                            {cat.name} <span className="text-[var(--subtle)]">{pct}%</span>
                           </span>
                         </div>
                       );
@@ -147,7 +145,7 @@ export default function CategoriesPage() {
                 </>
               )}
               {data.totalSpent === 0 && (
-                <div className="py-2 text-center text-xs text-[var(--fin-subtle)]">No spending this month</div>
+                <div className="py-2 text-center text-xs text-[var(--subtle)]">No spending this month</div>
               )}
             </Card>
 
@@ -167,7 +165,7 @@ export default function CategoriesPage() {
             <Button
               variant="transparent"
               onClick={() => setShowAddGroup(true)}
-              className="cursor-pointer rounded-md border border-dashed border-[var(--fin-border)] px-3 py-[5px] text-[11px] text-[var(--fin-subtle)]"
+              className="cursor-pointer rounded-md border border-dashed border-[var(--border)] px-3 py-[5px] text-[11px] text-[var(--subtle)]"
             >
               + New Group
             </Button>
@@ -196,7 +194,7 @@ export default function CategoriesPage() {
             )}
 
             {data.groups.length === 0 && data.ungrouped.length === 0 && (
-              <div className="py-12 text-center text-[13px] text-[var(--fin-subtle)]">
+              <div className="py-12 text-center text-[13px] text-[var(--subtle)]">
                 No categories yet. Add your first category to start tracking.
               </div>
             )}

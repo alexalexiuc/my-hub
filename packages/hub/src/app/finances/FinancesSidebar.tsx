@@ -59,13 +59,10 @@ export function FinancesSidebar() {
   const isActive = (path: string) => (path === '/finances' ? pathname === '/finances' : pathname.startsWith(path));
 
   return (
-    <div className="flex w-[200px] shrink-0 flex-col px-2.5 py-4 bg-[var(--fin-card)] border-r border-[var(--fin-border)]">
-      <div className="mb-3 border-b border-[var(--fin-border)] px-2 pb-4 pt-1">
-        <div
-          data-testid="sidebar-budget-name"
-          className="text-base font-bold tracking-[-0.02em] text-[var(--fin-text)]"
-        >
-          {currency && <span className="text-[var(--fin-accent)]">{currency} </span>}
+    <div className="flex w-[200px] shrink-0 flex-col px-2.5 py-4 bg-[var(--card)] border-r border-[var(--border)]">
+      <div className="mb-3 border-b border-[var(--border)] px-2 pb-4 pt-1">
+        <div data-testid="sidebar-budget-name" className="text-base font-bold tracking-[-0.02em] text-[var(--text)]">
+          {currency && <span className="text-[var(--accent)]">{currency} </span>}
           {budgetName ?? 'Finances'}
         </div>
       </div>
@@ -74,16 +71,16 @@ export function FinancesSidebar() {
         const active = isActive(path);
         return (
           <div key={id}>
-            {dividerBefore && <div className="mx-1 my-1.5 h-px bg-[var(--fin-border)]" />}
+            {dividerBefore && <div className="mx-1 my-1.5 h-px bg-[var(--border)]" />}
             <button
               onClick={() => router.push(path)}
               className={cn(
                 'mb-0.5 flex w-full cursor-pointer items-center gap-2.5 rounded-[7px] px-2.5 py-[9px] text-left text-[13px]',
                 active
-                  ? 'bg-[var(--fin-accent-d)] text-[var(--fin-accent)] font-semibold'
-                  : 'bg-transparent text-[var(--fin-muted)]',
+                  ? 'bg-[var(--accent-d)] text-[var(--accent)] font-semibold'
+                  : 'bg-transparent text-[var(--muted)]',
               )}
-              style={{ border: active ? `1px solid var(--fin-accent)44` : '1px solid transparent' }}
+              style={{ border: active ? `1px solid var(--accent)44` : '1px solid transparent' }}
             >
               {icon && <span className="text-[15px] leading-none">{icon}</span>}
               {label}

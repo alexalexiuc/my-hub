@@ -23,7 +23,7 @@ function PayeeChips({ aliases, description }: { aliases: string[]; description: 
     <>
       {aliases.length > 0 && (
         <Pill
-          color="var(--fin-subtle)"
+          color="var(--subtle)"
           label={aliases.length === 1 ? `Alias: ${aliases[0]}` : `Aliases: ${aliases.length}`}
           title={aliases.join(', ')}
           className="max-w-[220px] truncate text-[10px]"
@@ -31,7 +31,7 @@ function PayeeChips({ aliases, description }: { aliases: string[]; description: 
       )}
       {description && (
         <Pill
-          color="var(--fin-subtle)"
+          color="var(--subtle)"
           label={`Description: ${description}`}
           title={description}
           className="max-w-[260px] truncate text-[10px]"
@@ -76,7 +76,7 @@ export function PayeeRow({
 }: PayeeRowProps) {
   const aliases = payee.aliases ?? [];
   const description = payee.description?.trim() || null;
-  const categoryColor = reportItem?.categoryColor ?? 'var(--fin-muted)';
+  const categoryColor = reportItem?.categoryColor ?? 'var(--muted)';
   const lastInRange = reportItem?.lastDate ? dateToString(new Date(reportItem.lastDate)) : null;
   const lastOverall = payee.lastUsedAt ? dateToString(new Date(payee.lastUsedAt)) : null;
 
@@ -94,31 +94,31 @@ export function PayeeRow({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
               <Link href={`/finances/payees/${payee.id}`}>
-                <SectionLabel className="!mb-0 !text-[13px] !font-medium !normal-case !tracking-normal !text-[var(--fin-accent)] p-0 hover:underline">
+                <SectionLabel className="!mb-0 !text-[13px] !font-medium !normal-case !tracking-normal !text-[var(--accent)] p-0 hover:underline">
                   {payee.name}
                 </SectionLabel>
               </Link>
               <PayeeChips aliases={aliases} description={description} />
             </div>
 
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-[var(--fin-subtle)]">
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-[var(--subtle)]">
               {reportItem?.categoryName && (
-                <SectionLabel className="!mb-0 !text-[10px] !font-normal !uppercase !tracking-widest !text-[var(--fin-subtle)] p-0">
+                <SectionLabel className="!mb-0 !text-[10px] !font-normal !uppercase !tracking-widest !text-[var(--subtle)] p-0">
                   {reportItem.categoryName}
                 </SectionLabel>
               )}
               {lastInRange && (
-                <SectionLabel className="!mb-0 !text-[10px] !font-normal !uppercase !tracking-widest !text-[var(--fin-subtle)] p-0">
+                <SectionLabel className="!mb-0 !text-[10px] !font-normal !uppercase !tracking-widest !text-[var(--subtle)] p-0">
                   Last: {lastInRange}
                 </SectionLabel>
               )}
               {payee.useCount > 0 && (
-                <SectionLabel className="!mb-0 !text-[10px] !font-normal !uppercase !tracking-widest !text-[var(--fin-subtle)] p-0">
+                <SectionLabel className="!mb-0 !text-[10px] !font-normal !uppercase !tracking-widest !text-[var(--subtle)] p-0">
                   Used {payee.useCount} time{payee.useCount === 1 ? '' : 's'}
                 </SectionLabel>
               )}
               {lastOverall && lastOverall !== lastInRange && (
-                <SectionLabel className="!mb-0 !text-[10px] !font-normal !uppercase !tracking-widest !text-[var(--fin-subtle)] p-0">
+                <SectionLabel className="!mb-0 !text-[10px] !font-normal !uppercase !tracking-widest !text-[var(--subtle)] p-0">
                   All-time last: {lastOverall}
                 </SectionLabel>
               )}
@@ -126,27 +126,27 @@ export function PayeeRow({
           </div>
         </div>
 
-        <div className="text-right text-xs tabular-nums text-[var(--fin-muted)]">
+        <div className="text-right text-xs tabular-nums text-[var(--muted)]">
           {reportItem ? reportItem.txCount : '—'}
         </div>
-        <div className="text-right text-[13px] font-semibold tabular-nums text-[var(--fin-text)]">
+        <div className="text-right text-[13px] font-semibold tabular-nums text-[var(--text)]">
           {reportItem ? fmt(reportItem.totalSpent, currency) : '—'}
         </div>
 
         <div className="pointer-events-none absolute inset-y-0 right-[14px] flex items-center opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
-          <div className="flex items-center gap-1 rounded-md border border-[var(--fin-border)] bg-[var(--fin-card)] px-1.5 py-1 shadow-sm">
+          <div className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--card)] px-1.5 py-1 shadow-sm">
             <IconButton
               label="Edit"
               icon={<PencilIcon className="size-3.5" />}
               onClick={() => onEdit(payee)}
-              className="bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
+              className="bg-transparent p-1 text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--text)]"
             />
-            <span className="h-3 w-px bg-[var(--fin-border)]" />
+            <span className="h-3 w-px bg-[var(--border)]" />
             <IconButton
               label="Merge into this payee"
               icon={<MergeIcon />}
               onClick={() => onMerge(payee)}
-              className="bg-transparent p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
+              className="bg-transparent p-1 text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--text)]"
             />
           </div>
         </div>
@@ -161,14 +161,14 @@ export function PayeeRow({
           onEdit={() => onEdit(payee)}
           secondAction={{ icon: <MergeIcon />, onClick: () => onMerge(payee) }}
         >
-          <div className="bg-[var(--fin-card)] px-4 py-3">
+          <div className="bg-[var(--card)] px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2.5">
                 <CategoryIcon color={categoryColor} icon={reportItem?.categoryIcon} size="md" />
                 <div className="min-w-0">
                   <Link
                     href={`/finances/payees/${payee.id}`}
-                    className="block truncate text-[13px] font-semibold text-[var(--fin-accent)] hover:underline"
+                    className="block truncate text-[13px] font-semibold text-[var(--accent)] hover:underline"
                   >
                     {payee.name}
                   </Link>
@@ -179,7 +179,7 @@ export function PayeeRow({
               <div className="shrink-0 text-right">
                 {reportItem ? (
                   <>
-                    <div className="text-[13px] font-semibold tabular-nums text-[var(--fin-text)]">
+                    <div className="text-[13px] font-semibold tabular-nums text-[var(--text)]">
                       {fmt(reportItem.totalSpent, currency)}
                     </div>
                     <SubText className="tabular-nums">{reportItem.txCount} txns</SubText>

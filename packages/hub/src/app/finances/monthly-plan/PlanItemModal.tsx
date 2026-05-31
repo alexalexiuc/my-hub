@@ -151,10 +151,10 @@ export function PlanItemModal({ defaultCurrency, formData, onClose, item, onSave
         {isEdit && (
           <div>
             <SectionLabel className="mt-1">Assigned Amount</SectionLabel>
-            <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] p-3">
-              <div className="mb-2 flex items-center justify-between text-[12px] text-[var(--fin-muted)]">
+            <div className="rounded-[10px] border border-[var(--border)] bg-[var(--card2)] p-3">
+              <div className="mb-2 flex items-center justify-between text-[12px] text-[var(--muted)]">
                 <span>Current</span>
-                <span className="font-semibold tabular-nums text-[var(--fin-text)]">
+                <span className="font-semibold tabular-nums text-[var(--text)]">
                   {fmtNum(item.assignedAmount)} {itemCurrency}
                 </span>
               </div>
@@ -167,15 +167,11 @@ export function PlanItemModal({ defaultCurrency, formData, onClose, item, onSave
                 className="mb-2 w-full text-right text-[15px] font-semibold"
               />
               <div className="flex items-center justify-between text-[12px]">
-                <span className="text-[var(--fin-subtle)]">Difference</span>
+                <span className="text-[var(--subtle)]">Difference</span>
                 <span
                   className={cn(
                     'font-semibold tabular-nums',
-                    delta > 0
-                      ? 'text-[var(--fin-green)]'
-                      : delta < 0
-                        ? 'text-[var(--fin-red)]'
-                        : 'text-[var(--fin-muted)]',
+                    delta > 0 ? 'text-[var(--green)]' : delta < 0 ? 'text-[var(--red)]' : 'text-[var(--muted)]',
                   )}
                 >
                   {delta > 0 ? '+' : ''}

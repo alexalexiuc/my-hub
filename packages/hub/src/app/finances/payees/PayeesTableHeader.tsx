@@ -17,7 +17,7 @@ export function PayeesTableHeader({ sortBy, onSort }: PayeesTableHeaderProps) {
   return (
     <div
       data-layout="desktop"
-      className="hidden grid-cols-[1fr_80px_90px] border-b border-[var(--fin-border)] px-[14px] py-[10px] md:grid"
+      className="hidden grid-cols-[1fr_80px_90px] border-b border-[var(--border)] px-[14px] py-[10px] md:grid"
     >
       {headers.map(([key, label]) => (
         <div
@@ -25,7 +25,7 @@ export function PayeesTableHeader({ sortBy, onSort }: PayeesTableHeaderProps) {
           onClick={() => onSort(key)}
           className={cn('cursor-pointer', key === 'name' ? 'text-left' : 'text-right')}
         >
-          <SectionLabel className={cn(sortBy === key ? '!text-[var(--fin-accent)]' : '')}>
+          <SectionLabel className={cn(sortBy === key ? '!text-[var(--accent)]' : '')}>
             {label} {sortBy === key && '↓'}
           </SectionLabel>
         </div>

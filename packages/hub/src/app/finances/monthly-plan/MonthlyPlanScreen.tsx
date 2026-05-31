@@ -103,7 +103,7 @@ export function MonthlyPlanScreen() {
         <Card className="overflow-hidden p-0">
           <div
             data-layout="desktop"
-            className="hidden grid-cols-[1fr_8rem_8rem_15rem_3rem] gap-3 border-b border-[var(--fin-border)] px-4 py-2.5 md:grid"
+            className="hidden grid-cols-[1fr_8rem_8rem_15rem_3rem] gap-3 border-b border-[var(--border)] px-4 py-2.5 md:grid"
           >
             {DESKTOP_HEADERS.map(({ label, align }) => (
               <SectionLabel key={label} className={align}>
@@ -111,10 +111,7 @@ export function MonthlyPlanScreen() {
               </SectionLabel>
             ))}
           </div>
-          <div
-            data-layout="mobile"
-            className="flex items-center border-b border-[var(--fin-border)] px-4 py-2 md:hidden"
-          >
+          <div data-layout="mobile" className="flex items-center border-b border-[var(--border)] px-4 py-2 md:hidden">
             <SectionLabel className="flex-1">Item</SectionLabel>
             <div className="flex shrink-0 gap-3">
               <SectionLabel className="text-right">Planned</SectionLabel>
@@ -122,13 +119,13 @@ export function MonthlyPlanScreen() {
             </div>
           </div>
 
-          {loading && <div className="py-12 text-center text-[13px] text-[var(--fin-muted)]">Loading…</div>}
-          {!loading && error && <div className="py-12 text-center text-[13px] text-[var(--fin-red)]">{error}</div>}
+          {loading && <div className="py-12 text-center text-[13px] text-[var(--muted)]">Loading…</div>}
+          {!loading && error && <div className="py-12 text-center text-[13px] text-[var(--red)]">{error}</div>}
 
           {!loading && !error && data && (
             <>
               {data.items.length === 0 && !showAddItem && (
-                <div className="py-10 text-center text-[13px] text-[var(--fin-muted)]">
+                <div className="py-10 text-center text-[13px] text-[var(--muted)]">
                   No items yet — add your first planned expense below.
                 </div>
               )}
@@ -157,22 +154,22 @@ export function MonthlyPlanScreen() {
           )}
 
           {!loading && !error && data && (
-            <div className="flex flex-col gap-2 border-t border-[var(--fin-border)] px-3 py-3 md:flex-row md:items-center md:justify-between md:px-4">
+            <div className="flex flex-col gap-2 border-t border-[var(--border)] px-3 py-3 md:flex-row md:items-center md:justify-between md:px-4">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => setShowAddItem(true)}
-                className="border-[var(--fin-border)] text-[var(--fin-muted)] hover:border-[var(--fin-accent)] hover:text-[var(--fin-accent)]"
+                className="border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
               >
                 + Add item
               </Button>
-              <div className="flex items-center gap-4 text-[11px] text-[var(--fin-muted)]">
+              <div className="flex items-center gap-4 text-[11px] text-[var(--muted)]">
                 <span>
-                  Planned: <strong className="text-[var(--fin-text)]">{fmtNum(data.summary.planned)}</strong>
+                  Planned: <strong className="text-[var(--text)]">{fmtNum(data.summary.planned)}</strong>
                 </span>
                 <span>
                   Assigned:{' '}
-                  <strong className="text-[var(--fin-text)]">
+                  <strong className="text-[var(--text)]">
                     {fmtNum(data.availableAmount - data.summary.remainingReal)}
                   </strong>
                 </span>

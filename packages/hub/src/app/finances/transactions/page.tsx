@@ -106,15 +106,15 @@ export default function TransactionsPage() {
       className={cn(
         'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium',
         filtersOpen || activeFilterCount > 0
-          ? 'border-[var(--fin-accent)]/40 bg-[var(--fin-accent)]/10 text-[var(--fin-accent)] hover:text-[var(--fin-accent)]'
-          : 'border-[var(--fin-border)] bg-[var(--fin-card)] text-[var(--fin-muted)] hover:text-[var(--fin-text)]',
+          ? 'border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)] hover:text-[var(--accent)]'
+          : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted)] hover:text-[var(--text)]',
       )}
     />
   );
 
   return (
     <div className="flex flex-col gap-[14px]">
-      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Transactions</div>
+      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Transactions</div>
 
       {/* Desktop header */}
       <div className="hidden items-center justify-between md:flex">
@@ -138,7 +138,7 @@ export default function TransactionsPage() {
 
       {/* Mobile header */}
       <div className="md:hidden">
-        <div className="flex items-center justify-between rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2.5">
+        <div className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--card2)] px-3 py-2.5">
           <SmartDatePicker
             dateMode={dateMode}
             month={month}
@@ -154,11 +154,11 @@ export default function TransactionsPage() {
 
       {/* Undo import banner */}
       {lastImport && (
-        <div className="flex items-center justify-between rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2 text-xs text-[var(--fin-text)]">
+        <div className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--card2)] px-3 py-2 text-xs text-[var(--text)]">
           <span>
             Imported {lastImport.count} transaction{lastImport.count !== 1 ? 's' : ''}
           </span>
-          <Button variant="transparent" onClick={handleUndo} className="font-medium text-[var(--fin-red)]">
+          <Button variant="transparent" onClick={handleUndo} className="font-medium text-[var(--red)]">
             Undo import
           </Button>
         </div>

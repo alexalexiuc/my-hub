@@ -33,13 +33,8 @@ export function FinFieldCard({
   className?: string;
 }) {
   return (
-    <label
-      className={cn(
-        'block rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)] px-3 py-2.5',
-        className,
-      )}
-    >
-      <span className="mb-[3px] block text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">{label}</span>
+    <label className={cn('block rounded-[10px] border border-[var(--border)] bg-[var(--card)] px-3 py-2.5', className)}>
+      <span className="mb-[3px] block text-[9px] uppercase tracking-[0.07em] text-[var(--subtle)]">{label}</span>
       {children}
     </label>
   );
@@ -63,11 +58,11 @@ export function Card({
       data-card
       onClick={onClick}
       className={cn(
-        'bg-[var(--fin-card)] px-4 py-[14px] transition-colors',
+        'bg-[var(--card)] px-4 py-[14px] transition-colors',
         onClick ? 'cursor-pointer' : 'cursor-default',
-        !compact && '-mx-7 rounded-none border-y border-[var(--fin-border)] border-x-0',
-        compact && 'rounded-[10px] border border-[var(--fin-border)]',
-        'md:mx-0 md:rounded-[10px] md:border md:border-[var(--fin-border)]',
+        !compact && '-mx-7 rounded-none border-y border-[var(--border)] border-x-0',
+        compact && 'rounded-[10px] border border-[var(--border)]',
+        'md:mx-0 md:rounded-[10px] md:border md:border-[var(--border)]',
         className,
       )}
       style={style}
@@ -79,7 +74,7 @@ export function Card({
 
 export function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('mb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--fin-subtle)]', className)}>
+    <div className={cn('mb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--subtle)]', className)}>
       {children}
     </div>
   );
@@ -88,7 +83,7 @@ export function SectionLabel({ children, className }: { children: React.ReactNod
 type SubTextProps = React.HTMLAttributes<HTMLSpanElement>;
 export function SubText({ children, className, ...rest }: SubTextProps) {
   return (
-    <span className={cn('text-[11px] text-[var(--fin-subtle)]', className)} {...rest}>
+    <span className={cn('text-[11px] text-[var(--subtle)]', className)} {...rest}>
       {children}
     </span>
   );
@@ -108,11 +103,11 @@ export function Bar({
   className?: string;
 }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
-  const barColor = pct >= 100 ? 'var(--fin-red)' : pct >= 80 ? 'var(--fin-amber)' : (color ?? 'var(--fin-green)');
+  const barColor = pct >= 100 ? 'var(--red)' : pct >= 80 ? 'var(--amber)' : (color ?? 'var(--green)');
   return (
     <div
       className={cn('overflow-hidden', className)}
-      style={{ height, borderRadius: height / 2, background: 'var(--fin-card2)' }}
+      style={{ height, borderRadius: height / 2, background: 'var(--card2)' }}
     >
       <div
         style={{
@@ -140,7 +135,7 @@ export function AmountText({
 }) {
   const isNeg = value < 0;
   const sizeClass = { sm: 'text-[14px]', md: 'text-[18px]', lg: 'text-[28px]', xl: 'text-[36px]' } as const;
-  const colorClass = sign ? (isNeg ? 'text-[var(--fin-red)]' : 'text-[var(--fin-green)]') : 'text-[var(--fin-text)]';
+  const colorClass = sign ? (isNeg ? 'text-[var(--red)]' : 'text-[var(--green)]') : 'text-[var(--text)]';
   return (
     <span className={cn('font-semibold tabular-nums', sizeClass[size], colorClass)}>
       {sign ? (isNeg ? '-' : '+') : ''}
@@ -150,7 +145,7 @@ export function AmountText({
 }
 
 export function Divider() {
-  return <div className="my-[2px] h-px bg-[var(--fin-border)]" />;
+  return <div className="my-[2px] h-px bg-[var(--border)]" />;
 }
 
 export function Sparkline({
@@ -217,7 +212,7 @@ type CategoryIconProps = {
 };
 
 export function CategoryIcon({ color, icon, size = 'md', fallback, children }: CategoryIconProps) {
-  const c = color ?? 'var(--fin-muted)';
+  const c = color ?? 'var(--muted)';
   const { box, radius, font } = CATEGORY_ICON_SIZES[size];
   return (
     <div
@@ -238,14 +233,14 @@ export function CategoryIcon({ color, icon, size = 'md', fallback, children }: C
 
 // ─── Account type metadata ────────────────────────────────────────────────────
 export const TYPE_META: Record<string, { label: string; color: string; icon: string }> = {
-  bank: { label: 'Bank', color: 'var(--fin-blue)', icon: '🏦' },
-  investment: { label: 'Investment', color: 'var(--fin-green)', icon: '📈' },
-  credit_card: { label: 'Credit Card', color: 'var(--fin-red)', icon: '💳' },
-  loan: { label: 'Loan', color: 'var(--fin-red)', icon: '🏷' },
-  goal: { label: 'Goal', color: 'var(--fin-violet)', icon: '🎯' },
-  cash: { label: 'Cash', color: 'var(--fin-amber)', icon: '💵' },
-  tracking: { label: 'Tracking', color: 'var(--fin-muted)', icon: '👁' },
-  borrowed_lent: { label: 'Borrowed/Lent', color: 'var(--fin-teal)', icon: '🤝' },
+  bank: { label: 'Bank', color: 'var(--blue)', icon: '🏦' },
+  investment: { label: 'Investment', color: 'var(--green)', icon: '📈' },
+  credit_card: { label: 'Credit Card', color: 'var(--red)', icon: '💳' },
+  loan: { label: 'Loan', color: 'var(--red)', icon: '🏷' },
+  goal: { label: 'Goal', color: 'var(--violet)', icon: '🎯' },
+  cash: { label: 'Cash', color: 'var(--amber)', icon: '💵' },
+  tracking: { label: 'Tracking', color: 'var(--muted)', icon: '👁' },
+  borrowed_lent: { label: 'Borrowed/Lent', color: 'var(--teal)', icon: '🤝' },
 };
 
 // ─── Cashflow bar chart (SVG) ─────────────────────────────────────────────────
@@ -273,17 +268,9 @@ export function CashflowChart({
         const eH = Math.max(2, (d.expense / max) * height);
         return (
           <g key={i}>
-            <rect x={x} y={height - iH} width={bw} height={iH} fill="var(--fin-green)" fillOpacity={0.7} rx={3} />
-            <rect
-              x={x + bw + gap}
-              y={height - eH}
-              width={bw}
-              height={eH}
-              fill="var(--fin-red)"
-              fillOpacity={0.7}
-              rx={3}
-            />
-            <text x={x + bw} y={height + 14} textAnchor="middle" fontSize={9} fill="var(--fin-subtle)">
+            <rect x={x} y={height - iH} width={bw} height={iH} fill="var(--green)" fillOpacity={0.7} rx={3} />
+            <rect x={x + bw + gap} y={height - eH} width={bw} height={eH} fill="var(--red)" fillOpacity={0.7} rx={3} />
+            <text x={x + bw} y={height + 14} textAnchor="middle" fontSize={9} fill="var(--subtle)">
               {d.month}
             </text>
           </g>
@@ -306,7 +293,7 @@ export function AddButton({ onClick, title }: AddButtonProps) {
       onClick={onClick}
       title={title}
       aria-label={title}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-[20px] font-semibold bg-[var(--fin-accent-d)] text-[var(--fin-accent)] hover:bg-[var(--fin-accent)] hover:text-[var(--fin-card)]"
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-[20px] font-semibold bg-[var(--accent-d)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--card)]"
     >
       <PlusOutlineIcon className="size-3" />
       {title}
@@ -332,9 +319,9 @@ export function renderAccountOption(
           {meta.icon}
         </span>
       )}
-      <span className={cn('flex-1 truncate', acc?.archived && 'text-[var(--fin-subtle)]')}>{String(item.value)}</span>
+      <span className={cn('flex-1 truncate', acc?.archived && 'text-[var(--subtle)]')}>{String(item.value)}</span>
       {acc?.archived && (
-        <span className="shrink-0 rounded bg-[var(--fin-card3)] px-1 text-[9px] uppercase tracking-wide text-[var(--fin-subtle)]">
+        <span className="shrink-0 rounded bg-[var(--card3)] px-1 text-[9px] uppercase tracking-wide text-[var(--subtle)]">
           archived
         </span>
       )}
@@ -362,7 +349,7 @@ export type { DateMode } from './SmartDatePicker';
 
 export function SeeAllButton({ href }: { href: string }) {
   return (
-    <Button variant="ghost" href={href} size="xs" className="text-[var(--fin-accent)]">
+    <Button variant="ghost" href={href} size="xs" className="text-[var(--accent)]">
       See all →
     </Button>
   );

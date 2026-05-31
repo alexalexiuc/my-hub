@@ -45,8 +45,8 @@ export function CreateBudgetScreen({ onCreated }: CreateBudgetScreenProps) {
       <Card compact className="w-full max-w-[380px] p-7">
         <div className="mb-6 text-center">
           <div className="mb-2.5 text-[32px]">₤</div>
-          <div className="mb-1.5 text-lg font-bold text-[var(--fin-text)]">Create your budget</div>
-          <div className="text-[13px] text-[var(--fin-muted)]">
+          <div className="mb-1.5 text-lg font-bold text-[var(--text)]">Create your budget</div>
+          <div className="text-[13px] text-[var(--muted)]">
             Give your budget a name and pick a default currency to get started.
           </div>
         </div>

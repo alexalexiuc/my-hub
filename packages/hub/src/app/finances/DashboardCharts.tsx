@@ -6,15 +6,15 @@ import { fmt } from './ui';
 import type { DashboardCategory, DailySpendingPoint } from '@/app/api/finances/dashboard/route';
 import type { SupportedCurrency } from '@my-hub/shared/constants';
 
-const FALLBACK_COLOR = 'var(--fin-subtle)';
+const FALLBACK_COLOR = 'var(--subtle)';
 
 const tooltipBoxStyle = {
-  backgroundColor: 'var(--fin-card)',
-  border: '1px solid var(--fin-border)',
+  backgroundColor: 'var(--card)',
+  border: '1px solid var(--border)',
   borderRadius: 8,
   padding: '6px 10px',
   fontSize: 12,
-  color: 'var(--fin-text)',
+  color: 'var(--text)',
 } as const;
 
 function useIsDesktop() {
@@ -40,7 +40,7 @@ function PieTooltip({ currency }: { currency: SupportedCurrency }) {
         if (!item) return null;
         return (
           <div style={tooltipBoxStyle}>
-            <div style={{ color: 'var(--fin-muted)', fontSize: 10, marginBottom: 2 }}>{item.name}</div>
+            <div style={{ color: 'var(--muted)', fontSize: 10, marginBottom: 2 }}>{item.name}</div>
             <div style={{ fontWeight: 600 }}>
               {typeof item.value === 'number' ? fmt(item.value, currency) : String(item.value)}
             </div>
@@ -90,8 +90,8 @@ export function CategoryPieChart({ categories, currency }: CategoryPieChartProps
           {pieData.map((entry, i) => (
             <div key={i} className="flex min-w-0 items-center gap-1.5">
               <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: entry.fill }} />
-              <span className="min-w-0 flex-1 truncate text-[10px] text-[var(--fin-muted)]">{entry.name}</span>
-              <span className="flex-shrink-0 text-[10px] font-medium text-[var(--fin-text)]">
+              <span className="min-w-0 flex-1 truncate text-[10px] text-[var(--muted)]">{entry.name}</span>
+              <span className="flex-shrink-0 text-[10px] font-medium text-[var(--text)]">
                 {fmt(entry.value, currency)}
               </span>
             </div>
@@ -115,7 +115,7 @@ export function CategoryPieChart({ categories, currency }: CategoryPieChartProps
         {pieData.map((entry, i) => (
           <div key={i} className="flex min-w-0 items-center gap-1.5">
             <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: entry.fill }} />
-            <span className="truncate text-[10px] text-[var(--fin-muted)]">{entry.name}</span>
+            <span className="truncate text-[10px] text-[var(--muted)]">{entry.name}</span>
           </div>
         ))}
       </div>
@@ -140,7 +140,7 @@ export function SpendingTrendChart({ dailySpending, currency, monthLabel, prevLa
           dataKey="day"
           axisLine={false}
           tickLine={false}
-          tick={{ fill: 'var(--fin-subtle)', fontSize: 9 }}
+          tick={{ fill: 'var(--subtle)', fontSize: 9 }}
           interval="preserveStartEnd"
         />
         <Tooltip
@@ -148,7 +148,7 @@ export function SpendingTrendChart({ dailySpending, currency, monthLabel, prevLa
             if (!active || !payload?.length) return null;
             return (
               <div style={tooltipBoxStyle}>
-                <div style={{ color: 'var(--fin-muted)', fontSize: 10, marginBottom: 4 }}>Day {label}</div>
+                <div style={{ color: 'var(--muted)', fontSize: 10, marginBottom: 4 }}>Day {label}</div>
                 {payload.map((p, i) => (
                   <div key={i} style={{ color: p.color as string, marginBottom: 2 }}>
                     {p.name === 'current' ? (monthLabel ?? 'This month') : (prevLabel ?? 'Prev month')}:{' '}
@@ -162,19 +162,19 @@ export function SpendingTrendChart({ dailySpending, currency, monthLabel, prevLa
         <Line
           type="monotone"
           dataKey="current"
-          stroke="var(--fin-accent)"
+          stroke="var(--accent)"
           strokeWidth={2}
           dot={false}
-          activeDot={{ r: 3, fill: 'var(--fin-accent)', strokeWidth: 0 }}
+          activeDot={{ r: 3, fill: 'var(--accent)', strokeWidth: 0 }}
         />
         <Line
           type="monotone"
           dataKey="prev"
-          stroke="var(--fin-subtle)"
+          stroke="var(--subtle)"
           strokeWidth={1.5}
           strokeDasharray="4 3"
           dot={false}
-          activeDot={{ r: 3, fill: 'var(--fin-subtle)', strokeWidth: 0 }}
+          activeDot={{ r: 3, fill: 'var(--subtle)', strokeWidth: 0 }}
         />
       </LineChart>
     </ResponsiveContainer>

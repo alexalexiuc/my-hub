@@ -31,13 +31,12 @@ function ConfirmRollbackModal({
 
   return (
     <FinModalShell onClose={onClose} title="Rollback Import?" className="md:max-w-[400px]">
-      <p className="mb-1 text-[13px] text-[var(--fin-muted)]">
-        This will permanently delete all{' '}
-        <span className="font-semibold text-[var(--fin-text)]">{batch.importedCount}</span> transactions imported from{' '}
-        <span className="font-mono font-semibold text-[var(--fin-text)]">{batch.filename}</span> and reverse their
-        effect on account balances.
+      <p className="mb-1 text-[13px] text-[var(--muted)]">
+        This will permanently delete all <span className="font-semibold text-[var(--text)]">{batch.importedCount}</span>{' '}
+        transactions imported from <span className="font-mono font-semibold text-[var(--text)]">{batch.filename}</span>{' '}
+        and reverse their effect on account balances.
       </p>
-      <p className="mb-5 text-[13px] text-[var(--fin-muted)]">This cannot be undone.</p>
+      <p className="mb-5 text-[13px] text-[var(--muted)]">This cannot be undone.</p>
       <div className="flex gap-2">
         <Button type="button" variant="secondary" size="sm" className="flex-1" onClick={onClose} disabled={loading}>
           Cancel
@@ -48,7 +47,7 @@ function ConfirmRollbackModal({
           className="flex-1"
           loading={loading}
           onClick={() => void handleConfirm()}
-          style={{ background: 'var(--fin-red)', color: 'var(--fin-on-solid)' }}
+          style={{ background: 'var(--red)', color: 'var(--on-solid)' }}
         >
           Rollback
         </Button>
@@ -80,8 +79,8 @@ export default function ImportTransactionsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Import Transactions</div>
-        <div className="mt-0.5 text-xs text-[var(--fin-muted)]">Upload a CSV file to bulk-import transactions</div>
+        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Import Transactions</div>
+        <div className="mt-0.5 text-xs text-[var(--muted)]">Upload a CSV file to bulk-import transactions</div>
       </div>
       <CsvImportScreen
         onDone={(batchId, count) => {
@@ -91,11 +90,11 @@ export default function ImportTransactionsPage() {
       />
       {batches.length > 0 && (
         <div className="flex flex-col gap-2">
-          <div className="text-sm font-semibold text-[var(--fin-text)]">Previous Imports</div>
-          <div className="overflow-hidden rounded-xl border border-[var(--fin-border)] bg-[var(--fin-surface)]">
+          <div className="text-sm font-semibold text-[var(--text)]">Previous Imports</div>
+          <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[var(--fin-border)] text-[11px] font-semibold uppercase tracking-wide text-[var(--fin-muted)]">
+                <tr className="border-b border-[var(--border)] text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">
                   <th className="px-4 py-2.5 text-left">File</th>
                   <th className="px-4 py-2.5 text-right">Imported</th>
                   <th className="px-4 py-2.5 text-left">Date</th>
@@ -105,20 +104,20 @@ export default function ImportTransactionsPage() {
               </thead>
               <tbody>
                 {batches.map((b, i) => (
-                  <tr key={b.id} className={i < batches.length - 1 ? 'border-b border-[var(--fin-border)]' : ''}>
-                    <td className="px-4 py-2.5 font-mono text-xs text-[var(--fin-text)]">{b.filename}</td>
-                    <td className="px-4 py-2.5 text-right text-xs text-[var(--fin-text)]">
+                  <tr key={b.id} className={i < batches.length - 1 ? 'border-b border-[var(--border)]' : ''}>
+                    <td className="px-4 py-2.5 font-mono text-xs text-[var(--text)]">{b.filename}</td>
+                    <td className="px-4 py-2.5 text-right text-xs text-[var(--text)]">
                       {b.importedCount} / {b.rowCount}
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-[var(--fin-muted)]">
+                    <td className="px-4 py-2.5 text-xs text-[var(--muted)]">
                       {new Date(b.createdAt).toLocaleString()}
                     </td>
                     <td className="px-4 py-2.5">
                       <span
                         className={
                           b.status === 'rolled_back'
-                            ? 'rounded-full bg-[var(--fin-muted)]/15 px-2 py-0.5 text-[11px] text-[var(--fin-muted)]'
-                            : 'rounded-full bg-[var(--fin-green)]/15 px-2 py-0.5 text-[11px] text-[var(--fin-green)]'
+                            ? 'rounded-full bg-[var(--muted)]/15 px-2 py-0.5 text-[11px] text-[var(--muted)]'
+                            : 'rounded-full bg-[var(--green)]/15 px-2 py-0.5 text-[11px] text-[var(--green)]'
                         }
                       >
                         {b.status === 'rolled_back' ? 'Rolled back' : 'Imported'}

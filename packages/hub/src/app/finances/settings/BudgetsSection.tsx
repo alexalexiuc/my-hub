@@ -89,18 +89,18 @@ export function BudgetsSection({ onChanged }: BudgetsSectionProps) {
         {budgets.map(b => (
           <div
             key={b.id}
-            className="flex items-center justify-between rounded-[8px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-4 py-3"
+            className="flex items-center justify-between rounded-[8px] border border-[var(--border)] bg-[var(--card2)] px-4 py-3"
           >
             <div>
-              <div className="text-[14px] font-medium text-[var(--fin-text)]">{b.name}</div>
+              <div className="text-[14px] font-medium text-[var(--text)]">{b.name}</div>
               <SubText className="block">
                 {b.defaultCurrency} · {b.isOwner ? 'Owner' : 'Member'}
               </SubText>
             </div>
             {b.isActive ? (
               <span
-                className="rounded-[20px] bg-[var(--fin-accent-d)] px-2 py-[2px] text-[10px] text-[var(--fin-accent)]"
-                style={{ border: `1px solid var(--fin-accent)44` }}
+                className="rounded-[20px] bg-[var(--accent-d)] px-2 py-[2px] text-[10px] text-[var(--accent)]"
+                style={{ border: `1px solid var(--accent)44` }}
               >
                 Active
               </span>
@@ -121,12 +121,12 @@ export function BudgetsSection({ onChanged }: BudgetsSectionProps) {
       {showCreate && (
         <form
           onSubmit={handleSubmit(onCreateSubmit)}
-          className="mt-4 flex flex-col gap-[14px] border-t border-[var(--fin-border)] pt-4"
+          className="mt-4 flex flex-col gap-[14px] border-t border-[var(--border)] pt-4"
         >
-          <div className="text-[13px] font-medium text-[var(--fin-text)]">New budget</div>
+          <div className="text-[13px] font-medium text-[var(--text)]">New budget</div>
           <Field label="Budget name">
             <Input {...register('name')} autoFocus placeholder="e.g. Household, Personal…" />
-            {errors.name && <p className="mt-1 text-xs text-[var(--fin-red)]">{errors.name.message}</p>}
+            {errors.name && <p className="mt-1 text-xs text-[var(--red)]">{errors.name.message}</p>}
           </Field>
           <Field label="Default currency">
             <FinancialDropdown

@@ -32,21 +32,21 @@ function NwChart({
     <svg width={width} height={height} className="block overflow-visible">
       <defs>
         <linearGradient id="nwgrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={'var(--fin-green)'} stopOpacity="0.3" />
-          <stop offset="100%" stopColor={'var(--fin-green)'} stopOpacity="0.02" />
+          <stop offset="0%" stopColor={'var(--green)'} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={'var(--green)'} stopOpacity="0.02" />
         </linearGradient>
       </defs>
       <path d={area} fill="url(#nwgrad)" />
       <polyline
         points={polyPts}
         fill="none"
-        stroke={'var(--fin-green)'}
+        stroke={'var(--green)'}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       {pts.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r="3" fill={'var(--fin-green)'} />
+        <circle key={i} cx={x} cy={y} r="3" fill={'var(--green)'} />
       ))}
     </svg>
   );
@@ -73,7 +73,7 @@ export default function NetWorthPage() {
         {[44, 200, 80, 160, 160, 180].map((h, i) => (
           <div
             key={i}
-            className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+            className="rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
             style={{ height: h, opacity: 0.6 }}
           />
         ))}
@@ -87,24 +87,22 @@ export default function NetWorthPage() {
 
   return (
     <div className="flex flex-col gap-[14px]">
-      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Net Worth</div>
+      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Net Worth</div>
 
       {/* Main KPI */}
       <div
         className="rounded-[14px] p-5"
         style={{
-          background: `linear-gradient(135deg, var(--fin-accent)15, var(--fin-violet)12, var(--fin-card))`,
-          border: `1px solid var(--fin-accent)33`,
+          background: `linear-gradient(135deg, var(--accent)15, var(--violet)12, var(--card))`,
+          border: `1px solid var(--accent)33`,
         }}
       >
-        <div className="mb-1.5 text-xs text-[var(--fin-muted)]">Current Net Worth</div>
-        <div className="mb-1.5 text-[34px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">
+        <div className="mb-1.5 text-xs text-[var(--muted)]">Current Net Worth</div>
+        <div className="mb-1.5 text-[34px] font-bold tracking-[-0.02em] text-[var(--text)]">
           {fmt(netWorth, currency)}
         </div>
         {deltaVsLastMonth != null && (
-          <div
-            className={cn('mb-4 text-xs', deltaVsLastMonth >= 0 ? 'text-[var(--fin-green)]' : 'text-[var(--fin-red)]')}
-          >
+          <div className={cn('mb-4 text-xs', deltaVsLastMonth >= 0 ? 'text-[var(--green)]' : 'text-[var(--red)]')}>
             {deltaVsLastMonth >= 0 ? '↑' : '↓'} {fmt(Math.abs(deltaVsLastMonth), currency)} vs last month
           </div>
         )}
@@ -113,7 +111,7 @@ export default function NetWorthPage() {
             <NwChart history={history} width={320} height={100} />
             <div className="mt-1 flex justify-between">
               {history.map(s => (
-                <span key={s.month} className="text-[9px] text-[var(--fin-subtle)]">
+                <span key={s.month} className="text-[9px] text-[var(--subtle)]">
                   {s.label}
                 </span>
               ))}
@@ -127,12 +125,12 @@ export default function NetWorthPage() {
       {/* Assets vs Liabilities summary */}
       <div className="grid gap-2 sm:grid-cols-2">
         <Card compact className="px-[14px] py-3">
-          <div className="mb-1 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-green)]">Assets</div>
-          <div className="text-xl font-bold text-[var(--fin-green)]">{fmt(totalAssets, currency)}</div>
+          <div className="mb-1 text-[10px] uppercase tracking-[0.08em] text-[var(--green)]">Assets</div>
+          <div className="text-xl font-bold text-[var(--green)]">{fmt(totalAssets, currency)}</div>
         </Card>
         <Card compact className="px-[14px] py-3">
-          <div className="mb-1 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-red)]">Liabilities</div>
-          <div className="text-xl font-bold text-[var(--fin-red)]">{fmt(totalLiabilities, currency)}</div>
+          <div className="mb-1 text-[10px] uppercase tracking-[0.08em] text-[var(--red)]">Liabilities</div>
+          <div className="text-xl font-bold text-[var(--red)]">{fmt(totalLiabilities, currency)}</div>
         </Card>
       </div>
 
@@ -152,10 +150,10 @@ export default function NetWorthPage() {
                   >
                     <span className="text-base">{meta?.icon ?? '•'}</span>
                     <div className="flex-1">
-                      <div className="text-[13px] text-[var(--fin-text)]">{a.name}</div>
+                      <div className="text-[13px] text-[var(--text)]">{a.name}</div>
                       <SubText className="block">{meta?.label ?? a.type}</SubText>
                     </div>
-                    <div className="text-sm font-semibold text-[var(--fin-text)]">{fmt(a.balance, a.currency)}</div>
+                    <div className="text-sm font-semibold text-[var(--text)]">{fmt(a.balance, a.currency)}</div>
                   </div>
                 </div>
               );
@@ -180,10 +178,10 @@ export default function NetWorthPage() {
                   >
                     <span className="text-base">{meta?.icon ?? '•'}</span>
                     <div className="flex-1">
-                      <div className="text-[13px] text-[var(--fin-text)]">{a.name}</div>
+                      <div className="text-[13px] text-[var(--text)]">{a.name}</div>
                       <SubText className="block">{meta?.label ?? a.type}</SubText>
                     </div>
-                    <div className="text-sm font-semibold text-[var(--fin-red)]">-{fmt(a.balance, a.currency)}</div>
+                    <div className="text-sm font-semibold text-[var(--red)]">-{fmt(a.balance, a.currency)}</div>
                   </div>
                 </div>
               );
@@ -201,7 +199,7 @@ export default function NetWorthPage() {
               <div
                 key={h}
                 className={cn(
-                  'border-b border-[var(--fin-border)] px-1 pb-2 text-[9px] uppercase tracking-[0.06em] text-[var(--fin-subtle)]',
+                  'border-b border-[var(--border)] px-1 pb-2 text-[9px] uppercase tracking-[0.06em] text-[var(--subtle)]',
                   h === 'Month' ? 'text-left' : 'text-right',
                 )}
               >
@@ -211,12 +209,10 @@ export default function NetWorthPage() {
             {history.map((row, i) => {
               const isLatest = i === history.length - 1;
               const cells = [
-                <span className="text-[var(--fin-muted)]">{row.label}</span>,
-                <span className="tabular-nums text-[var(--fin-green)]">{fmt(row.totalAssets, currency)}</span>,
-                <span className="tabular-nums text-[var(--fin-red)]">-{fmt(row.totalLiabilities, currency)}</span>,
-                <span className="font-semibold tabular-nums text-[var(--fin-text)]">
-                  {fmt(row.netWorth, currency)}
-                </span>,
+                <span className="text-[var(--muted)]">{row.label}</span>,
+                <span className="tabular-nums text-[var(--green)]">{fmt(row.totalAssets, currency)}</span>,
+                <span className="tabular-nums text-[var(--red)]">-{fmt(row.totalLiabilities, currency)}</span>,
+                <span className="font-semibold tabular-nums text-[var(--text)]">{fmt(row.netWorth, currency)}</span>,
               ];
               return cells.map((cell, ci) => (
                 <div
@@ -224,9 +220,9 @@ export default function NetWorthPage() {
                   className={cn(
                     'px-1 py-2 text-xs',
                     ci === 0 ? 'text-left' : 'text-right',
-                    isLatest ? 'bg-[var(--fin-accent-d)]' : 'bg-transparent',
+                    isLatest ? 'bg-[var(--accent-d)]' : 'bg-transparent',
                   )}
-                  style={{ borderBottom: '1px solid color-mix(in srgb, var(--fin-border) 13%, transparent)' }}
+                  style={{ borderBottom: '1px solid color-mix(in srgb, var(--border) 13%, transparent)' }}
                 >
                   {cell}
                 </div>

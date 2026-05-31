@@ -50,8 +50,8 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
       className={cn(
         className,
         allDone
-          ? 'bg-[var(--fin-green)] text-white hover:bg-[var(--fin-green)]'
-          : 'border border-[var(--fin-accent)] bg-[var(--fin-accent-d)] text-[var(--fin-accent)] hover:bg-[var(--fin-accent-d)]',
+          ? 'bg-[var(--green)] text-white hover:bg-[var(--green)]'
+          : 'border border-[var(--accent)] bg-[var(--accent-d)] text-[var(--accent)] hover:bg-[var(--accent-d)]',
       )}
     >
       ✓ Mark All Done
@@ -65,7 +65,7 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
       onClick={handleCopyNext}
       disabled={copying}
       loading={copying}
-      className={cn('border-[var(--fin-border)] bg-[var(--fin-card)] text-[var(--fin-muted)]', className)}
+      className={cn('border-[var(--border)] bg-[var(--card)] text-[var(--muted)]', className)}
     >
       Copy to next month
     </Button>
@@ -80,7 +80,7 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
           <SmartDatePicker month={month} onChange={patch => patch.month && onNavigate(patch.month)} />
         </div>
         <div className="flex items-center gap-2">
-          {!nextMonthExists && copyNextBtn('hover:border-[var(--fin-accent)] hover:text-[var(--fin-accent)]')}
+          {!nextMonthExists && copyNextBtn('hover:border-[var(--accent)] hover:text-[var(--accent)]')}
           {nextMonthExists && <div className="w-[132px]" aria-hidden="true" />}
           {markAllDoneBtn('flex items-center gap-1.5')}
         </div>
@@ -89,7 +89,7 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
       {/* Mobile */}
       <div data-layout="mobile" className="mb-4 md:hidden">
         <SectionLabel>Monthly Plan</SectionLabel>
-        <div className="mb-3 flex items-center justify-between rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-2.5">
+        <div className="mb-3 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--card2)] px-3 py-2.5">
           <SmartDatePicker
             month={month}
             onChange={patch => patch.month && onNavigate(patch.month)}

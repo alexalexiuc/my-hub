@@ -1,0 +1,33 @@
+.calories-theme {
+  --bg: #0f0a04;
+  --overlay: rgba(15, 8, 2, 0.7);
+  --shell: #160d06;
+  --card: #1e1309;
+  --card2: #261a0e;
+  --card3: #2f2114;
+  --border: #42300f;
+  --text: #fff5e9;
+  --muted: #b8956a;
+  --subtle: #6b4f2e;
+  --accent: #f97316;
+  --accent-d: rgba(249, 115, 22, 0.12);
+  --accent-hover: rgba(249, 115, 22, 0.75);
+  --green: #6ee7b7;
+  --green-d: rgba(110, 231, 183, 0.1);
+  --blue: #93c5fd;
+  --blue-d: rgba(147, 197, 253, 0.1);
+  --amber: #fcd34d;
+  --amber-d: rgba(252, 211, 77, 0.1);
+  --red: #f87171;
+  --red-d: rgba(248, 113, 113, 0.1);
+  --violet: #c084fc;
+  --violet-d: rgba(192, 132, 252, 0.12);
+  --teal: #2dd4bf;
+  --teal-d: rgba(45, 212, 191, 0.1);
+  --orange: #fb923c;
+  --pink: #f472b6;
+  --emerald: #34d399;
+  --sky: #38bdf8;
+  --on-accent: #3a1200;
+  --on-solid: #ffffff;
+}

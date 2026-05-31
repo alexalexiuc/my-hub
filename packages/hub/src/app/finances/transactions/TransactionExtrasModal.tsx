@@ -13,8 +13,8 @@ type TransactionExtrasModalProps = {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3 py-1.5 text-[13px]">
-      <span className="w-[140px] shrink-0 text-[var(--fin-muted)]">{label}</span>
-      <span className="flex-1 text-[var(--fin-text)] break-words">{value}</span>
+      <span className="w-[140px] shrink-0 text-[var(--muted)]">{label}</span>
+      <span className="flex-1 text-[var(--text)] break-words">{value}</span>
     </div>
   );
 }
@@ -22,8 +22,8 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mt-4">
-      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--fin-subtle)]">{title}</div>
-      <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 divide-y divide-[var(--fin-border)]">
+      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--subtle)]">{title}</div>
+      <div className="rounded-[10px] border border-[var(--border)] bg-[var(--card2)] px-3 divide-y divide-[var(--border)]">
         {children}
       </div>
     </div>
@@ -61,7 +61,7 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
             <Row
               label="Raw input"
               value={
-                <span className="block max-h-[120px] overflow-y-auto whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-[var(--fin-subtle)]">
+                <span className="block max-h-[120px] overflow-y-auto whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-[var(--subtle)]">
                   {extras.rawInput}
                 </span>
               }
@@ -104,12 +104,12 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
         <Section title="Line items">
           {receipt.items.map((item, i) => (
             <div key={i} className="flex items-start gap-2 py-1.5 text-[13px]">
-              <span className="flex-1 text-[var(--fin-text)]">
+              <span className="flex-1 text-[var(--text)]">
                 {item.quantity != null ? `${item.quantity}${item.unit ? ` ${item.unit}` : ''} × ` : ''}
                 {item.name}
               </span>
               {item.totalPrice != null && (
-                <span className="shrink-0 tabular-nums text-[var(--fin-muted)]">{fmt(item.totalPrice, currency)}</span>
+                <span className="shrink-0 tabular-nums text-[var(--muted)]">{fmt(item.totalPrice, currency)}</span>
               )}
             </div>
           ))}

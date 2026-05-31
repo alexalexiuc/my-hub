@@ -1,0 +1,33 @@
+.travel-theme {
+  --bg: #030f0a;
+  --overlay: rgba(2, 10, 6, 0.7);
+  --shell: #061510;
+  --card: #0a1e16;
+  --card2: #0f271d;
+  --card3: #153325;
+  --border: #1d4c36;
+  --text: #eafaf4;
+  --muted: #6bbf97;
+  --subtle: #3c7a5a;
+  --accent: #10b981;
+  --accent-d: rgba(16, 185, 129, 0.12);
+  --accent-hover: rgba(16, 185, 129, 0.75);
+  --green: #6ee7b7;
+  --green-d: rgba(110, 231, 183, 0.1);
+  --blue: #93c5fd;
+  --blue-d: rgba(147, 197, 253, 0.1);
+  --amber: #fcd34d;
+  --amber-d: rgba(252, 211, 77, 0.1);
+  --red: #f87171;
+  --red-d: rgba(248, 113, 113, 0.1);
+  --violet: #c084fc;
+  --violet-d: rgba(192, 132, 252, 0.12);
+  --teal: #2dd4bf;
+  --teal-d: rgba(45, 212, 191, 0.1);
+  --orange: #fb923c;
+  --pink: #f472b6;
+  --emerald: #34d399;
+  --sky: #60a5fa;
+  --on-accent: #012e1a;
+  --on-solid: #ffffff;
+}

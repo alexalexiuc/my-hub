@@ -126,22 +126,22 @@ export function MobileSelectSheet({
       onClick={onClose}
     >
       <div
-        className="fin-slide-up flex h-full max-h-[calc(100%-24px)] flex-col rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+        className="fin-slide-up flex h-full max-h-[calc(100%-24px)] flex-col rounded-t-[18px] border border-[var(--border)] bg-[var(--card)]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-[var(--fin-border)] px-4 py-3.5">
-          <span className="text-sm font-semibold text-[var(--fin-text)]">{title ?? placeholder}</span>
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3.5">
+          <span className="text-sm font-semibold text-[var(--text)]">{title ?? placeholder}</span>
           <IconButton
             label="Close"
             icon={<XOutlineIcon className="size-3" />}
             onClick={onClose}
-            className="h-7 w-7 rounded-full bg-[var(--fin-card2)] text-[var(--fin-subtle)]"
+            className="h-7 w-7 rounded-full bg-[var(--card2)] text-[var(--subtle)]"
           />
         </div>
 
         {searchable && (
-          <div className="shrink-0 border-b border-[var(--fin-border)] px-4 py-2.5">
+          <div className="shrink-0 border-b border-[var(--border)] px-4 py-2.5">
             <Input
               ref={inputRef}
               value={query}
@@ -157,9 +157,9 @@ export function MobileSelectSheet({
         )}
 
         {selectedLabel && (
-          <div className="flex shrink-0 items-center justify-between border-b border-[var(--fin-border)] px-4 py-2">
-            <span className="text-xs text-[var(--fin-subtle)]">
-              Selected: <span className="font-medium text-[var(--fin-text)]">{selectedLabel}</span>
+          <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-2">
+            <span className="text-xs text-[var(--subtle)]">
+              Selected: <span className="font-medium text-[var(--text)]">{selectedLabel}</span>
             </span>
             {canClear && (
               <Button
@@ -171,7 +171,7 @@ export function MobileSelectSheet({
                   onChange(null);
                   onClose();
                 }}
-                className="p-0 text-xs text-[var(--fin-red)]"
+                className="p-0 text-xs text-[var(--red)]"
               >
                 Clear
               </Button>
@@ -191,8 +191,8 @@ export function MobileSelectSheet({
                 onClose();
               }}
               className={cn(
-                'flex w-full items-center gap-2 rounded-none border-b border-[var(--fin-border)] px-4 py-3.5 text-left text-[14px] font-normal text-[var(--fin-text)] active:bg-[var(--fin-card3)]',
-                value === item.id && 'bg-[var(--fin-card2)] font-medium',
+                'flex w-full items-center gap-2 rounded-none border-b border-[var(--border)] px-4 py-3.5 text-left text-[14px] font-normal text-[var(--text)] active:bg-[var(--card3)]',
+                value === item.id && 'bg-[var(--card2)] font-medium',
               )}
             >
               {renderOption ? renderOption(item) : <span>{String(item.value)}</span>}
@@ -209,7 +209,7 @@ export function MobileSelectSheet({
                 onClose();
               }}
               className={cn(
-                'flex w-full items-center gap-1.5 rounded-none border-b border-[var(--fin-border)] px-4 py-3.5 text-left text-[14px] font-normal text-[var(--fin-accent)] active:bg-[var(--fin-card3)]',
+                'flex w-full items-center gap-1.5 rounded-none border-b border-[var(--border)] px-4 py-3.5 text-left text-[14px] font-normal text-[var(--accent)] active:bg-[var(--card3)]',
                 createOption.className,
               )}
             >
@@ -225,7 +225,7 @@ export function MobileSelectSheet({
           )}
 
           {results.length === 0 && !showCreateOption && (
-            <div className="px-4 py-6 text-center text-sm text-[var(--fin-subtle)]">
+            <div className="px-4 py-6 text-center text-sm text-[var(--subtle)]">
               {trimmedQuery ? (noResultsText ?? 'No options found') : 'No options available'}
             </div>
           )}

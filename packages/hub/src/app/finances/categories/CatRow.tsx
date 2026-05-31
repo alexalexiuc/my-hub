@@ -21,26 +21,26 @@ function CatRowContent({ cat, currency, onClick }: { cat: CategoryRow; currency:
   const pct = cat.monthlyTarget && cat.monthlyTarget > 0 ? Math.round((cat.spent / cat.monthlyTarget) * 100) : null;
   const barColor =
     pct === null
-      ? 'var(--fin-muted)'
+      ? 'var(--muted)'
       : pct >= 100
-        ? 'var(--fin-red)'
+        ? 'var(--red)'
         : pct >= 80
-          ? 'var(--fin-amber)'
-          : (cat.color ?? 'var(--fin-green)');
+          ? 'var(--amber)'
+          : (cat.color ?? 'var(--green)');
 
   return (
     <div className={cn('px-[14px] py-[10px]', onClick && 'cursor-pointer')} onClick={onClick}>
       <div className={cn('flex items-center gap-2.5', pct !== null ? 'mb-2' : 'mb-0')}>
         <CategoryIcon color={cat.color} icon={cat.icon} size="lg" fallback={cat.name[0]?.toUpperCase() ?? '?'} />
         <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-medium text-[var(--fin-text)]">{cat.name}</div>
+          <div className="text-[13px] font-medium text-[var(--text)]">{cat.name}</div>
           {cat.monthlyTarget ? <SubText className="block">Target {fmt(cat.monthlyTarget, currency)}/mo</SubText> : null}
         </div>
         <div className="text-right">
           <div
             className={cn(
               'text-sm font-semibold',
-              pct !== null && pct >= 100 ? 'text-[var(--fin-red)]' : 'text-[var(--fin-text)]',
+              pct !== null && pct >= 100 ? 'text-[var(--red)]' : 'text-[var(--text)]',
             )}
           >
             {fmt(cat.spent, currency)}
@@ -53,7 +53,7 @@ function CatRowContent({ cat, currency, onClick }: { cat: CategoryRow; currency:
         </div>
       </div>
       {pct !== null && (
-        <Bar value={cat.spent} max={cat.monthlyTarget!} color={cat.color ?? 'var(--fin-green)'} height={4} />
+        <Bar value={cat.spent} max={cat.monthlyTarget!} color={cat.color ?? 'var(--green)'} height={4} />
       )}
     </div>
   );
@@ -88,25 +88,25 @@ export function CatRow({
       <div data-layout="desktop" className="group relative hidden md:block">
         <CatRowContent cat={cat} currency={currency} onClick={onOpen ? () => onOpen(cat) : undefined} />
         <div className="pointer-events-none absolute inset-y-0 right-[14px] flex items-center opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
-          <div className="flex items-center gap-1 rounded-md border border-[var(--fin-border)] bg-[var(--fin-card)] px-1.5 py-1 shadow-sm">
+          <div className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--card)] px-1.5 py-1 shadow-sm">
             <button
               aria-label={`Edit category ${cat.name}`}
               onClick={e => {
                 e.stopPropagation();
                 onEdit(cat);
               }}
-              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-[var(--fin-muted)] transition-colors hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
+              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-[var(--muted)] transition-colors hover:bg-[var(--card2)] hover:text-[var(--text)]"
             >
               <PencilIcon className="size-3" /> Edit
             </button>
-            <span className="h-3 w-px bg-[var(--fin-border)]" />
+            <span className="h-3 w-px bg-[var(--border)]" />
             <button
               aria-label={`Delete category ${cat.name}`}
               onClick={e => {
                 e.stopPropagation();
                 onDelete(cat);
               }}
-              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-[var(--fin-muted)] transition-colors hover:bg-[var(--fin-red)]/10 hover:text-[var(--fin-red)]"
+              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-[var(--muted)] transition-colors hover:bg-[var(--red)]/10 hover:text-[var(--red)]"
             >
               <TrashIcon className="size-3" /> Delete
             </button>

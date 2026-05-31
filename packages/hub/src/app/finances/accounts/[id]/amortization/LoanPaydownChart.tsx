@@ -41,19 +41,19 @@ export function LoanPaydownChart({ rows, principal, currency, nextPaymentDate, h
       <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 6 }}>
         <defs>
           <linearGradient id="loanBalanceFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--fin-accent)" stopOpacity={0.24} />
-            <stop offset="100%" stopColor="var(--fin-accent)" stopOpacity={0.02} />
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.24} />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
           </linearGradient>
         </defs>
 
-        <CartesianGrid vertical={false} stroke="var(--fin-border)" strokeDasharray="3 3" opacity={0.5} />
+        <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" opacity={0.5} />
 
         <XAxis
           dataKey="date"
           type="category"
           ticks={ticks}
           tickFormatter={fmtTick}
-          tick={{ fill: 'var(--fin-subtle)', fontSize: 10 }}
+          tick={{ fill: 'var(--subtle)', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
         />
@@ -62,7 +62,7 @@ export function LoanPaydownChart({ rows, principal, currency, nextPaymentDate, h
           type="number"
           domain={[0, principal]}
           width={58}
-          tick={{ fill: 'var(--fin-subtle)', fontSize: 10 }}
+          tick={{ fill: 'var(--subtle)', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
           tickFormatter={value => {
@@ -74,36 +74,36 @@ export function LoanPaydownChart({ rows, principal, currency, nextPaymentDate, h
         />
 
         <Tooltip
-          cursor={{ stroke: 'var(--fin-border)', strokeDasharray: '4 4' }}
+          cursor={{ stroke: 'var(--border)', strokeDasharray: '4 4' }}
           formatter={value => [fmt(Number(value), currency), 'Remaining principal']}
           labelFormatter={(label: unknown) => fmtTick(String(label))}
           contentStyle={{
-            border: '1px solid var(--fin-border)',
+            border: '1px solid var(--border)',
             borderRadius: 10,
-            background: 'var(--fin-card)',
+            background: 'var(--card)',
             fontSize: 12,
-            color: 'var(--fin-text)',
+            color: 'var(--text)',
           }}
         />
 
         {nextPaymentDate && (
           <ReferenceLine
             x={nextPaymentDate.slice(0, 7)}
-            stroke="var(--fin-accent)"
+            stroke="var(--accent)"
             strokeDasharray="4 4"
             strokeOpacity={0.85}
-            label={{ value: 'Now', position: 'insideTopRight', fill: 'var(--fin-accent)', fontSize: 10 }}
+            label={{ value: 'Now', position: 'insideTopRight', fill: 'var(--accent)', fontSize: 10 }}
           />
         )}
 
         <Area
           type="monotone"
           dataKey="balance"
-          stroke="var(--fin-accent)"
+          stroke="var(--accent)"
           strokeWidth={2}
           fill="url(#loanBalanceFill)"
           dot={false}
-          activeDot={{ r: 3, fill: 'var(--fin-accent)' }}
+          activeDot={{ r: 3, fill: 'var(--accent)' }}
         />
       </AreaChart>
     </ResponsiveContainer>

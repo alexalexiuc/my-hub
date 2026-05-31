@@ -67,7 +67,7 @@ export function EditPayeeModal({ payee, onClose, onSaved }: EditPayeeModalProps)
             autoFocus
             placeholder="e.g. Kaufland"
             variant="ghost"
-            className="w-full text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+            className="w-full text-[var(--text)] placeholder:text-[var(--subtle)]"
           />
           {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name.message}</p>}
         </Field>
@@ -77,7 +77,7 @@ export function EditPayeeModal({ payee, onClose, onSaved }: EditPayeeModalProps)
             {...register('aliases')}
             placeholder="e.g. Kaufland SRL, Kaufland Romania, KL"
             variant="ghost"
-            className="w-full text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+            className="w-full text-[var(--text)] placeholder:text-[var(--subtle)]"
           />
         </Field>
 
@@ -86,7 +86,7 @@ export function EditPayeeModal({ payee, onClose, onSaved }: EditPayeeModalProps)
             {...register('description')}
             rows={3}
             placeholder="Helpful context for matching this payee"
-            className="resize-none bg-transparent border-0 px-0 py-0 rounded-none shadow-none text-sm text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)] focus:ring-0 focus:outline-none w-full"
+            className="resize-none bg-transparent border-0 px-0 py-0 rounded-none shadow-none text-sm text-[var(--text)] placeholder:text-[var(--subtle)] focus:ring-0 focus:outline-none w-full"
           />
         </Field>
       </form>

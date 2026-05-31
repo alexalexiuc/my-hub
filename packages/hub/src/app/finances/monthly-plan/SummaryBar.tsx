@@ -53,7 +53,7 @@ export function SummaryBar({ availableAmount, incomeAccountId, summary, accounts
         <div className="space-y-2">
           <div className="grid grid-cols-2 gap-4 md:flex md:items-start md:gap-8">
             <div>
-              <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--fin-subtle)]">
+              <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--subtle)]">
                 Available Funds
                 {!editing && (
                   <IconButton
@@ -78,10 +78,10 @@ export function SummaryBar({ availableAmount, incomeAccountId, summary, accounts
                     if (e.key === 'Enter') commit();
                     if (e.key === 'Escape') setEditing(false);
                   }}
-                  className="w-full rounded border border-[var(--fin-accent)] bg-transparent px-2 py-0.5 text-[22px] font-bold text-[var(--fin-text)] tabular-nums focus:outline-none md:w-36 md:text-[26px]"
+                  className="w-full rounded border border-[var(--accent)] bg-transparent px-2 py-0.5 text-[22px] font-bold text-[var(--text)] tabular-nums focus:outline-none md:w-36 md:text-[26px]"
                 />
               ) : (
-                <span className="text-[24px] font-bold tabular-nums text-[var(--fin-green)] md:text-[28px]">
+                <span className="text-[24px] font-bold tabular-nums text-[var(--green)] md:text-[28px]">
                   {saving ? '…' : fmtNum(availableAmount)}
                 </span>
               )}
@@ -89,17 +89,17 @@ export function SummaryBar({ availableAmount, incomeAccountId, summary, accounts
 
             <div className="text-right md:text-left">
               <SectionLabel>Planned</SectionLabel>
-              <span className="text-[24px] font-bold tabular-nums text-[var(--fin-text)] md:text-[28px]">
+              <span className="text-[24px] font-bold tabular-nums text-[var(--text)] md:text-[28px]">
                 {fmtNum(summary.planned)}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-[12px] text-[var(--fin-muted)]">
+          <div className="flex items-center gap-2 text-[12px] text-[var(--muted)]">
             <span className="uppercase tracking-wide">Income account:</span>
             {!editingIncomeAccount ? (
               <>
-                <span className="max-w-[180px] truncate text-[13px] text-[var(--fin-text)]">
+                <span className="max-w-[180px] truncate text-[13px] text-[var(--text)]">
                   {selectedIncomeAccountName}
                 </span>
                 <IconButton
@@ -134,7 +134,7 @@ export function SummaryBar({ availableAmount, incomeAccountId, summary, accounts
             <span
               className={cn(
                 'text-[24px] font-bold tabular-nums md:text-[28px]',
-                summary.remainingPotential >= 0 ? 'text-[var(--fin-amber)]' : 'text-[var(--fin-red)]',
+                summary.remainingPotential >= 0 ? 'text-[var(--amber)]' : 'text-[var(--red)]',
               )}
             >
               {fmtNum(summary.remainingPotential)}
@@ -146,7 +146,7 @@ export function SummaryBar({ availableAmount, incomeAccountId, summary, accounts
             <span
               className={cn(
                 'text-[24px] font-bold tabular-nums md:text-[28px]',
-                summary.remainingReal >= 0 ? 'text-[var(--fin-green)]' : 'text-[var(--fin-red)]',
+                summary.remainingReal >= 0 ? 'text-[var(--green)]' : 'text-[var(--red)]',
               )}
             >
               {fmtNum(summary.remainingReal)}
@@ -156,10 +156,10 @@ export function SummaryBar({ availableAmount, incomeAccountId, summary, accounts
       </div>
 
       <div className="mt-3">
-        <div className="mb-1 text-[11px] text-[var(--fin-muted)]">
+        <div className="mb-1 text-[11px] text-[var(--muted)]">
           {summary.assignedCount} of {summary.totalCount} items done · {pct}%
         </div>
-        <Bar value={summary.assignedCount} max={Math.max(summary.totalCount, 1)} color="var(--fin-green)" height={4} />
+        <Bar value={summary.assignedCount} max={Math.max(summary.totalCount, 1)} color="var(--green)" height={4} />
       </div>
     </Card>
   );

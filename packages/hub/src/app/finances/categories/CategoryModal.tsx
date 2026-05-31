@@ -125,10 +125,10 @@ export function CategoryModal({
                     title={opt.label}
                     className={cn(
                       'min-w-9 cursor-pointer rounded-md px-[7px] py-1 text-sm',
-                      field.value === opt.value ? 'bg-[var(--fin-accent-d)]' : 'bg-[var(--fin-card2)]',
+                      field.value === opt.value ? 'bg-[var(--accent-d)]' : 'bg-[var(--card2)]',
                     )}
                     style={{
-                      border: `1px solid ${field.value === opt.value ? 'var(--fin-accent)44' : 'var(--fin-border)'}`,
+                      border: `1px solid ${field.value === opt.value ? 'var(--accent)44' : 'var(--border)'}`,
                     }}
                   >
                     {opt.emoji}
@@ -155,7 +155,7 @@ export function CategoryModal({
                     className="h-6 w-6 shrink-0 cursor-pointer rounded-full p-0"
                     style={{
                       background: c,
-                      border: field.value === c ? '2px solid var(--fin-text)' : '2px solid transparent',
+                      border: field.value === c ? '2px solid var(--text)' : '2px solid transparent',
                     }}
                   />
                 ))}
@@ -182,7 +182,7 @@ export function CategoryModal({
             {...register('notes')}
             rows={3}
             placeholder="Context, budgeting intent, or reminders"
-            className="resize-none bg-transparent border-0 px-0 py-0 rounded-none shadow-none text-[13px] text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)] focus:ring-0 focus:outline-none w-full"
+            className="resize-none bg-transparent border-0 px-0 py-0 rounded-none shadow-none text-[13px] text-[var(--text)] placeholder:text-[var(--subtle)] focus:ring-0 focus:outline-none w-full"
           />
         </FinFieldCard>
 

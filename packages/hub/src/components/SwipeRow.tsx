@@ -98,10 +98,10 @@ export function SwipeRow({
     <div className="relative overflow-hidden">
       {/* Right panel — edit / delete (swipe left) */}
       {hasActions && (
-        <div className="absolute inset-y-0 right-0 flex gap-px bg-[var(--fin-border)]" style={{ width: ACTION_WIDTH }}>
+        <div className="absolute inset-y-0 right-0 flex gap-px bg-[var(--border)]" style={{ width: ACTION_WIDTH }}>
           {onEdit && (
             <button
-              className="flex flex-1 items-center justify-center bg-[var(--fin-card2)] text-[var(--fin-blue)]"
+              className="flex flex-1 items-center justify-center bg-[var(--card2)] text-[var(--blue)]"
               onClick={() => {
                 onClose();
                 onEdit();
@@ -112,7 +112,7 @@ export function SwipeRow({
           )}
           {onDelete && (
             <button
-              className="flex flex-1 items-center justify-center bg-[var(--fin-card2)] text-[var(--fin-red)]"
+              className="flex flex-1 items-center justify-center bg-[var(--card2)] text-[var(--red)]"
               onClick={() => {
                 onClose();
                 onDelete();
@@ -123,7 +123,7 @@ export function SwipeRow({
           )}
           {secondAction && (
             <button
-              className="flex flex-1 items-center justify-center bg-[var(--fin-card2)] text-[var(--fin-muted)]"
+              className="flex flex-1 items-center justify-center bg-[var(--card2)] text-[var(--muted)]"
               onClick={() => {
                 onClose();
                 secondAction.onClick();
@@ -140,7 +140,7 @@ export function SwipeRow({
         <div
           ref={leftPanelRef}
           className="absolute inset-y-0 left-0 flex items-center justify-center px-5"
-          style={{ background: completeDone ? 'var(--fin-amber)' : 'var(--fin-green)', opacity: 0 }}
+          style={{ background: completeDone ? 'var(--amber)' : 'var(--green)', opacity: 0 }}
         >
           <span className="text-[18px] font-bold text-white">{completeDone ? '↺' : '✓'}</span>
         </div>
@@ -148,7 +148,7 @@ export function SwipeRow({
 
       <div
         ref={contentRef}
-        className="bg-[var(--fin-card)]"
+        className="bg-[var(--card)]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

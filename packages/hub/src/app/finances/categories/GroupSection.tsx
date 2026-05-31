@@ -19,7 +19,7 @@ type GroupSectionProps = {
 };
 
 function groupColor(group: CategoryGroup): string {
-  return group.categories.find(c => c.color)?.color ?? 'var(--fin-muted)';
+  return group.categories.find(c => c.color)?.color ?? 'var(--muted)';
 }
 
 export function GroupSection({
@@ -55,7 +55,7 @@ export function GroupSection({
             onClick={() => setCollapsed(v => !v)}
             className="flex cursor-pointer items-center gap-1 border-none bg-transparent p-0"
           >
-            <span className="text-[13px] font-semibold text-[var(--fin-text)]">{group.name}</span>
+            <span className="text-[13px] font-semibold text-[var(--text)]">{group.name}</span>
             <SubText>{collapsed ? '▶' : '▾'}</SubText>
           </button>
           {/* Always visible on mobile, hover-only on desktop */}
@@ -63,14 +63,14 @@ export function GroupSection({
             <button
               aria-label={`Edit group ${group.name}`}
               onClick={() => onEditGroup(group)}
-              className="cursor-pointer rounded p-0.5 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
+              className="cursor-pointer rounded p-0.5 text-[var(--subtle)] hover:bg-[var(--card2)] hover:text-[var(--text)]"
             >
               <PencilIcon className="size-[11px]" />
             </button>
             <button
               aria-label={`Delete group ${group.name}`}
               onClick={deleteGroup}
-              className="cursor-pointer rounded p-0.5 text-[var(--fin-subtle)] hover:bg-[var(--fin-card2)] hover:text-red-400"
+              className="cursor-pointer rounded p-0.5 text-[var(--subtle)] hover:bg-[var(--card2)] hover:text-red-400"
             >
               <TrashOutlineIcon className="size-[11px]" />
             </button>
@@ -110,12 +110,12 @@ export function GroupSection({
             </div>
           ))}
           {group.categories.length === 0 && (
-            <div className="p-[14px] text-center text-xs text-[var(--fin-subtle)]">No categories in this group</div>
+            <div className="p-[14px] text-center text-xs text-[var(--subtle)]">No categories in this group</div>
           )}
           {group.categories.length > 0 && <Divider />}
           <button
             onClick={() => onAddCategory(group.id)}
-            className="w-full cursor-pointer border-none bg-transparent px-[14px] py-[10px] text-left text-[12px] text-[var(--fin-subtle)] hover:text-[var(--fin-text)]"
+            className="w-full cursor-pointer border-none bg-transparent px-[14px] py-[10px] text-left text-[12px] text-[var(--subtle)] hover:text-[var(--text)]"
           >
             + Add category
           </button>

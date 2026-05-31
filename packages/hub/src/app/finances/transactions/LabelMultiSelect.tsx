@@ -40,7 +40,7 @@ export function LabelMultiSelect({ allLabels, value, onChange, inputClassName }:
             <Pill
               key={label}
               label={label}
-              color="var(--fin-accent)"
+              color="var(--accent)"
               onRemove={() => onChange(value.filter(l => l !== label))}
             />
           ))}
@@ -61,7 +61,7 @@ export function LabelMultiSelect({ allLabels, value, onChange, inputClassName }:
         createOption={createOption}
         closeOnChange
         inputClassName={cn(
-          'border-b-0 py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]',
+          'border-b-0 py-0 text-[13px] font-medium text-[var(--text)] placeholder:text-[var(--subtle)]',
           inputClassName,
         )}
       />

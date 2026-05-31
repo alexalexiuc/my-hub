@@ -51,7 +51,7 @@ export default function BudgetPage() {
 
   return (
     <div className="flex flex-col gap-[14px]">
-      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Budget Report</div>
+      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Budget Report</div>
 
       {/* Month picker */}
       <div className="flex flex-wrap gap-1.5">
@@ -64,10 +64,10 @@ export default function BudgetPage() {
               className={cn(
                 'cursor-pointer rounded-[20px] px-3 py-[5px] text-[11px]',
                 active
-                  ? 'bg-[var(--fin-accent-d)] text-[var(--fin-accent)] font-semibold'
-                  : 'bg-[var(--fin-card2)] text-[var(--fin-muted)]',
+                  ? 'bg-[var(--accent-d)] text-[var(--accent)] font-semibold'
+                  : 'bg-[var(--card2)] text-[var(--muted)]',
               )}
-              style={{ border: active ? `1px solid var(--fin-accent)44` : `1px solid var(--fin-border)` }}
+              style={{ border: active ? `1px solid var(--accent)44` : `1px solid var(--border)` }}
             >
               {m.label}
             </button>
@@ -80,7 +80,7 @@ export default function BudgetPage() {
           {[60, 300].map((h, i) => (
             <div
               key={i}
-              className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+              className="rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
               style={{ height: h, opacity: 0.6 }}
             />
           ))}
@@ -91,20 +91,20 @@ export default function BudgetPage() {
             {/* Summary row */}
             <div className="grid gap-2 sm:grid-cols-3">
               {[
-                { label: 'Budget', value: fmt(totalBudget, currency), color: 'var(--fin-blue)' },
+                { label: 'Budget', value: fmt(totalBudget, currency), color: 'var(--blue)' },
                 {
                   label: 'Spent',
                   value: fmt(totalSpent, currency),
-                  color: totalSpent > totalBudget ? 'var(--fin-red)' : 'var(--fin-text)',
+                  color: totalSpent > totalBudget ? 'var(--red)' : 'var(--text)',
                 },
                 {
                   label: 'Left',
                   value: fmt(Math.abs(left), currency),
-                  color: left < 0 ? 'var(--fin-red)' : 'var(--fin-green)',
+                  color: left < 0 ? 'var(--red)' : 'var(--green)',
                 },
               ].map(s => (
                 <Card compact key={s.label} className="px-3 py-2.5 text-center">
-                  <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">{s.label}</div>
+                  <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--subtle)]">{s.label}</div>
                   <div className="text-base font-bold" style={{ color: s.color }}>
                     {s.value}
                   </div>
@@ -120,30 +120,28 @@ export default function BudgetPage() {
                   const target = cat.monthlyTarget ?? 0;
                   const pct = target > 0 ? Math.min(100, (cat.spent / target) * 100) : 100;
                   const barColor =
-                    pct >= 100 ? 'var(--fin-red)' : pct >= 80 ? 'var(--fin-amber)' : (cat.color ?? 'var(--fin-green)');
+                    pct >= 100 ? 'var(--red)' : pct >= 80 ? 'var(--amber)' : (cat.color ?? 'var(--green)');
                   const over = target > 0 && cat.spent > target;
                   return (
                     <div key={cat.id}>
                       <div className="mb-[5px] flex justify-between">
                         <div className="flex items-center gap-1.5">
                           <CategoryIcon color={cat.color} icon={cat.icon} size="sm" />
-                          <span className="text-[13px] text-[var(--fin-text)]">{cat.name}</span>
+                          <span className="text-[13px] text-[var(--text)]">{cat.name}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-right text-[11px] text-[var(--fin-muted)]">
-                          <span
-                            className={cn('font-semibold', over ? 'text-[var(--fin-red)]' : 'text-[var(--fin-text)]')}
-                          >
+                        <div className="flex items-center gap-1.5 text-right text-[11px] text-[var(--muted)]">
+                          <span className={cn('font-semibold', over ? 'text-[var(--red)]' : 'text-[var(--text)]')}>
                             {fmt(cat.spent, currency)}
                           </span>
-                          {target > 0 && <span className="text-[var(--fin-subtle)]">/ {fmt(target, currency)}</span>}
+                          {target > 0 && <span className="text-[var(--subtle)]">/ {fmt(target, currency)}</span>}
                           {over && (
-                            <span className="rounded px-[5px] py-[1px] text-[10px] text-[var(--fin-red)] bg-[var(--fin-red-d)]">
+                            <span className="rounded px-[5px] py-[1px] text-[10px] text-[var(--red)] bg-[var(--red-d)]">
                               +{fmt(cat.spent - target, currency)}
                             </span>
                           )}
                         </div>
                       </div>
-                      <div className="relative h-2 overflow-hidden rounded bg-[var(--fin-card2)]">
+                      <div className="relative h-2 overflow-hidden rounded bg-[var(--card2)]">
                         <div
                           className="h-full rounded"
                           style={{
@@ -157,7 +155,7 @@ export default function BudgetPage() {
                   );
                 })}
                 {sortedCats.length === 0 && (
-                  <div className="py-4 text-center text-xs text-[var(--fin-subtle)]">No spending this month</div>
+                  <div className="py-4 text-center text-xs text-[var(--subtle)]">No spending this month</div>
                 )}
               </div>
             </Card>
@@ -165,17 +163,17 @@ export default function BudgetPage() {
             {/* Over-budget alert */}
             {overBudget.length > 0 && (
               <div
-                className="rounded-[10px] px-[14px] py-3 bg-[var(--fin-red-d)]"
-                style={{ border: `1px solid var(--fin-red)44` }}
+                className="rounded-[10px] px-[14px] py-3 bg-[var(--red-d)]"
+                style={{ border: `1px solid var(--red)44` }}
               >
-                <div className="mb-1 text-xs font-semibold text-[var(--fin-red)]">Over budget</div>
+                <div className="mb-1 text-xs font-semibold text-[var(--red)]">Over budget</div>
                 {overBudget.map(c => (
-                  <div key={c.id} className="flex justify-between py-[2px] text-xs text-[var(--fin-muted)]">
+                  <div key={c.id} className="flex justify-between py-[2px] text-xs text-[var(--muted)]">
                     <span className="flex items-center gap-1.5">
                       <CategoryIcon color={c.color} icon={c.icon} size="sm" />
                       {c.name}
                     </span>
-                    <span className="text-[var(--fin-red)]">
+                    <span className="text-[var(--red)]">
                       +{fmt(c.spent - (c.monthlyTarget ?? 0), currency)} (
                       {Math.round(((c.spent - (c.monthlyTarget ?? 0)) / (c.monthlyTarget ?? 1)) * 100)}%)
                     </span>

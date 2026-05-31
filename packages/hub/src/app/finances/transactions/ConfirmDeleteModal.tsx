@@ -26,7 +26,7 @@ export function ConfirmDeleteModal({ transactionId, onClose, onDeleted }: Confir
 
   return (
     <FinModalShell onClose={onClose} title="Delete Transaction?" className="md:max-w-[360px]">
-      <p className="mb-5 text-[13px] text-[var(--fin-muted)]">
+      <p className="mb-5 text-[13px] text-[var(--muted)]">
         This will permanently remove the transaction and reverse its effect on account balances. This cannot be undone.
       </p>
       <div className="flex gap-2">
@@ -39,7 +39,7 @@ export function ConfirmDeleteModal({ transactionId, onClose, onDeleted }: Confir
           className="flex-1"
           loading={deleting}
           onClick={handleConfirm}
-          style={{ background: 'var(--fin-red)', color: 'var(--fin-on-solid)' }}
+          style={{ background: 'var(--red)', color: 'var(--on-solid)' }}
         >
           Delete
         </Button>

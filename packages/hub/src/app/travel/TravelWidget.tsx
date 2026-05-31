@@ -133,44 +133,48 @@ export function TravelWidget() {
 
   if (loading) {
     return (
-      <section>
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Travel</h2>
-        <div
-          className="animate-pulse rounded-xl border border-zinc-800 bg-zinc-900 p-4"
-          style={{ borderLeftWidth: '4px' }}
-        >
-          <div className="flex items-center gap-2">
-            <div className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
-            <div className="h-3.5 w-32 bg-zinc-700 rounded" />
+      <div className="travel-theme">
+        <section>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Travel</h2>
+          <div
+            className="animate-pulse rounded-xl border border-zinc-800 bg-zinc-900 p-4"
+            style={{ borderLeftWidth: '4px' }}
+          >
+            <div className="flex items-center gap-2">
+              <div className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
+              <div className="h-3.5 w-32 bg-zinc-700 rounded" />
+            </div>
+            <div className="mt-2 h-4 w-48 bg-zinc-700 rounded" />
+            <div className="mt-1.5 h-3 w-40 bg-zinc-700 rounded" />
           </div>
-          <div className="mt-2 h-4 w-48 bg-zinc-700 rounded" />
-          <div className="mt-1.5 h-3 w-40 bg-zinc-700 rounded" />
-        </div>
-      </section>
+        </section>
+      </div>
     );
   }
 
   if (!travelFocus) return null;
 
   return (
-    <section>
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Travel</h2>
-      <Link
-        href="/travel"
-        className="block rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm hover:bg-zinc-800 hover:border-zinc-700 transition"
-        style={{ borderLeftColor: travelFocus.color, borderLeftWidth: '4px' }}
-      >
-        <div className="flex items-center gap-2">
-          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: travelFocus.color }} />
-          <span className="text-sm font-semibold text-zinc-100">
-            {travelFocus.status === 'ongoing' ? 'Ongoing Trip' : 'Upcoming Trip'}
-          </span>
-        </div>
-        <p className="mt-1 text-sm text-zinc-200">{travelFocus.name}</p>
-        <p className="text-xs text-zinc-400">
-          {travelFocus.destination ?? 'Destination not set'} · {formatDateRange(travelFocus.fromAt, travelFocus.toAt)}
-        </p>
-      </Link>
-    </section>
+    <div className="travel-theme">
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Travel</h2>
+        <Link
+          href="/travel"
+          className="block rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm hover:bg-zinc-800 hover:border-zinc-700 transition"
+          style={{ borderLeftColor: travelFocus.color, borderLeftWidth: '4px' }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: travelFocus.color }} />
+            <span className="text-sm font-semibold text-zinc-100">
+              {travelFocus.status === 'ongoing' ? 'Ongoing Trip' : 'Upcoming Trip'}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-zinc-200">{travelFocus.name}</p>
+          <p className="text-xs text-zinc-400">
+            {travelFocus.destination ?? 'Destination not set'} · {formatDateRange(travelFocus.fromAt, travelFocus.toAt)}
+          </p>
+        </Link>
+      </section>
+    </div>
   );
 }

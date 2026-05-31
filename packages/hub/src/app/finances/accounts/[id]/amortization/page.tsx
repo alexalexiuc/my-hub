@@ -33,7 +33,7 @@ export default function AmortizationPage() {
         {[44, 180, 72, 320].map((h, i) => (
           <div
             key={i}
-            className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+            className="rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
             style={{ height: h, opacity: 0.6 }}
           />
         ))}
@@ -50,10 +50,10 @@ export default function AmortizationPage() {
   return (
     <div className="flex flex-col gap-4 md:gap-5">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card)] px-3 py-2.5 md:px-4 md:py-3">
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2.5 md:px-4 md:py-3">
         <div className="min-w-0">
           <SectionLabel className="mb-0">Amortization Schedule</SectionLabel>
-          <div className="truncate text-base font-bold text-[var(--fin-text)] md:text-lg">{data.name}</div>
+          <div className="truncate text-base font-bold text-[var(--text)] md:text-lg">{data.name}</div>
         </div>
         <Button href={`/finances/accounts/${id}`} size="sm" variant="ghost">
           ← Back
@@ -64,9 +64,8 @@ export default function AmortizationPage() {
       <div
         className="rounded-xl p-4 md:p-5"
         style={{
-          background:
-            'linear-gradient(135deg, color-mix(in srgb, var(--fin-accent) 12%, transparent), var(--fin-card))',
-          border: '1px solid color-mix(in srgb, var(--fin-accent) 20%, transparent)',
+          background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), var(--card))',
+          border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
         }}
       >
         <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -82,15 +81,15 @@ export default function AmortizationPage() {
             <div
               key={s.label}
               className="rounded-lg px-3 py-2.5"
-              style={{ background: 'color-mix(in srgb, var(--fin-card2) 53%, transparent)' }}
+              style={{ background: 'color-mix(in srgb, var(--card2) 53%, transparent)' }}
             >
-              <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]">{s.label}</div>
-              <div className="text-[13px] font-semibold text-[var(--fin-text)]">{s.value}</div>
+              <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--subtle)]">{s.label}</div>
+              <div className="text-[13px] font-semibold text-[var(--text)]">{s.value}</div>
             </div>
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[12px] text-[var(--fin-muted)]">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[12px] text-[var(--muted)]">
           <span>
             {fmtDate(data.startDate)} → {fmtDate(data.payoffDate)}
           </span>
@@ -100,21 +99,21 @@ export default function AmortizationPage() {
             <>
               <span>·</span>
               <span>
-                Next due <span className="text-[var(--fin-text)]">{fmtDate(nextRow.date)}</span>
+                Next due <span className="text-[var(--text)]">{fmtDate(nextRow.date)}</span>
               </span>
             </>
           )}
           {pastCount > 0 && (
             <>
               <span>·</span>
-              <span className="text-[var(--fin-subtle)]">
+              <span className="text-[var(--subtle)]">
                 {pastCount}/{data.termMonths} past due dates
               </span>
             </>
           )}
         </div>
 
-        <div className="mt-3 text-[10px] text-[var(--fin-subtle)]">
+        <div className="mt-3 text-[10px] text-[var(--subtle)]">
           Simulation based on loan parameters — actual balance depends on payments recorded.
         </div>
       </div>
@@ -146,7 +145,7 @@ export default function AmortizationPage() {
               <div
                 key={i}
                 className={cn(
-                  'border-b border-[var(--fin-border)] px-2 pb-2 text-[10px] uppercase tracking-[0.08em] text-[var(--fin-subtle)]',
+                  'border-b border-[var(--border)] px-2 pb-2 text-[10px] uppercase tracking-[0.08em] text-[var(--subtle)]',
                   i === 0 ? 'text-center' : 'text-right',
                 )}
               >
@@ -155,25 +154,25 @@ export default function AmortizationPage() {
             ))}
 
             {data.rows.flatMap(row => {
-              const rowBg = row.next ? 'var(--fin-accent-d)' : row.past ? 'var(--fin-green-d)' : 'transparent';
+              const rowBg = row.next ? 'var(--accent-d)' : row.past ? 'var(--green-d)' : 'transparent';
               const cell = {
-                borderBottom: '1px solid color-mix(in srgb, var(--fin-border) 13%, transparent)',
+                borderBottom: '1px solid color-mix(in srgb, var(--border) 13%, transparent)',
                 background: rowBg,
               };
 
               return [
                 <div key={`${row.n}-s`} className="px-2 py-2.5 text-center text-xs" style={cell}>
                   {row.past ? (
-                    <span className="text-[var(--fin-green)]">✓</span>
+                    <span className="text-[var(--green)]">✓</span>
                   ) : row.next ? (
-                    <span className="font-bold text-[var(--fin-accent)]">→</span>
+                    <span className="font-bold text-[var(--accent)]">→</span>
                   ) : (
-                    <span className="text-[var(--fin-subtle)]">{row.n}</span>
+                    <span className="text-[var(--subtle)]">{row.n}</span>
                   )}
                 </div>,
                 <div
                   key={`${row.n}-d`}
-                  className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--fin-text)]"
+                  className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--text)]"
                   style={{ ...cell, fontWeight: row.next ? 600 : 400 }}
                 >
                   {new Date(row.date).toLocaleDateString('en-IE', { month: 'short', year: '2-digit' })}
@@ -182,14 +181,14 @@ export default function AmortizationPage() {
                   ? [
                       <div
                         key={`${row.n}-p`}
-                        className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--fin-blue)]"
+                        className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--blue)]"
                         style={cell}
                       >
                         {fmt(row.principalPart, data.currency)}
                       </div>,
                       <div
                         key={`${row.n}-i`}
-                        className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--fin-muted)]"
+                        className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--muted)]"
                         style={cell}
                       >
                         {fmt(row.interestPart, data.currency)}
@@ -198,7 +197,7 @@ export default function AmortizationPage() {
                   : [
                       <div
                         key={`${row.n}-p`}
-                        className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--fin-blue)]"
+                        className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--blue)]"
                         style={cell}
                       >
                         {fmt(row.principalPart, data.currency)}
@@ -206,7 +205,7 @@ export default function AmortizationPage() {
                     ]),
                 <div
                   key={`${row.n}-b`}
-                  className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--fin-text)]"
+                  className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--text)]"
                   style={cell}
                 >
                   {fmt(row.balance, data.currency)}
@@ -221,24 +220,20 @@ export default function AmortizationPage() {
           {data.rows.map(row => (
             <div
               key={row.n}
-              className="rounded-lg border border-[var(--fin-border)] px-3 py-2.5"
+              className="rounded-lg border border-[var(--border)] px-3 py-2.5"
               style={{
                 background: row.next
-                  ? 'color-mix(in srgb, var(--fin-accent) 14%, transparent)'
+                  ? 'color-mix(in srgb, var(--accent) 14%, transparent)'
                   : row.past
-                    ? 'color-mix(in srgb, var(--fin-green) 12%, transparent)'
-                    : 'var(--fin-card2)',
+                    ? 'color-mix(in srgb, var(--green) 12%, transparent)'
+                    : 'var(--card2)',
               }}
             >
               <div className="mb-2 flex items-center justify-between">
                 <div
                   className={cn(
                     'text-sm font-bold',
-                    row.past
-                      ? 'text-[var(--fin-green)]'
-                      : row.next
-                        ? 'text-[var(--fin-accent)]'
-                        : 'text-[var(--fin-subtle)]',
+                    row.past ? 'text-[var(--green)]' : row.next ? 'text-[var(--accent)]' : 'text-[var(--subtle)]',
                   )}
                 >
                   {row.past ? '✓' : row.next ? '→' : `#${row.n}`}
@@ -248,18 +243,18 @@ export default function AmortizationPage() {
                 </SubText>
               </div>
               <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
-                <div className="text-[var(--fin-subtle)]">Principal</div>
-                <div className="text-right font-semibold text-[var(--fin-blue)]">
+                <div className="text-[var(--subtle)]">Principal</div>
+                <div className="text-right font-semibold text-[var(--blue)]">
                   {fmt(row.principalPart, data.currency)}
                 </div>
                 {hasInterest && (
                   <>
-                    <div className="text-[var(--fin-subtle)]">Interest</div>
-                    <div className="text-right text-[var(--fin-muted)]">{fmt(row.interestPart, data.currency)}</div>
+                    <div className="text-[var(--subtle)]">Interest</div>
+                    <div className="text-right text-[var(--muted)]">{fmt(row.interestPart, data.currency)}</div>
                   </>
                 )}
-                <div className="text-[var(--fin-subtle)]">Remaining</div>
-                <div className="text-right font-semibold text-[var(--fin-text)]">{fmt(row.balance, data.currency)}</div>
+                <div className="text-[var(--subtle)]">Remaining</div>
+                <div className="text-right font-semibold text-[var(--text)]">{fmt(row.balance, data.currency)}</div>
               </div>
             </div>
           ))}

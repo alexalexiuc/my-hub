@@ -55,15 +55,14 @@ export function getCategoryFallbackLetter(name: string): string {
 
 /** Maps each transaction type to its finance theme CSS variable colour. */
 export const TRANSACTION_TYPE_COLORS: Record<TransactionType, string> = {
-  [TransactionTypes.Expense]: 'var(--fin-red)',
-  [TransactionTypes.Income]: 'var(--fin-green)',
-  [TransactionTypes.Transfer]: 'var(--fin-blue)',
+  [TransactionTypes.Expense]: 'var(--red)',
+  [TransactionTypes.Income]: 'var(--green)',
+  [TransactionTypes.Transfer]: 'var(--blue)',
 };
 
 /** Shared Tailwind class strings for ghost-style inputs and dropdown triggers inside FinFieldCard. */
-export const finGhostInputClass = 'w-full text-[13px] text-[var(--fin-text)]';
-export const finDropdownInputClass =
-  'py-0 text-[13px] font-medium text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]';
+export const finGhostInputClass = 'w-full text-[13px] text-[var(--text)]';
+export const finDropdownInputClass = 'py-0 text-[13px] font-medium text-[var(--text)] placeholder:text-[var(--subtle)]';
 
 /** Returns relative day (Today/Yesterday), month & date if in current year, or full date otherwise. */
 export function formatTransactionDate(dateStr: string): string {

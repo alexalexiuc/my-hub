@@ -51,7 +51,7 @@ function formatDigitsCompact(digits: string): string {
 function MobileFieldRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex min-h-[52px] items-center gap-3 px-4 py-2">
-      <div className="w-20 shrink-0 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">{label}</div>
+      <div className="w-20 shrink-0 text-[9px] uppercase tracking-[0.07em] text-[var(--subtle)]">{label}</div>
       <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
@@ -335,10 +335,10 @@ export function TransactionModal({
                 onClick={() => setValue('txType', t)}
                 className={cn(
                   'flex-1 cursor-pointer rounded-[8px] py-2 text-xs font-medium',
-                  txType === t ? 'font-semibold' : 'text-[var(--fin-muted)]',
+                  txType === t ? 'font-semibold' : 'text-[var(--muted)]',
                 )}
                 style={{
-                  background: txType === t ? TRANSACTION_TYPE_COLORS[t] + '22' : 'var(--fin-card2)',
+                  background: txType === t ? TRANSACTION_TYPE_COLORS[t] + '22' : 'var(--card2)',
                   color: txType === t ? TRANSACTION_TYPE_COLORS[t] : undefined,
                   outline: txType === t ? `1px solid ${TRANSACTION_TYPE_COLORS[t]}44` : 'none',
                 }}
@@ -361,13 +361,13 @@ export function TransactionModal({
             </span>
           )}
           {!amountDisplay && !largeExpression && !keypadOpen ? (
-            <span className="mt-1.5 text-xs text-[var(--fin-muted)]">Tap to Enter Amount</span>
+            <span className="mt-1.5 text-xs text-[var(--muted)]">Tap to Enter Amount</span>
           ) : null}
         </div>
 
         {/* Fields — scrollable */}
         <div
-          className="flex-1 divide-y divide-[var(--fin-border)] overflow-y-auto border-t border-[var(--fin-border)]"
+          className="flex-1 divide-y divide-[var(--border)] overflow-y-auto border-t border-[var(--border)]"
           onClickCapture={() => {
             pressKey('=');
             setKeypadOpen(false);
@@ -392,7 +392,7 @@ export function TransactionModal({
               {mostUsedPayees.length > 0 && (
                 <div className="flex flex-wrap gap-2 px-4 py-2.5">
                   {mostUsedPayees.map(p => (
-                    <Pill key={p.id} onClick={() => selectPayee(p)} label={p.name} color="var(--fin-accent)" />
+                    <Pill key={p.id} onClick={() => selectPayee(p)} label={p.name} color="var(--accent)" />
                   ))}
                 </div>
               )}
@@ -415,7 +415,7 @@ export function TransactionModal({
             <>
               <MobileFieldRow label="To Account">
                 {prefilledToAccountId != null ? (
-                  <span className="text-[13px] font-medium text-[var(--fin-text)]">{prefilledToAccountName}</span>
+                  <span className="text-[13px] font-medium text-[var(--text)]">{prefilledToAccountName}</span>
                 ) : (
                   <FinancialDropdown
                     searchable={false}
@@ -465,7 +465,7 @@ export function TransactionModal({
               onChange={e => setValue('date', e.target.value)}
               type="date"
               variant="ghost"
-              className="flex-1 text-[13px] text-[var(--fin-text)]"
+              className="flex-1 text-[13px] text-[var(--text)]"
             />
           </MobileFieldRow>
 
@@ -474,7 +474,7 @@ export function TransactionModal({
               {...register('note')}
               placeholder="Add a note..."
               variant="ghost"
-              className="flex-1 text-[13px] text-[var(--fin-text)]"
+              className="flex-1 text-[13px] text-[var(--text)]"
             />
           </MobileFieldRow>
 
@@ -501,7 +501,7 @@ export function TransactionModal({
         className="hidden flex-col gap-2.5 md:flex"
       >
         {!lockedType && (
-          <div className="flex rounded-[9px] border border-[var(--fin-border)] bg-[var(--fin-card2)] p-[3px]">
+          <div className="flex rounded-[9px] border border-[var(--border)] bg-[var(--card2)] p-[3px]">
             {([TransactionTypes.Expense, TransactionTypes.Income, TransactionTypes.Transfer] as const).map(t => (
               <button
                 key={t}
@@ -509,7 +509,7 @@ export function TransactionModal({
                 onClick={() => setValue('txType', t)}
                 className={cn(
                   'flex-1 cursor-pointer rounded-[7px] border-none py-[7px] text-xs capitalize',
-                  txType === t ? 'font-semibold' : 'bg-transparent text-[var(--fin-muted)]',
+                  txType === t ? 'font-semibold' : 'bg-transparent text-[var(--muted)]',
                 )}
                 style={{
                   background: txType === t ? TRANSACTION_TYPE_COLORS[t] + '22' : undefined,
@@ -523,11 +523,9 @@ export function TransactionModal({
           </div>
         )}
 
-        <div className="flex items-center gap-2 rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-4 py-3">
+        <div className="flex items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--card2)] px-4 py-3">
           {formData && (
-            <span className="text-xl font-light text-[var(--fin-muted)]">
-              {getCurrencySymbol(formData.currency ?? '')}
-            </span>
+            <span className="text-xl font-light text-[var(--muted)]">{getCurrencySymbol(formData.currency ?? '')}</span>
           )}
           <Input
             value={amountDisplay}
@@ -549,7 +547,7 @@ export function TransactionModal({
             {[52, 80, 60, 60].map((h, i) => (
               <div
                 key={i}
-                className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)]"
+                className="rounded-[10px] border border-[var(--border)] bg-[var(--card2)]"
                 style={{ height: h, opacity: 0.6 }}
               />
             ))}
@@ -572,7 +570,7 @@ export function TransactionModal({
                 {mostUsedPayees.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-2">
                     {mostUsedPayees.map(p => (
-                      <Pill key={p.id} onClick={() => selectPayee(p)} label={p.name} color="var(--fin-accent)" />
+                      <Pill key={p.id} onClick={() => selectPayee(p)} label={p.name} color="var(--accent)" />
                     ))}
                   </div>
                 )}
@@ -595,9 +593,7 @@ export function TransactionModal({
               {txType === TransactionTypes.Transfer ? (
                 <FinFieldCard className="cursor-default" label="To Account">
                   {prefilledToAccountId != null ? (
-                    <div className="py-0.5 text-[13px] font-medium text-[var(--fin-text)]">
-                      {prefilledToAccountName}
-                    </div>
+                    <div className="py-0.5 text-[13px] font-medium text-[var(--text)]">{prefilledToAccountName}</div>
                   ) : (
                     <FinancialDropdown
                       searchable={false}
@@ -648,7 +644,7 @@ export function TransactionModal({
                   value={watch('date')}
                   type="date"
                   variant="ghost"
-                  className="w-full text-[13px] text-[var(--fin-text)]"
+                  className="w-full text-[13px] text-[var(--text)]"
                 />
               </FinFieldCard>
               <FinFieldCard className="cursor-default" label="Notes">
@@ -656,7 +652,7 @@ export function TransactionModal({
                   {...register('note')}
                   placeholder="Optional…"
                   variant="ghost"
-                  className="w-full text-[13px] text-[var(--fin-text)]"
+                  className="w-full text-[13px] text-[var(--text)]"
                 />
               </FinFieldCard>
             </div>
@@ -680,7 +676,7 @@ export function TransactionModal({
       {keypadOpen &&
         createPortal(
           <div className="finances-theme fixed inset-x-0 top-0 z-[1100] flex h-[100dvh] flex-col justify-end md:hidden pointer-events-none">
-            <div className="fin-slide-up rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)] pointer-events-auto">
+            <div className="fin-slide-up rounded-t-[18px] border border-[var(--border)] bg-[var(--card)] pointer-events-auto">
               <MobileAmountKeypad
                 onKey={pressKey}
                 onDone={() => {

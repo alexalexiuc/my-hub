@@ -49,7 +49,7 @@ function computeInitials(name: string | null, email: string): string {
 
 // Matches the ghost-input style used inside FinFieldCard in the modal
 const FIELD_INPUT =
-  'border-0 bg-transparent p-0 shadow-none focus:ring-0 text-[13px] text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]';
+  'border-0 bg-transparent p-0 shadow-none focus:ring-0 text-[13px] text-[var(--text)] placeholder:text-[var(--subtle)]';
 
 export function TransactionFilters({ typeFilter, extraValues, onTypeChange, onExtraChange }: TransactionFiltersProps) {
   const [members, setMembers] = useState<Member[]>([]);
@@ -113,17 +113,17 @@ export function TransactionFilters({ typeFilter, extraValues, onTypeChange, onEx
   }
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card2)] p-3">
+    <div className="flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--card2)] p-3">
       {/* Type segment control — mirrors the modal style */}
-      <div className="flex rounded-[9px] border border-[var(--fin-border)] bg-[var(--fin-card)] p-[3px]">
+      <div className="flex rounded-[9px] border border-[var(--border)] bg-[var(--card)] p-[3px]">
         <button
           type="button"
           onClick={() => onTypeChange('all')}
           className={cn(
             'flex-1 cursor-pointer rounded-[7px] py-[7px] text-xs font-medium transition-colors',
             typeFilter === 'all'
-              ? 'bg-[var(--fin-accent)]/15 text-[var(--fin-accent)] outline outline-1 outline-[var(--fin-accent)]/30'
-              : 'bg-transparent text-[var(--fin-muted)]',
+              ? 'bg-[var(--accent)]/15 text-[var(--accent)] outline outline-1 outline-[var(--accent)]/30'
+              : 'bg-transparent text-[var(--muted)]',
           )}
         >
           All
@@ -135,7 +135,7 @@ export function TransactionFilters({ typeFilter, extraValues, onTypeChange, onEx
             onClick={() => onTypeChange(t)}
             className={cn(
               'flex-1 cursor-pointer rounded-[7px] py-[7px] text-xs capitalize transition-colors',
-              typeFilter === t ? 'font-semibold' : 'bg-transparent text-[var(--fin-muted)]',
+              typeFilter === t ? 'font-semibold' : 'bg-transparent text-[var(--muted)]',
             )}
             style={{
               background: typeFilter === t ? TRANSACTION_TYPE_COLORS[t] + '22' : undefined,
@@ -257,7 +257,7 @@ export function TransactionFilters({ typeFilter, extraValues, onTypeChange, onEx
         <div className="flex justify-end">
           <button
             onClick={clearAll}
-            className="text-[11px] text-[var(--fin-muted)] transition-colors hover:text-[var(--fin-red)]"
+            className="text-[11px] text-[var(--muted)] transition-colors hover:text-[var(--red)]"
           >
             Clear all filters
           </button>
@@ -284,9 +284,7 @@ function MemberChip({
       title={title}
       className={cn(
         'rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors',
-        active
-          ? 'bg-[var(--fin-accent)] text-white'
-          : 'bg-[var(--fin-card2)] text-[var(--fin-muted)] hover:text-[var(--fin-text)]',
+        active ? 'bg-[var(--accent)] text-white' : 'bg-[var(--card2)] text-[var(--muted)] hover:text-[var(--text)]',
       )}
     >
       {label}

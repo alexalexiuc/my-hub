@@ -154,139 +154,141 @@ export function CaloriesWidget() {
   const cap = maxCalories ?? todayTarget;
 
   return (
-    <SectionCard
-      title="Calories"
-      titleHref="/calories"
-      titleHoverClass="hover:text-orange-400"
-      className="border-orange-800/50 bg-gradient-to-br from-orange-950/40 to-zinc-900"
-      action={
-        <button
-          onClick={() => setShowAdd(!showAdd)}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
-          aria-label="Log meal"
-          title="Log meal"
-        >
-          <PlusOutlineIcon className="size-3" />
-          Add
-        </button>
-      }
-    >
-      {loading ? (
-        <div className="space-y-3 animate-pulse">
-          <div className="mx-auto w-[140px] h-[140px] rounded-full bg-zinc-800" />
-          <div className="h-4 w-24 mx-auto bg-zinc-800 rounded" />
-          <div className="flex gap-4 pt-3 border-t border-zinc-800">
-            <div className="flex-1 h-8 bg-zinc-800 rounded" />
-            <div className="flex-1 h-8 bg-zinc-800 rounded" />
-            <div className="flex-1 h-8 bg-zinc-800 rounded" />
+    <div className="calories-theme">
+      <SectionCard
+        title="Calories"
+        titleHref="/calories"
+        titleHoverClass="hover:text-orange-400"
+        className="border-orange-800/50 bg-gradient-to-br from-orange-950/40 to-zinc-900"
+        action={
+          <button
+            onClick={() => setShowAdd(!showAdd)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
+            aria-label="Log meal"
+            title="Log meal"
+          >
+            <PlusOutlineIcon className="size-3" />
+            Add
+          </button>
+        }
+      >
+        {loading ? (
+          <div className="space-y-3 animate-pulse">
+            <div className="mx-auto w-[140px] h-[140px] rounded-full bg-zinc-800" />
+            <div className="h-4 w-24 mx-auto bg-zinc-800 rounded" />
+            <div className="flex gap-4 pt-3 border-t border-zinc-800">
+              <div className="flex-1 h-8 bg-zinc-800 rounded" />
+              <div className="flex-1 h-8 bg-zinc-800 rounded" />
+              <div className="flex-1 h-8 bg-zinc-800 rounded" />
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center">
-          <CaloriesDonut eaten={todayKcal} cap={cap} min={minCalories} innerRadius={45} />
+        ) : (
+          <div className="flex flex-col items-center">
+            <CaloriesDonut eaten={todayKcal} cap={cap} min={minCalories} innerRadius={45} />
 
-          {/* Eaten / Target line */}
-          <p className="text-sm text-zinc-400">
-            <span className="font-semibold text-zinc-200">{todayKcal}</span>
-            {cap !== null && (
-              <>
-                {' '}
-                <span className="text-zinc-600">/</span> <span>{cap}</span>
-              </>
-            )}{' '}
-            kcal
-          </p>
-          {(minCalories !== null || cap !== null) && (
-            <p
-              className={`text-xs mt-1 ${
-                cap !== null && todayKcal > cap
-                  ? 'text-red-400'
-                  : minCalories !== null && todayKcal < minCalories
-                    ? 'text-yellow-400'
-                    : 'text-zinc-500'
-              }`}
-            >
-              {minCalories !== null && cap !== null
-                ? `Target range: ${minCalories}-${cap} kcal`
-                : minCalories !== null
-                  ? `Minimum target: ${minCalories} kcal`
-                  : `Target: ${cap} kcal`}
+            {/* Eaten / Target line */}
+            <p className="text-sm text-zinc-400">
+              <span className="font-semibold text-zinc-200">{todayKcal}</span>
+              {cap !== null && (
+                <>
+                  {' '}
+                  <span className="text-zinc-600">/</span> <span>{cap}</span>
+                </>
+              )}{' '}
+              kcal
             </p>
-          )}
-          {cap === null && (
-            <p className="text-xs text-zinc-500 mt-1">
-              No goal set.{' '}
-              <a href="/profile" className="text-zinc-400 underline underline-offset-2 hover:text-zinc-200">
-                Complete your profile
-              </a>
-              .
-            </p>
-          )}
+            {(minCalories !== null || cap !== null) && (
+              <p
+                className={`text-xs mt-1 ${
+                  cap !== null && todayKcal > cap
+                    ? 'text-red-400'
+                    : minCalories !== null && todayKcal < minCalories
+                      ? 'text-yellow-400'
+                      : 'text-zinc-500'
+                }`}
+              >
+                {minCalories !== null && cap !== null
+                  ? `Target range: ${minCalories}-${cap} kcal`
+                  : minCalories !== null
+                    ? `Minimum target: ${minCalories} kcal`
+                    : `Target: ${cap} kcal`}
+              </p>
+            )}
+            {cap === null && (
+              <p className="text-xs text-zinc-500 mt-1">
+                No goal set.{' '}
+                <a href="/profile" className="text-zinc-400 underline underline-offset-2 hover:text-zinc-200">
+                  Complete your profile
+                </a>
+                .
+              </p>
+            )}
 
-          {/* Macro bars */}
-          <div className="flex gap-4 w-full mt-4 pt-3 border-t border-zinc-800">
-            <MacroBar
-              label="Carbs"
-              value={macros.carbs}
-              goal={macroGoals?.carbs ?? null}
-              sharePct={sharePct(macros.carbs * 4)}
-              color="bg-amber-400"
-            />
-            <MacroBar
-              label="Protein"
-              value={macros.protein}
-              goal={macroGoals?.protein ?? null}
-              sharePct={sharePct(macros.protein * 4)}
-              color="bg-sky-400"
-            />
-            <MacroBar
-              label="Fat"
-              value={macros.fat}
-              goal={macroGoals?.fat ?? null}
-              sharePct={sharePct(macros.fat * 9)}
-              color="bg-rose-400"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Quick-add meal form */}
-      {showAdd && (
-        <div className="mt-4 border-t border-zinc-700 pt-4 space-y-3">
-          <div className="space-y-2">
-            <Input
-              placeholder="What did you eat?"
-              value={form.description}
-              onChange={e => setForm({ ...form, description: e.target.value })}
-              onKeyDown={e => e.key === 'Enter' && addMeal()}
-              autoFocus
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <Select
-                options={MealTypesValues.map(t => ({ value: t, label: MEAL_LABEL[t] }))}
-                value={form.mealType}
-                onChange={e => setForm({ ...form, mealType: e.target.value as MealType })}
+            {/* Macro bars */}
+            <div className="flex gap-4 w-full mt-4 pt-3 border-t border-zinc-800">
+              <MacroBar
+                label="Carbs"
+                value={macros.carbs}
+                goal={macroGoals?.carbs ?? null}
+                sharePct={sharePct(macros.carbs * 4)}
+                color="bg-amber-400"
               />
-              <Input
-                type="number"
-                step="1"
-                min="0"
-                placeholder="kcal"
-                value={form.kcal}
-                onChange={e => setForm({ ...form, kcal: e.target.value })}
+              <MacroBar
+                label="Protein"
+                value={macros.protein}
+                goal={macroGoals?.protein ?? null}
+                sharePct={sharePct(macros.protein * 4)}
+                color="bg-sky-400"
+              />
+              <MacroBar
+                label="Fat"
+                value={macros.fat}
+                goal={macroGoals?.fat ?? null}
+                sharePct={sharePct(macros.fat * 9)}
+                color="bg-rose-400"
               />
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={addMeal} loading={saving} disabled={!form.description}>
-              Add
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => setShowAdd(false)}>
-              Cancel
-            </Button>
+        )}
+
+        {/* Quick-add meal form */}
+        {showAdd && (
+          <div className="mt-4 border-t border-zinc-700 pt-4 space-y-3">
+            <div className="space-y-2">
+              <Input
+                placeholder="What did you eat?"
+                value={form.description}
+                onChange={e => setForm({ ...form, description: e.target.value })}
+                onKeyDown={e => e.key === 'Enter' && addMeal()}
+                autoFocus
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Select
+                  options={MealTypesValues.map(t => ({ value: t, label: MEAL_LABEL[t] }))}
+                  value={form.mealType}
+                  onChange={e => setForm({ ...form, mealType: e.target.value as MealType })}
+                />
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  placeholder="kcal"
+                  value={form.kcal}
+                  onChange={e => setForm({ ...form, kcal: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={addMeal} loading={saving} disabled={!form.description}>
+                Add
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setShowAdd(false)}>
+                Cancel
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
-    </SectionCard>
+        )}
+      </SectionCard>
+    </div>
   );
 }

@@ -84,7 +84,7 @@ export function ClaudePromptSection({ budget }: ClaudePromptSectionProps) {
   return (
     <Card className="p-[18px]">
       <SectionLabel className="mb-1">Claude Project Instructions</SectionLabel>
-      <p className="mb-3 text-[12px] text-[var(--fin-subtle)]">
+      <p className="mb-3 text-[12px] text-[var(--subtle)]">
         Generate a ready-to-paste instruction block for a Claude project. Paste it into your project&apos;s custom
         instructions so Claude knows all account IDs and categories without calling any tools.
       </p>
@@ -95,7 +95,7 @@ export function ClaudePromptSection({ budget }: ClaudePromptSectionProps) {
         </Button>
       ) : (
         <div className="flex flex-col gap-2">
-          <pre className="overflow-x-auto rounded-[8px] bg-[var(--fin-surface)] p-[12px] text-[11px] leading-[1.6] text-[var(--fin-text)] whitespace-pre-wrap">
+          <pre className="overflow-x-auto rounded-[8px] bg-[var(--surface)] p-[12px] text-[11px] leading-[1.6] text-[var(--text)] whitespace-pre-wrap">
             {prompt}
           </pre>
           <div className="flex gap-2">

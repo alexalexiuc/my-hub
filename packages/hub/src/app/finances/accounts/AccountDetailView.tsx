@@ -39,7 +39,7 @@ function CorrectionModal({
   const parsed = parseFloat(newBalance);
   const correction = isNaN(parsed) ? 0 : parsed - currentBalance;
   const isZero = correction === 0;
-  const correctionColor = correction > 0 ? 'var(--fin-green)' : correction < 0 ? 'var(--fin-red)' : 'var(--fin-subtle)';
+  const correctionColor = correction > 0 ? 'var(--green)' : correction < 0 ? 'var(--red)' : 'var(--subtle)';
 
   async function handleSave() {
     if (isNaN(parsed) || isZero || saving) return;
@@ -73,10 +73,10 @@ function CorrectionModal({
       submitLoading={saving}
     >
       <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-3">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--card2)] px-[14px] py-3">
           <div>
-            <div className="mb-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Current</div>
-            <div className="text-[15px] font-semibold text-[var(--fin-muted)]">{fmt(currentBalance, currency)}</div>
+            <div className="mb-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--subtle)]">Current</div>
+            <div className="text-[15px] font-semibold text-[var(--muted)]">{fmt(currentBalance, currency)}</div>
           </div>
           <div className="text-center">
             <div
@@ -90,17 +90,15 @@ function CorrectionModal({
             </div>
           </div>
           <div className="text-right">
-            <div className="mb-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">New</div>
-            <div
-              className={cn('text-[15px] font-semibold', isZero ? 'text-[var(--fin-muted)]' : 'text-[var(--fin-text)]')}
-            >
+            <div className="mb-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--subtle)]">New</div>
+            <div className={cn('text-[15px] font-semibold', isZero ? 'text-[var(--muted)]' : 'text-[var(--text)]')}>
               {isNaN(parsed) ? '—' : fmt(parsed, currency)}
             </div>
           </div>
         </div>
 
-        <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-[10px]">
-          <div className="mb-1 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">
+        <div className="rounded-[10px] border border-[var(--border)] bg-[var(--card2)] px-[14px] py-[10px]">
+          <div className="mb-1 text-[9px] uppercase tracking-[0.07em] text-[var(--subtle)]">
             Actual Balance ({currency})
           </div>
           <Input
@@ -110,29 +108,29 @@ function CorrectionModal({
             value={newBalance}
             onChange={e => setNewBalance(e.target.value)}
             variant="ghost"
-            className="w-full border-none text-[20px] font-bold text-[var(--fin-text)]"
+            className="w-full border-none text-[20px] font-bold text-[var(--text)]"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-[10px]">
-            <div className="mb-1 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Date</div>
+          <div className="rounded-[10px] border border-[var(--border)] bg-[var(--card2)] px-3 py-[10px]">
+            <div className="mb-1 text-[9px] uppercase tracking-[0.07em] text-[var(--subtle)]">Date</div>
             <Input
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
               variant="ghost"
-              className="w-full border-none text-[13px] text-[var(--fin-text)]"
+              className="w-full border-none text-[13px] text-[var(--text)]"
             />
           </div>
-          <div className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-[10px]">
-            <div className="mb-1 text-[9px] uppercase tracking-[0.07em] text-[var(--fin-subtle)]">Notes</div>
+          <div className="rounded-[10px] border border-[var(--border)] bg-[var(--card2)] px-3 py-[10px]">
+            <div className="mb-1 text-[9px] uppercase tracking-[0.07em] text-[var(--subtle)]">Notes</div>
             <Input
               placeholder="Balance Correction"
               value={notes}
               onChange={e => setNotes(e.target.value)}
               variant="ghost"
-              className="w-full border-none text-[13px] text-[var(--fin-text)]"
+              className="w-full border-none text-[13px] text-[var(--text)]"
             />
           </div>
         </div>
@@ -172,7 +170,7 @@ function ArchiveConfirmModal({
       submitLabel={isArchived ? 'Unarchive' : 'Archive'}
       submitLoading={confirming}
     >
-      <p className="text-[13px] text-[var(--fin-muted)]">
+      <p className="text-[13px] text-[var(--muted)]">
         {isArchived
           ? `Restore "${name}" so it appears in the main accounts list?`
           : `Archive "${name}"? It will be hidden from the main list but can be restored later.`}
@@ -182,27 +180,27 @@ function ArchiveConfirmModal({
 }
 
 function TypeBadge({ type }: { type: string }) {
-  const meta = TYPE_META[type] ?? { label: type, color: 'var(--fin-muted)' };
+  const meta = TYPE_META[type] ?? { label: type, color: 'var(--muted)' };
   return <Pill label={meta.label} color={meta.color} />;
 }
 
 function AccountHeader({ acc }: { acc: AccountItem }) {
-  const meta = TYPE_META[acc.type] ?? { color: 'var(--fin-muted)' };
+  const meta = TYPE_META[acc.type] ?? { color: 'var(--muted)' };
   const isLiability = acc.type === 'loan' || acc.type === 'credit_card';
 
   return (
     <div
       className="rounded-xl p-[18px]"
       style={{
-        background: `linear-gradient(135deg, ${meta.color}18, var(--fin-card))`,
+        background: `linear-gradient(135deg, ${meta.color}18, var(--card))`,
         border: `1px solid ${meta.color}33`,
       }}
     >
-      <div className="mb-1 text-[13px] text-[var(--fin-muted)]">{acc.name}</div>
+      <div className="mb-1 text-[13px] text-[var(--muted)]">{acc.name}</div>
       <div
         className={cn(
           'mb-2 text-[30px] font-bold tracking-[-0.02em]',
-          isLiability ? 'text-[var(--fin-red)]' : 'text-[var(--fin-text)]',
+          isLiability ? 'text-[var(--red)]' : 'text-[var(--text)]',
         )}
       >
         {fmt(acc.balance, acc.currency)}
@@ -211,7 +209,7 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
       {acc.type === 'credit_card' && acc.creditLimit != null && (
         <div>
           <Bar value={acc.balance} max={acc.creditLimit} color={meta.color} height={6} className="mb-1.5" />
-          <div className="text-[11px] text-[var(--fin-muted)]">
+          <div className="text-[11px] text-[var(--muted)]">
             {fmt(acc.creditLimit - acc.balance, acc.currency)} available
             {' · '}Limit {fmt(acc.creditLimit, acc.currency)}
             {acc.statementDay != null ? ` · Statement day ${acc.statementDay}` : ''}
@@ -222,7 +220,7 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
       {acc.type === 'goal' && acc.targetAmount != null && (
         <div>
           <Bar value={acc.balance} max={acc.targetAmount} color={meta.color} height={6} className="mb-1.5" />
-          <div className="text-[11px] text-[var(--fin-muted)]">
+          <div className="text-[11px] text-[var(--muted)]">
             {fmt(acc.targetAmount - acc.balance, acc.currency)} to go · Target {fmt(acc.targetAmount, acc.currency)}
           </div>
         </div>
@@ -232,11 +230,11 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
         <div className="flex gap-5">
           <div>
             <SubText className="block">Deposited</SubText>
-            <div className="text-[var(--fin-muted)]">{fmt(acc.deposited, acc.currency)}</div>
+            <div className="text-[var(--muted)]">{fmt(acc.deposited, acc.currency)}</div>
           </div>
           <div>
             <SubText className="block">Unrealised P&L</SubText>
-            <div className={acc.balance >= acc.deposited ? 'text-[var(--fin-green)]' : 'text-[var(--fin-red)]'}>
+            <div className={acc.balance >= acc.deposited ? 'text-[var(--green)]' : 'text-[var(--red)]'}>
               {acc.balance >= acc.deposited ? '+' : '-'}
               {fmt(Math.abs(acc.balance - acc.deposited), acc.currency)}
               {acc.deposited > 0 &&
@@ -251,17 +249,17 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
           {acc.interestRate != null && (
             <div>
               <SubText className="block">Rate</SubText>
-              <div className="text-[var(--fin-muted)]">{acc.interestRate}%</div>
+              <div className="text-[var(--muted)]">{acc.interestRate}%</div>
             </div>
           )}
           <div>
             <SubText className="block">Monthly</SubText>
-            <div className="text-[var(--fin-muted)]">{fmt(acc.amortizationSummary.monthlyPayment, acc.currency)}</div>
+            <div className="text-[var(--muted)]">{fmt(acc.amortizationSummary.monthlyPayment, acc.currency)}</div>
           </div>
           {acc.amortizationSummary.totalInterestRemaining > 0 && (
             <div>
               <SubText className="block">Remaining interest</SubText>
-              <div className="text-[var(--fin-amber)]">
+              <div className="text-[var(--amber)]">
                 {fmt(acc.amortizationSummary.totalInterestRemaining, acc.currency)}
               </div>
             </div>
@@ -269,7 +267,7 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
           {acc.amortizationSummary.totalCost > 0 && (
             <div>
               <SubText className="block">Paid off</SubText>
-              <div className="text-[var(--fin-green)]">
+              <div className="text-[var(--green)]">
                 {Math.max(
                   0,
                   Math.round(
@@ -295,7 +293,7 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
               <div
                 className={cn(
                   'font-semibold',
-                  acc.direction === 'gave' ? 'text-[var(--fin-green)]' : 'text-[var(--fin-amber)]',
+                  acc.direction === 'gave' ? 'text-[var(--green)]' : 'text-[var(--amber)]',
                 )}
               >
                 {acc.direction === 'gave' ? 'Lent' : 'Borrowed'}
@@ -305,16 +303,16 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
           {acc.counterpartyName && (
             <div>
               <SubText className="block">With</SubText>
-              <div className="text-[var(--fin-muted)]">{acc.counterpartyName}</div>
+              <div className="text-[var(--muted)]">{acc.counterpartyName}</div>
             </div>
           )}
           {acc.dueDate && (
             <div>
               <SubText className="block">Due</SubText>
-              <div className="text-[var(--fin-amber)]">{acc.dueDate}</div>
+              <div className="text-[var(--amber)]">{acc.dueDate}</div>
             </div>
           )}
-          {acc.settled && <div className="self-end text-xs text-[var(--fin-green)]">✓ Settled</div>}
+          {acc.settled && <div className="self-end text-xs text-[var(--green)]">✓ Settled</div>}
         </div>
       )}
     </div>
@@ -361,7 +359,7 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
         {[44, 120, 300].map((h, i) => (
           <div
             key={i}
-            className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+            className="rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
             style={{ height: h, opacity: 0.6 }}
           />
         ))}
@@ -412,19 +410,19 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
             label="Balance Correction"
             icon={<ScaleIcon className="size-3.5" />}
             onClick={() => setCorrectionOpen(true)}
-            className="h-7 w-7 flex items-center justify-center p-0 border border-[var(--fin-border)] bg-transparent text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
+            className="h-7 w-7 flex items-center justify-center p-0 border border-[var(--border)] bg-transparent text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--text)]"
           />
           <IconButton
             label="Edit account"
             icon={<PencilIcon className="size-3.5" />}
             onClick={() => setEditOpen(true)}
-            className="h-7 w-7 flex items-center justify-center p-0 border border-[var(--fin-border)] bg-transparent text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-text)]"
+            className="h-7 w-7 flex items-center justify-center p-0 border border-[var(--border)] bg-transparent text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--text)]"
           />
           <IconButton
             label={acc.archived ? 'Unarchive account' : 'Archive account'}
             icon={<ArchiveBoxIcon className="size-3.5" />}
             onClick={() => setArchiveConfirmOpen(true)}
-            className="h-7 w-7 flex items-center justify-center p-0 border border-[var(--fin-border)] bg-transparent text-amber-400 hover:bg-amber-900/20 hover:text-amber-300"
+            className="h-7 w-7 flex items-center justify-center p-0 border border-[var(--border)] bg-transparent text-amber-400 hover:bg-amber-900/20 hover:text-amber-300"
           />
         </div>
       </div>
@@ -434,10 +432,10 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
       {acc.type === 'loan' && (
         <button
           onClick={() => router.push(`/finances/accounts/${acc.id}/amortization`)}
-          className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] px-[14px] py-[10px] text-left text-[13px] text-[var(--fin-text)]"
+          className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--card2)] px-[14px] py-[10px] text-left text-[13px] text-[var(--text)]"
         >
           <span>View amortization schedule</span>
-          <span className="text-[var(--fin-accent)]">→</span>
+          <span className="text-[var(--accent)]">→</span>
         </button>
       )}
 

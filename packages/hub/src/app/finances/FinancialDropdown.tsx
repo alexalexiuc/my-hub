@@ -219,11 +219,11 @@ export function FinancialDropdown({
             )}
           >
             <span className="truncate">
-              {selectedLabel || <span className="text-[var(--fin-subtle)]">{placeholder}</span>}
+              {selectedLabel || <span className="text-[var(--subtle)]">{placeholder}</span>}
             </span>
             <ChevronDownOutlineIcon
               className={cn(
-                'ml-1 size-[10px] shrink-0 text-[var(--fin-subtle)] transition-transform duration-150',
+                'ml-1 size-[10px] shrink-0 text-[var(--subtle)] transition-transform duration-150',
                 open && 'rotate-180',
               )}
             />
@@ -242,7 +242,7 @@ export function FinancialDropdown({
               onChange(null);
               closeDropdown();
             }}
-            className="absolute right-0 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded p-0 text-[var(--fin-red)] hover:bg-[var(--fin-red-d)]"
+            className="absolute right-0 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded p-0 text-[var(--red)] hover:bg-[var(--red-d)]"
           >
             <XOutlineIcon className="size-3.5" />
           </Button>
@@ -252,7 +252,7 @@ export function FinancialDropdown({
       {!isMobile && open && (results.length > 0 || showCreateOption || (trimmedQuery.length > 0 && noResultsText)) && (
         <div
           className={cn(
-            'absolute left-0 right-0 z-20 max-h-[200px] overflow-y-auto rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] shadow-lg',
+            'absolute left-0 right-0 z-20 max-h-[200px] overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--card2)] shadow-lg',
             menuAbove ? 'bottom-full mb-1' : 'top-full mt-1',
             menuClassName,
           )}
@@ -272,7 +272,7 @@ export function FinancialDropdown({
                 }
               }}
               className={cn(
-                'flex w-full items-center gap-2 rounded-none px-3 py-[8px] text-left text-[13px] font-normal text-[var(--fin-text)] hover:bg-[var(--fin-card3)]',
+                'flex w-full items-center gap-2 rounded-none px-3 py-[8px] text-left text-[13px] font-normal text-[var(--text)] hover:bg-[var(--card3)]',
                 optionClassName,
               )}
             >
@@ -281,7 +281,7 @@ export function FinancialDropdown({
           ))}
 
           {results.length === 0 && trimmedQuery.length > 0 && noResultsText && (
-            <div className="px-3 py-[8px] text-[12px] text-[var(--fin-subtle)]">{noResultsText}</div>
+            <div className="px-3 py-[8px] text-[12px] text-[var(--subtle)]">{noResultsText}</div>
           )}
 
           {showCreateOption && createOption && (
@@ -295,7 +295,7 @@ export function FinancialDropdown({
                 closeDropdown();
               }}
               className={cn(
-                'flex w-full items-center gap-1.5 rounded-none px-3 py-[8px] text-left text-[13px] font-normal text-[var(--fin-accent)] hover:bg-[var(--fin-card3)]',
+                'flex w-full items-center gap-1.5 rounded-none px-3 py-[8px] text-left text-[13px] font-normal text-[var(--accent)] hover:bg-[var(--card3)]',
                 createOption.className,
               )}
             >

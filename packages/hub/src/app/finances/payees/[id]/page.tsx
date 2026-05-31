@@ -43,7 +43,7 @@ export default function PayeeDetailPage() {
         {[40, 100, 280].map((h, i) => (
           <div
             key={i}
-            className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+            className="rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
             style={{ height: h, opacity: 0.6 }}
           />
         ))}
@@ -65,7 +65,7 @@ export default function PayeeDetailPage() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div>
-              <div className="text-[17px] font-bold text-[var(--fin-text)]">{payee.name}</div>
+              <div className="text-[17px] font-bold text-[var(--text)]">{payee.name}</div>
               {payee.description && <SubText className="block">{payee.description}</SubText>}
             </div>
           </div>
@@ -79,7 +79,7 @@ export default function PayeeDetailPage() {
             {payee.aliases.map(alias => (
               <span
                 key={alias}
-                className="rounded-full border border-[var(--fin-border)] px-2.5 py-0.5 text-[12px] text-[var(--fin-muted)]"
+                className="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[12px] text-[var(--muted)]"
               >
                 {alias}
               </span>

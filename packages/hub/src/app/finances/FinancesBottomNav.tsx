@@ -49,17 +49,17 @@ function MoreSheet({ onClose }: { onClose: () => void }) {
       onClick={onClose}
       className={cn(
         'fixed inset-0 z-[1000] flex items-end transition-[background-color] duration-300',
-        open ? 'bg-[var(--fin-overlay)]' : 'bg-transparent',
+        open ? 'bg-[var(--overlay)]' : 'bg-transparent',
       )}
     >
       <div
         onClick={e => e.stopPropagation()}
         className={cn(
-          'w-full rounded-t-[18px] border border-[var(--fin-border)] bg-[var(--fin-card)] p-4 pb-8 transition-transform duration-300 ease-out',
+          'w-full rounded-t-[18px] border border-[var(--border)] bg-[var(--card)] p-4 pb-8 transition-transform duration-300 ease-out',
           open ? 'translate-y-0' : 'translate-y-full',
         )}
       >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--fin-border)]" />
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--border)]" />
         <SubText className="block mb-3 px-1 uppercase tracking-[0.08em]">More</SubText>
         <div className="grid grid-cols-2 gap-2">
           {MORE_ITEMS.map(({ id, icon, label, path }) => {
@@ -74,8 +74,8 @@ function MoreSheet({ onClose }: { onClose: () => void }) {
                 className={cn(
                   'flex cursor-pointer items-center gap-3 rounded-[10px] border px-4 py-3 text-left text-[13px] font-medium',
                   active
-                    ? 'border-[var(--fin-accent)44] bg-[var(--fin-accent-d)] text-[var(--fin-accent)]'
-                    : 'border-[var(--fin-border)] bg-[var(--fin-card2)] text-[var(--fin-text)]',
+                    ? 'border-[var(--accent)44] bg-[var(--accent-d)] text-[var(--accent)]'
+                    : 'border-[var(--border)] bg-[var(--card2)] text-[var(--text)]',
                 )}
               >
                 <span className="text-base leading-none">{icon}</span>
@@ -127,7 +127,7 @@ export function FinancesBottomNav({ className }: FinancesBottomNavProps) {
       {showMore && <MoreSheet onClose={() => setShowMore(false)} />}
       <div
         className={cn(
-          'fixed bottom-0 left-0 right-0 z-[900] flex border-t border-[var(--fin-border)] bg-[var(--fin-card)]',
+          'fixed bottom-0 left-0 right-0 z-[900] flex border-t border-[var(--border)] bg-[var(--card)]',
           className,
         )}
       >
@@ -139,16 +139,11 @@ export function FinancesBottomNav({ className }: FinancesBottomNavProps) {
               onClick={() => router.push(path)}
               className="flex flex-1 cursor-pointer flex-col items-center gap-0.5 border-none bg-transparent py-2"
             >
-              <span
-                className={cn('text-lg leading-none', active ? 'text-[var(--fin-accent)]' : 'text-[var(--fin-subtle)]')}
-              >
+              <span className={cn('text-lg leading-none', active ? 'text-[var(--accent)]' : 'text-[var(--subtle)]')}>
                 {icon}
               </span>
               <span
-                className={cn(
-                  'text-[9px]',
-                  active ? 'font-semibold text-[var(--fin-accent)]' : 'text-[var(--fin-subtle)]',
-                )}
+                className={cn('text-[9px]', active ? 'font-semibold text-[var(--accent)]' : 'text-[var(--subtle)]')}
               >
                 {label}
               </span>
@@ -161,10 +156,10 @@ export function FinancesBottomNav({ className }: FinancesBottomNavProps) {
           onClick={() => setShowAddTx(true)}
           className="flex flex-1 cursor-pointer flex-col items-center border-none bg-transparent pt-1"
         >
-          <div className="-mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--fin-accent)] text-[var(--fin-on-solid)] shadow-[0_4px_12px_rgba(167,139,250,0.4)]">
+          <div className="-mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-solid)] shadow-[0_4px_12px_rgba(167,139,250,0.4)]">
             <PlusOutlineIcon className="size-5" />
           </div>
-          <span className="mt-1 text-[9px] text-[var(--fin-subtle)]">Add</span>
+          <span className="mt-1 text-[9px] text-[var(--subtle)]">Add</span>
         </button>
 
         {RIGHT_ITEMS.map(({ id, icon, label, path }) => {
@@ -175,16 +170,11 @@ export function FinancesBottomNav({ className }: FinancesBottomNavProps) {
               onClick={() => router.push(path)}
               className="flex flex-1 cursor-pointer flex-col items-center gap-0.5 border-none bg-transparent py-2"
             >
-              <span
-                className={cn('text-lg leading-none', active ? 'text-[var(--fin-accent)]' : 'text-[var(--fin-subtle)]')}
-              >
+              <span className={cn('text-lg leading-none', active ? 'text-[var(--accent)]' : 'text-[var(--subtle)]')}>
                 {icon}
               </span>
               <span
-                className={cn(
-                  'text-[9px]',
-                  active ? 'font-semibold text-[var(--fin-accent)]' : 'text-[var(--fin-subtle)]',
-                )}
+                className={cn('text-[9px]', active ? 'font-semibold text-[var(--accent)]' : 'text-[var(--subtle)]')}
               >
                 {label}
               </span>
@@ -197,19 +187,11 @@ export function FinancesBottomNav({ className }: FinancesBottomNavProps) {
           onClick={() => setShowMore(true)}
           className="flex flex-1 cursor-pointer flex-col items-center gap-0.5 border-none bg-transparent py-2"
         >
-          <span
-            className={cn(
-              'text-lg leading-none',
-              moreIsActive ? 'text-[var(--fin-accent)]' : 'text-[var(--fin-subtle)]',
-            )}
-          >
+          <span className={cn('text-lg leading-none', moreIsActive ? 'text-[var(--accent)]' : 'text-[var(--subtle)]')}>
             ···
           </span>
           <span
-            className={cn(
-              'text-[9px]',
-              moreIsActive ? 'font-semibold text-[var(--fin-accent)]' : 'text-[var(--fin-subtle)]',
-            )}
+            className={cn('text-[9px]', moreIsActive ? 'font-semibold text-[var(--accent)]' : 'text-[var(--subtle)]')}
           >
             More
           </span>

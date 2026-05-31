@@ -33,8 +33,8 @@ function KeypadButton({ label, onPress, className }: { label: string; onPress: (
         onPress();
       }}
       className={cn(
-        'flex flex-1 items-center justify-center rounded-[10px] py-4 text-lg font-medium text-[var(--fin-text)] active:opacity-60',
-        'bg-[var(--fin-card2)]',
+        'flex flex-1 items-center justify-center rounded-[10px] py-4 text-lg font-medium text-[var(--text)] active:opacity-60',
+        'bg-[var(--card2)]',
         className,
       )}
     >
@@ -62,23 +62,18 @@ export function MobileAmountKeypad({
       {/* Operator row */}
       <div className="flex gap-1.5">
         {OPERATOR_ROW.map(key => (
-          <KeypadButton
-            key={key}
-            label={key}
-            onPress={() => onKey(key)}
-            className="font-bold text-[var(--fin-accent)]"
-          />
+          <KeypadButton key={key} label={key} onPress={() => onKey(key)} className="font-bold text-[var(--accent)]" />
         ))}
       </div>
 
       {/* Expression strip — only shown when an expression is being built */}
       {expressionText && (
-        <div className="flex items-center gap-2 rounded-[8px] bg-[var(--fin-card2)] px-3 py-1">
+        <div className="flex items-center gap-2 rounded-[8px] bg-[var(--card2)] px-3 py-1">
           <div className="min-w-0 flex-1 overflow-hidden">
-            <p className="whitespace-nowrap text-right text-[11px] text-[var(--fin-muted)]">{expressionText}</p>
+            <p className="whitespace-nowrap text-right text-[11px] text-[var(--muted)]">{expressionText}</p>
           </div>
           {formattedResult && (
-            <span className="shrink-0 text-[11px] font-semibold text-[var(--fin-accent)]">= {formattedResult}</span>
+            <span className="shrink-0 text-[11px] font-semibold text-[var(--accent)]">= {formattedResult}</span>
           )}
         </div>
       )}
@@ -91,7 +86,7 @@ export function MobileAmountKeypad({
               key={key}
               label={key}
               onPress={() => onKey(key)}
-              className={OPERATOR_KEYS.has(key) ? 'font-bold text-[var(--fin-accent)]' : undefined}
+              className={OPERATOR_KEYS.has(key) ? 'font-bold text-[var(--accent)]' : undefined}
             />
           ))}
         </div>

@@ -47,12 +47,12 @@ export function PayeeMappingPanel({
   }).length;
 
   return (
-    <div className="w-[300px] flex-shrink-0 rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card2)] overflow-hidden">
+    <div className="w-[300px] flex-shrink-0 rounded-[10px] border border-[var(--border)] bg-[var(--card2)] overflow-hidden">
       {/* Header */}
-      <div className="border-b border-[var(--fin-border)] px-3 py-2.5">
+      <div className="border-b border-[var(--border)] px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
-          <div className="text-xs font-semibold text-[var(--fin-text)]">Payee mapping</div>
-          <div className="flex gap-1.5 text-[10px] text-[var(--fin-muted)] flex-shrink-0">
+          <div className="text-xs font-semibold text-[var(--text)]">Payee mapping</div>
+          <div className="flex gap-1.5 text-[10px] text-[var(--muted)] flex-shrink-0">
             <span>{payeeStats.matched} matched</span>
             <span>·</span>
             <span>{payeeStats.created} new</span>
@@ -61,15 +61,15 @@ export function PayeeMappingPanel({
           </div>
         </div>
         <div className="mt-1.5 flex items-center justify-between gap-2">
-          <div className="text-[10px] text-[var(--fin-muted)]">Match, create, or skip each CSV payee.</div>
+          <div className="text-[10px] text-[var(--muted)]">Match, create, or skip each CSV payee.</div>
           <button
             type="button"
             onClick={() => setShowUnmatchedOnly(v => !v)}
             className={cn(
               'flex-shrink-0 rounded-[5px] border px-1.5 py-0.5 text-[10px] transition-colors cursor-pointer',
               showUnmatchedOnly
-                ? 'border-[var(--fin-accent)] bg-[var(--fin-accent-d)] text-[var(--fin-accent)] font-semibold'
-                : 'border-[var(--fin-border)] text-[var(--fin-muted)] hover:text-[var(--fin-text)]',
+                ? 'border-[var(--accent)] bg-[var(--accent-d)] text-[var(--accent)] font-semibold'
+                : 'border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)]',
             )}
           >
             {unresolvedCount} unresolved
@@ -78,9 +78,9 @@ export function PayeeMappingPanel({
       </div>
 
       {/* Scrollable rows */}
-      <div className="max-h-[600px] overflow-y-auto divide-y divide-[var(--fin-border)]">
+      <div className="max-h-[600px] overflow-y-auto divide-y divide-[var(--border)]">
         {visiblePayeeValues.length === 0 && (
-          <div className="px-3 py-4 text-center text-[11px] text-[var(--fin-muted)]">All payees resolved</div>
+          <div className="px-3 py-4 text-center text-[11px] text-[var(--muted)]">All payees resolved</div>
         )}
         {visiblePayeeValues.map(csvValue => {
           const mapping = payeeMappings.get(csvValue);
@@ -90,14 +90,14 @@ export function PayeeMappingPanel({
             <div key={csvValue} className="flex flex-col gap-2 px-3 py-2.5">
               {/* CSV value */}
               <div className="flex min-w-0 items-center gap-1.5">
-                <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--fin-text)]" title={csvValue}>
+                <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--text)]" title={csvValue}>
                   {csvValue}
                 </span>
-                {autoMatched && <span className="flex-shrink-0 text-[9px] text-[var(--fin-green)]">● matched</span>}
+                {autoMatched && <span className="flex-shrink-0 text-[9px] text-[var(--green)]">● matched</span>}
               </div>
 
               {/* Match / Create / Skip toggle */}
-              <div className="flex overflow-hidden rounded-[6px] border border-[var(--fin-border)] text-[10px]">
+              <div className="flex overflow-hidden rounded-[6px] border border-[var(--border)] text-[10px]">
                 {(['existing', 'create', 'unmapped'] as PayeeAction[]).map(action => (
                   <button
                     key={action}
@@ -106,8 +106,8 @@ export function PayeeMappingPanel({
                     className={cn(
                       'flex-1 py-1 cursor-pointer transition-colors',
                       mapping.action === action
-                        ? 'bg-[var(--fin-accent-d)] text-[var(--fin-accent)] font-semibold'
-                        : 'text-[var(--fin-muted)] hover:text-[var(--fin-text)]',
+                        ? 'bg-[var(--accent-d)] text-[var(--accent)] font-semibold'
+                        : 'text-[var(--muted)] hover:text-[var(--text)]',
                     )}
                   >
                     {action === 'unmapped' ? 'Skip' : action === 'existing' ? 'Match' : 'Create'}
@@ -154,7 +154,7 @@ export function PayeeMappingPanel({
                     value={mapping.newPayeeName}
                     onChange={e => onUpdateMapping(csvValue, { newPayeeName: e.target.value })}
                     placeholder="Canonical name…"
-                    className="w-full rounded-[6px] border border-[var(--fin-border)] bg-[var(--fin-card)] px-2 py-1 text-xs text-[var(--fin-text)] outline-none"
+                    className="w-full rounded-[6px] border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-xs text-[var(--text)] outline-none"
                   />
                   {showCategoryDropdown && (
                     <FinancialDropdown
@@ -169,7 +169,7 @@ export function PayeeMappingPanel({
                     />
                   )}
                   {mapping.newPayeeName !== csvValue && (
-                    <label className="flex cursor-pointer items-center gap-1.5 text-[10px] text-[var(--fin-muted)]">
+                    <label className="flex cursor-pointer items-center gap-1.5 text-[10px] text-[var(--muted)]">
                       <input
                         type="checkbox"
                         checked={mapping.addAlias}

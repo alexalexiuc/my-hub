@@ -29,11 +29,11 @@ export function TransactionPreviewTable({
   onUpdateRow,
 }: TransactionPreviewTableProps) {
   return (
-    <div className="min-w-0 flex-1 overflow-x-auto rounded-[10px] border border-[var(--fin-border)]">
+    <div className="min-w-0 flex-1 overflow-x-auto rounded-[10px] border border-[var(--border)]">
       <div className="max-h-[600px] overflow-y-auto">
         <table className="w-full text-xs">
           <thead className="sticky top-0 z-10">
-            <tr className="border-b border-[var(--fin-border)] bg-[var(--fin-card2)] text-[var(--fin-subtle)]">
+            <tr className="border-b border-[var(--border)] bg-[var(--card2)] text-[var(--subtle)]">
               <th className="py-2 pl-3 pr-2 text-left font-medium">Ign.</th>
               <th className="py-2 pr-2 text-left font-medium">Date</th>
               <th className="py-2 pr-2 text-right font-medium">Amount</th>
@@ -49,7 +49,7 @@ export function TransactionPreviewTable({
               <tr
                 key={row._key}
                 className={cn(
-                  'border-b border-[var(--fin-border)] last:border-0 transition-opacity',
+                  'border-b border-[var(--border)] last:border-0 transition-opacity',
                   row.ignored ? 'opacity-35' : '',
                 )}
               >
@@ -67,14 +67,14 @@ export function TransactionPreviewTable({
                     <span className="font-mono text-[11px]">
                       {row.date}
                       {row.isDuplicate && (
-                        <span className="ml-1 text-[9px] text-[var(--fin-amber)]" title="Possible duplicate">
+                        <span className="ml-1 text-[9px] text-[var(--amber)]" title="Possible duplicate">
                           ⚠
                         </span>
                       )}
                     </span>
                   ) : (
                     <span
-                      className="font-mono text-[11px] text-[var(--fin-red)] cursor-help"
+                      className="font-mono text-[11px] text-[var(--red)] cursor-help"
                       title={`Unrecognised date format: "${row.rawDate}". Supported: YYYY-MM-DD, YYYYMMDD, DD.MM.YYYY, DD/MM/YYYY, MM/DD/YYYY`}
                     >
                       {row.rawDate || '—'} ✗
@@ -86,10 +86,10 @@ export function TransactionPreviewTable({
                     style={{
                       color:
                         row.type === TransactionTypes.Expense
-                          ? 'var(--fin-red)'
+                          ? 'var(--red)'
                           : row.type === TransactionTypes.Income
-                            ? 'var(--fin-green)'
-                            : 'var(--fin-blue)',
+                            ? 'var(--green)'
+                            : 'var(--blue)',
                     }}
                   >
                     {row.type === TransactionTypes.Expense ? '−' : '+'}
@@ -122,7 +122,7 @@ export function TransactionPreviewTable({
                         placeholder="To account…"
                         searchable
                         fuse
-                        inputClassName={cn('text-xs py-0.5', !row.toAccountId && 'border border-[var(--fin-red)]')}
+                        inputClassName={cn('text-xs py-0.5', !row.toAccountId && 'border border-[var(--red)]')}
                       />
                     )}
                   </div>
@@ -140,12 +140,12 @@ export function TransactionPreviewTable({
                         clearable
                         inputClassName={cn(
                           'text-xs py-0.5',
-                          row.type === TransactionTypes.Expense && !row.categoryId && 'border border-[var(--fin-red)]',
+                          row.type === TransactionTypes.Expense && !row.categoryId && 'border border-[var(--red)]',
                         )}
                       />
                     </div>
                   ) : (
-                    <span className="text-[var(--fin-muted)]">—</span>
+                    <span className="text-[var(--muted)]">—</span>
                   )}
                 </td>
                 <td className="min-w-[100px] py-1.5 pr-3">
@@ -153,7 +153,7 @@ export function TransactionPreviewTable({
                     type="text"
                     value={row.notes}
                     onChange={e => onUpdateRow(row._key, { notes: e.target.value })}
-                    className="w-full bg-transparent text-xs text-[var(--fin-text)] outline-none placeholder:text-[var(--fin-muted)]"
+                    className="w-full bg-transparent text-xs text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
                     placeholder="—"
                   />
                 </td>

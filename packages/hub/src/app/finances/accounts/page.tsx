@@ -18,10 +18,10 @@ import type { AccountType } from '@my-hub/shared/constants';
 import { ACCOUNT_GROUPS, groupAccountsByCurrency } from './accounts.utils';
 
 function amountColor(balance: number, type: AccountType): string {
-  if (LIABILITY_ACCOUNT_TYPES.has(type)) return 'text-[var(--fin-red)]';
-  if (balance > 0) return 'text-[var(--fin-green)]';
-  if (balance < 0) return 'text-[var(--fin-red)]';
-  return 'text-[var(--fin-text)]';
+  if (LIABILITY_ACCOUNT_TYPES.has(type)) return 'text-[var(--red)]';
+  if (balance > 0) return 'text-[var(--green)]';
+  if (balance < 0) return 'text-[var(--red)]';
+  return 'text-[var(--text)]';
 }
 
 function AccountCard({
@@ -39,9 +39,9 @@ function AccountCard({
     <div onClick={onClick} className="cursor-pointer px-[14px] py-2">
       <div className={cn('flex items-center justify-between', hasExtra ? 'mb-[10px]' : 'mb-0')}>
         <div className="flex items-center gap-2 min-w-0">
-          <div className="h-2 w-2 shrink-0 rounded-full bg-[var(--fin-muted)]" />
+          <div className="h-2 w-2 shrink-0 rounded-full bg-[var(--muted)]" />
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-[var(--fin-text)] truncate">{acc.name}</div>
+            <div className="text-sm font-semibold text-[var(--text)] truncate">{acc.name}</div>
             {acc.cardLastFour && <SubText className="block">•••• {acc.cardLastFour}</SubText>}
           </div>
         </div>
@@ -60,18 +60,13 @@ function AccountCard({
           value={acc.balance}
           max={acc.creditLimit}
           currency={acc.currency}
-          color="var(--fin-blue)"
+          color="var(--blue)"
           prefix="Used"
         />
       )}
 
       {acc.type === 'goal' && acc.targetAmount != null && (
-        <AccountProgressBar
-          value={acc.balance}
-          max={acc.targetAmount}
-          currency={acc.currency}
-          color="var(--fin-green)"
-        />
+        <AccountProgressBar value={acc.balance} max={acc.targetAmount} currency={acc.currency} color="var(--green)" />
       )}
 
       {acc.type === 'tracking' && <SubText className="block">Manually tracked value · read-only</SubText>}
@@ -138,7 +133,7 @@ export default function AccountsPage() {
   return (
     <div className="flex flex-col gap-[14px]">
       <div className="flex items-center justify-between">
-        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Accounts</div>
+        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Accounts</div>
         <AddButton onClick={() => setShowAddModal(true)} title="Add account" />
       </div>
 
@@ -149,13 +144,13 @@ export default function AccountsPage() {
             label="What is net worth?"
             icon={<QuestionMarkIcon className="size-3.5" />}
             onClick={() => setShowNetWorthSheet(true)}
-            className="absolute right-[10px] top-[10px] p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
+            className="absolute right-[10px] top-[10px] p-1 text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--accent)]"
           />
           <SubText className="block mb-1.5 uppercase tracking-[0.08em]">Net Worth</SubText>
-          <div className="mb-2 text-[15px] font-bold tracking-[-0.02em] text-[var(--fin-text)] break-all leading-tight">
+          <div className="mb-2 text-[15px] font-bold tracking-[-0.02em] text-[var(--text)] break-all leading-tight">
             {fmt(netWorth, currency)}
           </div>
-          <Sparkline data={netWorthHistory} color="var(--fin-green)" width={80} height={28} />
+          <Sparkline data={netWorthHistory} color="var(--green)" width={80} height={28} />
         </Card>
 
         <Card compact className="relative p-[14px]">
@@ -164,10 +159,10 @@ export default function AccountsPage() {
             icon={<QuestionMarkIcon className="size-3.5" />}
             onClick={() => setShowAvailableSheet(true)}
             variant="ghost"
-            className="absolute right-[10px] top-[10px] p-1 text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
+            className="absolute right-[10px] top-[10px] p-1 text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--accent)]"
           />
           <SubText className="block mb-1.5 uppercase tracking-[0.08em]">Available</SubText>
-          <div className="text-[15px] font-bold tracking-[-0.02em] text-[var(--fin-text)] break-all leading-tight">
+          <div className="text-[15px] font-bold tracking-[-0.02em] text-[var(--text)] break-all leading-tight">
             {fmt(availableBalance, currency)}
           </div>
         </Card>
@@ -189,7 +184,7 @@ export default function AccountsPage() {
                 {icon} {label}
               </SectionLabel>
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-semibold tabular-nums text-[var(--fin-muted)]">
+                <span className="text-[11px] font-semibold tabular-nums text-[var(--muted)]">
                   {groupedAccounts.map(([currency, accounts]) => {
                     const groupTotal = accounts.reduce((sum, acc) => sum + acc.balance, 0);
                     return (
@@ -201,7 +196,7 @@ export default function AccountsPage() {
                 </span>
                 <span
                   className={cn(
-                    'text-[9px] text-[var(--fin-subtle)] transition-transform duration-200',
+                    'text-[9px] text-[var(--subtle)] transition-transform duration-200',
                     !isCollapsed && 'rotate-90',
                   )}
                 >
@@ -228,7 +223,7 @@ export default function AccountsPage() {
       })}
 
       {activeAccounts.length === 0 && archivedAccounts.length === 0 && (
-        <div className="py-12 text-center text-[13px] text-[var(--fin-subtle)]">
+        <div className="py-12 text-center text-[13px] text-[var(--subtle)]">
           No accounts yet. Add your first account to get started.
         </div>
       )}
@@ -242,7 +237,7 @@ export default function AccountsPage() {
             <SectionLabel className="mb-0">🗄 Archived ({archivedAccounts.length})</SectionLabel>
             <span
               className={cn(
-                'text-[9px] text-[var(--fin-subtle)] transition-transform duration-200',
+                'text-[9px] text-[var(--subtle)] transition-transform duration-200',
                 showArchived && 'rotate-90',
               )}
             >

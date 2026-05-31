@@ -84,7 +84,7 @@ export default function PayeesPage() {
 
   return (
     <div className="flex flex-col gap-[14px]">
-      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Payees</div>
+      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Payees</div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Input
@@ -92,14 +92,14 @@ export default function PayeesPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           variant="ghost"
-          className="flex-1 text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+          className="flex-1 text-[var(--text)] placeholder:text-[var(--subtle)]"
         />
         <PayeesRangeFilter range={range} onChange={setRange} ranges={PAYEE_RANGES} />
       </div>
 
       {payeesLoading ? (
         <div
-          className="h-[300px] rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+          className="h-[300px] rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
           style={{ opacity: 0.6 }}
         />
       ) : (
@@ -107,7 +107,7 @@ export default function PayeesPage() {
           <PayeesTableHeader sortBy={sortBy} onSort={setSortBy} />
 
           {sorted.length === 0 && (
-            <div className="py-8 text-center text-xs text-[var(--fin-subtle)]">
+            <div className="py-8 text-center text-xs text-[var(--subtle)]">
               {search ? 'No payees match your search' : 'No payees yet'}
             </div>
           )}

@@ -79,7 +79,7 @@ export function CsvImportScreen({ onDone, onBack }: CsvImportScreenProps) {
   const [submitting, setSubmitting] = useState(false);
 
   if (loadingData || !formData) {
-    return <div className="flex h-48 items-center justify-center text-sm text-[var(--fin-muted)]">Loading…</div>;
+    return <div className="flex h-48 items-center justify-center text-sm text-[var(--muted)]">Loading…</div>;
   }
 
   // Narrowed reference so closures below see the non-null type

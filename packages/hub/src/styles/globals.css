@@ -1,4 +1,6 @@
 @import './finances-purple.css';
+@import './calories-orange.css';
+@import './travel-emerald.css';
 
 @tailwind base;
 @tailwind components;

@@ -48,7 +48,7 @@ export function MergePayeeModal({ payee, allPayees, onClose, onMerged }: MergePa
       submitLoading={submitting}
     >
       <div className="flex flex-col gap-3">
-        <p className="text-xs text-[var(--fin-subtle)]">
+        <p className="text-xs text-[var(--subtle)]">
           Select a payee to merge into <strong>{payee.name}</strong>. Its transactions will be reassigned and it will be
           deleted. Its name and aliases will be added to <strong>{payee.name}</strong>&apos;s aliases.
         </p>

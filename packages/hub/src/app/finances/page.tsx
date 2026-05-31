@@ -52,8 +52,8 @@ export default function FinancesPage() {
             key={i}
             style={{
               height: h,
-              background: 'var(--fin-card)',
-              borderColor: 'var(--fin-border)',
+              background: 'var(--card)',
+              borderColor: 'var(--border)',
               opacity: 0.6,
             }}
             className="rounded-[10px] border"

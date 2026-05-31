@@ -65,7 +65,7 @@ export default function CategoryDetailPage() {
         {[40, 140, 280].map((h, i) => (
           <div
             key={i}
-            className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+            className="rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
             style={{ height: h, opacity: 0.6 }}
           />
         ))}
@@ -97,28 +97,28 @@ export default function CategoryDetailPage() {
             fallback={getCategoryFallbackLetter(category.name)}
           />
           <div>
-            <div className="text-[17px] font-bold text-[var(--fin-text)]">{category.name}</div>
+            <div className="text-[17px] font-bold text-[var(--text)]">{category.name}</div>
             {groupName && <SubText className="block">{groupName}</SubText>}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] p-2.5">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--card2)] p-2.5">
             <SubText className="block uppercase tracking-[0.08em]">Spent</SubText>
-            <div className="text-[16px] font-semibold text-[var(--fin-text)]">{fmt(category.spent, currency)}</div>
+            <div className="text-[16px] font-semibold text-[var(--text)]">{fmt(category.spent, currency)}</div>
           </div>
-          <div className="rounded-lg border border-[var(--fin-border)] bg-[var(--fin-card2)] p-2.5">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--card2)] p-2.5">
             <SubText className="block uppercase tracking-[0.08em]">Target</SubText>
-            <div className="text-[16px] font-semibold text-[var(--fin-text)]">
+            <div className="text-[16px] font-semibold text-[var(--text)]">
               {target > 0 ? fmt(target, currency) : '—'}
             </div>
           </div>
         </div>
         {progress !== null && (
           <SubText className="block mt-2">
-            Progress: <span className="font-semibold text-[var(--fin-text)]">{progress}%</span>
+            Progress: <span className="font-semibold text-[var(--text)]">{progress}%</span>
           </SubText>
         )}
-        {category.notes && <div className="mt-2 text-[12px] text-[var(--fin-muted)]">{category.notes}</div>}
+        {category.notes && <div className="mt-2 text-[12px] text-[var(--muted)]">{category.notes}</div>}
       </Card>
 
       <Card className="p-0 md:p-[14px]">

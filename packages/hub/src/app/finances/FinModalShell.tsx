@@ -66,7 +66,7 @@ export function FinModalShell({
   return (
     <div
       ref={containerRef}
-      className="fin-modal-shell finances-theme fixed inset-x-0 top-0 h-[100dvh] z-[1000] flex flex-col bg-[var(--fin-card)] md:inset-0 md:h-auto md:items-center md:justify-center md:bg-[var(--fin-overlay)] md:p-4"
+      className="fin-modal-shell finances-theme fixed inset-x-0 top-0 h-[100dvh] z-[1000] flex flex-col bg-[var(--card)] md:inset-0 md:h-auto md:items-center md:justify-center md:bg-[var(--overlay)] md:p-4"
     >
       {/* Desktop backdrop — absolute so it doesn't affect flex layout */}
       <div data-layout="desktop" className="absolute inset-0 hidden md:block" onClick={onClose} />
@@ -74,30 +74,30 @@ export function FinModalShell({
       {/* Mobile header */}
       <div
         data-layout="mobile"
-        className="flex shrink-0 items-center border-b border-[var(--fin-border)] px-4 py-4 md:hidden"
+        className="flex shrink-0 items-center border-b border-[var(--border)] px-4 py-4 md:hidden"
       >
         <IconButton
           variant="ghost"
           label="Close"
           icon={<XOutlineIcon className="size-7" />}
           onClick={onClose}
-          className="text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
+          className="text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--accent)]"
         />
-        <h2 className="flex-1 text-center text-base font-bold text-[var(--fin-text)]">{title}</h2>
+        <h2 className="flex-1 text-center text-base font-bold text-[var(--text)]">{title}</h2>
         <div className="h-8 w-8" />
       </div>
 
       {/* Content — full-height on mobile, constrained card on desktop */}
       <div
         className={cn(
-          'fin-modal-card relative flex-1 bg-[var(--fin-card)]',
+          'fin-modal-card relative flex-1 bg-[var(--card)]',
           scrollable ? 'overflow-y-auto p-4' : 'flex flex-col',
-          'md:flex-none md:w-full md:max-h-[90vh] md:overflow-y-auto md:rounded-[14px] md:border md:border-[var(--fin-border)] md:p-5',
+          'md:flex-none md:w-full md:max-h-[90vh] md:overflow-y-auto md:rounded-[14px] md:border md:border-[var(--border)] md:p-5',
           className,
         )}
       >
         {/* Desktop title */}
-        <div data-layout="desktop" className="mb-4 hidden text-base font-bold text-[var(--fin-text)] md:block">
+        <div data-layout="desktop" className="mb-4 hidden text-base font-bold text-[var(--text)] md:block">
           <div className="flex items-center justify-between">
             {title}
             <IconButton
@@ -105,7 +105,7 @@ export function FinModalShell({
               label="Close"
               icon={<XOutlineIcon className="size-6" />}
               onClick={onClose}
-              className="text-[var(--fin-muted)] hover:bg-[var(--fin-card2)] hover:text-[var(--fin-accent)]"
+              className="text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--accent)]"
             />
           </div>
         </div>
@@ -117,7 +117,7 @@ export function FinModalShell({
               type="button"
               variant="neutral"
               size="sm"
-              className="flex-1 py-2.5 text-[13px] font-semibold hover:border-[var(--fin-red)] hover:text-[var(--fin-red)]"
+              className="flex-1 py-2.5 text-[13px] font-semibold hover:border-[var(--red)] hover:text-[var(--red)]"
               onClick={onClose}
             >
               Cancel
@@ -139,12 +139,12 @@ export function FinModalShell({
 
       {/* Mobile footer — pinned at bottom of full-screen, outside scrollable area */}
       {onSubmit && (
-        <div data-layout="mobile" className="flex shrink-0 gap-2 border-t border-[var(--fin-border)] p-2 md:hidden">
+        <div data-layout="mobile" className="flex shrink-0 gap-2 border-t border-[var(--border)] p-2 md:hidden">
           <Button
             type="button"
             variant="neutral"
             size="sm"
-            className="flex-1 py-2.5 text-[13px] font-semibold hover:border-[var(--fin-red)] hover:text-[var(--fin-red)]"
+            className="flex-1 py-2.5 text-[13px] font-semibold hover:border-[var(--red)] hover:text-[var(--red)]"
             onClick={onClose}
           >
             Cancel

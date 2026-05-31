@@ -30,21 +30,19 @@ function AccountListSection({ accounts, currency, included, onToggle }: AccountL
       <SubText className="block mb-2 font-semibold uppercase tracking-wider">
         {included ? 'Included' : 'Excluded'}
       </SubText>
-      <div className="overflow-hidden rounded-[10px] border border-[var(--fin-border)]">
+      <div className="overflow-hidden rounded-[10px] border border-[var(--border)]">
         {accounts.map((acc, i) => {
           const isLiability = LIABILITY_ACCOUNT_TYPES.has(acc.type as AccountType);
           return (
             <div key={acc.id}>
               {i > 0 && <Divider />}
               <div className="flex items-center gap-3 px-3 py-2.5">
-                <span className={included ? 'text-[var(--fin-green)]' : 'text-[var(--fin-muted)]'}>
-                  {included ? '●' : '○'}
-                </span>
+                <span className={included ? 'text-[var(--green)]' : 'text-[var(--muted)]'}>{included ? '●' : '○'}</span>
                 <div className="min-w-0 flex-1">
                   <div
                     className={cn(
                       'truncate text-[13px] font-medium',
-                      included ? 'text-[var(--fin-text)]' : 'text-[var(--fin-muted)]',
+                      included ? 'text-[var(--text)]' : 'text-[var(--muted)]',
                     )}
                   >
                     {acc.name}
@@ -54,7 +52,7 @@ function AccountListSection({ accounts, currency, included, onToggle }: AccountL
                 {included ? (
                   <AmountText value={isLiability ? -acc.balance : acc.balance} currency={currency} size="sm" sign />
                 ) : (
-                  <span className="shrink-0 text-[13px] tabular-nums text-[var(--fin-subtle)]">
+                  <span className="shrink-0 text-[13px] tabular-nums text-[var(--subtle)]">
                     {fmt(acc.balance, currency)}
                   </span>
                 )}
@@ -63,10 +61,10 @@ function AccountListSection({ accounts, currency, included, onToggle }: AccountL
                   size="xs"
                   onClick={() => onToggle(acc.id, included)}
                   className={cn(
-                    'shrink-0 rounded-md border border-[var(--fin-border)] text-[10px]',
+                    'shrink-0 rounded-md border border-[var(--border)] text-[10px]',
                     included
-                      ? 'hover:border-[var(--fin-red)] hover:text-[var(--fin-red)]'
-                      : 'hover:border-[var(--fin-green)] hover:text-[var(--fin-green)]',
+                      ? 'hover:border-[var(--red)] hover:text-[var(--red)]'
+                      : 'hover:border-[var(--green)] hover:text-[var(--green)]',
                   )}
                 >
                   {included ? 'Exclude' : 'Include'}
@@ -92,11 +90,11 @@ export function AvailableBalanceSheet({
 
   return (
     <FinModalShell title="Available Balance" onClose={onClose} className="md:max-w-[420px]">
-      <div className="mb-5 text-[28px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">
+      <div className="mb-5 text-[28px] font-bold tracking-[-0.02em] text-[var(--text)]">
         {fmt(availableBalance, currency)}
       </div>
 
-      <p className="mb-4 text-[12px] leading-relaxed text-[var(--fin-subtle)]">
+      <p className="mb-4 text-[12px] leading-relaxed text-[var(--subtle)]">
         Bank and Cash accounts are included by default. Toggle any account below to customise what counts toward your
         available balance.
       </p>
@@ -105,7 +103,7 @@ export function AvailableBalanceSheet({
       <AccountListSection accounts={excluded} currency={currency} included={false} onToggle={onToggle} />
 
       {!included.length && !excluded.length && (
-        <div className="py-6 text-center text-[13px] text-[var(--fin-subtle)]">No active accounts yet.</div>
+        <div className="py-6 text-center text-[13px] text-[var(--subtle)]">No active accounts yet.</div>
       )}
     </FinModalShell>
   );

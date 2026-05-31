@@ -60,14 +60,14 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
           onCancel();
         }
       }}
-      className="border-t border-[var(--fin-border)] bg-[var(--fin-card2)] px-3 py-3 md:px-4"
+      className="border-t border-[var(--border)] bg-[var(--card2)] px-3 py-3 md:px-4"
     >
       <div className="grid grid-cols-1 gap-2.5 md:grid-cols-[1fr_8rem_8rem_10rem_5rem] md:items-center md:gap-3">
         <Input
           {...register('name')}
           autoFocus
           placeholder="Item name"
-          className="rounded border border-[var(--fin-border)] bg-[var(--fin-card3)] px-2 py-1.5 text-[13px] text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+          className="rounded border border-[var(--border)] bg-[var(--card3)] px-2 py-1.5 text-[13px] text-[var(--text)] placeholder:text-[var(--subtle)]"
         />
 
         <Input
@@ -75,7 +75,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
           type="number"
           step="0.01"
           placeholder="0"
-          className="rounded border border-[var(--fin-border)] bg-[var(--fin-card3)] px-2 py-1.5 text-right text-[13px] text-[var(--fin-text)] placeholder:text-[var(--fin-subtle)]"
+          className="rounded border border-[var(--border)] bg-[var(--card3)] px-2 py-1.5 text-right text-[13px] text-[var(--text)] placeholder:text-[var(--subtle)]"
         />
 
         <Controller
@@ -88,7 +88,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
               value={field.value}
               onChange={item => field.onChange((item?.id as SupportedCurrency | undefined) ?? defaultCurrency)}
               placeholder="Currency"
-              inputClassName="rounded border border-[var(--fin-border)] bg-[var(--fin-card3)] px-2 py-1.5 text-center text-[11px] text-[var(--fin-muted)]"
+              inputClassName="rounded border border-[var(--border)] bg-[var(--card3)] px-2 py-1.5 text-center text-[11px] text-[var(--muted)]"
             />
           )}
         />
@@ -105,7 +105,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
                 onChange={item => field.onChange((item?.id as string | undefined) ?? '')}
                 placeholder="Account…"
                 clearable
-                inputClassName="rounded border border-[var(--fin-border)] bg-[var(--fin-card3)] px-2 py-1 text-[11px] text-[var(--fin-muted)]"
+                inputClassName="rounded border border-[var(--border)] bg-[var(--card3)] px-2 py-1 text-[11px] text-[var(--muted)]"
               />
             )}
           />
@@ -121,7 +121,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
                 onChange={item => field.onChange((item?.id as string | undefined) ?? '')}
                 placeholder="Category…"
                 clearable
-                inputClassName="rounded border border-[var(--fin-border)] bg-[var(--fin-card3)] px-2 py-1 text-[11px] text-[var(--fin-muted)]"
+                inputClassName="rounded border border-[var(--border)] bg-[var(--card3)] px-2 py-1 text-[11px] text-[var(--muted)]"
               />
             )}
           />
@@ -134,7 +134,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
             loading={isSubmitting}
             size="xs"
             aria-label="Add plan item"
-            className="flex-1 bg-[var(--fin-accent)] hover:bg-[var(--fin-accent)] md:w-full md:flex-none"
+            className="flex-1 bg-[var(--accent)] hover:bg-[var(--accent)] md:w-full md:flex-none"
           >
             Add
           </Button>
@@ -143,7 +143,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
             variant="secondary"
             size="xs"
             onClick={onCancel}
-            className="flex-1 border-[var(--fin-border)] text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)] md:w-full md:flex-none"
+            className="flex-1 border-[var(--border)] text-[var(--muted)] hover:bg-transparent hover:text-[var(--text)] md:w-full md:flex-none"
           >
             Cancel
           </Button>

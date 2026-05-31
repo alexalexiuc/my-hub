@@ -35,8 +35,8 @@ export function BudgetSelectorScreen({ budgets, onActivated, onCreateNew }: Budg
       <Card compact className="w-full max-w-[440px] p-7">
         <div className="mb-6 text-center">
           <div className="mb-2.5 text-[32px]">₤</div>
-          <div className="mb-1.5 text-lg font-bold text-[var(--fin-text)]">Select a budget</div>
-          <div className="text-[13px] text-[var(--fin-muted)]">
+          <div className="mb-1.5 text-lg font-bold text-[var(--text)]">Select a budget</div>
+          <div className="text-[13px] text-[var(--muted)]">
             Choose which budget to make active, or create a new one.
           </div>
         </div>
@@ -45,10 +45,10 @@ export function BudgetSelectorScreen({ budgets, onActivated, onCreateNew }: Budg
           {budgets.map(b => (
             <div
               key={b.id}
-              className="flex items-center justify-between rounded-[8px] border border-[var(--fin-border)] bg-[var(--fin-card2)] px-4 py-3"
+              className="flex items-center justify-between rounded-[8px] border border-[var(--border)] bg-[var(--card2)] px-4 py-3"
             >
               <div>
-                <div className="text-[14px] font-medium text-[var(--fin-text)]">{b.name}</div>
+                <div className="text-[14px] font-medium text-[var(--text)]">{b.name}</div>
                 <SubText className="block">
                   {b.defaultCurrency} · {b.isOwner ? 'Owner' : 'Member'}
                 </SubText>
@@ -65,8 +65,8 @@ export function BudgetSelectorScreen({ budgets, onActivated, onCreateNew }: Budg
           ))}
         </div>
 
-        <div className="mt-5 border-t border-[var(--fin-border)] pt-5 text-center">
-          <button onClick={onCreateNew} className="cursor-pointer text-[13px] text-[var(--fin-accent)] hover:underline">
+        <div className="mt-5 border-t border-[var(--border)] pt-5 text-center">
+          <button onClick={onCreateNew} className="cursor-pointer text-[13px] text-[var(--accent)] hover:underline">
             + Create a new budget
           </button>
         </div>

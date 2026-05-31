@@ -51,7 +51,7 @@ export function PreviewStep({
   return (
     <div className="flex flex-col gap-4">
       {/* Summary */}
-      <div className="text-[13px] text-[var(--fin-muted)]">
+      <div className="text-[13px] text-[var(--muted)]">
         {importRows.length} rows · {currency}
       </div>
 

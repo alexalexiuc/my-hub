@@ -108,7 +108,7 @@ export function SmartDatePicker({
           label="Previous month"
           icon={<ChevronLeftOutlineIcon />}
           onClick={() => onChange({ month: shiftMonthStr(month, -1) })}
-          className="bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)]"
+          className="bg-transparent text-[var(--muted)] hover:bg-transparent hover:text-[var(--text)]"
         />
       )}
 
@@ -116,16 +116,14 @@ export function SmartDatePicker({
         /* Clickable label with dropdown */
         <button
           onClick={() => setOpen(o => !o)}
-          className="flex items-center gap-1 rounded-lg px-1 py-0.5 transition-colors hover:bg-[var(--fin-card2)]"
+          className="flex items-center gap-1 rounded-lg px-1 py-0.5 transition-colors hover:bg-[var(--card2)]"
         >
-          <span
-            className={cn('min-w-44 font-bold tracking-tight text-[var(--fin-text)]', labelClassName ?? 'text-[22px]')}
-          >
+          <span className={cn('min-w-44 font-bold tracking-tight text-[var(--text)]', labelClassName ?? 'text-[22px]')}>
             {displayLabel}
           </span>
           <ChevronDownOutlineIcon
             className={cn(
-              'shrink-0 text-[var(--fin-muted)] transition-transform duration-150',
+              'shrink-0 text-[var(--muted)] transition-transform duration-150',
               open && 'rotate-180',
               bigChevron ? 'size-6' : 'size-5',
             )}
@@ -133,9 +131,7 @@ export function SmartDatePicker({
         </button>
       ) : (
         /* Plain label — MonthCarousel-style, no dropdown */
-        <h2
-          className={cn('w-44 text-center text-[22px] font-bold tracking-tight text-[var(--fin-text)]', labelClassName)}
-        >
+        <h2 className={cn('w-44 text-center text-[22px] font-bold tracking-tight text-[var(--text)]', labelClassName)}>
           {displayLabel}
         </h2>
       )}
@@ -146,7 +142,7 @@ export function SmartDatePicker({
           icon={<ChevronRightOutlineIcon />}
           onClick={() => onChange({ month: shiftMonthStr(month, 1) })}
           disabled={maxMonth !== undefined && month >= maxMonth}
-          className="bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)] disabled:opacity-30"
+          className="bg-transparent text-[var(--muted)] hover:bg-transparent hover:text-[var(--text)] disabled:opacity-30"
         />
       )}
 
@@ -157,8 +153,8 @@ export function SmartDatePicker({
       )}
 
       {extendedFilters && open && (
-        <div className="absolute left-0 top-full z-30 mt-2 min-w-[252px] rounded-xl border border-[var(--fin-border)] bg-[var(--fin-card)] shadow-xl">
-          <div className="flex gap-1 border-b border-[var(--fin-border)] p-2">
+        <div className="absolute left-0 top-full z-30 mt-2 min-w-[252px] rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-xl">
+          <div className="flex gap-1 border-b border-[var(--border)] p-2">
             <Button variant="fin-pill" size="xs" active={tab === 'month'} onClick={() => setTab('month')}>
               Month
             </Button>
@@ -185,14 +181,14 @@ export function SmartDatePicker({
                   label="Previous year"
                   icon={<ChevronLeftOutlineIcon />}
                   onClick={() => setPickerYear(y => y - 1)}
-                  className="bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)]"
+                  className="bg-transparent text-[var(--muted)] hover:bg-transparent hover:text-[var(--text)]"
                 />
-                <span className="text-[13px] font-semibold text-[var(--fin-text)]">{pickerYear}</span>
+                <span className="text-[13px] font-semibold text-[var(--text)]">{pickerYear}</span>
                 <IconButton
                   label="Next year"
                   icon={<ChevronRightOutlineIcon />}
                   onClick={() => setPickerYear(y => y + 1)}
-                  className="bg-transparent text-[var(--fin-muted)] hover:bg-transparent hover:text-[var(--fin-text)]"
+                  className="bg-transparent text-[var(--muted)] hover:bg-transparent hover:text-[var(--text)]"
                 />
               </div>
               <div className="grid grid-cols-4 gap-1">
@@ -204,9 +200,7 @@ export function SmartDatePicker({
                       onClick={() => selectMonth(i)}
                       className={cn(
                         'rounded-lg py-1.5 text-[12px] font-medium transition-colors',
-                        isSelected
-                          ? 'bg-[var(--fin-accent)] text-white'
-                          : 'text-[var(--fin-text)] hover:bg-[var(--fin-card2)]',
+                        isSelected ? 'bg-[var(--accent)] text-white' : 'text-[var(--text)] hover:bg-[var(--card2)]',
                       )}
                     >
                       {name}
@@ -225,7 +219,7 @@ export function SmartDatePicker({
                   value={rangeFrom}
                   onChange={e => setRangeFrom(e.target.value)}
                   variant="ghost"
-                  className="w-full text-[13px] text-[var(--fin-text)]"
+                  className="w-full text-[13px] text-[var(--text)]"
                 />
               </FinFieldCard>
               <FinFieldCard label="To">
@@ -234,7 +228,7 @@ export function SmartDatePicker({
                   value={rangeTo}
                   onChange={e => setRangeTo(e.target.value)}
                   variant="ghost"
-                  className="w-full text-[13px] text-[var(--fin-text)]"
+                  className="w-full text-[13px] text-[var(--text)]"
                 />
               </FinFieldCard>
               <Button variant="fin-pill" size="xs" className="mt-1 self-end" onClick={applyRange}>

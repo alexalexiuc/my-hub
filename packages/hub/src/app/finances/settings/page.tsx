@@ -74,7 +74,7 @@ export default function FinancesSettingsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-[18px]">
-      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--fin-text)]">Settings</div>
+      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Settings</div>
 
       <BudgetsSection onChanged={load} />
 
@@ -83,7 +83,7 @@ export default function FinancesSettingsPage() {
           {[140, 100].map((h, i) => (
             <div
               key={i}
-              className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+              className="rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
               style={{ height: h, opacity: 0.6 }}
             />
           ))}
@@ -100,19 +100,19 @@ export default function FinancesSettingsPage() {
                 return (
                   <div key={m.userId} className="flex items-center gap-2.5">
                     <div
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold bg-[var(--fin-accent-d)] text-[var(--fin-accent)]"
-                      style={{ border: `1px solid var(--fin-accent)44` }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold bg-[var(--accent-d)] text-[var(--accent)]"
+                      style={{ border: `1px solid var(--accent)44` }}
                     >
                       {(m.name ?? m.email)[0]?.toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-[13px] font-medium text-[var(--fin-text)]">{m.name ?? m.email}</div>
+                      <div className="text-[13px] font-medium text-[var(--text)]">{m.name ?? m.email}</div>
                       {m.name && <SubText className="block">{m.email}</SubText>}
                     </div>
                     {isCreator && (
                       <span
-                        className="rounded-[20px] bg-[var(--fin-accent-d)] px-2 py-[2px] text-[10px] text-[var(--fin-accent)]"
-                        style={{ border: `1px solid var(--fin-accent)44` }}
+                        className="rounded-[20px] bg-[var(--accent-d)] px-2 py-[2px] text-[10px] text-[var(--accent)]"
+                        style={{ border: `1px solid var(--accent)44` }}
                       >
                         Owner
                       </span>
@@ -134,7 +134,7 @@ export default function FinancesSettingsPage() {
             </div>
 
             {data.budget.isOwner && (
-              <div className="mt-4 border-t border-[var(--fin-border)] pt-4">
+              <div className="mt-4 border-t border-[var(--border)] pt-4">
                 <SubText className="block mb-1.5">Invite member by email</SubText>
                 <div className="flex gap-2">
                   <Input
@@ -160,7 +160,7 @@ export default function FinancesSettingsPage() {
                     {inviting ? '…' : 'Invite'}
                   </Button>
                 </div>
-                {inviteError && <p className="mt-1 text-[11px] text-[var(--fin-red)]">{inviteError}</p>}
+                {inviteError && <p className="mt-1 text-[11px] text-[var(--red)]">{inviteError}</p>}
               </div>
             )}
           </Card>
@@ -169,9 +169,9 @@ export default function FinancesSettingsPage() {
           <ClaudePromptSection budget={data.budget} />
 
           {/* Danger zone */}
-          <Card className="p-[18px]" style={{ border: `1px solid var(--fin-red)33` }}>
-            <SectionLabel className="mb-2 text-[var(--fin-red)]">Danger zone</SectionLabel>
-            <p className="mb-3 text-xs text-[var(--fin-muted)]">
+          <Card className="p-[18px]" style={{ border: `1px solid var(--red)33` }}>
+            <SectionLabel className="mb-2 text-[var(--red)]">Danger zone</SectionLabel>
+            <p className="mb-3 text-xs text-[var(--muted)]">
               Permanently deletes this budget and all associated accounts, categories, and transactions. This cannot be
               undone.
             </p>
@@ -181,10 +181,10 @@ export default function FinancesSettingsPage() {
               </Button>
             ) : (
               <div
-                className="flex flex-col gap-2.5 rounded-[10px] bg-[var(--fin-red-d)] p-[14px]"
-                style={{ border: `1px solid var(--fin-red)44` }}
+                className="flex flex-col gap-2.5 rounded-[10px] bg-[var(--red-d)] p-[14px]"
+                style={{ border: `1px solid var(--red)44` }}
               >
-                <p className="text-[13px] font-medium text-[var(--fin-red)]">
+                <p className="text-[13px] font-medium text-[var(--red)]">
                   Are you sure? All data will be permanently deleted.
                 </p>
                 <div className="flex gap-2">

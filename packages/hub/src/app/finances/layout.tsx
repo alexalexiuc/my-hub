@@ -4,25 +4,21 @@ import { FinancesBottomNav } from './FinancesBottomNav';
 
 export default function FinancesLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="finances-theme flex h-screen flex-col bg-[var(--fin-bg)]">
+    <div className="finances-theme flex h-screen flex-col bg-[var(--bg)]">
       {/* Breadcrumb strip */}
-      <div className="shrink-0 border-b border-[var(--fin-border)] bg-[var(--fin-shell)] px-6">
+      <div className="shrink-0 border-b border-[var(--border)] bg-[var(--shell)] px-6">
         <div className="flex h-12 items-center gap-2.5">
-          <Link
-            href="/"
-            className="flex items-center gap-1 text-[13px] font-medium text-[var(--fin-accent)] no-underline"
-          >
+          <Link href="/" className="flex items-center gap-1 text-[13px] font-medium text-[var(--accent)] no-underline">
             <span className="text-base leading-none">←</span>
-            <span className="font-normal text-[var(--fin-muted)]">Hub</span>
+            <span className="font-normal text-[var(--muted)]">Hub</span>
           </Link>
-          <span className="text-sm text-[var(--fin-border)]">/</span>
+          <span className="text-sm text-[var(--border)]">/</span>
           <Link
             href="/finances"
-            className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--fin-text)] no-underline"
+            className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--text)] no-underline"
           >
             Finances
           </Link>
-          {/* <span className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--fin-text)]">Finances</span> */}
         </div>
       </div>
 

@@ -9,7 +9,7 @@ export type CurrencyCellProps = {
 };
 
 export function CurrencyCell({ csvCurrency, accountId, accounts }: CurrencyCellProps) {
-  if (!csvCurrency) return <span className="text-[var(--fin-muted)]">—</span>;
+  if (!csvCurrency) return <span className="text-[var(--muted)]">—</span>;
   const isSupported = (SupportedCurrencies as readonly string[]).includes(csvCurrency);
   const accountCurrency = accounts.find(a => a.id === accountId)?.currency ?? '';
   const mismatch = isSupported && accountCurrency && csvCurrency !== accountCurrency;
@@ -17,7 +17,7 @@ export function CurrencyCell({ csvCurrency, accountId, accounts }: CurrencyCellP
     <span
       className="font-mono text-[11px]"
       style={{
-        color: !isSupported ? 'var(--fin-red)' : mismatch ? 'var(--fin-amber)' : 'var(--fin-text)',
+        color: !isSupported ? 'var(--red)' : mismatch ? 'var(--amber)' : 'var(--text)',
       }}
       title={
         !isSupported

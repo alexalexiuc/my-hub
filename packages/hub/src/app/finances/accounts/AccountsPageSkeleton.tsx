@@ -4,7 +4,7 @@ export function AccountsPageSkeleton() {
       {[80, 120, 100].map((h, i) => (
         <div
           key={i}
-          className="rounded-[10px] border border-[var(--fin-border)] bg-[var(--fin-card)]"
+          className="rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
           style={{ height: h, opacity: 0.6 }}
         />
       ))}

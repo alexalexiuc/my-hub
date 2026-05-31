@@ -18,7 +18,7 @@ export function AccountProgressBar({
   return (
     <div>
       <div className="mb-1 flex justify-between">
-        <span className="text-[10px] text-[var(--fin-muted)]">
+        <span className="text-[10px] text-[var(--muted)]">
           {prefix ? `${prefix} ` : ''}
           {fmt(value, currency)} of {fmt(max, currency)}
         </span>
