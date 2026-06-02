@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { cn, apiFetch } from '@/lib/utils';
 import { Input } from '@/components';
-import { FinFieldCard } from '../ui';
+import { FinFieldCard, renderAccountOption, renderCategoryOption } from '../ui';
 import { FinancialDropdown } from '../FinancialDropdown';
 import { finDropdownInputClass } from '../finances.utils';
 import { TransactionType, TransactionTypes } from '@my-hub/shared/constants';
@@ -26,8 +26,8 @@ export type ExtraFilterValues = {
 };
 
 type Member = { userId: string; name: string | null; email: string; initials: string };
-type AccountOption = { id: number; name: string };
-type CategoryOption = { id: number; name: string };
+type AccountOption = { id: number; name: string; type: string; currency: string };
+type CategoryOption = { id: number; name: string; icon: string | null; color: string | null };
 
 type TransactionFiltersProps = {
   typeFilter: Filter;
@@ -75,8 +75,15 @@ export function TransactionFilters({ typeFilter, extraValues, onTypeChange, onEx
       .catch(() => {});
     apiFetch<TransactionFormDataResponse>('/api/finances/transactions/form-data', { silentToast: true })
       .then(r => {
-        setAccounts(sortAccountsByGroup(r.accounts.filter(a => !a.archived)).map(a => ({ id: a.id, name: a.name })));
-        setCategories(r.categories.map(c => ({ id: c.id, name: c.name })));
+        setAccounts(
+          sortAccountsByGroup(r.accounts.filter(a => !a.archived)).map(a => ({
+            id: a.id,
+            name: a.name,
+            type: a.type,
+            currency: a.currency,
+          })),
+        );
+        setCategories(r.categories.map(c => ({ id: c.id, name: c.name, icon: c.icon, color: c.color })));
       })
       .catch(() => {});
   }, []);
@@ -173,6 +180,7 @@ export function TransactionFilters({ typeFilter, extraValues, onTypeChange, onEx
             options={accounts.map(a => ({ id: a.id, value: a.name }))}
             value={extraValues.accountId ? Number(extraValues.accountId) : undefined}
             onChange={item => onExtraChange({ accountId: item ? String(item.id) : '' })}
+            renderOption={item => renderAccountOption(item, accounts)}
             placeholder="All accounts"
             clearable
             clearAriaLabel="Clear account filter"
@@ -186,6 +194,7 @@ export function TransactionFilters({ typeFilter, extraValues, onTypeChange, onEx
             options={categories.map(c => ({ id: c.id, value: c.name }))}
             value={extraValues.categoryId ? Number(extraValues.categoryId) : undefined}
             onChange={item => onExtraChange({ categoryId: item ? String(item.id) : '' })}
+            renderOption={item => renderCategoryOption(item, categories)}
             placeholder="All categories"
             clearable
             clearAriaLabel="Clear category filter"
