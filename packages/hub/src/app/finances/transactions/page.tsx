@@ -23,7 +23,15 @@ function currentMonthStr(): string {
   return dateToString().slice(0, 7);
 }
 
-const EMPTY_EXTRA: ExtraFilterValues = { addedByUserId: '', label: '', amountGte: '', amountLte: '', search: '' };
+const EMPTY_EXTRA: ExtraFilterValues = {
+  addedByUserId: '',
+  accountId: '',
+  categoryId: '',
+  label: '',
+  amountGte: '',
+  amountLte: '',
+  search: '',
+};
 
 export default function TransactionsPage() {
   const router = useRouter();
@@ -47,6 +55,8 @@ export default function TransactionsPage() {
     typeFilter !== 'all',
     dateMode !== 'month',
     !!extra.addedByUserId,
+    !!extra.accountId,
+    !!extra.categoryId,
     !!extra.label,
     !!extra.amountGte,
     !!extra.amountLte,
@@ -170,6 +180,8 @@ export default function TransactionsPage() {
           toDate={dateMode === 'range' ? toDate : undefined}
           type={typeFilter === 'all' ? undefined : typeFilter}
           addedByUserId={extra.addedByUserId || undefined}
+          accountId={extra.accountId ? Number(extra.accountId) : undefined}
+          categoryId={extra.categoryId ? Number(extra.categoryId) : undefined}
           label={extra.label || undefined}
           amountGte={debouncedAmountGte ? parseFloat(debouncedAmountGte) : undefined}
           amountLte={debouncedAmountLte ? parseFloat(debouncedAmountLte) : undefined}
