@@ -3,18 +3,22 @@
 import { useEffect, useState } from 'react';
 import { cn, apiFetch } from '@/lib/utils';
 import { Input } from '@/components';
-import { FinFieldCard } from '../ui';
+import { FinFieldCard, renderAccountOption, renderCategoryOption } from '../ui';
 import { FinancialDropdown } from '../FinancialDropdown';
 import { finDropdownInputClass } from '../finances.utils';
 import { TransactionType, TransactionTypes } from '@my-hub/shared/constants';
 import type { BudgetDetailResponse } from '@/app/api/finances/budget/route';
 import type { LabelsResponse } from '@/app/api/finances/labels/route';
+import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
 import { TRANSACTION_TYPE_COLORS } from '../finances.utils';
+import { sortAccountsByGroup } from '../accounts/accounts.utils';
 
 type Filter = 'all' | TransactionType;
 
 export type ExtraFilterValues = {
   addedByUserId: string;
+  accountId: string;
+  categoryId: string;
   label: string;
   amountGte: string;
   amountLte: string;
@@ -22,6 +26,8 @@ export type ExtraFilterValues = {
 };
 
 type Member = { userId: string; name: string | null; email: string; initials: string };
+type AccountOption = { id: number; name: string; type: string; currency: string };
+type CategoryOption = { id: number; name: string; icon: string | null; color: string | null };
 
 type TransactionFiltersProps = {
   typeFilter: Filter;
@@ -48,6 +54,8 @@ const FIELD_INPUT =
 export function TransactionFilters({ typeFilter, extraValues, onTypeChange, onExtraChange }: TransactionFiltersProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
+  const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
 
   useEffect(() => {
     apiFetch<BudgetDetailResponse>('/api/finances/budget', { silentToast: true })
@@ -65,11 +73,26 @@ export function TransactionFilters({ typeFilter, extraValues, onTypeChange, onEx
     apiFetch<LabelsResponse>('/api/finances/labels', { silentToast: true })
       .then(r => setLabels(r.labels))
       .catch(() => {});
+    apiFetch<TransactionFormDataResponse>('/api/finances/transactions/form-data', { silentToast: true })
+      .then(r => {
+        setAccounts(
+          sortAccountsByGroup(r.accounts.filter(a => !a.archived)).map(a => ({
+            id: a.id,
+            name: a.name,
+            type: a.type,
+            currency: a.currency,
+          })),
+        );
+        setCategories(r.categories.map(c => ({ id: c.id, name: c.name, icon: c.icon, color: c.color })));
+      })
+      .catch(() => {});
   }, []);
 
   const activeCount = [
     typeFilter !== 'all',
     !!extraValues.addedByUserId,
+    !!extraValues.accountId,
+    !!extraValues.categoryId,
     !!extraValues.label,
     !!extraValues.amountGte,
     !!extraValues.amountLte,
@@ -78,7 +101,15 @@ export function TransactionFilters({ typeFilter, extraValues, onTypeChange, onEx
 
   function clearAll() {
     onTypeChange('all');
-    onExtraChange({ addedByUserId: '', label: '', amountGte: '', amountLte: '', search: '' });
+    onExtraChange({
+      addedByUserId: '',
+      accountId: '',
+      categoryId: '',
+      label: '',
+      amountGte: '',
+      amountLte: '',
+      search: '',
+    });
   }
 
   return (
@@ -142,6 +173,34 @@ export function TransactionFilters({ typeFilter, extraValues, onTypeChange, onEx
             </div>
           </FinFieldCard>
         )}
+
+        {/* Account */}
+        <FinFieldCard label="Account">
+          <FinancialDropdown
+            options={accounts.map(a => ({ id: a.id, value: a.name }))}
+            value={extraValues.accountId ? Number(extraValues.accountId) : undefined}
+            onChange={item => onExtraChange({ accountId: item ? String(item.id) : '' })}
+            renderOption={item => renderAccountOption(item, accounts)}
+            placeholder="All accounts"
+            clearable
+            clearAriaLabel="Clear account filter"
+            inputClassName={finDropdownInputClass}
+          />
+        </FinFieldCard>
+
+        {/* Category */}
+        <FinFieldCard label="Category">
+          <FinancialDropdown
+            options={categories.map(c => ({ id: c.id, value: c.name }))}
+            value={extraValues.categoryId ? Number(extraValues.categoryId) : undefined}
+            onChange={item => onExtraChange({ categoryId: item ? String(item.id) : '' })}
+            renderOption={item => renderCategoryOption(item, categories)}
+            placeholder="All categories"
+            clearable
+            clearAriaLabel="Clear category filter"
+            inputClassName={finDropdownInputClass}
+          />
+        </FinFieldCard>
 
         {/* Label */}
         <FinFieldCard label="Label">
