@@ -11,6 +11,7 @@ import type { BudgetDetailResponse } from '@/app/api/finances/budget/route';
 import type { LabelsResponse } from '@/app/api/finances/labels/route';
 import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
 import { TRANSACTION_TYPE_COLORS } from '../finances.utils';
+import { sortAccountsByGroup } from '../accounts/accounts.utils';
 
 type Filter = 'all' | TransactionType;
 
@@ -74,7 +75,7 @@ export function TransactionFilters({ typeFilter, extraValues, onTypeChange, onEx
       .catch(() => {});
     apiFetch<TransactionFormDataResponse>('/api/finances/transactions/form-data', { silentToast: true })
       .then(r => {
-        setAccounts(r.accounts.filter(a => !a.archived).map(a => ({ id: a.id, name: a.name })));
+        setAccounts(sortAccountsByGroup(r.accounts.filter(a => !a.archived)).map(a => ({ id: a.id, name: a.name })));
         setCategories(r.categories.map(c => ({ id: c.id, name: c.name })));
       })
       .catch(() => {});
