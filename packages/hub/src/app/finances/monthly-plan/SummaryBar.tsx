@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { IconButton } from '@/components';
+import { Card, IconButton, ProgressBar, SectionLabel } from '@/components';
 import { PencilIcon } from '@/components/icons';
-import { Card, Bar, SectionLabel } from '../ui';
 import { FinancialDropdown } from '../FinancialDropdown';
 import { fmtNum } from './monthly-plan.utils';
 
@@ -159,7 +158,12 @@ export function SummaryBar({ availableAmount, incomeAccountId, summary, accounts
         <div className="mb-1 text-[11px] text-[var(--muted)]">
           {summary.assignedCount} of {summary.totalCount} items done · {pct}%
         </div>
-        <Bar value={summary.assignedCount} max={Math.max(summary.totalCount, 1)} color="var(--green)" height={4} />
+        <ProgressBar
+          value={summary.assignedCount}
+          max={Math.max(summary.totalCount, 1)}
+          color="var(--green)"
+          height={4}
+        />
       </div>
     </Card>
   );

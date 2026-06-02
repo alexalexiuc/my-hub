@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Divider, Bar, SubText } from '../ui';
+import { fmt } from '../ui';
 import type { ReportsData } from '@/app/api/finances/reports/route';
 import type { CategoriesResponse } from '@/app/api/finances/categories/route';
+import { Card, SectionLabel, Divider, SubText, ProgressBar } from '@/components';
 
 type View = 'monthly' | 'breakdown';
 
@@ -206,7 +207,7 @@ export default function CashflowPage() {
                     </div>
                     <div className="flex-1">
                       <div className="text-xs text-[var(--text)]">{cat.name}</div>
-                      <Bar
+                      <ProgressBar
                         value={cat.spent}
                         max={cat.monthlyTarget ?? cat.spent}
                         color={cat.color ?? 'var(--green)'}

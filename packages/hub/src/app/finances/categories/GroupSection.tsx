@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
-import { fmt, Card, Divider, SubText } from '../ui';
+import { fmt } from '../ui';
 import { CatRow } from './CatRow';
 import type { CategoryGroup, CategoryRow } from '@/app/api/finances/categories/route';
+import { SubText, Card, Divider } from '@/components';
 
 type GroupSectionProps = {
   group: CategoryGroup;

@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
-import { Button, Input } from '@/components';
-import { Card, SectionLabel, SubText } from '../ui';
+import { Button, Card, Input, SectionLabel, SubText } from '@/components';
 import { ClaudePromptSection } from './ClaudePromptSection';
 import { BudgetsSection } from './BudgetsSection';
 import type { BudgetDetailResponse } from '@/app/api/finances/budget/route';

@@ -353,7 +353,7 @@ export function TransactionModal({
       {keypadOpen &&
         createPortal(
           <div className="finances-theme fixed inset-x-0 top-0 z-[1100] flex h-[100dvh] flex-col justify-end md:hidden pointer-events-none">
-            <div className="fin-slide-up rounded-t-[18px] border border-[var(--border)] bg-[var(--card)] pointer-events-auto">
+            <div className="slide-up-sheet rounded-t-[18px] border border-[var(--border)] bg-[var(--card)] pointer-events-auto">
               <MobileAmountKeypad
                 onKey={pressKey}
                 onDone={() => {

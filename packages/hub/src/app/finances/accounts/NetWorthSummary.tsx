@@ -1,4 +1,5 @@
-import { fmt, Sparkline } from '../ui';
+import { Sparkline } from '@/components';
+import { fmt } from '../ui';
 
 export function NetWorthSummary({
   netWorth,

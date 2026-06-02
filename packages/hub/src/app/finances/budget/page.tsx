@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
-import { fmt, Card, SectionLabel, CategoryIcon } from '../ui';
+import { fmt, CategoryIcon } from '../ui';
 import type { CategoriesResponse } from '@/app/api/finances/categories/route';
+import { Card, SectionLabel } from '@/components';
 
 function lastNMonths(n: number) {
   return Array.from({ length: n }, (_, i) => {

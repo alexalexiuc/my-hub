@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
-import { fmt, Card, Bar, SubText } from '../ui';
-import { Button } from '@/components';
+import { fmt } from '../ui';
+import { Button, Card, ProgressBar, SubText } from '@/components';
 import { TransactionModal } from '../transactions/TransactionModal';
 import { AddGoalModal } from './AddGoalModal';
 import type { GoalsResponse } from '@/app/api/finances/goals/route';
@@ -93,7 +93,7 @@ export default function GoalsPage() {
         >
           <div className="mb-1 text-[11px] text-[var(--muted)]">Total saved across all goals</div>
           <div className="mb-1.5 text-[26px] font-bold text-[var(--text)]">{fmt(totalSaved, currency)}</div>
-          <Bar value={totalSaved} max={totalTarget} color={'var(--green)'} height={6} className="mb-1.5" />
+          <ProgressBar value={totalSaved} max={totalTarget} color={'var(--green)'} height={6} className="mb-1.5" />
           <div className="text-[11px] text-[var(--muted)]">
             {fmt(totalSaved, currency)} of {fmt(totalTarget, currency)} · {overallPct}% overall
           </div>
@@ -121,7 +121,7 @@ export default function GoalsPage() {
               </div>
             </div>
 
-            <Bar value={g.balance} max={g.targetAmount} color={'var(--green)'} height={8} className="mb-2.5" />
+            <ProgressBar value={g.balance} max={g.targetAmount} color={'var(--green)'} height={8} className="mb-2.5" />
 
             <div className="flex gap-2">
               <button

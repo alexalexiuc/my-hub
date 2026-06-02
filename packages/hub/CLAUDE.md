@@ -18,6 +18,15 @@
 - Reusable components go to `src/components/` — never duplicate inline.
 - Named exports only, no default exports for components.
 
+## Component coverage requirements
+
+Every new component added to `src/components/` (top-level `.tsx` files only, not subdirectories) **must** be accompanied by:
+
+1. **Storybook story** at `src/components/stories/ComponentName.stories.tsx` — use `@storybook/nextjs-vite`, follow the pattern in existing story files (see `Select.stories.tsx` for a reference).
+2. **Unit test** at `src/components/ComponentName.test.tsx` — use vitest + jsdom, test the component's rendered output and key interactions.
+
+Create both files in the same task as the component. Do not defer them.
+
 ## Responsive layout duplicates
 
 When a component renders two variants of the same content (one for desktop, one for mobile) using Tailwind's responsive visibility classes (`hidden md:block`, `md:hidden`, etc.), add a `data-layout` attribute to the outermost element of each variant so that tests and tooling can unambiguously target one layout:

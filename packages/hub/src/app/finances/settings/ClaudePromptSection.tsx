@@ -2,8 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { Button } from '@/components';
-import { Card, SectionLabel } from '../ui';
+import { Button, Card, SectionLabel } from '@/components';
 import type { AccountsListData } from '@/app/api/finances/accounts/route';
 import type { BudgetInfo } from '@/app/api/finances/budget/budget.schema';
 import type { CategoriesResponse, CategoryGroup, CategoryRow } from '@/app/api/finances/categories/route';

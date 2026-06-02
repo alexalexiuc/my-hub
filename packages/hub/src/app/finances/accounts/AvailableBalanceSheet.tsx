@@ -1,8 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Button } from '@/components';
-import { fmt, Divider, AmountText, SubText } from '../ui';
+import { Button, Divider, SubText } from '@/components';
+import { fmt, AmountText } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { ACCOUNT_TYPE_NAMES, LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';

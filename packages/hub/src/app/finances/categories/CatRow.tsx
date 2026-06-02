@@ -1,9 +1,9 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { SwipeRow } from '@/components';
+import { ProgressBar, SubText, SwipeRow } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
-import { fmt, Bar, CategoryIcon, SubText } from '../ui';
+import { fmt, CategoryIcon } from '../ui';
 import type { CategoryRow } from '@/app/api/finances/categories/route';
 
 type CatRowProps = {
@@ -53,7 +53,7 @@ function CatRowContent({ cat, currency, onClick }: { cat: CategoryRow; currency:
         </div>
       </div>
       {pct !== null && (
-        <Bar value={cat.spent} max={cat.monthlyTarget!} color={cat.color ?? 'var(--green)'} height={4} />
+        <ProgressBar value={cat.spent} max={cat.monthlyTarget!} color={cat.color ?? 'var(--green)'} height={4} />
       )}
     </div>
   );

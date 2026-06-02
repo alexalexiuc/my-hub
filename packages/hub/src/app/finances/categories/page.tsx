@@ -6,15 +6,16 @@ import { toast } from 'sonner';
 import { apiFetch } from '@/lib/utils';
 import type { CategoriesResponse, CategoryGroup, CategoryRow } from '@/app/api/finances/categories/route';
 import type { CategoryDeleteResponse } from '@/app/api/finances/categories/[id]/route';
-import { fmt, Card, SectionLabel, Divider, SmartDatePicker } from '../ui';
+import { fmt } from '../ui';
 import { dateToString } from '@my-hub/shared/utils';
-import { Button } from '@/components';
+import { Button, Card, Divider, SectionLabel } from '@/components';
 import { CategoryModal } from './CategoryModal';
 import { GroupModal } from './GroupModal';
 import { GroupSection } from './GroupSection';
 import { CatRow } from './CatRow';
 import { categoryToEditValues } from '../finances-form.schema';
 import { normalizeYearMonth } from '../finances.utils';
+import { SmartDatePicker } from '../SmartDatePicker';
 
 const CURRENT_MONTH = dateToString(new Date(), 'YYYY-MM');
 

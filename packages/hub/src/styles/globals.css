@@ -50,22 +50,22 @@
 }
 
 /* Mobile: full-screen shell slides up */
-.fin-modal-shell {
+.modal-shell {
   animation: slideUpSheet 320ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* Desktop: backdrop fades in, inner card scales+fades */
 @media (min-width: 768px) {
-  .fin-modal-shell {
+  .modal-shell {
     animation: fadeIn 200ms ease-out;
   }
-  .fin-modal-card {
+  .modal-card {
     animation: fadeScaleIn 180ms ease-out;
   }
 }
 
 /* Bottom sheet slide-up for picker overlays (always mobile, no responsive variant) */
-.fin-slide-up {
+.slide-up-sheet {
   animation: slideUpSheet 260ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 

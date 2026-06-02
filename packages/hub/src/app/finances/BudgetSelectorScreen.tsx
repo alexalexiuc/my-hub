@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { Button } from '@/components';
-import { Card, SubText } from './ui';
+import { Button, Card, SubText } from '@/components';
 import type { AvailableBudget } from '@/app/api/finances/dashboard/route';
 import type { BudgetActivateBody } from '../api/finances/budgets/route';
 

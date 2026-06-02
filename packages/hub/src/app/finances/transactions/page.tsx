@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { AddButton, Card, DateMode, SmartDatePicker } from '../ui';
-import { Button, IconButton } from '@/components';
+import { AddButton } from '../ui';
+import { Button, Card, DateMode, IconButton } from '@/components';
 import { FunnelIcon } from '@/components/icons';
 import { TransactionModal } from './TransactionModal';
 import { TransactionList } from './TransactionList';
@@ -16,6 +16,7 @@ import type { ExtraFilterValues } from './TransactionFilters';
 import type { TransactionType } from '@my-hub/shared/constants';
 import { dateToString } from '@my-hub/shared/utils';
 import { useDebounce } from '@/hooks/useDebounce';
+import { SmartDatePicker } from '../SmartDatePicker';
 
 type Filter = 'all' | TransactionType;
 

@@ -4,10 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import type { CategoriesResponse, CategoryRow } from '@/app/api/finances/categories/route';
-import { Card, CategoryIcon, SectionLabel, fmt, SubText } from '../../ui';
+import { CategoryIcon, fmt } from '../../ui';
 import { TransactionList } from '../../transactions/TransactionList';
 import { transactionEvents } from '../../transactions/transactionEvents';
-import { Button } from '@/components';
+import { Button, Card, SectionLabel, SubText } from '@/components';
 import { getCategoryFallbackLetter, normalizeYearMonth } from '../../finances.utils';
 
 type CategorySummary = {

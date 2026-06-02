@@ -1,9 +1,8 @@
 'use client';
 
-import { useId } from 'react';
 import { cn } from '@/lib/utils';
 import { categoryIconEmoji } from './categoryIcons';
-import { Button } from '@/components';
+import { Button, SubText } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons/PlusOutlineIcon';
 import type { DropdownOption } from './financialDropdown.utils';
 
@@ -40,58 +39,6 @@ export function FinFieldCard({
   );
 }
 
-export { Card } from '@/components';
-
-export function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={cn('mb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--subtle)]', className)}>
-      {children}
-    </div>
-  );
-}
-
-type SubTextProps = React.HTMLAttributes<HTMLSpanElement>;
-export function SubText({ children, className, ...rest }: SubTextProps) {
-  return (
-    <span className={cn('text-[11px] text-[var(--subtle)]', className)} {...rest}>
-      {children}
-    </span>
-  );
-}
-
-export function Bar({
-  value,
-  max,
-  color,
-  height = 6,
-  className,
-}: {
-  value: number;
-  max: number;
-  color?: string;
-  height?: number;
-  className?: string;
-}) {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
-  const barColor = pct >= 100 ? 'var(--red)' : pct >= 80 ? 'var(--amber)' : (color ?? 'var(--green)');
-  return (
-    <div
-      className={cn('overflow-hidden', className)}
-      style={{ height, borderRadius: height / 2, background: 'var(--card2)' }}
-    >
-      <div
-        style={{
-          height: '100%',
-          width: `${pct}%`,
-          borderRadius: height / 2,
-          background: barColor,
-          transition: 'width .4s ease',
-        }}
-      />
-    </div>
-  );
-}
-
 export function AmountText({
   value,
   size = 'md',
@@ -111,57 +58,6 @@ export function AmountText({
       {sign ? (isNeg ? '-' : '+') : ''}
       {fmt(value, currency)}
     </span>
-  );
-}
-
-export function Divider() {
-  return <div className="my-[2px] h-px bg-[var(--border)]" />;
-}
-
-export function Sparkline({
-  data,
-  color,
-  width = 120,
-  height = 36,
-}: {
-  data: number[];
-  color: string;
-  width?: number;
-  height?: number;
-}) {
-  const gradientId = useId();
-  if (data.length < 2) {
-    return <div style={{ width, height }} />;
-  }
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const pts = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1)) * width;
-      const y = height - ((v - min) / range) * (height - 4) - 2;
-      return `${x},${y}`;
-    })
-    .join(' ');
-  const area = `M ${pts.split(' ').join(' L ')} L ${width},${height} L 0,${height} Z`;
-  return (
-    <svg width={width} height={height} className="block">
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
-      <path d={area} fill={`url(#${gradientId})`} />
-      <polyline
-        points={pts}
-        fill="none"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 
@@ -312,10 +208,6 @@ export function renderCategoryOption(
     </span>
   );
 }
-
-// ─── SmartDatePicker (replaces MonthCarousel) ────────────────────────────────
-export { SmartDatePicker } from './SmartDatePicker';
-export type { DateMode } from './SmartDatePicker';
 
 export function SeeAllButton({ href }: { href: string }) {
   return (

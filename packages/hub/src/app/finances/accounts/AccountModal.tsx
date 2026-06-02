@@ -6,9 +6,9 @@ import type { UseFormRegister, Control } from 'react-hook-form';
 import { apiFetch } from '@/lib/utils';
 import type { AccountMutationResponse, AccountCreateData, AccountItem } from '@/app/api/finances/accounts/route';
 import { FinModalShell } from '../FinModalShell';
-import { Input } from '@/components';
+import { Input, SubText } from '@/components';
 import { FinancialDropdown } from '../FinancialDropdown';
-import { FinFieldCard, SubText } from '../ui';
+import { FinFieldCard } from '../ui';
 import { AccountTypes, ACCOUNT_TYPE_DESCRIPTIONS, SupportedCurrency } from '@my-hub/shared/constants';
 import {
   AddAccountSchema,

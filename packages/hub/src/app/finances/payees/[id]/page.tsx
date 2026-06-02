@@ -4,10 +4,9 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import type { PayeesResponse, PayeeWithSuggestion } from '@/app/api/finances/payees/route';
-import { Card, SectionLabel, SubText } from '../../ui';
 import { TransactionList } from '../../transactions/TransactionList';
 import { EditPayeeModal } from '../EditPayeeModal';
-import { Button } from '@/components';
+import { Button, Card, SectionLabel, SubText } from '@/components';
 
 export default function PayeeDetailPage() {
   const params = useParams<{ id: string }>();

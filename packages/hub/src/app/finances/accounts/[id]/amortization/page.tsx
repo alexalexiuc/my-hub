@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { apiFetch, cn } from '@/lib/utils';
-import { fmt, Card, SectionLabel, SubText } from '../../../ui';
+import { fmt } from '../../../ui';
 import { LoanPaydownChart } from './LoanPaydownChart';
 import type { AmortizationData } from '@/app/api/finances/accounts/[id]/amortization/route';
 import { Button } from '@/components/Button';
+import { SectionLabel, Card, SubText } from '@/components';
 
 function fmtDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-IE', { month: 'short', year: 'numeric' });

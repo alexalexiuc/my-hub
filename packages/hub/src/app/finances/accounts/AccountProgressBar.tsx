@@ -1,4 +1,5 @@
-import { fmt, Bar } from '../ui';
+import { ProgressBar } from '@/components/ProgressBar';
+import { fmt } from '../ui';
 
 export function AccountProgressBar({
   value,
@@ -26,7 +27,7 @@ export function AccountProgressBar({
           {pct}%
         </span>
       </div>
-      <Bar value={value} max={max} color={color} height={4} />
+      <ProgressBar value={value} max={max} color={color} height={4} />
     </div>
   );
 }

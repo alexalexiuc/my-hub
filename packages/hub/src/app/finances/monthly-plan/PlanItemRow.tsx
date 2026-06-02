@@ -1,11 +1,10 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Button, SwipeRow } from '@/components';
+import { Button, SubText, SwipeRow } from '@/components';
 import { TrashOutlineIcon } from '@/components/icons';
 import type { MonthlyPlanItem } from '@/app/api/finances/monthly-plans/[month]/route';
 import { fmtNum } from './monthly-plan.utils';
-import { SubText } from '../ui';
 
 function LinkedToChip({ item }: { item: MonthlyPlanItem }) {
   if (!item.linkedAccountName && !item.categoryName) {

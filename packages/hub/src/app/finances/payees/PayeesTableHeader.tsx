@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import type { SortKey } from './types';
-import { SectionLabel } from '../ui';
+import { SectionLabel } from '@/components';
 
 type PayeesTableHeaderProps = {
   sortBy: SortKey;

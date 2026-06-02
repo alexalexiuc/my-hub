@@ -1,9 +1,11 @@
 import { cn } from '@/lib/utils';
 import { formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
-import { fmt, Card, SectionLabel, Bar, Divider, SubText, SmartDatePicker, SeeAllButton } from './ui';
+import { fmt, SeeAllButton } from './ui';
 import { CategoryPieChart, SpendingTrendChart } from './DashboardCharts';
 import { TransactionList } from './transactions/TransactionList';
 import type { FinanceDashboardData } from '@/app/api/finances/dashboard/route';
+import { Card, SubText, Divider, SectionLabel, ProgressBar } from '@/components';
+import { SmartDatePicker } from './SmartDatePicker';
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -145,7 +147,7 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
                   <div className="mb-1 text-[11px] text-[var(--muted)]">{g.name}</div>
                   <div className="text-[15px] font-bold text-[var(--text)]">{fmt(g.balance, currency)}</div>
                   <SubText className="block mb-1.5">of {fmt(g.target, currency)}</SubText>
-                  <Bar value={g.balance} max={g.target} color={'var(--green)'} height={4} />
+                  <ProgressBar value={g.balance} max={g.target} color={'var(--green)'} height={4} />
                   <div className="mt-1 text-[10px] text-[var(--green)]">{pct}%</div>
                 </div>
               );

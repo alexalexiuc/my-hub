@@ -1,10 +1,11 @@
 'use client';
 
-import { fmt, Divider, AmountText, SubText } from '../ui';
+import { fmt, AmountText } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { ACCOUNT_TYPE_NAMES, LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
 import type { AccountItem } from '@/app/api/finances/accounts/route';
+import { SubText, Divider } from '@/components';
 
 type NetWorthSheetProps = {
   accounts: AccountItem[];

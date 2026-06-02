@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { IconButton, Pill, SwipeRow } from '@/components';
+import { Divider, IconButton, Pill, SectionLabel, SubText, SwipeRow } from '@/components';
 import { PencilIcon } from '@/components/icons';
 import type { PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 import type { PayeeReportItem } from '@/app/api/finances/payees/report/route';
-import { CategoryIcon, Divider, fmt, SectionLabel, SubText } from '../ui';
+import { CategoryIcon, fmt } from '../ui';
 import { dateToString } from '@my-hub/shared/utils';
 
 type PayeeRowProps = {

@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Input, Pill, IconButton, Button } from '@/components';
+import { Input, Pill, IconButton, Button, ProgressBar, Card, SectionLabel, SubText } from '@/components';
 import { ScaleIcon, PencilIcon, ArchiveBoxIcon } from '@/components/icons';
 import { cn, apiFetch } from '@/lib/utils';
-import { fmt, Card, SectionLabel, Bar, TYPE_META, SubText } from '../ui';
+import { fmt, TYPE_META } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { TransactionList } from '../transactions/TransactionList';
 import { AccountModal } from './AccountModal';
@@ -208,7 +208,7 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
 
       {acc.type === 'credit_card' && acc.creditLimit != null && (
         <div>
-          <Bar value={acc.balance} max={acc.creditLimit} color={meta.color} height={6} className="mb-1.5" />
+          <ProgressBar value={acc.balance} max={acc.creditLimit} color={meta.color} height={6} className="mb-1.5" />
           <div className="text-[11px] text-[var(--muted)]">
             {fmt(acc.creditLimit - acc.balance, acc.currency)} available
             {' · '}Limit {fmt(acc.creditLimit, acc.currency)}
@@ -219,7 +219,7 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
 
       {acc.type === 'goal' && acc.targetAmount != null && (
         <div>
-          <Bar value={acc.balance} max={acc.targetAmount} color={meta.color} height={6} className="mb-1.5" />
+          <ProgressBar value={acc.balance} max={acc.targetAmount} color={meta.color} height={6} className="mb-1.5" />
           <div className="text-[11px] text-[var(--muted)]">
             {fmt(acc.targetAmount - acc.balance, acc.currency)} to go · Target {fmt(acc.targetAmount, acc.currency)}
           </div>

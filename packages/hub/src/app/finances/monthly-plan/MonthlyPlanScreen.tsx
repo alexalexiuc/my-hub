@@ -2,8 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { Button } from '@/components';
-import { Card, SectionLabel } from '../ui';
+import { Button, Card, SectionLabel } from '@/components';
 import type { MonthlyPlanResponse, MonthlyPlanItem } from '@/app/api/finances/monthly-plans/[month]/route';
 import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
 import { SummaryBar } from './SummaryBar';

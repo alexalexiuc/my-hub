@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Button, IconButton, Pill, SwipeRow } from '@/components';
+import { Button, Divider, IconButton, Pill, SectionLabel, SubText, SwipeRow } from '@/components';
 import { PencilIcon, TrashIcon, InfoCircleIcon } from '@/components/icons';
 import { cn, apiFetch } from '@/lib/utils';
-import { fmt, Divider, CategoryIcon, SectionLabel, SubText } from '../ui';
+import { fmt, CategoryIcon } from '../ui';
 import { categoryIconEmoji } from '../categoryIcons';
 import { TransactionTypes } from '@my-hub/shared/constants';
 import { formatTransactionDate } from '../finances.utils';

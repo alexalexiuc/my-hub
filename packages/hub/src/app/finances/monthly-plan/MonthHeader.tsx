@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { cn, apiFetch } from '@/lib/utils';
-import { Button } from '@/components';
-import { SectionLabel, SmartDatePicker, SubText } from '../ui';
+import { Button, SectionLabel, SubText } from '@/components';
 import type { MonthlyPlanCopyResponse } from '@/app/api/finances/monthly-plans/[month]/copy-next/route';
+import { SmartDatePicker } from '../SmartDatePicker';
 
 type MonthHeaderProps = {
   month: string;
