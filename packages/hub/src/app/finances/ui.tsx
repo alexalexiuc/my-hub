@@ -40,37 +40,7 @@ export function FinFieldCard({
   );
 }
 
-export function Card({
-  children,
-  className,
-  style,
-  onClick,
-  compact,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  onClick?: () => void;
-  compact?: boolean;
-}) {
-  return (
-    <div
-      data-card
-      onClick={onClick}
-      className={cn(
-        'bg-[var(--card)] px-4 py-[14px] transition-colors',
-        onClick ? 'cursor-pointer' : 'cursor-default',
-        !compact && '-mx-7 rounded-none border-y border-[var(--border)] border-x-0',
-        compact && 'rounded-[10px] border border-[var(--border)]',
-        'md:mx-0 md:rounded-[10px] md:border md:border-[var(--border)]',
-        className,
-      )}
-      style={style}
-    >
-      {children}
-    </div>
-  );
-}
+export { Card } from '@/components';
 
 export function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (

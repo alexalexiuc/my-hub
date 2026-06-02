@@ -1,6 +1,10 @@
 export { AutoSignOut } from './AutoSignOut';
+export { BottomNav } from './BottomNav';
+export type { BottomNavItem, BottomNavFab, BottomNavProps } from './BottomNav';
 export { BookingTypeIcon } from './BookingTypeIcon';
 export { Button } from './Button';
+export { Card } from './Card';
+export type { CardProps } from './Card';
 export { Checkbox } from './Checkbox';
 export { ColorPicker } from './ColorPicker';
 export { DisclosureToggle } from './DisclosureToggle';
@@ -17,5 +21,7 @@ export { Providers } from './Providers';
 export { SectionCard } from './SectionCard';
 export { Select } from './Select';
 export type { SelectOption } from './Select';
+export { Sidebar } from './Sidebar';
+export type { SidebarNavItem, SidebarProps } from './Sidebar';
 export { SwipeRow } from './SwipeRow';
 export { Textarea } from './Textarea';
