@@ -115,27 +115,26 @@ export default function TransactionsPage() {
 
   return (
     <div className="flex flex-col gap-[14px]">
-      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Transactions</div>
-
-      <div className="md:flex md:items-center md:justify-between">
-        <SmartDatePicker
-          dateMode={dateMode}
-          month={month}
-          fromDate={fromDate}
-          toDate={toDate}
-          currentMonth={currentMonthStr()}
-          onChange={handleDateChange}
-          extendedFilters
-          trailing={funnelButton}
-        />
+      <div className="flex items-center justify-between">
+        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Transactions</div>
         <div className="hidden items-center gap-2 md:flex">
-          {funnelButton}
           <Link href="/finances/transactions/import">
             <Button variant="ghost">Import CSV</Button>
           </Link>
           <AddButton onClick={() => setShowAddModal(true)} title="Add transaction" />
         </div>
       </div>
+
+      <SmartDatePicker
+        dateMode={dateMode}
+        month={month}
+        fromDate={fromDate}
+        toDate={toDate}
+        currentMonth={currentMonthStr()}
+        onChange={handleDateChange}
+        extendedFilters
+        trailing={funnelButton}
+      />
 
       {/* Undo import banner */}
       {lastImport && (

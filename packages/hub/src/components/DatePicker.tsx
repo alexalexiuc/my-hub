@@ -24,7 +24,7 @@ export type DatePickerProps = {
   fromDate?: string;
   toDate?: string;
   className?: string;
-  /** Extra content rendered at the trailing end of the mobile card (e.g. a filter button). Hidden on desktop. */
+  /** Extra content rendered at the trailing end of the picker row on all breakpoints. */
   trailing?: React.ReactNode;
 };
 
@@ -210,7 +210,7 @@ export function DatePicker({
         </Button>
       )}
 
-      {trailing != null && <div className="ml-auto shrink-0 md:hidden">{trailing}</div>}
+      {trailing != null && <div className="ml-auto shrink-0">{trailing}</div>}
 
       {dateMode === 'day' && open && (
         <div className="absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-xl">
