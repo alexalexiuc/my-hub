@@ -72,7 +72,10 @@
 /* Prevent iOS/Android auto-zoom on input focus (requires font-size >= 16px) */
 @media (max-width: 767px) {
   .finances-theme input,
-  .finances-theme textarea {
+  .finances-theme textarea,
+  .modal-shell input,
+  .modal-shell textarea,
+  .modal-shell select {
     font-size: 16px;
   }
 }

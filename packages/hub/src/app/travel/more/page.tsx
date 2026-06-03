@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { SectionCard } from '@/components/SectionCard';
+import { Card } from '@/components';
+import { TravelSectionHeader } from '../ui';
 import type { TripOverviewResponse, ApiTrip } from '../types';
 import { travelEvents } from '../travelEvents';
 import { readActiveTripId } from '../TripSwitcher';
@@ -51,9 +52,12 @@ export default function TravelMorePage() {
           {overview && (
             <>
               <TripMap mapData={overview.mapData} tripId={activeTripId} />
-              <SectionCard title="Calendar" className="bg-[var(--card)] border-[var(--border)]">
-                <BookingsCalendar bookings={overview.bookings} tripColor={overview.trip.color} trip={overview.trip} />
-              </SectionCard>
+              <Card className="!p-0 overflow-hidden">
+                <TravelSectionHeader title="Calendar" />
+                <div className="p-4">
+                  <BookingsCalendar bookings={overview.bookings} tripColor={overview.trip.color} trip={overview.trip} />
+                </div>
+              </Card>
             </>
           )}
           <CompanionsSection

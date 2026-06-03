@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { SectionCard } from '@/components/SectionCard';
+import { Card } from '@/components';
+import { TravelSectionHeader } from './ui';
 import type { TripChecklistItem } from '@my-hub/shared/types';
 import { Button, ConfirmModal, SwipeRow } from '@/components';
 import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
@@ -71,8 +72,9 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
         />
       )}
 
-      <SectionCard title="Checklist" className="bg-[var(--card)] border-[var(--border)]" action={headerAction}>
-        <div className="max-h-64 space-y-1.5 overflow-auto">
+      <Card className="!p-0 overflow-hidden">
+        <TravelSectionHeader title="Checklist" action={headerAction} />
+        <div className="max-h-64 space-y-1.5 overflow-auto p-4">
           {checklist.map(item => (
             <div key={item.id} className="overflow-hidden rounded-md border border-[var(--border)]">
               {/* Mobile: swipe-to-reveal */}
@@ -136,7 +138,7 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
           ))}
           {checklist.length === 0 && <p className="text-sm text-[var(--muted)]">No checklist items yet.</p>}
         </div>
-      </SectionCard>
+      </Card>
     </>
   );
 }

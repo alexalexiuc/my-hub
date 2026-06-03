@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SectionCard } from '@/components/SectionCard';
+import { Card } from '@/components';
+import { TravelSectionHeader } from './ui';
 import { BookingTypeIcon, Button } from '@/components';
 import { TicketIcon, DocumentIcon, ClipboardIcon, PinIcon, PhoneIcon, MailOutlineIcon } from '@/components/icons';
 import type { TripDocument } from '@my-hub/shared/types';
@@ -246,23 +247,26 @@ export function ComingNext({ bookings, documents }: ComingNextProps) {
   if (segments.length === 0) return null;
 
   return (
-    <SectionCard title="Itinerary" className="bg-[var(--card)] border-[var(--border)]">
-      <div className="min-w-0 flex flex-col gap-0 md:flex-row md:items-stretch md:gap-0 md:overflow-x-auto pb-2">
-        {segments.map((segment, i) => {
-          const next = segments[i + 1];
-          // Duration badge shown on connector between same-booking start→end pair
-          const connectorDuration =
-            next?.bookingId === segment.bookingId && next?.isEndSegment ? next.durationBadge : null;
-          return (
-            <div key={segment.segmentId} className="contents">
-              <SegmentCard segment={segment} />
-              {i < segments.length - 1 && (
-                <Connector dim={segment.isPast && next?.isPast} durationBadge={connectorDuration} />
-              )}
-            </div>
-          );
-        })}
+    <Card className="!p-0 overflow-hidden">
+      <TravelSectionHeader title="Itinerary" />
+      <div className="p-4">
+        <div className="min-w-0 flex flex-col gap-0 md:flex-row md:items-stretch md:gap-0 md:overflow-x-auto pb-2">
+          {segments.map((segment, i) => {
+            const next = segments[i + 1];
+            // Duration badge shown on connector between same-booking start→end pair
+            const connectorDuration =
+              next?.bookingId === segment.bookingId && next?.isEndSegment ? next.durationBadge : null;
+            return (
+              <div key={segment.segmentId} className="contents">
+                <SegmentCard segment={segment} />
+                {i < segments.length - 1 && (
+                  <Connector dim={segment.isPast && next?.isPast} durationBadge={connectorDuration} />
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </SectionCard>
+    </Card>
   );
 }

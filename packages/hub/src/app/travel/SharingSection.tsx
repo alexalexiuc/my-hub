@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { Button } from '@/components';
-import { SectionCard } from '@/components/SectionCard';
+import { Card } from '@/components';
+import { TravelSectionHeader } from './ui';
 import type { ApiTrip, TripShareView } from './types';
 import { apiFetch } from '@/lib/utils';
 import { ShareModal } from './ShareModal';
@@ -58,29 +59,32 @@ export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
         />
       )}
 
-      <SectionCard title="Sharing" className="bg-[var(--card)] border-[var(--border)]" action={headerAction}>
-        {!activeTrip && <p className="text-sm text-[var(--muted)]">Select a trip to manage sharing.</p>}
-        {activeTrip && !canEdit && (
-          <p className="text-sm text-[var(--muted)]">Only the trip owner can manage sharing.</p>
-        )}
-        {activeTrip && canEdit && (
-          <div className="space-y-1.5">
-            <p className="text-[9px] uppercase tracking-[0.07em] text-[var(--subtle)]">Shared with</p>
-            {shares.length === 0 && <p className="text-xs text-[var(--muted)]">Not shared with anyone yet.</p>}
-            {shares.map(share => (
-              <div
-                key={share.id}
-                className="flex items-center justify-between rounded-[10px] border border-[var(--border)] bg-[var(--card2)] px-3 py-2 text-xs"
-              >
-                <span className="text-[var(--text)]">{share.name ?? share.email}</span>
-                <Button variant="secondary" size="xs" onClick={() => revokeShare(share.id)}>
-                  Remove
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </SectionCard>
+      <Card className="!p-0 overflow-hidden">
+        <TravelSectionHeader title="Sharing" action={headerAction} />
+        <div className="p-4">
+          {!activeTrip && <p className="text-sm text-[var(--muted)]">Select a trip to manage sharing.</p>}
+          {activeTrip && !canEdit && (
+            <p className="text-sm text-[var(--muted)]">Only the trip owner can manage sharing.</p>
+          )}
+          {activeTrip && canEdit && (
+            <div className="space-y-1.5">
+              <p className="text-[9px] uppercase tracking-[0.07em] text-[var(--subtle)]">Shared with</p>
+              {shares.length === 0 && <p className="text-xs text-[var(--muted)]">Not shared with anyone yet.</p>}
+              {shares.map(share => (
+                <div
+                  key={share.id}
+                  className="flex items-center justify-between rounded-[10px] border border-[var(--border)] bg-[var(--card2)] px-3 py-2 text-xs"
+                >
+                  <span className="text-[var(--text)]">{share.name ?? share.email}</span>
+                  <Button variant="secondary" size="xs" onClick={() => revokeShare(share.id)}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Card>
     </>
   );
 }

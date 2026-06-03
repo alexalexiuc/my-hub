@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { SectionCard } from '@/components/SectionCard';
+import { Card } from '@/components';
+import { TravelSectionHeader } from './ui';
 import { BookingTypeIcon, Button, MarkdownView } from '@/components';
 import { PinIcon } from '@/components/icons';
 import type { TripPlace, TripWithStatus } from '@my-hub/shared/types';
@@ -138,8 +139,9 @@ export function DayByDay({ trip, bookings, dayNotes, places, canEdit, onChanged 
   const placesById = new Map<number, TripPlace>(places.map(p => [p.id, p]));
 
   return (
-    <SectionCard title="Day by Day" className="bg-[var(--card)] border-[var(--border)]">
-      <div className="space-y-3">
+    <Card className="!p-0 overflow-hidden">
+      <TravelSectionHeader title="Day by Day" />
+      <div className="space-y-3 p-4">
         {days.map(dateStr => {
           const note = noteByDate.get(dateStr);
           const dayPlaces = (note?.placeIds ?? [])
@@ -159,6 +161,6 @@ export function DayByDay({ trip, bookings, dayNotes, places, canEdit, onChanged 
           );
         })}
       </div>
-    </SectionCard>
+    </Card>
   );
 }

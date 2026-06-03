@@ -2,6 +2,15 @@ import type React from 'react';
 import { TripBookingTypes } from '@my-hub/shared/constants';
 import type { TripBookingType } from '@my-hub/shared/types';
 
+export function TravelSectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+      <h2 className="text-sm font-semibold text-[var(--text)]">{title}</h2>
+      {action && <div>{action}</div>}
+    </div>
+  );
+}
+
 export const bookingTypeLabels: Record<TripBookingType, string> = {
   [TripBookingTypes.Flight]: 'Flight',
   [TripBookingTypes.Accommodation]: 'Accommodation',

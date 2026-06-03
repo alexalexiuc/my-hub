@@ -1,7 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { SectionCard } from '@/components/SectionCard';
+import { Card } from '@/components';
+import { TravelSectionHeader } from './ui';
 import type { TripMapData } from '@my-hub/shared/services';
 
 export type TripMapProps = {
@@ -21,17 +22,19 @@ const TripMapInner = dynamic(() => import('./TripMapInner').then(m => ({ default
 export function TripMap({ mapData }: TripMapProps) {
   if (mapData.points.length < 2) {
     return (
-      <SectionCard title="Map" className="bg-[var(--card)] border-[var(--border)]">
-        <p className="text-sm text-[var(--muted)]">
+      <Card className="!p-0 overflow-hidden">
+        <TravelSectionHeader title="Map" />
+        <p className="px-4 py-4 text-sm text-[var(--muted)]">
           No location data yet. Bookings with IATA codes or place coordinates will appear here.
         </p>
-      </SectionCard>
+      </Card>
     );
   }
 
   return (
-    <SectionCard title="Map" className="!p-0 overflow-hidden bg-[var(--card)] border-[var(--border)]">
+    <Card className="!p-0 overflow-hidden">
+      <TravelSectionHeader title="Map" />
       <TripMapInner mapData={mapData} />
-    </SectionCard>
+    </Card>
   );
 }
