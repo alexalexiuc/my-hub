@@ -45,12 +45,26 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
           {getGreeting()}
           {userName ? `, ${userName}` : ''}
         </div>
-        <SmartDatePicker
-          month={selectedMonth}
-          onChange={patch => patch.month && onMonthChange(patch.month)}
-          currentMonth={currentMonth}
-          maxMonth={currentMonth}
-        />
+        {/* Desktop */}
+        <div data-layout="desktop" className="hidden md:block">
+          <SmartDatePicker
+            month={selectedMonth}
+            onChange={patch => patch.month && onMonthChange(patch.month)}
+            currentMonth={currentMonth}
+            maxMonth={currentMonth}
+          />
+        </div>
+        {/* Mobile */}
+        <div data-layout="mobile" className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--card2)] px-3 py-2.5 md:hidden">
+          <SmartDatePicker
+            month={selectedMonth}
+            onChange={patch => patch.month && onMonthChange(patch.month)}
+            currentMonth={currentMonth}
+            maxMonth={currentMonth}
+            className="flex-1 justify-between"
+            labelClassName="text-[32px] font-bold leading-none tracking-tight"
+          />
+        </div>
       </div>
 
       {/* Available balance + cashflow row */}

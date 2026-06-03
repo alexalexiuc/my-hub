@@ -119,13 +119,28 @@ export default function TodayPage() {
       {/* Greeting + date picker — outside any card, top-left like finances */}
       <div className="mb-4">
         <div className="mb-1 text-xs text-[var(--subtle)]">{greeting()}</div>
-        <DatePicker
-          dateMode="day"
-          month={selectedDate}
-          currentMonth={today}
-          maxMonth={today}
-          onChange={({ day }) => day && handleDateChange(day)}
-        />
+        {/* Desktop */}
+        <div data-layout="desktop" className="hidden md:block">
+          <DatePicker
+            dateMode="day"
+            month={selectedDate}
+            currentMonth={today}
+            maxMonth={today}
+            onChange={({ day }) => day && handleDateChange(day)}
+          />
+        </div>
+        {/* Mobile */}
+        <div data-layout="mobile" className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--card2)] px-3 py-2.5 md:hidden">
+          <DatePicker
+            dateMode="day"
+            month={selectedDate}
+            currentMonth={today}
+            maxMonth={today}
+            onChange={({ day }) => day && handleDateChange(day)}
+            className="flex-1 justify-between"
+            labelClassName="text-[32px] font-bold leading-none tracking-tight"
+          />
+        </div>
       </div>
 
       {/* 3-part grid: left = 1 part, right = 2 parts */}

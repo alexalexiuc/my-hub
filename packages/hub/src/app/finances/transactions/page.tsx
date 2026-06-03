@@ -118,7 +118,7 @@ export default function TransactionsPage() {
       <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Transactions</div>
 
       {/* Desktop header */}
-      <div className="hidden items-center justify-between md:flex">
+      <div data-layout="desktop" className="hidden items-center justify-between md:flex">
         <SmartDatePicker
           dateMode={dateMode}
           month={month}
@@ -138,7 +138,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* Mobile header */}
-      <div className="md:hidden">
+      <div data-layout="mobile" className="md:hidden">
         <div className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--card2)] px-3 py-2.5">
           <SmartDatePicker
             dateMode={dateMode}
