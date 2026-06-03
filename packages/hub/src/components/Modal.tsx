@@ -51,9 +51,13 @@ export function Modal({
     };
   }, []);
 
-  // On iOS, when the virtual keyboard opens the browser scrolls window to
-  // bring the focused input into view, which displaces fixed-position elements.
-  // Pinning the modal shell to the visualViewport dimensions corrects this.
+  // When the virtual keyboard opens, the visual viewport shrinks while the
+  // layout viewport stays unchanged (interactiveWidget: resizes-visual).
+  // Sync the modal height to the visual viewport so it doesn't extend under
+  // the keyboard. We intentionally leave `top` alone — the CSS `top-0` class
+  // keeps the modal flush with the layout viewport top, and setting it to
+  // vv.offsetTop can push the modal down on Android when browser chrome
+  // (e.g. AutoFill bar) makes offsetTop non-zero.
   useEffect(() => {
     const vv = window.visualViewport;
     const el = containerRef.current;
@@ -61,7 +65,6 @@ export function Modal({
 
     const sync = () => {
       if (window.innerWidth >= 768) return; // desktop modal handles itself
-      el.style.top = `${vv.offsetTop}px`;
       el.style.height = `${vv.height}px`;
     };
 
@@ -69,7 +72,6 @@ export function Modal({
     vv.addEventListener('resize', sync);
     vv.addEventListener('scroll', sync);
     return () => {
-      el.style.top = '';
       el.style.height = '';
       vv.removeEventListener('resize', sync);
       vv.removeEventListener('scroll', sync);
