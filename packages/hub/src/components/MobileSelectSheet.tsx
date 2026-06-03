@@ -184,7 +184,7 @@ export function MobileSelectSheet({
           </div>
         )}
 
-        <div ref={listRef} className="overflow-y-auto">
+        <div ref={listRef} className="overflow-y-auto bg-[var(--card)]">
           {results.map(item => (
             <Button
               key={item.id}
