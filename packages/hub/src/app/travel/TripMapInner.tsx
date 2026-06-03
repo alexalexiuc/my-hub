@@ -1,88 +1,149 @@
 'use client';
 
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useRef } from 'react';
-import type { Map as LeafletMap, LatLngTuple } from 'leaflet';
 import type { TripMapData } from '@my-hub/shared/services';
 
 type TripMapInnerProps = {
   mapData: TripMapData;
 };
 
+/** Interpolates a great-circle arc between two [lat, lng] pairs. Returns [lng, lat] for MapLibre. */
+function greatCircleArc(from: [number, number], to: [number, number], steps = 64): [number, number][] {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const toDeg = (r: number) => (r * 180) / Math.PI;
+  const [lat1, lon1] = from;
+  const [lat2, lon2] = to;
+  const φ1 = toRad(lat1),
+    λ1 = toRad(lon1);
+  const φ2 = toRad(lat2),
+    λ2 = toRad(lon2);
+  const d =
+    2 * Math.asin(Math.sqrt(Math.sin((φ2 - φ1) / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin((λ2 - λ1) / 2) ** 2));
+  if (d === 0) return [[lon1, lat1]];
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= steps; i++) {
+    const f = i / steps;
+    const A = Math.sin((1 - f) * d) / Math.sin(d);
+    const B = Math.sin(f * d) / Math.sin(d);
+    const x = A * Math.cos(φ1) * Math.cos(λ1) + B * Math.cos(φ2) * Math.cos(λ2);
+    const y = A * Math.cos(φ1) * Math.sin(λ1) + B * Math.cos(φ2) * Math.sin(λ2);
+    const z = A * Math.sin(φ1) + B * Math.sin(φ2);
+    pts.push([toDeg(Math.atan2(y, x)), toDeg(Math.atan2(z, Math.sqrt(x * x + y * y)))]);
+  }
+  return pts;
+}
+
 export function TripMapInner({ mapData }: TripMapInnerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<LeafletMap | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current || mapData.points.length < 2) return;
+    if (!containerRef.current) return;
 
-    import('leaflet').then(L => {
-      if (!containerRef.current || mapRef.current) return;
+    let destroyed = false;
 
-      // Fix default icon paths broken by bundlers
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    import('maplibre-gl').then(({ default: maplibregl }) => {
+      if (destroyed || !containerRef.current) return;
+
+      const map = new maplibregl.Map({
+        container: containerRef.current,
+        style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+        center: [0, 20],
+        zoom: 1.5,
+        attributionControl: false,
+        logoPosition: 'bottom-right',
       });
 
-      const map = L.map(containerRef.current!).setView([20, 0], 2);
-      mapRef.current = map;
+      map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 18,
-      }).addTo(map);
-
-      const bounds: LatLngTuple[] = [];
-
-      for (const pt of mapData.points) {
-        const popup = document.createElement('div');
-        const label = document.createElement('strong');
-        label.textContent = pt.label;
-        popup.appendChild(label);
-
-        if (pt.sub) {
-          popup.appendChild(document.createElement('br'));
-          const sub = document.createElement('span');
-          sub.style.color = '#aaa';
-          sub.textContent = pt.sub;
-          popup.appendChild(sub);
+      map.on('load', () => {
+        // Flight arc lines
+        if (mapData.arcs.length > 0) {
+          map.addSource('arcs', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: mapData.arcs.map((arc, i) => ({
+                type: 'Feature' as const,
+                id: i,
+                properties: {},
+                geometry: { type: 'LineString' as const, coordinates: greatCircleArc(arc.from, arc.to) },
+              })),
+            },
+          });
+          // Glow layer (wide, faint)
+          map.addLayer({
+            id: 'arcs-glow',
+            type: 'line',
+            source: 'arcs',
+            paint: { 'line-color': '#10b981', 'line-width': 6, 'line-opacity': 0.12 },
+          });
+          // Main arc line
+          map.addLayer({
+            id: 'arcs-line',
+            type: 'line',
+            source: 'arcs',
+            paint: {
+              'line-color': '#10b981',
+              'line-width': 1.5,
+              'line-opacity': 0.7,
+              'line-dasharray': [4, 3],
+            },
+          });
         }
-        L.marker([pt.lat, pt.lng]).bindPopup(popup).addTo(map);
-        bounds.push([pt.lat, pt.lng]);
-      }
 
-      for (const arc of mapData.arcs) {
-        L.polyline([arc.from, arc.to], {
-          color: '#38bdf8',
-          weight: 1.5,
-          dashArray: '6 4',
-          opacity: 0.7,
-        }).addTo(map);
-      }
+        // Location markers
+        for (const pt of mapData.points) {
+          const dot = document.createElement('div');
+          dot.style.cssText =
+            'width:10px;height:10px;border-radius:50%;background:#10b981;border:2px solid rgba(234,250,244,0.8);box-shadow:0 0 8px rgba(16,185,129,0.7)';
 
-      if (bounds.length >= 2) {
-        map.fitBounds(bounds, { padding: [32, 32] });
-      }
+          const popup = new maplibregl.Popup({ offset: 14, closeButton: false, className: 'travel-map-popup' }).setHTML(
+            `<strong style="color:#eafaf4;font-size:13px">${pt.label}</strong>${
+              pt.sub ? `<br><span style="color:#6bbf97;font-size:11px">${pt.sub}</span>` : ''
+            }`,
+          );
+
+          new maplibregl.Marker({ element: dot }).setLngLat([pt.lng, pt.lat]).setPopup(popup).addTo(map);
+        }
+
+        // Fit map to all points
+        if (mapData.points.length >= 2) {
+          const bounds = new maplibregl.LngLatBounds();
+          for (const pt of mapData.points) bounds.extend([pt.lng, pt.lat]);
+          map.fitBounds(bounds, { padding: 60, maxZoom: 9, duration: 0 });
+        }
+      });
+
+      // Cleanup on unmount
+      (containerRef.current as HTMLDivElement & { _mlMap?: maplibregl.Map })._mlMap = map;
     });
 
     return () => {
-      mapRef.current?.remove();
-      mapRef.current = null;
+      destroyed = true;
+      const el = containerRef.current as (HTMLDivElement & { _mlMap?: import('maplibre-gl').Map }) | null;
+      el?._mlMap?.remove();
     };
   }, [mapData]);
 
-  if (mapData.points.length < 2) return null;
-
   return (
     <>
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossOrigin="" />
+      <style>{`
+        .travel-map-popup .maplibregl-popup-content {
+          background: #0f271d;
+          border: 1px solid #1d4c36;
+          border-radius: 8px;
+          padding: 8px 12px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+        }
+        .travel-map-popup .maplibregl-popup-tip { border-top-color: #1d4c36; }
+        .maplibregl-ctrl-attrib { font-size: 10px !important; opacity: 0.5; }
+      `}</style>
       <div
         ref={containerRef}
         data-testid="trip-map-container"
-        style={{ height: '320px', width: '100%', borderRadius: '0.5rem', overflow: 'hidden' }}
+        style={{ height: '500px', width: '100%', borderRadius: '0.75rem', overflow: 'hidden' }}
       />
     </>
   );

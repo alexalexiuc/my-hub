@@ -63,10 +63,10 @@ function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLa
 
   const chipColorClass =
     action.type === 'boarding_pass'
-      ? 'border-sky-600 bg-sky-900/40 text-sky-300 hover:bg-sky-800/50 hover:text-sky-300'
+      ? 'border-[var(--sky)]/60 bg-[var(--blue-d)] text-[var(--sky)] hover:opacity-80'
       : action.type === 'contact_phone' || action.type === 'contact_email'
-        ? 'border-emerald-700 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/50 hover:text-emerald-300'
-        : 'border-zinc-600 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-zinc-300';
+        ? 'border-[var(--accent)]/50 bg-[var(--green-d)] text-[var(--green)] hover:opacity-80'
+        : 'border-[var(--border)] bg-[var(--card3)] text-[var(--muted)] hover:text-[var(--text)]';
 
   return (
     <Button
@@ -85,19 +85,19 @@ function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLa
 }
 
 const bucketCardClasses: Record<TimeBucket, string> = {
-  past: 'border-zinc-700/40 bg-zinc-900/40',
-  now: 'border-l-[3px] border-l-sky-500 border-t-zinc-700 border-r-zinc-700 border-b-zinc-700 bg-sky-950/30',
-  imminent: 'border-red-500/70 bg-red-950/20',
-  soon: 'border-amber-600/50 bg-amber-950/15',
-  future: 'border-zinc-700 bg-zinc-900',
+  past: 'border-[var(--border)]/40 bg-[var(--card2)]/40',
+  now: 'border-l-[3px] border-l-[var(--sky)] border-t-[var(--border)] border-r-[var(--border)] border-b-[var(--border)] bg-[var(--blue-d)]',
+  imminent: 'border-[var(--red)]/70 bg-[var(--red-d)]',
+  soon: 'border-[var(--amber)]/50 bg-[var(--amber-d)]',
+  future: 'border-[var(--border)] bg-[var(--card2)]',
 };
 
 const bucketTimeClasses: Record<TimeBucket, string> = {
-  past: 'text-zinc-500 line-through',
-  now: 'text-sky-400',
-  imminent: 'text-red-400 font-semibold',
-  soon: 'text-amber-400',
-  future: 'text-zinc-500',
+  past: 'text-[var(--subtle)] line-through',
+  now: 'text-[var(--sky)]',
+  imminent: 'text-[var(--red)] font-semibold',
+  soon: 'text-[var(--amber)]',
+  future: 'text-[var(--muted)]',
 };
 
 function SegmentCard({ segment }: { segment: Segment }) {
@@ -124,9 +124,9 @@ function SegmentCard({ segment }: { segment: Segment }) {
           onClick={() => setExpanded(true)}
           aria-label={`Expand past segment: ${segment.primaryLabel}`}
           title="Click to expand"
-          className="relative flex items-center gap-2 h-fit w-full rounded-lg border border-dashed border-zinc-700/40 bg-zinc-900/30 px-3 py-2 text-sm opacity-55 hover:opacity-80 hover:border-zinc-600/60 hover:bg-zinc-900/50 hover:text-inherit cursor-pointer"
+          className="relative flex items-center gap-2 h-fit w-full rounded-lg border border-dashed border-[var(--border)]/40 bg-[var(--card2)]/30 px-3 py-2 text-sm opacity-55 hover:opacity-80 hover:border-[var(--border)]/60 hover:bg-[var(--card2)]/50 hover:text-inherit cursor-pointer"
         >
-          <span className="shrink-0 text-zinc-500">
+          <span className="shrink-0 text-[var(--subtle)]">
             <BookingTypeIcon type={segment.bookingType} />
           </span>
           <TravelTimeDisplay
@@ -137,7 +137,7 @@ function SegmentCard({ segment }: { segment: Segment }) {
             className="shrink-0"
             timeClassName={bucketTimeClasses.past}
           />
-          <span className="text-xs text-zinc-400 truncate flex-1 text-left">{segment.primaryLabel}</span>
+          <span className="text-xs text-[var(--muted)] truncate flex-1 text-left">{segment.primaryLabel}</span>
         </Button>
       ) : (
         <div
@@ -160,25 +160,25 @@ function SegmentCard({ segment }: { segment: Segment }) {
           }`}
         >
           {isActive && (
-            <span className="absolute top-1.5 right-1.5 rounded bg-sky-900 px-1.5 py-0.5 text-[10px] font-semibold text-sky-400">
+            <span className="absolute top-1.5 right-1.5 rounded bg-[var(--blue-d)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--sky)]">
               Now
             </span>
           )}
           {isPast && !isActive && (
-            <span className="absolute top-1.5 right-1.5 rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500">
+            <span className="absolute top-1.5 right-1.5 rounded bg-[var(--card3)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--subtle)]">
               Past ↑ collapse
             </span>
           )}
           {timeBucket === 'imminent' && (
-            <span className="absolute top-1.5 right-1.5 rounded bg-red-900/60 px-1.5 py-0.5 text-[10px] font-semibold text-red-400 animate-pulse">
+            <span className="absolute top-1.5 right-1.5 rounded bg-[var(--red-d)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--red)] animate-pulse">
               Soon!
             </span>
           )}
           <div className="flex items-center gap-1.5">
-            <span className={timeBucket === 'past' ? 'text-zinc-600' : 'text-zinc-400'}>
+            <span className={timeBucket === 'past' ? 'text-[var(--subtle)]' : 'text-[var(--muted)]'}>
               <BookingTypeIcon type={segment.bookingType} />
             </span>
-            <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">
               {segment.endpointLabel}
             </span>
           </div>
@@ -192,12 +192,12 @@ function SegmentCard({ segment }: { segment: Segment }) {
             />
           </div>
           <span
-            className={`font-medium text-sm leading-tight ${isPast ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-zinc-100'}`}
+            className={`font-medium text-sm leading-tight ${isPast ? 'text-[var(--subtle)] line-through decoration-[var(--subtle)]' : 'text-[var(--text)]'}`}
           >
             {segment.primaryLabel}
           </span>
           {segment.secondaryLabel && (
-            <span className={`text-xs leading-tight ${isPast ? 'text-zinc-600' : 'text-zinc-400'}`}>
+            <span className={`text-xs leading-tight ${isPast ? 'text-[var(--subtle)]' : 'text-[var(--muted)]'}`}>
               {segment.secondaryLabel}
             </span>
           )}
@@ -209,7 +209,7 @@ function SegmentCard({ segment }: { segment: Segment }) {
             </div>
           )}
           {!isPast && !segment.isEndSegment && segment.actions.length === 0 && (
-            <p className="text-xs italic text-zinc-500 mt-0.5">No documents attached</p>
+            <p className="text-xs italic text-[var(--muted)] mt-0.5">No documents attached</p>
           )}
         </div>
       )}
@@ -221,7 +221,7 @@ function Connector({ dim, durationBadge }: { dim?: boolean; durationBadge?: stri
   if (durationBadge) {
     return (
       <div className="flex items-center justify-center py-1 md:py-0 md:px-1" aria-hidden="true">
-        <span className="rounded-full bg-zinc-800 border border-zinc-700 px-2 py-0.5 text-[10px] font-medium text-zinc-400 whitespace-nowrap">
+        <span className="rounded-full bg-[var(--card3)] border border-[var(--border)] px-2 py-0.5 text-[10px] font-medium text-[var(--muted)] whitespace-nowrap">
           {durationBadge}
         </span>
       </div>
@@ -229,8 +229,8 @@ function Connector({ dim, durationBadge }: { dim?: boolean; durationBadge?: stri
   }
   return (
     <div className="flex items-center justify-center py-1 md:py-0 md:px-1" aria-hidden="true">
-      <span className={`hidden text-sm md:block ${dim ? 'text-zinc-700' : 'text-zinc-600'}`}>→</span>
-      <span className={`text-sm md:hidden ${dim ? 'text-zinc-700' : 'text-zinc-600'}`}>↓</span>
+      <span className={`hidden text-sm md:block ${dim ? 'text-[var(--subtle)]' : 'text-[var(--border)]'}`}>→</span>
+      <span className={`text-sm md:hidden ${dim ? 'text-[var(--subtle)]' : 'text-[var(--border)]'}`}>↓</span>
     </div>
   );
 }
@@ -246,7 +246,7 @@ export function ComingNext({ bookings, documents }: ComingNextProps) {
   if (segments.length === 0) return null;
 
   return (
-    <SectionCard title="Itinerary" className="bg-sky-950/20 border-sky-800/50">
+    <SectionCard title="Itinerary" className="bg-[var(--card)] border-[var(--border)]">
       <div className="min-w-0 flex flex-col gap-0 md:flex-row md:items-stretch md:gap-0 md:overflow-x-auto pb-2">
         {segments.map((segment, i) => {
           const next = segments[i + 1];

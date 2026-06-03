@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import type { TripCompanion } from '@my-hub/shared/types';
-import { Button, IconButton, Input } from '@/components';
-import { PencilIcon, TrashIcon } from '@/components/icons';
+import { Button, ConfirmModal, SwipeRow } from '@/components';
+import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
+import { CompanionModal } from './CompanionModal';
 
 type CompanionsSectionProps = {
   activeTripId: number | null;
@@ -15,126 +16,111 @@ type CompanionsSectionProps = {
 };
 
 export function CompanionsSection({ activeTripId, canEdit, companions, onChanged }: CompanionsSectionProps) {
-  const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [newPhone, setNewPhone] = useState('');
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editPhone, setEditPhone] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingCompanion, setEditingCompanion] = useState<TripCompanion | null>(null);
+  const [deletingCompanion, setDeletingCompanion] = useState<TripCompanion | null>(null);
+  const [openRowId, setOpenRowId] = useState<number | null>(null);
 
-  async function addCompanion() {
-    if (!activeTripId || !canEdit || !newName.trim()) return;
-    await apiFetch('/api/travel/companions', {
-      method: 'POST',
-      body: {
-        tripId: activeTripId,
-        name: newName.trim(),
-        email: newEmail.trim() || undefined,
-        phone: newPhone.trim() || undefined,
-      },
-    });
-    setNewName('');
-    setNewEmail('');
-    setNewPhone('');
+  async function handleDelete() {
+    if (!deletingCompanion) return;
+    await apiFetch(`/api/travel/companions/${deletingCompanion.id}`, { method: 'DELETE' });
+    setDeletingCompanion(null);
     onChanged();
   }
 
-  async function removeCompanion(companionId: number) {
-    if (!activeTripId || !canEdit) return;
-    await apiFetch(`/api/travel/companions/${companionId}`, { method: 'DELETE' });
-    if (editingId === companionId) cancelEdit();
-    onChanged();
-  }
-
-  function startEdit(companion: TripCompanion) {
-    setEditingId(companion.id);
-    setEditName(companion.name);
-    setEditEmail(companion.email ?? '');
-    setEditPhone(companion.phone ?? '');
-  }
-
-  function cancelEdit() {
-    setEditingId(null);
-    setEditName('');
-    setEditEmail('');
-    setEditPhone('');
-  }
-
-  async function saveEdit(companionId: number) {
-    if (!activeTripId || !canEdit) return;
-    const name = editName.trim();
-    if (!name) return;
-    await apiFetch(`/api/travel/companions/${companionId}`, {
-      method: 'PATCH',
-      body: { name, email: editEmail.trim() || null, phone: editPhone.trim() || null },
-    });
-    cancelEdit();
-    onChanged();
-  }
+  const headerAction =
+    canEdit && activeTripId ? (
+      <Button size="xs" variant="accent" onClick={() => setShowAddModal(true)}>
+        + Add
+      </Button>
+    ) : null;
 
   return (
-    <SectionCard title="Companions" className="bg-fuchsia-950/20 border-fuchsia-800/50">
-      <div className="space-y-2 mb-3">
-        <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Name" />
-        <div className="grid grid-cols-2 gap-2">
-          <Input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="Email" />
-          <Input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="Phone" />
-        </div>
-        <Button
-          onClick={addCompanion}
-          disabled={!activeTripId || !canEdit}
-          className="w-full bg-fuchsia-600 hover:bg-fuchsia-500"
-        >
-          Add Companion
-        </Button>
-      </div>
+    <>
+      {(showAddModal || editingCompanion) && activeTripId && (
+        <CompanionModal
+          activeTripId={activeTripId}
+          editingCompanion={editingCompanion ?? undefined}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditingCompanion(null);
+          }}
+          onSaved={() => {
+            setShowAddModal(false);
+            setEditingCompanion(null);
+            onChanged();
+          }}
+        />
+      )}
+      {deletingCompanion && (
+        <ConfirmModal
+          title="Remove Companion"
+          message={`Remove "${deletingCompanion.name}" from this trip?`}
+          confirmLabel="Remove"
+          onConfirm={handleDelete}
+          onCancel={() => setDeletingCompanion(null)}
+        />
+      )}
 
-      <div className="space-y-2 max-h-64 overflow-auto">
-        {companions.map(companion => (
-          <div key={companion.id} className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm">
-            {editingId === companion.id ? (
-              <div className="space-y-2">
-                <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Name" />
-                <div className="grid grid-cols-2 gap-2">
-                  <Input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Email" />
-                  <Input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="Phone" />
-                </div>
-                <div className="flex items-center justify-end gap-2">
-                  <Button
-                    size="xs"
-                    onClick={() => saveEdit(companion.id)}
-                    className="bg-fuchsia-600 hover:bg-fuchsia-500"
-                  >
-                    Save
-                  </Button>
-                  <Button variant="secondary" size="xs" onClick={cancelEdit}>
-                    Cancel
-                  </Button>
-                </div>
+      <SectionCard title="Companions" className="bg-[var(--card)] border-[var(--border)]" action={headerAction}>
+        <div className="max-h-64 space-y-1.5 overflow-auto">
+          {companions.map(companion => (
+            <div key={companion.id} className="overflow-hidden rounded-md border border-[var(--border)]">
+              {/* Mobile: swipe-to-reveal */}
+              <div data-layout="mobile" className="md:hidden">
+                <SwipeRow
+                  isOpen={openRowId === companion.id}
+                  onOpen={() => setOpenRowId(companion.id)}
+                  onClose={() => setOpenRowId(null)}
+                  onEdit={canEdit ? () => setEditingCompanion(companion) : undefined}
+                  onDelete={canEdit ? () => setDeletingCompanion(companion) : undefined}
+                >
+                  <div className="bg-[var(--card)] px-3 py-2.5">
+                    <p className="text-sm font-medium text-[var(--text)]">{companion.name}</p>
+                    <p className="text-xs text-[var(--muted)]">
+                      {companion.email ?? companion.phone ?? 'No contact info'}
+                    </p>
+                  </div>
+                </SwipeRow>
               </div>
-            ) : (
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-medium">{companion.name}</p>
-                  <p className="text-xs text-zinc-400">{companion.email ?? companion.phone ?? 'No contact info'}</p>
+
+              {/* Desktop: hover buttons */}
+              <div
+                data-layout="desktop"
+                className="group hidden items-center justify-between gap-3 bg-[var(--card)] px-3 py-2.5 md:flex"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-[var(--text)]">{companion.name}</p>
+                  <p className="text-xs text-[var(--muted)]">
+                    {companion.email ?? companion.phone ?? 'No contact info'}
+                  </p>
                 </div>
                 {canEdit && (
-                  <div className="flex items-center gap-1">
-                    <IconButton label="Edit companion" onClick={() => startEdit(companion)} icon={<PencilIcon />} />
-                    <IconButton
-                      label="Remove companion"
-                      onClick={() => removeCompanion(companion.id)}
-                      icon={<TrashIcon />}
-                    />
+                  <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => setEditingCompanion(companion)}
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--accent)]"
+                      aria-label="Edit companion"
+                    >
+                      <PencilIcon className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeletingCompanion(companion)}
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--red)]"
+                      aria-label="Remove companion"
+                    >
+                      <TrashOutlineIcon className="size-3.5" />
+                    </button>
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        ))}
-        {companions.length === 0 && <p className="text-sm text-zinc-500">No companions yet.</p>}
-      </div>
-    </SectionCard>
+            </div>
+          ))}
+          {companions.length === 0 && <p className="text-sm text-[var(--muted)]">No companions yet.</p>}
+        </div>
+      </SectionCard>
+    </>
   );
 }

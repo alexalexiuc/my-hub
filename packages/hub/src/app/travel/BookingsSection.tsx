@@ -2,32 +2,16 @@
 
 import { useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
-import type { TripBookingType, TripDocument } from '@my-hub/shared/types';
-import type { TripBookingExtended } from './types';
+import { Button, ConfirmModal, IconButton, SwipeRow } from '@/components';
 import { AttachmentIcon, PencilIcon, TrashIcon } from '@/components/icons';
-import { BookingTypeIcon, IconButton } from '@/components';
+import { BookingTypeIcon } from '@/components';
+import type { TripDocument } from '@my-hub/shared/types';
+import type { TripBookingExtended } from './types';
 import { TravelTimeDisplay } from './TravelTimeDisplay';
-import { TripBookingTypes } from '@my-hub/shared/constants';
 import { apiFetch } from '@/lib/utils';
-import { BookingForm } from './BookingForm';
-import { bookingToFormValues, formToCreateBody, formToUpdateBody, type BookingFormValues } from './booking-form.schema';
+import { BookingModal } from './BookingModal';
 import { BookingExpandedPanel } from './BookingExpandedPanel';
-
-const bookingTypeLabels: Record<TripBookingType, string> = {
-  [TripBookingTypes.Flight]: 'Flight',
-  [TripBookingTypes.Accommodation]: 'Accommodation',
-  [TripBookingTypes.RentalCar]: 'Rental Car',
-  [TripBookingTypes.Train]: 'Train',
-  [TripBookingTypes.Bus]: 'Bus',
-  [TripBookingTypes.Ferry]: 'Ferry',
-  [TripBookingTypes.Taxi]: 'Taxi',
-  [TripBookingTypes.Transfer]: 'Transfer',
-  [TripBookingTypes.Car]: 'Car',
-  [TripBookingTypes.Restaurant]: 'Restaurant',
-  [TripBookingTypes.Tour]: 'Tour',
-  [TripBookingTypes.Activity]: 'Activity',
-  [TripBookingTypes.Other]: 'Other',
-};
+import { bookingTypeLabels } from './ui';
 
 type BookingsSectionProps = {
   activeTripId: number | null;
@@ -44,25 +28,16 @@ export function BookingsSection({
   documentsByBookingId,
   onChanged,
 }: BookingsSectionProps) {
-  const [editingBookingId, setEditingBookingId] = useState<number | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<TripBookingExtended | null>(null);
+  const [deletingBooking, setDeletingBooking] = useState<TripBookingExtended | null>(null);
   const [expandedBookingId, setExpandedBookingId] = useState<number | null>(null);
+  const [openRowId, setOpenRowId] = useState<number | null>(null);
 
-  async function addBooking(values: BookingFormValues) {
-    if (!activeTripId || !canEdit) return;
-    await apiFetch('/api/travel/bookings', { method: 'POST', body: formToCreateBody(values, activeTripId) });
-    onChanged();
-  }
-
-  async function removeBooking(bookingId: number) {
-    if (!activeTripId || !canEdit) return;
-    await apiFetch(`/api/travel/bookings/${bookingId}`, { method: 'DELETE' });
-    onChanged();
-  }
-
-  async function saveBookingEdits(bookingId: number, values: BookingFormValues) {
-    if (!activeTripId || !canEdit) return;
-    await apiFetch(`/api/travel/bookings/${bookingId}`, { method: 'PATCH', body: formToUpdateBody(values) });
-    setEditingBookingId(null);
+  async function handleDelete() {
+    if (!deletingBooking) return;
+    await apiFetch(`/api/travel/bookings/${deletingBooking.id}`, { method: 'DELETE' });
+    setDeletingBooking(null);
     onChanged();
   }
 
@@ -70,112 +45,156 @@ export function BookingsSection({
     setExpandedBookingId(prev => (prev === bookingId ? null : bookingId));
   }
 
-  return (
-    <SectionCard title="Reservations" className="bg-indigo-950/20 border-indigo-800/50">
-      <div className="mb-3">
-        <BookingForm onSubmit={addBooking} submitLabel="Add Reservation" disabled={!activeTripId || !canEdit} />
-      </div>
+  const headerAction =
+    canEdit && activeTripId ? (
+      <Button size="xs" variant="accent" onClick={() => setShowAddModal(true)}>
+        + Add
+      </Button>
+    ) : null;
 
-      <div className="space-y-2 max-h-[28rem] overflow-auto">
-        {bookings.map(booking => (
-          <div
-            key={booking.id}
-            className="rounded-md border border-zinc-700 bg-zinc-900 text-sm"
-            data-testid="booking-row"
-          >
-            {editingBookingId === booking.id ? (
-              <div className="px-3 py-2">
-                <BookingForm
-                  defaultValues={bookingToFormValues(booking)}
-                  onSubmit={values => saveBookingEdits(booking.id, values)}
-                  onCancel={() => setEditingBookingId(null)}
-                  submitLabel="Save"
+  return (
+    <>
+      {(showAddModal || editingBooking) && (
+        <BookingModal
+          editingBooking={editingBooking ?? undefined}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditingBooking(null);
+          }}
+          onSaved={() => {
+            setShowAddModal(false);
+            setEditingBooking(null);
+            onChanged();
+          }}
+        />
+      )}
+      {deletingBooking && (
+        <ConfirmModal
+          title="Delete Reservation"
+          message={`Delete "${deletingBooking.title}"?`}
+          confirmLabel="Delete"
+          onConfirm={handleDelete}
+          onCancel={() => setDeletingBooking(null)}
+        />
+      )}
+
+      <SectionCard title="Reservations" className="bg-[var(--card)] border-[var(--border)]" action={headerAction}>
+        <div className="max-h-[28rem] space-y-2 overflow-auto">
+          {bookings.map(booking => (
+            <div
+              key={booking.id}
+              className="overflow-hidden rounded-md border border-[var(--border)] text-sm"
+              data-testid="booking-row"
+            >
+              {/* Mobile: swipe row */}
+              <div data-layout="mobile" className="md:hidden">
+                <SwipeRow
+                  isOpen={openRowId === booking.id}
+                  onOpen={() => setOpenRowId(booking.id)}
+                  onClose={() => setOpenRowId(null)}
+                  onEdit={canEdit ? () => setEditingBooking(booking) : undefined}
+                  onDelete={canEdit ? () => setDeletingBooking(booking) : undefined}
+                >
+                  <BookingRowContent
+                    booking={booking}
+                    documentsByBookingId={documentsByBookingId}
+                    expanded={expandedBookingId === booking.id}
+                    onToggle={() => toggleExpand(booking.id)}
+                    showActions={false}
+                  />
+                </SwipeRow>
+              </div>
+
+              {/* Desktop: hover buttons */}
+              <div data-layout="desktop" className="hidden md:block">
+                <BookingRowContent
+                  booking={booking}
+                  documentsByBookingId={documentsByBookingId}
+                  expanded={expandedBookingId === booking.id}
+                  onToggle={() => toggleExpand(booking.id)}
+                  showActions={canEdit}
+                  onEdit={() => setEditingBooking(booking)}
+                  onDelete={() => setDeletingBooking(booking)}
                 />
               </div>
-            ) : (
-              <>
-                {/* Clickable header row */}
-                <div
-                  role="button"
-                  tabIndex={0}
-                  className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left hover:bg-zinc-800/40 transition-colors rounded-md cursor-pointer"
-                  onClick={() => toggleExpand(booking.id)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      toggleExpand(booking.id);
-                    }
-                  }}
-                  aria-expanded={expandedBookingId === booking.id}
-                  aria-label={`${expandedBookingId === booking.id ? 'Collapse' : 'Expand'} reservation: ${booking.title}`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate">{booking.title}</p>
-                    <div className="flex items-center gap-2">
-                      <div className="flex flex-wrap items-center gap-1 text-xs text-zinc-400">
-                        <BookingTypeIcon type={booking.bookingType} />
-                        {bookingTypeLabels[booking.bookingType as keyof typeof bookingTypeLabels] ??
-                          booking.bookingType}
-                        {booking.provider ? ` · ${booking.provider}` : ''}
-                        {booking.startAt && (
-                          <>
-                            <span aria-hidden="true">·</span>
-                            <TravelTimeDisplay
-                              datetime={new Date(booking.startAt).toISOString()}
-                              timezone={booking.startTimezone ?? null}
-                              size="xs"
-                              showTimezoneOffset
-                            />
-                          </>
-                        )}
-                        {booking.endAt && (
-                          <>
-                            <span aria-hidden="true">→</span>
-                            <TravelTimeDisplay
-                              datetime={new Date(booking.endAt).toISOString()}
-                              timezone={booking.endTimezone ?? null}
-                              size="xs"
-                              showTimezoneOffset
-                            />
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {(documentsByBookingId.get(booking.id)?.length ?? 0) > 0 && (
-                      <span className="text-amber-300" title="Has attachments">
-                        <AttachmentIcon />
-                      </span>
-                    )}
-                    <span className="text-zinc-500 text-xs">{expandedBookingId === booking.id ? '▲' : '▼'}</span>
-                    {canEdit && (
-                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                        <IconButton
-                          label="Edit reservation"
-                          onClick={() => setEditingBookingId(booking.id)}
-                          icon={<PencilIcon />}
-                        />
-                        <IconButton
-                          label="Remove reservation"
-                          onClick={() => removeBooking(booking.id)}
-                          icon={<TrashIcon />}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
+            </div>
+          ))}
+          {bookings.length === 0 && <p className="text-sm text-[var(--muted)]">No reservations yet.</p>}
+        </div>
+      </SectionCard>
+    </>
+  );
+}
 
-                {/* Expanded details panel */}
-                {expandedBookingId === booking.id && (
-                  <BookingExpandedPanel booking={booking} documents={documentsByBookingId.get(booking.id) ?? []} />
-                )}
+type BookingRowContentProps = {
+  booking: TripBookingExtended;
+  documentsByBookingId: Map<number, TripDocument[]>;
+  expanded: boolean;
+  onToggle: () => void;
+  showActions: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+};
+
+function BookingRowContent({
+  booking,
+  documentsByBookingId,
+  expanded,
+  onToggle,
+  showActions,
+  onEdit,
+  onDelete,
+}: BookingRowContentProps) {
+  return (
+    <>
+      <div
+        role="button"
+        tabIndex={0}
+        className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-[var(--card2)]"
+        onClick={onToggle}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+        aria-expanded={expanded}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium text-[var(--text)]">{booking.title}</p>
+          <div className="flex flex-wrap items-center gap-1 text-xs text-[var(--muted)]">
+            <BookingTypeIcon type={booking.bookingType} />
+            {bookingTypeLabels[booking.bookingType as keyof typeof bookingTypeLabels] ?? booking.bookingType}
+            {booking.provider ? ` · ${booking.provider}` : ''}
+            {booking.startAt && (
+              <>
+                <span aria-hidden="true">·</span>
+                <TravelTimeDisplay
+                  datetime={new Date(booking.startAt).toISOString()}
+                  timezone={booking.startTimezone ?? null}
+                  size="xs"
+                  showTimezoneOffset
+                />
               </>
             )}
           </div>
-        ))}
-        {bookings.length === 0 && <p className="text-sm text-zinc-500">No reservations yet.</p>}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {(documentsByBookingId.get(booking.id)?.length ?? 0) > 0 && (
+            <span className="text-[var(--amber)]" title="Has attachments">
+              <AttachmentIcon />
+            </span>
+          )}
+          <span className="text-xs text-[var(--subtle)]">{expanded ? '▲' : '▼'}</span>
+          {showActions && (
+            <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+              <IconButton label="Edit reservation" onClick={onEdit} icon={<PencilIcon />} />
+              <IconButton label="Delete reservation" onClick={onDelete} icon={<TrashIcon />} />
+            </div>
+          )}
+        </div>
       </div>
-    </SectionCard>
+      {expanded && <BookingExpandedPanel booking={booking} documents={documentsByBookingId.get(booking.id) ?? []} />}
+    </>
   );
 }

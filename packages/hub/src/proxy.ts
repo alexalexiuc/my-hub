@@ -15,6 +15,14 @@ import { hubEnvConfig } from '@/config/env';
  * `strict-dynamic` lets the nonce'd bootstrap script load page chunks
  * dynamically without extra entries in the allowlist.
  */
+// MapLibre GL tile origins (CARTO Dark Matter basemap + fonts)
+const MAP_ORIGINS = [
+  'https://basemaps.cartocdn.com',
+  'https://*.basemaps.cartocdn.com',
+  'https://fonts.openmaptiles.org',
+  'https://openmaptiles.github.io',
+].join(' ');
+
 function buildCsp(nonce: string): string {
   return [
     `default-src 'self'`,
@@ -22,7 +30,9 @@ function buildCsp(nonce: string): string {
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' data: blob:`,
     `font-src 'self'`,
-    `connect-src 'self'`,
+    `connect-src 'self' ${MAP_ORIGINS}`,
+    // MapLibre GL spawns WebWorkers from blob: URLs for tile decoding
+    `worker-src blob:`,
     `object-src 'none'`,
     `frame-ancestors 'none'`,
   ].join('; ');

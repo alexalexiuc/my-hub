@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 interface Props {
   title?: string;
@@ -11,7 +12,7 @@ interface Props {
 
 export function SectionCard({ title, titleHref, titleHoverClass, action, children, className = '' }: Props) {
   return (
-    <section className={`rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-sm ${className}`}>
+    <section className={cn('rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-sm', className)}>
       {(title || action) && (
         <div className="flex items-center justify-between mb-4">
           {title && (

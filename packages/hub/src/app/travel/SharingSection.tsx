@@ -1,10 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { Button, Input } from '@/components';
+import { useState } from 'react';
+import { Button } from '@/components';
 import { SectionCard } from '@/components/SectionCard';
-import type { ApiTrip, TripShareSuggestion, TripShareView } from './types';
+import type { ApiTrip, TripShareView } from './types';
 import { apiFetch } from '@/lib/utils';
+import { ShareModal } from './ShareModal';
+import { travelEvents } from './travelEvents';
 
 type SharingSectionProps = {
   activeTrip: ApiTrip | null;
@@ -12,131 +14,73 @@ type SharingSectionProps = {
 };
 
 export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
-  const [tripShares, setTripShares] = useState<TripShareView[]>([]);
-  const [shareSuggestions, setShareSuggestions] = useState<TripShareSuggestion[]>([]);
-  const [shareEmail, setShareEmail] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [shares, setShares] = useState<TripShareView[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
-  const loadShares = useCallback(async (tripId: number) => {
+  async function loadShares() {
+    if (!activeTrip) return;
     try {
-      const data = await apiFetch<{ shares: TripShareView[]; suggestions: TripShareSuggestion[] }>(
-        `/api/travel/trips/${tripId}/shares`,
-      );
-      setTripShares(data.shares);
-      setShareSuggestions(data.suggestions);
-    } catch {
-      setTripShares([]);
-      setShareSuggestions([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!activeTrip || !canEdit) {
-      setTripShares([]);
-      setShareSuggestions([]);
-      return;
-    }
-    loadShares(activeTrip.id);
-  }, [activeTrip?.id, canEdit, loadShares]);
-
-  async function shareTripByEmail() {
-    if (!activeTrip || !canEdit || !shareEmail.trim()) return;
-    try {
-      await apiFetch(`/api/travel/trips/${activeTrip.id}/shares`, {
-        method: 'POST',
-        body: { email: shareEmail.trim() },
-      });
-      setShareEmail('');
-      await loadShares(activeTrip.id);
-    } catch {
-      // ignore
-    }
+      const data = await apiFetch<{ shares: TripShareView[] }>(`/api/travel/trips/${activeTrip.id}/shares`);
+      setShares(data.shares);
+      setLoaded(true);
+    } catch {}
   }
 
-  async function shareTripWithUser(userId: string) {
-    if (!activeTrip || !canEdit) return;
-    try {
-      await apiFetch(`/api/travel/trips/${activeTrip.id}/shares`, {
-        method: 'POST',
-        body: { userId },
-      });
-      await loadShares(activeTrip.id);
-    } catch {
-      // ignore
-    }
+  // Lazy-load shares when section mounts with a valid trip
+  if (!loaded && activeTrip && canEdit) {
+    loadShares();
   }
 
-  async function revokeTripShare(shareId: number) {
-    if (!activeTrip || !canEdit) return;
-    try {
-      await apiFetch(`/api/travel/trips/${activeTrip.id}/shares/${shareId}`, { method: 'DELETE' });
-      await loadShares(activeTrip.id);
-    } catch {
-      // ignore
-    }
+  async function revokeShare(shareId: number) {
+    if (!activeTrip) return;
+    await apiFetch(`/api/travel/trips/${activeTrip.id}/shares/${shareId}`, { method: 'DELETE' });
+    travelEvents.emit('changed');
+    loadShares();
   }
+
+  const headerAction =
+    canEdit && activeTrip ? (
+      <Button size="xs" variant="accent" onClick={() => setShowModal(true)}>
+        Share
+      </Button>
+    ) : null;
 
   return (
-    <SectionCard title="Sharing" className="bg-violet-950/20 border-violet-800/50">
-      {!activeTrip && <p className="text-sm text-zinc-500">Select a trip to manage sharing.</p>}
-      {activeTrip && !canEdit && (
-        <p className="text-sm text-zinc-500">
-          Only the trip owner can manage sharing. You currently have view-only access.
-        </p>
+    <>
+      {showModal && activeTrip && (
+        <ShareModal
+          activeTrip={activeTrip}
+          onClose={() => {
+            setShowModal(false);
+            loadShares();
+          }}
+        />
       )}
-      {activeTrip && canEdit && (
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <Input
-              value={shareEmail}
-              onChange={e => setShareEmail(e.target.value)}
-              placeholder="Share with user email"
-              className="flex-1"
-            />
-            <Button onClick={shareTripByEmail} className="bg-violet-600 hover:bg-violet-500">
-              Share
-            </Button>
-          </div>
 
-          {shareSuggestions.length > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wide text-zinc-500">Suggestions from companions in Hub</p>
-              <div className="space-y-1">
-                {shareSuggestions.map(suggestion => (
-                  <div
-                    key={suggestion.userId}
-                    className="flex items-center justify-between rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs"
-                  >
-                    <span className="text-zinc-300">{suggestion.name ?? suggestion.email}</span>
-                    <Button
-                      size="xs"
-                      onClick={() => shareTripWithUser(suggestion.userId)}
-                      className="bg-violet-600 hover:bg-violet-500"
-                    >
-                      Share
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wide text-zinc-500">Shared with</p>
-            {tripShares.length === 0 && <p className="text-sm text-zinc-500">No shared users yet.</p>}
-            {tripShares.map(share => (
+      <SectionCard title="Sharing" className="bg-[var(--card)] border-[var(--border)]" action={headerAction}>
+        {!activeTrip && <p className="text-sm text-[var(--muted)]">Select a trip to manage sharing.</p>}
+        {activeTrip && !canEdit && (
+          <p className="text-sm text-[var(--muted)]">Only the trip owner can manage sharing.</p>
+        )}
+        {activeTrip && canEdit && (
+          <div className="space-y-1.5">
+            <p className="text-[9px] uppercase tracking-[0.07em] text-[var(--subtle)]">Shared with</p>
+            {shares.length === 0 && <p className="text-xs text-[var(--muted)]">Not shared with anyone yet.</p>}
+            {shares.map(share => (
               <div
                 key={share.id}
-                className="flex items-center justify-between rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs"
+                className="flex items-center justify-between rounded-[10px] border border-[var(--border)] bg-[var(--card2)] px-3 py-2 text-xs"
               >
-                <span className="text-zinc-300">{share.name ?? share.email}</span>
-                <Button variant="secondary" size="xs" onClick={() => revokeTripShare(share.id)}>
+                <span className="text-[var(--text)]">{share.name ?? share.email}</span>
+                <Button variant="secondary" size="xs" onClick={() => revokeShare(share.id)}>
                   Remove
                 </Button>
               </div>
             ))}
           </div>
-        </div>
-      )}
-    </SectionCard>
+        )}
+      </SectionCard>
+    </>
   );
 }

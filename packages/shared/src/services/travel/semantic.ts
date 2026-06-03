@@ -20,6 +20,7 @@ import {
 } from '../../db/schema/travel';
 import type {
   FlightData,
+  FlightDetails,
   Trip,
   TripBooking,
   TripChecklistItem,
@@ -114,6 +115,7 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
   for (const b of bookings) {
     const fd = b.flightData;
     if (fd?.originIata && fd?.destinationIata) {
+      // Prefer live flight-tracker data
       const origin =
         coordsFromIata(fd.originIata) ?? (b.lat != null && b.lng != null ? { lat: b.lat, lng: b.lng } : null);
       const dest = coordsFromIata(fd.destinationIata);
@@ -122,8 +124,20 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
       if (dest)
         mapPoints.push({ lat: dest.lat, lng: dest.lng, label: fd.destinationIata, sub: fd.airlineName ?? undefined });
       if (origin && dest) mapArcs.push({ from: [origin.lat, origin.lng], to: [dest.lat, dest.lng] });
-    } else if (b.lat != null && b.lng != null) {
-      mapPoints.push({ lat: b.lat, lng: b.lng, label: b.title, sub: b.provider ?? undefined });
+    } else {
+      // Fallback: manually-entered IATA codes stored in booking details
+      const det = b.details as FlightDetails | null;
+      if (det?.kind === 'flight' && det.originIata && det.destinationIata) {
+        const origin = coordsFromIata(det.originIata);
+        const dest = coordsFromIata(det.destinationIata);
+        if (origin)
+          mapPoints.push({ lat: origin.lat, lng: origin.lng, label: det.originIata, sub: b.provider ?? undefined });
+        if (dest)
+          mapPoints.push({ lat: dest.lat, lng: dest.lng, label: det.destinationIata, sub: b.provider ?? undefined });
+        if (origin && dest) mapArcs.push({ from: [origin.lat, origin.lng], to: [dest.lat, dest.lng] });
+      } else if (b.lat != null && b.lng != null) {
+        mapPoints.push({ lat: b.lat, lng: b.lng, label: b.title, sub: b.provider ?? undefined });
+      }
     }
   }
 

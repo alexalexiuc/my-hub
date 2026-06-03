@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/utils';
-import type { TripOverviewResponse } from './types';
-import { travelEvents } from './travelEvents';
-import { readActiveTripId } from './TripSwitcher';
-import { TripSwitcher } from './TripSwitcher';
-import { ComingNext } from './ComingNext';
-import { DayByDay } from './DayByDay';
+import type { TripOverviewResponse } from '../types';
+import { travelEvents } from '../travelEvents';
+import { readActiveTripId } from '../TripSwitcher';
+import { TripSwitcher } from '../TripSwitcher';
+import { DayByDay } from '../DayByDay';
 
-export default function TravelPage() {
+export default function TravelDaysPage() {
   const [overview, setOverview] = useState<TripOverviewResponse | null>(null);
   const [activeTripId, setActiveTripId] = useState<number | null>(null);
 
@@ -39,22 +38,17 @@ export default function TravelPage() {
       <TripSwitcher />
 
       {!activeTripId ? (
-        <p className="text-sm text-[var(--muted)]">No trips yet — use the selector above to create your first trip.</p>
-      ) : (
-        <>
-          <ComingNext bookings={overview?.bookings ?? []} documents={overview?.documents ?? []} />
-          {overview?.trip && (
-            <DayByDay
-              trip={overview.trip}
-              bookings={overview.bookings}
-              dayNotes={overview.dayNotes}
-              places={overview.places}
-              canEdit={canEdit}
-              onChanged={loadData}
-            />
-          )}
-        </>
-      )}
+        <p className="text-sm text-[var(--muted)]">Select a trip to view day-by-day plans.</p>
+      ) : overview?.trip ? (
+        <DayByDay
+          trip={overview.trip}
+          bookings={overview.bookings}
+          dayNotes={overview.dayNotes}
+          places={overview.places}
+          canEdit={canEdit}
+          onChanged={loadData}
+        />
+      ) : null}
     </main>
   );
 }

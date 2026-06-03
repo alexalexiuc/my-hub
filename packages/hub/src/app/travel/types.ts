@@ -26,6 +26,7 @@ export interface TripOverviewResponse {
   documents: TripDocument[];
   dayNotes: TripDay[];
   mapData: TripMapData;
+  canEdit: boolean;
 }
 
 export type { TripDay };

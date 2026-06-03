@@ -41,7 +41,7 @@ export function TravelTimeDisplay({
       <span className={`${sizeClasses[size].time} ${timeClassName}`}>{text}</span>
       <span
         className={`rounded px-1 py-0.5 leading-none font-medium ${sizeClasses[size].meta} ${
-          showUtcHighlight ? 'bg-sky-900 text-sky-300' : 'bg-zinc-700 text-zinc-400'
+          showUtcHighlight ? 'bg-[var(--blue-d)] text-[var(--sky)]' : 'bg-[var(--accent-d)] text-[var(--accent)]'
         }`}
       >
         {badge.short}

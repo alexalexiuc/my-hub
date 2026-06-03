@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { TravelSidebar } from './TravelSidebar';
+import { TravelBottomNav } from './TravelBottomNav';
 
 export default function TravelLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,7 +19,18 @@ export default function TravelLayout({ children }: { children: React.ReactNode }
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-7 pb-20 pt-5 md:pb-12">{children}</div>
+      {/* Sidebar + page content */}
+      <div className="flex flex-1 overflow-hidden">
+        <div data-layout="desktop" className="hidden md:contents">
+          <TravelSidebar />
+        </div>
+        <div className="flex-1 overflow-y-auto px-7 pb-20 pt-5 md:pb-12">{children}</div>
+      </div>
+
+      {/* Mobile bottom nav */}
+      <div data-layout="mobile" className="md:hidden">
+        <TravelBottomNav />
+      </div>
     </div>
   );
 }

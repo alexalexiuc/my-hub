@@ -17,9 +17,10 @@ export const TravelUpsertDayNoteSchema = z.object({
   title: z.string().optional().describe('Short label for the day, e.g. "Travel day" or "Day at the beach".'),
   notes: z
     .string()
+    .transform(s => s.replace(/\\n/g, '\n'))
     .optional()
     .describe(
-      'Free-text notes for the day. Markdown is supported. ' +
+      'Free-text notes for the day. Markdown is supported. Use real newlines in the content, not \\n escape sequences. ' +
         'When referencing places in the notes, first ensure they exist as trip places (use travel_get_places to see existing places). ' +
         'Then pass their IDs via placeIds — this links them as interactive map chips in the UI.',
     ),
