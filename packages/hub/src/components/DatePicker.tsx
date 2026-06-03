@@ -6,13 +6,13 @@ import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { Input } from '@/components/Input';
 import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon, ChevronDownOutlineIcon } from '@/components/icons';
-import { shiftMonthStr, formatMonthStr } from '@my-hub/shared/utils';
+import { shiftMonthStr, formatMonthStr, addDays, dateToString } from '@my-hub/shared/utils';
 
-export type DateMode = 'month' | 'range' | 'all';
+export type DateMode = 'month' | 'range' | 'all' | 'day';
 
 export type DatePickerProps = {
   month: string;
-  onChange: (patch: { dateMode?: DateMode; month?: string; fromDate?: string; toDate?: string }) => void;
+  onChange: (patch: { dateMode?: DateMode; month?: string; day?: string; fromDate?: string; toDate?: string }) => void;
   /** Shows a "Today" pill when the displayed month differs from this value. */
   currentMonth?: string;
   /** Disables the forward arrow once month reaches this value. */
@@ -26,6 +26,24 @@ export type DatePickerProps = {
   className?: string;
   labelClassName?: string;
 };
+
+/** Shifts a YYYY-MM-DD string by n days. */
+function shiftDayStr(date: string, n: number): string {
+  return dateToString(addDays(new Date(date + 'T12:00:00'), n));
+}
+
+/** Formats a YYYY-MM-DD string as "Today", "Yesterday", or "Weekday Mon D". */
+function formatDayStr(date: string): string {
+  const today = dateToString(new Date());
+  const yesterday = shiftDayStr(today, -1);
+  if (date === today) return 'Today';
+  if (date === yesterday) return 'Yesterday';
+  return new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -98,22 +116,32 @@ export function DatePicker({
   }
 
   const displayLabel =
-    dateMode === 'all' ? 'All time' : dateMode === 'range' ? formatDateRange(fromDate, toDate) : formatMonthStr(month);
+    dateMode === 'all'
+      ? 'All time'
+      : dateMode === 'range'
+        ? formatDateRange(fromDate, toDate)
+        : dateMode === 'day'
+          ? formatDayStr(month)
+          : formatMonthStr(month);
 
   const bigChevron = !!labelClassName;
 
   return (
     <div ref={ref} className={cn('relative flex items-center gap-2', className)}>
-      {dateMode === 'month' && (
+      {(dateMode === 'month' || dateMode === 'day') && (
         <IconButton
-          label="Previous month"
+          label={dateMode === 'day' ? 'Previous day' : 'Previous month'}
           icon={<ChevronLeftOutlineIcon />}
-          onClick={() => onChange({ month: shiftMonthStr(month, -1) })}
+          onClick={() =>
+            dateMode === 'day'
+              ? onChange({ day: shiftDayStr(month, -1) })
+              : onChange({ month: shiftMonthStr(month, -1) })
+          }
           className="bg-transparent text-[var(--muted)] hover:bg-transparent hover:text-[var(--text)]"
         />
       )}
 
-      {extendedFilters ? (
+      {extendedFilters || dateMode === 'day' ? (
         /* Clickable label with dropdown */
         <button
           onClick={() => setOpen(o => !o)}
@@ -122,13 +150,15 @@ export function DatePicker({
           <span className={cn('min-w-44 font-bold tracking-tight text-[var(--text)]', labelClassName ?? 'text-[22px]')}>
             {displayLabel}
           </span>
-          <ChevronDownOutlineIcon
-            className={cn(
-              'shrink-0 text-[var(--muted)] transition-transform duration-150',
-              open && 'rotate-180',
-              bigChevron ? 'size-6' : 'size-5',
-            )}
-          />
+          {dateMode !== 'day' && (
+            <ChevronDownOutlineIcon
+              className={cn(
+                'shrink-0 text-[var(--muted)] transition-transform duration-150',
+                open && 'rotate-180',
+                bigChevron ? 'size-6' : 'size-5',
+              )}
+            />
+          )}
         </button>
       ) : (
         /* Plain label — carousel-style, no dropdown */
@@ -137,20 +167,45 @@ export function DatePicker({
         </h2>
       )}
 
-      {dateMode === 'month' && (
+      {(dateMode === 'month' || dateMode === 'day') && (
         <IconButton
-          label="Next month"
+          label={dateMode === 'day' ? 'Next day' : 'Next month'}
           icon={<ChevronRightOutlineIcon />}
-          onClick={() => onChange({ month: shiftMonthStr(month, 1) })}
+          onClick={() =>
+            dateMode === 'day' ? onChange({ day: shiftDayStr(month, 1) }) : onChange({ month: shiftMonthStr(month, 1) })
+          }
           disabled={maxMonth !== undefined && month >= maxMonth}
           className="bg-transparent text-[var(--muted)] hover:bg-transparent hover:text-[var(--text)] disabled:opacity-30"
         />
       )}
 
-      {currentMonth !== undefined && month !== currentMonth && dateMode === 'month' && (
-        <Button variant="fin-pill" size="xs" onClick={() => onChange({ month: currentMonth })}>
+      {currentMonth !== undefined && month !== currentMonth && (dateMode === 'month' || dateMode === 'day') && (
+        <Button
+          variant="fin-pill"
+          size="xs"
+          onClick={() => onChange(dateMode === 'day' ? { day: currentMonth } : { month: currentMonth })}
+        >
           Today
         </Button>
+      )}
+
+      {dateMode === 'day' && open && (
+        <div className="absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-xl">
+          <Input
+            type="date"
+            value={month}
+            max={maxMonth}
+            onChange={e => {
+              if (e.target.value) {
+                onChange({ day: e.target.value });
+                setOpen(false);
+              }
+            }}
+            variant="ghost"
+            className="text-[13px] text-[var(--text)]"
+            autoFocus
+          />
+        </div>
       )}
 
       {extendedFilters && open && (

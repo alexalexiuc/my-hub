@@ -3,147 +3,109 @@
 import { useState } from 'react';
 import type { MeasurementType } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { SectionCard } from '@/components/SectionCard';
-import { Field, Button, Input, Select } from '@/components';
-import { PlusOutlineIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
+import { Card, ConfirmModal } from '@/components';
+import { PlusOutlineIcon, TrashOutlineIcon } from '@/components/icons';
+import { MeasurementModal } from './MeasurementModal';
+import { mealEvents } from './mealEvents';
 
-interface Props {
+type MeasurementsSectionProps = {
   latestMeasurements: MeasurementWithType[];
   measurementTypes: MeasurementType[];
   onChanged: () => void;
-}
+};
 
-export function MeasurementsSection({ latestMeasurements, measurementTypes, onChanged }: Props) {
+export function MeasurementsSection({ latestMeasurements, measurementTypes, onChanged }: MeasurementsSectionProps) {
   const [showAdd, setShowAdd] = useState(false);
-  const [deleting, setDeleting] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    typeKey: '',
-    value: '',
-    date: new Date().toISOString().split('T')[0]!,
-    notes: '',
-  });
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-  async function addMeasurement() {
-    if (!form.typeKey || !form.value) return;
-    setSaving(true);
+  async function confirmDelete() {
+    if (confirmDeleteId == null) return;
+    setDeletingId(confirmDeleteId);
     try {
-      await apiFetch('/api/calories/measurements', {
-        method: 'POST',
-        body: {
-          typeKey: form.typeKey,
-          value: Number(form.value),
-          date: form.date,
-          notes: form.notes || undefined,
-        },
-      });
-      setShowAdd(false);
-      setForm({ typeKey: '', value: '', date: new Date().toISOString().split('T')[0]!, notes: '' });
+      await apiFetch(`/api/calories/measurements/${confirmDeleteId}`, { method: 'DELETE' });
+      setConfirmDeleteId(null);
       onChanged();
     } finally {
-      setSaving(false);
+      setDeletingId(null);
     }
   }
-
-  async function deleteMeasurementEntry(id: number) {
-    setDeleting(id);
-    try {
-      await apiFetch(`/api/calories/measurements/${id}`, { method: 'DELETE' });
-      onChanged();
-    } finally {
-      setDeleting(null);
-    }
-  }
-
-  const selectedType = measurementTypes.find(t => t.key === form.typeKey);
 
   return (
-    <SectionCard
-      title="Body Measurements"
-      action={
-        <Button
-          variant="ghost"
-          size="xs"
-          onClick={() => setShowAdd(true)}
-          title="Log measurement"
-          aria-label="Log measurement"
-          className="flex items-center gap-1.5 px-2.5 rounded-md border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60"
-        >
-          <PlusOutlineIcon className="size-3" />
-          Add
-        </Button>
-      }
-    >
-      {latestMeasurements.length === 0 ? (
-        <p className="text-zinc-500 text-sm">No measurements recorded yet.</p>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {latestMeasurements.map(m => (
-            <div key={m.id} className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 relative group">
-              <p className="text-xs text-zinc-400">{m.typeLabel}</p>
-              <p className="text-xl font-bold mt-0.5">
-                {m.value}
-                <span className="text-sm font-normal text-zinc-400 ml-1">{m.typeUnit}</span>
-              </p>
-              <p className="text-xs text-zinc-500 mt-0.5">{m.date}</p>
-              {m.entrySource !== 'hub' && (
-                <span className="inline-block mt-1 rounded px-1.5 py-0.5 text-[10px] font-medium bg-indigo-950/60 border border-indigo-800/50 text-indigo-400 uppercase tracking-wide">
-                  {m.entrySource}
-                </span>
-              )}
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={() => deleteMeasurementEntry(m.id)}
-                disabled={deleting === m.id}
-                className="absolute top-2 right-2 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity px-0 py-0 hover:bg-transparent"
-              >
-                {deleting === m.id ? '…' : '✕'}
-              </Button>
-            </div>
-          ))}
-        </div>
+    <>
+      {showAdd && (
+        <MeasurementModal
+          measurementTypes={measurementTypes}
+          onClose={() => setShowAdd(false)}
+          onSaved={() => {
+            setShowAdd(false);
+            mealEvents.emit('changed');
+            onChanged();
+          }}
+        />
       )}
 
-      {showAdd && (
-        <div className="mt-4 border-t border-zinc-700 pt-4 space-y-3">
-          <h3 className="text-sm font-semibold">Log measurement</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Type *">
-              <Select
-                options={measurementTypes.map(t => ({ value: t.key, label: `${t.label} (${t.unit})` }))}
-                value={form.typeKey}
-                onChange={e => setForm({ ...form, typeKey: e.target.value })}
-              >
-                <option value="">— select —</option>
-              </Select>
-            </Field>
-            <Field label={`Value${selectedType ? ` (${selectedType.unit})` : ''} *`}>
-              <Input
-                type="number"
-                step="0.1"
-                value={form.value}
-                onChange={e => setForm({ ...form, value: e.target.value })}
-              />
-            </Field>
-            <Field label="Date">
-              <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
-            </Field>
-            <Field label="Notes">
-              <Input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
-            </Field>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={addMeasurement} loading={saving} disabled={!form.typeKey || !form.value}>
-              {saving ? 'Saving…' : 'Save'}
-            </Button>
-            <Button variant="secondary" onClick={() => setShowAdd(false)}>
-              Cancel
-            </Button>
-          </div>
-        </div>
+      {confirmDeleteId != null && (
+        <ConfirmModal
+          title="Delete measurement"
+          message="Remove this measurement entry?"
+          confirmLabel="Delete"
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmDeleteId(null)}
+          loading={!!deletingId}
+        />
       )}
-    </SectionCard>
+
+      <Card className="!p-0 overflow-hidden">
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
+          <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">
+            Body measurements
+          </h2>
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          >
+            <PlusOutlineIcon className="size-3" />
+            Add
+          </button>
+        </div>
+
+        {latestMeasurements.length === 0 ? (
+          <p className="px-5 py-4 text-sm text-[var(--subtle)]">No measurements recorded yet.</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
+            {latestMeasurements.map(m => (
+              <div
+                key={m.id}
+                className="group relative rounded-xl border border-[var(--border)] bg-[var(--card2)] px-4 py-3"
+              >
+                <p className="text-xs text-[var(--muted)]">{m.typeLabel}</p>
+                <p className="mt-0.5 text-xl font-bold text-[var(--text)]">
+                  {m.value}
+                  <span className="ml-1 text-sm font-normal text-[var(--muted)]">{m.typeUnit}</span>
+                </p>
+                <p className="mt-0.5 text-xs text-[var(--subtle)]">{m.date}</p>
+                {m.entrySource !== 'hub' && (
+                  <span className="mt-1 inline-block rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">
+                    {m.entrySource}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteId(m.id)}
+                  disabled={deletingId === m.id}
+                  className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md text-[var(--subtle)] opacity-0 transition-opacity hover:bg-[var(--card3)] hover:text-[var(--red)] group-hover:opacity-100"
+                  aria-label="Delete measurement"
+                >
+                  <TrashOutlineIcon className="size-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </>
   );
 }

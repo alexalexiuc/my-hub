@@ -33,11 +33,11 @@ test.describe('Finances – Accounts', () => {
     // Select from account — FinancialDropdown with searchable=false renders a button trigger.
     // Scope via the exact FieldCard label so "To Account" is not matched.
     await page.getByText('Account', { exact: true }).locator('..').getByRole('button').click();
-    await page.getByRole('button', { name: fromAcc.name }).first().click();
+    await page.locator(`[data-value="${fromAcc.name}"]`).click();
 
     // Select to account
     await page.getByText('To Account', { exact: true }).locator('..').getByRole('button').click();
-    await page.getByRole('button', { name: toAcc.name }).first().click();
+    await page.locator(`[data-value="${toAcc.name}"]`).click();
 
     const saveResponsePromise = page.waitForResponse(
       res => res.url().includes('/api/finances/transactions') && res.request().method() === 'POST',

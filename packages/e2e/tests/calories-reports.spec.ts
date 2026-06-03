@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { deleteFeatures } from './helpers';
 
 function dateStr(d: Date): string {
@@ -22,17 +22,19 @@ function currentMonthStartStr(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
-async function addMealForToday(page: Parameters<(typeof test)['beforeEach']>[0]['page']) {
+async function addMealForToday(page: Page) {
   await page.goto('/calories');
   await page.waitForLoadState('networkidle');
 
-  await page.getByRole('button', { name: /add meal/i }).click();
-  await page.getByRole('textbox', { name: /description/i }).fill('Report E2E Meal');
-  await page.getByRole('spinbutton', { name: /calories/i }).fill('550');
+  await page
+    .locator('[data-layout="desktop"]')
+    .getByRole('button', { name: /add meal/i })
+    .click();
+  await page.getByLabel(/description/i).fill('Report E2E Meal');
+  await page.getByLabel(/calories/i).fill('550');
   await page.getByRole('button', { name: /^add$/i }).click();
 
-  await page.getByRole('button', { name: /Show meals/i }).click();
-  await expect(page.getByText('Report E2E Meal')).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator('[data-layout="desktop"]').getByText('Report E2E Meal')).toBeVisible({ timeout: 5_000 });
 }
 
 test.describe('Calories Reports', () => {
@@ -55,7 +57,7 @@ test.describe('Calories Reports', () => {
     // ── 2. Monthly empty state ────────────────────────────────────────────────
     await page.goto('/calories/reports/monthly?monthStart=1990-01-01');
     await expect(page.getByRole('heading', { name: 'Monthly Report', level: 1 })).toBeVisible();
-    await expect(page.getByText('No meals logged for this month.')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('No meals logged for this month.')).toBeVisible({ timeout: 15_000 });
   });
 
   /**

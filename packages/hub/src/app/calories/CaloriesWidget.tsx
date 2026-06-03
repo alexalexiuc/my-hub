@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { dateToString, calculateMacroKcal, calculateCalorieTargets } from '@my-hub/shared/utils';
-import { SectionCard, Button, Input, Select } from '@/components';
-import { PlusOutlineIcon } from '@/components/icons';
-import { MealType, MealTypes, MealTypesValues } from '@my-hub/shared/constants';
+import { SectionCard } from '@/components';
+import { PlusOutlineIcon, ScaleIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
-import { MEAL_LABEL } from './constants';
 import { CaloriesDonut } from './CaloriesDonut';
+import { MealModal } from './MealModal';
+import { MeasurementModal } from './MeasurementModal';
+import { mealEvents } from './mealEvents';
+import { measurementTypeDefinitions } from '@my-hub/shared/constants';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 
@@ -64,13 +66,8 @@ export function CaloriesWidget() {
   const [maxCalories, setMaxCalories] = useState<number | null>(null);
   const [macros, setMacros] = useState<Macros>({ protein: 0, carbs: 0, fat: 0 });
   const [macroGoals, setMacroGoals] = useState<Macros | null>(null);
-  const [showAdd, setShowAdd] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    description: '',
-    kcal: '',
-    mealType: MealTypes.Lunch as MealType,
-  });
+  const [showAddMeal, setShowAddMeal] = useState(false);
+  const [showAddWeight, setShowAddWeight] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -126,50 +123,68 @@ export function CaloriesWidget() {
     load();
   }, [load]);
 
-  async function addMeal() {
-    if (!form.description) return;
-    setSaving(true);
-    try {
-      const today = dateToString(new Date());
-      await apiFetch('/api/calories/meals', {
-        method: 'POST',
-        body: {
-          description: form.description,
-          kcal: form.kcal ? Math.round(Number(form.kcal)) : undefined,
-          mealType: form.mealType,
-          date: today,
-        },
-      });
-      setShowAdd(false);
-      setForm({ description: '', kcal: '', mealType: MealTypes.Lunch });
-      await load(true);
-    } finally {
-      setSaving(false);
-    }
-  }
+  useEffect(() => {
+    const handler = () => load(true);
+    mealEvents.on('changed', handler);
+    return () => mealEvents.off('changed', handler);
+  }, [load]);
 
   const totalMacroKcal = calculateMacroKcal(macros.protein, macros.carbs, macros.fat);
   const sharePct = (kcal: number) => (totalMacroKcal > 0 ? Math.round((kcal / totalMacroKcal) * 100) : 0);
 
   const cap = maxCalories ?? todayTarget;
+  const today = dateToString(new Date());
 
   return (
     <div className="calories-theme">
+      {showAddMeal && (
+        <MealModal
+          date={today}
+          onClose={() => setShowAddMeal(false)}
+          onSaved={() => {
+            setShowAddMeal(false);
+            mealEvents.emit('changed');
+          }}
+        />
+      )}
+      {showAddWeight && (
+        <MeasurementModal
+          measurementTypes={measurementTypeDefinitions}
+          defaultTypeKey="weight"
+          onClose={() => setShowAddWeight(false)}
+          onSaved={() => {
+            setShowAddWeight(false);
+            load(true);
+          }}
+        />
+      )}
+
       <SectionCard
         title="Calories"
         titleHref="/calories"
         titleHoverClass="hover:text-orange-400"
         className="border-orange-800/50 bg-gradient-to-br from-orange-950/40 to-zinc-900"
         action={
-          <button
-            onClick={() => setShowAdd(!showAdd)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
-            aria-label="Log meal"
-            title="Log meal"
-          >
-            <PlusOutlineIcon className="size-3" />
-            Add
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setShowAddWeight(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
+              aria-label="Log weight"
+              title="Log weight"
+            >
+              <ScaleIcon className="size-3" />
+              Weight
+            </button>
+            <button
+              onClick={() => setShowAddMeal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
+              aria-label="Log meal"
+              title="Log meal"
+            >
+              <PlusOutlineIcon className="size-3" />
+              Add
+            </button>
+          </div>
         }
       >
         {loading ? (
@@ -186,7 +201,6 @@ export function CaloriesWidget() {
           <div className="flex flex-col items-center">
             <CaloriesDonut eaten={todayKcal} cap={cap} min={minCalories} innerRadius={45} />
 
-            {/* Eaten / Target line */}
             <p className="text-sm text-zinc-400">
               <span className="font-semibold text-zinc-200">{todayKcal}</span>
               {cap !== null && (
@@ -217,14 +231,13 @@ export function CaloriesWidget() {
             {cap === null && (
               <p className="text-xs text-zinc-500 mt-1">
                 No goal set.{' '}
-                <a href="/profile" className="text-zinc-400 underline underline-offset-2 hover:text-zinc-200">
+                <a href="/calories/settings" className="text-zinc-400 underline underline-offset-2 hover:text-zinc-200">
                   Complete your profile
                 </a>
                 .
               </p>
             )}
 
-            {/* Macro bars */}
             <div className="flex gap-4 w-full mt-4 pt-3 border-t border-zinc-800">
               <MacroBar
                 label="Carbs"
@@ -247,44 +260,6 @@ export function CaloriesWidget() {
                 sharePct={sharePct(macros.fat * 9)}
                 color="bg-rose-400"
               />
-            </div>
-          </div>
-        )}
-
-        {/* Quick-add meal form */}
-        {showAdd && (
-          <div className="mt-4 border-t border-zinc-700 pt-4 space-y-3">
-            <div className="space-y-2">
-              <Input
-                placeholder="What did you eat?"
-                value={form.description}
-                onChange={e => setForm({ ...form, description: e.target.value })}
-                onKeyDown={e => e.key === 'Enter' && addMeal()}
-                autoFocus
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <Select
-                  options={MealTypesValues.map(t => ({ value: t, label: MEAL_LABEL[t] }))}
-                  value={form.mealType}
-                  onChange={e => setForm({ ...form, mealType: e.target.value as MealType })}
-                />
-                <Input
-                  type="number"
-                  step="1"
-                  min="0"
-                  placeholder="kcal"
-                  value={form.kcal}
-                  onChange={e => setForm({ ...form, kcal: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={addMeal} loading={saving} disabled={!form.description}>
-                Add
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => setShowAdd(false)}>
-                Cancel
-              </Button>
             </div>
           </div>
         )}

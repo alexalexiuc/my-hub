@@ -5,41 +5,28 @@ import { apiFetch, ApiError } from '@/lib/utils';
 import Link from 'next/link';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { calculateCalorieTargets, dateToString, getCurrentWeekDays } from '@my-hub/shared/utils';
-import { IconButton, PageHeader } from '@/components';
-import { BarChartIcon, CalendarIcon } from '@/components/icons';
-import { GoalProgressCard } from './GoalProgressCard';
-import { MacroChart } from './MacroChart';
+import { calculateCalorieTargets, dateToString } from '@my-hub/shared/utils';
+import { Card, DatePicker } from '@/components';
+import { mealEvents } from './mealEvents';
 import { MealsSection } from './MealsSection';
-import { MeasurementsSection } from './MeasurementsSection';
-import { AutomationApiSection } from './AutomationApiSection';
-import { ProfileCard } from './ProfileCard';
-import { WeeklyChart } from './WeeklyChart';
-import { WeightChart } from './WeightChart';
-import { measurementTypeDefinitions } from '@my-hub/shared/constants';
+import { MacroChart } from './MacroChart';
+import { CaloriesDonut } from './CaloriesDonut';
 
-export default function CaloriesDashboardPage() {
+export default function TodayPage() {
   const [profile, setProfile] = useState<CalorieProfile | null>(null);
   const [latestMeasurements, setLatestMeasurements] = useState<MeasurementWithType[]>([]);
   const [meals, setMeals] = useState<MealLog[]>([]);
-  const [weeklyMeals, setWeeklyMeals] = useState<MealLog[]>([]);
-  const [weightHistory, setWeightHistory] = useState<MeasurementWithType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const today = dateToString(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
   const selectedDateRef = useRef(selectedDate);
-  const weekDays = getCurrentWeekDays();
-  const weekStart = weekDays[0]!.date;
 
   const loadMeals = useCallback(async (date: string) => {
     try {
       const data = await apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date, limit: 100 } });
-      // Only apply if this is still the selected date (avoid race)
-      if (selectedDateRef.current === date) {
-        setMeals(data.meals);
-      }
+      if (selectedDateRef.current === date) setMeals(data.meals);
     } catch {
       // ignore
     }
@@ -48,38 +35,34 @@ export default function CaloriesDashboardPage() {
   const loadData = useCallback(async () => {
     try {
       const date = selectedDateRef.current;
-      const [profileData, mealsData, weeklyData, weightData] = await Promise.all([
+      const [profileData, mealsData] = await Promise.all([
         apiFetch<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>('/api/calories/profile'),
         apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date, limit: 100 } }),
-        apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { dateFrom: weekStart, dateTo: today } }),
-        apiFetch<{ measurements: MeasurementWithType[] }>('/api/calories/measurements', {
-          query: { type: 'weight', limit: 30 },
-        }),
       ]);
-
       setProfile(profileData.profile);
       setLatestMeasurements(profileData.measurements);
-      if (selectedDateRef.current === date) {
-        setMeals(mealsData.meals);
-      }
-      setWeeklyMeals(weeklyData.meals);
-      setWeightHistory(weightData.measurements);
+      if (selectedDateRef.current === date) setMeals(mealsData.meals);
     } catch (e) {
       setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
     } finally {
       setLoading(false);
     }
-  }, [today, weekStart]);
+  }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+  useEffect(() => {
+    const handler = () => loadMeals(selectedDateRef.current);
+    mealEvents.on('changed', handler);
+    return () => mealEvents.off('changed', handler);
+  }, [loadMeals]);
 
   const handleDateChange = useCallback(
     (date: string) => {
       setSelectedDate(date);
       selectedDateRef.current = date;
-      setMeals([]); // clear stale data immediately
+      setMeals([]);
       loadMeals(date);
     },
     [loadMeals],
@@ -87,18 +70,18 @@ export default function CaloriesDashboardPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-5xl p-8">
-        <div className="text-zinc-400">Loading...</div>
+      <main className="py-6">
+        <div className="text-[var(--muted)]">Loading…</div>
       </main>
     );
   }
 
   if (error) {
     return (
-      <main className="mx-auto max-w-5xl p-8">
-        <p className="text-red-500">{error}</p>
+      <main className="py-6">
+        <p className="text-[var(--red)]">{error}</p>
         {error === 'Not signed in' && (
-          <Link href="/auth/signin" className="mt-2 inline-block text-indigo-400 underline">
+          <Link href="/auth/signin" className="mt-2 inline-block text-[var(--accent)] underline">
             Sign in
           </Link>
         )}
@@ -118,89 +101,76 @@ export default function CaloriesDashboardPage() {
     goalMaxCalories: profile?.goalMaxCalories ?? null,
   });
 
-  const todayProtein = Math.round(meals.reduce((sum, m) => sum + (m.protein ?? 0), 0));
-  const todayCarbs = Math.round(meals.reduce((sum, m) => sum + (m.carbs ?? 0), 0));
-  const todayFat = Math.round(meals.reduce((sum, m) => sum + (m.fat ?? 0), 0));
+  const cap = (calorieTargets.maxCalories ?? calorieTargets.goalCalories) || null;
+  const totalKcal = meals.reduce((sum, m) => sum + (m.kcal ?? 0), 0);
+  const totalProtein = Math.round(meals.reduce((sum, m) => sum + (m.protein ?? 0), 0));
+  const totalCarbs = Math.round(meals.reduce((sum, m) => sum + (m.carbs ?? 0), 0));
+  const totalFat = Math.round(meals.reduce((sum, m) => sum + (m.fat ?? 0), 0));
 
-  // Weekly chart data
-  const weeklyData = weekDays.map(({ date, label }) => {
-    const dayMeals = weeklyMeals.filter(m => m.date === date);
-    return { date, label, kcal: dayMeals.reduce((sum, m) => sum + (m.kcal ?? 0), 0) };
-  });
-
-  // Weight chart data
-  const weightChartData = weightHistory
-    .filter(m => m.typeKey === 'weight')
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-20)
-    .map(m => ({
-      date: m.date,
-      label: m.date.slice(5), // MM-DD
-      value: m.value,
-    }));
-
-  const reportActions = (
-    <>
-      <IconButton href="/calories/reports/weekly" label="Weekly Reports" icon={<BarChartIcon />} />
-      <IconButton href="/calories/reports/monthly" label="Monthly Reports" icon={<CalendarIcon />} />
-    </>
-  );
+  function greeting() {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
 
   return (
-    <main className="mx-auto max-w-5xl p-8 space-y-6">
-      <PageHeader title="Calories" backHref="/" backLabel="← Home" actions={reportActions} />
+    <main>
+      {/* Greeting + date picker — outside any card, top-left like finances */}
+      <div className="mb-4">
+        <div className="mb-1 text-xs text-[var(--subtle)]">{greeting()}</div>
+        <DatePicker
+          dateMode="day"
+          month={selectedDate}
+          currentMonth={today}
+          maxMonth={today}
+          onChange={({ day }) => day && handleDateChange(day)}
+        />
+      </div>
 
-      {/* Meals + calorie consumption (merged, with expandable meals list) */}
-      <MealsSection
-        meals={meals}
-        selectedDate={selectedDate}
-        onDateChange={handleDateChange}
-        onChanged={loadData}
-        goalCalories={calorieTargets.goalCalories}
-        maxCalories={calorieTargets.maxCalories}
-      />
+      {/* 3-part grid: left = 1 part, right = 2 parts */}
+      <div className="flex flex-col gap-4 md:grid md:grid-cols-3 md:items-start">
+        {/* Left column (col-span-1): calorie summary + macro chart */}
+        <div className="flex flex-col gap-4">
+          <Card className="flex flex-col items-center gap-3 p-5">
+            <CaloriesDonut eaten={totalKcal} cap={cap} min={calorieTargets.minCalories ?? null} textSize="text-2xl" />
+            <div className="w-full text-center">
+              <p className="text-sm text-[var(--muted)]">
+                <span className="text-xl font-bold text-[var(--text)]">{totalKcal}</span>
+                {cap !== null && <span className="text-[var(--subtle)]"> / {cap}</span>}
+                <span className="ml-1">kcal</span>
+              </p>
+              {calorieTargets.minCalories !== null && cap !== null && (
+                <p className="mt-1 text-xs text-[var(--subtle)]">
+                  Range: {calorieTargets.minCalories}–{cap} kcal
+                </p>
+              )}
+              {cap === null && (
+                <p className="mt-1 text-xs text-[var(--subtle)]">
+                  No goal set.{' '}
+                  <Link href="/calories/settings" className="underline underline-offset-2 hover:text-[var(--text)]">
+                    Set up profile
+                  </Link>
+                </p>
+              )}
+            </div>
+          </Card>
 
-      {/* Macro split — second card */}
-      <MacroChart
-        protein={todayProtein}
-        carbs={todayCarbs}
-        fat={todayFat}
-        goalProtein={profile?.goalProtein ?? null}
-        goalCarbs={profile?.goalCarbs ?? null}
-        goalFat={profile?.goalFat ?? null}
-      />
+          <MacroChart
+            protein={totalProtein}
+            carbs={totalCarbs}
+            fat={totalFat}
+            goalProtein={profile?.goalProtein ?? null}
+            goalCarbs={profile?.goalCarbs ?? null}
+            goalFat={profile?.goalFat ?? null}
+          />
+        </div>
 
-      {/* Weekly chart */}
-      <WeeklyChart
-        data={weeklyData}
-        target={calorieTargets.goalCalories ?? null}
-        min={calorieTargets.minCalories ?? null}
-        max={calorieTargets.maxCalories ?? null}
-      />
-
-      {/* Goal progress */}
-      <GoalProgressCard
-        days={weekDays}
-        weightHistory={weightHistory}
-        goalType={profile?.goalType ?? null}
-        goalWeeklyRateKg={profile?.goalWeeklyRateKg ?? null}
-      />
-
-      {/* Weight trend (shown when enough data) */}
-      <WeightChart data={weightChartData} />
-
-      {/* Measurements */}
-      <MeasurementsSection
-        latestMeasurements={latestMeasurements}
-        measurementTypes={measurementTypeDefinitions}
-        onChanged={loadData}
-      />
-
-      {/* Settings (profile) — at the bottom */}
-      <ProfileCard profile={profile} latestMeasurements={latestMeasurements} onUpdated={loadData} />
-
-      {/* Automation API key management */}
-      {profile && <AutomationApiSection userId={profile.userId} initialKey={profile.automationApiKey} />}
+        {/* Right column (col-span-2): meals list */}
+        <div className="col-span-2">
+          <MealsSection meals={meals} selectedDate={selectedDate} onChanged={loadData} />
+        </div>
+      </div>
     </main>
   );
 }

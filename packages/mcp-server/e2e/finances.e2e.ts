@@ -34,7 +34,13 @@ interface ListContextResult {
   accounts: AccountEntry[];
   categories: CategoryEntry[];
   groups: GroupEntry[];
+}
+
+interface ListPayeesResult {
   payees: PayeeEntry[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 interface UpsertAccountResult {
@@ -116,7 +122,7 @@ describe.sequential('finances — list_context', () => {
     await client.close();
   });
 
-  it('returns accounts, categories, groups, and payees arrays', async () => {
+  it('returns accounts, categories, and groups arrays', async () => {
     const result = await client.callTool({
       name: 'finances_list_context',
       arguments: {},
@@ -127,7 +133,6 @@ describe.sequential('finances — list_context', () => {
     expect(Array.isArray(data.accounts)).toBe(true);
     expect(Array.isArray(data.categories)).toBe(true);
     expect(Array.isArray(data.groups)).toBe(true);
-    expect(Array.isArray(data.payees)).toBe(true);
   });
 
   it('account entries have required fields', async () => {
@@ -169,12 +174,13 @@ describe.sequential('finances — list_context', () => {
 
   it('payee entries have required fields when present', async () => {
     const result = await client.callTool({
-      name: 'finances_list_context',
+      name: 'finances_list_payees',
       arguments: {},
     });
 
-    const data = parseToolResult<ListContextResult>(result);
+    const data = parseToolResult<ListPayeesResult>(result);
 
+    expect(Array.isArray(data.payees)).toBe(true);
     if (data.payees.length > 0) {
       const payee = data.payees[0]!;
       expect(typeof payee.id).toBe('number');
@@ -480,19 +486,19 @@ describe.sequential('finances — merge_payees', () => {
     const runId = Date.now().toString(36);
     const canonicalName = `[e2e:${runId}] Merged Payee`;
 
-    const contextResult = await client.callTool({
-      name: 'finances_list_context',
+    const payeesResult = await client.callTool({
+      name: 'finances_list_payees',
       arguments: {},
     });
-    const context = parseToolResult<ListContextResult>(contextResult);
+    const payeesData = parseToolResult<ListPayeesResult>(payeesResult);
 
-    if (context.payees.length < 2) {
+    if (payeesData.payees.length < 2) {
       console.log('Not enough payees to run merge test, skipping');
       return;
     }
 
-    const target = context.payees[0]!;
-    const source = context.payees[1]!;
+    const target = payeesData.payees[0]!;
+    const source = payeesData.payees[1]!;
 
     const result = await client.callTool({
       name: 'finances_merge_payees',
@@ -509,12 +515,12 @@ describe.sequential('finances — merge_payees', () => {
     expect(typeof data.mergedCount).toBe('number');
     expect(data.canonicalName).toBe(canonicalName);
 
-    const afterContextResult = await client.callTool({
-      name: 'finances_list_context',
+    const afterPayeesResult = await client.callTool({
+      name: 'finances_list_payees',
       arguments: {},
     });
-    const afterContext = parseToolResult<ListContextResult>(afterContextResult);
-    const remainingIds = new Set(afterContext.payees.map(p => p.id));
+    const afterPayeesData = parseToolResult<ListPayeesResult>(afterPayeesResult);
+    const remainingIds = new Set(afterPayeesData.payees.map(p => p.id));
 
     expect(remainingIds.has(source.id)).toBe(false);
   });
@@ -703,15 +709,20 @@ describe.sequential('finances — add_transactions with createPayee flag', () =>
     createdTransactionId = txResult.transactionId;
   });
 
-  it('payee created by createPayee flag appears in list_context', async () => {
-    const contextResult = await client.callTool({
-      name: 'finances_list_context',
-      arguments: {},
-    });
-    const context = parseToolResult<ListContextResult>(contextResult);
-    const found = context.payees.find(p => p.name === newPayeeName);
+  it('payee created by createPayee flag appears in list_payees', async () => {
+    if (!createdTransactionId) {
+      console.log('Transaction not created (no accounts), skipping payee verification');
+      return;
+    }
 
-    expect(found).toBeDefined();
+    const upsertResult = await client.callTool({
+      name: 'finances_upsert_payee',
+      arguments: { name: newPayeeName },
+    });
+    const upsertData = parseToolResult<UpsertPayeeResult>(upsertResult);
+
+    expect(upsertData.name).toBe(newPayeeName);
+    expect(upsertData.message).toContain('already exists');
   });
 });
 

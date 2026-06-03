@@ -66,6 +66,7 @@ next-env.d.ts
 playwright-report
 test-results/
 packages/e2e/.auth/
+.playwright-mcp
 
 #storybook
 storybook-static/

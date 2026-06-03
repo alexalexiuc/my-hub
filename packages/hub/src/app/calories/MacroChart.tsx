@@ -1,7 +1,7 @@
 'use client';
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { SectionCard } from '@/components/SectionCard';
+import { Card } from '@/components';
 
 interface Props {
   protein: number;
@@ -33,10 +33,11 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
   const pct = (val: number) => (total > 0 ? Math.round((val / total) * 100) : 0);
 
   return (
-    <SectionCard title="Macro split">
+    <Card className="p-5">
+      <h2 className="mb-4 text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Macro split</h2>
       {total === 0 ? (
-        <div className="h-48 flex items-center justify-center">
-          <p className="text-sm text-zinc-500">No macro data logged today</p>
+        <div className="flex h-32 items-center justify-center">
+          <p className="text-sm text-[var(--subtle)]">No macro data logged today</p>
         </div>
       ) : (
         <div className="flex items-center gap-4">
@@ -60,10 +61,11 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
+                    backgroundColor: 'var(--card2)',
+                    border: '1px solid var(--border)',
                     borderRadius: 8,
                     fontSize: 13,
+                    color: 'var(--text)',
                   }}
                   formatter={(value, name) => {
                     const item = data.find(d => d.name === name);
@@ -74,7 +76,7 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-lg font-bold">{total}</span>
-              <span className="text-[10px] text-zinc-500">kcal</span>
+              <span className="text-[10px] text-[var(--subtle)]">kcal</span>
             </div>
           </div>
 
@@ -88,12 +90,14 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: barColor }} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between">
-                      <span className="text-xs text-zinc-400">{entry.name}</span>
-                      <span className={`text-xs ${exceeded ? 'text-red-700 font-medium' : 'text-zinc-500'}`}>
+                      <span className="text-xs text-[var(--muted)]">{entry.name}</span>
+                      <span
+                        className={`text-xs ${exceeded ? 'text-[var(--red)] font-medium' : 'text-[var(--subtle)]'}`}
+                      >
                         {entry.goal !== null ? `${entry.grams}g / ${entry.goal}g` : `${pct(entry.value)}%`}
                       </span>
                     </div>
-                    <div className="mt-0.5 h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
+                    <div className="mt-0.5 h-1.5 w-full rounded-full bg-[var(--card2)] overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{
@@ -112,6 +116,6 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
           </div>
         </div>
       )}
-    </SectionCard>
+    </Card>
   );
 }

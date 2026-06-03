@@ -51,7 +51,7 @@ export default function AmortizationPage() {
   return (
     <div className="flex flex-col gap-4 md:gap-5">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2.5 md:px-4 md:py-3">
+      <Card className="flex items-center justify-between">
         <div className="min-w-0">
           <SectionLabel className="mb-0">Amortization Schedule</SectionLabel>
           <div className="truncate text-base font-bold text-[var(--text)] md:text-lg">{data.name}</div>
@@ -59,11 +59,10 @@ export default function AmortizationPage() {
         <Button href={`/finances/accounts/${id}`} size="sm" variant="ghost">
           ← Back
         </Button>
-      </div>
+      </Card>
 
       {/* Summary */}
-      <div
-        className="rounded-xl p-4 md:p-5"
+      <Card
         style={{
           background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), var(--card))',
           border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
@@ -117,7 +116,7 @@ export default function AmortizationPage() {
         <div className="mt-3 text-[10px] text-[var(--subtle)]">
           Simulation based on loan parameters — actual balance depends on payments recorded.
         </div>
-      </div>
+      </Card>
 
       {/* Chart */}
       <Card className="p-4 md:p-5">
@@ -217,11 +216,11 @@ export default function AmortizationPage() {
         </div>
 
         {/* Mobile */}
-        <div data-layout="mobile" className="space-y-2 md:hidden">
+        <div data-layout="mobile" className="md:hidden">
           {data.rows.map(row => (
-            <div
+            <Card
+              className="px-6"
               key={row.n}
-              className="rounded-lg border border-[var(--border)] px-3 py-2.5"
               style={{
                 background: row.next
                   ? 'color-mix(in srgb, var(--accent) 14%, transparent)'
@@ -230,7 +229,7 @@ export default function AmortizationPage() {
                     : 'var(--card2)',
               }}
             >
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-1 flex items-center justify-between">
                 <div
                   className={cn(
                     'text-sm font-bold',
@@ -257,7 +256,7 @@ export default function AmortizationPage() {
                 <div className="text-[var(--subtle)]">Remaining</div>
                 <div className="text-right font-semibold text-[var(--text)]">{fmt(row.balance, data.currency)}</div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       </Card>

@@ -11,7 +11,7 @@ import {
   Tooltip as RechartsTooltip,
 } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
-import { SectionCard } from '@/components/SectionCard';
+import { Card } from '@/components';
 
 interface DayData {
   date: string;
@@ -19,12 +19,12 @@ interface DayData {
   kcal: number;
 }
 
-interface Props {
+type WeeklyChartProps = {
   data: DayData[];
   target: number | null;
   min?: number | null;
   max?: number | null;
-}
+};
 
 function getBarColor(
   kcal: number,
@@ -32,12 +32,12 @@ function getBarColor(
   max: number | null | undefined,
   target: number | null,
 ): string {
-  if (!target && !min && !max) return '#71717a'; // no targets — neutral
+  if (!target && !min && !max) return 'var(--subtle)';
   const ceiling = max ?? target;
-  if (ceiling !== null && kcal > ceiling) return '#ef4444'; // over ceiling — red
-  if (min != null && kcal > 0 && kcal < min) return '#f97316'; // under floor — orange
-  if (kcal === 0) return '#3f3f46'; // no data — zinc
-  return '#4ade80'; // on target — green
+  if (ceiling !== null && kcal > ceiling) return 'var(--red)';
+  if (min != null && kcal > 0 && kcal < min) return 'var(--accent)';
+  if (kcal === 0) return 'var(--border)';
+  return 'var(--green)';
 }
 
 function CustomTooltip({ active, payload, label }: TooltipContentProps<number, string>) {
@@ -63,21 +63,22 @@ function CustomTooltip({ active, payload, label }: TooltipContentProps<number, s
   return (
     <div
       style={{
-        background: '#18181b',
-        border: '1px solid #3f3f46',
+        background: 'var(--card2)',
+        border: '1px solid var(--border)',
         borderRadius: 8,
         padding: '8px 12px',
         fontSize: 13,
+        color: 'var(--text)',
       }}
     >
-      <p style={{ color: '#a1a1aa', marginBottom: 4 }}>{String(date)}</p>
-      <p style={{ color: '#e4e4e7', fontWeight: 600 }}>{kcal} kcal</p>
-      {deltaLine && <p style={{ color: '#71717a', marginTop: 2 }}>{deltaLine}</p>}
+      <p style={{ color: 'var(--muted)', marginBottom: 4 }}>{String(date)}</p>
+      <p style={{ color: 'var(--text)', fontWeight: 600 }}>{kcal} kcal</p>
+      {deltaLine && <p style={{ color: 'var(--subtle)', marginTop: 2 }}>{deltaLine}</p>}
     </div>
   );
 }
 
-export function WeeklyChart({ data, target, min, max }: Props) {
+export function WeeklyChart({ data, target, min, max }: WeeklyChartProps) {
   if (data.length === 0) return null;
 
   const ceiling = max ?? target;
@@ -85,24 +86,24 @@ export function WeeklyChart({ data, target, min, max }: Props) {
   const maxVal = Math.max(...data.map(d => d.kcal), ceiling ?? 0, min ?? 0);
   const maxDisplayValue = Math.ceil(maxVal * 1.15);
 
-  // Embed target/min/max in each data point for the custom tooltip
   const chartData = data.map(d => ({ ...d, _target: target, _min: min ?? null, _max: max ?? null }));
 
   return (
-    <SectionCard title="This week">
+    <Card className="p-5">
+      <h2 className="mb-4 text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">This week</h2>
       <div className="h-52">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 8, right: 4, bottom: 0, left: -16 }}>
-            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 12 }} />
+            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--subtle)', fontSize: 12 }} />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#52525b', fontSize: 11 }}
+              tick={{ fill: 'var(--subtle)', fontSize: 11 }}
               domain={[0, maxDisplayValue]}
               width={56}
             />
             <RechartsTooltip
-              cursor={{ fill: 'rgba(63, 63, 70, 0.3)' }}
+              cursor={{ fill: 'rgba(255,255,255,0.04)' }}
               content={props => (
                 <CustomTooltip
                   active={props.active}
@@ -122,13 +123,13 @@ export function WeeklyChart({ data, target, min, max }: Props) {
             {ceiling != null && (
               <ReferenceLine
                 y={ceiling}
-                stroke="#f59e0b"
+                stroke="var(--amber)"
                 strokeDasharray="6 3"
                 strokeWidth={1.5}
                 label={{
                   value: `${lineLabel} ${ceiling}`,
                   position: 'right',
-                  fill: '#a1a1aa',
+                  fill: 'var(--muted)',
                   fontSize: 11,
                 }}
               />
@@ -136,6 +137,6 @@ export function WeeklyChart({ data, target, min, max }: Props) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </SectionCard>
+    </Card>
   );
 }

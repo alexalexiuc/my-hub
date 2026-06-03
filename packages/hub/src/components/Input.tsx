@@ -14,7 +14,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       ref={ref}
       className={cn(
         variant === 'ghost'
-          ? 'flex-1 min-w-0 bg-transparent border-b border-zinc-600 focus:border-indigo-400 outline-none text-sm py-0.5 placeholder:text-zinc-600 transition-colors'
+          ? 'flex-1 min-w-0 bg-transparent border-b border-[var(--border)] focus:border-[var(--accent)] outline-none text-sm py-0.5 placeholder:text-[var(--subtle)] transition-colors'
           : 'input',
         className,
       )}

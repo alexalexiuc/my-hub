@@ -59,7 +59,7 @@ export function FinancesSidebar() {
           </div>
         }
         action={
-          <Button onClick={() => setShowAddTx(true)} variant="accent">
+          <Button onClick={() => setShowAddTx(true)} variant="accent" className="w-full">
             Add Transaction
           </Button>
         }

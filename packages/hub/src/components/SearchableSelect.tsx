@@ -264,6 +264,7 @@ export function SearchableSelect({
               type="button"
               variant="transparent"
               size="xs"
+              data-value={String(item.value)}
               onMouseDown={event => {
                 event.preventDefault();
                 onChange(item);

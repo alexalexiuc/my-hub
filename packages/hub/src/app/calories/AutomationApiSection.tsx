@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { SectionCard, Button, DisclosureToggle } from '@/components';
+import { Card, Button, DisclosureToggle } from '@/components';
 import { measurementTypeKeys } from '@my-hub/shared/constants';
 
 type AutomationApiSectionProps = {
@@ -33,125 +33,133 @@ export function AutomationApiSection({ userId, initialKey }: AutomationApiSectio
   }
 
   function copyToClipboard(text: string, label: string) {
-    void navigator.clipboard.writeText(text).then(() => {
-      setCopied(label);
-      setTimeout(() => setCopied(null), 2000);
-    });
+    void navigator.clipboard.writeText(text).then(
+      () => {
+        setCopied(label);
+        setTimeout(() => setCopied(null), 2000);
+      },
+      () => {
+        setCopied(`${label}:err`);
+        setTimeout(() => setCopied(null), 2000);
+      },
+    );
   }
 
   const endpointUrl = userId ? `${window.location.origin}/api/calories/automation/${userId}/measurements` : '';
-
   const exampleBody = JSON.stringify({ typeKey: 'weight', value: 75.5, date: '2026-04-30' }, null, 2);
 
   return (
-    <SectionCard title="Automation API">
-      {!automationKey ? (
-        <div className="space-y-2">
-          <p className="text-sm text-zinc-400">
-            Generate an API key to log measurements from external automations (e.g. iOS Shortcuts).
-          </p>
-          <Button onClick={() => void generateKey()} loading={isGenerating} size="sm">
-            {isGenerating ? 'Generating...' : 'Generate API Key'}
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {/* Key display row */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-zinc-400 shrink-0">API Key</span>
-            <code className="text-xs bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-zinc-200 font-mono break-all select-all">
-              {showKey ? automationKey : '•'.repeat(16)}
-            </code>
-            <button
-              type="button"
-              className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
-              onClick={() => setShowKey(v => !v)}
-            >
-              {showKey ? 'Hide' : 'Reveal'}
-            </button>
-            <button
-              type="button"
-              className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
-              onClick={() => copyToClipboard(automationKey, 'key')}
-            >
-              {copied === 'key' ? '✓ Copied' : 'Copy key'}
-            </button>
-            <button
-              type="button"
-              className="text-xs text-zinc-500 hover:text-amber-400 transition-colors"
-              onClick={() => void generateKey()}
-              disabled={isGenerating}
-            >
-              {isGenerating ? 'Regenerating...' : 'Regenerate'}
-            </button>
+    <Card className="!p-0 overflow-hidden">
+      <div className="flex items-center border-b border-[var(--border)] px-5 py-3">
+        <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Automation API</h2>
+      </div>
+
+      <div className="p-5">
+        {!automationKey ? (
+          <div className="space-y-2">
+            <p className="text-sm text-[var(--muted)]">
+              Generate an API key to log measurements from external automations (e.g. iOS Shortcuts).
+            </p>
+            <Button onClick={() => void generateKey()} loading={isGenerating} size="sm">
+              {isGenerating ? 'Generating...' : 'Generate API Key'}
+            </Button>
           </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-[var(--muted)] shrink-0">API Key</span>
+              <code className="break-all select-all rounded border border-[var(--border)] bg-[var(--card2)] px-2 py-1 font-mono text-xs text-[var(--text)]">
+                {showKey ? automationKey : '•'.repeat(16)}
+              </code>
+              <button
+                type="button"
+                className="text-xs text-[var(--muted)] transition-colors hover:text-[var(--text)]"
+                onClick={() => setShowKey(v => !v)}
+              >
+                {showKey ? 'Hide' : 'Reveal'}
+              </button>
+              <button
+                type="button"
+                className="text-xs text-[var(--muted)] transition-colors hover:text-[var(--text)]"
+                onClick={() => copyToClipboard(automationKey, 'key')}
+              >
+                {copied === 'key' ? '✓ Copied' : copied === 'key:err' ? 'Failed' : 'Copy key'}
+              </button>
+              <button
+                type="button"
+                className="text-xs text-[var(--subtle)] transition-colors hover:text-[var(--amber)]"
+                onClick={() => void generateKey()}
+                disabled={isGenerating}
+              >
+                {isGenerating ? 'Regenerating...' : 'Regenerate'}
+              </button>
+            </div>
 
-          <DisclosureToggle label="API instructions" openSignal={instructionsOpenSignal}>
-            <div className="space-y-3 rounded-lg border border-zinc-700 bg-zinc-900 p-4 text-xs">
-              {/* Endpoint URL */}
-              <div>
-                <p className="text-zinc-500 mb-1 font-medium uppercase tracking-wide">Endpoint</p>
-                <div className="flex items-start gap-2">
-                  <code className="font-mono text-zinc-200 break-all flex-1">POST {endpointUrl}</code>
-                  <button
-                    type="button"
-                    className="text-zinc-500 hover:text-zinc-200 shrink-0"
-                    onClick={() => copyToClipboard(`POST ${endpointUrl}`, 'url')}
-                  >
-                    {copied === 'url' ? '✓' : 'Copy'}
-                  </button>
+            <DisclosureToggle label="API instructions" openSignal={instructionsOpenSignal}>
+              <div className="space-y-3 rounded-lg border border-[var(--border)] bg-[var(--card2)] p-4 text-xs">
+                <div>
+                  <p className="mb-1 font-medium uppercase tracking-wide text-[var(--subtle)]">Endpoint</p>
+                  <div className="flex items-start gap-2">
+                    <code className="flex-1 break-all font-mono text-[var(--text)]">POST {endpointUrl}</code>
+                    <button
+                      type="button"
+                      className="shrink-0 text-[var(--subtle)] hover:text-[var(--text)]"
+                      onClick={() => copyToClipboard(`POST ${endpointUrl}`, 'url')}
+                    >
+                      {copied === 'url' ? '✓' : copied === 'url:err' ? '✗' : 'Copy'}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Auth header */}
-              <div>
-                <p className="text-zinc-500 mb-1 font-medium uppercase tracking-wide">Authorization header</p>
-                <div className="flex items-start gap-2">
-                  <code className="font-mono text-zinc-200 break-all flex-1">
-                    Bearer {showKey ? automationKey : '•'.repeat(16)}
-                  </code>
-                  <button
-                    type="button"
-                    className="text-zinc-500 hover:text-zinc-200 shrink-0"
-                    onClick={() => copyToClipboard(`Bearer ${automationKey}`, 'auth')}
-                  >
-                    {copied === 'auth' ? '✓' : 'Copy'}
-                  </button>
+                <div>
+                  <p className="mb-1 font-medium uppercase tracking-wide text-[var(--subtle)]">Authorization header</p>
+                  <div className="flex items-start gap-2">
+                    <code className="flex-1 break-all font-mono text-[var(--text)]">
+                      Bearer {showKey ? automationKey : '•'.repeat(16)}
+                    </code>
+                    <button
+                      type="button"
+                      className="shrink-0 text-[var(--subtle)] hover:text-[var(--text)]"
+                      onClick={() => copyToClipboard(`Bearer ${automationKey}`, 'auth')}
+                    >
+                      {copied === 'auth' ? '✓' : copied === 'auth:err' ? '✗' : 'Copy'}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Example body */}
-              <div>
-                <p className="text-zinc-500 mb-1 font-medium uppercase tracking-wide">Body — single object or array</p>
-                <div className="flex items-start gap-2">
-                  <pre className="font-mono text-zinc-200 flex-1 whitespace-pre-wrap">{exampleBody}</pre>
-                  <button
-                    type="button"
-                    className="text-zinc-500 hover:text-zinc-200 shrink-0"
-                    onClick={() => copyToClipboard(exampleBody, 'body')}
-                  >
-                    {copied === 'body' ? '✓' : 'Copy'}
-                  </button>
+                <div>
+                  <p className="mb-1 font-medium uppercase tracking-wide text-[var(--subtle)]">
+                    Body — single object or array
+                  </p>
+                  <div className="flex items-start gap-2">
+                    <pre className="flex-1 whitespace-pre-wrap font-mono text-[var(--text)]">{exampleBody}</pre>
+                    <button
+                      type="button"
+                      className="shrink-0 text-[var(--subtle)] hover:text-[var(--text)]"
+                      onClick={() => copyToClipboard(exampleBody, 'body')}
+                    >
+                      {copied === 'body' ? '✓' : copied === 'body:err' ? '✗' : 'Copy'}
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[var(--subtle)]">
+                    <code>date</code> is optional — defaults to today. Send an array to log multiple measurements in one
+                    request.
+                  </p>
                 </div>
-                <p className="text-zinc-600 mt-1">
-                  <code>date</code> is optional — defaults to today. Send an array to log multiple measurements in one
-                  request.
+
+                <p className="text-[var(--subtle)]">
+                  Available:{' '}
+                  {measurementTypeKeys.map(t => (
+                    <code key={t} className="font-mono">
+                      {t}{' '}
+                    </code>
+                  ))}
                 </p>
               </div>
-
-              {/* Available types hint */}
-              <p className="text-zinc-600">
-                Available:{' '}
-                {measurementTypeKeys.map(t => (
-                  <code key={t} className="font-mono">
-                    {t}{' '}
-                  </code>
-                ))}
-              </p>
-            </div>
-          </DisclosureToggle>
-        </div>
-      )}
-    </SectionCard>
+            </DisclosureToggle>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }

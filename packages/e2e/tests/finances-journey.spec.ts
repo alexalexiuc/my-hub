@@ -8,7 +8,7 @@ import {
   createCategoryViaAPI,
 } from './finances-helpers';
 
-test.describe('Finances – Journey', () => {
+test.describe('Finances - Journey', () => {
   // Outer serial ensures the standalone month-nav test (which calls deleteFinances)
   // runs after the inner serial block, not concurrently in a separate worker.
   test.describe.configure({ mode: 'serial' });
@@ -175,7 +175,27 @@ test.describe('Finances – Journey', () => {
     test('transactions: add expense and payee autocomplete', async ({ page }) => {
       // Expense form requires a category — create one via API before opening the modal
       const expenseCatName = uniqueName('Shopping');
-      await createCategoryViaAPI(page, expenseCatName);
+      const catId = await createCategoryViaAPI(page, expenseCatName);
+
+      // Pre-seed a "Supermarket" payee by creating a transaction via API.
+      // Autocomplete only surfaces payees that already have at least one saved
+      // transaction; a payee first created inside the current modal session won't
+      // appear as a suggestion until the next time the form data is loaded.
+      const accountsRes = await page.request.get('/api/finances/accounts');
+      const accountsData = (await accountsRes.json()) as { accounts: Array<{ id: number; name: string }> };
+      const seedAcc = accountsData.accounts.find(a => a.name.includes(bankAccountName));
+      expect(seedAcc).toBeTruthy();
+      const today = new Date().toISOString().slice(0, 10);
+      await page.request.post('/api/finances/transactions', {
+        data: {
+          type: 'expense',
+          accountId: seedAcc!.id,
+          categoryId: catId,
+          amount: 10,
+          date: today,
+          payeeName: 'Supermarket',
+        },
+      });
 
       await page.getByRole('button', { name: 'Transactions' }).click();
       await page.waitForLoadState('networkidle');
@@ -193,16 +213,17 @@ test.describe('Finances – Journey', () => {
       // Select category (required for expenses)
       await page.getByText('Category', { exact: true }).locator('..').getByRole('button').click();
       await page.getByRole('button', { name: expenseCatName }).first().click();
-      await page.getByPlaceholder('e.g. Kaufland, Netflix…').fill('Supermarket');
-      await page.getByRole('button', { name: 'Create "Supermarket"' }).click();
+      // "Supermarket" was pre-seeded via API — select it from autocomplete suggestions
+      await page.getByPlaceholder('e.g. Kaufland, Netflix…').fill('Super');
+      await page.getByRole('button', { name: 'Supermarket' }).first().click();
       await page.getByRole('button', { name: 'Save Expense' }).click();
       await page.waitForLoadState('networkidle');
 
       await expect(page.getByTitle('Supermarket')).toBeVisible();
 
       // ── 2. Payee autocomplete: pill and fuzzy-search suggestions ──────────
-      // "Supermarket" was just saved, so it should appear as a most-used pill and
-      // as a fuzzy-search result when typing a partial name.
+      // "Supermarket" has prior transactions so it appears as a most-used pill
+      // and as a fuzzy-search result when typing a partial name.
       await page.getByTitle('Add transaction').first().click();
       await expect(page.locator('[data-layout="desktop"]').getByText('New Transaction')).toBeVisible();
 
@@ -232,7 +253,8 @@ test.describe('Finances – Journey', () => {
       await page.getByRole('button', { name: 'income', exact: true }).click();
       // Amount mask is onKeyDown-controlled — must pressSequentially, not fill
       await page.getByPlaceholder('0.00').pressSequentially('2000.00');
-      await page.getByRole('button', { name: 'Choose…' }).first().click();
+      // Select account
+      await page.getByText('Account', { exact: true }).locator('..').getByRole('button').click();
       await page.getByRole('button', { name: bankAccountName }).first().click();
       await page.getByPlaceholder('e.g. Kaufland, Netflix…').fill('Employer');
       await page.getByRole('button', { name: 'Create "Employer"' }).click();

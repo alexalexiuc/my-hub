@@ -1,8 +1,8 @@
 'use client';
 
 import { ComposedChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import { Card } from '@/components';
 import type { TooltipContentProps, TooltipPayloadEntry } from 'recharts';
-import { SectionCard } from '@/components/SectionCard';
 import { GoalTypes } from '@my-hub/shared/constants';
 
 interface DayData {
@@ -15,12 +15,12 @@ interface WeightMeasurement {
   value: number;
 }
 
-interface Props {
+type GoalProgressCardProps = {
   days: DayData[];
   weightHistory: WeightMeasurement[];
   goalType: string | null;
   goalWeeklyRateKg: number | null;
-}
+};
 
 function CustomTooltip({ active, payload, label }: TooltipContentProps<number, string>) {
   if (!active || !payload?.length) return null;
@@ -29,18 +29,19 @@ function CustomTooltip({ active, payload, label }: TooltipContentProps<number, s
   return (
     <div
       style={{
-        background: '#18181b',
-        border: '1px solid #3f3f46',
+        background: 'var(--card2)',
+        border: '1px solid var(--border)',
         borderRadius: 8,
         padding: '8px 12px',
         fontSize: 13,
+        color: 'var(--text)',
       }}
     >
-      <p style={{ color: '#a1a1aa', marginBottom: 4 }}>{String(date)}</p>
+      <p style={{ color: 'var(--muted)', marginBottom: 4 }}>{String(date)}</p>
       {payload.map((entry: TooltipPayloadEntry) => (
         <p
           key={entry.name as string}
-          style={{ color: (entry.color as string | undefined) ?? '#e4e4e7', marginBottom: 2 }}
+          style={{ color: (entry.color as string | undefined) ?? 'var(--text)', marginBottom: 2 }}
         >
           {entry.name === 'actual' ? 'Actual' : 'Projected'}:{' '}
           <strong>{entry.value != null ? `${(entry.value as number).toFixed(1)} kg` : '—'}</strong>
@@ -66,12 +67,9 @@ function getDailyGoalDelta(goalType: string | null, goalWeeklyRateKg: number | n
  * Returns the baseline weight for the week, which is ideally the Monday weight. If Monday's weight is not available, falls back to the most recent known weight before that week. Returns null if no weight data is available at all.
  */
 function getBaselineWeightForWeek(weightRows: WeightMeasurement[], weekStartDate: string): number | null {
-  // Weights are ordered descending, so it is safe to take the first match for Monday or the most recent past weight.
   const mondayWeightOrLast =
     weightRows.find(row => row.date === weekStartDate || row.date < weekStartDate)?.value ?? null;
   if (mondayWeightOrLast !== null) return mondayWeightOrLast;
-
-  // If Monday has no measurement, fall back to the most recent known value before that week.
   return weightRows[0]?.value ?? null;
 }
 
@@ -86,7 +84,7 @@ function findPastWeight(weightRows: WeightMeasurement[], date: string, nearestIf
   return null;
 }
 
-export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRateKg }: Props) {
+export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRateKg }: GoalProgressCardProps) {
   if (days.length === 0 || !goalType) return null;
 
   const dailyDelta = getDailyGoalDelta(goalType, goalWeeklyRateKg);
@@ -94,27 +92,21 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
 
   const orderedWeights = [...weightHistory].sort((a, b) => b.date.localeCompare(a.date));
   const weekStart = days[0]!.date;
-  const displayDays = days;
   const baselineWeight = getBaselineWeightForWeek(orderedWeights, weekStart);
   if (baselineWeight === null) {
-    return <p className="text-xs text-zinc-600 px-1">Weekly goal progress — no recent weight data available.</p>;
+    return <p className="px-1 text-xs text-[var(--subtle)]">Weekly goal progress — no recent weight data available.</p>;
   }
 
   const today = new Date().toISOString().split('T')[0] ?? '';
 
-  const chartData = displayDays.map(({ date, label }, index) => {
+  const chartData = days.map(({ date, label }, index) => {
     const projected = baselineWeight + dailyDelta * index;
     const isFirstDay = index === 0;
     const actual = date <= today ? findPastWeight(orderedWeights, date, isFirstDay) : null;
-    return {
-      date,
-      label,
-      actual,
-      projected,
-    };
+    return { date, label, actual, projected };
   });
 
-  const lastPastIndex = displayDays.reduce((idx, d, i) => (d.date <= today ? i : idx), -1);
+  const lastPastIndex = days.reduce((idx, d, i) => (d.date <= today ? i : idx), -1);
   const lastPastPoint = lastPastIndex >= 0 ? chartData[lastPastIndex] : null;
   const delta =
     lastPastPoint && lastPastPoint.actual !== null ? (lastPastPoint.actual as number) - lastPastPoint.projected : null;
@@ -129,25 +121,25 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
   const yAxisWidth = numDigits >= 5 ? 56 : 46;
   const leftMargin = numDigits >= 5 ? -6 : -16;
 
-  let summaryColor = 'text-zinc-400';
+  let summaryColor = 'text-[var(--muted)]';
   let summaryText = 'No weight data yet';
   if (delta !== null) {
     if (Math.abs(delta) < 0.1) {
       summaryText = 'On track';
     } else if (goalType === GoalTypes.WeightLoss) {
       const ahead = delta < 0;
-      summaryColor = ahead ? 'text-green-400' : 'text-red-400';
+      summaryColor = ahead ? 'text-[var(--green)]' : 'text-[var(--red)]';
       summaryText = ahead
         ? `${Math.abs(delta).toFixed(1)} kg ahead of loss goal`
         : `${delta.toFixed(1)} kg behind loss goal`;
     } else if (goalType === GoalTypes.WeightGain) {
       const ahead = delta > 0;
-      summaryColor = ahead ? 'text-green-400' : 'text-red-400';
+      summaryColor = ahead ? 'text-[var(--green)]' : 'text-[var(--red)]';
       summaryText = ahead
         ? `${delta.toFixed(1)} kg ahead of gain goal`
         : `${Math.abs(delta).toFixed(1)} kg behind gain goal`;
     } else {
-      summaryColor = 'text-amber-300';
+      summaryColor = 'text-[var(--amber)]';
       summaryText =
         delta > 0
           ? `${delta.toFixed(1)} kg above maintain target`
@@ -159,10 +151,13 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
   const projectedNow = lastPastPoint?.projected ?? null;
 
   return (
-    <SectionCard title="Weekly goal progress">
+    <Card className="p-5">
+      <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">
+        Weekly goal progress
+      </h2>
       <div className="mb-3 flex items-baseline gap-2">
-        <span className="text-sm text-zinc-400">
-          <span className="font-semibold text-zinc-200">
+        <span className="text-sm text-[var(--muted)]">
+          <span className="font-semibold text-[var(--text)]">
             {actualNow !== null ? `${(actualNow as number).toFixed(1)} kg` : '—'}
           </span>{' '}
           / {projectedNow !== null ? `${(projectedNow as number).toFixed(1)} kg` : '—'} projected
@@ -172,16 +167,16 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
       <div className="h-52">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 8, right: 4, bottom: 0, left: leftMargin }}>
-            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#71717a', fontSize: 12 }} />
+            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--subtle)', fontSize: 12 }} />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#52525b', fontSize: 11 }}
+              tick={{ fill: 'var(--subtle)', fontSize: 11 }}
               domain={[minDisplayValue, maxDisplayValue]}
               width={yAxisWidth}
             />
             <RechartsTooltip
-              cursor={{ fill: 'rgba(63, 63, 70, 0.3)' }}
+              cursor={{ fill: 'rgba(255,255,255,0.04)' }}
               content={props => (
                 <CustomTooltip
                   active={props.active}
@@ -194,24 +189,24 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
               )}
             />
             <Legend
-              wrapperStyle={{ fontSize: 11, color: '#71717a', paddingTop: 4 }}
+              wrapperStyle={{ fontSize: 11, color: 'var(--muted)', paddingTop: 4 }}
               formatter={value => (value === 'actual' ? 'Actual' : 'Projected')}
             />
             <Line
               dataKey="actual"
               name="actual"
               type="monotone"
-              stroke="#60a5fa"
+              stroke="var(--accent)"
               strokeWidth={2}
-              dot={{ fill: '#60a5fa', r: 3, strokeWidth: 0 }}
-              activeDot={{ r: 5, fill: '#93c5fd' }}
+              dot={{ fill: 'var(--accent)', r: 3, strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: 'var(--accent)' }}
               connectNulls
             />
             <Line
               dataKey="projected"
               name="projected"
               type="monotone"
-              stroke="#f59e0b"
+              stroke="var(--amber)"
               strokeWidth={1.5}
               strokeDasharray="6 3"
               dot={false}
@@ -220,6 +215,6 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-    </SectionCard>
+    </Card>
   );
 }
