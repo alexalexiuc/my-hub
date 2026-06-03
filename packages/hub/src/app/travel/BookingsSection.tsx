@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { SectionCard } from '@/components/SectionCard';
+import { Card } from '@/components';
+import { TravelSectionHeader } from './ui';
 import { Button, ConfirmModal, IconButton, SwipeRow } from '@/components';
 import { AttachmentIcon, PencilIcon, TrashIcon } from '@/components/icons';
 import { BookingTypeIcon } from '@/components';
@@ -78,8 +79,9 @@ export function BookingsSection({
         />
       )}
 
-      <SectionCard title="Reservations" className="bg-[var(--card)] border-[var(--border)]" action={headerAction}>
-        <div className="max-h-[28rem] space-y-2 overflow-auto">
+      <Card className="!p-0 overflow-hidden">
+        <TravelSectionHeader title="Reservations" action={headerAction} />
+        <div className="max-h-[28rem] space-y-2 overflow-auto p-4">
           {bookings.map(booking => (
             <div
               key={booking.id}
@@ -121,7 +123,7 @@ export function BookingsSection({
           ))}
           {bookings.length === 0 && <p className="text-sm text-[var(--muted)]">No reservations yet.</p>}
         </div>
-      </SectionCard>
+      </Card>
     </>
   );
 }

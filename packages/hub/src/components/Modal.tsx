@@ -51,6 +51,31 @@ export function Modal({
     };
   }, []);
 
+  // On iOS, when the virtual keyboard opens the browser scrolls window to
+  // bring the focused input into view, which displaces fixed-position elements.
+  // Pinning the modal shell to the visualViewport dimensions corrects this.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const el = containerRef.current;
+    if (!vv || !el) return;
+
+    const sync = () => {
+      if (window.innerWidth >= 768) return; // desktop modal handles itself
+      el.style.top = `${vv.offsetTop}px`;
+      el.style.height = `${vv.height}px`;
+    };
+
+    sync();
+    vv.addEventListener('resize', sync);
+    vv.addEventListener('scroll', sync);
+    return () => {
+      el.style.top = '';
+      el.style.height = '';
+      vv.removeEventListener('resize', sync);
+      vv.removeEventListener('scroll', sync);
+    };
+  }, []);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;

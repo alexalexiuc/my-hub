@@ -1,5 +1,5 @@
 import '@/styles/globals.css';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
 import { Providers } from '@/components';
 
@@ -11,6 +11,13 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'My Hub',
   },
+};
+
+export const viewport: Viewport = {
+  // Only the visual viewport shrinks when the virtual keyboard appears;
+  // the layout viewport (and thus fixed-position elements) stays unchanged.
+  // Prevents fixed modals from jumping when keyboard opens on Android Chrome.
+  interactiveWidget: 'resizes-visual',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

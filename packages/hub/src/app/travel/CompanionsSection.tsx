@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { SectionCard } from '@/components/SectionCard';
+import { Card } from '@/components';
+import { TravelSectionHeader } from './ui';
 import type { TripCompanion } from '@my-hub/shared/types';
 import { Button, ConfirmModal, SwipeRow } from '@/components';
 import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
@@ -62,8 +63,9 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
         />
       )}
 
-      <SectionCard title="Companions" className="bg-[var(--card)] border-[var(--border)]" action={headerAction}>
-        <div className="max-h-64 space-y-1.5 overflow-auto">
+      <Card className="!p-0 overflow-hidden">
+        <TravelSectionHeader title="Companions" action={headerAction} />
+        <div className="max-h-64 space-y-1.5 overflow-auto p-4">
           {companions.map(companion => (
             <div key={companion.id} className="overflow-hidden rounded-md border border-[var(--border)]">
               {/* Mobile: swipe-to-reveal */}
@@ -120,7 +122,7 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
           ))}
           {companions.length === 0 && <p className="text-sm text-[var(--muted)]">No companions yet.</p>}
         </div>
-      </SectionCard>
+      </Card>
     </>
   );
 }

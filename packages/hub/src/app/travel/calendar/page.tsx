@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { SectionCard } from '@/components/SectionCard';
+import { Card } from '@/components';
+import { TravelSectionHeader } from '../ui';
 import type { TripOverviewResponse } from '../types';
 import { travelEvents } from '../travelEvents';
 import { readActiveTripId } from '../TripSwitcher';
@@ -39,9 +40,12 @@ export default function TravelCalendarPage() {
       {!activeTripId ? (
         <p className="text-sm text-[var(--muted)]">Select a trip to view the calendar.</p>
       ) : overview ? (
-        <SectionCard title="Calendar" className="bg-[var(--card)] border-[var(--border)]">
-          <BookingsCalendar bookings={overview.bookings} tripColor={overview.trip.color} trip={overview.trip} />
-        </SectionCard>
+        <Card className="!p-0 overflow-hidden">
+          <TravelSectionHeader title="Calendar" />
+          <div className="p-4">
+            <BookingsCalendar bookings={overview.bookings} tripColor={overview.trip.color} trip={overview.trip} />
+          </div>
+        </Card>
       ) : null}
     </main>
   );

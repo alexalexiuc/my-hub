@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { SectionCard } from '@/components/SectionCard';
+import { Card } from '@/components';
+import { TravelSectionHeader } from './ui';
 import type { TripDocument } from '@my-hub/shared/types';
 import type { TripBookingExtended } from './types';
 import { Button, ConfirmModal, IconButton } from '@/components';
@@ -58,8 +59,9 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
         />
       )}
 
-      <SectionCard title="Documents" className="bg-[var(--card)] border-[var(--border)]" action={headerAction}>
-        <div className="max-h-64 space-y-1.5 overflow-auto">
+      <Card className="!p-0 overflow-hidden">
+        <TravelSectionHeader title="Documents" action={headerAction} />
+        <div className="max-h-64 space-y-1.5 overflow-auto p-4">
           {documents.map(document => (
             <div
               key={document.id}
@@ -99,7 +101,7 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
           ))}
           {documents.length === 0 && <p className="text-sm text-[var(--muted)]">No documents yet.</p>}
         </div>
-      </SectionCard>
+      </Card>
     </>
   );
 }
