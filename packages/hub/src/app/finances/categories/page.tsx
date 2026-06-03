@@ -89,24 +89,11 @@ export default function CategoriesPage() {
     <div className="flex flex-col gap-[14px]">
       <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Categories</div>
 
-      {/* Desktop */}
-      <div data-layout="desktop" className="hidden md:block">
-        <SmartDatePicker
-          month={selectedMonth}
-          onChange={patch => patch.month && setSelectedMonth(patch.month)}
-          currentMonth={CURRENT_MONTH}
-        />
-      </div>
-      {/* Mobile */}
-      <div data-layout="mobile" className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--card2)] px-3 py-2.5 md:hidden">
-        <SmartDatePicker
-          month={selectedMonth}
-          onChange={patch => patch.month && setSelectedMonth(patch.month)}
-          currentMonth={CURRENT_MONTH}
-          className="flex-1 justify-between"
-          labelClassName="text-[32px] font-bold leading-none tracking-tight"
-        />
-      </div>
+      <SmartDatePicker
+        month={selectedMonth}
+        onChange={patch => patch.month && setSelectedMonth(patch.month)}
+        currentMonth={CURRENT_MONTH}
+      />
 
       {loading ? (
         <div className="flex flex-col gap-[14px]">

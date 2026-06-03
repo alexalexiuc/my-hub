@@ -139,18 +139,15 @@ export default function TransactionsPage() {
 
       {/* Mobile header */}
       <div data-layout="mobile" className="md:hidden">
-        <div className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--card2)] px-3 py-2.5">
-          <SmartDatePicker
-            dateMode={dateMode}
-            month={month}
-            fromDate={fromDate}
-            toDate={toDate}
-            currentMonth={currentMonthStr()}
-            onChange={handleDateChange}
-            labelClassName="text-[32px] font-bold leading-none tracking-tight"
-          />
-          {funnelButton}
-        </div>
+        <SmartDatePicker
+          dateMode={dateMode}
+          month={month}
+          fromDate={fromDate}
+          toDate={toDate}
+          currentMonth={currentMonthStr()}
+          onChange={handleDateChange}
+          trailing={funnelButton}
+        />
       </div>
 
       {/* Undo import banner */}
