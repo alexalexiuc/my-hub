@@ -117,8 +117,7 @@ export default function TransactionsPage() {
     <div className="flex flex-col gap-[14px]">
       <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Transactions</div>
 
-      {/* Desktop header */}
-      <div data-layout="desktop" className="hidden items-center justify-between md:flex">
+      <div className="md:flex md:items-center md:justify-between">
         <SmartDatePicker
           dateMode={dateMode}
           month={month}
@@ -127,27 +126,15 @@ export default function TransactionsPage() {
           currentMonth={currentMonthStr()}
           onChange={handleDateChange}
           extendedFilters
+          trailing={funnelButton}
         />
-        <div className="flex items-center gap-2">
+        <div className="hidden items-center gap-2 md:flex">
           {funnelButton}
           <Link href="/finances/transactions/import">
             <Button variant="ghost">Import CSV</Button>
           </Link>
           <AddButton onClick={() => setShowAddModal(true)} title="Add transaction" />
         </div>
-      </div>
-
-      {/* Mobile header */}
-      <div data-layout="mobile" className="md:hidden">
-        <SmartDatePicker
-          dateMode={dateMode}
-          month={month}
-          fromDate={fromDate}
-          toDate={toDate}
-          currentMonth={currentMonthStr()}
-          onChange={handleDateChange}
-          trailing={funnelButton}
-        />
       </div>
 
       {/* Undo import banner */}
