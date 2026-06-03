@@ -4,7 +4,6 @@ import { TripBookingTypes, TripDocumentTypes } from '@my-hub/shared/constants';
 import {
   isTransportBookingType,
   fmtDuration,
-  hasValidLatLng,
   parseCoordinatePair,
   parseGeoUri,
   containsPlusCode,
