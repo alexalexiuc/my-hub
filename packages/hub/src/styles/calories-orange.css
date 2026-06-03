@@ -11,6 +11,7 @@
   --subtle: #6b4f2e;
   --accent: #f97316;
   --accent-d: rgba(249, 115, 22, 0.12);
+  --accent-shadow: rgba(249, 115, 22, 0.4);
   --accent-hover: rgba(249, 115, 22, 0.75);
   --green: #6ee7b7;
   --green-d: rgba(110, 231, 183, 0.1);
