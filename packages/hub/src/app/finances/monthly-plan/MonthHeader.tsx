@@ -89,14 +89,7 @@ export function MonthHeader({ month, nextMonthExists, allDone, itemCount, onNavi
       {/* Mobile */}
       <div data-layout="mobile" className="mb-4 md:hidden">
         <SectionLabel>Monthly Plan</SectionLabel>
-        <div className="mb-3 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--card2)] px-3 py-2.5">
-          <SmartDatePicker
-            month={month}
-            onChange={patch => patch.month && onNavigate(patch.month)}
-            className="flex-1 justify-between"
-            labelClassName="text-[32px] font-bold leading-none tracking-tight"
-          />
-        </div>
+        <SmartDatePicker month={month} onChange={patch => patch.month && onNavigate(patch.month)} className="mb-3" />
         <div className="flex items-center gap-2">
           {!nextMonthExists && copyNextBtn()}
           {markAllDoneBtn('ml-auto')}

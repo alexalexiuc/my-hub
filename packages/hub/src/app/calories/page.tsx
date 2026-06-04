@@ -116,7 +116,7 @@ export default function TodayPage() {
 
   return (
     <main>
-      {/* Greeting + date picker — outside any card, top-left like finances */}
+      {/* Greeting + date picker */}
       <div className="mb-4">
         <div className="mb-1 text-xs text-[var(--subtle)]">{greeting()}</div>
         <DatePicker

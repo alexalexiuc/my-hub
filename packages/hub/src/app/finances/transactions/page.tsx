@@ -115,21 +115,9 @@ export default function TransactionsPage() {
 
   return (
     <div className="flex flex-col gap-[14px]">
-      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Transactions</div>
-
-      {/* Desktop header */}
-      <div className="hidden items-center justify-between md:flex">
-        <SmartDatePicker
-          dateMode={dateMode}
-          month={month}
-          fromDate={fromDate}
-          toDate={toDate}
-          currentMonth={currentMonthStr()}
-          onChange={handleDateChange}
-          extendedFilters
-        />
-        <div className="flex items-center gap-2">
-          {funnelButton}
+      <div className="flex items-center justify-between">
+        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Transactions</div>
+        <div className="hidden items-center gap-2 md:flex">
           <Link href="/finances/transactions/import">
             <Button variant="ghost">Import CSV</Button>
           </Link>
@@ -137,21 +125,16 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Mobile header */}
-      <div className="md:hidden">
-        <div className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--card2)] px-3 py-2.5">
-          <SmartDatePicker
-            dateMode={dateMode}
-            month={month}
-            fromDate={fromDate}
-            toDate={toDate}
-            currentMonth={currentMonthStr()}
-            onChange={handleDateChange}
-            labelClassName="text-[32px] font-bold leading-none tracking-tight"
-          />
-          {funnelButton}
-        </div>
-      </div>
+      <SmartDatePicker
+        dateMode={dateMode}
+        month={month}
+        fromDate={fromDate}
+        toDate={toDate}
+        currentMonth={currentMonthStr()}
+        onChange={handleDateChange}
+        extendedFilters
+        trailing={funnelButton}
+      />
 
       {/* Undo import banner */}
       {lastImport && (
