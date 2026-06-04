@@ -29,6 +29,8 @@ export type ModalProps = {
  * - Mobile (<md): full-screen with header (close button + title), scrollable body, and optional pinned footer.
  * - Desktop (≥md): centred overlay card with backdrop click-to-close and optional inline footer.
  * Locks body scroll while open.
+ * On mobile the modal always fills the full screen; the keyboard overlays the content and the
+ * user scrolls as needed. No viewport-resize tracking — it caused jumpy layout on Android.
  */
 export function Modal({
   onClose,
@@ -48,33 +50,6 @@ export function Modal({
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
-    };
-  }, []);
-
-  // When the virtual keyboard opens, the visual viewport shrinks while the
-  // layout viewport stays unchanged (interactiveWidget: resizes-visual).
-  // Sync the modal height to the visual viewport so it doesn't extend under
-  // the keyboard. We intentionally leave `top` alone — the CSS `top-0` class
-  // keeps the modal flush with the layout viewport top, and setting it to
-  // vv.offsetTop can push the modal down on Android when browser chrome
-  // (e.g. AutoFill bar) makes offsetTop non-zero.
-  useEffect(() => {
-    const vv = window.visualViewport;
-    const el = containerRef.current;
-    if (!vv || !el) return;
-
-    const sync = () => {
-      if (window.innerWidth >= 768) return; // desktop modal handles itself
-      el.style.height = `${vv.height}px`;
-    };
-
-    sync();
-    vv.addEventListener('resize', sync);
-    vv.addEventListener('scroll', sync);
-    return () => {
-      el.style.height = '';
-      vv.removeEventListener('resize', sync);
-      vv.removeEventListener('scroll', sync);
     };
   }, []);
 
