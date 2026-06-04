@@ -130,10 +130,10 @@ export function DatePicker({
       ref={ref}
       className={cn(
         'relative flex items-center gap-2',
-        // Mobile: full-width card
-        'rounded-xl border border-[var(--border)] bg-[var(--card2)] px-3 py-2.5',
+        // Mobile: full-bleed strip (counteracts layout px-7), top/bottom borders only
+        '-mx-7 border-y border-[var(--border)] bg-[var(--card2)] px-7 py-2.5',
         // Desktop: reset to inline
-        'md:rounded-none md:border-0 md:bg-transparent md:p-0',
+        'md:mx-0 md:border-0 md:bg-transparent md:p-0',
         className,
       )}
     >
