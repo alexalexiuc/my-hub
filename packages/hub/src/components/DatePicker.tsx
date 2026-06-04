@@ -24,7 +24,8 @@ export type DatePickerProps = {
   fromDate?: string;
   toDate?: string;
   className?: string;
-  labelClassName?: string;
+  /** Extra content rendered at the trailing end of the picker row on all breakpoints. */
+  trailing?: React.ReactNode;
 };
 
 /** Shifts a YYYY-MM-DD string by n days. */
@@ -70,7 +71,7 @@ export function DatePicker({
   fromDate = '',
   toDate = '',
   className,
-  labelClassName,
+  trailing,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<DateMode>(dateMode);
@@ -124,10 +125,18 @@ export function DatePicker({
           ? formatDayStr(month)
           : formatMonthStr(month);
 
-  const bigChevron = !!labelClassName;
-
   return (
-    <div ref={ref} className={cn('relative flex items-center gap-2', className)}>
+    <div
+      ref={ref}
+      className={cn(
+        'relative flex items-center gap-2',
+        // Mobile: full-width card
+        'rounded-xl border border-[var(--border)] bg-[var(--card2)] px-3 py-2.5',
+        // Desktop: reset to inline
+        'md:rounded-none md:border-0 md:bg-transparent md:p-0',
+        className,
+      )}
+    >
       {(dateMode === 'month' || dateMode === 'day') && (
         <IconButton
           label={dateMode === 'day' ? 'Previous day' : 'Previous month'}
@@ -145,9 +154,15 @@ export function DatePicker({
         /* Clickable label with dropdown */
         <button
           onClick={() => setOpen(o => !o)}
-          className="flex items-center gap-1 rounded-lg px-1 py-0.5 transition-colors hover:bg-[var(--card2)]"
+          className="flex flex-1 items-center gap-1 rounded-lg px-1 py-0.5 transition-colors md:flex-none md:hover:bg-[var(--card2)]"
         >
-          <span className={cn('min-w-44 font-bold tracking-tight text-[var(--text)]', labelClassName ?? 'text-[22px]')}>
+          <span
+            className={cn(
+              'font-bold tracking-tight text-[var(--text)]',
+              'flex-1 text-center text-[32px] leading-none',
+              'md:flex-none md:min-w-44 md:text-left md:text-[22px] md:leading-normal',
+            )}
+          >
             {displayLabel}
           </span>
           {dateMode !== 'day' && (
@@ -155,14 +170,20 @@ export function DatePicker({
               className={cn(
                 'shrink-0 text-[var(--muted)] transition-transform duration-150',
                 open && 'rotate-180',
-                bigChevron ? 'size-6' : 'size-5',
+                'size-6 md:size-5',
               )}
             />
           )}
         </button>
       ) : (
         /* Plain label — carousel-style, no dropdown */
-        <h2 className={cn('w-44 text-center text-[22px] font-bold tracking-tight text-[var(--text)]', labelClassName)}>
+        <h2
+          className={cn(
+            'font-bold tracking-tight text-[var(--text)] text-center',
+            'flex-1 text-[32px] leading-none',
+            'md:flex-none md:w-44 md:text-[22px] md:leading-normal',
+          )}
+        >
           {displayLabel}
         </h2>
       )}
@@ -188,6 +209,8 @@ export function DatePicker({
           Today
         </Button>
       )}
+
+      {trailing != null && <div className="ml-auto shrink-0">{trailing}</div>}
 
       {dateMode === 'day' && open && (
         <div className="absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-xl">
