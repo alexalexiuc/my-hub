@@ -40,6 +40,8 @@ export const MealTypes = {
   Lunch: 'lunch',
   Dinner: 'dinner',
   Snack: 'snack',
+  PreWorkout: 'pre_workout',
+  PostWorkout: 'post_workout',
 } as const;
 
 export type MealType = (typeof MealTypes)[keyof typeof MealTypes];

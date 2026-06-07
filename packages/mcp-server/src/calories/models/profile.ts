@@ -15,6 +15,7 @@ export function rowToProfile(row: CalorieProfile): BodyProfile {
       goalWeeklyRateKg: row.goalWeeklyRateKg,
       goalMinCalories: row.goalMinCalories,
       goalMaxCalories: row.goalMaxCalories,
+      gymDays: row.gymDays ?? undefined,
       notes: row.notes,
     }),
   };

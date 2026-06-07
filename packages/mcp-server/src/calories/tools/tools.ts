@@ -13,6 +13,16 @@ import {
   LogMeasurementSchema,
   logMeasurementTool,
 } from './measurement';
+import {
+  CreateWeeklyMenuSchema,
+  createWeeklyMenuTool,
+  GetWeeklyMenuSchema,
+  getWeeklyMenuTool,
+  SwapMealSchema,
+  swapMealTool,
+  AddMealSchema,
+  addMealTool,
+} from './weekly-menu';
 
 const caloriesTools = [
   // ---- Meal tools ----
@@ -108,6 +118,62 @@ const caloriesTools = [
     inputSchema: DeleteMeasurementSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: true },
     callback: deleteMeasurementTool,
+  }),
+  // ---- Weekly menu tools ----
+  defineTool({
+    name: 'calories_create_weekly_menu',
+    description:
+      'Create or replace a weekly meal plan for a specific week. ' +
+      'Use this when the user asks you to plan meals for a week, create a menu, or suggest what to eat. ' +
+      'IMPORTANT: Before calling this tool, follow these steps in order: ' +
+      '1. Call calories_get_weekly_menu (without weekStart) to fetch the last few weeks of menus. ' +
+      'Use this history to avoid repeating the same meals or ingredients — vary proteins, vegetables, and cuisines relative to recent weeks. ' +
+      '2. Read the calories://profile resource (or call calories_get_daily_summary) ' +
+      "to know the user's daily calorie target (min/max), macro goals (protein, carbs, fat), goal type (weight_loss, weight_gain, maintain), " +
+      "and any dietary notes. Plan every day's meals to hit those targets. " +
+      'If no profile is set, proceed with creating a balanced default menu anyway, ' +
+      'but inform the user that no calorie goal is configured and their meals were not tailored to specific targets — ' +
+      'suggest they set up their profile under Calories → Settings to get personalised menus in future. ' +
+      'Plan all 7 days with breakfast, lunch, dinner, and snack. Include estimated calories and macros for each meal. ' +
+      'The menu is saved to the hub and the user can view it under Calories → Weekly Menu. ' +
+      'If a menu already exists for that week it will be replaced. ' +
+      "The tool returns userTargets and any warnings if days exceed or fall below the user's calorie targets.",
+    inputSchema: CreateWeeklyMenuSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: createWeeklyMenuTool,
+  }),
+  defineTool({
+    name: 'calories_get_weekly_menu',
+    description:
+      'Retrieve a saved weekly meal plan. Pass weekStart (Monday YYYY-MM-DD) to get a specific week, or omit to list all saved menus.',
+    inputSchema: GetWeeklyMenuSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getWeeklyMenuTool,
+  }),
+  defineTool({
+    name: 'calories_add_meal',
+    description:
+      'Add a single meal to an existing weekly menu without replacing the whole week. ' +
+      'Use this when the user wants to add a pre-workout, post-workout, or any extra meal to a specific day. ' +
+      'Before calling: get the menuId by calling calories_get_weekly_menu with the weekStart. ' +
+      'The slot must not already exist for that day — use calories_swap_meal to replace an existing meal instead.',
+    inputSchema: AddMealSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: addMealTool,
+  }),
+  defineTool({
+    name: 'calories_swap_meal',
+    description:
+      'Replace a single meal in an existing weekly menu with a new one. ' +
+      'Use this when the user wants to swap one specific meal — e.g. "change my Thursday lunch" or "I don\'t feel like salmon tonight, give me something else". ' +
+      'Before calling this tool: ' +
+      '1. Call calories_get_weekly_menu with the weekStart to get the menuId and see the current meal. ' +
+      "2. Generate a replacement that fits the same calorie slot and the user's dietary profile. " +
+      '3. Call this tool with the new meal details. ' +
+      'Only the specified meal slot is changed — all other days and meals remain untouched.',
+    inputSchema: SwapMealSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: swapMealTool,
   }),
 ];
 

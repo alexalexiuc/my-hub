@@ -9,3 +9,4 @@ export * from './mcp-servers';
 export * from './travel';
 export * from './auth';
 export * from './finances';
+export * from './weekly-menu';

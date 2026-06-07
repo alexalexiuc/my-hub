@@ -1,4 +1,4 @@
-import type { ActivityLevel, GoalType, MealType, Sex } from '@my-hub/shared/constants';
+import type { ActivityLevel, DayOfWeek, GoalType, MealType, Sex } from '@my-hub/shared/constants';
 
 // Profile stores demographic/goal info for BMR/TDEE.
 // Height is stored directly on the profile (stable); weight lives in body_measurements.
@@ -12,6 +12,7 @@ export interface BodyProfile {
   goalWeeklyRateKg?: number; // kg/week for loss or gain
   goalMinCalories?: number; // explicit daily minimum floor
   goalMaxCalories?: number; // explicit daily maximum ceiling
+  gymDays?: DayOfWeek[]; // days of week the user goes to the gym: 0=Mon … 6=Sun
   notes?: string;
   updatedAt?: string;
 }

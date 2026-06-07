@@ -1,0 +1,30 @@
+CREATE TABLE "weekly_menu_meals" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"menu_id" text NOT NULL,
+	"day_of_week" integer NOT NULL,
+	"meal_type" text NOT NULL,
+	"description" text NOT NULL,
+	"kcal" integer,
+	"protein" real,
+	"carbs" real,
+	"fat" real,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "weekly_menus" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"menu_id" text NOT NULL,
+	"user_id" uuid NOT NULL,
+	"week_start" text NOT NULL,
+	"title" text,
+	"notes" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "weekly_menus_menu_id_unique" UNIQUE("menu_id")
+);
+--> statement-breakpoint
+ALTER TABLE "weekly_menu_meals" ADD CONSTRAINT "weekly_menu_meals_menu_id_weekly_menus_menu_id_fk" FOREIGN KEY ("menu_id") REFERENCES "public"."weekly_menus"("menu_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "weekly_menus" ADD CONSTRAINT "weekly_menus_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "idx_weekly_menu_meals_menu" ON "weekly_menu_meals" USING btree ("menu_id");--> statement-breakpoint
+CREATE INDEX "idx_weekly_menus_user" ON "weekly_menus" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "idx_weekly_menus_user_week" ON "weekly_menus" USING btree ("user_id","week_start" DESC NULLS LAST);

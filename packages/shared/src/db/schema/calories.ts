@@ -1,6 +1,7 @@
-import { pgTable, serial, text, timestamp, integer, real, jsonb, uuid, index } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, integer, real, jsonb, uuid, index, unique } from 'drizzle-orm/pg-core';
 import type { ActivityLevel, GoalType, MealType, Sex } from '../../constants/calories';
 import { users } from './users';
+import type { DayOfWeek } from '../../constants/weekly-menu';
 
 // ---------------------------------------------------------------------------
 // Calorie Tracker tables
@@ -25,6 +26,7 @@ export const calorieProfiles = pgTable('calorie_profiles', {
   goalProtein: real('goal_protein'), // optional daily protein target in grams
   goalCarbs: real('goal_carbs'), // optional daily carbs target in grams
   goalFat: real('goal_fat'), // optional daily fat target in grams
+  gymDays: jsonb('gym_days').$type<DayOfWeek[]>(), // days of week user goes to gym: 0=Mon … 6=Sun
   notes: text('notes'),
   automationApiKey: text('automation_api_key'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -56,4 +58,62 @@ export const mealLogs = pgTable(
     index('idx_meal_logs_date').on(table.date),
     index('idx_meal_logs_user_date').on(table.userId, table.date.desc()),
   ],
+);
+
+// ---------------------------------------------------------------------------
+// Weekly Menu tables
+// ---------------------------------------------------------------------------
+
+export const weeklyMenus = pgTable(
+  'weekly_menus',
+  {
+    id: serial('id').primaryKey(),
+    menuId: text('menu_id').unique().notNull(), // UUID for external reference
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    weekStart: text('week_start').notNull(), // YYYY-MM-DD (Monday of the week)
+    title: text('title'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  table => [
+    index('idx_weekly_menus_user').on(table.userId),
+    index('idx_weekly_menus_user_week').on(table.userId, table.weekStart.desc()),
+  ],
+);
+
+export const weeklyMenuMeals = pgTable(
+  'weekly_menu_meals',
+  {
+    id: serial('id').primaryKey(),
+    menuId: text('menu_id')
+      .notNull()
+      .references(() => weeklyMenus.menuId, { onDelete: 'cascade' }),
+    dayOfWeek: integer('day_of_week').notNull().$type<DayOfWeek>(), // 0=Monday … 6=Sunday
+    mealType: text('meal_type').$type<MealType>().notNull(),
+    description: text('description').notNull(),
+    kcal: integer('kcal'),
+    protein: real('protein'),
+    carbs: real('carbs'),
+    fat: real('fat'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  table => [index('idx_weekly_menu_meals_menu').on(table.menuId)],
+);
+
+export const weeklyMenuDayLogs = pgTable(
+  'weekly_menu_day_logs',
+  {
+    id: serial('id').primaryKey(),
+    menuId: text('menu_id')
+      .notNull()
+      .references(() => weeklyMenus.menuId, { onDelete: 'cascade' }),
+    dayOfWeek: integer('day_of_week').notNull().$type<DayOfWeek>(), // 0=Monday … 6=Sunday
+    mealType: text('meal_type').$type<MealType>().notNull(), // breakfast | lunch | dinner | snack
+    loggedDate: text('logged_date').notNull(), // YYYY-MM-DD — the calendar date it was logged for
+    loggedAt: timestamp('logged_at').notNull().defaultNow(),
+  },
+  table => [unique('uq_weekly_menu_day_log').on(table.menuId, table.dayOfWeek, table.mealType)],
 );

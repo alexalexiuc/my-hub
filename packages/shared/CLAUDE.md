@@ -64,6 +64,7 @@
 | `profile.ts`     | Calorie profile CRUD: `getCalorieProfile`, `upsertCalorieProfile`, `deleteCalorieProfile`, `deleteAllUserCalorieProfiles`, `generateCaloriesAutomationKey` (generates + persists 64-char hex automation API key) |
 | `meals.ts`       | Meal log CRUD: `logMeal`, `getMeals`, `getMealsForDate`, `getMealsForDateRange`, `updateMeal`, `deleteMeal`, `deleteAllUserMeals`                                                                                |
 | `report-data.ts` | Aggregated report queries: `fetchWeeklyReportCaloriesData`, `fetchMonthlyReportCaloriesData`                                                                                                                     |
+| `weekly-menu.ts` | Weekly menu CRUD + day-log tracking: `createWeeklyMenu`, `getWeeklyMenus`, `getWeeklyMenu`, `getWeeklyMenuByWeek`, `deleteWeeklyMenu`, `deleteAllUserWeeklyMenus`, `markDayAsLogged`, `getLoggedDays`            |
 
 ## Keeping the inventory current
 

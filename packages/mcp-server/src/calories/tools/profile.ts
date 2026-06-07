@@ -71,6 +71,13 @@ export const UpdateProfileSchema = z.object({
     .optional()
     .nullable()
     .describe('Daily fat target in grams (e.g. 80). Pass null to clear.'),
+  gymDays: z
+    .array(z.number().int().min(0).max(6))
+    .optional()
+    .nullable()
+    .describe(
+      'Days of the week the user goes to the gym: 0=Monday, 1=Tuesday, 2=Wednesday, 3=Thursday, 4=Friday, 5=Saturday, 6=Sunday. Pass an empty array or null to clear.',
+    ),
   notes: z.string().optional().describe('Additional notes about your health goals'),
 });
 
@@ -93,6 +100,7 @@ export const updateProfileTool: ToolHandler<typeof UpdateProfileSchema.shape> = 
   if (input.goalProteinG !== undefined) updates.goalProtein = input.goalProteinG;
   if (input.goalCarbsG !== undefined) updates.goalCarbs = input.goalCarbsG;
   if (input.goalFatG !== undefined) updates.goalFat = input.goalFatG;
+  if (input.gymDays !== undefined) updates.gymDays = input.gymDays ?? null;
 
   const row = await upsertCalorieProfile(userId, updates);
 
