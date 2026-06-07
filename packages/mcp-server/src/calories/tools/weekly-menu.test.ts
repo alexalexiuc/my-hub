@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { addMealToMenu, updateWeeklyMenuMeal, getWeeklyMenu } from '@my-hub/shared/services';
+import { addMealToMenu, updateWeeklyMenuMeal, hasAccessToMenu } from '@my-hub/shared/services';
 import { AddMealSchema, SwapMealSchema, addMealTool, swapMealTool } from './weekly-menu';
 import { caloriesContext, parseToolPayload } from './test-utils';
 
@@ -8,9 +8,9 @@ import { caloriesContext, parseToolPayload } from './test-utils';
 // ---------------------------------------------------------------------------
 
 vi.mock('@my-hub/shared/services', () => ({
-  getWeeklyMenu: vi.fn(),
   addMealToMenu: vi.fn(),
   updateWeeklyMenuMeal: vi.fn(),
+  hasAccessToMenu: vi.fn(),
 }));
 
 // ---------------------------------------------------------------------------
@@ -31,18 +31,6 @@ const BASE_MEAL = {
   carbs: 28,
   fat: 3,
   createdAt: new Date(),
-};
-
-const BASE_MENU = {
-  id: 1,
-  menuId: 'menu-xyz',
-  userId: 'user-1',
-  weekStart: '2026-06-02',
-  title: 'Test week',
-  notes: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  meals: [BASE_MEAL],
 };
 
 // ---------------------------------------------------------------------------
@@ -257,7 +245,7 @@ describe('swapMealTool', () => {
   });
 
   it('returns success=false when menu is not found', async () => {
-    vi.mocked(getWeeklyMenu).mockResolvedValue(null);
+    vi.mocked(hasAccessToMenu).mockResolvedValue(false);
 
     const result = await swapMealTool(
       {
@@ -280,7 +268,7 @@ describe('swapMealTool', () => {
   });
 
   it('returns success=false when the meal slot does not exist', async () => {
-    vi.mocked(getWeeklyMenu).mockResolvedValue(BASE_MENU as never);
+    vi.mocked(hasAccessToMenu).mockResolvedValue(true);
     vi.mocked(updateWeeklyMenuMeal).mockResolvedValue(null);
 
     const result = await swapMealTool(
@@ -303,7 +291,7 @@ describe('swapMealTool', () => {
 
   it('returns success=true with the updated meal and a message', async () => {
     const updatedMeal = { ...BASE_MEAL, mealType: 'lunch', description: 'Tuna salad', kcal: 400 };
-    vi.mocked(getWeeklyMenu).mockResolvedValue(BASE_MENU as never);
+    vi.mocked(hasAccessToMenu).mockResolvedValue(true);
     vi.mocked(updateWeeklyMenuMeal).mockResolvedValue(updatedMeal as never);
 
     const result = await swapMealTool(
@@ -328,7 +316,7 @@ describe('swapMealTool', () => {
   });
 
   it('passes the correct arguments to updateWeeklyMenuMeal', async () => {
-    vi.mocked(getWeeklyMenu).mockResolvedValue(BASE_MENU as never);
+    vi.mocked(hasAccessToMenu).mockResolvedValue(true);
     vi.mocked(updateWeeklyMenuMeal).mockResolvedValue(BASE_MEAL as never);
 
     await swapMealTool(
