@@ -20,7 +20,9 @@ import { db } from '../../db/client.js';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const MENU_ROW = { menuId: 'menu-abc' };
+/** Row shape returned by the hasAccessToMenu count query */
+const ACCESS_GRANTED_ROW = { count: 1 };
+const ACCESS_DENIED_ROW = { count: 0 };
 
 const MEAL_ROW = {
   id: 1,
@@ -71,8 +73,8 @@ describe('addMealToMenu', () => {
   });
 
   it('returns null when menu is not found for the user', async () => {
-    mockSelectOwnership([]); // no menu row → ownership check fails
-    const result = await addMealToMenu('user-1', 'menu-abc', {
+    mockSelectOwnership([ACCESS_DENIED_ROW]); // count=0 → ownership check fails
+    const result = await addMealToMenu('user-add-1', 'menu-abc', {
       dayOfWeek: 0,
       mealType: 'breakfast',
       description: 'Oatmeal',
@@ -82,10 +84,10 @@ describe('addMealToMenu', () => {
   });
 
   it('returns the inserted meal on success', async () => {
-    mockSelectOwnership([MENU_ROW]);
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
     mockInsertReturning([MEAL_ROW]);
 
-    const result = await addMealToMenu('user-1', 'menu-abc', {
+    const result = await addMealToMenu('user-add-2', 'menu-abc', {
       dayOfWeek: 0,
       mealType: 'breakfast',
       description: 'Oatmeal with berries',
@@ -102,10 +104,10 @@ describe('addMealToMenu', () => {
   });
 
   it('returns null when onConflictDoNothing skips the insert (slot already exists)', async () => {
-    mockSelectOwnership([MENU_ROW]);
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
     mockInsertReturning([]); // conflict → no rows returned
 
-    const result = await addMealToMenu('user-1', 'menu-abc', {
+    const result = await addMealToMenu('user-add-3', 'menu-abc', {
       dayOfWeek: 0,
       mealType: 'breakfast',
       description: 'Duplicate meal',
@@ -115,7 +117,7 @@ describe('addMealToMenu', () => {
   });
 
   it('passes optional fields as null when omitted', async () => {
-    mockSelectOwnership([MENU_ROW]);
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
 
     let capturedValues: any = null;
     vi.mocked(db).insert.mockReturnValueOnce({
@@ -128,7 +130,7 @@ describe('addMealToMenu', () => {
       }),
     } as any);
 
-    await addMealToMenu('user-1', 'menu-abc', {
+    await addMealToMenu('user-add-4', 'menu-abc', {
       dayOfWeek: 1,
       mealType: 'lunch',
       description: 'Salad',
@@ -151,8 +153,8 @@ describe('updateWeeklyMenuMeal', () => {
   });
 
   it('returns null when menu is not found for the user', async () => {
-    mockSelectOwnership([]);
-    const result = await updateWeeklyMenuMeal('user-1', 'menu-abc', 0, 'breakfast', {
+    mockSelectOwnership([ACCESS_DENIED_ROW]);
+    const result = await updateWeeklyMenuMeal('user-update-1', 'menu-abc', 0, 'breakfast', {
       description: 'New meal',
     });
     expect(result).toBeNull();
@@ -160,11 +162,11 @@ describe('updateWeeklyMenuMeal', () => {
   });
 
   it('returns the updated meal on success', async () => {
-    mockSelectOwnership([MENU_ROW]);
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
     const updated = { ...MEAL_ROW, description: 'Greek yogurt bowl', kcal: 300 };
     mockUpdateReturning([updated]);
 
-    const result = await updateWeeklyMenuMeal('user-1', 'menu-abc', 0, 'breakfast', {
+    const result = await updateWeeklyMenuMeal('user-update-2', 'menu-abc', 0, 'breakfast', {
       description: 'Greek yogurt bowl',
       kcal: 300,
     });
@@ -175,10 +177,10 @@ describe('updateWeeklyMenuMeal', () => {
   });
 
   it('returns null when no meal row matches (wrong day/type)', async () => {
-    mockSelectOwnership([MENU_ROW]);
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
     mockUpdateReturning([]); // no matching row
 
-    const result = await updateWeeklyMenuMeal('user-1', 'menu-abc', 3, 'dinner', {
+    const result = await updateWeeklyMenuMeal('user-update-3', 'menu-abc', 3, 'dinner', {
       description: 'Something',
     });
 
@@ -186,7 +188,7 @@ describe('updateWeeklyMenuMeal', () => {
   });
 
   it('sets optional fields to null when not provided', async () => {
-    mockSelectOwnership([MENU_ROW]);
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
 
     let capturedSet: any = null;
     vi.mocked(db).update.mockReturnValueOnce({
@@ -199,7 +201,7 @@ describe('updateWeeklyMenuMeal', () => {
       }),
     } as any);
 
-    await updateWeeklyMenuMeal('user-1', 'menu-abc', 0, 'breakfast', {
+    await updateWeeklyMenuMeal('user-update-4', 'menu-abc', 0, 'breakfast', {
       description: 'Plain oats',
     });
 
