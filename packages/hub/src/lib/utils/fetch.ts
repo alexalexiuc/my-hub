@@ -1,6 +1,6 @@
 import type { ZodType } from 'zod';
 import { z } from 'zod';
-import { formatZodError } from '@/lib/api';
+import { formatZodError } from '@/lib/api/with-error-logging';
 
 type QueryParams = Record<string, string | number | boolean | null | undefined>;
 
