@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { Modal, Button, Checkbox } from '@/components';
+import { ClipboardIcon } from '@/components/icons';
 import { extractItems, categorise, CATEGORY_ORDER } from './shopping-list-utils';
 
 interface Meal {
@@ -58,36 +60,18 @@ export function ShoppingListModal({ meals, weekLabel, onClose }: Props) {
   const checkedCount = checked.size;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4" onClick={onClose}>
-      <div
-        className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--shell)] flex flex-col max-h-[80vh]"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[var(--border)]">
-          <div>
-            <h2 className="text-base font-semibold text-[var(--text)]">Shopping List</h2>
-            <p className="text-xs text-[var(--muted)] mt-0.5">{weekLabel}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={copyAll}
-              className="text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-hover)] transition"
-            >
-              {copied ? '✓ Copied' : 'Copy all'}
-            </button>
-            <button
-              onClick={onClose}
-              className="text-[var(--muted)] hover:text-[var(--text)] text-xl leading-none transition"
-            >
-              ×
-            </button>
-          </div>
+    <Modal title="Shopping List" onClose={onClose} className="md:max-w-sm">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-2 -mt-1">
+          <p className="text-xs text-[var(--muted)]">{weekLabel}</p>
+          <Button type="button" variant="ghost" size="xs" onClick={copyAll} className="inline-flex items-center gap-1">
+            <ClipboardIcon className="size-3.5" />
+            {copied ? 'Copied' : 'Copy all'}
+          </Button>
         </div>
 
-        {/* Progress */}
         {totalItems > 0 && (
-          <div className="px-5 py-2 flex items-center gap-2 border-b border-[var(--border)]">
+          <div className="flex items-center gap-2">
             <div className="flex-1 h-1 rounded-full bg-[var(--card3)]">
               <div
                 className="h-full rounded-full bg-[var(--accent)] transition-all duration-300"
@@ -100,8 +84,7 @@ export function ShoppingListModal({ meals, weekLabel, onClose }: Props) {
           </div>
         )}
 
-        {/* List */}
-        <div className="overflow-y-auto px-5 py-4 flex flex-col gap-5">
+        <div className="flex flex-col gap-5">
           {totalItems === 0 ? (
             <p className="text-sm text-[var(--muted)] text-center py-4">No meals planned this week.</p>
           ) : (
@@ -111,12 +94,7 @@ export function ShoppingListModal({ meals, weekLabel, onClose }: Props) {
                 <div className="flex flex-col gap-1.5">
                   {grouped[cat]!.map(item => (
                     <label key={item} className="flex items-center gap-2.5 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={checked.has(item)}
-                        onChange={() => toggle(item)}
-                        className="accent-[var(--accent)] w-3.5 h-3.5 shrink-0"
-                      />
+                      <Checkbox checked={checked.has(item)} onChange={() => toggle(item)} className="shrink-0" />
                       <span
                         className={`text-sm capitalize transition ${
                           checked.has(item)
@@ -134,13 +112,10 @@ export function ShoppingListModal({ meals, weekLabel, onClose }: Props) {
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-5 py-3 border-t border-[var(--border)]">
-          <p className="text-[10px] text-[var(--subtle)] text-center">
-            Auto-extracted from meal descriptions · review before shopping
-          </p>
-        </div>
+        <p className="text-[10px] text-[var(--subtle)] text-center border-t border-[var(--border)] pt-3">
+          Auto-extracted from meal descriptions · review before shopping
+        </p>
       </div>
-    </div>
+    </Modal>
   );
 }

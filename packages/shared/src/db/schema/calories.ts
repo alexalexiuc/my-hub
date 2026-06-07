@@ -67,8 +67,7 @@ export const mealLogs = pgTable(
 export const weeklyMenus = pgTable(
   'weekly_menus',
   {
-    id: serial('id').primaryKey(),
-    menuId: text('menu_id').unique().notNull(), // UUID for external reference
+    menuId: text('menu_id').primaryKey(), // UUID for external reference
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id),

@@ -22,15 +22,13 @@ CREATE TABLE "weekly_menu_meals" (
 );
 --> statement-breakpoint
 CREATE TABLE "weekly_menus" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"menu_id" text NOT NULL,
+	"menu_id" text PRIMARY KEY NOT NULL,
 	"user_id" uuid NOT NULL,
 	"week_start" text NOT NULL,
 	"title" text,
 	"notes" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "weekly_menus_menu_id_unique" UNIQUE("menu_id")
+	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 ALTER TABLE "calorie_profiles" ADD COLUMN "gym_days" jsonb;--> statement-breakpoint

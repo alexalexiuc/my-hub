@@ -1,8 +1,12 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { weeklyMenus, weeklyMenuMeals, weeklyMenuDayLogs } from '../../db/schema/calories';
 import type { MealType } from '../../constants/calories';
 import type { DayOfWeek } from '../../constants/weekly-menu';
+import { PromiseCacheX } from 'promise-cachex';
+import { logger } from '../../utils';
+
+const menuAccessCache = new PromiseCacheX<boolean>({ ttl: 1000 }); // 1 second
 
 // ---------------------------------------------------------------------------
 // Types
@@ -40,7 +44,6 @@ export interface WeeklyMenuMeal {
 }
 
 export interface WeeklyMenu {
-  id: number;
   menuId: string;
   userId: string;
   weekStart: string;
@@ -54,6 +57,17 @@ export interface WeeklyMenu {
 // ---------------------------------------------------------------------------
 // Service functions
 // ---------------------------------------------------------------------------
+
+export async function hasAccessToMenu(userId: string, menuId: string): Promise<boolean> {
+  return menuAccessCache.get(`${userId}:${menuId}`, async () => {
+    const [row] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(weeklyMenus)
+      .where(and(eq(weeklyMenus.userId, userId), eq(weeklyMenus.menuId, menuId)));
+
+    return (row?.count ?? 0) > 0;
+  });
+}
 
 /**
  * Create a new weekly menu with its meals for a user.
@@ -99,7 +113,7 @@ export async function createWeeklyMenu(input: CreateWeeklyMenuInput): Promise<We
           .returning()
       : [];
 
-  return { ...menu, meals: mealRows as WeeklyMenuMeal[] };
+  return { ...menu, meals: mealRows };
 }
 
 /**
@@ -109,34 +123,8 @@ export async function getWeeklyMenus(userId: string): Promise<Omit<WeeklyMenu, '
   return db.select().from(weeklyMenus).where(eq(weeklyMenus.userId, userId)).orderBy(desc(weeklyMenus.weekStart));
 }
 
-/**
- * Get a single weekly menu with its meals.
- */
-export async function getWeeklyMenu(userId: string, menuId: string): Promise<WeeklyMenu | null> {
-  const [menu] = await db
-    .select()
-    .from(weeklyMenus)
-    .where(and(eq(weeklyMenus.userId, userId), eq(weeklyMenus.menuId, menuId)));
-
-  if (!menu) return null;
-
-  const meals = await db
-    .select()
-    .from(weeklyMenuMeals)
-    .where(eq(weeklyMenuMeals.menuId, menuId))
-    .orderBy(weeklyMenuMeals.dayOfWeek, weeklyMenuMeals.mealType);
-
-  return { ...menu, meals: meals as WeeklyMenuMeal[] };
-}
-
-/**
- * Get the menu for a specific week start date, or null if none exists.
- */
-export async function getWeeklyMenuByWeek(userId: string, weekStart: string): Promise<WeeklyMenu | null> {
-  const [menu] = await db
-    .select()
-    .from(weeklyMenus)
-    .where(and(eq(weeklyMenus.userId, userId), eq(weeklyMenus.weekStart, weekStart)));
+async function getWeeklyMenuWhere(where: ReturnType<typeof and>): Promise<WeeklyMenu | null> {
+  const [menu] = await db.select().from(weeklyMenus).where(where);
 
   if (!menu) return null;
 
@@ -146,7 +134,21 @@ export async function getWeeklyMenuByWeek(userId: string, weekStart: string): Pr
     .where(eq(weeklyMenuMeals.menuId, menu.menuId))
     .orderBy(weeklyMenuMeals.dayOfWeek, weeklyMenuMeals.mealType);
 
-  return { ...menu, meals: meals as WeeklyMenuMeal[] };
+  return { ...menu, meals };
+}
+
+/**
+ * Get a single weekly menu with its meals.
+ */
+export async function getWeeklyMenu(userId: string, menuId: string): Promise<WeeklyMenu | null> {
+  return getWeeklyMenuWhere(and(eq(weeklyMenus.userId, userId), eq(weeklyMenus.menuId, menuId)));
+}
+
+/**
+ * Get the menu for a specific week start date, or null if none exists.
+ */
+export async function getWeeklyMenuByWeek(userId: string, weekStart: string): Promise<WeeklyMenu | null> {
+  return getWeeklyMenuWhere(and(eq(weeklyMenus.userId, userId), eq(weeklyMenus.weekStart, weekStart)));
 }
 
 /**
@@ -158,12 +160,10 @@ export async function addMealToMenu(
   menuId: string,
   meal: WeeklyMenuMealInput,
 ): Promise<WeeklyMenuMeal | null> {
-  const [menu] = await db
-    .select({ menuId: weeklyMenus.menuId })
-    .from(weeklyMenus)
-    .where(and(eq(weeklyMenus.userId, userId), eq(weeklyMenus.menuId, menuId)));
-
-  if (!menu) return null;
+  if (!(await hasAccessToMenu(userId, menuId))) {
+    logger.warn(`Unauthorized addMeal attempt by user ${userId} to menu ${menuId}`);
+    return null;
+  }
 
   const [inserted] = await db
     .insert(weeklyMenuMeals)
@@ -180,7 +180,7 @@ export async function addMealToMenu(
     .onConflictDoNothing()
     .returning();
 
-  return (inserted as WeeklyMenuMeal) ?? null;
+  return inserted ?? null;
 }
 
 export interface UpdateWeeklyMenuMealInput {
@@ -202,12 +202,10 @@ export async function updateWeeklyMenuMeal(
   mealType: MealType,
   updates: UpdateWeeklyMenuMealInput,
 ): Promise<WeeklyMenuMeal | null> {
-  const [menu] = await db
-    .select({ menuId: weeklyMenus.menuId })
-    .from(weeklyMenus)
-    .where(and(eq(weeklyMenus.userId, userId), eq(weeklyMenus.menuId, menuId)));
-
-  if (!menu) return null;
+  if (!(await hasAccessToMenu(userId, menuId))) {
+    logger.warn(`Unauthorized update attempt by user ${userId} to menu ${menuId}`);
+    return null;
+  }
 
   const [updated] = await db
     .update(weeklyMenuMeals)
@@ -227,16 +225,21 @@ export async function updateWeeklyMenuMeal(
     )
     .returning();
 
-  return (updated as WeeklyMenuMeal) ?? null;
+  return updated ?? null;
 }
 
 /**
  * Delete a weekly menu (cascades to meals).
  */
 export async function deleteWeeklyMenu(userId: string, menuId: string): Promise<boolean> {
+  if (!(await hasAccessToMenu(userId, menuId))) {
+    logger.warn(`Unauthorized delete attempt by user ${userId} to menu ${menuId}`);
+    return false;
+  }
+
   const result = await db
     .delete(weeklyMenus)
-    .where(and(eq(weeklyMenus.userId, userId), eq(weeklyMenus.menuId, menuId)))
+    .where(eq(weeklyMenus.menuId, menuId))
     .returning({ menuId: weeklyMenus.menuId });
   return result.length > 0;
 }
@@ -244,8 +247,13 @@ export async function deleteWeeklyMenu(userId: string, menuId: string): Promise<
 /**
  * Delete all weekly menus for a user. Used by the "delete all my data" flow.
  */
-export async function deleteAllUserWeeklyMenus(userId: string): Promise<void> {
-  await db.delete(weeklyMenus).where(eq(weeklyMenus.userId, userId));
+export async function deleteAllUserWeeklyMenus(userId: string): Promise<number> {
+  logger.info(`Deleting all weekly menus for user ${userId}`);
+  const deleted = await db
+    .delete(weeklyMenus)
+    .where(eq(weeklyMenus.userId, userId))
+    .returning({ menuId: weeklyMenus.menuId });
+  return deleted.length;
 }
 
 // ---------------------------------------------------------------------------
@@ -263,12 +271,10 @@ export async function markDayAsLogged(
   loggedDate: string,
   mealType: MealType,
 ): Promise<boolean> {
-  const [menu] = await db
-    .select({ menuId: weeklyMenus.menuId })
-    .from(weeklyMenus)
-    .where(and(eq(weeklyMenus.userId, userId), eq(weeklyMenus.menuId, menuId)));
-
-  if (!menu) return false;
+  if (!(await hasAccessToMenu(userId, menuId))) {
+    logger.warn(`Unauthorized log attempt by user ${userId} to menu ${menuId}`);
+    return false;
+  }
 
   await db.insert(weeklyMenuDayLogs).values({ menuId, dayOfWeek, mealType, loggedDate }).onConflictDoNothing();
 
@@ -278,7 +284,12 @@ export async function markDayAsLogged(
 /**
  * Get all logged meals for a menu as a set of `${dayOfWeek}:${mealType}` keys.
  */
-export async function getLoggedDays(menuId: string): Promise<Record<string, string>> {
+export async function getLoggedDays(userId: string, menuId: string): Promise<Record<string, string>> {
+  if (!(await hasAccessToMenu(userId, menuId))) {
+    logger.warn(`Unauthorized access attempt by user ${userId} to menu ${menuId}`);
+    return {};
+  }
+
   const rows = await db
     .select({
       dayOfWeek: weeklyMenuDayLogs.dayOfWeek,

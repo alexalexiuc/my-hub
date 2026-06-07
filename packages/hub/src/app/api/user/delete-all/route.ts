@@ -54,6 +54,8 @@ export const POST = route(async ({ user }) => {
     tripBookings,
     trips,
     finances,
+    availableOverrides,
+    weeklyMenus,
   ] = await Promise.all([
     deleteAllUserMeals(user.id),
     deleteAllUserMeasurements(user.id),
@@ -105,7 +107,8 @@ export const POST = route(async ({ user }) => {
       tripBookings,
       trips,
       finances,
-      weeklyMenus: true,
+      availableOverrides,
+      weeklyMenus,
     },
   };
 });

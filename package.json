@@ -7,6 +7,7 @@
     "dev": "turbo dev",
     "dev:hub": "turbo dev --filter=@my-hub/hub",
     "build": "turbo build",
+    "build:shared": "pnpm --filter shared build",
     "build:clear": "turbo build:clear",
     "lint": "turbo lint",
     "lint:fix": "pnpm exec eslint . --fix",

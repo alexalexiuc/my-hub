@@ -62,7 +62,7 @@ const ProfileFormSchema = z.object({
   goalProtein: z.string(),
   goalCarbs: z.string(),
   goalFat: z.string(),
-  gymDays: z.array(z.number().int().min(0).max(6)),
+  gymDays: z.nativeEnum(DaysOfWeek).array(), // Using deprecated `nativeEnum` because `enum` does not support number values
   notes: z.string(),
 });
 
@@ -81,7 +81,7 @@ function buildFormValues(profile: Props['profile']): ProfileFormValues {
     goalProtein: profile?.goalProtein?.toString() ?? '',
     goalCarbs: profile?.goalCarbs?.toString() ?? '',
     goalFat: profile?.goalFat?.toString() ?? '',
-    gymDays: (profile?.gymDays as DayOfWeek[] | null) ?? [],
+    gymDays: profile?.gymDays ?? [],
     notes: profile?.notes ?? '',
   };
 }
@@ -221,8 +221,8 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
                     hint={ACTIVITY_DESCRIPTIONS[profile!.activityLevel!]}
                   />
                 )}
-                {profile!.gymDays && (profile!.gymDays as DayOfWeek[]).length > 0 && (
-                  <Stat label="Gym days" value={(profile!.gymDays as DayOfWeek[]).map(d => DAY_LABELS[d]).join(', ')} />
+                {profile.gymDays && profile.gymDays.length > 0 && (
+                  <Stat label="Gym days" value={profile.gymDays.map(d => DAY_LABELS[d]).join(', ')} />
                 )}
               </div>
 

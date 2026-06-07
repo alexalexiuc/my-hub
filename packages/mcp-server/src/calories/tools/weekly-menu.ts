@@ -6,7 +6,7 @@ import {
   getCalorieProfile,
   getLatestMeasurementsPerType,
   updateWeeklyMenuMeal,
-  getWeeklyMenu,
+  hasAccessToMenu,
   addMealToMenu,
 } from '@my-hub/shared/services';
 import { MealTypes, DaysOfWeek, DAY_LABELS_SHORT, MeasurementTypes } from '@my-hub/shared/constants';
@@ -18,9 +18,9 @@ import { rowToProfile, profileToTargets } from '../models/profile';
 import { localDateString, startOfWeekMonday, dateToString } from '@my-hub/shared/utils';
 
 /** Convert a YYYY-MM-DD date string to day-of-week in Mon=0 … Sun=6 format. */
-function dayOfWeekMon0(dateStr: string): number {
+function dayOfWeekMon0(dateStr: string): DayOfWeek {
   const jsDay = new Date(dateStr + 'T00:00:00').getDay(); // 0=Sun
-  return (jsDay + 6) % 7;
+  return ((jsDay + 6) % 7) as DayOfWeek;
 }
 
 // ---------------------------------------------------------------------------
@@ -29,10 +29,7 @@ function dayOfWeekMon0(dateStr: string): number {
 
 const MenuMealSchema = z.object({
   dayOfWeek: z
-    .number()
-    .int()
-    .min(0)
-    .max(6)
+    .nativeEnum(DaysOfWeek)
     .describe('Day of week: 0=Monday, 1=Tuesday, 2=Wednesday, 3=Thursday, 4=Friday, 5=Saturday, 6=Sunday'),
   mealType: z
     .enum([
@@ -97,7 +94,7 @@ export const createWeeklyMenuTool: ToolHandler<typeof CreateWeeklyMenuSchema.sha
   const targets = profileToTargets(profile, weightM?.value);
 
   // Gym days from profile — used to label training vs rest days in the response
-  const gymDays: number[] = profile.gymDays ?? [];
+  const gymDays = profile.gymDays ?? [];
 
   // Validate that planned meals respect the user's daily calorie targets
   const warnings: string[] = [];
@@ -125,7 +122,7 @@ export const createWeeklyMenuTool: ToolHandler<typeof CreateWeeklyMenuSchema.sha
     title: input.title ?? null,
     notes: input.notes ?? null,
     meals: input.meals.map(m => ({
-      dayOfWeek: m.dayOfWeek as (typeof DaysOfWeek)[keyof typeof DaysOfWeek],
+      dayOfWeek: m.dayOfWeek,
       mealType: m.mealType,
       description: m.description,
       kcal: m.kcal ?? null,
@@ -164,7 +161,7 @@ export const createWeeklyMenuTool: ToolHandler<typeof CreateWeeklyMenuSchema.sha
     warnings: warnings.length > 0 ? warnings : null,
     message: !profileRow
       ? `Weekly menu saved for ${menu.weekStart} as a balanced default — no calorie profile is set so meals were not tailored to specific targets. Suggest the user sets up their profile under Calories → Settings.`
-      : `Weekly menu saved for ${menu.weekStart}. The user can view it in the hub under Calories → Weekly Menu.${isCurrentWeek && planFromDayOfWeek > 0 ? ` Only planned from ${DAY_LABELS_SHORT[planFromDayOfWeek as DayOfWeek]} (today) onwards — past days were skipped.` : ''}${gymDays.length > 0 ? ` Gym days (${gymDays.map(d => DAY_LABELS_SHORT[d as DayOfWeek]).join(', ')}) have been taken into account — plan higher calories/carbs on those days.` : ''}${warnings.length > 0 ? " Note: some days exceed the user's calorie targets — consider revising." : ''}`,
+      : `Weekly menu saved for ${menu.weekStart}. The user can view it in the hub under Calories → Weekly Menu.${isCurrentWeek && planFromDayOfWeek > 0 ? ` Only planned from ${DAY_LABELS_SHORT[planFromDayOfWeek]} (today) onwards — past days were skipped.` : ''}${gymDays.length > 0 ? ` Gym days (${gymDays.map(d => DAY_LABELS_SHORT[d]).join(', ')}) have been taken into account — plan higher calories/carbs on those days.` : ''}${warnings.length > 0 ? " Note: some days exceed the user's calorie targets — consider revising." : ''}`,
   });
 };
 
@@ -192,7 +189,7 @@ export const getWeeklyMenuTool: ToolHandler<typeof GetWeeklyMenuSchema.shape> = 
 
 export const AddMealSchema = z.object({
   menuId: z.string().describe('The menuId of the weekly menu to add the meal to'),
-  dayOfWeek: z.number().int().min(0).max(6).describe('Day of week: 0=Monday … 6=Sunday'),
+  dayOfWeek: z.nativeEnum(DaysOfWeek).describe('Day of week: 0=Monday … 6=Sunday'),
   mealType: z
     .enum([
       MealTypes.Breakfast,
@@ -214,7 +211,7 @@ export const addMealTool: ToolHandler<typeof AddMealSchema.shape> = async (input
   const { userId } = context;
 
   const added = await addMealToMenu(userId, input.menuId, {
-    dayOfWeek: input.dayOfWeek as DayOfWeek,
+    dayOfWeek: input.dayOfWeek,
     mealType: input.mealType,
     description: input.description,
     kcal: input.kcal ?? null,
@@ -230,7 +227,7 @@ export const addMealTool: ToolHandler<typeof AddMealSchema.shape> = async (input
     });
   }
 
-  const dayName = DAY_LABELS_SHORT[input.dayOfWeek as DayOfWeek];
+  const dayName = DAY_LABELS_SHORT[input.dayOfWeek];
   return toolResponse({
     success: true,
     added,
@@ -244,7 +241,7 @@ export const addMealTool: ToolHandler<typeof AddMealSchema.shape> = async (input
 
 export const SwapMealSchema = z.object({
   menuId: z.string().describe('The menuId of the weekly menu to update'),
-  dayOfWeek: z.number().int().min(0).max(6).describe('Day of week: 0=Monday … 6=Sunday'),
+  dayOfWeek: z.nativeEnum(DaysOfWeek).describe('Day of week: 0=Monday … 6=Sunday'),
   mealType: z
     .enum([
       MealTypes.Breakfast,
@@ -265,10 +262,11 @@ export const SwapMealSchema = z.object({
 export const swapMealTool: ToolHandler<typeof SwapMealSchema.shape> = async (input, context) => {
   const { userId } = context;
 
-  const menu = await getWeeklyMenu(userId, input.menuId);
-  if (!menu) return toolResponse({ success: false, message: `Menu ${input.menuId} not found.` });
+  if (!(await hasAccessToMenu(userId, input.menuId))) {
+    return toolResponse({ success: false, message: `Menu ${input.menuId} not found.` });
+  }
 
-  const updated = await updateWeeklyMenuMeal(userId, input.menuId, input.dayOfWeek as DayOfWeek, input.mealType, {
+  const updated = await updateWeeklyMenuMeal(userId, input.menuId, input.dayOfWeek, input.mealType, {
     description: input.description,
     kcal: input.kcal ?? null,
     protein: input.proteinG ?? null,
@@ -283,7 +281,7 @@ export const swapMealTool: ToolHandler<typeof SwapMealSchema.shape> = async (inp
     });
   }
 
-  const dayName = DAY_LABELS_SHORT[input.dayOfWeek as DayOfWeek];
+  const dayName = DAY_LABELS_SHORT[input.dayOfWeek];
   return toolResponse({
     success: true,
     updated,

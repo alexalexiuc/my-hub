@@ -1,28 +1,25 @@
-import { dateToString, addDays } from '@my-hub/shared/utils';
-import { DaysOfWeekValues } from '@my-hub/shared/constants';
+import { toUTCDateStr, addDays } from '@my-hub/shared/utils';
 import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
 
-export const DAYS: DayOfWeek[] = DaysOfWeekValues;
-
 export const MEAL_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout'];
-
-export const MEAL_LABELS: Record<MealType, string> = {
-  breakfast: 'Breakfast',
-  pre_workout: 'Pre-Workout',
-  lunch: 'Lunch',
-  post_workout: 'Post-Workout',
-  dinner: 'Dinner',
-  snack: 'Snack',
-};
 
 /** `${dayOfWeek}:${mealType}` → true */
 export type LoggedMeals = Record<string, true>;
 
 /** Returns YYYY-MM-DD for the given day of the week relative to a weekStart (Monday). */
 export function dateForDay(weekStart: string, dayOfWeek: DayOfWeek): string {
-  return dateToString(addDays(new Date(weekStart + 'T00:00:00'), dayOfWeek));
+  return toUTCDateStr(addDays(new Date(weekStart), dayOfWeek));
 }
 
 export function toLoggedMeals(loggedDays: Record<string, string>): LoggedMeals {
   return Object.fromEntries(Object.keys(loggedDays).map(k => [k, true])) as LoggedMeals;
+}
+
+/** Formats a week's date range as e.g. "Jun 1 – Jun 7" from its Monday `weekStart`. */
+export function formatWeekLabel(weekStart: string): string {
+  const date = new Date(weekStart + 'T00:00:00');
+  const end = new Date(date);
+  end.setDate(date.getDate() + 6);
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return `${fmt(date)} – ${fmt(end)}`;
 }
