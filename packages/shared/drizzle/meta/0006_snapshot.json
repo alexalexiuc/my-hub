@@ -436,6 +436,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "gym_days": {
+          "name": "gym_days",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "notes": {
           "name": "notes",
           "type": "text",

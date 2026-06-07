@@ -1,1 +1,0 @@
-ALTER TABLE "calorie_profiles" ALTER COLUMN "gym_days" DROP DEFAULT;
