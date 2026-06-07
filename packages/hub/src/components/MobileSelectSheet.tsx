@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
+import { usePortalTheme } from '@/hooks/usePortalTheme';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { Input } from '@/components/Input';
@@ -63,6 +64,7 @@ export function MobileSelectSheet({
   const inputRef = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const [themeAnchorRef, themeClassName] = usePortalTheme();
 
   useEffect(() => {
     if (!searchable) return;
@@ -123,120 +125,128 @@ export function MobileSelectSheet({
   const selectedLabel = String(options.find(o => o.id === value)?.value ?? '');
   const canClear = clearable && value != null;
 
-  return createPortal(
-    <div
-      ref={overlayRef}
-      className="fixed inset-x-0 z-[1100] flex flex-col justify-end bg-black/60"
-      style={{ top: vp.top, height: vp.height }}
-      onClick={onClose}
-    >
-      <div
-        className="slide-up-sheet flex h-full max-h-[calc(100%-24px)] flex-col rounded-t-[18px] border border-[var(--border)] bg-[var(--card)]"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3.5">
-          <span className="text-sm font-semibold text-[var(--text)]">{title ?? placeholder}</span>
-          <IconButton
-            label="Close"
-            icon={<XOutlineIcon className="size-3" />}
-            onClick={onClose}
-            className="h-7 w-7 rounded-full bg-[var(--card2)] text-[var(--subtle)]"
-          />
-        </div>
-
-        {searchable && (
-          <div className="shrink-0 border-b border-[var(--border)] px-4 py-2.5">
-            <Input
-              ref={inputRef}
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder={placeholder}
-              className="w-full text-[15px]"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="none"
-              spellCheck={false}
-            />
-          </div>
-        )}
-
-        {selectedLabel && (
-          <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-2">
-            <span className="text-xs text-[var(--subtle)]">
-              Selected: <span className="font-medium text-[var(--text)]">{selectedLabel}</span>
-            </span>
-            {canClear && (
-              <Button
-                type="button"
-                variant="transparent"
-                size="xs"
-                aria-label={clearAriaLabel}
-                onClick={() => {
-                  onChange(null);
-                  onClose();
-                }}
-                className="p-0 text-xs text-[var(--red)]"
-              >
-                Clear
-              </Button>
-            )}
-          </div>
-        )}
-
-        <div ref={listRef} className="overflow-y-auto bg-[var(--card)]">
-          {results.map(item => (
-            <Button
-              key={item.id}
-              type="button"
-              variant="transparent"
-              size="xs"
-              onClick={() => {
-                onChange(item);
-                if (closeOnChange) onClose();
-              }}
-              className={cn(
-                'flex w-full items-center gap-2 rounded-none border-b border-[var(--border)] px-4 py-3.5 text-left text-[14px] font-normal text-[var(--text)] active:bg-[var(--card3)]',
-                value === item.id && 'bg-[var(--card2)] font-medium',
-              )}
-            >
-              {renderOption ? renderOption(item) : <span>{String(item.value)}</span>}
-            </Button>
-          ))}
-
-          {showCreateOption && createOption && (
-            <Button
-              type="button"
-              variant="transparent"
-              size="xs"
-              onClick={() => {
-                createOption.onCreate(trimmedQuery);
-                onClose();
-              }}
-              className={cn(
-                'flex w-full items-center gap-1.5 rounded-none border-b border-[var(--border)] px-4 py-3.5 text-left text-[14px] font-normal text-[var(--accent)] active:bg-[var(--card3)]',
-                createOption.className,
-              )}
-            >
-              {createOption.renderLabel ? (
-                createOption.renderLabel(trimmedQuery)
-              ) : (
-                <>
-                  <span>+</span>
-                  <span>{`Create "${trimmedQuery}"`}</span>
-                </>
-              )}
-            </Button>
+  return (
+    <>
+      <span ref={themeAnchorRef} aria-hidden="true" className="hidden" />
+      {createPortal(
+        <div
+          ref={overlayRef}
+          className={cn(
+            themeClassName,
+            'fixed inset-x-0 z-[1100] flex flex-col justify-end bg-[var(--overlay,rgba(0,0,0,0.6))]',
           )}
-
-          {results.length === 0 && !showCreateOption && (
-            <div className="px-4 py-6 text-center text-sm text-[var(--subtle)]">
-              {trimmedQuery ? (noResultsText ?? 'No options found') : 'No options available'}
+          style={{ top: vp.top, height: vp.height }}
+          onClick={onClose}
+        >
+          <div
+            className="slide-up-sheet flex h-full max-h-[calc(100%-24px)] flex-col rounded-t-[18px] border border-[var(--border)] bg-[var(--card)]"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3.5">
+              <span className="text-sm font-semibold text-[var(--text)]">{title ?? placeholder}</span>
+              <IconButton
+                label="Close"
+                icon={<XOutlineIcon className="size-3" />}
+                onClick={onClose}
+                className="h-7 w-7 rounded-full bg-[var(--card2)] text-[var(--subtle)]"
+              />
             </div>
-          )}
-        </div>
-      </div>
-    </div>,
-    document.body,
+
+            {searchable && (
+              <div className="shrink-0 border-b border-[var(--border)] px-4 py-2.5">
+                <Input
+                  ref={inputRef}
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder={placeholder}
+                  className="w-full text-[15px]"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                />
+              </div>
+            )}
+
+            {selectedLabel && (
+              <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-2">
+                <span className="text-xs text-[var(--subtle)]">
+                  Selected: <span className="font-medium text-[var(--text)]">{selectedLabel}</span>
+                </span>
+                {canClear && (
+                  <Button
+                    type="button"
+                    variant="transparent"
+                    size="xs"
+                    aria-label={clearAriaLabel}
+                    onClick={() => {
+                      onChange(null);
+                      onClose();
+                    }}
+                    className="p-0 text-xs text-[var(--red)]"
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+            )}
+
+            <div ref={listRef} className="overflow-y-auto bg-[var(--card)]">
+              {results.map(item => (
+                <Button
+                  key={item.id}
+                  type="button"
+                  variant="transparent"
+                  size="xs"
+                  onClick={() => {
+                    onChange(item);
+                    if (closeOnChange) onClose();
+                  }}
+                  className={cn(
+                    'flex w-full items-center gap-2 rounded-none border-b border-[var(--border)] px-4 py-3.5 text-left text-[14px] font-normal text-[var(--text)] active:bg-[var(--card3)]',
+                    value === item.id && 'bg-[var(--card2)] font-medium',
+                  )}
+                >
+                  {renderOption ? renderOption(item) : <span>{String(item.value)}</span>}
+                </Button>
+              ))}
+
+              {showCreateOption && createOption && (
+                <Button
+                  type="button"
+                  variant="transparent"
+                  size="xs"
+                  onClick={() => {
+                    createOption.onCreate(trimmedQuery);
+                    onClose();
+                  }}
+                  className={cn(
+                    'flex w-full items-center gap-1.5 rounded-none border-b border-[var(--border)] px-4 py-3.5 text-left text-[14px] font-normal text-[var(--accent)] active:bg-[var(--card3)]',
+                    createOption.className,
+                  )}
+                >
+                  {createOption.renderLabel ? (
+                    createOption.renderLabel(trimmedQuery)
+                  ) : (
+                    <>
+                      <span>+</span>
+                      <span>{`Create "${trimmedQuery}"`}</span>
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {results.length === 0 && !showCreateOption && (
+                <div className="px-4 py-6 text-center text-sm text-[var(--subtle)]">
+                  {trimmedQuery ? (noResultsText ?? 'No options found') : 'No options available'}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }
