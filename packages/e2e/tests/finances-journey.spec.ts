@@ -345,12 +345,13 @@ test.describe('Finances - Journey', () => {
     await page.getByLabel('Previous month').first().click();
     await prevMonthApiPromise;
 
-    // Scope month label assertions to the desktop SmartDatePicker button (extendedFilters=true
-    // renders a <button>, not <h2>) to avoid the mobile header (which uses <h2>) matching too.
-    const desktopMonthLabel = page.locator('div.hidden.md\\:flex button').first();
+    // The transactions page renders a single SmartDatePicker instance (responsive via Tailwind,
+    // not duplicated desktop/mobile DOM) — its dropdown trigger button's accessible name is the
+    // displayed month label, so role-based matching on that label is unambiguous.
+    const monthLabel = (label: string) => page.getByRole('button', { name: label, exact: true });
 
     // Label has updated to previous month
-    await expect(desktopMonthLabel).toHaveText(prevMonthLabel);
+    await expect(monthLabel(prevMonthLabel)).toBeVisible();
 
     // The current-month transaction must NOT be visible — data was actually reloaded
     await expect(txAmountLocator).not.toBeVisible();
@@ -362,7 +363,7 @@ test.describe('Finances - Journey', () => {
     await page.getByRole('button', { name: 'Today' }).first().click();
     await todayApiPromise;
 
-    await expect(desktopMonthLabel).toHaveText(currentMonthLabel);
+    await expect(monthLabel(currentMonthLabel)).toBeVisible();
     await expect(txAmountLocator).toBeVisible();
   });
 });
