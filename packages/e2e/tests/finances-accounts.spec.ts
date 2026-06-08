@@ -8,6 +8,79 @@ test.describe('Finances – Accounts', () => {
   });
 
   /**
+   * Accounts: edit form — rename and update type-specific details for bank, credit card, and goal.
+   */
+  test('account edit: rename and update type-specific details succeeds', async ({ page }) => {
+    await deleteFinances(page);
+    await createBudgetViaAPI(page, uniqueName('Account Edit Budget'));
+
+    const bankName = uniqueName('Edit Bank');
+    const ccName = uniqueName('Edit CC');
+    const goalName = uniqueName('Edit Goal');
+
+    const bankAcc = await createAccount(page, { name: bankName, type: 'bank', openingBalance: 1500 });
+    const ccAcc = await createAccount(page, {
+      name: ccName,
+      type: 'credit_card',
+      openingBalance: 200,
+      details: { type: 'credit_card', creditLimit: 5000, statementDay: 1 },
+    });
+    const goalAcc = await createAccount(page, {
+      name: goalName,
+      type: 'goal',
+      openingBalance: 500,
+      details: { type: 'goal', targetAmount: 10000 },
+    });
+
+    // ── 1. Rename bank account ─────────────────────────────────────────────
+    await page.goto(`/finances/accounts/${bankAcc.id}`);
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('button', { name: 'Edit account' }).click();
+    await expect(page.locator('[data-layout="desktop"]').getByText('Edit Account')).toBeVisible();
+
+    const newBankName = `${bankName} Renamed`;
+    await page.getByLabel('Name', { exact: true }).fill(newBankName);
+
+    const editBankRes = page.waitForResponse(
+      res => res.url().includes(`/api/finances/accounts/${bankAcc.id}`) && res.request().method() === 'PATCH',
+    );
+    await page.getByRole('button', { name: 'Save Changes' }).click();
+    expect((await editBankRes).status()).toBe(200);
+    await expect(page.getByText(newBankName)).toBeVisible({ timeout: 10_000 });
+
+    // ── 2. Update credit card limit ────────────────────────────────────────
+    await page.goto(`/finances/accounts/${ccAcc.id}`);
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('button', { name: 'Edit account' }).click();
+    await expect(page.locator('[data-layout="desktop"]').getByText('Edit Account')).toBeVisible();
+
+    await page.getByLabel('Credit Limit').fill('7500');
+
+    const editCcRes = page.waitForResponse(
+      res => res.url().includes(`/api/finances/accounts/${ccAcc.id}`) && res.request().method() === 'PATCH',
+    );
+    await page.getByRole('button', { name: 'Save Changes' }).click();
+    expect((await editCcRes).status()).toBe(200);
+
+    // ── 3. Update goal target amount ───────────────────────────────────────
+    await page.goto(`/finances/accounts/${goalAcc.id}`);
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('button', { name: 'Edit account' }).click();
+    await expect(page.locator('[data-layout="desktop"]').getByText('Edit Account')).toBeVisible();
+
+    await page.getByLabel('Target Amount').fill('15000');
+
+    const editGoalRes = page.waitForResponse(
+      res => res.url().includes(`/api/finances/accounts/${goalAcc.id}`) && res.request().method() === 'PATCH',
+    );
+    await page.getByRole('button', { name: 'Save Changes' }).click();
+    expect((await editGoalRes).status()).toBe(200);
+  });
+
+  /**
    * Transactions: transfer between two accounts debits one and credits the other.
    * Kept separate because it requires two accounts and a specific transaction type.
    */
