@@ -37,10 +37,7 @@ export const POST = route({ body: BookingCreateSchema })(async ({ user, body }) 
   const bookingType = (body.bookingType ??
     TripBookingTypes.Other) as (typeof TripBookingTypes)[keyof typeof TripBookingTypes];
 
-  const flightDetails =
-    bookingType === TripBookingTypes.Flight && body.flightDetails != null
-      ? (body.flightDetails as Partial<FlightDetails>)
-      : null;
+  const flightDetails = body.flightDetails != null ? (body.flightDetails as Partial<FlightDetails>) : null;
 
   const booking = await addTripBooking(user.id, body.tripId, {
     bookingType,
