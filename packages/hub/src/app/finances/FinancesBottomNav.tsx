@@ -19,6 +19,7 @@ const RIGHT_ITEMS: BottomNavItem[] = [
 
 const MORE_ITEMS: BottomNavItem[] = [
   { id: 'transactions', icon: '↕', label: 'Transactions', path: '/finances/transactions' },
+  { id: 'reporting', icon: '◫', label: 'Reporting', path: '/finances/reporting' },
   { id: 'goals', icon: '◎', label: 'Goals', path: '/finances/goals' },
   { id: 'monthly-plan', icon: '⊟', label: 'Monthly Plan', path: '/finances/monthly-plan' },
   { id: 'budget', icon: '▦', label: 'Budget', path: '/finances/budget' },

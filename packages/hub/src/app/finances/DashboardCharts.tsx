@@ -2,20 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { PieChart, Pie, ResponsiveContainer, Tooltip, LineChart, Line, XAxis } from 'recharts';
-import { fmt } from './ui';
+import { fmt, tooltipBoxStyle } from './ui';
 import type { DashboardCategory, DailySpendingPoint } from '@/app/api/finances/dashboard/route';
 import type { SupportedCurrency } from '@my-hub/shared/constants';
 
 const FALLBACK_COLOR = 'var(--subtle)';
-
-const tooltipBoxStyle = {
-  backgroundColor: 'var(--card)',
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  padding: '6px 10px',
-  fontSize: 12,
-  color: 'var(--text)',
-} as const;
 
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(false);

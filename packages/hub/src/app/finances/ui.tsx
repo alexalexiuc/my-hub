@@ -6,6 +6,16 @@ import { Button, SubText } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons/PlusOutlineIcon';
 import type { DropdownOption } from './financialDropdown.utils';
 
+// ─── Shared chart styles ─────────────────────────────────────────────────────
+export const tooltipBoxStyle = {
+  backgroundColor: 'var(--card)',
+  border: '1px solid var(--border)',
+  borderRadius: 8,
+  padding: '6px 10px',
+  fontSize: 12,
+  color: 'var(--text)',
+} as const;
+
 // ─── Currency formatter ───────────────────────────────────────────────────────
 export function fmt(value: number, currency = 'EUR', reverseSign = false) {
   const finalValue = reverseSign ? -value : value;
