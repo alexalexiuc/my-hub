@@ -1,8 +1,14 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
-import { getUserActiveBudget, getTransactionListItems, getTransactions } from '@my-hub/shared/services';
+import {
+  getUserActiveBudget,
+  getTransactionListItems,
+  getTransactions,
+  getAccountById,
+  getAccountsCashflow,
+} from '@my-hub/shared/services';
 import type { CategoryIcon } from '@my-hub/shared/constants';
-import { TransactionTypes } from '@my-hub/shared/constants';
+import { TransactionTypes, CASHFLOW_ACCOUNT_TYPES } from '@my-hub/shared/constants';
 import { monthToDateRange, shiftMonthStr, addDays, dateToString } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../currency.schema';
 import { categoryIconSchema, categoryColorSchema } from '../shared.schema';
@@ -45,6 +51,15 @@ const cashflowMonthSchema = z.object({
   expense: z.number(),
 });
 
+const accountCashflowSchema = z.object({
+  accountId: z.number().int(),
+  accountName: z.string(),
+  currency: supportedCurrencySchema,
+  income: z.number(),
+  expenses: z.number(),
+  net: z.number(),
+});
+
 export const reportingResponseSchema = z.object({
   currency: supportedCurrencySchema,
   dateMode: z.enum(['month', 'range', 'all']),
@@ -58,12 +73,14 @@ export const reportingResponseSchema = z.object({
   categoryBreakdown: z.array(categoryBreakdownItemSchema),
   topPayees: z.array(payeeItemSchema),
   cashflowByMonth: z.array(cashflowMonthSchema).nullable(),
+  accountCashflow: accountCashflowSchema.nullable(),
 });
 
 export type ReportingData = z.infer<typeof reportingResponseSchema>;
 export type ReportingCategoryItem = z.infer<typeof categoryBreakdownItemSchema>;
 export type ReportingPayeeItem = z.infer<typeof payeeItemSchema>;
 export type ReportingCashflowMonth = z.infer<typeof cashflowMonthSchema>;
+export type ReportingAccountCashflow = z.infer<typeof accountCashflowSchema>;
 
 const QuerySchema = z.object({
   dateMode: z.enum(['month', 'range', 'all']).default('month'),
@@ -133,6 +150,14 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
     search: query.search || undefined,
     limit: 5000,
   };
+
+  // Per-account income vs spending (only computed when an account filter is active)
+  const accountCashflowPromise = query.accountId
+    ? Promise.all([
+        getAccountById(user.id, budgetId, query.accountId),
+        getAccountsCashflow(user.id, budgetId, fromDate, toDate, [query.accountId]),
+      ])
+    : Promise.resolve(null);
 
   // Determine which type to use for the breakdown (expense by default, income if explicitly set)
   const breakdownType = query.type === TransactionTypes.Income ? TransactionTypes.Income : TransactionTypes.Expense;
@@ -369,6 +394,25 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
       }));
   }
 
+  // Resolve per-account cashflow (if account filter is active, and the account type
+  // supports the "Income vs Spending" stat — everyday transaction accounts only)
+  let accountCashflow: ReportingAccountCashflow | null = null;
+  const accountCashflowResult = await accountCashflowPromise;
+  if (accountCashflowResult) {
+    const [account, cashflowMap] = accountCashflowResult;
+    if (account && CASHFLOW_ACCOUNT_TYPES.has(account.type)) {
+      const cf = cashflowMap.get(account.id) ?? { income: 0, expenses: 0, net: 0 };
+      accountCashflow = {
+        accountId: account.id,
+        accountName: account.name,
+        currency: account.currency,
+        income: cf.income,
+        expenses: cf.expenses,
+        net: cf.net,
+      };
+    }
+  }
+
   return {
     currency,
     dateMode: query.dateMode,
@@ -382,5 +426,6 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
     categoryBreakdown,
     topPayees,
     cashflowByMonth,
+    accountCashflow,
   };
 });

@@ -11,6 +11,7 @@ import { TransactionFilters } from '../transactions/TransactionFilters';
 import type { ExtraFilterValues } from '../transactions/TransactionFilters';
 import { SpendingTrendChart } from '../DashboardCharts';
 import { CategoryBarChart, PayeeBarChart, CashflowBarChart, SummaryDelta } from './ReportingCharts';
+import { AccountCashflowCard } from './AccountCashflowCard';
 import type { ReportingData } from '@/app/api/finances/reporting/route';
 import type { TransactionType } from '@my-hub/shared/constants';
 import { formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
@@ -208,6 +209,9 @@ export default function ReportingPage() {
 
       {data && (
         <>
+          {/* Account income vs spending (shown when an account filter is active) */}
+          {data.accountCashflow && <AccountCashflowCard data={data.accountCashflow} periodLabel={periodLabel} />}
+
           {/* Spending trend (month mode) or Cashflow chart (range/all mode) */}
           {dateMode === 'month' && data.dailySpending && data.dailySpending.length > 0 && (
             <Card className="p-[14px]">

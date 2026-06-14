@@ -5,10 +5,11 @@
  * - getSpendingByPayee(userId, budgetId, dateFrom, dateTo, limit?, categoryId?) — aggregated spend per payee, optional category filter
  * - getSpendingAggregates(userId, budgetId, opts) — flexible groupBy aggregation
  * - getComparison(userId, budgetId, opts) — side-by-side period comparison with absolute and percentage delta
+ * - getAccountsCashflow(userId, budgetId, dateFrom, dateTo, accountIds?) — per-account income vs spending (expenses + categorized transfers) for a date range
  * - getNetWorthSummary(userId, budgetId) — current net worth with account breakdown and history
- * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, ComparisonResult, ComparisonGroup, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
+ * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, ComparisonResult, ComparisonGroup, AccountCashflowResult, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
  */
-import { and, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import {
   financeAccounts,
@@ -212,6 +213,81 @@ export async function getCashflowSummary(
     net: totalIncome - totalExpenses,
     byMonth,
   };
+}
+
+// ─── Account Cashflow ─────────────────────────────────────────────────────────
+
+export interface AccountCashflowResult {
+  income: number;
+  expenses: number;
+  net: number;
+}
+
+/**
+ * Returns per-account income vs spending totals for a date range.
+ * "Spending" includes expense transactions plus transfer transactions that have a
+ * category (e.g. loan repayments) sourced from the account; uncategorized transfers
+ * are excluded entirely, matching the dashboard's "Spending" convention.
+ * When accountIds is omitted, totals are computed for every account in the budget.
+ */
+export async function getAccountsCashflow(
+  userId: string,
+  budgetId: number,
+  dateFrom: string,
+  dateTo: string,
+  accountIds?: number[],
+): Promise<Map<number, AccountCashflowResult>> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  if (accountIds && accountIds.length === 0) return new Map();
+
+  const conditions = [
+    eq(financeTransactions.budgetId, budgetId),
+    eq(financeTransactions.isCorrection, false),
+    gte(financeTransactions.date, dateFrom),
+    lte(financeTransactions.date, dateTo),
+    sql`${financeTransactions.type} in (${TransactionTypes.Income}, ${TransactionTypes.Expense}, ${TransactionTypes.Transfer})`,
+  ];
+  if (accountIds) {
+    conditions.push(inArray(financeTransactions.accountId, accountIds));
+  }
+
+  const rows = await db
+    .select({
+      accountId: financeTransactions.accountId,
+      type: financeTransactions.type,
+      hasCategory: sql<boolean>`(${financeTransactions.categoryId} is not null)`,
+      total: sql<string>`sum(${financeTransactions.amount})`,
+    })
+    .from(financeTransactions)
+    .where(and(...conditions))
+    .groupBy(
+      financeTransactions.accountId,
+      financeTransactions.type,
+      sql`(${financeTransactions.categoryId} is not null)`,
+    );
+
+  const result = new Map<number, AccountCashflowResult>();
+  for (const row of rows) {
+    const entry = result.get(row.accountId) ?? { income: 0, expenses: 0, net: 0 };
+    const amount = parseFloat(row.total ?? '0');
+    if (row.type === TransactionTypes.Income) {
+      entry.income += amount;
+    } else if (row.type === TransactionTypes.Expense || (row.type === TransactionTypes.Transfer && row.hasCategory)) {
+      entry.expenses += amount;
+    }
+    result.set(row.accountId, entry);
+  }
+
+  for (const entry of result.values()) {
+    entry.income = Math.round(entry.income * 100) / 100;
+    entry.expenses = Math.round(entry.expenses * 100) / 100;
+    entry.net = Math.round((entry.income - entry.expenses) * 100) / 100;
+  }
+
+  return result;
 }
 
 // ─── Spending by Payee ────────────────────────────────────────────────────────

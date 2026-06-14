@@ -10,8 +10,9 @@ import {
   addTransaction,
   getUserActiveBudget,
   getLoanBalanceSnapshotForAccount,
+  getAccountsCashflow,
 } from '@my-hub/shared/services';
-import { AccountTypes, LentDirections, TransactionTypes } from '@my-hub/shared/constants';
+import { AccountTypes, LentDirections, TransactionTypes, CASHFLOW_ACCOUNT_TYPES } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
 import type {
   BankAccountDetails,
@@ -22,6 +23,7 @@ import type {
   BorrowedLentAccountDetails,
   CashAccountDetails,
 } from '@my-hub/shared/types';
+import { monthToDateRange, dateToString } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../currency.schema';
 
 export const accountDetailsSchema = z.discriminatedUnion('type', [
@@ -85,6 +87,8 @@ export const accountItemSchema = z
     dueDate: z.string().optional(),
     settled: z.boolean().optional(),
     includedInAvailable: z.boolean(),
+    monthIncome: z.number().optional(),
+    monthExpenses: z.number().optional(),
     amortizationSummary: z
       .object({
         monthlyPayment: z.number(),
@@ -190,46 +194,63 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
 
   const accountCurrencyById = new Map(rawAccounts.map(account => [account.id, account.currency]));
 
+  const cashflowAccountIds = rawAccounts
+    .filter(account => !account.archived && CASHFLOW_ACCOUNT_TYPES.has(account.type))
+    .map(account => account.id);
+  const { fromDate: monthStart, toDate: monthEnd } = monthToDateRange(dateToString().slice(0, 7));
+  const cashflowPromise = getAccountsCashflow(user.id, budgetId, monthStart, monthEnd, cashflowAccountIds);
+
   let netWorth = 0;
   let availableBalance = 0;
-  const accounts: AccountItem[] = await Promise.all(
-    rawAccounts.map(async account => {
-      const isLoan = account.type === AccountTypes.Loan;
-      const loanSnapshot = isLoan
-        ? await getLoanBalanceSnapshotForAccount(user.id, budgetId, account, { accountCurrencyById })
-        : null;
-      // For non-zero interest loans, use the amortization-derived remaining principal because
-      // each payment includes interest, so the raw DB balance understates the true remaining
-      // principal. For 0% loans every payment is pure principal, so the raw DB balance
-      // (negated, since loans are stored negative) is always correct with no amortization needed.
-      const loanDetails = isLoan ? (account.details as LoanAccountDetails | null) : null;
-      const bal = loanSnapshot
-        ? loanDetails?.interestRate === 0
-          ? -account.balance
-          : loanSnapshot.balance
-        : account.balance;
-      const isOtherLiability = !isLoan && LIABILITY_TYPES.has(account.type);
-      const includedInAvailable = isIncludedInAvailable(account.type, prefs.get(account.id) ?? null);
-      if (!account.archived) {
-        // Loans: positive remaining principal must be subtracted from net worth (it's a liability).
-        // Other liabilities and assets keep the existing sign convention.
-        netWorth += isLoan || isOtherLiability ? -bal : bal;
-        if (includedInAvailable) availableBalance += isLoan || isOtherLiability ? -bal : bal;
-      }
-      return {
-        id: account.id,
-        name: account.name,
-        description: account.description ?? null,
-        type: account.type,
-        currency: account.currency,
-        balance: bal,
-        archived: account.archived,
-        includedInAvailable,
-        ...flattenDetails(account.type, account.details),
-        ...(loanSnapshot ? { amortizationSummary: loanSnapshot.amortizationSummary } : {}),
-      };
-    }),
-  );
+  const [accountsBase, cashflowByAccount] = await Promise.all([
+    Promise.all(
+      rawAccounts.map(async account => {
+        const isLoan = account.type === AccountTypes.Loan;
+        const loanSnapshot = isLoan
+          ? await getLoanBalanceSnapshotForAccount(user.id, budgetId, account, { accountCurrencyById })
+          : null;
+        // For non-zero interest loans, use the amortization-derived remaining principal because
+        // each payment includes interest, so the raw DB balance understates the true remaining
+        // principal. For 0% loans every payment is pure principal, so the raw DB balance
+        // (negated, since loans are stored negative) is always correct with no amortization needed.
+        const loanDetails = isLoan ? (account.details as LoanAccountDetails | null) : null;
+        const bal = loanSnapshot
+          ? loanDetails?.interestRate === 0
+            ? -account.balance
+            : loanSnapshot.balance
+          : account.balance;
+        const isOtherLiability = !isLoan && LIABILITY_TYPES.has(account.type);
+        const includedInAvailable = isIncludedInAvailable(account.type, prefs.get(account.id) ?? null);
+        if (!account.archived) {
+          // Loans: positive remaining principal must be subtracted from net worth (it's a liability).
+          // Other liabilities and assets keep the existing sign convention.
+          netWorth += isLoan || isOtherLiability ? -bal : bal;
+          if (includedInAvailable) availableBalance += isLoan || isOtherLiability ? -bal : bal;
+        }
+        return {
+          id: account.id,
+          name: account.name,
+          description: account.description ?? null,
+          type: account.type,
+          currency: account.currency,
+          balance: bal,
+          archived: account.archived,
+          includedInAvailable,
+          ...flattenDetails(account.type, account.details),
+          ...(loanSnapshot ? { amortizationSummary: loanSnapshot.amortizationSummary } : {}),
+        };
+      }),
+    ),
+    cashflowPromise,
+  ]);
+
+  const accounts: AccountItem[] = accountsBase.map(account => {
+    const cashflow = cashflowByAccount.get(account.id);
+    return {
+      ...account,
+      ...(cashflow ? { monthIncome: cashflow.income, monthExpenses: cashflow.expenses } : {}),
+    };
+  });
 
   const netWorthHistory = nwHistory.length > 0 ? nwHistory.map(s => s.netWorth) : [netWorth];
 
