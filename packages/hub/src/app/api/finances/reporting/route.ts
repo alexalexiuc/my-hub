@@ -138,46 +138,71 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
   const breakdownType = query.type === TransactionTypes.Income ? TransactionTypes.Income : TransactionTypes.Expense;
   const summaryType = query.type; // undefined = fetch both
 
+  // Categorized transfers (e.g. loan repayments) are counted as spending on the dashboard,
+  // so the spending trend needs them too for the two charts to agree.
+  const includeTransfers = query.dateMode === 'month' && breakdownType === TransactionTypes.Expense;
+
   // Fetch all needed transactions in parallel
-  const [breakdownTxns, prevBreakdownTxns, incomeTxns, prevIncomeTxns] = await Promise.all([
-    // Current period breakdown transactions (expense or income based on filter)
-    getTransactionListItems(user.id, budgetId, {
-      ...filterOpts,
-      type: summaryType ?? breakdownType,
-      fromDate,
-      toDate,
-    }),
-    // Previous period breakdown transactions
-    prevFromDate && prevToDate
-      ? getTransactions(user.id, budgetId, {
-          ...filterOpts,
-          type: summaryType ?? breakdownType,
-          fromDate: prevFromDate,
-          toDate: prevToDate,
-          limit: 5000,
-        })
-      : Promise.resolve([]),
-    // Income for summary context (only when no type filter or expense filter)
-    !summaryType || summaryType === TransactionTypes.Expense
-      ? getTransactions(user.id, budgetId, {
-          ...filterOpts,
-          type: TransactionTypes.Income,
-          fromDate,
-          toDate,
-          limit: 5000,
-        })
-      : Promise.resolve([]),
-    // Previous income for comparison
-    prevFromDate && prevToDate && (!summaryType || summaryType === TransactionTypes.Expense)
-      ? getTransactions(user.id, budgetId, {
-          ...filterOpts,
-          type: TransactionTypes.Income,
-          fromDate: prevFromDate,
-          toDate: prevToDate,
-          limit: 5000,
-        })
-      : Promise.resolve([]),
-  ]);
+  const [breakdownTxns, prevBreakdownTxns, incomeTxns, prevIncomeTxns, transferTxns, prevTransferTxns] =
+    await Promise.all([
+      // Current period breakdown transactions (expense or income based on filter)
+      getTransactionListItems(user.id, budgetId, {
+        ...filterOpts,
+        type: summaryType ?? breakdownType,
+        fromDate,
+        toDate,
+      }),
+      // Previous period breakdown transactions
+      prevFromDate && prevToDate
+        ? getTransactions(user.id, budgetId, {
+            ...filterOpts,
+            type: summaryType ?? breakdownType,
+            fromDate: prevFromDate,
+            toDate: prevToDate,
+            limit: 5000,
+          })
+        : Promise.resolve([]),
+      // Income for summary context (only when no type filter or expense filter)
+      !summaryType || summaryType === TransactionTypes.Expense
+        ? getTransactions(user.id, budgetId, {
+            ...filterOpts,
+            type: TransactionTypes.Income,
+            fromDate,
+            toDate,
+            limit: 5000,
+          })
+        : Promise.resolve([]),
+      // Previous income for comparison
+      prevFromDate && prevToDate && (!summaryType || summaryType === TransactionTypes.Expense)
+        ? getTransactions(user.id, budgetId, {
+            ...filterOpts,
+            type: TransactionTypes.Income,
+            fromDate: prevFromDate,
+            toDate: prevToDate,
+            limit: 5000,
+          })
+        : Promise.resolve([]),
+      // Categorized transfers for the current period (counted as spending, like the dashboard)
+      includeTransfers
+        ? getTransactions(user.id, budgetId, {
+            ...filterOpts,
+            type: TransactionTypes.Transfer,
+            fromDate,
+            toDate,
+            limit: 5000,
+          })
+        : Promise.resolve([]),
+      // Categorized transfers for the previous period
+      includeTransfers && prevFromDate && prevToDate
+        ? getTransactions(user.id, budgetId, {
+            ...filterOpts,
+            type: TransactionTypes.Transfer,
+            fromDate: prevFromDate,
+            toDate: prevToDate,
+            limit: 5000,
+          })
+        : Promise.resolve([]),
+    ]);
 
   // Compute totals
   const expenseTxns =
@@ -293,10 +318,22 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
       const day = +t.date.slice(8, 10);
       currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.amount);
     }
+    for (const t of transferTxns) {
+      if (t.categoryId != null) {
+        const day = +t.date.slice(8, 10);
+        currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.amount);
+      }
+    }
     const prevDayMap = new Map<number, number>();
     for (const t of prevBreakdownTxns) {
       const day = +t.date.slice(8, 10);
       prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.amount);
+    }
+    for (const t of prevTransferTxns) {
+      if (t.categoryId != null) {
+        const day = +t.date.slice(8, 10);
+        prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.amount);
+      }
     }
 
     let currentCumulative = 0;

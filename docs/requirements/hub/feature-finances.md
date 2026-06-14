@@ -110,3 +110,5 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 - [x] Clicking a category opens a dedicated category details screen with summary details on top and transactions listed below.
 - [x] Category details transactions are shown ordered by date descending (with id tie-breaker descending).
 - [x] Dashboard budget categories are shown in descending order by amount spent.
+- [x] The Reporting page's Spending Trend chart includes categorized transfers (e.g. loan repayments) in its daily totals, matching the Dashboard "Spending" chart.
+- [x] The Reporting "Net" summary card renders a single leading sign (`-`/`+`) for negative/positive values, without doubling the currency formatter's own minus sign.
