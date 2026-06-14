@@ -282,7 +282,9 @@ export async function getAccountsCashflow(
   }
 
   for (const entry of result.values()) {
-    entry.net = entry.income - entry.expenses;
+    entry.income = Math.round(entry.income * 100) / 100;
+    entry.expenses = Math.round(entry.expenses * 100) / 100;
+    entry.net = Math.round((entry.income - entry.expenses) * 100) / 100;
   }
 
   return result;

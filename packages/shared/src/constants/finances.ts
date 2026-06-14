@@ -157,6 +157,13 @@ export const EXPENSE_ACCOUNT_TYPES = new Set<AccountType>([
   AccountTypes.CreditCard,
 ]);
 
+/**
+ * Account types for which per-account income/spending totals (e.g. the Accounts page
+ * mini stat and the Reporting page "Income vs Spending" card) are meaningful — everyday
+ * transaction accounts only.
+ */
+export const CASHFLOW_ACCOUNT_TYPES = new Set<AccountType>([AccountTypes.Bank, AccountTypes.Cash]);
+
 export const TransactionSources = {
   hub: 'hub',
   mcp: 'mcp',
