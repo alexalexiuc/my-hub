@@ -8,7 +8,7 @@ import {
   getAccountsCashflow,
 } from '@my-hub/shared/services';
 import type { CategoryIcon } from '@my-hub/shared/constants';
-import { TransactionTypes, CASHFLOW_ACCOUNT_TYPES } from '@my-hub/shared/constants';
+import { TransactionTypes } from '@my-hub/shared/constants';
 import { monthToDateRange, shiftMonthStr, addDays, dateToString } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../currency.schema';
 import { categoryIconSchema, categoryColorSchema } from '../shared.schema';
@@ -394,13 +394,12 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
       }));
   }
 
-  // Resolve per-account cashflow (if account filter is active, and the account type
-  // supports the "Income vs Spending" stat — everyday transaction accounts only)
+  // Resolve per-account cashflow (if account filter is active)
   let accountCashflow: ReportingAccountCashflow | null = null;
   const accountCashflowResult = await accountCashflowPromise;
   if (accountCashflowResult) {
     const [account, cashflowMap] = accountCashflowResult;
-    if (account && CASHFLOW_ACCOUNT_TYPES.has(account.type)) {
+    if (account) {
       const cf = cashflowMap.get(account.id) ?? { income: 0, expenses: 0, net: 0 };
       accountCashflow = {
         accountId: account.id,
