@@ -43,6 +43,12 @@ function AccountCard({
           <div className="min-w-0">
             <div className="text-sm font-semibold text-[var(--text)] truncate">{acc.name}</div>
             {acc.cardLastFour && <SubText className="block">•••• {acc.cardLastFour}</SubText>}
+            {(acc.monthIncome != null || acc.monthExpenses != null) && (
+              <div className="flex flex-wrap items-center gap-2 text-[10px] tabular-nums">
+                <span className="text-[var(--green)]">+{fmt(acc.monthIncome ?? 0, acc.currency)}</span>
+                <span className="text-[var(--red)]">-{fmt(acc.monthExpenses ?? 0, acc.currency)}</span>
+              </div>
+            )}
           </div>
         </div>
         <div

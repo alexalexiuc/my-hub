@@ -10,6 +10,7 @@ import {
   addTransaction,
   getUserActiveBudget,
   getLoanBalanceSnapshotForAccount,
+  getAccountsCashflow,
 } from '@my-hub/shared/services';
 import { AccountTypes, LentDirections, TransactionTypes } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
@@ -22,7 +23,12 @@ import type {
   BorrowedLentAccountDetails,
   CashAccountDetails,
 } from '@my-hub/shared/types';
+import { monthToDateRange, dateToString } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../currency.schema';
+
+// Mini income/spending stat on the Accounts page is only meaningful for everyday
+// transaction accounts.
+const CASHFLOW_STAT_TYPES = new Set<AccountType>([AccountTypes.Bank, AccountTypes.Cash]);
 
 export const accountDetailsSchema = z.discriminatedUnion('type', [
   z.object({
@@ -85,6 +91,8 @@ export const accountItemSchema = z
     dueDate: z.string().optional(),
     settled: z.boolean().optional(),
     includedInAvailable: z.boolean(),
+    monthIncome: z.number().optional(),
+    monthExpenses: z.number().optional(),
     amortizationSummary: z
       .object({
         monthlyPayment: z.number(),
@@ -190,6 +198,15 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
 
   const accountCurrencyById = new Map(rawAccounts.map(account => [account.id, account.currency]));
 
+  const cashflowAccountIds = rawAccounts
+    .filter(account => !account.archived && CASHFLOW_STAT_TYPES.has(account.type))
+    .map(account => account.id);
+  const { fromDate: monthStart, toDate: monthEnd } = monthToDateRange(dateToString().slice(0, 7));
+  const cashflowByAccount =
+    cashflowAccountIds.length > 0
+      ? await getAccountsCashflow(user.id, budgetId, monthStart, monthEnd, cashflowAccountIds)
+      : new Map();
+
   let netWorth = 0;
   let availableBalance = 0;
   const accounts: AccountItem[] = await Promise.all(
@@ -216,6 +233,7 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
         netWorth += isLoan || isOtherLiability ? -bal : bal;
         if (includedInAvailable) availableBalance += isLoan || isOtherLiability ? -bal : bal;
       }
+      const cashflow = cashflowByAccount.get(account.id);
       return {
         id: account.id,
         name: account.name,
@@ -227,6 +245,7 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
         includedInAvailable,
         ...flattenDetails(account.type, account.details),
         ...(loanSnapshot ? { amortizationSummary: loanSnapshot.amortizationSummary } : {}),
+        ...(cashflow ? { monthIncome: cashflow.income, monthExpenses: cashflow.expenses } : {}),
       };
     }),
   );
