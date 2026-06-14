@@ -27,7 +27,7 @@ export function fmt(value: number, currency = 'EUR', reverseSign = false) {
 }
 
 export function fmtSign(value: number, currency = 'EUR') {
-  return (value < 0 ? '-' : '+') + fmt(value, currency);
+  return (value < 0 ? '-' : '+') + fmt(Math.abs(value), currency);
 }
 
 // ─── Primitive components ─────────────────────────────────────────────────────
