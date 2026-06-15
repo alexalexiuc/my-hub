@@ -80,7 +80,7 @@ export function PositionsTable({ overview }: PositionsTableProps) {
 
 function PositionRow({ position: p, currency }: { position: PositionOverview; currency: string }) {
   return (
-    <tr className="border-b border-[var(--border)]/50">
+    <tr className="border-b border-[var(--border)]">
       <td className="py-2 pr-3">
         <div className="font-medium text-[var(--text)]">{p.symbol}</div>
         {p.name && <div className="text-[9px] text-[var(--subtle)]">{p.name}</div>}
