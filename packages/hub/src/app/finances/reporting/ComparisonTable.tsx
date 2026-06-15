@@ -30,7 +30,7 @@ export function ComparisonTable({ data, currency, periodLabel, prevLabel }: Comp
             const delta = cat.prevAmount > 0 ? ((cat.amount - cat.prevAmount) / cat.prevAmount) * 100 : null;
             const absDelta = cat.amount - cat.prevAmount;
             return (
-              <tr key={cat.id} className="border-b border-[var(--border)]/50">
+              <tr key={cat.id} className="border-b border-[var(--border)]">
                 <td className="py-2 pr-3">
                   <div className="flex items-center gap-1.5">
                     <span

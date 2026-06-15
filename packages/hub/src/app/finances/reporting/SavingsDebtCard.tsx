@@ -12,6 +12,7 @@ type SavingsDebtCardProps = {
 };
 
 const FLOW_COLORS: Record<ReportingSavingsDebtItem['key'], string> = {
+  expenses: 'var(--red)',
   savings: 'var(--green)',
   investments: 'var(--blue)',
   debtRepayment: 'var(--amber)',

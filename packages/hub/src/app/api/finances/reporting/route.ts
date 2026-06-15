@@ -47,7 +47,7 @@ const groupBreakdownItemSchema = z.object({
 });
 
 const savingsDebtFlowItemSchema = z.object({
-  key: z.enum(['savings', 'investments', 'debtRepayment']),
+  key: z.enum(['expenses', 'savings', 'investments', 'debtRepayment']),
   label: z.string(),
   amount: z.number(),
   prevAmount: z.number(),
@@ -484,6 +484,7 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
   // Savings, investments, and debt repayment flows
   const [flows, prevFlows] = await savingsDebtFlowsPromise;
   const savingsDebtFlows: ReportingSavingsDebtItem[] = [
+    { key: 'expenses', label: 'Expenses', amount: totalExpenses, prevAmount: prevSummary?.totalExpenses ?? 0 },
     { key: 'savings', label: 'Savings', amount: flows.savings, prevAmount: prevFlows?.savings ?? 0 },
     { key: 'investments', label: 'Investments', amount: flows.investments, prevAmount: prevFlows?.investments ?? 0 },
     {
