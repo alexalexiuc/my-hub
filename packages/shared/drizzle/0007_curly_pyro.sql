@@ -1,0 +1,1 @@
+CREATE INDEX "idx_finance_txns_budget_type_date" ON "finance_transactions" USING btree ("budget_id","type","date");

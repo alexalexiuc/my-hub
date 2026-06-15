@@ -73,6 +73,8 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 | TR-32 | The Reporting page API exposes `accountCashflow` (account name, currency, income, expenses, net for the active period) when the `accountId` filter is set; the Reporting page renders this as an "Income vs Spending" card for the selected account.                                                             |
 | TR-33 | The Payees report API (`/api/finances/payees/report`) must aggregate spending across the full selected date range without an arbitrary row cap, so payees whose matching expense transactions fall outside the most-recent rows still report correct `totalSpent`/`txCount` instead of "No data".                |
 | TR-34 | The Payee detail page must show an all-time summary (transaction count, total spent, average per transaction, total received, first/last transaction dates, top category, top account) via `getPayeeSummary` and `GET /api/finances/payees/[id]`.                                                                |
+| TR-35 | While the Payee detail page's summary card is loading, it must render skeleton placeholders (not a spinner) matching its final grid layout.                                                                                                                                                                      |
+| TR-36 | `finance_transactions` has composite indexes `idx_finance_txns_budget_payee_date` (`budget_id, payee_id, date`) and `idx_finance_txns_budget_type_date` (`budget_id, type, date`) to keep payee summary/list and type+date-range reporting queries efficient as transaction volume grows.                        |
 
 ---
 
@@ -121,3 +123,5 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 - [x] Selecting an account filter on the Reporting page shows an "Income vs Spending" card for that account covering the active period (month/range/all).
 - [x] The Payees list shows correct totals/transaction counts for payees with expense history anywhere in the selected range, even when the budget has a large number of transactions.
 - [x] The Payee detail page shows a summary card (transaction count, total spent, average per transaction, total received if any, first/last transaction dates, top category, top account) above the transaction list.
+- [x] While loading, the Payee detail page's summary card shows skeleton placeholders instead of being blank or showing a spinner.
+- [x] `finance_transactions` has composite indexes on `(budget_id, payee_id, date)` and `(budget_id, type, date)` to support payee summary and reporting queries at scale.
