@@ -10,6 +10,7 @@ import { MergePayeeModal } from './MergePayeeModal';
 import { PayeesRangeFilter } from './PayeesRangeFilter';
 import { PayeesTableHeader } from './PayeesTableHeader';
 import { PayeeRow } from './PayeeRow';
+import { PayeeRowSkeleton } from './PayeeRowSkeleton';
 import { PAYEE_RANGES, type Range, type SortKey } from './types';
 import { parseRange } from './payees.utils';
 import { Card, Input } from '@/components';
@@ -96,11 +97,13 @@ export default function PayeesPage() {
         <PayeesRangeFilter range={range} onChange={setRange} ranges={PAYEE_RANGES} />
       </div>
 
-      {payeesLoading ? (
-        <div
-          className="h-[300px] rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
-          style={{ opacity: 0.6 }}
-        />
+      {payeesLoading || reportData === null ? (
+        <Card className="p-0">
+          <PayeesTableHeader sortBy={sortBy} onSort={setSortBy} />
+          {Array.from({ length: 6 }).map((_, i) => (
+            <PayeeRowSkeleton key={i} showDivider={i > 0} />
+          ))}
+        </Card>
       ) : (
         <Card className="p-0">
           <PayeesTableHeader sortBy={sortBy} onSort={setSortBy} />

@@ -37,21 +37,7 @@ export default function PayeeDetailPage() {
       .finally(() => setLoading(false));
   }, [payeeId, router]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col gap-[14px]">
-        {[40, 100, 280].map((h, i) => (
-          <div
-            key={i}
-            className="rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
-            style={{ height: h, opacity: 0.6 }}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (!payee) return null;
+  if (Number.isNaN(payeeId) || payeeId <= 0) return null;
 
   return (
     <div className="flex flex-col gap-[14px]">
@@ -61,32 +47,39 @@ export default function PayeeDetailPage() {
         </Button>
       </div>
 
-      <Card className="p-[14px]">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div>
-              <div className="text-[17px] font-bold text-[var(--text)]">{payee.name}</div>
-              {payee.description && <SubText className="block">{payee.description}</SubText>}
+      {loading || !payee ? (
+        <div
+          className="h-[64px] rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
+          style={{ opacity: 0.6 }}
+        />
+      ) : (
+        <Card className="p-[14px]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div>
+                <div className="text-[17px] font-bold text-[var(--text)]">{payee.name}</div>
+                {payee.description && <SubText className="block">{payee.description}</SubText>}
+              </div>
             </div>
+            <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>
+              Edit
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>
-            Edit
-          </Button>
-        </div>
 
-        {payee.aliases.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {payee.aliases.map(alias => (
-              <span
-                key={alias}
-                className="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[12px] text-[var(--muted)]"
-              >
-                {alias}
-              </span>
-            ))}
-          </div>
-        )}
-      </Card>
+          {payee.aliases.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {payee.aliases.map(alias => (
+                <span
+                  key={alias}
+                  className="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[12px] text-[var(--muted)]"
+                >
+                  {alias}
+                </span>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       <PayeeSummarySection payeeId={payeeId} />
 
@@ -95,7 +88,7 @@ export default function PayeeDetailPage() {
         <TransactionList payeeId={payeeId} />
       </Card>
 
-      {editOpen && (
+      {editOpen && payee && (
         <EditPayeeModal
           payee={payee}
           onClose={() => setEditOpen(false)}
