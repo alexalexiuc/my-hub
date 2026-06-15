@@ -26,6 +26,7 @@ const MORE_ITEMS: BottomNavItem[] = [
   { id: 'cashflow', icon: '⟳', label: 'Cashflow', path: '/finances/cashflow' },
   { id: 'payees', icon: '◉', label: 'Payees', path: '/finances/payees' },
   { id: 'networth', icon: '▲', label: 'Net Worth', path: '/finances/networth' },
+  { id: 'portfolio', icon: '◍', label: 'Portfolio', path: '/finances/portfolio' },
   { id: 'settings', icon: '⚙', label: 'Settings', path: '/finances/settings' },
 ];
 

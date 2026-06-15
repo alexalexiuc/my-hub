@@ -22,6 +22,8 @@ import type {
   TransactionSource,
   ImportBatchStatus,
   SupportedCurrency,
+  PortfolioSupplyLineType,
+  TickerPriceSource,
 } from '../../constants/finances';
 import type { TransactionDetails } from '../../types/transaction-details';
 import type { AccountDetails } from '../../types/account-details';
@@ -416,4 +418,124 @@ export const financeNetWorthSnapshots = pgTable(
     uniqueIndex('uq_finance_net_worth_budget_month').on(table.budgetId, table.month),
     index('idx_finance_net_worth_budget').on(table.budgetId),
   ],
+);
+
+// ─── Investment portfolio ─────────────────────────────────────────────────
+// Standalone ETF tracking. Does NOT feed financeAccounts / net worth (v1).
+// Multiple portfolios per budget are allowed at schema level; the UI assumes one.
+
+export const financePortfolios = pgTable(
+  'finance_portfolios',
+  {
+    id: serial('id').primaryKey(),
+    budgetId: integer('budget_id')
+      .notNull()
+      .references(() => financeBudgets.id, { onDelete: 'cascade' }),
+    name: text('name').notNull().default('Portfolio'),
+    baseCurrency: text('base_currency').$type<SupportedCurrency>().notNull().default('EUR'),
+    // Projection assumptions — annual return as a percentage (7 = 7%)
+    pessimisticAnnualReturnPct: numericCasted('pessimistic_annual_return_pct', { precision: 8, scale: 4 })
+      .notNull()
+      .default(4),
+    expectedAnnualReturnPct: numericCasted('expected_annual_return_pct', { precision: 8, scale: 4 })
+      .notNull()
+      .default(7),
+    optimisticAnnualReturnPct: numericCasted('optimistic_annual_return_pct', { precision: 8, scale: 4 })
+      .notNull()
+      .default(10),
+    plannedMonthlyContribution: numericCasted('planned_monthly_contribution', { precision: 18, scale: 4 })
+      .notNull()
+      .default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  table => [index('idx_finance_portfolios_budget').on(table.budgetId)],
+);
+
+export const financePortfolioPositions = pgTable(
+  'finance_portfolio_positions',
+  {
+    id: serial('id').primaryKey(),
+    portfolioId: integer('portfolio_id')
+      .notNull()
+      .references(() => financePortfolios.id, { onDelete: 'cascade' }),
+    symbol: text('symbol').notNull(), // display ticker, e.g. 'SPYL'
+    name: text('name'), // e.g. 'SPDR S&P 500 UCITS ETF'
+    yahooSymbol: text('yahoo_symbol').notNull(), // e.g. 'SPYL.DE' — canonical key into financeTickerPrices
+    stooqSymbol: text('stooq_symbol'), // e.g. 'spyl.de' — null disables the Stooq fallback
+    // Listing currency hint — Stooq responses carry no currency field, and Yahoo's
+    // currency is validated against SupportedCurrencies with this as the fallback.
+    currency: text('currency').$type<SupportedCurrency>().notNull().default('EUR'),
+    targetAllocationPct: numericCasted('target_allocation_pct', { precision: 8, scale: 4 }).notNull().default(0),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  table => [
+    uniqueIndex('uq_finance_portfolio_positions_symbol').on(table.portfolioId, table.symbol),
+    index('idx_finance_portfolio_positions_portfolio').on(table.portfolioId),
+  ],
+);
+
+// One supply event = one date where cash was contributed and invested, with
+// N per-ticker buy lines below. Header+lines (not flat) so the contributed
+// total exists exactly once and edit/delete operate on the whole event.
+
+export const financePortfolioSupplies = pgTable(
+  'finance_portfolio_supplies',
+  {
+    id: serial('id').primaryKey(),
+    portfolioId: integer('portfolio_id')
+      .notNull()
+      .references(() => financePortfolios.id, { onDelete: 'cascade' }),
+    date: date('date').notNull(), // YYYY-MM-DD
+    // Cash contributed on this date, in the portfolio base currency.
+    // May differ from Σ lines (units×price + fee) — leftover stays as broker cash.
+    totalAmount: numericCasted('total_amount', { precision: 18, scale: 4 }).notNull(),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  table => [index('idx_finance_portfolio_supplies_portfolio_date').on(table.portfolioId, table.date)],
+);
+
+export const financePortfolioSupplyLines = pgTable(
+  'finance_portfolio_supply_lines',
+  {
+    id: serial('id').primaryKey(),
+    supplyId: integer('supply_id')
+      .notNull()
+      .references(() => financePortfolioSupplies.id, { onDelete: 'cascade' }),
+    // restrict: a position with recorded buys cannot be deleted
+    positionId: integer('position_id')
+      .notNull()
+      .references(() => financePortfolioPositions.id, { onDelete: 'restrict' }),
+    type: text('type').$type<PortfolioSupplyLineType>().notNull().default('buy'),
+    units: numericCasted('units', { precision: 18, scale: 8 }).notNull(),
+    pricePerUnit: numericCasted('price_per_unit', { precision: 18, scale: 6 }).notNull(),
+    fee: numericCasted('fee', { precision: 18, scale: 4 }).notNull().default(0),
+  },
+  table => [
+    index('idx_finance_portfolio_supply_lines_supply').on(table.supplyId),
+    index('idx_finance_portfolio_supply_lines_position').on(table.positionId),
+  ],
+);
+
+// ─── Ticker EOD price cache ───────────────────────────────────────────────
+// Global cache (not budget-scoped), modeled on financeCurrencyRates: the same
+// (symbol, date) pair is never fetched twice. symbol = positions.yahooSymbol.
+// Only actual trading days get rows — weekends/holidays are forward-filled at
+// read time, never fabricated here.
+
+export const financeTickerPrices = pgTable(
+  'finance_ticker_prices',
+  {
+    symbol: text('symbol').notNull(),
+    date: date('date').notNull(), // YYYY-MM-DD trading day
+    close: numericCasted('close', { precision: 18, scale: 6 }).notNull(),
+    currency: text('currency').$type<SupportedCurrency>().notNull(),
+    source: text('source').$type<TickerPriceSource>().notNull(),
+    fetchedAt: timestamp('fetched_at').notNull().defaultNow(),
+  },
+  table => [primaryKey({ columns: [table.symbol, table.date] })],
 );

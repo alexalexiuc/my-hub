@@ -114,6 +114,11 @@ import type {
   financeNetWorthSnapshots,
   financeMonthlyPlans,
   financeMonthlyPlanItems,
+  financePortfolios,
+  financePortfolioPositions,
+  financePortfolioSupplies,
+  financePortfolioSupplyLines,
+  financeTickerPrices,
 } from '../db/schema/finances';
 export type FinanceBudget = InferSelectModel<typeof financeBudgets>;
 export type NewFinanceBudget = InferInsertModel<typeof financeBudgets>;
@@ -154,6 +159,16 @@ export type FinanceMonthlyPlan = InferSelectModel<typeof financeMonthlyPlans>;
 export type NewFinanceMonthlyPlan = InferInsertModel<typeof financeMonthlyPlans>;
 export type FinanceMonthlyPlanItem = InferSelectModel<typeof financeMonthlyPlanItems>;
 export type NewFinanceMonthlyPlanItem = InferInsertModel<typeof financeMonthlyPlanItems>;
+export type FinancePortfolio = InferSelectModel<typeof financePortfolios>;
+export type NewFinancePortfolio = InferInsertModel<typeof financePortfolios>;
+export type FinancePortfolioPosition = InferSelectModel<typeof financePortfolioPositions>;
+export type NewFinancePortfolioPosition = InferInsertModel<typeof financePortfolioPositions>;
+export type FinancePortfolioSupply = InferSelectModel<typeof financePortfolioSupplies>;
+export type NewFinancePortfolioSupply = InferInsertModel<typeof financePortfolioSupplies>;
+export type FinancePortfolioSupplyLine = InferSelectModel<typeof financePortfolioSupplyLines>;
+export type NewFinancePortfolioSupplyLine = InferInsertModel<typeof financePortfolioSupplyLines>;
+export type FinanceTickerPrice = InferSelectModel<typeof financeTickerPrices>;
+export type NewFinanceTickerPrice = InferInsertModel<typeof financeTickerPrices>;
 
 // Travel
 export type FlightData = InferSelectModel<typeof flightData>;
