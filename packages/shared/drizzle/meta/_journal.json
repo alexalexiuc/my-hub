@@ -43,6 +43,20 @@
       "when": 1780080263963,
       "tag": "0005_chilly_expediter",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781506348755,
+      "tag": "0006_luxuriant_mastermind",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781506448907,
+      "tag": "0007_curly_pyro",
+      "breakpoints": true
     }
   ]
 }

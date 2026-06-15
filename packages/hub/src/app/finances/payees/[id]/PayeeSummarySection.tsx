@@ -13,10 +13,31 @@ type PayeeSummarySectionProps = {
 
 export function PayeeSummarySection({ payeeId }: PayeeSummarySectionProps) {
   const [summary, setSummary] = useState<PayeeSummaryResponse | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch<PayeeSummaryResponse>(`/api/finances/payees/${payeeId}`, { silentToast: true }).then(setSummary);
+    setLoading(true);
+    apiFetch<PayeeSummaryResponse>(`/api/finances/payees/${payeeId}`, { silentToast: true })
+      .then(setSummary)
+      .finally(() => setLoading(false));
   }, [payeeId]);
+
+  if (loading) {
+    return (
+      <Card className="p-[14px]">
+        <SectionLabel className="mb-2.5">Summary</SectionLabel>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[52px] rounded-[10px] border border-[var(--border)] bg-[var(--card)]"
+              style={{ opacity: 0.6 }}
+            />
+          ))}
+        </div>
+      </Card>
+    );
+  }
 
   if (!summary || summary.txCount === 0) return null;
 

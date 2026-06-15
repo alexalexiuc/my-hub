@@ -284,6 +284,11 @@ export const financeTransactions = pgTable(
     index('idx_finance_txns_import_batch').on(table.importBatchId),
     // Composite — most common query pattern: budget + date range
     index('idx_finance_txns_budget_date').on(table.budgetId, table.date),
+    // Composite — payee detail page: summary aggregates + transaction list, both filtered
+    // by budget + payee and the list ordered by date.
+    index('idx_finance_txns_budget_payee_date').on(table.budgetId, table.payeeId, table.date),
+    // Composite — reporting queries: budget + type (expense/income/transfer) + date range.
+    index('idx_finance_txns_budget_type_date').on(table.budgetId, table.type, table.date),
     index('idx_finance_txns_is_correction')
       .on(table.isCorrection)
       .where(sql`${table.isCorrection} IS TRUE`),
