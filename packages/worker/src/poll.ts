@@ -7,6 +7,7 @@ import { cleanupOldDbLogs } from './db-log-cleanup.js';
 import { sendCaloriesWeeklyReports } from './calories-weekly-report.js';
 import { sendCaloriesMonthlyReports } from './calories-monthly-report.js';
 import { recalculateFinanceBalances } from './finances-balance-recalc.js';
+import { syncTickerPrices } from './ticker-price-sync.js';
 
 interface Task {
   name: string;
@@ -49,6 +50,14 @@ export const tasks: Task[] = [
     name: 'finances-balance-recalc',
     cron: '0 3 * * *', // every day at 03:00
     fn: recalculateFinanceBalances,
+  },
+  {
+    // Xetra closes 17:30 CET (15:30–16:30 UTC depending on DST); 18:00 UTC is
+    // safely after close year-round. Daily incl. weekends is fine — only missing
+    // ranges are fetched, so non-trading days are cheap no-ops.
+    name: 'ticker-price-sync',
+    cron: '0 18 * * *', // every day at 18:00 UTC
+    fn: syncTickerPrices,
   },
 ];
 

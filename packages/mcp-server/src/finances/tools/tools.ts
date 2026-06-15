@@ -44,6 +44,16 @@ import {
 import { UpsertCategorySchema, upsertCategoryTool } from './categories';
 import { ListLabelsSchema, listLabelsTool } from './labels';
 import { GetMonthlyPlanSchema, getMonthlyPlanTool } from './monthly-plan';
+import {
+  GetPortfolioSchema,
+  getPortfolioTool,
+  RecordPortfolioSupplySchema,
+  recordPortfolioSupplyTool,
+  UpdatePortfolioSchema,
+  updatePortfolioTool,
+  DeletePortfolioSupplySchema,
+  deletePortfolioSupplyTool,
+} from './portfolio';
 
 const financeTools = [
   defineTool({
@@ -277,6 +287,46 @@ const financeTools = [
     inputSchema: GetNetWorthSummarySchema.shape,
     annotations: { readOnlyHint: true },
     callback: getNetWorthSummaryTool,
+  }),
+  defineTool({
+    name: 'finances_get_portfolio',
+    description:
+      'Investment portfolio snapshot: settings, per-ETF holdings with current EOD value, profit (with and without fees), ' +
+      'actual vs target allocation with deviations, totals, plus the most recent supply events. ' +
+      'Use to answer "how is my portfolio doing?" or before recording a new supply. ' +
+      'pricesAsOf indicates how fresh the cached EOD prices are.',
+    inputSchema: GetPortfolioSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getPortfolioTool,
+  }),
+  defineTool({
+    name: 'finances_record_portfolio_supply',
+    description:
+      'Record an investment supply event: one date where cash was contributed and ETF units were bought, ' +
+      'with one line per ticker (units, price per unit, fee). Symbols are matched case-insensitively against ' +
+      'the portfolio positions from finances_get_portfolio. totalAmount defaults to the sum of lines. ' +
+      'To edit an existing supply, delete it with finances_delete_portfolio_supply and record it again.',
+    inputSchema: RecordPortfolioSupplySchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: recordPortfolioSupplyTool,
+  }),
+  defineTool({
+    name: 'finances_update_portfolio',
+    description:
+      'Create the investment portfolio or update its settings and positions. ' +
+      'Settings: name, base currency, projection assumptions (pessimistic/expected/optimistic annual return %, planned monthly contribution). ' +
+      'Positions are upserted by symbol; yahooSymbol (e.g. SPYL.DE) is required when adding a new position. ' +
+      'Target allocations across all positions must sum to 100%.',
+    inputSchema: UpdatePortfolioSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: updatePortfolioTool,
+  }),
+  defineTool({
+    name: 'finances_delete_portfolio_supply',
+    description: 'Delete a portfolio supply event and all its per-ticker lines.',
+    inputSchema: DeletePortfolioSupplySchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: true },
+    callback: deletePortfolioSupplyTool,
   }),
 ];
 

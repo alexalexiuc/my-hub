@@ -18,6 +18,7 @@ const NAV_ITEMS: SidebarNavItem[] = [
   { id: 'cashflow', label: 'Cashflow', icon: '', path: '/finances/cashflow' },
   { id: 'payees', label: 'Payees', icon: '', path: '/finances/payees' },
   { id: 'networth', label: 'Net Worth', icon: '', path: '/finances/networth' },
+  { id: 'portfolio', label: 'Portfolio', icon: '◍', path: '/finances/portfolio' },
   { id: 'monthly-plan', label: 'Monthly Plan', icon: '⊟', path: '/finances/monthly-plan', dividerBefore: true },
   { id: 'settings', label: 'Settings', icon: '⚙', path: '/finances/settings', dividerBefore: true },
 ];

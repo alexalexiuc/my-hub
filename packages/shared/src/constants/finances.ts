@@ -177,3 +177,15 @@ export const ImportBatchStatuses = {
   rolledBack: 'rolled_back',
 } as const;
 export type ImportBatchStatus = (typeof ImportBatchStatuses)[keyof typeof ImportBatchStatuses];
+
+export const PortfolioSupplyLineTypes = {
+  Buy: 'buy',
+  // future: Sell: 'sell', Dividend: 'dividend'
+} as const;
+export type PortfolioSupplyLineType = (typeof PortfolioSupplyLineTypes)[keyof typeof PortfolioSupplyLineTypes];
+
+export const TickerPriceSources = {
+  Yahoo: 'yahoo',
+  Stooq: 'stooq',
+} as const;
+export type TickerPriceSource = (typeof TickerPriceSources)[keyof typeof TickerPriceSources];

@@ -4,5 +4,6 @@ export * from './finances';
 export * from './dates';
 export * from './logger';
 export * from './objects';
+export * from './portfolio';
 export * from './travel';
 export * from './withBackoffRetry';

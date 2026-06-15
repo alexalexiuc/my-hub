@@ -63,6 +63,12 @@ export const TRANSACTION_TYPE_COLORS: Record<TransactionType, string> = {
 /** Shared Tailwind class strings for ghost-style inputs and dropdown triggers inside FinFieldCard. */
 export const finGhostInputClass = 'w-full text-[13px] text-[var(--text)]';
 export const finDropdownInputClass = 'py-0 text-[13px] font-medium text-[var(--text)] placeholder:text-[var(--subtle)]';
+/**
+ * Transparent, underline-only styling for native `<Select>`/`<Textarea>` (which have no `ghost`
+ * variant) so they match the look of ghost `<Input>` — no gray fill, just a bottom border.
+ */
+export const finGhostFieldClass =
+  'border-0 border-b border-[var(--border)] rounded-none bg-transparent px-0 py-0.5 shadow-none text-sm text-[var(--text)] focus:border-[var(--accent)] focus:ring-0';
 
 /** Returns relative day (Today/Yesterday), month & date if in current year, or full date otherwise. */
 export function formatTransactionDate(dateStr: string): string {
