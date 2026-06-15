@@ -246,43 +246,43 @@ export async function getPayeeSummary(userId: string, budgetId: number, payeeId:
     eq(financeTransactions.isCorrection, false),
   ];
 
-  const [totals] = await db
-    .select({
-      txCount: sql<number>`count(*)::int`,
-      expenseCount: sql<number>`count(*) filter (where ${financeTransactions.type} = ${TransactionTypes.Expense})::int`,
-      totalSpent: sql<string>`coalesce(sum(${financeTransactions.amount}) filter (where ${financeTransactions.type} = ${TransactionTypes.Expense}), 0)`,
-      totalIncome: sql<string>`coalesce(sum(${financeTransactions.amount}) filter (where ${financeTransactions.type} = ${TransactionTypes.Income}), 0)`,
-      firstDate: sql<string | null>`min(${financeTransactions.date})`,
-      lastDate: sql<string | null>`max(${financeTransactions.date})`,
-    })
-    .from(financeTransactions)
-    .where(and(...conditions));
-
-  const [topCategory] = await db
-    .select({
-      id: financeCategories.id,
-      name: financeCategories.name,
-      color: financeCategories.color,
-      icon: financeCategories.icon,
-    })
-    .from(financeTransactions)
-    .innerJoin(financeCategories, eq(financeCategories.id, financeTransactions.categoryId))
-    .where(and(...conditions))
-    .groupBy(financeCategories.id, financeCategories.name, financeCategories.color, financeCategories.icon)
-    .orderBy(sql`count(*) desc`)
-    .limit(1);
-
-  const [topAccount] = await db
-    .select({
-      id: financeAccounts.id,
-      name: financeAccounts.name,
-    })
-    .from(financeTransactions)
-    .innerJoin(financeAccounts, eq(financeAccounts.id, financeTransactions.accountId))
-    .where(and(...conditions))
-    .groupBy(financeAccounts.id, financeAccounts.name)
-    .orderBy(sql`count(*) desc`)
-    .limit(1);
+  const [[totals], [topCategory], [topAccount]] = await Promise.all([
+    db
+      .select({
+        txCount: sql<number>`count(*)::int`,
+        expenseCount: sql<number>`count(*) filter (where ${financeTransactions.type} = ${TransactionTypes.Expense})::int`,
+        totalSpent: sql<string>`coalesce(sum(${financeTransactions.amount}) filter (where ${financeTransactions.type} = ${TransactionTypes.Expense}), 0)`,
+        totalIncome: sql<string>`coalesce(sum(${financeTransactions.amount}) filter (where ${financeTransactions.type} = ${TransactionTypes.Income}), 0)`,
+        firstDate: sql<string | null>`min(${financeTransactions.date})`,
+        lastDate: sql<string | null>`max(${financeTransactions.date})`,
+      })
+      .from(financeTransactions)
+      .where(and(...conditions)),
+    db
+      .select({
+        id: financeCategories.id,
+        name: financeCategories.name,
+        color: financeCategories.color,
+        icon: financeCategories.icon,
+      })
+      .from(financeTransactions)
+      .innerJoin(financeCategories, eq(financeCategories.id, financeTransactions.categoryId))
+      .where(and(...conditions))
+      .groupBy(financeCategories.id, financeCategories.name, financeCategories.color, financeCategories.icon)
+      .orderBy(sql`count(*) desc`)
+      .limit(1),
+    db
+      .select({
+        id: financeAccounts.id,
+        name: financeAccounts.name,
+      })
+      .from(financeTransactions)
+      .innerJoin(financeAccounts, eq(financeAccounts.id, financeTransactions.accountId))
+      .where(and(...conditions))
+      .groupBy(financeAccounts.id, financeAccounts.name)
+      .orderBy(sql`count(*) desc`)
+      .limit(1),
+  ]);
 
   const totalSpent = Math.round(Number(totals?.totalSpent ?? 0) * 100) / 100;
   const totalIncome = Math.round(Number(totals?.totalIncome ?? 0) * 100) / 100;
