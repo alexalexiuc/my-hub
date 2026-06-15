@@ -98,6 +98,46 @@ export function CategoryBarChart({ categories, currency }: CategoryBarChartProps
   );
 }
 
+// ─── Simple bar chart (colored-dot rows, e.g. savings flows or category groups) ───
+
+export type SimpleBarItem = {
+  key: string;
+  name: string;
+  amount: number;
+  prevAmount: number;
+  color: string;
+  trailingStat?: React.ReactNode;
+};
+
+type SimpleBarChartProps = {
+  items: SimpleBarItem[];
+  currency: SupportedCurrency;
+};
+
+export function SimpleBarChart({ items, currency }: SimpleBarChartProps) {
+  const visible = items.filter(item => item.amount > 0 || item.prevAmount > 0);
+  if (visible.length === 0) return null;
+  const max = visible.reduce((m, item) => Math.max(m, item.amount, item.prevAmount), 1);
+
+  return (
+    <div className="flex flex-col gap-2">
+      {visible.map(item => (
+        <BarRow
+          key={item.key}
+          leading={<span className="block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />}
+          name={item.name}
+          amount={item.amount}
+          prevAmount={item.prevAmount}
+          currency={currency}
+          barColor={item.color}
+          trailingStat={item.trailingStat ?? null}
+          max={max}
+        />
+      ))}
+    </div>
+  );
+}
+
 // ─── Payee bar chart ──────────────────────────────────────────────────────────
 
 type PayeeBarChartProps = {
