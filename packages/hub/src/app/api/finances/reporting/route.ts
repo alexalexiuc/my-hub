@@ -6,6 +6,9 @@ import {
   getTransactions,
   getAccountById,
   getAccountsCashflow,
+  getSavingsAndDebtFlows,
+  getCategories,
+  getGroups,
 } from '@my-hub/shared/services';
 import type { CategoryIcon } from '@my-hub/shared/constants';
 import { TransactionTypes } from '@my-hub/shared/constants';
@@ -34,6 +37,20 @@ const categoryBreakdownItemSchema = z.object({
   amount: z.number(),
   prevAmount: z.number(),
   pct: z.number(),
+});
+
+const groupBreakdownItemSchema = z.object({
+  name: z.string(),
+  amount: z.number(),
+  prevAmount: z.number(),
+  pct: z.number(),
+});
+
+const savingsDebtFlowItemSchema = z.object({
+  key: z.enum(['savings', 'investments', 'debtRepayment']),
+  label: z.string(),
+  amount: z.number(),
+  prevAmount: z.number(),
 });
 
 const payeeItemSchema = z.object({
@@ -71,16 +88,20 @@ export const reportingResponseSchema = z.object({
   prevSummary: summarySchema.nullable(),
   dailySpending: z.array(dailyPointSchema).nullable(),
   categoryBreakdown: z.array(categoryBreakdownItemSchema),
+  groupBreakdown: z.array(groupBreakdownItemSchema),
   topPayees: z.array(payeeItemSchema),
   cashflowByMonth: z.array(cashflowMonthSchema).nullable(),
   accountCashflow: accountCashflowSchema.nullable(),
+  savingsDebtFlows: z.array(savingsDebtFlowItemSchema),
 });
 
 export type ReportingData = z.infer<typeof reportingResponseSchema>;
 export type ReportingCategoryItem = z.infer<typeof categoryBreakdownItemSchema>;
+export type ReportingGroupItem = z.infer<typeof groupBreakdownItemSchema>;
 export type ReportingPayeeItem = z.infer<typeof payeeItemSchema>;
 export type ReportingCashflowMonth = z.infer<typeof cashflowMonthSchema>;
 export type ReportingAccountCashflow = z.infer<typeof accountCashflowSchema>;
+export type ReportingSavingsDebtItem = z.infer<typeof savingsDebtFlowItemSchema>;
 
 const QuerySchema = z.object({
   dateMode: z.enum(['month', 'range', 'all']).default('month'),
@@ -158,6 +179,29 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
         getAccountsCashflow(user.id, budgetId, fromDate, toDate, [query.accountId]),
       ])
     : Promise.resolve(null);
+
+  // Transfers into savings/investment/loan accounts for the current and previous periods
+  const savingsDebtFlowsPromise = Promise.all([
+    getSavingsAndDebtFlows(user.id, budgetId, fromDate, toDate),
+    prevFromDate && prevToDate
+      ? getSavingsAndDebtFlows(user.id, budgetId, prevFromDate, prevToDate)
+      : Promise.resolve(null),
+  ]);
+
+  // Category -> group name lookup, used to roll up the category breakdown by group
+  const categoryGroupNamePromise = Promise.all([getCategories(user.id, budgetId), getGroups(user.id, budgetId)]).then(
+    ([categories, groups]) => {
+      const groupNameById = new Map(groups.map(g => [g.id, g.name]));
+      const categoryGroupName = new Map<number, string>();
+      for (const cat of categories) {
+        categoryGroupName.set(
+          cat.id,
+          cat.groupId != null ? (groupNameById.get(cat.groupId) ?? 'Ungrouped') : 'Ungrouped',
+        );
+      }
+      return categoryGroupName;
+    },
+  );
 
   // Determine which type to use for the breakdown (expense by default, income if explicitly set)
   const breakdownType = query.type === TransactionTypes.Income ? TransactionTypes.Income : TransactionTypes.Expense;
@@ -303,6 +347,31 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
       pct: totalForPct > 0 ? Math.round((c.amount / totalForPct) * 1000) / 10 : 0,
     }));
 
+  // Category group breakdown (categorized transactions rolled up to the parent group)
+  const categoryGroupName = await categoryGroupNamePromise;
+  const groupMap = new Map<string, number>();
+  for (const t of breakdownTxns) {
+    if (t.categoryId == null) continue;
+    const key = categoryGroupName.get(t.categoryId) ?? 'Ungrouped';
+    groupMap.set(key, (groupMap.get(key) ?? 0) + t.amount);
+  }
+
+  const prevGroupMap = new Map<string, number>();
+  for (const t of prevBreakdownTxns) {
+    if (t.categoryId == null) continue;
+    const key = categoryGroupName.get(t.categoryId) ?? 'Ungrouped';
+    prevGroupMap.set(key, (prevGroupMap.get(key) ?? 0) + t.amount);
+  }
+
+  const groupBreakdown = Array.from(groupMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, amount]) => ({
+      name,
+      amount: Math.round(amount * 100) / 100,
+      prevAmount: Math.round((prevGroupMap.get(name) ?? 0) * 100) / 100,
+      pct: totalForPct > 0 ? Math.round((amount / totalForPct) * 1000) / 10 : 0,
+    }));
+
   // Top payees
   const payeeMap = new Map<number, { name: string; count: number; total: number }>();
   for (const t of breakdownTxns) {
@@ -412,6 +481,19 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
     }
   }
 
+  // Savings, investments, and debt repayment flows
+  const [flows, prevFlows] = await savingsDebtFlowsPromise;
+  const savingsDebtFlows: ReportingSavingsDebtItem[] = [
+    { key: 'savings', label: 'Savings', amount: flows.savings, prevAmount: prevFlows?.savings ?? 0 },
+    { key: 'investments', label: 'Investments', amount: flows.investments, prevAmount: prevFlows?.investments ?? 0 },
+    {
+      key: 'debtRepayment',
+      label: 'Debt Repayment',
+      amount: flows.debtRepayment,
+      prevAmount: prevFlows?.debtRepayment ?? 0,
+    },
+  ];
+
   return {
     currency,
     dateMode: query.dateMode,
@@ -423,8 +505,10 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
     prevSummary,
     dailySpending,
     categoryBreakdown,
+    groupBreakdown,
     topPayees,
     cashflowByMonth,
     accountCashflow,
+    savingsDebtFlows,
   };
 });
