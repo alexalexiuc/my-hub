@@ -6,7 +6,7 @@
  * - getSpendingAggregates(userId, budgetId, opts) — flexible groupBy aggregation
  * - getComparison(userId, budgetId, opts) — side-by-side period comparison with absolute and percentage delta
  * - getAccountsCashflow(userId, budgetId, dateFrom, dateTo, accountIds?) — per-account income vs spending (expenses + categorized transfers) for a date range
- * - getSavingsAndDebtFlows(userId, budgetId, dateFrom, dateTo) — transfers into Goal/Tracking (savings), Investment, and Loan (debt repayment) accounts for a date range
+ * - getSavingsAndDebtFlows(userId, budgetId, dateFrom, dateTo) — net transfers (in minus out) into Goal/Tracking (savings), Investment, and Loan (debt repayment) accounts for a date range
  * - getNetWorthSummary(userId, budgetId) — current net worth with account breakdown and history
  * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, ComparisonResult, ComparisonGroup, AccountCashflowResult, SavingsAndDebtFlowsResult, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
  */
@@ -303,10 +303,12 @@ export interface SavingsAndDebtFlowsResult {
 }
 
 /**
- * Returns the total amount transferred (in the budget's default currency) into
+ * Returns the net amount transferred (in the budget's default currency) into
  * Goal/Tracking accounts (savings), Investment accounts, and Loan accounts (debt
- * repayment) during a date range. Credit Card repayments are intentionally excluded —
- * those are already reflected as spending via getAccountsCashflow.
+ * repayment) during a date range. "Net" means transfers out of these account types
+ * (e.g. withdrawing from savings back to a bank account) reduce the total — moving
+ * 30k into savings and then 10k back out nets to 20k. Credit Card repayments are
+ * intentionally excluded — those are already reflected as spending via getAccountsCashflow.
  */
 export async function getSavingsAndDebtFlows(
   userId: string,
@@ -318,44 +320,49 @@ export async function getSavingsAndDebtFlows(
     throw new Error('Budget not found');
   }
 
-  const rows = await db
+  const trackedTypes = [AccountTypes.Goal, AccountTypes.Tracking, AccountTypes.Investment, AccountTypes.Loan];
+
+  const baseConditions = [
+    eq(financeTransactions.budgetId, budgetId),
+    eq(financeTransactions.type, TransactionTypes.Transfer),
+    eq(financeTransactions.isCorrection, false),
+    gte(financeTransactions.date, dateFrom),
+    lte(financeTransactions.date, dateTo),
+  ];
+
+  // Inflows: transfers into Goal/Tracking/Investment/Loan accounts.
+  const inflowRows = await db
     .select({
-      toAccountType: financeAccounts.type,
+      accountType: financeAccounts.type,
       total: sql<string>`sum(${financeTransactions.amount} * ${financeTransactions.exchangeRate})`,
     })
     .from(financeTransactions)
     .innerJoin(financeAccounts, eq(financeAccounts.id, financeTransactions.toAccountId))
-    .where(
-      and(
-        eq(financeTransactions.budgetId, budgetId),
-        eq(financeTransactions.type, TransactionTypes.Transfer),
-        eq(financeTransactions.isCorrection, false),
-        gte(financeTransactions.date, dateFrom),
-        lte(financeTransactions.date, dateTo),
-        inArray(financeAccounts.type, [
-          AccountTypes.Goal,
-          AccountTypes.Tracking,
-          AccountTypes.Investment,
-          AccountTypes.Loan,
-        ]),
-      ),
-    )
+    .where(and(...baseConditions, inArray(financeAccounts.type, trackedTypes)))
     .groupBy(financeAccounts.type);
 
-  let savings = 0;
-  let investments = 0;
-  let debtRepayment = 0;
+  // Outflows: transfers out of Goal/Tracking/Investment/Loan accounts (e.g. withdrawals).
+  const outflowRows = await db
+    .select({
+      accountType: financeAccounts.type,
+      total: sql<string>`sum(${financeTransactions.amount} * ${financeTransactions.exchangeRate})`,
+    })
+    .from(financeTransactions)
+    .innerJoin(financeAccounts, eq(financeAccounts.id, financeTransactions.accountId))
+    .where(and(...baseConditions, inArray(financeAccounts.type, trackedTypes)))
+    .groupBy(financeAccounts.type);
 
-  for (const row of rows) {
-    const amount = parseFloat(row.total ?? '0');
-    if (row.toAccountType === AccountTypes.Goal || row.toAccountType === AccountTypes.Tracking) {
-      savings += amount;
-    } else if (row.toAccountType === AccountTypes.Investment) {
-      investments += amount;
-    } else if (row.toAccountType === AccountTypes.Loan) {
-      debtRepayment += amount;
-    }
+  const netByType = new Map<AccountType, number>();
+  for (const row of inflowRows) {
+    netByType.set(row.accountType, (netByType.get(row.accountType) ?? 0) + parseFloat(row.total ?? '0'));
   }
+  for (const row of outflowRows) {
+    netByType.set(row.accountType, (netByType.get(row.accountType) ?? 0) - parseFloat(row.total ?? '0'));
+  }
+
+  const savings = (netByType.get(AccountTypes.Goal) ?? 0) + (netByType.get(AccountTypes.Tracking) ?? 0);
+  const investments = netByType.get(AccountTypes.Investment) ?? 0;
+  const debtRepayment = netByType.get(AccountTypes.Loan) ?? 0;
 
   return {
     savings: Math.round(savings * 100) / 100,
