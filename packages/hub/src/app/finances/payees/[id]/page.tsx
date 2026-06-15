@@ -6,6 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import type { PayeesResponse, PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 import { TransactionList } from '../../transactions/TransactionList';
 import { EditPayeeModal } from '../EditPayeeModal';
+import { PayeeSummarySection } from './PayeeSummarySection';
 import { Button, Card, SectionLabel, SubText } from '@/components';
 
 export default function PayeeDetailPage() {
@@ -86,6 +87,8 @@ export default function PayeeDetailPage() {
           </div>
         )}
       </Card>
+
+      <PayeeSummarySection payeeId={payeeId} />
 
       <Card className="p-0 md:p-[14px]">
         <SectionLabel className="mb-2.5 mt-[14px] px-[14px] md:mt-0 md:px-0">Transactions</SectionLabel>

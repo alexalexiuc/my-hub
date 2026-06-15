@@ -5,17 +5,19 @@
  * - resolvePayeeIdByNameOrAlias(userId, budgetId, name) — resolves payee id or undefined
  * - updatePayee(userId, budgetId, payeeId, patch) — updates payee name/aliases/description
  * - getPayees(userId, budgetId) — returns all payees ranked by user usage; includes aliases, description, and stats
+ * - getPayeeSummary(userId, budgetId, payeeId) — all-time stats for a single payee: txCount, totalSpent, totalIncome, avgSpent, firstDate, lastDate, topCategory, topAccount
  * - deletePayee(userId, budgetId, payeeId) — hard delete
  * - incrementPayeeStats(tx, payeeId, userId, categoryId, accountId?) — called inside transaction writes
  * - decrementPayeeStats(tx, payeeId, userId) — called inside transaction deletes
- * Types: Payee
+ * Types: Payee, PayeeSummary
  */
 import { and, asc, eq, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { financePayees, financeTransactions } from '../../db/schema/finances';
+import { financeAccounts, financeCategories, financePayees, financeTransactions } from '../../db/schema/finances';
 import { hasAccessToBudget } from './budgets';
 import type { FinancePayee } from '../../types';
 import { omitNullish } from '../../utils';
+import { TransactionTypes, type CategoryIcon } from '../../constants/finances';
 
 export interface Payee {
   id: number;
@@ -216,6 +218,86 @@ export async function getPayees(userId: string, budgetId: number): Promise<Payee
   });
 
   return withStats;
+}
+
+export interface PayeeSummary {
+  txCount: number;
+  totalSpent: number;
+  totalIncome: number;
+  avgSpent: number | null;
+  firstDate: string | null;
+  lastDate: string | null;
+  topCategory: { id: number; name: string; color: string | null; icon: CategoryIcon | null } | null;
+  topAccount: { id: number; name: string } | null;
+}
+
+/**
+ * All-time stats for a single payee: transaction count, total spent/received,
+ * average expense, first/last transaction dates, and the most-used category and account.
+ */
+export async function getPayeeSummary(userId: string, budgetId: number, payeeId: number): Promise<PayeeSummary> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const conditions = [
+    eq(financeTransactions.budgetId, budgetId),
+    eq(financeTransactions.payeeId, payeeId),
+    eq(financeTransactions.isCorrection, false),
+  ];
+
+  const [[totals], [topCategory], [topAccount]] = await Promise.all([
+    db
+      .select({
+        txCount: sql<number>`count(*)::int`,
+        expenseCount: sql<number>`count(*) filter (where ${financeTransactions.type} = ${TransactionTypes.Expense})::int`,
+        totalSpent: sql<string>`coalesce(sum(${financeTransactions.amount}) filter (where ${financeTransactions.type} = ${TransactionTypes.Expense}), 0)`,
+        totalIncome: sql<string>`coalesce(sum(${financeTransactions.amount}) filter (where ${financeTransactions.type} = ${TransactionTypes.Income}), 0)`,
+        firstDate: sql<string | null>`min(${financeTransactions.date})`,
+        lastDate: sql<string | null>`max(${financeTransactions.date})`,
+      })
+      .from(financeTransactions)
+      .where(and(...conditions)),
+    db
+      .select({
+        id: financeCategories.id,
+        name: financeCategories.name,
+        color: financeCategories.color,
+        icon: financeCategories.icon,
+      })
+      .from(financeTransactions)
+      .innerJoin(financeCategories, eq(financeCategories.id, financeTransactions.categoryId))
+      .where(and(...conditions))
+      .groupBy(financeCategories.id, financeCategories.name, financeCategories.color, financeCategories.icon)
+      .orderBy(sql`count(*) desc`)
+      .limit(1),
+    db
+      .select({
+        id: financeAccounts.id,
+        name: financeAccounts.name,
+      })
+      .from(financeTransactions)
+      .innerJoin(financeAccounts, eq(financeAccounts.id, financeTransactions.accountId))
+      .where(and(...conditions))
+      .groupBy(financeAccounts.id, financeAccounts.name)
+      .orderBy(sql`count(*) desc`)
+      .limit(1),
+  ]);
+
+  const totalSpent = Math.round(Number(totals?.totalSpent ?? 0) * 100) / 100;
+  const totalIncome = Math.round(Number(totals?.totalIncome ?? 0) * 100) / 100;
+  const expenseCount = totals?.expenseCount ?? 0;
+
+  return {
+    txCount: totals?.txCount ?? 0,
+    totalSpent,
+    totalIncome,
+    avgSpent: expenseCount > 0 ? Math.round((totalSpent / expenseCount) * 100) / 100 : null,
+    firstDate: totals?.firstDate ?? null,
+    lastDate: totals?.lastDate ?? null,
+    topCategory: topCategory ?? null,
+    topAccount: topAccount ?? null,
+  };
 }
 
 export async function deletePayee(userId: string, budgetId: number, payeeId: number): Promise<void> {
