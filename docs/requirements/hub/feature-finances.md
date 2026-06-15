@@ -71,6 +71,8 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 | TR-30 | `getAccountsCashflow(userId, budgetId, dateFrom, dateTo, accountIds?)` in shared `reporting.ts` computes per-account income vs spending for a date range, where "spending" is expense transactions plus transfer transactions that have a category (e.g. loan repayments); uncategorized transfers are excluded. |
 | TR-31 | The Accounts page list API exposes `monthIncome`/`monthExpenses` (current month, via `getAccountsCashflow`) for Bank and Cash accounts only; the Accounts page renders these as a small green/red line under the account name.                                                                                   |
 | TR-32 | The Reporting page API exposes `accountCashflow` (account name, currency, income, expenses, net for the active period) when the `accountId` filter is set; the Reporting page renders this as an "Income vs Spending" card for the selected account.                                                             |
+| TR-33 | The Payees report API (`/api/finances/payees/report`) must aggregate spending across the full selected date range without an arbitrary row cap, so payees whose matching expense transactions fall outside the most-recent rows still report correct `totalSpent`/`txCount` instead of "No data".                |
+| TR-34 | The Payee detail page must show an all-time summary (transaction count, total spent, average per transaction, total received, first/last transaction dates, top category, top account) via `getPayeeSummary` and `GET /api/finances/payees/[id]`.                                                                |
 
 ---
 
@@ -117,3 +119,5 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 - [x] The Reporting "Net" summary card renders a single leading sign (`-`/`+`) for negative/positive values, without doubling the currency formatter's own minus sign.
 - [x] Bank and Cash account rows on the Accounts page show current-month income (green) and spending (red, including categorized transfers) under the account name.
 - [x] Selecting an account filter on the Reporting page shows an "Income vs Spending" card for that account covering the active period (month/range/all).
+- [x] The Payees list shows correct totals/transaction counts for payees with expense history anywhere in the selected range, even when the budget has a large number of transactions.
+- [x] The Payee detail page shows a summary card (transaction count, total spent, average per transaction, total received if any, first/last transaction dates, top category, top account) above the transaction list.

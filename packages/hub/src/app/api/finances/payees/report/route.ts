@@ -55,8 +55,7 @@ export const GET = route({
   const [payees, categories, txns] = await Promise.all([
     getPayees(user.id, budgetId),
     getCategories(user.id, budgetId),
-    // TODO: Review - this is misleading.
-    getTransactions(user.id, budgetId, { type: TransactionTypes.Expense, fromDate, toDate, limit: 2000 }),
+    getTransactions(user.id, budgetId, { type: TransactionTypes.Expense, fromDate, toDate }),
   ]);
 
   const payeeMap = new Map(payees.map(p => [p.id, p]));
