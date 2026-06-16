@@ -170,8 +170,8 @@ export function TransactionModal({
       amount: parseFloat(values.amount),
       date: values.date,
       categoryId: selCatId,
-      payeeName: values.payee.trim() || undefined,
-      notes: values.note.trim() || undefined,
+      payeeName: values.payee.trim(),
+      notes: values.note.trim(),
       labels: values.labels,
     };
 
