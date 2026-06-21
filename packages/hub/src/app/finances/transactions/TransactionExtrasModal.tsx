@@ -47,6 +47,11 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
       receipt.discountAmount != null);
   const hasItems = receipt?.items && receipt.items.length > 0;
 
+  // Receipt-derived amounts (tax/tip/discount/line items) are captured by the AI
+  // straight from the receipt text, so they're in the original transaction currency,
+  // not the account currency the rest of the ledger is shown in.
+  const receiptCurrency = extras.conversion?.originalCurrency ?? currency;
+
   return (
     <FinModalShell title="Transaction extras" onClose={onClose} className="md:max-w-[460px]">
       {hasBase && (
@@ -94,9 +99,11 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
         <Section title="Receipt">
           {receipt.payeeAddress && <Row label="Address" value={receipt.payeeAddress} />}
           {receipt.receiptNumber && <Row label="Receipt #" value={receipt.receiptNumber} />}
-          {receipt.taxAmount != null && <Row label="Tax" value={fmt(receipt.taxAmount, currency)} />}
-          {receipt.tipAmount != null && <Row label="Tip" value={fmt(receipt.tipAmount, currency)} />}
-          {receipt.discountAmount != null && <Row label="Discount" value={fmt(receipt.discountAmount, currency)} />}
+          {receipt.taxAmount != null && <Row label="Tax" value={fmt(receipt.taxAmount, receiptCurrency)} />}
+          {receipt.tipAmount != null && <Row label="Tip" value={fmt(receipt.tipAmount, receiptCurrency)} />}
+          {receipt.discountAmount != null && (
+            <Row label="Discount" value={fmt(receipt.discountAmount, receiptCurrency)} />
+          )}
         </Section>
       )}
 
@@ -109,7 +116,9 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
                 {item.name}
               </span>
               {item.totalPrice != null && (
-                <span className="shrink-0 tabular-nums text-[var(--muted)]">{fmt(item.totalPrice, currency)}</span>
+                <span className="shrink-0 tabular-nums text-[var(--muted)]">
+                  {fmt(item.totalPrice, receiptCurrency)}
+                </span>
               )}
             </div>
           ))}
