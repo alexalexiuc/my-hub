@@ -21,9 +21,9 @@ import { MealTypes, MeasurementTypes } from '@my-hub/shared/constants';
 export const MealItemSchema = z.object({
   name: z.string().describe('Name of the food item, e.g. "grilled chicken breast"'),
   calories: z.number().int().positive().describe('Estimated calories for this item'),
-  proteinG: z.number().positive().optional().describe('Estimated protein in grams'),
-  carbsG: z.number().positive().optional().describe('Estimated carbs in grams'),
-  fatG: z.number().positive().optional().describe('Estimated fat in grams'),
+  proteinG: z.number().nonnegative().optional().describe('Estimated protein in grams'),
+  carbsG: z.number().nonnegative().optional().describe('Estimated carbs in grams'),
+  fatG: z.number().nonnegative().optional().describe('Estimated fat in grams'),
 });
 
 export const LogMealSchema = z.object({
@@ -52,9 +52,9 @@ export const LogMealSchema = z.object({
       'Type of meal: "breakfast" | "lunch" | "dinner" | "snack". If not specified, infer from the time of day or context.',
     ),
   date: yyyyMmDdSchema.optional().describe('Date of the meal (YYYY-MM-DD). Defaults to today.'),
-  proteinG: z.number().positive().optional().describe('Estimated protein content in grams'),
-  carbsG: z.number().positive().optional().describe('Estimated carbohydrate content in grams'),
-  fatG: z.number().positive().optional().describe('Estimated fat content in grams'),
+  proteinG: z.number().nonnegative().optional().describe('Estimated protein content in grams'),
+  carbsG: z.number().nonnegative().optional().describe('Estimated carbohydrate content in grams'),
+  fatG: z.number().nonnegative().optional().describe('Estimated fat content in grams'),
   notes: z.string().optional().describe('Any additional notes, e.g. "restaurant portion, may be larger than typical"'),
 });
 
