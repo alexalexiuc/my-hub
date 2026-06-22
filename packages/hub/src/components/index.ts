@@ -7,6 +7,8 @@ export { Card } from './Card';
 export type { CardProps } from './Card';
 export { Checkbox } from './Checkbox';
 export { ColorPicker } from './ColorPicker';
+export { Collapsible } from './Collapsible';
+export type { CollapsibleProps, CollapsibleVariant } from './Collapsible';
 export { ConfirmModal } from './ConfirmModal';
 export { DatePicker } from './DatePicker';
 export type { DatePickerProps, DateMode } from './DatePicker';

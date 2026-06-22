@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode, useEffect, useState } from 'react';
-import { ChevronDownOutlineIcon, ChevronRightOutlineIcon } from './icons';
+import { Collapsible } from './Collapsible';
 
 export type DisclosureToggleProps = {
   label: string;
@@ -34,20 +34,16 @@ export function DisclosureToggle({
     }
   }, [openSignal]);
 
-  const ToggleIcon = isOpen ? ChevronDownOutlineIcon : ChevronRightOutlineIcon;
-
   return (
-    <div className={className ?? 'space-y-3'}>
-      <button
-        type="button"
-        className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors flex items-center gap-1"
-        onClick={() => setIsOpen(v => !v)}
-      >
-        <ToggleIcon className="size-3.5" />
-        <span>{label}</span>
-      </button>
-
-      {isOpen ? <div className={contentClassName}>{children}</div> : null}
-    </div>
+    <Collapsible
+      variant="text"
+      label={label}
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className={className}
+      contentClassName={contentClassName}
+    >
+      {children}
+    </Collapsible>
   );
 }

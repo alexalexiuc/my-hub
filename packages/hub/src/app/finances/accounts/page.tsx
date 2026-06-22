@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn, apiFetch } from '@/lib/utils';
 import { fmt, AddButton, TYPE_META } from '../ui';
-import { Card, Divider, IconButton, SectionLabel, Sparkline, SubText } from '@/components';
+import { Card, Collapsible, Divider, IconButton, Sparkline, SubText } from '@/components';
 import { QuestionMarkIcon } from '@/components/icons';
 import { AccountModal } from './AccountModal';
 import { AccountProgressBar } from './AccountProgressBar';
@@ -181,78 +181,31 @@ export default function AccountsPage() {
         const isCollapsed = collapsedGroups.has(key);
         const groupedAccounts = groupAccountsByCurrency(accs);
         return (
-          <div key={key}>
-            <button
-              onClick={() => toggleGroup(key)}
-              className="mb-1 flex w-full cursor-pointer items-center justify-between"
-            >
-              <SectionLabel className="mb-0">
+          <Collapsible
+            key={key}
+            variant="text"
+            label={
+              <>
                 {icon} {label}
-              </SectionLabel>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-semibold tabular-nums text-[var(--muted)]">
-                  {groupedAccounts.map(([currency, accounts]) => {
-                    const groupTotal = accounts.reduce((sum, acc) => sum + acc.balance, 0);
-                    return (
-                      <span key={currency} className="ml-2">
-                        {fmt(groupTotal, currency)}
-                      </span>
-                    );
-                  })}
-                </span>
-                <span
-                  className={cn(
-                    'text-[9px] text-[var(--subtle)] transition-transform duration-200',
-                    !isCollapsed && 'rotate-90',
-                  )}
-                >
-                  ▶
-                </span>
-              </div>
-            </button>
-            {!isCollapsed && (
-              <Card className="p-0">
-                {accs.map((acc, i) => (
-                  <div key={acc.id}>
-                    {i > 0 && <Divider />}
-                    <AccountCard
-                      acc={acc}
-                      onSettle={handleSettle}
-                      onClick={() => router.push(`/finances/accounts/${acc.id}`)}
-                    />
-                  </div>
-                ))}
-              </Card>
-            )}
-          </div>
-        );
-      })}
-
-      {activeAccounts.length === 0 && archivedAccounts.length === 0 && (
-        <div className="py-12 text-center text-[13px] text-[var(--subtle)]">
-          No accounts yet. Add your first account to get started.
-        </div>
-      )}
-
-      {archivedAccounts.length > 0 && (
-        <div>
-          <button
-            onClick={() => setShowArchived(v => !v)}
-            className="mb-1 flex w-full cursor-pointer items-center justify-between"
+              </>
+            }
+            open={!isCollapsed}
+            onOpenChange={() => toggleGroup(key)}
+            actions={
+              <span className="text-[11px] font-semibold tabular-nums text-[var(--muted)]">
+                {groupedAccounts.map(([currency, accounts]) => {
+                  const groupTotal = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+                  return (
+                    <span key={currency} className="ml-2">
+                      {fmt(groupTotal, currency)}
+                    </span>
+                  );
+                })}
+              </span>
+            }
           >
-            <SectionLabel className="mb-0">🗄 Archived ({archivedAccounts.length})</SectionLabel>
-            <span
-              className={cn(
-                'text-[9px] text-[var(--subtle)] transition-transform duration-200',
-                showArchived && 'rotate-90',
-              )}
-            >
-              ▶
-            </span>
-          </button>
-          {showArchived && (
             <Card className="p-0">
-              {archivedAccounts.map((acc, i) => (
+              {accs.map((acc, i) => (
                 <div key={acc.id}>
                   {i > 0 && <Divider />}
                   <AccountCard
@@ -263,8 +216,36 @@ export default function AccountsPage() {
                 </div>
               ))}
             </Card>
-          )}
+          </Collapsible>
+        );
+      })}
+
+      {activeAccounts.length === 0 && archivedAccounts.length === 0 && (
+        <div className="py-12 text-center text-[13px] text-[var(--subtle)]">
+          No accounts yet. Add your first account to get started.
         </div>
+      )}
+
+      {archivedAccounts.length > 0 && (
+        <Collapsible
+          variant="text"
+          label={`🗄 Archived (${archivedAccounts.length})`}
+          open={showArchived}
+          onOpenChange={setShowArchived}
+        >
+          <Card className="p-0">
+            {archivedAccounts.map((acc, i) => (
+              <div key={acc.id}>
+                {i > 0 && <Divider />}
+                <AccountCard
+                  acc={acc}
+                  onSettle={handleSettle}
+                  onClick={() => router.push(`/finances/accounts/${acc.id}`)}
+                />
+              </div>
+            ))}
+          </Card>
+        </Collapsible>
       )}
 
       {showAddModal && (

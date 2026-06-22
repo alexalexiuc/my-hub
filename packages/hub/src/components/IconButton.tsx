@@ -12,6 +12,7 @@ interface Props {
   disabled?: boolean;
   className?: string;
   variant?: 'default' | 'ghost';
+  'aria-expanded'?: boolean;
 }
 
 const variantClassName = {
@@ -28,6 +29,7 @@ export function IconButton({
   disabled = false,
   className,
   variant = 'default',
+  'aria-expanded': ariaExpanded,
 }: Props) {
   const content = loading ? <SpinnerIcon className="opacity-70" /> : icon;
   const base = variantClassName[variant];
@@ -47,6 +49,7 @@ export function IconButton({
       className={cn(base, 'disabled:opacity-50', className)}
       aria-label={label}
       title={label}
+      aria-expanded={ariaExpanded}
     >
       {content}
     </button>
