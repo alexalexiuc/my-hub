@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Card } from '@/components';
+import { Card, Collapsible } from '@/components';
 import { TravelSectionHeader } from './ui';
 import { BookingTypeIcon, Button, MarkdownView } from '@/components';
 import { PinIcon } from '@/components/icons';
@@ -38,6 +38,8 @@ type DayCardProps = {
 
 function DayCard({ dateStr, note, bookings, dayPlaces, canEdit, tripId, onChanged }: DayCardProps) {
   const [showModal, setShowModal] = useState(false);
+  const isPastDay = dateStr < toUTCDateStr(new Date());
+  const [isExpanded, setIsExpanded] = useState(!isPastDay);
 
   const dayBookings = bookings.filter(b => b.startAt && toUTCDateStr(new Date(b.startAt)) === dateStr);
 
@@ -67,10 +69,15 @@ function DayCard({ dateStr, note, bookings, dayPlaces, canEdit, tripId, onChange
         />
       )}
 
-      <div className="space-y-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-[var(--text)]">{formatDayHeading(dateStr)}</h3>
-          {canEdit && (
+      <Collapsible
+        variant="box"
+        label={formatDayHeading(dateStr)}
+        open={isExpanded}
+        onOpenChange={setIsExpanded}
+        contentClassName="space-y-3"
+        actions={
+          canEdit &&
+          isExpanded && (
             <Button
               type="button"
               variant="ghost"
@@ -80,9 +87,9 @@ function DayCard({ dateStr, note, bookings, dayPlaces, canEdit, tripId, onChange
             >
               {note ? 'Edit' : '+ Add notes'}
             </Button>
-          )}
-        </div>
-
+          )
+        }
+      >
         {dayBookings.length > 0 && (
           <ul className="space-y-1">
             {dayBookings.map(b => (
@@ -124,7 +131,7 @@ function DayCard({ dateStr, note, bookings, dayPlaces, canEdit, tripId, onChange
             <p className="text-xs italic text-[var(--subtle)]">No bookings or notes for this day.</p>
           )
         )}
-      </div>
+      </Collapsible>
     </>
   );
 }

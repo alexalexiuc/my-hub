@@ -106,7 +106,7 @@ describe('mapBookingsToSegments', () => {
     expect(segments[0]!.isActive).toBe(true);
   });
 
-  it('detects active booking with no endAt (within 2h window)', () => {
+  it('detects active booking with no endAt (within 1h window)', () => {
     const bookings = [makeBooking({ id: 1, startAt: new Date('2026-03-31T09:00:00Z') })];
     const segments = mapBookingsToSegments(bookings, [], now);
     expect(segments[0]!.isActive).toBe(true);
@@ -388,6 +388,78 @@ describe('mapBookingsToSegments', () => {
     expect(segments[0]!.isPast).toBe(true);
     expect(segments[0]!.timeBucket).toBe('past');
     expect(segments[0]!.isActive).toBe(false);
+  });
+
+  it('marks multi-day booking start segment as past once the start moment has elapsed, even though the booking itself is still ongoing', () => {
+    // Check-in was yesterday at 09:00, checkout is in 4 days — now is comfortably
+    // past the 1h grace window around check-in, so the start segment should read
+    // "past", not stay "now" for the entire multi-day stay.
+    const bookings = [
+      makeBooking({
+        id: 1,
+        bookingType: 'accommodation',
+        startAt: new Date('2026-03-30T09:00:00Z'),
+        endAt: new Date('2026-04-04T11:00:00Z'),
+      }),
+    ];
+    const segments = mapBookingsToSegments(bookings, [], now);
+    const startSegment = segments.find(s => s.segmentId === '1-start')!;
+    expect(startSegment.timeBucket).toBe('past');
+    expect(startSegment.isActive).toBe(false);
+    expect(startSegment.isPast).toBe(true);
+  });
+
+  it('keeps end segment "now" for up to 1h after its own moment (e.g. plane arriving)', () => {
+    // Flight departed yesterday and landed 30min before "now" — the arrival end segment
+    // should still read "now" (deplaning/baggage claim), based on its own datetime,
+    // independent of the start segment which is long past.
+    const bookings = [
+      makeBooking({
+        id: 1,
+        bookingType: 'flight',
+        startAt: new Date('2026-03-30T09:00:00Z'),
+        endAt: new Date('2026-03-31T09:30:00Z'),
+      }),
+    ];
+    const segments = mapBookingsToSegments(bookings, [], now);
+    const endSegment = segments.find(s => s.segmentId === '1-end')!;
+    expect(endSegment.timeBucket).toBe('now');
+    expect(endSegment.isActive).toBe(true);
+    expect(endSegment.isPast).toBe(false);
+  });
+
+  it('marks end segment as past once more than 1h has elapsed since its own moment', () => {
+    const bookings = [
+      makeBooking({
+        id: 1,
+        bookingType: 'flight',
+        startAt: new Date('2026-03-30T09:00:00Z'),
+        endAt: new Date('2026-03-31T08:00:00Z'),
+      }),
+    ];
+    const segments = mapBookingsToSegments(bookings, [], now);
+    const endSegment = segments.find(s => s.segmentId === '1-end')!;
+    expect(endSegment.timeBucket).toBe('past');
+    expect(endSegment.isActive).toBe(false);
+    expect(endSegment.isPast).toBe(true);
+  });
+
+  it('caps the start segment active window to the booking duration when shorter than 1h', () => {
+    // A 20-minute transfer: the start ("Pickup") segment should not still read "now"
+    // once the entire booking (pickup -> drop-off) has already finished.
+    const bookings = [
+      makeBooking({
+        id: 1,
+        bookingType: 'transfer',
+        startAt: new Date('2026-03-31T09:30:00Z'),
+        endAt: new Date('2026-03-31T09:50:00Z'),
+      }),
+    ];
+    const segments = mapBookingsToSegments(bookings, [], now);
+    const startSegment = segments.find(s => s.segmentId === '1-start')!;
+    expect(startSegment.timeBucket).toBe('past');
+    expect(startSegment.isActive).toBe(false);
+    expect(startSegment.isPast).toBe(true);
   });
 
   it('marks active booking timeBucket=now', () => {
