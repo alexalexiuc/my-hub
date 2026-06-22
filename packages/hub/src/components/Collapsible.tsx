@@ -14,6 +14,7 @@ export type CollapsibleProps = {
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  showIcon?: boolean;
   leading?: ReactNode;
   inlineActions?: ReactNode;
   actions?: ReactNode;
@@ -29,6 +30,7 @@ export function Collapsible({
   defaultOpen = true,
   open,
   onOpenChange,
+  showIcon = true,
   leading,
   inlineActions,
   actions,
@@ -55,18 +57,20 @@ export function Collapsible({
       <div className={cn('flex items-center justify-between gap-2', variant === 'text' && 'mb-1.5', headerClassName)}>
         <div className="flex min-w-0 items-center gap-1.5">
           {leading}
-          <IconButton
-            label={isOpen ? 'Collapse' : 'Expand'}
-            icon={
-              <ChevronRightOutlineIcon
-                className={cn('size-3.5 transition-transform duration-200', isOpen && 'rotate-90')}
-              />
-            }
-            onClick={toggle}
-            variant="ghost"
-            aria-expanded={isOpen}
-            className="shrink-0 rounded p-1 text-[var(--subtle)] hover:bg-[var(--card2)] hover:text-[var(--text)]"
-          />
+          {showIcon && (
+            <IconButton
+              label={isOpen ? 'Collapse' : 'Expand'}
+              icon={
+                <ChevronRightOutlineIcon
+                  className={cn('size-3.5 transition-transform duration-200', isOpen && 'rotate-90')}
+                />
+              }
+              onClick={toggle}
+              variant="ghost"
+              aria-expanded={isOpen}
+              className="shrink-0 rounded p-1 text-[var(--subtle)] hover:bg-[var(--card2)] hover:text-[var(--text)]"
+            />
+          )}
           <span
             onClick={toggle}
             className={cn(

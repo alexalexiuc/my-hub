@@ -63,6 +63,17 @@ describe('Collapsible', () => {
     expect(screen.getByRole('button', { name: 'Collapse' }).getAttribute('aria-expanded')).toBe('true');
   });
 
+  it('omits the toggle icon button when showIcon is false, but still toggles on label click', () => {
+    render(
+      <Collapsible label="Section" defaultOpen={true} showIcon={false}>
+        <p>Body content</p>
+      </Collapsible>,
+    );
+    expect(screen.queryByRole('button', { name: 'Collapse' })).toBeNull();
+    fireEvent.click(screen.getByText('Section'));
+    expect(screen.queryByText('Body content')).toBeNull();
+  });
+
   it('renders leading, inlineActions, and actions slots', () => {
     render(
       <Collapsible

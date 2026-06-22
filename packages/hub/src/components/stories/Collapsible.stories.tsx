@@ -40,3 +40,8 @@ export const WithLeadingAndActions: Story = {
     actions: <span className="text-[11px] font-semibold text-[var(--muted)]">$120 / $300</span>,
   },
 };
+
+export const NoIcon: Story = {
+  name: 'Text / No icon',
+  args: { variant: 'text', showIcon: false },
+};
