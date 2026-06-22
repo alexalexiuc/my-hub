@@ -74,10 +74,8 @@ export function Collapsible({
           <span
             onClick={toggle}
             className={cn(
-              'min-w-0 cursor-pointer truncate select-none',
-              variant === 'box'
-                ? 'text-sm font-semibold text-[var(--text)]'
-                : 'text-[13px] font-semibold text-[var(--text)]',
+              'min-w-0 cursor-pointer truncate select-none font-semibold text-[var(--text)]',
+              variant === 'box' ? 'text-sm' : 'text-[13px]',
             )}
           >
             {label}

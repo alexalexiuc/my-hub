@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn, apiFetch } from '@/lib/utils';
 import { fmt, AddButton, TYPE_META } from '../ui';
-import { Card, Collapsible, Divider, IconButton, Sparkline, SubText } from '@/components';
+import { Card, Collapsible, Divider, IconButton, SectionLabel, Sparkline, SubText } from '@/components';
 import { QuestionMarkIcon } from '@/components/icons';
 import { AccountModal } from './AccountModal';
 import { AccountProgressBar } from './AccountProgressBar';
@@ -185,9 +185,9 @@ export default function AccountsPage() {
             key={key}
             variant="text"
             label={
-              <>
+              <SectionLabel className="mb-0">
                 {icon} {label}
-              </>
+              </SectionLabel>
             }
             open={!isCollapsed}
             onOpenChange={() => toggleGroup(key)}
@@ -229,9 +229,9 @@ export default function AccountsPage() {
       {archivedAccounts.length > 0 && (
         <Collapsible
           variant="text"
-          label={`🗄 Archived (${archivedAccounts.length})`}
+          label={<SectionLabel className="mb-0">🗄 Archived ({archivedAccounts.length})</SectionLabel>}
           open={showArchived}
-          onOpenChange={setShowArchived}
+          onOpenChange={() => setShowArchived(v => !v)}
         >
           <Card className="p-0">
             {archivedAccounts.map((acc, i) => (
