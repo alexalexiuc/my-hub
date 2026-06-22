@@ -361,17 +361,22 @@ export function mapBookingsToSegments(
   }
 
   const nowMs = now.getTime();
-  const TWO_HOURS = 2 * 60 * 60 * 1000;
   const ONE_HOUR = 60 * 60 * 1000;
   const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+  const ACTIVE_WINDOW = ONE_HOUR; // each segment is "now" for up to 1h around its own moment
 
+  // Buckets a single point-in-time event (a segment's own datetime) using a short grace
+  // window around it, instead of the booking's full start..end span. This way a flight
+  // arrival, hotel check-in, or car pickup only reads "Now" briefly around the actual
+  // moment, then "Past" — even though the underlying booking may still be ongoing.
   function timeBucketFor(
-    startMs: number,
-    endMs: number,
+    eventMs: number,
+    windowMs: number = ACTIVE_WINDOW,
   ): { timeBucket: TimeBucket; isActive: boolean; isPast: boolean } {
-    const isActive = nowMs >= startMs && nowMs <= endMs;
-    const isPast = endMs < nowMs;
-    const diffMs = startMs - nowMs;
+    const windowEnd = eventMs + windowMs;
+    const isActive = nowMs >= eventMs && nowMs <= windowEnd;
+    const isPast = windowEnd < nowMs;
+    const diffMs = eventMs - nowMs;
     let timeBucket: TimeBucket;
     if (isPast) timeBucket = 'past';
     else if (isActive) timeBucket = 'now';
@@ -395,11 +400,13 @@ export function mapBookingsToSegments(
     const fd = booking.flightData;
 
     const startMs = new Date(booking.startAt!).getTime();
-    const endMs = booking.endAt ? new Date(booking.endAt).getTime() : startMs + TWO_HOURS;
+    const endMs = booking.endAt ? new Date(booking.endAt).getTime() : null;
     const duration = computeDuration(booking, fd);
 
-    // Start segment
-    const startBucket = timeBucketFor(startMs, booking.endAt ? endMs : startMs + TWO_HOURS);
+    // Start segment — own moment, capped to the booking's actual duration if that's
+    // shorter than the 1h grace window (e.g. a 20-minute transfer).
+    const startWindow = endMs != null ? Math.max(Math.min(ACTIVE_WINDOW, endMs - startMs), 0) : ACTIVE_WINDOW;
+    const startBucket = timeBucketFor(startMs, startWindow);
     segments.push({
       segmentId: `${booking.id}-start`,
       bookingId: booking.id,
@@ -415,9 +422,10 @@ export function mapBookingsToSegments(
       ...startBucket,
     });
 
-    // End segment — only when endAt is explicitly set
-    if (booking.endAt) {
-      const endBucket = timeBucketFor(endMs, endMs);
+    // End segment — only when endAt is explicitly set. Own moment, same 1h grace window
+    // (e.g. a flight "Arrival" stays "Now" briefly for deplaning, then goes "Past").
+    if (booking.endAt && endMs != null) {
+      const endBucket = timeBucketFor(endMs);
       segments.push({
         segmentId: `${booking.id}-end`,
         bookingId: booking.id,

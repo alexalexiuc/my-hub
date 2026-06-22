@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card } from '@/components';
 import { TravelSectionHeader } from './ui';
 import { BookingTypeIcon, Button, MarkdownView } from '@/components';
-import { PinIcon } from '@/components/icons';
+import { ChevronDownOutlineIcon, ChevronRightOutlineIcon, PinIcon } from '@/components/icons';
 import type { TripPlace, TripWithStatus } from '@my-hub/shared/types';
 import type { TripBookingExtended, TripDay } from './types';
 import { calendarDays, formatDayHeading, toUTCDateStr } from '@my-hub/shared/utils';
@@ -38,8 +38,11 @@ type DayCardProps = {
 
 function DayCard({ dateStr, note, bookings, dayPlaces, canEdit, tripId, onChanged }: DayCardProps) {
   const [showModal, setShowModal] = useState(false);
+  const isPastDay = dateStr < toUTCDateStr(new Date());
+  const [isExpanded, setIsExpanded] = useState(!isPastDay);
 
   const dayBookings = bookings.filter(b => b.startAt && toUTCDateStr(new Date(b.startAt)) === dateStr);
+  const ChevronIcon = isExpanded ? ChevronDownOutlineIcon : ChevronRightOutlineIcon;
 
   async function handleSave(title: string, notes: string) {
     await apiFetch(`/api/travel/trips/${tripId}/days`, {
@@ -69,8 +72,16 @@ function DayCard({ dateStr, note, bookings, dayPlaces, canEdit, tripId, onChange
 
       <div className="space-y-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-[var(--text)]">{formatDayHeading(dateStr)}</h3>
-          {canEdit && (
+          <button
+            type="button"
+            onClick={() => setIsExpanded(v => !v)}
+            aria-expanded={isExpanded}
+            className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text)] hover:text-[var(--muted)]"
+          >
+            <ChevronIcon className="size-3.5 shrink-0 text-[var(--subtle)]" />
+            <span>{formatDayHeading(dateStr)}</span>
+          </button>
+          {canEdit && isExpanded && (
             <Button
               type="button"
               variant="ghost"
@@ -83,46 +94,52 @@ function DayCard({ dateStr, note, bookings, dayPlaces, canEdit, tripId, onChange
           )}
         </div>
 
-        {dayBookings.length > 0 && (
-          <ul className="space-y-1">
-            {dayBookings.map(b => (
-              <li key={b.id} className="flex items-center gap-2 text-xs text-[var(--muted)]">
-                <span className="shrink-0 text-[var(--subtle)]">
-                  <BookingTypeIcon type={b.bookingType} />
-                </span>
-                <span className="truncate">{b.title}</span>
-                {b.provider && <span className="shrink-0 text-[var(--subtle)]">· {b.provider}</span>}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {note ? (
-          <div className="space-y-1">
-            {note.title && <p className="text-sm font-medium text-[var(--text)]">{note.title}</p>}
-            {note.notes && <MarkdownView value={note.notes} className="text-xs leading-relaxed text-[var(--muted)]" />}
-            {dayPlaces.length > 0 && (
-              <div className="flex flex-wrap gap-1 pt-1">
-                {dayPlaces.map(place => (
-                  <a
-                    key={place.id}
-                    href={getPlaceMapUrl(place)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={place.location ?? place.name}
-                    className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-full border border-[var(--amber)]/60 bg-[var(--amber-d)] px-2 py-0.5 text-xs text-[var(--amber)] transition-colors hover:opacity-80"
-                  >
-                    <PinIcon />
-                    <span className="max-w-[10rem] truncate">{place.name}</span>
-                  </a>
+        {isExpanded && (
+          <>
+            {dayBookings.length > 0 && (
+              <ul className="space-y-1">
+                {dayBookings.map(b => (
+                  <li key={b.id} className="flex items-center gap-2 text-xs text-[var(--muted)]">
+                    <span className="shrink-0 text-[var(--subtle)]">
+                      <BookingTypeIcon type={b.bookingType} />
+                    </span>
+                    <span className="truncate">{b.title}</span>
+                    {b.provider && <span className="shrink-0 text-[var(--subtle)]">· {b.provider}</span>}
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
-          </div>
-        ) : (
-          dayBookings.length === 0 && (
-            <p className="text-xs italic text-[var(--subtle)]">No bookings or notes for this day.</p>
-          )
+
+            {note ? (
+              <div className="space-y-1">
+                {note.title && <p className="text-sm font-medium text-[var(--text)]">{note.title}</p>}
+                {note.notes && (
+                  <MarkdownView value={note.notes} className="text-xs leading-relaxed text-[var(--muted)]" />
+                )}
+                {dayPlaces.length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {dayPlaces.map(place => (
+                      <a
+                        key={place.id}
+                        href={getPlaceMapUrl(place)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={place.location ?? place.name}
+                        className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-full border border-[var(--amber)]/60 bg-[var(--amber-d)] px-2 py-0.5 text-xs text-[var(--amber)] transition-colors hover:opacity-80"
+                      >
+                        <PinIcon />
+                        <span className="max-w-[10rem] truncate">{place.name}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              dayBookings.length === 0 && (
+                <p className="text-xs italic text-[var(--subtle)]">No bookings or notes for this day.</p>
+              )
+            )}
+          </>
         )}
       </div>
     </>
