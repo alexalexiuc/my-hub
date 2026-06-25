@@ -30,6 +30,17 @@ export function fmtSign(value: number, currency = 'EUR') {
   return (value < 0 ? '-' : '+') + fmt(Math.abs(value), currency);
 }
 
+// ─── Percentage formatter ─────────────────────────────────────────────────────
+export function pct(value: number | null, signed = false): string {
+  if (value === null) return '—';
+  return `${signed && value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+}
+
+export function deviationColor(value: number | null): string {
+  if (value === null) return 'var(--muted)';
+  return value > 0 ? 'var(--green)' : value < 0 ? 'var(--red)' : 'var(--muted)';
+}
+
 // ─── Primitive components ─────────────────────────────────────────────────────
 
 export function FinFieldCard({
