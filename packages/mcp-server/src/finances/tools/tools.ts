@@ -212,6 +212,7 @@ const financeTools = [
     description:
       'Search and list transactions with optional filters. Returns resolved account, category, and payee names inline. ' +
       'payeeName matching is alias-aware for existing payees. ' +
+      'itemName performs a fuzzy match against receipt line item names captured in extras (e.g. find the transaction where you bought "Carlsberg" beer), independent of the includeExtras flag. ' +
       'Correction transactions are excluded by default. Supports pagination via limit/offset.',
     inputSchema: QueryTransactionsSchema.strict(),
     annotations: { readOnlyHint: true },

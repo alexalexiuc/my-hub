@@ -612,6 +612,12 @@ export const QueryTransactionsSchema = z.object({
   includeCorrections: z.boolean().optional(),
   addedByUserId: z.string().optional(),
   search: z.string().optional(),
+  itemName: z
+    .string()
+    .optional()
+    .describe(
+      'Fuzzy (case-insensitive partial) match against receipt line item names captured in extras, e.g. "Carlsberg" to find transactions where a receipt item name contains that text. Only matches transactions with parsed receipt items.',
+    ),
   limit: z.number().int().min(1).max(200).optional(),
   offset: z.number().int().min(0).optional(),
   includeExtras: z
@@ -654,6 +660,7 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema> 
     includeCorrections: input.includeCorrections,
     addedByUserId: input.addedByUserId,
     search: input.search,
+    itemName: input.itemName,
     limit: input.limit ?? 50,
     offset: input.offset ?? 0,
   });
