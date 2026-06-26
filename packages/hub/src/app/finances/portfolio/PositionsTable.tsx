@@ -1,22 +1,12 @@
 'use client';
 
 import { Card, SectionLabel } from '@/components';
-import { fmt, fmtSign } from '../ui';
+import { fmt, fmtSign, pct, deviationColor } from '../ui';
 import type { PortfolioOverview, PositionOverview } from '@my-hub/shared/services';
 
 type PositionsTableProps = {
   overview: PortfolioOverview;
 };
-
-function pct(value: number | null, signed = false): string {
-  if (value === null) return '—';
-  return `${signed && value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
-}
-
-function deviationColor(value: number | null): string {
-  if (value === null) return 'var(--muted)';
-  return value > 0 ? 'var(--green)' : value < 0 ? 'var(--red)' : 'var(--muted)';
-}
 
 export function PositionsTable({ overview }: PositionsTableProps) {
   const currency = overview.portfolio.baseCurrency;

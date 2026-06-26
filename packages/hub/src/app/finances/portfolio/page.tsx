@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { Button, Card } from '@/components';
+import { Button, Card, IconButton } from '@/components';
+import { ClockOutlineIcon, BarChartIcon, GearOutlineIcon, TrendingUpOutlineIcon } from '@/components/icons';
 import { AddButton } from '../ui';
 import { PortfolioSummaryCards } from './PortfolioSummaryCards';
 import { PositionsTable } from './PositionsTable';
@@ -11,9 +12,13 @@ import { SupplyModal } from './SupplyModal';
 import { PortfolioSettingsModal } from './PortfolioSettingsModal';
 import { HistoryModal } from './HistoryModal';
 import { ProjectionModal } from './ProjectionModal';
+import { PositionPricesModal } from './PositionPricesModal';
 import type { PortfolioOverviewResponse } from '@/app/api/finances/portfolio/route';
 
-type OpenModal = 'supply' | 'settings' | 'history' | 'projection' | null;
+type OpenModal = 'supply' | 'settings' | 'history' | 'projection' | 'prices' | null;
+
+const HEADER_ICON_BUTTON_CLASS =
+  'rounded-full p-1.5 text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--text)]';
 
 export default function PortfolioPage() {
   const [data, setData] = useState<PortfolioOverviewResponse | null>(null);
@@ -47,15 +52,36 @@ export default function PortfolioPage() {
         <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Portfolio</div>
         {overview && (
           <div className="flex items-center gap-1.5">
-            <Button variant="ghost" size="sm" onClick={() => setOpenModal('history')}>
-              History
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setOpenModal('projection')}>
-              Projection
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setOpenModal('settings')}>
-              Settings
-            </Button>
+            <div className="flex items-center gap-0.5 rounded-full border border-[var(--border)] bg-[var(--card2)] p-0.5">
+              <IconButton
+                label="Current prices"
+                variant="ghost"
+                icon={<TrendingUpOutlineIcon className="size-3.5" />}
+                onClick={() => setOpenModal('prices')}
+                className={HEADER_ICON_BUTTON_CLASS}
+              />
+              <IconButton
+                label="History"
+                variant="ghost"
+                icon={<ClockOutlineIcon className="size-3.5" />}
+                onClick={() => setOpenModal('history')}
+                className={HEADER_ICON_BUTTON_CLASS}
+              />
+              <IconButton
+                label="Projection"
+                variant="ghost"
+                icon={<BarChartIcon className="size-3.5" />}
+                onClick={() => setOpenModal('projection')}
+                className={HEADER_ICON_BUTTON_CLASS}
+              />
+              <IconButton
+                label="Settings"
+                variant="ghost"
+                icon={<GearOutlineIcon className="size-3.5" />}
+                onClick={() => setOpenModal('settings')}
+                className={HEADER_ICON_BUTTON_CLASS}
+              />
+            </div>
             <AddButton onClick={() => setOpenModal('supply')} title="Add Supply" />
           </div>
         )}
@@ -96,6 +122,9 @@ export default function PortfolioPage() {
       )}
       {openModal === 'projection' && overview && (
         <ProjectionModal overview={overview} onClose={() => setOpenModal(null)} />
+      )}
+      {openModal === 'prices' && overview && (
+        <PositionPricesModal overview={overview} onClose={() => setOpenModal(null)} />
       )}
     </div>
   );
