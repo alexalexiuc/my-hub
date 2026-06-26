@@ -2,7 +2,7 @@
  * Finance transaction CRUD
  * - addTransaction(userId, budgetId, data) — inserts a transaction; updates account balances and payee stats
  * - addCorrectionTransaction(userId, budgetId, data) — balance correction by target value; delta computed atomically from live DB balance; returns CorrectionResult or null if already at target
- * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (accountId, categoryId, type, fromDate, toDate, includeCorrections, search, label, amountGte, amountLte, limit, offset)
+ * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (accountId, categoryId, type, fromDate, toDate, includeCorrections, search, itemName, label, amountGte, amountLte, limit, offset)
  * - getTransactionListItems(userId, budgetId, opts?) — same filters as getTransactions; returns pre-resolved display fields (accountName/Currency, toAccountName/Currency, categoryId/Name/Color/Icon, payeeId/Name, addedByUserId/Initials, createdAt, balances) via JOIN
  * - getTransactionListItemById(userId, budgetId, transactionId) — single TransactionListItem with resolved display fields; null if not found
  * - countTransactions(userId, budgetId, opts?) — same filters; returns total count
@@ -67,6 +67,7 @@ export interface GetTransactionsOpts {
   toDate?: string;
   includeCorrections?: boolean;
   search?: string;
+  itemName?: string;
   label?: string;
   addedByUserId?: string;
   amountGte?: number;
@@ -150,6 +151,13 @@ function buildListConditions(budgetId: number, opts: GetTransactionsOpts) {
   }
   if (opts.search !== undefined && opts.search.trim() !== '') {
     conditions.push(ilike(financeTransactions.notes, `%${opts.search}%`));
+  }
+  if (opts.itemName !== undefined && opts.itemName.trim() !== '') {
+    // Fuzzy match against receipt line item names stored in extras.items[].name (see TransactionDetails).
+    conditions.push(sql`EXISTS (
+      SELECT 1 FROM jsonb_array_elements(${financeTransactions.extras}->'items') AS item
+      WHERE item->>'name' ILIKE ${`%${opts.itemName.trim()}%`}
+    )`);
   }
   if (opts.label !== undefined) {
     conditions.push(sql`${financeTransactions.labels} @> ${JSON.stringify([opts.label])}::jsonb`);
