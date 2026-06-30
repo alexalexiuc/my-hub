@@ -571,8 +571,8 @@ describe('queryTransactionsTool', () => {
         includeCorrections: undefined,
         addedByUserId: undefined,
         search: undefined,
-        limit: undefined,
-        offset: undefined,
+        limit: 50,
+        offset: 0,
       },
       financesContext,
     );
