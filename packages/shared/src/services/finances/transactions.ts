@@ -2,7 +2,7 @@
  * Finance transaction CRUD
  * - addTransaction(userId, budgetId, data) — inserts a transaction; updates account balances and payee stats
  * - addCorrectionTransaction(userId, budgetId, data) — balance correction by target value; delta computed atomically from live DB balance; returns CorrectionResult or null if already at target
- * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (accountId, categoryId, type, fromDate, toDate, includeCorrections, search, itemName, label, amountGte, amountLte, limit, offset)
+ * - getTransactions(userId, budgetId, opts?) — lists transactions with optional filters (accountId, categoryId, type, fromDate, toDate, includeCorrections, search, itemName, label [string | null — null finds transactions with no labels], amountGte, amountLte, limit, offset)
  * - getTransactionListItems(userId, budgetId, opts?) — same filters as getTransactions; returns pre-resolved display fields (accountName/Currency, toAccountName/Currency, categoryId/Name/Color/Icon, payeeId/Name, addedByUserId/Initials, createdAt, balances) via JOIN
  * - getTransactionListItemById(userId, budgetId, transactionId) — single TransactionListItem with resolved display fields; null if not found
  * - countTransactions(userId, budgetId, opts?) — same filters; returns total count
@@ -68,7 +68,7 @@ export interface GetTransactionsOpts {
   includeCorrections?: boolean;
   search?: string;
   itemName?: string;
-  label?: string;
+  label?: string | null;
   addedByUserId?: string;
   amountGte?: number;
   amountLte?: number;
@@ -159,7 +159,9 @@ function buildListConditions(budgetId: number, opts: GetTransactionsOpts) {
       WHERE item->>'name' ILIKE ${`%${opts.itemName.trim()}%`}
     )`);
   }
-  if (opts.label !== undefined) {
+  if (opts.label === null) {
+    conditions.push(sql`jsonb_array_length(${financeTransactions.labels}) = 0`);
+  } else if (opts.label !== undefined) {
     conditions.push(sql`${financeTransactions.labels} @> ${JSON.stringify([opts.label])}::jsonb`);
   }
   if (opts.addedByUserId !== undefined) {

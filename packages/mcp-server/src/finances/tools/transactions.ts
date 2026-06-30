@@ -574,7 +574,14 @@ export const deleteTransactionTool: ToolHandler<typeof DeleteTransactionSchema.s
 // ─── query_transactions ───────────────────────────────────────────────────────
 
 export const QueryTransactionsSchema = z.object({
-  accountId: z.number().int().positive().optional(),
+  accountId: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      'Filter by account. Matches transactions where this account is either the source or destination (for transfers).',
+    ),
   categoryId: z
     .number()
     .int()
@@ -587,10 +594,14 @@ export const QueryTransactionsSchema = z.object({
     .optional()
     .nullable()
     .describe(
-      'Filter by payee name. Performs a case-insensitive partial match against payee names and aliases. Pass null to find transactions with no payee.',
+      "Filter by payee name. Performs a case-insensitive exact match against the payee's canonical name or any of its aliases. Pass null to find transactions with no payee.",
     ),
-  label: z.string().optional(),
-  type: z.enum(TransactionTypes).optional(),
+  label: z
+    .string()
+    .optional()
+    .nullable()
+    .describe('Filter by label (exact match, case-sensitive). Pass null to find transactions with no labels.'),
+  type: z.enum(TransactionTypes).optional().describe('Filter by transaction type.'),
   fromDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -609,17 +620,26 @@ export const QueryTransactionsSchema = z.object({
     .number()
     .optional()
     .describe('Filter transactions with amount less than or equal to this value (in account currency).'),
-  includeCorrections: z.boolean().optional(),
-  addedByUserId: z.string().optional(),
-  search: z.string().optional(),
+  includeCorrections: z
+    .boolean()
+    .optional()
+    .describe('When true, include balance-correction transactions. Excluded by default.'),
+  addedByUserId: z.string().optional().describe('Filter by the user who added the transaction.'),
+  search: z.string().optional().describe('Partial (case-insensitive substring) match against transaction notes.'),
   itemName: z
     .string()
     .optional()
     .describe(
-      'Fuzzy (case-insensitive partial) match against receipt line item names captured in extras, e.g. "Carlsberg" to find transactions where a receipt item name contains that text. Only matches transactions with parsed receipt items.',
+      'Partial (case-insensitive substring) match against receipt line item names captured in extras, e.g. "Carlsberg" to find transactions where a receipt item name contains that text. Only matches transactions with parsed receipt items.',
     ),
-  limit: z.number().int().min(1).max(200).optional(),
-  offset: z.number().int().min(0).optional(),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(200)
+    .default(50)
+    .describe('Maximum number of transactions to return (default 50, max 200).'),
+  offset: z.number().int().min(0).default(0).describe('Number of transactions to skip for pagination (default 0).'),
   includeExtras: z
     .boolean()
     .optional()
@@ -661,8 +681,8 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema> 
     addedByUserId: input.addedByUserId,
     search: input.search,
     itemName: input.itemName,
-    limit: input.limit ?? 50,
-    offset: input.offset ?? 0,
+    limit: input.limit,
+    offset: input.offset,
   });
 
   const [txns, total] = await Promise.all([
