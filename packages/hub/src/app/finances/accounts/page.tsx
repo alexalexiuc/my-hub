@@ -15,6 +15,7 @@ import { NetWorthSheet } from './NetWorthSheet';
 import type { AccountItem, AccountsListData } from '@/app/api/finances/accounts/route';
 import { LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
+import { formatCardLastFour } from '@my-hub/shared/utils';
 import { ACCOUNT_GROUPS, groupAccountsByCurrency } from './accounts.utils';
 
 function amountColor(balance: number, type: AccountType): string {
@@ -42,7 +43,7 @@ function AccountCard({
           <div className="h-2 w-2 shrink-0 rounded-full bg-[var(--muted)]" />
           <div className="min-w-0">
             <div className="text-sm font-semibold text-[var(--text)] truncate">{acc.name}</div>
-            {acc.cardLastFour && <SubText className="block">•••• {acc.cardLastFour}</SubText>}
+            {acc.cardLastFour && <SubText className="block">{formatCardLastFour(acc.cardLastFour)}</SubText>}
             {(acc.monthIncome != null || acc.monthExpenses != null) && (
               <div className="flex flex-wrap items-center gap-2 text-[10px] tabular-nums">
                 <span className="text-[var(--green)]">+{fmt(acc.monthIncome ?? 0, acc.currency)}</span>

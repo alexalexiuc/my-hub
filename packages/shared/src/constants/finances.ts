@@ -130,6 +130,14 @@ export const ACCOUNT_TYPE_NAMES: Record<AccountType, string> = {
   [AccountTypes.BorrowedLent]: 'Borrowed/Lent',
 };
 
+/**
+ * Matches the `cardLastFour` account detail format: one or more comma-separated groups of
+ * exactly 4 digits (e.g. "1234" or "1234,5678"). Multiple groups cover cards that show a
+ * different last-4 on statements depending on how they were charged — the physical card vs.
+ * a tokenized Apple Pay/Google Pay wallet version.
+ */
+export const CARD_LAST_FOUR_PATTERN = /^\d{4}(,\d{4})*$/;
+
 /** Account types treated as liabilities — their balance subtracts from net worth and available balance. */
 export const LIABILITY_ACCOUNT_TYPES = new Set<AccountType>([AccountTypes.CreditCard, AccountTypes.Loan]);
 

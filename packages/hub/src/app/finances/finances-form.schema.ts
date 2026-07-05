@@ -163,16 +163,16 @@ export function formToAccountDetails(values: AddAccountValues): AccountDetails |
     case AccountTypes.Bank:
       return {
         type: AccountTypes.Bank,
-        cardLastFour: values.bankCardLastFour,
-        cardName: values.bankCardName,
+        ...(values.bankCardLastFour ? { cardLastFour: values.bankCardLastFour } : {}),
+        ...(values.bankCardName ? { cardName: values.bankCardName } : {}),
       };
     case AccountTypes.CreditCard:
       return {
         type: AccountTypes.CreditCard,
         creditLimit: parseFloat(values.creditLimit) || 0,
         statementDay: parseInt(values.statementDay) || 1,
-        cardLastFour: values.cardLastFour,
-        cardName: values.cardName,
+        ...(values.cardLastFour ? { cardLastFour: values.cardLastFour } : {}),
+        ...(values.cardName ? { cardName: values.cardName } : {}),
       };
     case AccountTypes.Goal:
       return { type: AccountTypes.Goal, targetAmount: parseFloat(values.targetAmount) || 0 };

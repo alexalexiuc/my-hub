@@ -66,8 +66,7 @@ function TypeSpecificFields({
             <FinFieldCard label="Last 4 Digits">
               <Input
                 {...register('cardLastFour')}
-                maxLength={4}
-                placeholder="1234"
+                placeholder="1234 or 1234,5678"
                 variant="ghost"
                 className={ghostInputClass}
               />
@@ -76,33 +75,42 @@ function TypeSpecificFields({
           <FinFieldCard label="Card Name (optional)">
             <Input {...register('cardName')} placeholder="Visa Platinum" variant="ghost" className={ghostInputClass} />
           </FinFieldCard>
+          <SubText className="block">
+            If the card is also added to Apple Pay/Google Pay, add both suffixes comma-separated — phone payments can
+            bill under a different last-4.
+          </SubText>
         </>
       )}
 
       {type === AccountTypes.Bank && (
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <FinFieldCard label="Last 4 Digits (optional)">
-              <Input
-                {...register('bankCardLastFour')}
-                maxLength={4}
-                placeholder="1234"
-                variant="ghost"
-                className={ghostInputClass}
-              />
-            </FinFieldCard>
+        <>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <FinFieldCard label="Last 4 Digits (optional)">
+                <Input
+                  {...register('bankCardLastFour')}
+                  placeholder="1234 or 1234,5678"
+                  variant="ghost"
+                  className={ghostInputClass}
+                />
+              </FinFieldCard>
+            </div>
+            <div className="flex-[2]">
+              <FinFieldCard label="Card Name (optional)">
+                <Input
+                  {...register('bankCardName')}
+                  placeholder="Debit card"
+                  variant="ghost"
+                  className={ghostInputClass}
+                />
+              </FinFieldCard>
+            </div>
           </div>
-          <div className="flex-[2]">
-            <FinFieldCard label="Card Name (optional)">
-              <Input
-                {...register('bankCardName')}
-                placeholder="Debit card"
-                variant="ghost"
-                className={ghostInputClass}
-              />
-            </FinFieldCard>
-          </div>
-        </div>
+          <SubText className="block">
+            If the card is also added to Apple Pay/Google Pay, add both suffixes comma-separated — phone payments can
+            bill under a different last-4.
+          </SubText>
+        </>
       )}
 
       {type === AccountTypes.Goal && (

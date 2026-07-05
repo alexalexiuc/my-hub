@@ -12,7 +12,13 @@ import {
   getLoanBalanceSnapshotForAccount,
   getAccountsCashflow,
 } from '@my-hub/shared/services';
-import { AccountTypes, LentDirections, TransactionTypes, CASHFLOW_ACCOUNT_TYPES } from '@my-hub/shared/constants';
+import {
+  AccountTypes,
+  CARD_LAST_FOUR_PATTERN,
+  LentDirections,
+  TransactionTypes,
+  CASHFLOW_ACCOUNT_TYPES,
+} from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
 import type {
   BankAccountDetails,
@@ -31,7 +37,7 @@ export const accountDetailsSchema = z.discriminatedUnion('type', [
     type: z.literal(AccountTypes.Bank),
     interestRate: z.number().optional(),
     savingsGoal: z.number().optional(),
-    cardLastFour: z.string().optional(),
+    cardLastFour: z.string().regex(CARD_LAST_FOUR_PATTERN).optional(),
     cardName: z.string().optional(),
   }),
   z.object({ type: z.literal(AccountTypes.Cash), savingsTarget: z.number().optional() }),
@@ -39,7 +45,7 @@ export const accountDetailsSchema = z.discriminatedUnion('type', [
     type: z.literal(AccountTypes.CreditCard),
     creditLimit: z.number(),
     statementDay: z.number().int().min(1).max(31),
-    cardLastFour: z.string().optional(),
+    cardLastFour: z.string().regex(CARD_LAST_FOUR_PATTERN).optional(),
     cardName: z.string().optional(),
   }),
   z.object({ type: z.literal(AccountTypes.Investment), deposited: z.number() }),
