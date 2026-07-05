@@ -20,6 +20,11 @@ export interface BankAccountDetails extends BaseAccountDetails {
   readonly type: 'bank';
   interestRate?: number;
   savingsGoal?: number;
+  /**
+   * Last 4 digits of the card, comma-separated when the same underlying card shows
+   * multiple statement suffixes — e.g. the physical card and a tokenized Apple Pay/Google Pay
+   * wallet version can each print a different last-4 on statements. Example: "1234,5678".
+   */
   cardLastFour?: string;
   cardName?: string;
 }
@@ -33,6 +38,11 @@ export interface CreditCardAccountDetails extends BaseAccountDetails {
   readonly type: 'credit_card';
   creditLimit: number;
   statementDay: number; // day of month (1–31)
+  /**
+   * Last 4 digits of the card, comma-separated when the same underlying card shows
+   * multiple statement suffixes — e.g. the physical card and a tokenized Apple Pay/Google Pay
+   * wallet version can each print a different last-4 on statements. Example: "1234,5678".
+   */
   cardLastFour?: string;
   cardName?: string;
 }

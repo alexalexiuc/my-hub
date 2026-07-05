@@ -21,7 +21,13 @@ function buildPrompt(
   for (const acct of accounts) {
     let entry = `[${acct.id}] ${acct.name} — ${acct.type}, ${acct.currency}`;
     if (acct.cardLastFour) {
-      const label = acct.cardName ? `${acct.cardName} *${acct.cardLastFour}` : `card *${acct.cardLastFour}`;
+      // Multiple comma-separated suffixes (e.g. physical card + Apple/Google Pay token) are
+      // joined with "/" here rather than "," so they don't read as separate entry fields.
+      const digits = acct.cardLastFour
+        .split(',')
+        .map(d => `*${d.trim()}`)
+        .join('/');
+      const label = acct.cardName ? `${acct.cardName} ${digits}` : `card ${digits}`;
       entry += `, ${label}`;
     }
     if (acct.targetAmount != null) {

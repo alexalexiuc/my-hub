@@ -14,7 +14,7 @@ import {
   buildLoanSummary,
 } from '@my-hub/shared/services';
 import { getAccountDetails } from '@my-hub/shared/types';
-import { AccountTypes, LentDirections, TransactionTypes } from '@my-hub/shared/constants';
+import { AccountTypes, CARD_LAST_FOUR_PATTERN, LentDirections, TransactionTypes } from '@my-hub/shared/constants';
 import { omitUndefined, currentDateString } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
 
@@ -46,7 +46,15 @@ export const UpsertAccountSchema = z.object({
         type: z.literal('bank'),
         interestRate: z.number().min(0).optional().describe('Savings interest rate in percent.'),
         savingsGoal: z.number().optional().describe('Savings goal amount.'),
-        cardLastFour: z.string().length(4).optional().describe('Last four digits of the card.'),
+        cardLastFour: z
+          .string()
+          .regex(CARD_LAST_FOUR_PATTERN)
+          .optional()
+          .describe(
+            'Last four digits of the card. If the card was added to Apple Pay/Google Pay, ' +
+              'purchases made by phone can show a different last-4 on the statement — provide ' +
+              'each value comma-separated, e.g. "1234,5678".',
+          ),
         cardName: z.string().optional().describe('Card label or nickname.'),
       }),
       z.object({
@@ -57,7 +65,15 @@ export const UpsertAccountSchema = z.object({
         type: z.literal('credit_card'),
         creditLimit: z.number().positive().describe('Credit limit amount.'),
         statementDay: z.number().int().min(1).max(31).describe('Statement closing day of month (1–31).'),
-        cardLastFour: z.string().length(4).optional().describe('Last four digits of the card.'),
+        cardLastFour: z
+          .string()
+          .regex(CARD_LAST_FOUR_PATTERN)
+          .optional()
+          .describe(
+            'Last four digits of the card. If the card was added to Apple Pay/Google Pay, ' +
+              'purchases made by phone can show a different last-4 on the statement — provide ' +
+              'each value comma-separated, e.g. "1234,5678".',
+          ),
         cardName: z.string().optional().describe('Card label or nickname.'),
       }),
       z.object({
