@@ -33,6 +33,9 @@ function buildPrompt(
     if (acct.targetAmount != null) {
       entry += `, target ${acct.targetAmount.toLocaleString()}`;
     }
+    if (acct.archived) {
+      entry += ' (closed)';
+    }
     lines.push(entry);
   }
 
