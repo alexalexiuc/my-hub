@@ -5,7 +5,7 @@
  * - getSpendingByPayee(userId, budgetId, dateFrom, dateTo, limit?, categoryId?) — aggregated spend per payee, optional category filter
  * - getSpendingAggregates(userId, budgetId, opts) — flexible groupBy aggregation
  * - getComparison(userId, budgetId, opts) — side-by-side period comparison with absolute and percentage delta
- * - getAccountsCashflow(userId, budgetId, dateFrom, dateTo, accountIds?) — per-account income vs spending (expenses + categorized transfers) for a date range
+ * - getAccountsCashflow(userId, budgetId, dateFrom, dateTo, accountIds?) — per-account income vs spending (expenses + categorized transfers into Loan accounts) for a date range
  * - getSavingsAndDebtFlows(userId, budgetId, dateFrom, dateTo) — net transfers (in minus out) into Goal/Tracking (savings), Investment, and Loan (debt repayment) accounts for a date range
  * - getNetWorthSummary(userId, budgetId) — current net worth with account breakdown and history
  * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, ComparisonResult, ComparisonGroup, AccountCashflowResult, SavingsAndDebtFlowsResult, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
@@ -226,10 +226,11 @@ export interface AccountCashflowResult {
 
 /**
  * Returns per-account income vs spending totals for a date range.
- * "Spending" includes expense transactions plus transfer transactions that have a
- * category (e.g. loan repayments) sourced from the account; uncategorized transfers
- * are excluded entirely, matching the dashboard's "Spending" convention.
- * When accountIds is omitted, totals are computed for every account in the budget.
+ * "Spending" includes expense transactions plus transfer transactions that are
+ * categorized loan repayments (transfers into a Loan account); transfers into
+ * Goal/Tracking/Investment accounts are excluded, matching the dashboard's
+ * "Spending" convention. When accountIds is omitted, totals are computed for
+ * every account in the budget.
  */
 export async function getAccountsCashflow(
   userId: string,
@@ -260,14 +261,17 @@ export async function getAccountsCashflow(
       accountId: financeTransactions.accountId,
       type: financeTransactions.type,
       hasCategory: sql<boolean>`(${financeTransactions.categoryId} is not null)`,
+      isLoanRepayment: sql<boolean>`(${financeAccounts.type} = ${AccountTypes.Loan})`,
       total: sql<string>`sum(${financeTransactions.amount})`,
     })
     .from(financeTransactions)
+    .leftJoin(financeAccounts, eq(financeAccounts.id, financeTransactions.toAccountId))
     .where(and(...conditions))
     .groupBy(
       financeTransactions.accountId,
       financeTransactions.type,
       sql`(${financeTransactions.categoryId} is not null)`,
+      financeAccounts.type,
     );
 
   const result = new Map<number, AccountCashflowResult>();
@@ -276,7 +280,10 @@ export async function getAccountsCashflow(
     const amount = parseFloat(row.total ?? '0');
     if (row.type === TransactionTypes.Income) {
       entry.income += amount;
-    } else if (row.type === TransactionTypes.Expense || (row.type === TransactionTypes.Transfer && row.hasCategory)) {
+    } else if (
+      row.type === TransactionTypes.Expense ||
+      (row.type === TransactionTypes.Transfer && row.hasCategory && row.isLoanRepayment)
+    ) {
       entry.expenses += amount;
     }
     result.set(row.accountId, entry);
