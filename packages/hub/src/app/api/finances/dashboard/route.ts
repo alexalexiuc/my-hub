@@ -178,10 +178,16 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     }),
   ]);
 
+  // Only transfers into a Loan account count as spending (loan repayments).
+  // Transfers into Goal/Tracking/Investment accounts are savings/investing, not spending.
+  const loanAccountIds = new Set(accounts.filter(a => a.type === AccountTypes.Loan).map(a => a.id));
+  const isLoanRepayment = (t: { categoryId: number | null; toAccountId: number | null }) =>
+    t.categoryId != null && t.toAccountId != null && loanAccountIds.has(t.toAccountId);
+
   // Monthly totals
   const monthlyExpense = expenseTxns.reduce((sum, t) => sum + t.amount, 0);
   const monthlyIncome = incomeTxns.reduce((sum, t) => sum + t.amount, 0);
-  const monthlyTransfers = transferTxns.reduce((sum, t) => (t.categoryId != null ? sum + t.amount : sum), 0);
+  const monthlyTransfers = transferTxns.reduce((sum, t) => (isLoanRepayment(t) ? sum + t.amount : sum), 0);
 
   // Single pass: category totals + daily map for current month
   const spentByCategory = new Map<number, number>();
@@ -194,8 +200,8 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.amount);
   }
   for (const t of transferTxns) {
-    if (t.categoryId != null) {
-      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.amount);
+    if (isLoanRepayment(t)) {
+      spentByCategory.set(t.categoryId!, (spentByCategory.get(t.categoryId!) ?? 0) + t.amount);
       const day = +t.date.slice(8, 10);
       currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.amount);
     }
@@ -207,7 +213,7 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.amount);
   }
   for (const t of prevTransferTxns) {
-    if (t.categoryId != null) {
+    if (isLoanRepayment(t)) {
       const day = +t.date.slice(8, 10);
       prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.amount);
     }

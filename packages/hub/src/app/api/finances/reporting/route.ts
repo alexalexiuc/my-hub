@@ -5,13 +5,14 @@ import {
   getTransactionListItems,
   getTransactions,
   getAccountById,
+  getAccounts,
   getAccountsCashflow,
   getSavingsAndDebtFlows,
   getCategories,
   getGroups,
 } from '@my-hub/shared/services';
 import type { CategoryIcon } from '@my-hub/shared/constants';
-import { TransactionTypes } from '@my-hub/shared/constants';
+import { AccountTypes, TransactionTypes } from '@my-hub/shared/constants';
 import { monthToDateRange, shiftMonthStr, addDays, dateToString } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../currency.schema';
 import { categoryIconSchema, categoryColorSchema } from '../shared.schema';
@@ -207,9 +208,10 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
   const breakdownType = query.type === TransactionTypes.Income ? TransactionTypes.Income : TransactionTypes.Expense;
   const summaryType = query.type; // undefined = fetch both
 
-  // Categorized transfers (e.g. loan repayments) are counted as spending on the dashboard,
-  // so the spending trend needs them too for the two charts to agree.
+  // Categorized transfers into Loan accounts (loan repayments) are counted as spending on
+  // the dashboard, so the spending trend needs them too for the two charts to agree.
   const includeTransfers = query.dateMode === 'month' && breakdownType === TransactionTypes.Expense;
+  const loanAccountsPromise = includeTransfers ? getAccounts(user.id, budgetId) : Promise.resolve([]);
 
   // Fetch all needed transactions in parallel
   const [breakdownTxns, prevBreakdownTxns, incomeTxns, prevIncomeTxns, transferTxns, prevTransferTxns] =
@@ -407,13 +409,20 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
   if (query.dateMode === 'month') {
     const todayDay = monthStr === currentMonthStr ? new Date().getDate() : monthLastDay;
 
+    // Only transfers into a Loan account count as spending (loan repayments).
+    // Transfers into Goal/Tracking/Investment accounts are savings/investing, not spending.
+    const loanAccounts = await loanAccountsPromise;
+    const loanAccountIds = new Set(loanAccounts.filter(a => a.type === AccountTypes.Loan).map(a => a.id));
+    const isLoanRepayment = (t: { categoryId: number | null; toAccountId: number | null }) =>
+      t.categoryId != null && t.toAccountId != null && loanAccountIds.has(t.toAccountId);
+
     const currentDayMap = new Map<number, number>();
     for (const t of breakdownTxns) {
       const day = +t.date.slice(8, 10);
       currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.amount);
     }
     for (const t of transferTxns) {
-      if (t.categoryId != null) {
+      if (isLoanRepayment(t)) {
         const day = +t.date.slice(8, 10);
         currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.amount);
       }
@@ -424,7 +433,7 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
       prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.amount);
     }
     for (const t of prevTransferTxns) {
-      if (t.categoryId != null) {
+      if (isLoanRepayment(t)) {
         const day = +t.date.slice(8, 10);
         prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.amount);
       }

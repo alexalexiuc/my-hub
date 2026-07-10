@@ -122,9 +122,9 @@ finances layout with sidebar navigation on desktop and bottom-tab navigation on 
 - [x] Clicking a category opens a dedicated category details screen with summary details on top and transactions listed below.
 - [x] Category details transactions are shown ordered by date descending (with id tie-breaker descending).
 - [x] Dashboard budget categories are shown in descending order by amount spent.
-- [x] The Reporting page's Spending Trend chart includes categorized transfers (e.g. loan repayments) in its daily totals, matching the Dashboard "Spending" chart.
+- [x] The Reporting page's Spending Trend chart includes categorized loan-repayment transfers (transfers into a Loan account) in its daily totals, matching the Dashboard "Spending" chart; transfers into Goal/Tracking/Investment accounts (savings, IBKR, etc.) are excluded from spending totals even when categorized.
 - [x] The Reporting "Net" summary card renders a single leading sign (`-`/`+`) for negative/positive values, without doubling the currency formatter's own minus sign.
-- [x] Bank and Cash account rows on the Accounts page show current-month income (green) and spending (red, including categorized transfers) under the account name.
+- [x] Bank and Cash account rows on the Accounts page show current-month income (green) and spending (red, including categorized loan-repayment transfers only) under the account name.
 - [x] Selecting an account filter on the Reporting page shows an "Income vs Spending" card for that account covering the active period (month/range/all).
 - [x] The Payees list shows correct totals/transaction counts for payees with expense history anywhere in the selected range, even when the budget has a large number of transactions.
 - [x] The Payee detail page shows a summary card (transaction count, total spent, average per transaction, total received if any, first/last transaction dates, top category, top account) above the transaction list.
