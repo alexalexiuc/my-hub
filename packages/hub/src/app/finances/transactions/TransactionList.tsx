@@ -10,6 +10,7 @@ import { TransactionTypes } from '@my-hub/shared/constants';
 import { formatTransactionDate } from '../finances.utils';
 import { transactionEvents } from './transactionEvents';
 import { TransactionModal } from './TransactionModal';
+import { CorrectionEditModal } from './CorrectionEditModal';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { TransactionExtrasModal } from './TransactionExtrasModal';
 import type { TransactionDetails } from '@my-hub/shared/types';
@@ -67,6 +68,7 @@ export function TransactionList({
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [editCorrectionTx, setEditCorrectionTx] = useState<TransactionListItem | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [openRowId, setOpenRowId] = useState<number | null>(null);
   const [extrasModal, setExtrasModal] = useState<TransactionDetails | null>(null);
@@ -208,7 +210,7 @@ export function TransactionList({
                 isOpen={openRowId === tx.id}
                 onOpen={() => setOpenRowId(tx.id)}
                 onClose={() => setOpenRowId(null)}
-                onEdit={() => setEditId(tx.id)}
+                onEdit={() => (tx.isCorrection ? setEditCorrectionTx(tx) : setEditId(tx.id))}
                 onDelete={() => setPendingDeleteId(tx.id)}
               >
                 <div className="flex items-center gap-2.5 py-2.5 pl-[14px] pr-[14px] md:pl-0 md:pr-2">
@@ -319,7 +321,7 @@ export function TransactionList({
                   <IconButton
                     label="Edit"
                     icon={<PencilIcon className="size-3.5" />}
-                    onClick={() => setEditId(tx.id)}
+                    onClick={() => (tx.isCorrection ? setEditCorrectionTx(tx) : setEditId(tx.id))}
                     className="bg-transparent p-1 text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--text)]"
                   />
                   <span className="h-3 w-px bg-[var(--border)]" />
@@ -355,6 +357,18 @@ export function TransactionList({
           onCloseAction={() => setEditId(null)}
           onSavedAction={() => {
             setEditId(null);
+            transactionEvents.emit('changed');
+          }}
+        />
+      )}
+
+      {editCorrectionTx && (
+        <CorrectionEditModal
+          transaction={editCorrectionTx}
+          currency={currency}
+          onClose={() => setEditCorrectionTx(null)}
+          onSaved={() => {
+            setEditCorrectionTx(null);
             transactionEvents.emit('changed');
           }}
         />
