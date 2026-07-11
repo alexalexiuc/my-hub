@@ -4,9 +4,11 @@
  * @exports getCurrencySymbol - Returns the display symbol for a currency code (e.g. 'USD' → '$').
  * @exports isPayeeRequired - Returns whether a transaction type should involve payee selection.
  * @exports formatCardLastFour - Formats a (possibly comma-separated) cardLastFour value for display.
+ * @exports computeNetWorthBreakdown - Classifies accounts into assets/liabilities and totals net worth.
  */
 
-import { TransactionTypes, type TransactionType } from '../constants/finances';
+import { TransactionTypes, LIABILITY_ACCOUNT_TYPES, AccountTypes, type TransactionType } from '../constants/finances';
+import type { FinanceAccount } from '../types';
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: '$',
@@ -41,4 +43,48 @@ export function formatCardLastFour(cardLastFour: string): string {
     .split(',')
     .map(digits => `•••• ${digits.trim()}`)
     .join(', ');
+}
+
+export interface NetWorthBreakdownItem {
+  accountId: number;
+  name: string;
+  type: FinanceAccount['type'];
+  currency: FinanceAccount['currency'];
+  balance: number;
+}
+
+export interface NetWorthBreakdown {
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth: number;
+  breakdown: NetWorthBreakdownItem[];
+}
+
+/**
+ * Classifies accounts into assets/liabilities and totals net worth.
+ * Loans store a negative balance (-remaining principal) — the absolute value is used
+ * so totalLiabilities and breakdown items show the conventional positive debt amount.
+ */
+export function computeNetWorthBreakdown(accounts: FinanceAccount[]): NetWorthBreakdown {
+  let totalAssets = 0;
+  let totalLiabilities = 0;
+  const breakdown: NetWorthBreakdownItem[] = [];
+
+  for (const account of accounts) {
+    const balance = account.type === AccountTypes.Loan ? Math.abs(account.balance) : account.balance;
+    breakdown.push({
+      accountId: account.id,
+      name: account.name,
+      type: account.type,
+      currency: account.currency,
+      balance,
+    });
+    if (LIABILITY_ACCOUNT_TYPES.has(account.type)) {
+      totalLiabilities += balance;
+    } else {
+      totalAssets += balance;
+    }
+  }
+
+  return { totalAssets, totalLiabilities, netWorth: totalAssets - totalLiabilities, breakdown };
 }

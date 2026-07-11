@@ -112,6 +112,7 @@ import type {
   financeTransactions,
   financeCurrencyRates,
   financeNetWorthSnapshots,
+  financeAccountBalanceSnapshots,
   financeMonthlyPlans,
   financeMonthlyPlanItems,
   financePortfolios,
@@ -155,6 +156,8 @@ export type FinanceCurrencyRate = InferSelectModel<typeof financeCurrencyRates>;
 export type NewFinanceCurrencyRate = InferInsertModel<typeof financeCurrencyRates>;
 export type FinanceNetWorthSnapshot = InferSelectModel<typeof financeNetWorthSnapshots>;
 export type NewFinanceNetWorthSnapshot = InferInsertModel<typeof financeNetWorthSnapshots>;
+export type FinanceAccountBalanceSnapshot = InferSelectModel<typeof financeAccountBalanceSnapshots>;
+export type NewFinanceAccountBalanceSnapshot = InferInsertModel<typeof financeAccountBalanceSnapshots>;
 export type FinanceMonthlyPlan = InferSelectModel<typeof financeMonthlyPlans>;
 export type NewFinanceMonthlyPlan = InferInsertModel<typeof financeMonthlyPlans>;
 export type FinanceMonthlyPlanItem = InferSelectModel<typeof financeMonthlyPlanItems>;

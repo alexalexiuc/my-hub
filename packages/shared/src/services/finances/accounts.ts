@@ -11,6 +11,7 @@
  * - setAccountAvailableInclusion(userId, budgetId, accountId, include) — stores or removes a preference row; no-op if the value matches the default
  * - deleteAllUserAvailableOverrides(userId) — removes all availability preferences for a user (used by delete-all-data flow)
  * - getAllAccountIds() — system maintenance: returns all account IDs across all budgets (worker use only)
+ * - getAllAccountsForSnapshot() — system maintenance: returns id/budgetId/balance/currency for every account across all budgets (worker use only)
  * - recalculateAccountBalance(accountId) — system maintenance: recomputes balance from full transaction history (corrections included); returns the new balance
  * Types: AccountInsert, AccountUpdate, GetAccountsOpts, NetWorthSnapshot
  */
@@ -25,7 +26,13 @@ import {
 import { omitUndefined } from '../../utils';
 import { hasAccessToBudget } from './budgets';
 import type { FinanceAccount, NewFinanceAccount } from '../../types';
-import { AccountTypes, TransactionTypes, LIABILITY_ACCOUNT_TYPES, type AccountType } from '../../constants';
+import {
+  AccountTypes,
+  TransactionTypes,
+  LIABILITY_ACCOUNT_TYPES,
+  type AccountType,
+  type SupportedCurrency,
+} from '../../constants';
 
 export interface NetWorthSnapshot {
   month: string;
@@ -251,6 +258,25 @@ export async function deleteAllUserAvailableOverrides(userId: string): Promise<v
 export async function getAllAccountIds(): Promise<number[]> {
   const rows = await db.select({ id: financeAccounts.id }).from(financeAccounts);
   return rows.map(r => r.id);
+}
+
+export interface AccountForSnapshot {
+  id: number;
+  budgetId: number;
+  balance: number;
+  currency: SupportedCurrency;
+}
+
+/** System maintenance: returns id/budgetId/balance/currency for every account. No auth required — worker use only. */
+export async function getAllAccountsForSnapshot(): Promise<AccountForSnapshot[]> {
+  return db
+    .select({
+      id: financeAccounts.id,
+      budgetId: financeAccounts.budgetId,
+      balance: financeAccounts.balance,
+      currency: financeAccounts.currency,
+    })
+    .from(financeAccounts);
 }
 
 /**

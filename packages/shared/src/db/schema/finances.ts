@@ -420,6 +420,31 @@ export const financeNetWorthSnapshots = pgTable(
   ],
 );
 
+// ─── Account balance snapshots ────────────────────────────────────────────
+// Written daily by a worker job, after the balance-recalc job runs, so the
+// recorded value is the reconciled balance. One row per account per day —
+// enables backtracking an account's balance history to investigate drift.
+export const financeAccountBalanceSnapshots = pgTable(
+  'finance_account_balance_snapshots',
+  {
+    id: serial('id').primaryKey(),
+    budgetId: integer('budget_id')
+      .notNull()
+      .references(() => financeBudgets.id, { onDelete: 'cascade' }),
+    accountId: integer('account_id')
+      .notNull()
+      .references(() => financeAccounts.id, { onDelete: 'cascade' }),
+    date: date('date').notNull(), // YYYY-MM-DD
+    balance: numericCasted('balance', { precision: 18, scale: 4 }).notNull(),
+    currency: text('currency').$type<SupportedCurrency>().notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  table => [
+    uniqueIndex('uq_finance_account_balance_snapshots_account_date').on(table.accountId, table.date),
+    index('idx_finance_account_balance_snapshots_budget_date').on(table.budgetId, table.date),
+  ],
+);
+
 // ─── Investment portfolio ─────────────────────────────────────────────────
 // Standalone ETF tracking. Does NOT feed financeAccounts / net worth (v1).
 // Multiple portfolios per budget are allowed at schema level; the UI assumes one.

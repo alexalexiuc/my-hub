@@ -7,6 +7,8 @@ import { cleanupOldDbLogs } from './db-log-cleanup.js';
 import { sendCaloriesWeeklyReports } from './calories-weekly-report.js';
 import { sendCaloriesMonthlyReports } from './calories-monthly-report.js';
 import { recalculateFinanceBalances } from './finances-balance-recalc.js';
+import { snapshotFinanceAccountBalances } from './finances-account-snapshot.js';
+import { snapshotFinanceNetWorth } from './finances-networth-snapshot.js';
 import { syncTickerPrices } from './ticker-price-sync.js';
 
 interface Task {
@@ -50,6 +52,19 @@ export const tasks: Task[] = [
     name: 'finances-balance-recalc',
     cron: '0 3 * * *', // every day at 03:00
     fn: recalculateFinanceBalances,
+  },
+  {
+    // Runs after finances-balance-recalc so the recorded balance is the reconciled one.
+    name: 'finances-account-snapshot',
+    cron: '15 3 * * *', // every day at 03:15
+    fn: snapshotFinanceAccountBalances,
+  },
+  {
+    // Runs after finances-account-snapshot, same reasoning — rolls up reconciled balances
+    // into the current month's net worth total.
+    name: 'finances-networth-snapshot',
+    cron: '30 3 * * *', // every day at 03:30
+    fn: snapshotFinanceNetWorth,
   },
   {
     // Xetra closes 17:30 CET (15:30–16:30 UTC depending on DST); 18:00 UTC is

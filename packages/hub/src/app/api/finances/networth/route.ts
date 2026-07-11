@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getAccounts, getNetWorthHistory } from '@my-hub/shared/services';
-import { AccountTypes } from '@my-hub/shared/constants';
+import { AccountTypes, LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
+import { computeNetWorthBreakdown } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../currency.schema';
 
 export const netWorthItemSchema = z.object({
@@ -33,8 +34,6 @@ export const netWorthResponseSchema = z.object({
 
 export type NetWorthData = z.infer<typeof netWorthResponseSchema>;
 
-const LIABILITY_TYPES = new Set<string>([AccountTypes.Loan, AccountTypes.CreditCard]);
-
 export const GET = route({ response: netWorthResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
@@ -44,26 +43,24 @@ export const GET = route({ response: netWorthResponseSchema })(async ({ user }) 
     getAccounts(user.id, budgetId),
     getNetWorthHistory(user.id, budgetId, 12),
   ]);
-  let totalAssets = 0;
-  let totalLiabilities = 0;
+
+  const { totalAssets, totalLiabilities, netWorth, breakdown } = computeNetWorthBreakdown(accounts);
   const assets: NetWorthData['assets'] = [];
   const liabilities: NetWorthData['liabilities'] = [];
-
-  for (const account of accounts) {
-    // Loans store a negative balance (-remaining principal). Take absolute value so
-    // totalLiabilities and the breakdown item show the conventional positive debt amount.
-    const balance = account.type === AccountTypes.Loan ? Math.abs(account.balance) : account.balance;
-    const item = { id: account.id, name: account.name, type: account.type, balance, currency: account.currency };
-    if (LIABILITY_TYPES.has(account.type)) {
-      totalLiabilities += balance;
-      liabilities.push(item);
+  for (const item of breakdown) {
+    const entry = {
+      id: item.accountId,
+      name: item.name,
+      type: item.type,
+      balance: item.balance,
+      currency: item.currency,
+    };
+    if (LIABILITY_ACCOUNT_TYPES.has(item.type)) {
+      liabilities.push(entry);
     } else {
-      totalAssets += balance;
-      assets.push(item);
+      assets.push(entry);
     }
   }
-
-  const netWorth = totalAssets - totalLiabilities;
 
   const history = snapshots.map(s => ({
     month: s.month,

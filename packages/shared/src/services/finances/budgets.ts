@@ -13,6 +13,7 @@
  * - deleteAllUserFinanceBudgets(userId) — bulk delete owned budgets + remove from shared memberships
  * - hasAccessToBudget(userId, budgetId) — returns true if user is a budget member
  * - enforceBudgetAccess(userId, budgetId) — throws if user is not a budget member
+ * - getAllBudgetIds() — system maintenance: returns all budget IDs (worker use only)
  * Types: BudgetInsert, BudgetUpdate, UserBudget
  */
 import { and, eq, sql } from 'drizzle-orm';
@@ -229,4 +230,10 @@ export async function deleteAllUserFinanceBudgets(userId: string): Promise<void>
     .keys()
     .filter(key => key.startsWith(`${userId}:`))
     .forEach(key => budgetAccessCache.delete(key));
+}
+
+/** System maintenance: returns all budget IDs. No auth required — worker use only. */
+export async function getAllBudgetIds(): Promise<number[]> {
+  const rows = await db.select({ id: financeBudgets.id }).from(financeBudgets);
+  return rows.map(r => r.id);
 }
