@@ -4,13 +4,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { z } from 'zod';
 import { apiFetch } from '@/lib/utils';
-import { Modal, Textarea } from '@/components';
+import { Modal, Textarea, Input, Field } from '@/components';
 import { DAY_LABELS } from '@my-hub/shared/constants';
 import type { DayOfWeek } from '@my-hub/shared/constants';
 import { MenuMealResponseSchema, MenuMealWriteSchema } from '@/app/api/calories/menu/menu.schemas';
 import type { MenuMealRecordSchema } from '@/app/api/calories/menu/menu.schemas';
 import { MEAL_LABEL } from '@/app/calories/constants';
-import { SwapMealFormSchema, defaultSwapMealFormValues, type SwapMealFormValues } from './menu-form.schema';
+import {
+  SwapMealFormSchema,
+  defaultSwapMealFormValues,
+  swapMealFormToBody,
+  type SwapMealFormValues,
+} from './menu-form.schema';
 
 type Meal = z.infer<typeof MenuMealRecordSchema>;
 
@@ -29,7 +34,9 @@ export function SwapMealModal({ meal, menuId, dayOfWeek, onClose, onSwapped }: P
 
   const form = useForm<SwapMealFormValues>({
     resolver: zodResolver(SwapMealFormSchema),
-    defaultValues: defaultSwapMealFormValues,
+    // Macros prefilled from the current meal — the PATCH clears anything omitted,
+    // so a description-only edit must still send the existing values.
+    defaultValues: defaultSwapMealFormValues(meal),
   });
 
   async function handleSubmit(values: SwapMealFormValues) {
@@ -38,7 +45,7 @@ export function SwapMealModal({ meal, menuId, dayOfWeek, onClose, onSwapped }: P
       body: {
         dayOfWeek,
         mealType: meal.mealType,
-        description: values.description.trim(),
+        ...swapMealFormToBody(values),
       },
       bodySchema: MenuMealWriteSchema,
       responseSchema: MenuMealResponseSchema,
@@ -78,6 +85,24 @@ export function SwapMealModal({ meal, menuId, dayOfWeek, onClose, onSwapped }: P
             rows={2}
             className="resize-none text-sm"
           />
+          <div className="flex gap-1.5">
+            <Field label="kcal" className="flex-1">
+              <Input {...form.register('kcal')} inputMode="numeric" placeholder="kcal" className="text-xs" />
+            </Field>
+            <Field label="Protein g" className="flex-1">
+              <Input {...form.register('protein')} inputMode="decimal" placeholder="P g" className="text-xs" />
+            </Field>
+            <Field label="Carbs g" className="flex-1">
+              <Input {...form.register('carbs')} inputMode="decimal" placeholder="C g" className="text-xs" />
+            </Field>
+            <Field label="Fat g" className="flex-1">
+              <Input {...form.register('fat')} inputMode="decimal" placeholder="F g" className="text-xs" />
+            </Field>
+          </div>
+          <p className="text-[10px] text-[var(--subtle)]">
+            Calories and macros are prefilled from the current meal — update them to match the new one, or clear a field
+            to remove the value.
+          </p>
           <p className="text-[10px] text-[var(--subtle)]">
             Or ask Claude:{' '}
             <span className="italic">

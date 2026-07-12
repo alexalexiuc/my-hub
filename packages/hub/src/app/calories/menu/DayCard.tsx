@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { apiFetch } from '@/lib/utils';
 import { Button, Select, Input } from '@/components';
-import { PlusOutlineIcon } from '@/components/icons';
+import { PlusOutlineIcon, DumbbellIcon } from '@/components/icons';
 import { DAY_LABELS } from '@my-hub/shared/constants';
 import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from '@/app/calories/constants';
@@ -16,7 +16,8 @@ import {
   MenuMealWriteSchema,
 } from '@/app/api/calories/menu/menu.schemas';
 import { MealRow } from './MealRow';
-import { MEAL_ORDER, dateForDay } from './menu.utils';
+import { MEAL_ORDER, dateForDay, dayTargetKcal, targetPct, targetColorClasses, resolveDailyTarget } from './menu.utils';
+import { TargetBar } from './TargetBar';
 import type { LoggedMeals } from './menu.utils';
 import type { WeeklyMenuMeal } from './types';
 import {
@@ -35,9 +36,14 @@ type DayCardProps = {
   today: string;
   loggedMeals: LoggedMeals;
   isGymDay: boolean;
+  /** Daily calorie target from the user's profile (goalCalories), or null if the profile is incomplete. */
+  dailyTargetKcal: number | null;
+  /** Extra kcal added to the daily target on gym days. */
+  gymDayCalorieBonus: number;
   onMealLogged: (mealType: MealType) => void;
   onMealSwapped: (day: DayOfWeek, updated: WeeklyMenuMeal) => void;
   onMealAdded: (day: DayOfWeek, added: WeeklyMenuMeal) => void;
+  onMealDeleted: (day: DayOfWeek, mealType: MealType) => void;
 };
 
 export function DayCard({
@@ -49,9 +55,12 @@ export function DayCard({
   today,
   loggedMeals,
   isGymDay,
+  dailyTargetKcal,
+  gymDayCalorieBonus,
   onMealLogged,
   onMealSwapped,
   onMealAdded,
+  onMealDeleted,
 }: DayCardProps) {
   const [loggingAll, setLoggingAll] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -60,6 +69,11 @@ export function DayCard({
   const dayDate = dateForDay(weekStart, day);
   const isToday = isCurrentWeek && dayDate === today;
   const isFuture = dayDate > today;
+
+  const { baseTarget, isEstimated: isTargetEstimated } = resolveDailyTarget(dailyTargetKcal);
+  const target = dayTargetKcal(baseTarget, isGymDay, gymDayCalorieBonus);
+  const targetPercent = targetPct(dayKcal, target);
+  const targetColors = targetColorClasses(targetPercent, isTargetEstimated);
 
   const plannedTypes = new Set(meals.map(m => m.mealType));
   const availableTypes = MEAL_ORDER.filter(mt => !plannedTypes.has(mt));
@@ -98,28 +112,25 @@ export function DayCard({
   async function handleLogAll() {
     setLoggingAll(true);
     try {
+      // One call per meal — the route journals the calorie entry and marks the slot
+      // logged in a single transaction, so a partial failure can't desync the two.
       await Promise.all(
         unloggedMeals.map(m =>
-          Promise.all([
-            apiFetch('/api/calories/meals', {
-              method: 'POST',
-              body: {
-                description: m.description,
-                mealType: m.mealType,
-                date: dayDate,
-                kcal: m.kcal ?? undefined,
-                protein: m.protein ?? undefined,
-                carbs: m.carbs ?? undefined,
-                fat: m.fat ?? undefined,
-              },
-            }),
-            apiFetch(`/api/calories/menu/${menuId}/log-day`, {
-              method: 'POST',
-              body: { dayOfWeek: day, loggedDate: dayDate, mealType: m.mealType },
-              bodySchema: LogDayBodySchema,
-              responseSchema: LogDayResponseSchema,
-            }),
-          ]).then(() => onMealLogged(m.mealType)),
+          apiFetch(`/api/calories/menu/${menuId}/log-day`, {
+            method: 'POST',
+            body: {
+              dayOfWeek: day,
+              loggedDate: dayDate,
+              mealType: m.mealType,
+              description: m.description,
+              kcal: m.kcal,
+              protein: m.protein,
+              carbs: m.carbs,
+              fat: m.fat,
+            },
+            bodySchema: LogDayBodySchema,
+            responseSchema: LogDayResponseSchema,
+          }).then(() => onMealLogged(m.mealType)),
         ),
       );
     } finally {
@@ -129,6 +140,7 @@ export function DayCard({
 
   return (
     <div
+      data-day={day}
       className={`snap-start shrink-0 w-[88vw] md:w-auto rounded-xl border p-4 flex flex-col gap-3 ${
         isToday
           ? 'border-green-500/60 bg-green-500/5'
@@ -140,13 +152,10 @@ export function DayCard({
       {/* Day header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-bold text-[var(--text)]">{DAY_LABELS[day]}</span>
-          {isToday && (
-            <span className="rounded-full bg-[var(--accent)]/20 px-1.5 py-0.5 text-[9px] font-medium text-[var(--accent)] uppercase tracking-wide">
-              Today
-            </span>
-          )}
-          {isGymDay && <span title="Gym day">💪</span>}
+          <span className={`text-sm font-bold ${isToday ? 'text-green-400' : 'text-[var(--text)]'}`}>
+            {DAY_LABELS[day]}
+          </span>
+          {isGymDay && <DumbbellIcon className="size-3.5 text-[var(--accent)]" title="Gym day" />}
           {!isFuture && !allLogged && meals.length > 0 && (
             <span className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-[var(--card3)] text-[var(--muted)]">
               {loggedCount}/{meals.length}
@@ -155,6 +164,19 @@ export function DayCard({
         </div>
         {dayKcal > 0 && <span className="text-xs font-medium text-[var(--accent)]">{dayKcal} kcal</span>}
       </div>
+
+      {/* Daily target bar */}
+      {meals.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <TargetBar pct={targetPercent} colors={targetColors} size="sm" />
+          <div className="flex items-center justify-between text-[10px] text-[var(--muted)]">
+            <span>
+              {target} target{isGymDay ? ' (gym)' : ''}
+            </span>
+            {targetPercent !== null && <span className={`font-medium ${targetColors.text}`}>{targetPercent}%</span>}
+          </div>
+        </div>
+      )}
 
       {/* Meals */}
       {meals.length === 0 ? (
@@ -172,6 +194,7 @@ export function DayCard({
               isFuture={isFuture}
               onLogged={() => onMealLogged(meal.mealType)}
               onSwapped={updated => onMealSwapped(day, updated)}
+              onDeleted={() => onMealDeleted(day, meal.mealType)}
             />
           ))}
         </div>

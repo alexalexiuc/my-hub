@@ -1,4 +1,5 @@
 export { BarChartIcon } from './BarChartIcon';
+export { DumbbellIcon } from './DumbbellIcon';
 export { PencilIcon } from './PencilIcon';
 export { DownloadIcon } from './DownloadIcon';
 export { AttachmentIcon } from './AttachmentIcon';

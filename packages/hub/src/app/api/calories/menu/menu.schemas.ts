@@ -1,5 +1,10 @@
 import { z } from 'zod';
 import { MealTypesValues, DaysOfWeek } from '@my-hub/shared/constants';
+import { hasDuplicateMealSlot } from '@my-hub/shared/utils';
+
+// Re-exported for CreateMenuModal's live duplicate hint — the rule itself lives in
+// shared so the Hub API, the modal, and the MCP create tool can never disagree.
+export { hasDuplicateMealSlot };
 
 // ---------------------------------------------------------------------------
 // Field-level primitives shared by every weekly-menu schema below. Centralising
@@ -24,6 +29,9 @@ const MealSlotSchema = z.object({
 });
 
 export const MenuParamsSchema = z.object({ menuId: z.string() });
+
+/** Body for DELETE /api/calories/menu/[menuId]/meals — identifies the slot to remove. */
+export const DeleteMenuMealSchema = MealSlotSchema;
 
 // ---------------------------------------------------------------------------
 // Meal payload contracts — one per distinct nullability shape:
@@ -68,12 +76,17 @@ export const MenuMealResponseSchema = z.object({ meal: MenuMealRecordSchema });
 // Menu contracts
 // ---------------------------------------------------------------------------
 
-export const CreateMenuSchema = z.object({
-  weekStart: IsoDateSchema,
-  title: z.string().optional(),
-  notes: z.string().optional(),
-  meals: z.array(MenuMealInputSchema).min(1),
-});
+export const CreateMenuSchema = z
+  .object({
+    weekStart: IsoDateSchema,
+    title: z.string().optional(),
+    notes: z.string().optional(),
+    meals: z.array(MenuMealInputSchema).min(1),
+  })
+  .refine(({ meals }) => !hasDuplicateMealSlot(meals), {
+    message: 'Duplicate meal slot — each (dayOfWeek, mealType) pair may appear at most once',
+    path: ['meals'],
+  });
 
 export const WeeklyMenuSchema = z.object({
   menuId: z.string(),
@@ -91,6 +104,10 @@ export const WeeklyMenuWithoutMealsSchema = WeeklyMenuSchema.omit({ meals: true 
 export const GetMenusResponseSchema = z.object({
   menus: z.array(WeeklyMenuWithoutMealsSchema),
   gymDays: z.array(DayOfWeekSchema),
+  /** Daily calorie target from the user's profile (goalCalories), or null if the profile is incomplete. */
+  goalCalories: z.number().nullable(),
+  /** Extra kcal added to the daily target on gym days. */
+  gymDayCalorieBonus: z.number(),
 });
 
 export const GetMenuResponseSchema = z.object({
@@ -98,14 +115,57 @@ export const GetMenuResponseSchema = z.object({
   loggedDays: z.record(z.string(), z.string()), // `{ [dayOfWeek:mealType]: '2020-01-01' }` for meals that have been logged
 });
 
+/** Response shape for POST /api/calories/menu */
+export const CreateMenuResponseSchema = z.object({ menu: WeeklyMenuSchema });
+
+// ---------------------------------------------------------------------------
+// Shopping list contracts
+// ---------------------------------------------------------------------------
+
+export const ShoppingItemParamsSchema = z.object({ menuId: z.string(), itemId: z.coerce.number().int() });
+
+export const ShoppingItemRecordSchema = z.object({
+  id: z.number(),
+  menuId: z.string(),
+  text: z.string(),
+  checked: z.boolean(),
+  createdAt: TimestampSchema,
+});
+
+/** Response shape for GET /api/calories/menu/[menuId]/shopping-list. */
+export const GetShoppingListResponseSchema = z.object({ items: z.array(ShoppingItemRecordSchema) });
+
+/** Body for POST — one or more item texts (bulk import sends many at once). */
+export const AddShoppingItemsSchema = z.object({ texts: z.array(z.string().trim().min(1)).min(1) });
+
+/** Response for POST — only the rows that were actually inserted (duplicates are skipped). */
+export const AddShoppingItemsResponseSchema = z.object({ items: z.array(ShoppingItemRecordSchema) });
+
+/** Body for PATCH /api/calories/menu/[menuId]/shopping-list/[itemId]. */
+export const UpdateShoppingItemSchema = z.object({ checked: z.boolean() });
+
+/** Response shape for endpoints that return a single shopping list item. */
+export const ShoppingItemResponseSchema = z.object({ item: ShoppingItemRecordSchema });
+
 // ---------------------------------------------------------------------------
 // Log-day contract
 // ---------------------------------------------------------------------------
 
+/**
+ * Body for POST /api/calories/menu/[menuId]/log-day — the slot to mark plus the meal
+ * snapshot to journal. The route writes the calorie-journal entry and the slot marker
+ * in one transaction (`logMenuMeal`), so clients make a single call instead of
+ * stitching /api/calories/meals and log-day together.
+ */
 export const LogDayBodySchema = z.object({
   dayOfWeek: DayOfWeekSchema,
   loggedDate: IsoDateSchema,
   mealType: MealTypeSchema,
+  description: z.string().min(1),
+  kcal: KcalSchema.nullish(),
+  protein: MacroGramsSchema.nullish(),
+  carbs: MacroGramsSchema.nullish(),
+  fat: MacroGramsSchema.nullish(),
 });
 
 export const LogDayResponseSchema = z.object({

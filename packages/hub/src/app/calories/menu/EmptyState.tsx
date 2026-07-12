@@ -5,7 +5,7 @@ export function EmptyState() {
       <div>
         <p className="font-semibold text-[var(--text)]">No weekly menus yet</p>
         <p className="mt-1 text-sm text-[var(--subtle)]">
-          Ask Claude: <span className="italic">"Plan my meals for next week"</span> and it will create a menu here.
+          Ask Claude: <span className="italic">"Plan my meals for next week"</span> or use the Create button above.
         </p>
       </div>
     </div>

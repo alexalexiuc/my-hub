@@ -1,6 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { addMealToMenu, updateWeeklyMenuMeal, hasAccessToMenu } from '@my-hub/shared/services';
-import { AddMealSchema, SwapMealSchema, addMealTool, swapMealTool } from './weekly-menu';
+import {
+  addMealToMenu,
+  updateWeeklyMenuMeal,
+  hasAccessToMenu,
+  deleteWeeklyMenuMeal,
+  deleteWeeklyMenu,
+  createWeeklyMenu,
+} from '@my-hub/shared/services';
+import {
+  AddMealSchema,
+  SwapMealSchema,
+  RemoveMenuMealSchema,
+  addMealTool,
+  swapMealTool,
+  removeMenuMealTool,
+  deleteWeeklyMenuTool,
+  createWeeklyMenuTool,
+} from './weekly-menu';
 import { caloriesContext, parseToolPayload } from './test-utils';
 
 // ---------------------------------------------------------------------------
@@ -11,6 +27,13 @@ vi.mock('@my-hub/shared/services', () => ({
   addMealToMenu: vi.fn(),
   updateWeeklyMenuMeal: vi.fn(),
   hasAccessToMenu: vi.fn(),
+  deleteWeeklyMenuMeal: vi.fn(),
+  deleteWeeklyMenu: vi.fn(),
+  createWeeklyMenu: vi.fn(),
+  getCalorieProfile: vi.fn(),
+  getLatestMeasurementsPerType: vi.fn(),
+  getWeeklyMenuByWeek: vi.fn(),
+  getWeeklyMenus: vi.fn(),
 }));
 
 // ---------------------------------------------------------------------------
@@ -82,8 +105,8 @@ describe('AddMealSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('accepts pre_workout and post_workout meal types', () => {
-    for (const mealType of ['pre_workout', 'post_workout']) {
+  it('accepts pre_workout, post_workout and other meal types', () => {
+    for (const mealType of ['pre_workout', 'post_workout', 'other']) {
       const result = AddMealSchema.safeParse({
         menuId: 'menu-xyz',
         dayOfWeek: 0,
@@ -346,5 +369,117 @@ describe('swapMealTool', () => {
         fat: 30,
       }),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// removeMenuMealTool
+// ---------------------------------------------------------------------------
+
+describe('RemoveMenuMealSchema', () => {
+  it('accepts a valid slot including the other meal type', () => {
+    expect(RemoveMenuMealSchema.safeParse({ menuId: 'menu-xyz', dayOfWeek: 1, mealType: 'other' }).success).toBe(true);
+  });
+
+  it('rejects an unknown mealType', () => {
+    expect(RemoveMenuMealSchema.safeParse({ menuId: 'menu-xyz', dayOfWeek: 1, mealType: 'brunch' }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe('removeMenuMealTool', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns success=true and a message when a meal is removed', async () => {
+    vi.mocked(deleteWeeklyMenuMeal).mockResolvedValue(true);
+
+    const result = await removeMenuMealTool({ menuId: 'menu-xyz', dayOfWeek: 0, mealType: 'snack' }, ctx);
+
+    const payload = parsePayload(result) as { success: boolean; message: string };
+    expect(payload.success).toBe(true);
+    expect(payload.message).toContain('Mon');
+    expect(deleteWeeklyMenuMeal).toHaveBeenCalledWith('user-1', 'menu-xyz', 0, 'snack');
+  });
+
+  it('returns success=false when the slot does not exist', async () => {
+    vi.mocked(deleteWeeklyMenuMeal).mockResolvedValue(false);
+
+    const result = await removeMenuMealTool({ menuId: 'menu-xyz', dayOfWeek: 3, mealType: 'dinner' }, ctx);
+
+    const payload = parsePayload(result) as { success: boolean; message: string };
+    expect(payload.success).toBe(false);
+    expect(payload.message).toMatch(/no dinner found/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deleteWeeklyMenuTool
+// ---------------------------------------------------------------------------
+
+describe('deleteWeeklyMenuTool', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns success=true when the menu is deleted', async () => {
+    vi.mocked(deleteWeeklyMenu).mockResolvedValue(true);
+
+    const result = await deleteWeeklyMenuTool({ menuId: 'menu-xyz' }, ctx);
+
+    const payload = parsePayload(result) as { success: boolean; message: string };
+    expect(payload.success).toBe(true);
+    expect(deleteWeeklyMenu).toHaveBeenCalledWith('user-1', 'menu-xyz');
+  });
+
+  it('returns success=false when the menu is not found', async () => {
+    vi.mocked(deleteWeeklyMenu).mockResolvedValue(false);
+
+    const result = await deleteWeeklyMenuTool({ menuId: 'missing-id' }, ctx);
+
+    const payload = parsePayload(result) as { success: boolean; message: string };
+    expect(payload.success).toBe(false);
+    expect(payload.message).toContain('not found');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// createWeeklyMenuTool — duplicate-slot rejection
+// ---------------------------------------------------------------------------
+
+describe('createWeeklyMenuTool', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('rejects duplicate (dayOfWeek, mealType) slots instead of silently dropping meals', async () => {
+    const meal = {
+      dayOfWeek: 0,
+      mealType: 'lunch',
+      kcal: undefined,
+      proteinG: undefined,
+      carbsG: undefined,
+      fatG: undefined,
+    } as const;
+
+    const result = await createWeeklyMenuTool(
+      {
+        weekStart: '2026-07-13',
+        title: undefined,
+        notes: undefined,
+        meals: [
+          { ...meal, description: 'Chicken with rice' },
+          { ...meal, description: 'Tuna salad' },
+        ],
+      },
+      ctx,
+    );
+
+    const payload = parsePayload(result) as { success: boolean; message: string };
+    expect(payload.success).toBe(false);
+    expect(payload.message).toMatch(/duplicate meal slot/i);
+    expect(createWeeklyMenu).not.toHaveBeenCalled();
   });
 });

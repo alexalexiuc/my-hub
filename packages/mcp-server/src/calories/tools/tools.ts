@@ -22,6 +22,10 @@ import {
   swapMealTool,
   AddMealSchema,
   addMealTool,
+  RemoveMenuMealSchema,
+  removeMenuMealTool,
+  DeleteWeeklyMenuSchema,
+  deleteWeeklyMenuTool,
 } from './weekly-menu';
 
 const caloriesTools = [
@@ -174,6 +178,28 @@ const caloriesTools = [
     inputSchema: SwapMealSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: swapMealTool,
+  }),
+  defineTool({
+    name: 'calories_remove_menu_meal',
+    description:
+      'Remove a single meal slot from an existing weekly menu without replacing the whole week. ' +
+      'Use this when the user wants to drop a specific planned meal — e.g. "remove my Tuesday snack". ' +
+      'Before calling: get the menuId by calling calories_get_weekly_menu with the weekStart. ' +
+      'To replace a meal with a different one, use calories_swap_meal instead; to delete the entire week, use calories_delete_weekly_menu.',
+    inputSchema: RemoveMenuMealSchema.shape,
+    annotations: { idempotentHint: true, destructiveHint: true },
+    callback: removeMenuMealTool,
+  }),
+  defineTool({
+    name: 'calories_delete_weekly_menu',
+    description:
+      'Delete an entire weekly meal plan and all of its meals. ' +
+      "Use this when the user wants to remove a whole week's menu. " +
+      'Before calling: get the menuId by calling calories_get_weekly_menu (with or without weekStart). ' +
+      'This cannot be undone. To remove just one meal, use calories_remove_menu_meal instead.',
+    inputSchema: DeleteWeeklyMenuSchema.shape,
+    annotations: { idempotentHint: true, destructiveHint: true },
+    callback: deleteWeeklyMenuTool,
   }),
 ];
 

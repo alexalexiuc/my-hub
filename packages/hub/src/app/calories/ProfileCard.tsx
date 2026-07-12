@@ -7,7 +7,7 @@ import { z } from 'zod';
 import type { CalorieProfile } from '@my-hub/shared/types';
 import { apiFetch } from '@/lib/utils';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { calculateCalorieTargets, calculateBMR } from '@my-hub/shared/utils';
+import { profileToTargets, calculateBMR } from '@my-hub/shared/utils';
 import {
   ActivityLevel,
   ActivityLevels,
@@ -15,9 +15,10 @@ import {
   GoalTypes,
   Sexes,
   DaysOfWeek,
+  DaysOfWeekValues,
   DAY_LABELS,
+  DAY_LABELS_SHORT,
 } from '@my-hub/shared/constants';
-import type { DayOfWeek } from '@my-hub/shared/constants';
 import { Card, Field, Button, Input, Select, Textarea } from '@/components';
 import { pctToGrams, gramsToPct, computeMacroSummary } from './calories.utils';
 
@@ -63,6 +64,7 @@ const ProfileFormSchema = z.object({
   goalCarbs: z.string(),
   goalFat: z.string(),
   gymDays: z.nativeEnum(DaysOfWeek).array(), // Using deprecated `nativeEnum` because `enum` does not support number values
+  gymDayCalorieBonus: z.string(),
   notes: z.string(),
 });
 
@@ -82,6 +84,7 @@ function buildFormValues(profile: Props['profile']): ProfileFormValues {
     goalCarbs: profile?.goalCarbs?.toString() ?? '',
     goalFat: profile?.goalFat?.toString() ?? '',
     gymDays: profile?.gymDays ?? [],
+    gymDayCalorieBonus: profile?.gymDayCalorieBonus?.toString() ?? '',
     notes: profile?.notes ?? '',
   };
 }
@@ -112,17 +115,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
 
   const weightMeasure = latestMeasurements.find(m => m.typeKey === 'weight');
 
-  const targets = calculateCalorieTargets({
-    age: profile?.age ?? null,
-    sex: profile?.sex ?? null,
-    heightCm: profile?.heightCm ?? null,
-    weightKg: weightMeasure?.value ?? null,
-    activityLevel: profile?.activityLevel ?? null,
-    goalType: profile?.goalType ?? null,
-    goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? null,
-    goalMinCalories: profile?.goalMinCalories ?? null,
-    goalMaxCalories: profile?.goalMaxCalories ?? null,
-  });
+  const targets = profileToTargets(profile, weightMeasure?.value);
 
   const bmr = calculateBMR(
     profile?.age ?? null,
@@ -175,6 +168,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
           ? Number(macroMode === '%' ? pctToGrams(values.goalFat, 9, maxCalNum ?? 0) : values.goalFat)
           : null,
         gymDays: values.gymDays.length > 0 ? values.gymDays : null,
+        gymDayCalorieBonus: values.gymDayCalorieBonus ? Number(values.gymDayCalorieBonus) : null,
         notes: values.notes || undefined,
       },
     });
@@ -223,6 +217,9 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
                 )}
                 {profile.gymDays && profile.gymDays.length > 0 && (
                   <Stat label="Gym days" value={profile.gymDays.map(d => DAY_LABELS[d]).join(', ')} />
+                )}
+                {profile.gymDays && profile.gymDays.length > 0 && profile.gymDayCalorieBonus != null && (
+                  <Stat label="Gym day bonus" value={`+${profile.gymDayCalorieBonus} kcal`} />
                 )}
               </div>
 
@@ -300,7 +297,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
               name="gymDays"
               render={({ field }) => (
                 <div className="flex gap-1.5 flex-wrap">
-                  {(Object.entries(DaysOfWeek) as [string, DayOfWeek][]).map(([name, value]) => {
+                  {DaysOfWeekValues.map(value => {
                     const active = field.value.includes(value);
                     return (
                       <button
@@ -318,13 +315,16 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
                             : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--muted)]'
                         }`}
                       >
-                        {name.slice(0, 3)}
+                        {DAY_LABELS_SHORT[value]}
                       </button>
                     );
                   })}
                 </div>
               )}
             />
+            <Field label="Gym day calorie bonus" className="mt-2 max-w-[160px]">
+              <Input type="number" step="1" min="0" placeholder="e.g. 300" {...register('gymDayCalorieBonus')} />
+            </Field>
           </div>
 
           <p className="text-xs font-semibold text-[var(--subtle)] uppercase tracking-wide pt-1">Goal</p>

@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { dateToString, startOfWeekMonday } from '@my-hub/shared/utils';
+import { Button } from '@/components';
+import { PlusOutlineIcon } from '@/components/icons';
 import { GetMenuResponseSchema, GetMenusResponseSchema } from '@/app/api/calories/menu/menu.schemas';
 import { WeekNavigator } from './WeekNavigator';
 import { EmptyState } from './EmptyState';
 import { MenuDetail } from './MenuDetail';
-import { toLoggedMeals } from './menu.utils';
+import { CreateMenuModal } from './CreateMenuModal';
+import { toLoggedMeals, nextMenuWeekStart, latestMenu, currentWeekMonday } from './menu.utils';
 import type { LoggedMeals } from './menu.utils';
 import type { WeeklyMenu, WeeklyMenuSummary } from './types';
 
@@ -16,11 +18,14 @@ export default function WeeklyMenuPage() {
   const [selectedMenu, setSelectedMenu] = useState<WeeklyMenu | null>(null);
   const [loggedMeals, setLoggedMeals] = useState<LoggedMeals>({});
   const [gymDays, setGymDays] = useState<number[]>([]);
+  const [dailyTargetKcal, setDailyTargetKcal] = useState<number | null>(null);
+  const [gymDayCalorieBonus, setGymDayCalorieBonus] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const currentWeekStart = dateToString(startOfWeekMonday(new Date()));
+  const currentWeekStart = currentWeekMonday();
 
   const loadMenus = useCallback(async () => {
     try {
@@ -28,9 +33,11 @@ export default function WeeklyMenuPage() {
       const data = await apiFetch('/api/calories/menu', { responseSchema: GetMenusResponseSchema });
       setMenus(data.menus);
       setGymDays(data.gymDays);
-      const current = data.menus.find(m => m.weekStart === currentWeekStart);
-      if (current) {
-        const detail = await apiFetch(`/api/calories/menu/${current.menuId}`, {
+      setDailyTargetKcal(data.goalCalories);
+      setGymDayCalorieBonus(data.gymDayCalorieBonus);
+      const toSelect = data.menus.find(m => m.weekStart === currentWeekStart) ?? latestMenu(data.menus);
+      if (toSelect) {
+        const detail = await apiFetch(`/api/calories/menu/${toSelect.menuId}`, {
           responseSchema: GetMenuResponseSchema,
         });
         setSelectedMenu(detail.menu);
@@ -72,18 +79,48 @@ export default function WeeklyMenuPage() {
     }
   }
 
+  function handleCreated(createdMenu: WeeklyMenu) {
+    const { meals: _meals, ...summary } = createdMenu;
+    setMenus(prev => {
+      const rest = prev.filter(m => m.weekStart !== createdMenu.weekStart);
+      return [summary, ...rest].sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+    });
+    setSelectedMenu(createdMenu);
+    setLoggedMeals({});
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center h-64 text-[var(--subtle)]">Loading menus…</div>;
   }
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto p-4 md:p-6">
-      <div>
-        <h1 className="text-xl font-bold text-[var(--text)]">Weekly Menu</h1>
-        <p className="text-sm text-[var(--subtle)] mt-1">
-          Ask Claude to create a weekly menu plan — it will appear here automatically.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-[var(--text)]">Weekly Menu</h1>
+          <p className="text-sm text-[var(--subtle)] mt-1">
+            Ask Claude to create a weekly menu plan, or build one manually.
+          </p>
+        </div>
+        <Button
+          variant="accent"
+          size="sm"
+          onClick={() => setShowCreateModal(true)}
+          className="shrink-0 flex items-center"
+        >
+          <PlusOutlineIcon className="w-4 h-4 mr-1.5" />
+          Create
+        </Button>
       </div>
+
+      {showCreateModal && (
+        <CreateMenuModal
+          onClose={() => setShowCreateModal(false)}
+          onCreated={menu => void handleCreated(menu)}
+          gymDays={gymDays}
+          defaultWeekStart={nextMenuWeekStart(menus, currentWeekStart)}
+        />
+      )}
 
       {error && (
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div>
@@ -100,6 +137,8 @@ export default function WeeklyMenuPage() {
               menu={selectedMenu}
               loggedMeals={loggedMeals}
               gymDays={gymDays}
+              dailyTargetKcal={dailyTargetKcal}
+              gymDayCalorieBonus={gymDayCalorieBonus}
               onMealLogged={(day, mealType) => setLoggedMeals(prev => ({ ...prev, [`${day}:${mealType}`]: true }))}
               onMealSwapped={(day, updated) =>
                 setSelectedMenu(prev =>
@@ -113,8 +152,15 @@ export default function WeeklyMenuPage() {
                     : prev,
                 )
               }
-              onMealAdded={(day, added) =>
+              onMealAdded={(_day, added) =>
                 setSelectedMenu(prev => (prev ? { ...prev, meals: [...prev.meals, added] } : prev))
+              }
+              onMealDeleted={(day, mealType) =>
+                setSelectedMenu(prev =>
+                  prev
+                    ? { ...prev, meals: prev.meals.filter(m => !(m.dayOfWeek === day && m.mealType === mealType)) }
+                    : prev,
+                )
               }
               onDelete={handleDelete}
               deleting={deleting}

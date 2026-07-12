@@ -7,14 +7,14 @@ export const GET = route({ params: MenuParamsSchema, response: GetMenuResponseSc
     getWeeklyMenu(user.id, params.menuId),
     getLoggedDays(user.id, params.menuId),
   ]);
-  if (!menu) return routeHttpError(404, { error: 'Meal not found' });
+  if (!menu) return routeHttpError(404, { error: 'Menu not found' });
 
   return { menu, loggedDays };
 });
 
 export const DELETE = route({ params: MenuParamsSchema })(async ({ user, params }) => {
   const deleted = await deleteWeeklyMenu(user.id, params.menuId);
-  if (!deleted) return routeHttpError(404, { error: 'Meal not found' });
+  if (!deleted) return routeHttpError(404, { error: 'Menu not found' });
   return { deleted: true };
 });
 

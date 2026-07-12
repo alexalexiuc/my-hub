@@ -7,4 +7,5 @@ export const MEAL_LABEL: Record<MealType, string> = {
   post_workout: 'Post-Workout',
   dinner: 'Dinner',
   snack: 'Snack',
+  other: 'Extra',
 };

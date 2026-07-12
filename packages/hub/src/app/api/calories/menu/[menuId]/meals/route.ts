@@ -1,6 +1,11 @@
 import { route, routeHttpError } from '@/lib/api/route';
-import { addMealToMenu } from '@my-hub/shared/services';
-import { MenuMealResponseSchema, MenuMealWriteSchema, MenuParamsSchema } from '../../menu.schemas';
+import { addMealToMenu, deleteWeeklyMenuMeal } from '@my-hub/shared/services';
+import {
+  DeleteMenuMealSchema,
+  MenuMealResponseSchema,
+  MenuMealWriteSchema,
+  MenuParamsSchema,
+} from '../../menu.schemas';
 
 export const POST = route({ params: MenuParamsSchema, body: MenuMealWriteSchema, response: MenuMealResponseSchema })(
   async ({ user, params, body }) => {
@@ -17,3 +22,13 @@ export const POST = route({ params: MenuParamsSchema, body: MenuMealWriteSchema,
     return { meal };
   },
 );
+
+export const DELETE = route({ params: MenuParamsSchema, body: DeleteMenuMealSchema })(async ({
+  user,
+  params,
+  body,
+}) => {
+  const removed = await deleteWeeklyMenuMeal(user.id, params.menuId, body.dayOfWeek, body.mealType);
+  if (!removed) return routeHttpError(404, { error: 'Meal not found' });
+  return { deleted: true };
+});

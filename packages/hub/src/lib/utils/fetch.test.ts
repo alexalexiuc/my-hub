@@ -123,4 +123,10 @@ describe('apiFetch — schema-driven contracts', () => {
       apiFetch('/api/todo', { method: 'POST', body: { title: '   ' }, bodySchema: BodySchema }),
     ).rejects.toThrow('Invalid request body');
   });
+
+  it('resolves to undefined for an empty-body success even when responseSchema is set', async () => {
+    global.fetch = makeFetch(204, '');
+    const data = await apiFetch('/api/todo', { method: 'DELETE', responseSchema: ResponseSchema, silentToast: true });
+    expect(data).toBeUndefined();
+  });
 });

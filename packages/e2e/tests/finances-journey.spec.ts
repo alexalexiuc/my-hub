@@ -118,7 +118,6 @@ test.describe('Finances - Journey', () => {
       const accountsRes = await page.request.get('/api/finances/accounts');
       const accountsData = (await accountsRes.json()) as { accounts: Array<{ id: number; name: string }> };
       const seedAcc = accountsData.accounts.find(a => a.name.includes(bankAccountName));
-      console.log(seedAcc?.name);
       expect(seedAcc).toBeTruthy();
       const today = new Date().toISOString().slice(0, 10);
       await page.request.post('/api/finances/transactions', {

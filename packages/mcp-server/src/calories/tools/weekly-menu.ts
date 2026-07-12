@@ -8,14 +8,22 @@ import {
   updateWeeklyMenuMeal,
   hasAccessToMenu,
   addMealToMenu,
+  deleteWeeklyMenu,
+  deleteWeeklyMenuMeal,
 } from '@my-hub/shared/services';
-import { MealTypes, DaysOfWeek, DAY_LABELS_SHORT, MeasurementTypes } from '@my-hub/shared/constants';
-import type { DayOfWeek } from '@my-hub/shared/constants';
+import {
+  MealTypesValues,
+  DaysOfWeek,
+  DAY_LABELS_SHORT,
+  MeasurementTypes,
+  DEFAULT_GYM_DAY_CALORIE_BONUS,
+} from '@my-hub/shared/constants';
+import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
 import { toolResponse } from '../../shared/toolsUtils';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import type { ToolHandler } from '../../shared/types';
 import { rowToProfile, profileToTargets } from '../models/profile';
-import { localDateString, startOfWeekMonday, dateToString } from '@my-hub/shared/utils';
+import { localDateString, startOfWeekMonday, dateToString, hasDuplicateMealSlot } from '@my-hub/shared/utils';
 
 /** Convert a YYYY-MM-DD date string to day-of-week in Mon=0 … Sun=6 format. */
 function dayOfWeekMon0(dateStr: string): DayOfWeek {
@@ -27,20 +35,19 @@ function dayOfWeekMon0(dateStr: string): DayOfWeek {
 // Schemas
 // ---------------------------------------------------------------------------
 
+/**
+ * Meal-slot enum derived from the shared MealTypes source of truth so new members
+ * (e.g. `other`) propagate automatically instead of drifting from the Hub schemas.
+ */
+const mealTypeSchema = z
+  .enum(MealTypesValues as [MealType, ...MealType[]])
+  .describe('breakfast | lunch | dinner | snack | pre_workout | post_workout | other');
+
 const MenuMealSchema = z.object({
   dayOfWeek: z
     .nativeEnum(DaysOfWeek)
     .describe('Day of week: 0=Monday, 1=Tuesday, 2=Wednesday, 3=Thursday, 4=Friday, 5=Saturday, 6=Sunday'),
-  mealType: z
-    .enum([
-      MealTypes.Breakfast,
-      MealTypes.Lunch,
-      MealTypes.Dinner,
-      MealTypes.Snack,
-      MealTypes.PreWorkout,
-      MealTypes.PostWorkout,
-    ])
-    .describe('breakfast | lunch | dinner | snack | pre_workout | post_workout'),
+  mealType: mealTypeSchema,
   description: z.string().describe('What to eat, e.g. "Grilled salmon with quinoa and broccoli"'),
   kcal: z.number().int().positive().optional().describe('Estimated calories'),
   proteinG: z.number().positive().optional().describe('Protein in grams'),
@@ -75,6 +82,16 @@ export const GetWeeklyMenuSchema = z.object({
 export const createWeeklyMenuTool: ToolHandler<typeof CreateWeeklyMenuSchema.shape> = async (input, context) => {
   const { userId } = context;
 
+  // Same rule the Hub API enforces — reject instead of letting the unique-slot
+  // constraint's onConflictDoNothing silently drop meals with no feedback.
+  if (hasDuplicateMealSlot(input.meals)) {
+    return toolResponse({
+      success: false,
+      message:
+        'Duplicate meal slot — each (dayOfWeek, mealType) pair may appear at most once per week. Merge the duplicates and call the tool again.',
+    });
+  }
+
   // Compute today's date and day-of-week in the user's timezone
   const todayDate = localDateString(context.timezone);
   const todayDayOfWeek = dayOfWeekMon0(todayDate);
@@ -95,6 +112,7 @@ export const createWeeklyMenuTool: ToolHandler<typeof CreateWeeklyMenuSchema.sha
 
   // Gym days from profile — used to label training vs rest days in the response
   const gymDays = profile.gymDays ?? [];
+  const gymDayCalorieBonus = profileRow?.gymDayCalorieBonus ?? DEFAULT_GYM_DAY_CALORIE_BONUS;
 
   // Validate that planned meals respect the user's daily calorie targets
   const warnings: string[] = [];
@@ -107,11 +125,15 @@ export const createWeeklyMenuTool: ToolHandler<typeof CreateWeeklyMenuSchema.sha
 
     for (const [day, kcal] of Object.entries(dailyKcal)) {
       if (kcal === 0) continue;
-      if (targets.maxCalories !== null && kcal > targets.maxCalories) {
-        warnings.push(`Day ${day}: ${kcal} kcal exceeds max target of ${targets.maxCalories} kcal`);
+      // Gym days carry a higher target — same rule the Hub UI applies via dayTargetKcal,
+      // so the tool never warns about a correctly-planned gym day.
+      const bonus = gymDays.includes(Number(day) as DayOfWeek) ? gymDayCalorieBonus : 0;
+      const gymNote = bonus > 0 ? ' (gym day — bonus included)' : '';
+      if (targets.maxCalories !== null && kcal > targets.maxCalories + bonus) {
+        warnings.push(`Day ${day}: ${kcal} kcal exceeds max target of ${targets.maxCalories + bonus} kcal${gymNote}`);
       }
-      if (targets.minCalories !== null && kcal < targets.minCalories) {
-        warnings.push(`Day ${day}: ${kcal} kcal is below min target of ${targets.minCalories} kcal`);
+      if (targets.minCalories !== null && kcal < targets.minCalories + bonus) {
+        warnings.push(`Day ${day}: ${kcal} kcal is below min target of ${targets.minCalories + bonus} kcal${gymNote}`);
       }
     }
   }
@@ -156,6 +178,7 @@ export const createWeeklyMenuTool: ToolHandler<typeof CreateWeeklyMenuSchema.sha
             fatG: profileRow.goalFat ?? null,
           },
           gymDays: gymDays.length > 0 ? gymDays : null,
+          gymDayCalorieBonus,
         }
       : null,
     warnings: warnings.length > 0 ? warnings : null,
@@ -190,16 +213,7 @@ export const getWeeklyMenuTool: ToolHandler<typeof GetWeeklyMenuSchema.shape> = 
 export const AddMealSchema = z.object({
   menuId: z.string().describe('The menuId of the weekly menu to add the meal to'),
   dayOfWeek: z.nativeEnum(DaysOfWeek).describe('Day of week: 0=Monday … 6=Sunday'),
-  mealType: z
-    .enum([
-      MealTypes.Breakfast,
-      MealTypes.Lunch,
-      MealTypes.Dinner,
-      MealTypes.Snack,
-      MealTypes.PreWorkout,
-      MealTypes.PostWorkout,
-    ])
-    .describe('Meal slot: breakfast | lunch | dinner | snack | pre_workout | post_workout'),
+  mealType: mealTypeSchema,
   description: z.string().describe('What to eat'),
   kcal: z.number().int().positive().optional().describe('Estimated calories'),
   proteinG: z.number().positive().optional().describe('Protein in grams'),
@@ -242,16 +256,7 @@ export const addMealTool: ToolHandler<typeof AddMealSchema.shape> = async (input
 export const SwapMealSchema = z.object({
   menuId: z.string().describe('The menuId of the weekly menu to update'),
   dayOfWeek: z.nativeEnum(DaysOfWeek).describe('Day of week: 0=Monday … 6=Sunday'),
-  mealType: z
-    .enum([
-      MealTypes.Breakfast,
-      MealTypes.Lunch,
-      MealTypes.Dinner,
-      MealTypes.Snack,
-      MealTypes.PreWorkout,
-      MealTypes.PostWorkout,
-    ])
-    .describe('Which meal slot to replace: breakfast | lunch | dinner | snack | pre_workout | post_workout'),
+  mealType: mealTypeSchema,
   description: z.string().describe('The new meal description'),
   kcal: z.number().int().positive().optional().describe('Estimated calories for the new meal'),
   proteinG: z.number().positive().optional().describe('Protein in grams'),
@@ -286,5 +291,57 @@ export const swapMealTool: ToolHandler<typeof SwapMealSchema.shape> = async (inp
     success: true,
     updated,
     message: `Swapped ${input.mealType} on ${dayName}: "${input.description}"${input.kcal ? ` (${input.kcal} kcal)` : ''}. The user can see the updated menu under Calories → Weekly Menu.`,
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Remove a single meal
+// ---------------------------------------------------------------------------
+
+export const RemoveMenuMealSchema = z.object({
+  menuId: z.string().describe('The menuId of the weekly menu to remove the meal from'),
+  dayOfWeek: z.nativeEnum(DaysOfWeek).describe('Day of week: 0=Monday … 6=Sunday'),
+  mealType: mealTypeSchema,
+});
+
+export const removeMenuMealTool: ToolHandler<typeof RemoveMenuMealSchema.shape> = async (input, context) => {
+  const { userId } = context;
+
+  const removed = await deleteWeeklyMenuMeal(userId, input.menuId, input.dayOfWeek, input.mealType);
+
+  if (!removed) {
+    return toolResponse({
+      success: false,
+      message: `No ${input.mealType} found for day ${input.dayOfWeek} in menu ${input.menuId}.`,
+    });
+  }
+
+  const dayName = DAY_LABELS_SHORT[input.dayOfWeek];
+  return toolResponse({
+    success: true,
+    message: `Removed ${input.mealType} on ${dayName} from the menu. The user can see the updated menu under Calories → Weekly Menu.`,
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Delete a whole menu
+// ---------------------------------------------------------------------------
+
+export const DeleteWeeklyMenuSchema = z.object({
+  menuId: z.string().describe('The menuId of the weekly menu to delete. Get it from calories_get_weekly_menu.'),
+});
+
+export const deleteWeeklyMenuTool: ToolHandler<typeof DeleteWeeklyMenuSchema.shape> = async (input, context) => {
+  const { userId } = context;
+
+  const deleted = await deleteWeeklyMenu(userId, input.menuId);
+
+  if (!deleted) {
+    return toolResponse({ success: false, message: `Menu ${input.menuId} not found.` });
+  }
+
+  return toolResponse({
+    success: true,
+    message: `Deleted the weekly menu (${input.menuId}) and all of its meals.`,
   });
 };

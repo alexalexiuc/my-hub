@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { apiFetch, cn } from '@/lib/utils';
-import { Button, IconButton } from '@/components';
-import { PencilIcon } from '@/components/icons';
+import { Button, IconButton, ConfirmModal } from '@/components';
+import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
 import type { DayOfWeek } from '@my-hub/shared/constants';
-import { LogDayBodySchema, LogDayResponseSchema } from '@/app/api/calories/menu/menu.schemas';
+import { DeleteMenuMealSchema, LogDayBodySchema, LogDayResponseSchema } from '@/app/api/calories/menu/menu.schemas';
 import { MEAL_LABEL } from '@/app/calories/constants';
 import { SwapMealModal } from './SwapMealModal';
 import type { WeeklyMenuMeal } from './types';
@@ -19,32 +19,59 @@ type MealRowProps = {
   isFuture: boolean;
   onLogged: () => void;
   onSwapped: (updated: WeeklyMenuMeal) => void;
+  onDeleted: () => void;
 };
 
-export function MealRow({ meal, menuId, dayOfWeek, dayDate, logged, isFuture, onLogged, onSwapped }: MealRowProps) {
+export function MealRow({
+  meal,
+  menuId,
+  dayOfWeek,
+  dayDate,
+  logged,
+  isFuture,
+  onLogged,
+  onSwapped,
+  onDeleted,
+}: MealRowProps) {
   const [logging, setLogging] = useState(false);
   const [error, setError] = useState(false);
   const [showSwap, setShowSwap] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await apiFetch(`/api/calories/menu/${menuId}/meals`, {
+        method: 'DELETE',
+        body: { dayOfWeek, mealType: meal.mealType },
+        bodySchema: DeleteMenuMealSchema,
+      });
+      onDeleted(); // row unmounts on success
+    } catch {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  }
 
   async function handleLog() {
     setLogging(true);
     setError(false);
     try {
-      await apiFetch('/api/calories/meals', {
-        method: 'POST',
-        body: {
-          description: meal.description,
-          mealType: meal.mealType,
-          date: dayDate,
-          kcal: meal.kcal ?? undefined,
-          protein: meal.protein ?? undefined,
-          carbs: meal.carbs ?? undefined,
-          fat: meal.fat ?? undefined,
-        },
-      });
+      // Single call — the route journals the calorie entry and marks the slot
+      // logged in one transaction, so a retry can never duplicate the entry.
       await apiFetch(`/api/calories/menu/${menuId}/log-day`, {
         method: 'POST',
-        body: { dayOfWeek, loggedDate: dayDate, mealType: meal.mealType },
+        body: {
+          dayOfWeek,
+          loggedDate: dayDate,
+          mealType: meal.mealType,
+          description: meal.description,
+          kcal: meal.kcal,
+          protein: meal.protein,
+          carbs: meal.carbs,
+          fat: meal.fat,
+        },
         bodySchema: LogDayBodySchema,
         responseSchema: LogDayResponseSchema,
       });
@@ -76,6 +103,16 @@ export function MealRow({ meal, menuId, dayOfWeek, dayDate, logged, isFuture, on
                 onClick={() => setShowSwap(true)}
                 variant="ghost"
                 className="rounded px-1.5 py-0.5 border border-[var(--border)] text-[var(--subtle)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]"
+              />
+            )}
+            {!logged && (
+              <IconButton
+                label="Remove this meal"
+                icon={<TrashOutlineIcon className="size-3" />}
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={deleting}
+                variant="ghost"
+                className="rounded px-1.5 py-0.5 border border-[var(--border)] text-[var(--subtle)] hover:border-red-400/50 hover:text-red-400"
               />
             )}
             {!isFuture && (
@@ -111,6 +148,18 @@ export function MealRow({ meal, menuId, dayOfWeek, dayDate, logged, isFuture, on
           </span>
         )}
       </div>
+
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title="Remove meal"
+          message={`Remove ${MEAL_LABEL[meal.mealType]} — "${meal.description}"? This cannot be undone.`}
+          confirmLabel="Remove"
+          confirmVariant="danger"
+          loading={deleting}
+          onConfirm={() => void handleDelete()}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
 
       {showSwap && (
         <SwapMealModal

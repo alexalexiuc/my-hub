@@ -1,14 +1,29 @@
 import { route, created } from '@/lib/api/route';
-import { createWeeklyMenu, getWeeklyMenus, getCalorieProfile } from '@my-hub/shared/services';
-import { CreateMenuSchema, GetMenusResponseSchema, WeeklyMenuSchema } from './menu.schemas';
+import { createWeeklyMenu, getWeeklyMenus, getCalorieProfile, getMeasurements } from '@my-hub/shared/services';
+import { profileToTargets } from '@my-hub/shared/utils';
+import { MeasurementTypes, DEFAULT_GYM_DAY_CALORIE_BONUS } from '@my-hub/shared/constants';
+import { CreateMenuSchema, CreateMenuResponseSchema, GetMenusResponseSchema } from './menu.schemas';
 
 export const GET = route({ response: GetMenusResponseSchema })(async ({ user }) => {
-  const [menus, profile] = await Promise.all([getWeeklyMenus(user.id), getCalorieProfile(user.id)]);
+  const [menus, profile, latestWeight] = await Promise.all([
+    getWeeklyMenus(user.id),
+    getCalorieProfile(user.id),
+    getMeasurements(user.id, { typeKey: MeasurementTypes.Weight, limit: 1 }),
+  ]);
   const gymDays = profile?.gymDays ?? [];
-  return { menus, gymDays };
+  const weightKg = latestWeight[0]?.value ?? null;
+
+  const targets = profileToTargets(profile, weightKg);
+
+  return {
+    menus,
+    gymDays,
+    goalCalories: targets.goalCalories,
+    gymDayCalorieBonus: profile?.gymDayCalorieBonus ?? DEFAULT_GYM_DAY_CALORIE_BONUS,
+  };
 });
 
-export const POST = route({ body: CreateMenuSchema, response: WeeklyMenuSchema })(async ({ user, body }) => {
+export const POST = route({ body: CreateMenuSchema, response: CreateMenuResponseSchema })(async ({ user, body }) => {
   const menu = await createWeeklyMenu({
     userId: user.id,
     weekStart: body.weekStart,

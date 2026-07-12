@@ -1,4 +1,16 @@
-import { pgTable, serial, text, timestamp, integer, real, jsonb, uuid, index, unique } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  integer,
+  real,
+  jsonb,
+  uuid,
+  index,
+  unique,
+  boolean,
+} from 'drizzle-orm/pg-core';
 import type { ActivityLevel, GoalType, MealType, Sex } from '../../constants/calories';
 import { users } from './users';
 import type { DayOfWeek } from '../../constants/weekly-menu';
@@ -27,6 +39,7 @@ export const calorieProfiles = pgTable('calorie_profiles', {
   goalCarbs: real('goal_carbs'), // optional daily carbs target in grams
   goalFat: real('goal_fat'), // optional daily fat target in grams
   gymDays: jsonb('gym_days').$type<DayOfWeek[]>(), // days of week user goes to gym: 0=Mon … 6=Sun
+  gymDayCalorieBonus: real('gym_day_calorie_bonus').default(300), // kcal added to the daily target on gym days
   notes: text('notes'),
   automationApiKey: text('automation_api_key'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -99,7 +112,34 @@ export const weeklyMenuMeals = pgTable(
     fat: real('fat'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  table => [index('idx_weekly_menu_meals_menu').on(table.menuId)],
+  table => [
+    index('idx_weekly_menu_meals_menu').on(table.menuId),
+    // One meal per slot — addMealToMenu's onConflictDoNothing and the slot-addressed
+    // update/delete service functions all rely on this invariant.
+    unique('uq_weekly_menu_meal_slot').on(table.menuId, table.dayOfWeek, table.mealType),
+  ],
+);
+
+export const weeklyMenuShoppingItems = pgTable(
+  'weekly_menu_shopping_items',
+  {
+    id: serial('id').primaryKey(),
+    menuId: text('menu_id')
+      .notNull()
+      .references(() => weeklyMenus.menuId, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    text: text('text').notNull(),
+    checked: boolean('checked').notNull().default(false),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  table => [
+    index('idx_weekly_menu_shopping_items_menu').on(table.menuId),
+    // One item per exact text per menu — backstop for the service-level
+    // case-insensitive dedupe (insert uses onConflictDoNothing).
+    unique('uq_weekly_menu_shopping_item').on(table.menuId, table.text),
+  ],
 );
 
 export const weeklyMenuDayLogs = pgTable(

@@ -24,6 +24,7 @@ import {
   deleteAllUserFinanceBudgets,
   deleteAllUserAvailableOverrides,
   deleteAllUserWeeklyMenus,
+  deleteAllUserShoppingListItems,
 } from '@my-hub/shared/services';
 
 /**
@@ -31,14 +32,20 @@ import {
  * Useful for e2e test cleanup and for the "nuke everything" UI action.
  */
 export const POST = route(async ({ user }) => {
+  // Before the menus themselves — running it concurrently with deleteAllUserWeeklyMenus
+  // would race the FK cascade on the same rows.
+  const shoppingListItems = await deleteAllUserShoppingListItems(user.id);
+
   const [
     meals,
     measurements,
     calorieProfiles,
     oauthRefreshTokens,
     mcpClients,
-    mcpServers,
+    // Order must mirror the Promise.all call list below: deleteAllUserTodos runs
+    // before deleteAllUserMcpServers.
     todos,
+    mcpServers,
     notificationPreferences,
     apiRequestLogs,
     apiaryTasks,
@@ -109,6 +116,7 @@ export const POST = route(async ({ user }) => {
       finances,
       availableOverrides,
       weeklyMenus,
+      shoppingListItems,
     },
   };
 });

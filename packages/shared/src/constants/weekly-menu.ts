@@ -1,6 +1,8 @@
 /**
  * Weekly menu domain constants.
  */
+import { dayNamesShort } from './calendar';
+
 export const DaysOfWeek = {
   Monday: 0,
   Tuesday: 1,
@@ -24,12 +26,7 @@ export const DAY_LABELS: Record<DayOfWeek, string> = {
   6: 'Sunday',
 };
 
-export const DAY_LABELS_SHORT: Record<DayOfWeek, string> = {
-  0: 'Mon',
-  1: 'Tue',
-  2: 'Wed',
-  3: 'Thu',
-  4: 'Fri',
-  5: 'Sat',
-  6: 'Sun',
-};
+// Derived from the calendar constant (also Monday-indexed) so the two can never drift.
+export const DAY_LABELS_SHORT: Record<DayOfWeek, string> = Object.fromEntries(
+  DaysOfWeekValues.map(d => [d, dayNamesShort[d]!]),
+) as Record<DayOfWeek, string>;

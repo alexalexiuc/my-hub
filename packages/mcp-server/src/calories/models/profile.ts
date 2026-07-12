@@ -1,7 +1,8 @@
-import { omitNullish, calculateCalorieTargets } from '@my-hub/shared/utils';
-import type { CalorieTargets } from '@my-hub/shared/utils';
+import { omitNullish } from '@my-hub/shared/utils';
 import type { BodyProfile } from '../types';
 import type { CalorieProfile } from '@my-hub/shared/types';
+
+export { profileToTargets } from '@my-hub/shared/utils';
 
 export function rowToProfile(row: CalorieProfile): BodyProfile {
   return {
@@ -19,18 +20,4 @@ export function rowToProfile(row: CalorieProfile): BodyProfile {
       notes: row.notes,
     }),
   };
-}
-
-export function profileToTargets(profile: BodyProfile, weightKg?: number | null): CalorieTargets {
-  return calculateCalorieTargets({
-    age: profile.age ?? null,
-    sex: profile.sex ?? null,
-    heightCm: profile.heightCm ?? null,
-    weightKg: weightKg ?? null,
-    activityLevel: profile.activityLevel ?? null,
-    goalType: profile.goalType ?? null,
-    goalWeeklyRateKg: profile.goalWeeklyRateKg ?? null,
-    goalMinCalories: profile.goalMinCalories ?? null,
-    goalMaxCalories: profile.goalMaxCalories ?? null,
-  });
 }

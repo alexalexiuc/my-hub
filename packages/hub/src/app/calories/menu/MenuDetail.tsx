@@ -8,7 +8,8 @@ import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
 import { dateToString } from '@my-hub/shared/utils';
 import { ShoppingListModal } from './ShoppingListModal';
 import { DayCard } from './DayCard';
-import { dateForDay, formatWeekLabel } from './menu.utils';
+import { formatWeekLabel, dayTargetKcal, targetPct, targetColorClasses, resolveDailyTarget } from './menu.utils';
+import { TargetBar } from './TargetBar';
 import type { LoggedMeals } from './menu.utils';
 import type { WeeklyMenu, WeeklyMenuMeal } from './types';
 
@@ -16,9 +17,14 @@ type MenuDetailProps = {
   menu: WeeklyMenu;
   loggedMeals: LoggedMeals;
   gymDays: number[];
+  /** Daily calorie target from the user's profile (goalCalories), or null if the profile is incomplete. */
+  dailyTargetKcal: number | null;
+  /** Extra kcal added to the daily target on gym days. */
+  gymDayCalorieBonus: number;
   onMealLogged: (day: DayOfWeek, mealType: MealType) => void;
   onMealSwapped: (day: DayOfWeek, updated: WeeklyMenuMeal) => void;
   onMealAdded: (day: DayOfWeek, added: WeeklyMenuMeal) => void;
+  onMealDeleted: (day: DayOfWeek, mealType: MealType) => void;
   onDelete: (menuId: string) => Promise<void>;
   deleting: boolean;
   isCurrentWeek: boolean;
@@ -28,9 +34,12 @@ export function MenuDetail({
   menu,
   loggedMeals,
   gymDays,
+  dailyTargetKcal,
+  gymDayCalorieBonus,
   onMealLogged,
   onMealSwapped,
   onMealAdded,
+  onMealDeleted,
   onDelete,
   deleting,
   isCurrentWeek,
@@ -43,24 +52,43 @@ export function MenuDetail({
   }, {});
   const today = dateToString();
 
-  // Adherence summary: past/today days that have meals planned.
+  // Adherence summary: how much of the whole week's plan is logged so far, across every day
+  // that has meals planned — including days later in the week that haven't happened yet
+  // (they count as 0% logged until then, so the bar reflects "how complete is this week",
+  // not just "compliance for days already passed").
   // Bar uses partial-day credit: each day contributes loggedMeals/plannedMeals to the fill.
   const adherenceStats = DaysOfWeekValues.reduce(
     (stats, d) => {
       const dayMeals = byDay[d] ?? [];
-      if (dateForDay(menu.weekStart, d) > today || dayMeals.length === 0) return stats;
+      if (dayMeals.length === 0) return stats;
 
       const loggedCount = dayMeals.filter(m => `${d}:${m.mealType}` in loggedMeals).length;
       return {
-        pastDaysWithMealsCount: stats.pastDaysWithMealsCount + 1,
+        daysWithMealsCount: stats.daysWithMealsCount + 1,
         fullyLoggedDaysCount: stats.fullyLoggedDaysCount + (loggedCount === dayMeals.length ? 1 : 0),
         creditSum: stats.creditSum + loggedCount / dayMeals.length,
       };
     },
-    { pastDaysWithMealsCount: 0, fullyLoggedDaysCount: 0, creditSum: 0 },
+    { daysWithMealsCount: 0, fullyLoggedDaysCount: 0, creditSum: 0 },
   );
-  const { pastDaysWithMealsCount, fullyLoggedDaysCount, creditSum } = adherenceStats;
-  const adherencePct = pastDaysWithMealsCount > 0 ? Math.round((creditSum / pastDaysWithMealsCount) * 100) : 0;
+  const { daysWithMealsCount, fullyLoggedDaysCount, creditSum } = adherenceStats;
+  const adherencePct = daysWithMealsCount > 0 ? Math.round((creditSum / daysWithMealsCount) * 100) : 0;
+
+  // Weekly summary: planned kcal vs. target (macro breakdown deliberately omitted —
+  // that tracking already lives in the Today tab). The target is summed only over
+  // days that actually have meals planned: a menu created mid-week plans only the
+  // remaining days, and comparing those against a full 7-day target would always
+  // read as far under target.
+  const { baseTarget, isEstimated: isTargetEstimated } = resolveDailyTarget(dailyTargetKcal);
+  const plannedTotalKcal = menu.meals.reduce((s, m) => s + (m.kcal ?? 0), 0);
+  const weeklyTargetKcal = DaysOfWeekValues.reduce<number>(
+    (s, d) =>
+      (byDay[d]?.length ?? 0) > 0 ? s + dayTargetKcal(baseTarget, gymDays.includes(d), gymDayCalorieBonus) : s,
+    0,
+  );
+  const weeklyPct = targetPct(plannedTotalKcal, weeklyTargetKcal);
+  const weeklyColors = targetColorClasses(weeklyPct, isTargetEstimated);
+  const gymTargetKcal = dayTargetKcal(baseTarget, true, gymDayCalorieBonus);
 
   async function confirmDelete() {
     await onDelete(menu.menuId);
@@ -69,18 +97,7 @@ export function MenuDetail({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-[var(--text)]">
-            {menu.title ?? formatWeekLabel(menu.weekStart)}
-            {isCurrentWeek && (
-              <span className="ml-2 rounded-full bg-[var(--accent)]/20 px-2 py-0.5 text-xs font-medium text-[var(--accent)]">
-                This week
-              </span>
-            )}
-          </h2>
-          {menu.notes && <p className="text-sm text-[var(--subtle)] mt-0.5">{menu.notes}</p>}
-        </div>
+      <div className="flex items-center justify-end">
         <div className="flex items-center gap-1">
           <IconButton
             label="Shopping list"
@@ -103,6 +120,7 @@ export function MenuDetail({
       {showShoppingList && (
         <ShoppingListModal
           meals={menu.meals}
+          menuId={menu.menuId}
           weekLabel={formatWeekLabel(menu.weekStart)}
           onClose={() => setShowShoppingList(false)}
         />
@@ -120,7 +138,27 @@ export function MenuDetail({
         />
       )}
 
-      {pastDaysWithMealsCount > 0 && (
+      {menu.meals.length > 0 && (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">
+              Week plan vs. target
+            </span>
+            <div className="flex items-baseline gap-2">
+              <span className={`text-2xl font-bold ${weeklyColors.text}`}>{plannedTotalKcal.toLocaleString()}</span>
+              <span className="text-sm text-[var(--subtle)]">/ {weeklyTargetKcal.toLocaleString()} kcal planned</span>
+              {weeklyPct !== null && <span className={`text-sm font-semibold ${weeklyColors.text}`}>{weeklyPct}%</span>}
+            </div>
+          </div>
+          <TargetBar pct={weeklyPct} colors={weeklyColors} size="md" />
+          <p className="text-xs text-[var(--subtle)]">
+            {gymDays.length > 0 && `Target rises to ${gymTargetKcal.toLocaleString()} kcal on gym days. `}
+            Macro breakdown stays in the Today tab.
+          </p>
+        </div>
+      )}
+
+      {daysWithMealsCount > 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2">
           <span className="text-xs text-[var(--muted)] shrink-0">Adherence</span>
           <div className="flex-1 h-1.5 rounded-full bg-[var(--card3)]">
@@ -136,7 +174,7 @@ export function MenuDetail({
               adherencePct === 100 ? 'text-green-400' : 'text-[var(--text)]'
             }`}
           >
-            {fullyLoggedDaysCount}/{pastDaysWithMealsCount} days
+            {fullyLoggedDaysCount}/{daysWithMealsCount} days
           </span>
         </div>
       )}
@@ -153,9 +191,12 @@ export function MenuDetail({
             today={today}
             loggedMeals={loggedMeals}
             isGymDay={gymDays.includes(day)}
+            dailyTargetKcal={dailyTargetKcal}
+            gymDayCalorieBonus={gymDayCalorieBonus}
             onMealLogged={mealType => onMealLogged(day, mealType)}
             onMealSwapped={onMealSwapped}
             onMealAdded={onMealAdded}
+            onMealDeleted={onMealDeleted}
           />
         ))}
       </div>

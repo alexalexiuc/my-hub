@@ -1,6 +1,6 @@
 import type { ZodType } from 'zod';
 import { z } from 'zod';
-import { formatZodError } from '@/lib/api/with-error-logging';
+import { formatZodError } from '@/lib/api/format-zod-error';
 
 type QueryParams = Record<string, string | number | boolean | null | undefined>;
 
@@ -164,7 +164,10 @@ export async function apiFetch<
   const text = await res.text();
   const json = text ? (JSON.parse(text) as unknown) : undefined;
 
-  if (responseSchema) {
+  // Empty successful responses (e.g. 204 No Content) resolve to undefined even when a
+  // responseSchema is set — validating `undefined` against an object schema would turn
+  // a legitimate empty-body success into a thrown "Invalid response body".
+  if (responseSchema && json !== undefined) {
     return parseOrThrow(responseSchema, json, 'response body') as SchemaOutput<TResponseSchema, T>;
   }
 
