@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { Button } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons';
@@ -25,7 +25,9 @@ export default function WeeklyMenuPage() {
   const [deleting, setDeleting] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const currentWeekStart = currentWeekMonday();
+  // Stable for the component's lifetime — recomputing on every render would only churn
+  // the loadMenus useCallback identity and re-trigger its effect.
+  const currentWeekStart = useMemo(() => currentWeekMonday(), []);
 
   const loadMenus = useCallback(async () => {
     try {

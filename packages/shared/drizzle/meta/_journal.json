@@ -66,31 +66,10 @@
       "breakpoints": true
     },
     {
-      "idx": 7,
-      "version": "7",
-      "when": 1783690287432,
-      "tag": "0007_amusing_inhumans",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1783693978271,
-      "tag": "0008_little_doctor_spectrum",
-      "breakpoints": true
-    },
-    {
       "idx": 9,
       "version": "7",
-      "when": 1783772975671,
-      "tag": "0009_polite_kulan_gath",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1784136353409,
-      "tag": "0010_illegal_brood",
+      "when": 1784137430013,
+      "tag": "0009_known_lady_deathstrike",
       "breakpoints": true
     }
   ]

@@ -14,18 +14,20 @@ import {
   logMeasurementTool,
 } from './measurement';
 import {
-  CreateWeeklyMenuSchema,
-  createWeeklyMenuTool,
+  PlanWeekSchema,
+  planWeekTool,
   GetWeeklyMenuSchema,
   getWeeklyMenuTool,
-  SwapMealSchema,
-  swapMealTool,
-  AddMealSchema,
-  addMealTool,
+  SetMenuMealSchema,
+  setMenuMealTool,
   RemoveMenuMealSchema,
   removeMenuMealTool,
   DeleteWeeklyMenuSchema,
   deleteWeeklyMenuTool,
+  SetPrepNotesSchema,
+  setPrepNotesTool,
+  SetShoppingListSchema,
+  setShoppingListTool,
 } from './weekly-menu';
 
 const caloriesTools = [
@@ -125,13 +127,15 @@ const caloriesTools = [
   }),
   // ---- Weekly menu tools ----
   defineTool({
-    name: 'calories_create_weekly_menu',
+    name: 'calories_plan_week',
     description:
-      'Create or replace a weekly meal plan for a specific week. ' +
+      'Plan a full week of meals for a specific week, saving them as a weekly menu. ' +
       'Use this when the user asks you to plan meals for a week, create a menu, or suggest what to eat. ' +
       'IMPORTANT: Before calling this tool, follow these steps in order: ' +
       '1. Call calories_get_weekly_menu (without weekStart) to fetch the last few weeks of menus. ' +
-      'Use this history to avoid repeating the same meals or ingredients — vary proteins, vegetables, and cuisines relative to recent weeks. ' +
+      'Use this history to respect the meals the user clearly repeats (their staples) and to plan realistic batch cooking — ' +
+      'reuse the same dish across several days where it saves effort (e.g. roast a large batch once, eat it Mon/Thu/Sun), ' +
+      'and only vary meals where the user seems to want variety. Do not force novelty for its own sake. ' +
       '2. Read the calories://profile resource (or call calories_get_daily_summary) ' +
       "to know the user's daily calorie target (min/max), macro goals (protein, carbs, fat), goal type (weight_loss, weight_gain, maintain), " +
       "and any dietary notes. Plan every day's meals to hit those targets. " +
@@ -139,12 +143,16 @@ const caloriesTools = [
       'but inform the user that no calorie goal is configured and their meals were not tailored to specific targets — ' +
       'suggest they set up their profile under Calories → Settings to get personalised menus in future. ' +
       'Plan all 7 days with breakfast, lunch, dinner, and snack. Include estimated calories and macros for each meal. ' +
+      'In the SAME call, also provide prepNotes (batch-cooking / "cook once, eat twice" guidance) and a shoppingList ' +
+      '(ingredients aggregated across the week with quantities) so the whole week is planned in one go. ' +
       'The menu is saved to the hub and the user can view it under Calories → Weekly Menu. ' +
       'If a menu already exists for that week it will be replaced. ' +
-      "The tool returns userTargets and any warnings if days exceed or fall below the user's calorie targets.",
-    inputSchema: CreateWeeklyMenuSchema.shape,
+      "The tool returns userTargets and any warnings if days exceed or fall below the user's calorie targets. " +
+      'To adjust a single meal afterwards use calories_set_menu_meal; to update just the notes or shopping list use ' +
+      'calories_set_prep_notes or calories_set_shopping_list — do not re-plan the whole week.',
+    inputSchema: PlanWeekSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
-    callback: createWeeklyMenuTool,
+    callback: planWeekTool,
   }),
   defineTool({
     name: 'calories_get_weekly_menu',
@@ -155,29 +163,21 @@ const caloriesTools = [
     callback: getWeeklyMenuTool,
   }),
   defineTool({
-    name: 'calories_add_meal',
+    name: 'calories_set_menu_meal',
     description:
-      'Add a single meal to an existing weekly menu without replacing the whole week. ' +
-      'Use this when the user wants to add a pre-workout, post-workout, or any extra meal to a specific day. ' +
-      'Before calling: get the menuId by calling calories_get_weekly_menu with the weekStart. ' +
-      'The slot must not already exist for that day — use calories_swap_meal to replace an existing meal instead.',
-    inputSchema: AddMealSchema.shape,
-    annotations: { idempotentHint: false, destructiveHint: false },
-    callback: addMealTool,
-  }),
-  defineTool({
-    name: 'calories_swap_meal',
-    description:
-      'Replace a single meal in an existing weekly menu with a new one. ' +
-      'Use this when the user wants to swap one specific meal — e.g. "change my Thursday lunch" or "I don\'t feel like salmon tonight, give me something else". ' +
-      'Before calling this tool: ' +
-      '1. Call calories_get_weekly_menu with the weekStart to get the menuId and see the current meal. ' +
-      "2. Generate a replacement that fits the same calorie slot and the user's dietary profile. " +
-      '3. Call this tool with the new meal details. ' +
-      'Only the specified meal slot is changed — all other days and meals remain untouched.',
-    inputSchema: SwapMealSchema.shape,
-    annotations: { idempotentHint: false, destructiveHint: false },
-    callback: swapMealTool,
+      'Set a single meal slot in an existing weekly menu — adds the meal if the slot is empty, or ' +
+      'replaces the existing dish if that (day, mealType) slot is already filled. ' +
+      'Use this whenever the user wants to change one specific meal without re-planning the whole week — ' +
+      'e.g. "change my Thursday lunch", "I don\'t feel like salmon tonight, give me something else", or ' +
+      'add a pre-workout / post-workout meal to a day. ' +
+      'Before calling: ' +
+      '1. Call calories_get_weekly_menu with the weekStart to get the menuId and see any current meal in that slot. ' +
+      "2. Generate a dish that fits the same calorie slot and the user's dietary profile. " +
+      '3. Call this tool with the meal details. ' +
+      'Only the specified slot is affected — all other days and meals remain untouched.',
+    inputSchema: SetMenuMealSchema.shape,
+    annotations: { idempotentHint: true, destructiveHint: false },
+    callback: setMenuMealTool,
   }),
   defineTool({
     name: 'calories_remove_menu_meal',
@@ -185,7 +185,8 @@ const caloriesTools = [
       'Remove a single meal slot from an existing weekly menu without replacing the whole week. ' +
       'Use this when the user wants to drop a specific planned meal — e.g. "remove my Tuesday snack". ' +
       'Before calling: get the menuId by calling calories_get_weekly_menu with the weekStart. ' +
-      'To replace a meal with a different one, use calories_swap_meal instead; to delete the entire week, use calories_delete_weekly_menu.',
+      'To replace a meal with a different one, use calories_set_menu_meal instead. ' +
+      'To clear an entire week, use calories_delete_weekly_menu.',
     inputSchema: RemoveMenuMealSchema.shape,
     annotations: { idempotentHint: true, destructiveHint: true },
     callback: removeMenuMealTool,
@@ -194,12 +195,35 @@ const caloriesTools = [
     name: 'calories_delete_weekly_menu',
     description:
       'Delete an entire weekly meal plan and all of its meals. ' +
-      "Use this when the user wants to remove a whole week's menu. " +
+      "Use this when the user wants to clear or remove a whole week's menu. " +
       'Before calling: get the menuId by calling calories_get_weekly_menu (with or without weekStart). ' +
-      'This cannot be undone. To remove just one meal, use calories_remove_menu_meal instead.',
+      'This cannot be undone. To replace a week with a new plan instead, use calories_plan_week (it overwrites ' +
+      'any existing menu for that week). To remove just one meal, use calories_remove_menu_meal.',
     inputSchema: DeleteWeeklyMenuSchema.shape,
     annotations: { idempotentHint: true, destructiveHint: true },
     callback: deleteWeeklyMenuTool,
+  }),
+  defineTool({
+    name: 'calories_set_prep_notes',
+    description:
+      "Set or update the week's prep & cooking notes on an existing menu without re-planning the meals. " +
+      'Use this for batch-cooking and "cook once, eat twice" guidance — e.g. "Roast 1kg chicken Sunday → ' +
+      'Mon lunch, Thu & Sun dinner." Before calling, get the menuId from calories_get_weekly_menu. ' +
+      'Pass an empty string to clear the notes.',
+    inputSchema: SetPrepNotesSchema.shape,
+    annotations: { idempotentHint: true, destructiveHint: false },
+    callback: setPrepNotesTool,
+  }),
+  defineTool({
+    name: 'calories_set_shopping_list',
+    description:
+      "Replace the week's shopping list on an existing menu with an AI-generated list — ingredients aggregated " +
+      'across all planned meals, one entry per line with quantities where useful (e.g. "1kg chicken breast"). ' +
+      'Use this when the user asks for a shopping list, or after editing the menu. Before calling, get the menuId ' +
+      'from calories_get_weekly_menu. This overwrites the existing list; pass an empty array to clear it.',
+    inputSchema: SetShoppingListSchema.shape,
+    annotations: { idempotentHint: true, destructiveHint: false },
+    callback: setShoppingListTool,
   }),
 ];
 

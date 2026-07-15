@@ -5,6 +5,7 @@
  * - `ShoppingListItem` — persisted shopping list row (id, menuId, userId, text, checked, createdAt)
  * - `getShoppingListItems(userId, menuId)` — all items for a menu, oldest first
  * - `addShoppingListItems(userId, menuId, texts)` — bulk insert with trim + case-insensitive dedupe
+ * - `replaceShoppingListItems(userId, menuId, texts)` — replace the whole list (clear + insert); for AI-authored lists
  * - `setShoppingListItemChecked(userId, itemId, checked)` — toggle an item's checked state
  * - `deleteShoppingListItem(userId, itemId)` — remove a single item
  * - `deleteAllUserShoppingListItems(userId)` — wipe all items for a user ("delete all my data" flow)
@@ -79,6 +80,45 @@ export async function addShoppingListItems(
     .values(toInsert.map(text => ({ menuId, userId, text })))
     .onConflictDoNothing()
     .returning();
+}
+
+/**
+ * Replace a menu's entire shopping list with a new set of items in one transaction:
+ * every existing item for the menu is removed and the provided texts are inserted fresh
+ * (trimmed; blanks and case-insensitive duplicates within the input are skipped). This is
+ * the write path for an AI-authored list — it overwrites rather than appends. Returns the
+ * new items, or null when the menu doesn't belong to the user.
+ */
+export async function replaceShoppingListItems(
+  userId: string,
+  menuId: string,
+  texts: string[],
+): Promise<ShoppingListItem[] | null> {
+  if (!(await hasAccessToMenu(userId, menuId))) {
+    logger.warn(`Unauthorized shopping-list replace attempt by user ${userId} to menu ${menuId}`);
+    return null;
+  }
+
+  const seen = new Set<string>();
+  const toInsert: string[] = [];
+  for (const raw of texts) {
+    const text = raw.trim();
+    const lower = text.toLowerCase();
+    if (!text || seen.has(lower)) continue;
+    seen.add(lower);
+    toInsert.push(text);
+  }
+
+  return db.transaction(async tx => {
+    await tx.delete(weeklyMenuShoppingItems).where(eq(weeklyMenuShoppingItems.menuId, menuId));
+
+    if (toInsert.length === 0) return [];
+
+    return tx
+      .insert(weeklyMenuShoppingItems)
+      .values(toInsert.map(text => ({ menuId, userId, text })))
+      .returning();
+  });
 }
 
 /**

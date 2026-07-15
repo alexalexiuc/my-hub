@@ -5,10 +5,12 @@
  * - `WeeklyMenu`, `WeeklyMenuMeal`, `WeeklyMenuMealInput`, `CreateWeeklyMenuInput`, `UpdateWeeklyMenuMealInput`, `LogMenuMealInput` — service types
  * - `hasAccessToMenu(userId, menuId)` — ownership check (1s promise cache)
  * - `createWeeklyMenu(input)` — create (or replace, per user+week) a menu with its meals
+ * - `updateWeeklyMenu(userId, menuId, { title?, notes? })` — patch a menu's title/prep notes without touching meals
  * - `getWeeklyMenus(userId)` — all menus, ascending by weekStart, without meal rows
  * - `getWeeklyMenu(userId, menuId)` / `getWeeklyMenuByWeek(userId, weekStart)` — single menu with meals
  * - `addMealToMenu(userId, menuId, meal)` — insert one meal; null when slot exists or no access
  * - `updateWeeklyMenuMeal(userId, menuId, dayOfWeek, mealType, updates)` — swap a slot's meal (clears its day-log)
+ * - `upsertMenuMeal(userId, menuId, meal)` — set a slot's meal (insert-or-overwrite; clears its day-log)
  * - `deleteWeeklyMenuMeal(userId, menuId, dayOfWeek, mealType)` — remove a slot (clears its day-log)
  * - `deleteWeeklyMenu(userId, menuId)` / `deleteAllUserWeeklyMenus(userId)` — menu deletion (evicts access cache)
  * - `logMenuMeal(userId, menuId, dayOfWeek, mealType, loggedDate, meal)` — transactionally journal a meal AND mark its slot logged
@@ -143,6 +145,41 @@ export async function createWeeklyMenu(input: CreateWeeklyMenuInput): Promise<We
   return { ...menu, meals: mealRows };
 }
 
+export interface UpdateWeeklyMenuInput {
+  title?: string | null;
+  notes?: string | null;
+}
+
+/**
+ * Patch a menu's title and/or prep notes without touching its meals. Follows update semantics:
+ * `undefined` leaves a field unchanged, `null` clears it. Returns the updated menu row
+ * (without meals), or null when the menu doesn't belong to the user.
+ */
+export async function updateWeeklyMenu(
+  userId: string,
+  menuId: string,
+  updates: UpdateWeeklyMenuInput,
+): Promise<Omit<WeeklyMenu, 'meals'> | null> {
+  if (!(await hasAccessToMenu(userId, menuId))) {
+    logger.warn(`Unauthorized menu update attempt by user ${userId} to menu ${menuId}`);
+    return null;
+  }
+
+  const patch = omitUndefined({ title: updates.title, notes: updates.notes });
+  if (Object.keys(patch).length === 0) {
+    const [row] = await db.select().from(weeklyMenus).where(eq(weeklyMenus.menuId, menuId));
+    return row ?? null;
+  }
+
+  const [updated] = await db
+    .update(weeklyMenus)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(eq(weeklyMenus.menuId, menuId))
+    .returning();
+
+  return updated ?? null;
+}
+
 /**
  * Get all weekly menus for a user, oldest first (ascending by weekStart), without meal rows.
  */
@@ -249,16 +286,16 @@ export async function updateWeeklyMenuMeal(
     return null;
   }
 
+  // A swap replaces the whole dish, so unspecified macros are cleared (null) rather than
+  // inherited from the previous meal — otherwise "Plain oats" would keep the old salmon's macros.
   const [updated] = await db
     .update(weeklyMenuMeals)
     .set({
       description: updates.description,
-      ...omitUndefined({
-        kcal: updates.kcal,
-        protein: updates.protein,
-        carbs: updates.carbs,
-        fat: updates.fat,
-      }),
+      kcal: updates.kcal ?? null,
+      protein: updates.protein ?? null,
+      carbs: updates.carbs ?? null,
+      fat: updates.fat ?? null,
     })
     .where(
       and(
@@ -274,6 +311,46 @@ export async function updateWeeklyMenuMeal(
   await clearDayLogForSlot(menuId, dayOfWeek, mealType);
 
   return updated;
+}
+
+/**
+ * Set a meal slot: insert the meal, or overwrite the existing dish if the
+ * `(menuId, dayOfWeek, mealType)` slot is already taken. Collapses "add" and "swap" into a
+ * single idempotent write for callers that just want a slot to hold a given meal (used by the
+ * `calories_set_menu_meal` MCP tool). Clears the slot's day-log so a re-defined dish never
+ * appears pre-logged. Returns the meal, or null if the menu doesn't belong to the user.
+ */
+export async function upsertMenuMeal(
+  userId: string,
+  menuId: string,
+  meal: WeeklyMenuMealInput,
+): Promise<WeeklyMenuMeal | null> {
+  if (!(await hasAccessToMenu(userId, menuId))) {
+    logger.warn(`Unauthorized upsertMeal attempt by user ${userId} to menu ${menuId}`);
+    return null;
+  }
+
+  const values = {
+    kcal: meal.kcal ?? null,
+    protein: meal.protein ?? null,
+    carbs: meal.carbs ?? null,
+    fat: meal.fat ?? null,
+  };
+
+  const [upserted] = await db
+    .insert(weeklyMenuMeals)
+    .values({ menuId, dayOfWeek: meal.dayOfWeek, mealType: meal.mealType, description: meal.description, ...values })
+    .onConflictDoUpdate({
+      target: [weeklyMenuMeals.menuId, weeklyMenuMeals.dayOfWeek, weeklyMenuMeals.mealType],
+      set: { description: meal.description, ...values },
+    })
+    .returning();
+
+  if (!upserted) return null;
+
+  await clearDayLogForSlot(menuId, meal.dayOfWeek, meal.mealType);
+
+  return upserted;
 }
 
 /**

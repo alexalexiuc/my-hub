@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { addMealToMenu, updateWeeklyMenuMeal, deleteWeeklyMenuMeal, logMenuMeal } from './weekly-menu';
+import { addMealToMenu, updateWeeklyMenuMeal, upsertMenuMeal, deleteWeeklyMenuMeal, logMenuMeal } from './weekly-menu';
 
 // ---------------------------------------------------------------------------
 // Mock the DB client
@@ -77,6 +77,15 @@ function mockDeleteReturning(rows: unknown[]) {
 function mockDeleteResolves() {
   vi.mocked(db).delete.mockReturnValueOnce({
     where: vi.fn().mockResolvedValue(undefined),
+  } as any);
+}
+
+/** Make db.insert() return rows via .onConflictDoUpdate().returning() (upsert) */
+function mockUpsertReturning(rows: unknown[]) {
+  vi.mocked(db).insert.mockReturnValueOnce({
+    values: vi.fn().mockReturnThis(),
+    onConflictDoUpdate: vi.fn().mockReturnThis(),
+    returning: vi.fn().mockResolvedValue(rows),
   } as any);
 }
 
@@ -157,6 +166,46 @@ describe('addMealToMenu', () => {
     expect(capturedValues.protein).toBeNull();
     expect(capturedValues.carbs).toBeNull();
     expect(capturedValues.fat).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// upsertMenuMeal
+// ---------------------------------------------------------------------------
+
+describe('upsertMenuMeal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns null when menu is not found for the user', async () => {
+    mockSelectOwnership([ACCESS_DENIED_ROW]);
+    const result = await upsertMenuMeal('user-upsert-1', 'menu-abc', {
+      dayOfWeek: 0,
+      mealType: 'breakfast',
+      description: 'Oatmeal',
+    });
+    expect(result).toBeNull();
+    expect(vi.mocked(db).insert).not.toHaveBeenCalled();
+  });
+
+  it('returns the meal and clears the slot day-log on insert-or-overwrite', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    const upserted = { ...MEAL_ROW, description: 'Tuna salad', kcal: 400 };
+    mockUpsertReturning([upserted]);
+    mockDeleteResolves(); // day-log cleanup
+
+    const result = await upsertMenuMeal('user-upsert-2', 'menu-abc', {
+      dayOfWeek: 0,
+      mealType: 'lunch',
+      description: 'Tuna salad',
+      kcal: 400,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.description).toBe('Tuna salad');
+    // A re-defined dish must not inherit the previous meal's "logged" marker
+    expect(vi.mocked(db).delete).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -1,15 +1,15 @@
 import { z } from 'zod';
 import {
   createWeeklyMenu,
+  updateWeeklyMenu,
   getWeeklyMenuByWeek,
   getWeeklyMenus,
   getCalorieProfile,
   getLatestMeasurementsPerType,
-  updateWeeklyMenuMeal,
-  hasAccessToMenu,
-  addMealToMenu,
-  deleteWeeklyMenu,
+  upsertMenuMeal,
   deleteWeeklyMenuMeal,
+  deleteWeeklyMenu,
+  replaceShoppingListItems,
 } from '@my-hub/shared/services';
 import {
   MealTypesValues,
@@ -23,7 +23,7 @@ import { toolResponse } from '../../shared/toolsUtils';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import type { ToolHandler } from '../../shared/types';
 import { rowToProfile, profileToTargets } from '../models/profile';
-import { localDateString, startOfWeekMonday, dateToString, hasDuplicateMealSlot } from '@my-hub/shared/utils';
+import { localDateString, startOfWeekMonday, dateToString, hasDuplicateMealSlot, logger } from '@my-hub/shared/utils';
 
 /** Convert a YYYY-MM-DD date string to day-of-week in Mon=0 … Sun=6 format. */
 function dayOfWeekMon0(dateStr: string): DayOfWeek {
@@ -50,17 +50,32 @@ const MenuMealSchema = z.object({
   mealType: mealTypeSchema,
   description: z.string().describe('What to eat, e.g. "Grilled salmon with quinoa and broccoli"'),
   kcal: z.number().int().positive().optional().describe('Estimated calories'),
-  proteinG: z.number().positive().optional().describe('Protein in grams'),
-  carbsG: z.number().positive().optional().describe('Carbohydrates in grams'),
-  fatG: z.number().positive().optional().describe('Fat in grams'),
+  protein: z.number().positive().optional().describe('Protein in grams'),
+  carbs: z.number().positive().optional().describe('Carbohydrates in grams'),
+  fat: z.number().positive().optional().describe('Fat in grams'),
 });
 
-export const CreateWeeklyMenuSchema = z.object({
+export const PlanWeekSchema = z.object({
   weekStart: yyyyMmDdSchema.describe(
     'The Monday of the target week in YYYY-MM-DD format. Use the upcoming Monday for "next week", or the current Monday for "this week".',
   ),
   title: z.string().optional().describe('Optional menu title, e.g. "High protein week"'),
-  notes: z.string().optional().describe('Optional notes or summary for the week'),
+  prepNotes: z
+    .string()
+    .optional()
+    .describe(
+      'Optional free-text prep & cooking notes for the week — batch-cooking and "cook once, eat twice" guidance, ' +
+        'e.g. "Roast 1kg chicken breast Sunday → use for Mon lunch, Thu & Sun dinner. Make overnight oats x4 for breakfasts." ' +
+        'Written for the user to read in the hub; keep it practical.',
+    ),
+  shoppingList: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Optional shopping list for the week, one entry per line with quantities where useful, ' +
+        'e.g. ["1kg chicken breast", "6 eggs", "500g oats", "2 avocados"]. Aggregate ingredients across all ' +
+        'planned meals so the user can shop once. Replaces any existing list for the week.',
+    ),
   meals: z
     .array(MenuMealSchema)
     .min(1)
@@ -79,7 +94,7 @@ export const GetWeeklyMenuSchema = z.object({
 // Handlers
 // ---------------------------------------------------------------------------
 
-export const createWeeklyMenuTool: ToolHandler<typeof CreateWeeklyMenuSchema.shape> = async (input, context) => {
+export const planWeekTool: ToolHandler<typeof PlanWeekSchema.shape> = async (input, context) => {
   const { userId } = context;
 
   // Same rule the Hub API enforces — reject instead of letting the unique-slot
@@ -138,27 +153,45 @@ export const createWeeklyMenuTool: ToolHandler<typeof CreateWeeklyMenuSchema.sha
     }
   }
 
-  const menu = await createWeeklyMenu({
-    userId,
-    weekStart: input.weekStart,
-    title: input.title ?? null,
-    notes: input.notes ?? null,
-    meals: input.meals.map(m => ({
-      dayOfWeek: m.dayOfWeek,
-      mealType: m.mealType,
-      description: m.description,
-      kcal: m.kcal ?? null,
-      protein: m.proteinG ?? null,
-      carbs: m.carbsG ?? null,
-      fat: m.fatG ?? null,
-    })),
-  });
+  let menu: Awaited<ReturnType<typeof createWeeklyMenu>>;
+  try {
+    menu = await createWeeklyMenu({
+      userId,
+      weekStart: input.weekStart,
+      title: input.title ?? null,
+      notes: input.prepNotes ?? null,
+      meals: input.meals.map(m => ({
+        dayOfWeek: m.dayOfWeek,
+        mealType: m.mealType,
+        description: m.description,
+        kcal: m.kcal ?? null,
+        protein: m.protein ?? null,
+        carbs: m.carbs ?? null,
+        fat: m.fat ?? null,
+      })),
+    });
+  } catch (err) {
+    logger.error(`[calories] planWeek failed for user ${userId}, week ${input.weekStart}:`, err);
+    return toolResponse({
+      success: false,
+      message: `Could not save the weekly menu for ${input.weekStart}. Please try again.`,
+    });
+  }
+
+  // Write the shopping list in the same flow so the AI can plan meals + shopping in one call.
+  let shoppingListCount = 0;
+  if (input.shoppingList && input.shoppingList.length > 0) {
+    const items = await replaceShoppingListItems(userId, menu.menuId, input.shoppingList);
+    shoppingListCount = items?.length ?? 0;
+  }
 
   return toolResponse({
     menuId: menu.menuId,
     weekStart: menu.weekStart,
     title: menu.title,
     totalMeals: menu.meals.length,
+    prepNotes: menu.notes,
+    shoppingListItems: shoppingListCount,
     todayDate,
     todayDayOfWeek,
     planFromDayOfWeek,
@@ -173,9 +206,9 @@ export const createWeeklyMenuTool: ToolHandler<typeof CreateWeeklyMenuSchema.sha
             max: targets.maxCalories,
           },
           macros: {
-            proteinG: profileRow.goalProtein ?? null,
-            carbsG: profileRow.goalCarbs ?? null,
-            fatG: profileRow.goalFat ?? null,
+            protein: profileRow.goalProtein ?? null,
+            carbs: profileRow.goalCarbs ?? null,
+            fat: profileRow.goalFat ?? null,
           },
           gymDays: gymDays.length > 0 ? gymDays : null,
           gymDayCalorieBonus,
@@ -207,90 +240,42 @@ export const getWeeklyMenuTool: ToolHandler<typeof GetWeeklyMenuSchema.shape> = 
 };
 
 // ---------------------------------------------------------------------------
-// Add meal
+// Set (add or swap) a single meal
 // ---------------------------------------------------------------------------
 
-export const AddMealSchema = z.object({
-  menuId: z.string().describe('The menuId of the weekly menu to add the meal to'),
+export const SetMenuMealSchema = z.object({
+  menuId: z.string().describe('The menuId of the weekly menu to update'),
   dayOfWeek: z.nativeEnum(DaysOfWeek).describe('Day of week: 0=Monday … 6=Sunday'),
   mealType: mealTypeSchema,
-  description: z.string().describe('What to eat'),
+  description: z.string().describe('What to eat, e.g. "Grilled salmon with quinoa and broccoli"'),
   kcal: z.number().int().positive().optional().describe('Estimated calories'),
-  proteinG: z.number().positive().optional().describe('Protein in grams'),
-  carbsG: z.number().positive().optional().describe('Carbohydrates in grams'),
-  fatG: z.number().positive().optional().describe('Fat in grams'),
+  protein: z.number().positive().optional().describe('Protein in grams'),
+  carbs: z.number().positive().optional().describe('Carbohydrates in grams'),
+  fat: z.number().positive().optional().describe('Fat in grams'),
 });
 
-export const addMealTool: ToolHandler<typeof AddMealSchema.shape> = async (input, context) => {
+export const setMenuMealTool: ToolHandler<typeof SetMenuMealSchema.shape> = async (input, context) => {
   const { userId } = context;
 
-  const added = await addMealToMenu(userId, input.menuId, {
+  const meal = await upsertMenuMeal(userId, input.menuId, {
     dayOfWeek: input.dayOfWeek,
     mealType: input.mealType,
     description: input.description,
     kcal: input.kcal ?? null,
-    protein: input.proteinG ?? null,
-    carbs: input.carbsG ?? null,
-    fat: input.fatG ?? null,
+    protein: input.protein ?? null,
+    carbs: input.carbs ?? null,
+    fat: input.fat ?? null,
   });
 
-  if (!added) {
-    return toolResponse({
-      success: false,
-      message: `Could not add meal — menu not found or that slot already exists for day ${input.dayOfWeek}.`,
-    });
-  }
-
-  const dayName = DAY_LABELS_SHORT[input.dayOfWeek];
-  return toolResponse({
-    success: true,
-    added,
-    message: `Added ${input.mealType} on ${dayName}: "${input.description}"${input.kcal ? ` (${input.kcal} kcal)` : ''}. Visible under Calories → Weekly Menu.`,
-  });
-};
-
-// ---------------------------------------------------------------------------
-// Swap meal
-// ---------------------------------------------------------------------------
-
-export const SwapMealSchema = z.object({
-  menuId: z.string().describe('The menuId of the weekly menu to update'),
-  dayOfWeek: z.nativeEnum(DaysOfWeek).describe('Day of week: 0=Monday … 6=Sunday'),
-  mealType: mealTypeSchema,
-  description: z.string().describe('The new meal description'),
-  kcal: z.number().int().positive().optional().describe('Estimated calories for the new meal'),
-  proteinG: z.number().positive().optional().describe('Protein in grams'),
-  carbsG: z.number().positive().optional().describe('Carbohydrates in grams'),
-  fatG: z.number().positive().optional().describe('Fat in grams'),
-});
-
-export const swapMealTool: ToolHandler<typeof SwapMealSchema.shape> = async (input, context) => {
-  const { userId } = context;
-
-  if (!(await hasAccessToMenu(userId, input.menuId))) {
+  if (!meal) {
     return toolResponse({ success: false, message: `Menu ${input.menuId} not found.` });
   }
 
-  const updated = await updateWeeklyMenuMeal(userId, input.menuId, input.dayOfWeek, input.mealType, {
-    description: input.description,
-    kcal: input.kcal ?? null,
-    protein: input.proteinG ?? null,
-    carbs: input.carbsG ?? null,
-    fat: input.fatG ?? null,
-  });
-
-  if (!updated) {
-    return toolResponse({
-      success: false,
-      message: `No ${input.mealType} found for day ${input.dayOfWeek} in menu ${input.menuId}.`,
-    });
-  }
-
   const dayName = DAY_LABELS_SHORT[input.dayOfWeek];
   return toolResponse({
     success: true,
-    updated,
-    message: `Swapped ${input.mealType} on ${dayName}: "${input.description}"${input.kcal ? ` (${input.kcal} kcal)` : ''}. The user can see the updated menu under Calories → Weekly Menu.`,
+    meal,
+    message: `Set ${input.mealType} on ${dayName}: "${input.description}"${input.kcal ? ` (${input.kcal} kcal)` : ''}. The user can see the updated menu under Calories → Weekly Menu.`,
   });
 };
 
@@ -343,5 +328,71 @@ export const deleteWeeklyMenuTool: ToolHandler<typeof DeleteWeeklyMenuSchema.sha
   return toolResponse({
     success: true,
     message: `Deleted the weekly menu (${input.menuId}) and all of its meals.`,
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Set prep / cooking notes
+// ---------------------------------------------------------------------------
+
+export const SetPrepNotesSchema = z.object({
+  menuId: z.string().describe('The menuId of the weekly menu. Get it from calories_get_weekly_menu.'),
+  prepNotes: z
+    .string()
+    .describe(
+      'Free-text prep & cooking notes for the week — batch-cooking / "cook once, eat twice" guidance the user reads ' +
+        'in the hub, e.g. "Roast 1kg chicken Sunday → Mon lunch, Thu & Sun dinner." Pass an empty string to clear.',
+    ),
+});
+
+export const setPrepNotesTool: ToolHandler<typeof SetPrepNotesSchema.shape> = async (input, context) => {
+  const { userId } = context;
+
+  const updated = await updateWeeklyMenu(userId, input.menuId, { notes: input.prepNotes.trim() || null });
+
+  if (!updated) {
+    return toolResponse({ success: false, message: `Menu ${input.menuId} not found.` });
+  }
+
+  return toolResponse({
+    success: true,
+    prepNotes: updated.notes,
+    message: updated.notes
+      ? 'Updated the prep notes. The user can see them under Calories → Weekly Menu.'
+      : 'Cleared the prep notes for this menu.',
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Set the shopping list
+// ---------------------------------------------------------------------------
+
+export const SetShoppingListSchema = z.object({
+  menuId: z.string().describe('The menuId of the weekly menu. Get it from calories_get_weekly_menu.'),
+  items: z
+    .array(z.string())
+    .describe(
+      'The full shopping list for the week, one entry per line with quantities where useful, ' +
+        'e.g. ["1kg chicken breast", "6 eggs", "500g oats"]. Aggregate ingredients across all planned meals. ' +
+        'This REPLACES the existing list. Pass an empty array to clear it.',
+    ),
+});
+
+export const setShoppingListTool: ToolHandler<typeof SetShoppingListSchema.shape> = async (input, context) => {
+  const { userId } = context;
+
+  const items = await replaceShoppingListItems(userId, input.menuId, input.items);
+
+  if (items === null) {
+    return toolResponse({ success: false, message: `Menu ${input.menuId} not found.` });
+  }
+
+  return toolResponse({
+    success: true,
+    itemCount: items.length,
+    message:
+      items.length > 0
+        ? `Saved a shopping list of ${items.length} item${items.length === 1 ? '' : 's'}. The user can see it under Calories → Weekly Menu.`
+        : 'Cleared the shopping list for this menu.',
   });
 };

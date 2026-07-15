@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { IconButton, ConfirmModal } from '@/components';
-import { ListChecksOutlineIcon, TrashOutlineIcon } from '@/components/icons';
+import { ListChecksOutlineIcon, TrashOutlineIcon, ClipboardIcon } from '@/components/icons';
 import { DaysOfWeekValues } from '@my-hub/shared/constants';
 import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
 import { dateToString } from '@my-hub/shared/utils';
@@ -117,9 +117,17 @@ export function MenuDetail({
         </div>
       </div>
 
+      {menu.notes && (
+        <div className="rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/5 p-4 flex flex-col gap-1.5">
+          <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-[var(--accent)]">
+            <ClipboardIcon className="size-3.5" /> Prep notes
+          </span>
+          <p className="text-sm text-[var(--text)] whitespace-pre-wrap leading-relaxed">{menu.notes}</p>
+        </div>
+      )}
+
       {showShoppingList && (
         <ShoppingListModal
-          meals={menu.meals}
           menuId={menu.menuId}
           weekLabel={formatWeekLabel(menu.weekStart)}
           onClose={() => setShowShoppingList(false)}

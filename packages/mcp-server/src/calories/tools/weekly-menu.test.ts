@@ -1,21 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  addMealToMenu,
-  updateWeeklyMenuMeal,
-  hasAccessToMenu,
+  upsertMenuMeal,
   deleteWeeklyMenuMeal,
   deleteWeeklyMenu,
   createWeeklyMenu,
+  updateWeeklyMenu,
+  replaceShoppingListItems,
+  getCalorieProfile,
+  getLatestMeasurementsPerType,
 } from '@my-hub/shared/services';
 import {
-  AddMealSchema,
-  SwapMealSchema,
+  SetMenuMealSchema,
   RemoveMenuMealSchema,
-  addMealTool,
-  swapMealTool,
+  setMenuMealTool,
   removeMenuMealTool,
   deleteWeeklyMenuTool,
-  createWeeklyMenuTool,
+  setPrepNotesTool,
+  setShoppingListTool,
+  planWeekTool,
 } from './weekly-menu';
 import { caloriesContext, parseToolPayload } from './test-utils';
 
@@ -24,12 +26,12 @@ import { caloriesContext, parseToolPayload } from './test-utils';
 // ---------------------------------------------------------------------------
 
 vi.mock('@my-hub/shared/services', () => ({
-  addMealToMenu: vi.fn(),
-  updateWeeklyMenuMeal: vi.fn(),
-  hasAccessToMenu: vi.fn(),
+  upsertMenuMeal: vi.fn(),
   deleteWeeklyMenuMeal: vi.fn(),
   deleteWeeklyMenu: vi.fn(),
   createWeeklyMenu: vi.fn(),
+  updateWeeklyMenu: vi.fn(),
+  replaceShoppingListItems: vi.fn(),
   getCalorieProfile: vi.fn(),
   getLatestMeasurementsPerType: vi.fn(),
   getWeeklyMenuByWeek: vi.fn(),
@@ -57,26 +59,26 @@ const BASE_MEAL = {
 };
 
 // ---------------------------------------------------------------------------
-// AddMealSchema validation
+// SetMenuMealSchema validation
 // ---------------------------------------------------------------------------
 
-describe('AddMealSchema', () => {
+describe('SetMenuMealSchema', () => {
   it('accepts valid input with all fields', () => {
-    const result = AddMealSchema.safeParse({
+    const result = SetMenuMealSchema.safeParse({
       menuId: 'menu-xyz',
       dayOfWeek: 0,
       mealType: 'pre_workout',
       description: 'Banana and shake',
       kcal: 250,
-      proteinG: 30,
-      carbsG: 28,
-      fatG: 3,
+      protein: 30,
+      carbs: 28,
+      fat: 3,
     });
     expect(result.success).toBe(true);
   });
 
   it('accepts input with only required fields', () => {
-    const result = AddMealSchema.safeParse({
+    const result = SetMenuMealSchema.safeParse({
       menuId: 'menu-xyz',
       dayOfWeek: 2,
       mealType: 'snack',
@@ -86,7 +88,7 @@ describe('AddMealSchema', () => {
   });
 
   it('rejects dayOfWeek outside 0–6', () => {
-    const result = AddMealSchema.safeParse({
+    const result = SetMenuMealSchema.safeParse({
       menuId: 'menu-xyz',
       dayOfWeek: 7,
       mealType: 'snack',
@@ -96,7 +98,7 @@ describe('AddMealSchema', () => {
   });
 
   it('rejects unknown mealType', () => {
-    const result = AddMealSchema.safeParse({
+    const result = SetMenuMealSchema.safeParse({
       menuId: 'menu-xyz',
       dayOfWeek: 1,
       mealType: 'brunch',
@@ -105,9 +107,18 @@ describe('AddMealSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rejects missing description', () => {
+    const result = SetMenuMealSchema.safeParse({
+      menuId: 'menu-xyz',
+      dayOfWeek: 3,
+      mealType: 'dinner',
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('accepts pre_workout, post_workout and other meal types', () => {
     for (const mealType of ['pre_workout', 'post_workout', 'other']) {
-      const result = AddMealSchema.safeParse({
+      const result = SetMenuMealSchema.safeParse({
         menuId: 'menu-xyz',
         dayOfWeek: 0,
         mealType,
@@ -119,167 +130,76 @@ describe('AddMealSchema', () => {
 });
 
 // ---------------------------------------------------------------------------
-// SwapMealSchema validation
+// setMenuMealTool — insert-or-overwrite a slot
 // ---------------------------------------------------------------------------
 
-describe('SwapMealSchema', () => {
-  it('accepts valid swap input', () => {
-    const result = SwapMealSchema.safeParse({
-      menuId: 'menu-xyz',
-      dayOfWeek: 3,
-      mealType: 'dinner',
-      description: 'Chicken with rice',
-      kcal: 600,
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it('rejects missing description', () => {
-    const result = SwapMealSchema.safeParse({
-      menuId: 'menu-xyz',
-      dayOfWeek: 3,
-      mealType: 'dinner',
-    });
-    expect(result.success).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// addMealTool
-// ---------------------------------------------------------------------------
-
-describe('addMealTool', () => {
+describe('setMenuMealTool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('returns success=true with the added meal and a message', async () => {
-    vi.mocked(addMealToMenu).mockResolvedValue(BASE_MEAL as never);
+  it('returns success=true with the meal and a message on insert', async () => {
+    vi.mocked(upsertMenuMeal).mockResolvedValue(BASE_MEAL as never);
 
-    const result = await addMealTool(
+    const result = await setMenuMealTool(
       {
         menuId: 'menu-xyz',
         dayOfWeek: 0,
         mealType: 'pre_workout',
         description: 'Banana and protein shake',
         kcal: 250,
-        proteinG: undefined,
-        carbsG: undefined,
-        fatG: undefined,
+        protein: undefined,
+        carbs: undefined,
+        fat: undefined,
       },
       ctx,
     );
 
-    const payload = parsePayload(result) as { success: boolean; added: { mealType: string }; message: string };
+    const payload = parsePayload(result) as { success: boolean; meal: { mealType: string }; message: string };
     expect(payload.success).toBe(true);
-    expect(payload.added.mealType).toBe('pre_workout');
+    expect(payload.meal.mealType).toBe('pre_workout');
+    expect(payload.message).toContain('Set');
     expect(payload.message).toContain('Mon');
     expect(payload.message).toContain('250 kcal');
   });
 
-  it('returns success=false when menu not found or slot exists', async () => {
-    vi.mocked(addMealToMenu).mockResolvedValue(null);
+  it('returns success=true when overwriting an existing slot', async () => {
+    const overwritten = { ...BASE_MEAL, mealType: 'lunch', description: 'Tuna salad', kcal: 400 };
+    vi.mocked(upsertMenuMeal).mockResolvedValue(overwritten as never);
 
-    const result = await addMealTool(
+    const result = await setMenuMealTool(
       {
         menuId: 'menu-xyz',
         dayOfWeek: 0,
-        mealType: 'breakfast',
-        description: 'Duplicate',
-        kcal: undefined,
-        proteinG: undefined,
-        carbsG: undefined,
-        fatG: undefined,
+        mealType: 'lunch',
+        description: 'Tuna salad',
+        kcal: 400,
+        protein: undefined,
+        carbs: undefined,
+        fat: undefined,
       },
       ctx,
     );
 
-    const payload = parsePayload(result) as { success: boolean; message: string };
-    expect(payload.success).toBe(false);
-    expect(payload.message).toMatch(/not found|already exists/i);
+    const payload = parsePayload(result) as { success: boolean; meal: { description: string }; message: string };
+    expect(payload.success).toBe(true);
+    expect(payload.meal.description).toBe('Tuna salad');
+    expect(payload.message).toContain('400 kcal');
   });
 
-  it('passes kcal and macros correctly to addMealToMenu', async () => {
-    vi.mocked(addMealToMenu).mockResolvedValue(BASE_MEAL as never);
+  it('returns success=false when the menu is not found', async () => {
+    vi.mocked(upsertMenuMeal).mockResolvedValue(null);
 
-    await addMealTool(
-      {
-        menuId: 'menu-xyz',
-        dayOfWeek: 1,
-        mealType: 'snack',
-        description: 'Nuts',
-        kcal: 180,
-        proteinG: 5,
-        carbsG: 10,
-        fatG: 14,
-      },
-      ctx,
-    );
-
-    expect(addMealToMenu).toHaveBeenCalledWith(
-      'user-1',
-      'menu-xyz',
-      expect.objectContaining({
-        kcal: 180,
-        protein: 5,
-        carbs: 10,
-        fat: 14,
-      }),
-    );
-  });
-
-  it('passes null for optional fields when omitted', async () => {
-    vi.mocked(addMealToMenu).mockResolvedValue(BASE_MEAL as never);
-
-    await addMealTool(
-      {
-        menuId: 'menu-xyz',
-        dayOfWeek: 1,
-        mealType: 'snack',
-        description: 'Nuts',
-        kcal: undefined,
-        proteinG: undefined,
-        carbsG: undefined,
-        fatG: undefined,
-      },
-      ctx,
-    );
-
-    expect(addMealToMenu).toHaveBeenCalledWith(
-      'user-1',
-      'menu-xyz',
-      expect.objectContaining({
-        kcal: null,
-        protein: null,
-        carbs: null,
-        fat: null,
-      }),
-    );
-  });
-});
-
-// ---------------------------------------------------------------------------
-// swapMealTool
-// ---------------------------------------------------------------------------
-
-describe('swapMealTool', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('returns success=false when menu is not found', async () => {
-    vi.mocked(hasAccessToMenu).mockResolvedValue(false);
-
-    const result = await swapMealTool(
+    const result = await setMenuMealTool(
       {
         menuId: 'missing-id',
         dayOfWeek: 0,
-        mealType: 'lunch',
-        description: 'New meal',
+        mealType: 'breakfast',
+        description: 'Eggs',
         kcal: undefined,
-        proteinG: undefined,
-        carbsG: undefined,
-        fatG: undefined,
+        protein: undefined,
+        carbs: undefined,
+        fat: undefined,
       },
       ctx,
     );
@@ -287,86 +207,65 @@ describe('swapMealTool', () => {
     const payload = parsePayload(result) as { success: boolean; message: string };
     expect(payload.success).toBe(false);
     expect(payload.message).toContain('not found');
-    expect(updateWeeklyMenuMeal).not.toHaveBeenCalled();
   });
 
-  it('returns success=false when the meal slot does not exist', async () => {
-    vi.mocked(hasAccessToMenu).mockResolvedValue(true);
-    vi.mocked(updateWeeklyMenuMeal).mockResolvedValue(null);
+  it('passes kcal and macros correctly to upsertMenuMeal', async () => {
+    vi.mocked(upsertMenuMeal).mockResolvedValue(BASE_MEAL as never);
 
-    const result = await swapMealTool(
-      {
-        menuId: 'menu-xyz',
-        dayOfWeek: 4,
-        mealType: 'dinner',
-        description: 'Something',
-        kcal: undefined,
-        proteinG: undefined,
-        carbsG: undefined,
-        fatG: undefined,
-      },
-      ctx,
-    );
-
-    const payload = parsePayload(result) as { success: boolean };
-    expect(payload.success).toBe(false);
-  });
-
-  it('returns success=true with the updated meal and a message', async () => {
-    const updatedMeal = { ...BASE_MEAL, mealType: 'lunch', description: 'Tuna salad', kcal: 400 };
-    vi.mocked(hasAccessToMenu).mockResolvedValue(true);
-    vi.mocked(updateWeeklyMenuMeal).mockResolvedValue(updatedMeal as never);
-
-    const result = await swapMealTool(
-      {
-        menuId: 'menu-xyz',
-        dayOfWeek: 0,
-        mealType: 'lunch',
-        description: 'Tuna salad',
-        kcal: 400,
-        proteinG: undefined,
-        carbsG: undefined,
-        fatG: undefined,
-      },
-      ctx,
-    );
-
-    const payload = parsePayload(result) as { success: boolean; updated: { description: string }; message: string };
-    expect(payload.success).toBe(true);
-    expect(payload.updated.description).toBe('Tuna salad');
-    expect(payload.message).toContain('400 kcal');
-    expect(payload.message).toContain('Mon');
-  });
-
-  it('passes the correct arguments to updateWeeklyMenuMeal', async () => {
-    vi.mocked(hasAccessToMenu).mockResolvedValue(true);
-    vi.mocked(updateWeeklyMenuMeal).mockResolvedValue(BASE_MEAL as never);
-
-    await swapMealTool(
+    await setMenuMealTool(
       {
         menuId: 'menu-xyz',
         dayOfWeek: 2,
         mealType: 'dinner',
         description: 'Steak',
         kcal: 700,
-        proteinG: 60,
-        carbsG: 10,
-        fatG: 30,
+        protein: 60,
+        carbs: 10,
+        fat: 30,
       },
       ctx,
     );
 
-    expect(updateWeeklyMenuMeal).toHaveBeenCalledWith(
+    expect(upsertMenuMeal).toHaveBeenCalledWith(
       'user-1',
       'menu-xyz',
-      2,
-      'dinner',
       expect.objectContaining({
+        dayOfWeek: 2,
+        mealType: 'dinner',
         description: 'Steak',
         kcal: 700,
         protein: 60,
         carbs: 10,
         fat: 30,
+      }),
+    );
+  });
+
+  it('passes null for optional fields when omitted', async () => {
+    vi.mocked(upsertMenuMeal).mockResolvedValue(BASE_MEAL as never);
+
+    await setMenuMealTool(
+      {
+        menuId: 'menu-xyz',
+        dayOfWeek: 1,
+        mealType: 'snack',
+        description: 'Nuts',
+        kcal: undefined,
+        protein: undefined,
+        carbs: undefined,
+        fat: undefined,
+      },
+      ctx,
+    );
+
+    expect(upsertMenuMeal).toHaveBeenCalledWith(
+      'user-1',
+      'menu-xyz',
+      expect.objectContaining({
+        kcal: null,
+        protein: null,
+        carbs: null,
+        fat: null,
       }),
     );
   });
@@ -446,10 +345,10 @@ describe('deleteWeeklyMenuTool', () => {
 });
 
 // ---------------------------------------------------------------------------
-// createWeeklyMenuTool — duplicate-slot rejection
+// planWeekTool
 // ---------------------------------------------------------------------------
 
-describe('createWeeklyMenuTool', () => {
+describe('planWeekTool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -459,16 +358,17 @@ describe('createWeeklyMenuTool', () => {
       dayOfWeek: 0,
       mealType: 'lunch',
       kcal: undefined,
-      proteinG: undefined,
-      carbsG: undefined,
-      fatG: undefined,
+      protein: undefined,
+      carbs: undefined,
+      fat: undefined,
     } as const;
 
-    const result = await createWeeklyMenuTool(
+    const result = await planWeekTool(
       {
         weekStart: '2026-07-13',
         title: undefined,
-        notes: undefined,
+        prepNotes: undefined,
+        shoppingList: undefined,
         meals: [
           { ...meal, description: 'Chicken with rice' },
           { ...meal, description: 'Tuna salad' },
@@ -481,5 +381,155 @@ describe('createWeeklyMenuTool', () => {
     expect(payload.success).toBe(false);
     expect(payload.message).toMatch(/duplicate meal slot/i);
     expect(createWeeklyMenu).not.toHaveBeenCalled();
+  });
+
+  it('returns success=false when the menu cannot be saved', async () => {
+    vi.mocked(getCalorieProfile).mockResolvedValue(null as never);
+    vi.mocked(getLatestMeasurementsPerType).mockResolvedValue([] as never);
+    vi.mocked(createWeeklyMenu).mockRejectedValue(new Error('db down'));
+
+    const result = await planWeekTool(
+      {
+        weekStart: '2026-07-13',
+        title: undefined,
+        prepNotes: undefined,
+        shoppingList: undefined,
+        meals: [
+          {
+            dayOfWeek: 0,
+            mealType: 'lunch',
+            description: 'Chicken with rice',
+            kcal: undefined,
+            protein: undefined,
+            carbs: undefined,
+            fat: undefined,
+          },
+        ],
+      },
+      ctx,
+    );
+
+    const payload = parsePayload(result) as { success: boolean; message: string };
+    expect(payload.success).toBe(false);
+    expect(payload.message).toMatch(/could not save/i);
+  });
+
+  it('writes prep notes and the shopping list in one call', async () => {
+    vi.mocked(getCalorieProfile).mockResolvedValue(null as never);
+    vi.mocked(getLatestMeasurementsPerType).mockResolvedValue([] as never);
+    vi.mocked(createWeeklyMenu).mockResolvedValue({
+      menuId: 'menu-1',
+      weekStart: '2026-07-13',
+      title: null,
+      notes: 'Roast 1kg chicken Sunday',
+      meals: [{ mealType: 'lunch' }],
+    } as never);
+    vi.mocked(replaceShoppingListItems).mockResolvedValue([{ id: 1 }, { id: 2 }] as never);
+
+    const result = await planWeekTool(
+      {
+        weekStart: '2026-07-13',
+        title: undefined,
+        prepNotes: 'Roast 1kg chicken Sunday',
+        shoppingList: ['1kg chicken breast', '500g oats'],
+        meals: [
+          {
+            dayOfWeek: 0,
+            mealType: 'lunch',
+            description: 'Chicken with rice',
+            kcal: undefined,
+            protein: undefined,
+            carbs: undefined,
+            fat: undefined,
+          },
+        ],
+      },
+      ctx,
+    );
+
+    // prepNotes maps to the menu's notes column
+    expect(createWeeklyMenu).toHaveBeenCalledWith(expect.objectContaining({ notes: 'Roast 1kg chicken Sunday' }));
+    expect(replaceShoppingListItems).toHaveBeenCalledWith('user-1', 'menu-1', ['1kg chicken breast', '500g oats']);
+
+    const payload = parsePayload(result) as { prepNotes: string; shoppingListItems: number };
+    expect(payload.prepNotes).toBe('Roast 1kg chicken Sunday');
+    expect(payload.shoppingListItems).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setPrepNotesTool
+// ---------------------------------------------------------------------------
+
+describe('setPrepNotesTool', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('updates the notes and reports success', async () => {
+    vi.mocked(updateWeeklyMenu).mockResolvedValue({ menuId: 'menu-1', notes: 'Batch cook Sunday' } as never);
+
+    const result = await setPrepNotesTool({ menuId: 'menu-1', prepNotes: 'Batch cook Sunday' }, ctx);
+
+    expect(updateWeeklyMenu).toHaveBeenCalledWith('user-1', 'menu-1', { notes: 'Batch cook Sunday' });
+    const payload = parsePayload(result) as { success: boolean; prepNotes: string };
+    expect(payload.success).toBe(true);
+    expect(payload.prepNotes).toBe('Batch cook Sunday');
+  });
+
+  it('clears the notes when given an empty string', async () => {
+    vi.mocked(updateWeeklyMenu).mockResolvedValue({ menuId: 'menu-1', notes: null } as never);
+
+    await setPrepNotesTool({ menuId: 'menu-1', prepNotes: '   ' }, ctx);
+
+    expect(updateWeeklyMenu).toHaveBeenCalledWith('user-1', 'menu-1', { notes: null });
+  });
+
+  it('returns success=false when the menu is not found', async () => {
+    vi.mocked(updateWeeklyMenu).mockResolvedValue(null);
+
+    const result = await setPrepNotesTool({ menuId: 'missing', prepNotes: 'x' }, ctx);
+
+    const payload = parsePayload(result) as { success: boolean; message: string };
+    expect(payload.success).toBe(false);
+    expect(payload.message).toContain('not found');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setShoppingListTool
+// ---------------------------------------------------------------------------
+
+describe('setShoppingListTool', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('replaces the list and reports the item count', async () => {
+    vi.mocked(replaceShoppingListItems).mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }] as never);
+
+    const result = await setShoppingListTool(
+      { menuId: 'menu-1', items: ['1kg chicken breast', '6 eggs', '500g oats'] },
+      ctx,
+    );
+
+    expect(replaceShoppingListItems).toHaveBeenCalledWith('user-1', 'menu-1', [
+      '1kg chicken breast',
+      '6 eggs',
+      '500g oats',
+    ]);
+    const payload = parsePayload(result) as { success: boolean; itemCount: number };
+    expect(payload.success).toBe(true);
+    expect(payload.itemCount).toBe(3);
+  });
+
+  it('returns success=false when the menu is not found', async () => {
+    vi.mocked(replaceShoppingListItems).mockResolvedValue(null);
+
+    const result = await setShoppingListTool({ menuId: 'missing', items: ['x'] }, ctx);
+
+    const payload = parsePayload(result) as { success: boolean; message: string };
+    expect(payload.success).toBe(false);
+    expect(payload.message).toContain('not found');
   });
 });

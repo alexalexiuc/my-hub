@@ -436,19 +436,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "gym_days": {
-          "name": "gym_days",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "gym_day_calorie_bonus": {
-          "name": "gym_day_calorie_bonus",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 300
-        },
         "notes": {
           "name": "notes",
           "type": "text",

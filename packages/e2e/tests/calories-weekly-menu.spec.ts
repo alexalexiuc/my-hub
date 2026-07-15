@@ -144,30 +144,31 @@ test.describe('Calories — Weekly Menu page', () => {
     // exact: true — the confirm dialog (rendered inside the card) quotes the description in its message
     await expect(todayCard.getByText(removedDesc, { exact: true })).not.toBeVisible({ timeout: 8_000 });
 
-    // ── 10. Shopping list modal: auto tab + manual tab with persistence ───────
-    const manualItem = uniqueDesc('Olive oil');
+    // ── 10. Shopping list modal: add, check off, persist, remove ──────────────
+    const shoppingItem = uniqueDesc('Olive oil');
     await page.getByRole('button', { name: 'Shopping list' }).click();
     await expect(modal.getByText('Shopping List')).toBeVisible();
-    // Auto tab is the default
-    await expect(modal.getByText(/Auto-extracted from meal descriptions/)).toBeVisible();
+    // The list starts empty — the assistant writes it via MCP, the user can add here
+    await expect(modal.getByText(/No shopping list yet/)).toBeVisible();
 
-    // Manual tab: add an item
-    await modal.getByRole('button', { name: 'Manual list' }).click();
-    await expect(modal.getByText('Your manual list is empty.')).toBeVisible();
-    await modal.getByPlaceholder('Add an item…').fill(manualItem);
+    await modal.getByPlaceholder('Add an item…').fill(shoppingItem);
     await modal.getByRole('button', { name: 'Add item' }).click();
-    await expect(modal.getByText(manualItem)).toBeVisible();
+    await expect(modal.getByText(shoppingItem)).toBeVisible();
 
-    // Close and reopen — the manual list survives (persisted per menu on this device)
+    // Check it off — the progress counter reflects it
+    await modal.getByRole('checkbox').first().check();
+    await expect(modal.getByText('1/1')).toBeVisible();
+
+    // Close and reopen — the list is persisted server-side against the menu
     await modal.getByRole('button', { name: 'Close' }).click();
     await expect(modal.getByText('Shopping List')).not.toBeVisible();
     await page.getByRole('button', { name: 'Shopping list' }).click();
-    await modal.getByRole('button', { name: 'Manual list' }).click();
-    await expect(modal.getByText(manualItem)).toBeVisible();
+    await expect(modal.getByText(shoppingItem)).toBeVisible();
+    await expect(modal.getByRole('checkbox').first()).toBeChecked();
 
     // Remove the item and close
-    await modal.getByRole('button', { name: `Remove ${manualItem}` }).click();
-    await expect(modal.getByText('Your manual list is empty.')).toBeVisible();
+    await modal.getByRole('button', { name: `Remove ${shoppingItem}` }).click();
+    await expect(modal.getByText(/No shopping list yet/)).toBeVisible();
     await modal.getByRole('button', { name: 'Close' }).click();
     await expect(modal.getByText('Shopping List')).not.toBeVisible();
 
