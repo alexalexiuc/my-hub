@@ -1,1 +1,0 @@
-ALTER TABLE "weekly_menu_meals" ADD CONSTRAINT "uq_weekly_menu_meal_slot" UNIQUE("menu_id","day_of_week","meal_type");

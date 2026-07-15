@@ -1,1 +1,0 @@
-ALTER TABLE "calorie_profiles" ADD COLUMN "gym_day_calorie_bonus" real DEFAULT 300;
