@@ -22,7 +22,9 @@ export function addMealFormToBody(values: AddMealFormValues) {
   };
 }
 
-const OptionalNumericString = z.string().regex(/^\d*\.?\d*$/, 'Numbers only');
+const OptionalNumericString = z
+  .string()
+  .refine(v => v.trim() === '' || (Number.isFinite(Number(v)) && Number(v) > 0), 'Must be a positive number');
 
 export const SwapMealFormSchema = z.object({
   description: z.string().trim().min(1, 'Description is required'),
