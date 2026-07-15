@@ -21,7 +21,7 @@ import { weeklyMenus, weeklyMenuMeals, weeklyMenuDayLogs, mealLogs } from '../..
 import type { MealType } from '../../constants/calories';
 import type { DayOfWeek } from '../../constants/weekly-menu';
 import { PromiseCacheX } from 'promise-cachex';
-import { logger } from '../../utils';
+import { logger, omitUndefined } from '../../utils';
 
 const menuAccessCache = new PromiseCacheX<boolean>({ ttl: 1000 }); // 1 second
 
@@ -253,10 +253,12 @@ export async function updateWeeklyMenuMeal(
     .update(weeklyMenuMeals)
     .set({
       description: updates.description,
-      kcal: updates.kcal ?? null,
-      protein: updates.protein ?? null,
-      carbs: updates.carbs ?? null,
-      fat: updates.fat ?? null,
+      ...omitUndefined({
+        kcal: updates.kcal,
+        protein: updates.protein,
+        carbs: updates.carbs,
+        fat: updates.fat,
+      }),
     })
     .where(
       and(
