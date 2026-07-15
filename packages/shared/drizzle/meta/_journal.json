@@ -85,6 +85,13 @@
       "when": 1783772975671,
       "tag": "0009_polite_kulan_gath",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784136353409,
+      "tag": "0010_illegal_brood",
+      "breakpoints": true
     }
   ]
 }
