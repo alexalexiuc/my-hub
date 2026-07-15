@@ -73,6 +73,10 @@ export function ShoppingListModal({ meals, menuId, weekLabel, onClose }: Props) 
         setManualItems(data.items);
         setManualLoaded(true);
       })
+      .catch(() => {
+        // Avoid unhandled promise rejections; allow retry on next tab switch.
+        if (!cancelled) setManualItems([]);
+      })
       .finally(() => {
         if (!cancelled) setManualLoading(false);
       });
