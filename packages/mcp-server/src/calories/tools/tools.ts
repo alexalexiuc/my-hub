@@ -157,7 +157,12 @@ const caloriesTools = [
   defineTool({
     name: 'calories_get_weekly_menu',
     description:
-      'Retrieve a saved weekly meal plan. Pass weekStart (Monday YYYY-MM-DD) to get a specific week, or omit to list all saved menus.',
+      'Retrieve a saved weekly meal plan. Pass weekStart (Monday YYYY-MM-DD) to get a specific week, or omit to list all saved menus. ' +
+      "Always returns the caller's own userTargets (daily calorie/macro goals). " +
+      'When weekStart is given, also returns sharedMenus — the meals, prep notes, and userTargets for anyone who has shared ' +
+      'their weekly menu with the caller (set up under Calories → Settings). Use sharedMenus to help people who share a kitchen ' +
+      "align their meals for the week — e.g. suggest the same dish for both, sized to each person's own calorie/macro targets — " +
+      'instead of planning two unrelated menus.',
     inputSchema: GetWeeklyMenuSchema.shape,
     annotations: { readOnlyHint: true },
     callback: getWeeklyMenuTool,

@@ -7,6 +7,7 @@ import type { CalorieProfile } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { ProfileCard } from '../ProfileCard';
 import { AutomationApiSection } from '../AutomationApiSection';
+import { MenuSharingSection } from './MenuSharingSection';
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<CalorieProfile | null>(null);
@@ -57,6 +58,7 @@ export default function SettingsPage() {
     <main className="mx-auto max-w-2xl space-y-4">
       <ProfileCard profile={profile} latestMeasurements={latestMeasurements} onUpdated={loadData} />
       {profile && <AutomationApiSection userId={profile.userId} initialKey={profile.automationApiKey} />}
+      <MenuSharingSection />
     </main>
   );
 }

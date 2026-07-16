@@ -16,6 +16,9 @@
  * - `logMenuMeal(userId, menuId, dayOfWeek, mealType, loggedDate, meal)` — transactionally journal a meal AND mark its slot logged
  * - `markDayAsLogged(userId, menuId, dayOfWeek, loggedDate, mealType)` — mark a slot logged (idempotent, marker only)
  * - `getLoggedDays(userId, menuId)` — `{ "day:mealType": loggedDate }` map of logged slots
+ * - `getWeeklyMenuForViewer(viewerUserId, ownerUserId, weekStart)` — a shared-with-viewer menu for one week, or null without access
+ * - `getSharedMenusForWeek(viewerUserId, weekStart)` — every menu + calorie targets shared with viewer for one week
+ * Types (cont.): SharedWeeklyMenu
  */
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -29,6 +32,9 @@ import {
 import type { MealType } from '../../constants/calories';
 import type { DayOfWeek } from '../../constants/weekly-menu';
 import type { ShoppingListItem } from './shopping-list';
+import { hasMenuShareAccess, listSharedWithMe } from './shares';
+import { getUserCalorieTargets } from './profile';
+import type { UserCalorieTargets } from './profile';
 import { PromiseCacheX } from 'promise-cachex';
 import { dedupeTrimmed, logger, omitUndefined } from '../../utils';
 
@@ -552,4 +558,48 @@ export async function getLoggedDays(userId: string, menuId: string): Promise<Rec
     .where(eq(weeklyMenuDayLogs.menuId, menuId));
 
   return Object.fromEntries(rows.map(r => [`${r.dayOfWeek}:${r.mealType}`, r.loggedDate]));
+}
+
+// ---------------------------------------------------------------------------
+// Shared-menu visibility (read-only)
+// ---------------------------------------------------------------------------
+
+export interface SharedWeeklyMenu {
+  ownerUserId: string;
+  ownerName: string | null;
+  menu: WeeklyMenu | null;
+  userTargets: UserCalorieTargets | null;
+}
+
+/**
+ * Get another user's menu for a specific week, if they've shared their weekly menu
+ * with the viewer. Returns null if there's no share, or no menu for that week.
+ */
+export async function getWeeklyMenuForViewer(
+  viewerUserId: string,
+  ownerUserId: string,
+  weekStart: string,
+): Promise<WeeklyMenu | null> {
+  if (!(await hasMenuShareAccess(viewerUserId, ownerUserId))) return null;
+  return getWeeklyMenuWhere(and(eq(weeklyMenus.userId, ownerUserId), eq(weeklyMenus.weekStart, weekStart)));
+}
+
+/**
+ * For every user who has shared their weekly menu with `viewerUserId`, fetch their
+ * menu (and calorie/macro targets) for one week — so an assistant planning the
+ * viewer's own week can see the full picture for everyone sharing a kitchen with them.
+ */
+export async function getSharedMenusForWeek(viewerUserId: string, weekStart: string): Promise<SharedWeeklyMenu[]> {
+  const sharedBy = await listSharedWithMe(viewerUserId);
+
+  return Promise.all(
+    sharedBy.map(async ({ share, userName }) => {
+      const [menu, userTargets] = await Promise.all([
+        getWeeklyMenuWhere(and(eq(weeklyMenus.userId, share.ownerUserId), eq(weeklyMenus.weekStart, weekStart))),
+        getUserCalorieTargets(share.ownerUserId),
+      ]);
+
+      return { ownerUserId: share.ownerUserId, ownerName: userName, menu, userTargets };
+    }),
+  );
 }
