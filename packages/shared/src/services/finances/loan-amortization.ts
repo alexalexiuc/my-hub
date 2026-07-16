@@ -312,7 +312,10 @@ export async function getLoanBalanceSnapshotForAccount(
  * negated, since loans are stored as a negative liability — is used directly.
  * Non-loan accounts (loanSnapshot is null) return the ledger balance unchanged.
  */
-export function getLoanDisplayBalance(account: FinanceAccount, loanSnapshot: LoanBalanceSnapshot | null): number {
+export function getLoanDisplayBalance(
+  account: Pick<FinanceAccount, 'balance' | 'details'>,
+  loanSnapshot: LoanBalanceSnapshot | null,
+): number {
   if (!loanSnapshot) return account.balance;
   const details = getAccountDetails('loan', account.details);
   return details?.interestRate === 0 ? -account.balance : loanSnapshot.balance;

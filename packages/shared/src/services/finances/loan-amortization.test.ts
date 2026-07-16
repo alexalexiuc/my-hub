@@ -220,8 +220,10 @@ describe('getLoanDisplayBalance', () => {
   it('uses the negated raw ledger balance for zero-interest loans, since every payment is pure principal', () => {
     const zeroInterestDetails: LoanAccountDetails = { ...interestBearingDetails, interestRate: 0 };
     const account = makeLoanAccount(zeroInterestDetails, -8800);
+    // snapshot.balance deliberately differs from -account.balance (8800) so the assertion can tell
+    // the two branches apart — it must return 8800 (the negated ledger balance), not 9999.
     const snapshot: LoanBalanceSnapshot = {
-      balance: 8800,
+      balance: 9999,
       amortizationSummary: {} as LoanBalanceSnapshot['amortizationSummary'],
     };
 

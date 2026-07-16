@@ -289,7 +289,7 @@ describe('addTransactionsTool', () => {
 
     expect(getLoanBalanceSnapshotForAccount).toHaveBeenCalledWith('user-1', 1, loanAccount);
     expect(getLoanDisplayBalance).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 2, balance: -8800 }),
+      { balance: -8800, details: loanAccount.details },
       expect.objectContaining({ balance: 8850 }),
     );
     expect(payload.account.balance).toBe(8850);
