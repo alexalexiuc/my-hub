@@ -3,6 +3,7 @@
  * - getMonthlyPayment(principal, monthlyRate, termMonths) — standard amortization payment formula (unrounded)
  * - calculateLoanAmortizationSummary(details, opts?) — computes schedule-derived and hybrid payment summary for a loan
  * - getLoanBalanceSnapshotForAccount(userId, budgetId, account, opts?) — computes remaining principal + amortization summary for a loan account
+ * - getLoanDisplayBalance(account, loanSnapshot) — resolves the balance to display for an account, substituting the amortization-derived remaining principal for interest-bearing loans
  * - buildLoanSummary(details, totalPaid, today) — pure closed-form loan summary; k derived from (startDate, today), not transaction count
  * - getLoanSummaryForAccount(userId, budgetId, account, opts?) — fetches transactions then calls buildLoanSummary
  * Types: LoanPaymentHistoryEntry, LoanAmortizationSummary, LoanBalanceSnapshot, LoanSummary
@@ -300,6 +301,21 @@ export async function getLoanBalanceSnapshotForAccount(
     balance: amortizationSummary.remainingPrincipal,
     amortizationSummary,
   };
+}
+
+/**
+ * Resolves the balance to display for an account, given its loan snapshot (if any).
+ * Loan repayments are recorded as their total amount (principal + interest), so the raw ledger
+ * balance alone understates the true remaining principal once a loan carries any interest.
+ * Interest-bearing loans use the amortization-derived remaining principal instead; zero-interest
+ * loans have no such discrepancy (every payment is pure principal), so the ledger balance —
+ * negated, since loans are stored as a negative liability — is used directly.
+ * Non-loan accounts (loanSnapshot is null) return the ledger balance unchanged.
+ */
+export function getLoanDisplayBalance(account: FinanceAccount, loanSnapshot: LoanBalanceSnapshot | null): number {
+  if (!loanSnapshot) return account.balance;
+  const details = getAccountDetails('loan', account.details);
+  return details?.interestRate === 0 ? -account.balance : loanSnapshot.balance;
 }
 
 // ─── LoanSummary (closed-form, count-based) ───────────────────────────────────

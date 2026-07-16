@@ -18,6 +18,8 @@ import {
   countTransactions,
   getCategories,
   getBudgetProgress,
+  getLoanBalanceSnapshotForAccount,
+  getLoanDisplayBalance,
 } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
 import { financesContext, parseToolPayload } from './test-utils';
@@ -39,6 +41,8 @@ vi.mock('@my-hub/shared/services', () => ({
   getTransactionById: vi.fn(),
   getExchangeRate: vi.fn(),
   getBudgetProgress: vi.fn(),
+  getLoanBalanceSnapshotForAccount: vi.fn(),
+  getLoanDisplayBalance: vi.fn(),
 }));
 
 describe('finances transaction schemas', () => {
@@ -240,6 +244,55 @@ describe('addTransactionsTool', () => {
 
     expect(getBudgetProgress).toHaveBeenCalledTimes(1);
     expect(getBudgetProgress).toHaveBeenCalledWith('user-1', 1, '2026-04');
+  });
+
+  it('returns the amortization-derived remaining principal for a loan repayment with interest, not the raw ledger balance', async () => {
+    const loanAccount = {
+      id: 2,
+      name: 'Car Loan',
+      currency: 'USD',
+      type: 'loan',
+      balance: -9000,
+      details: { principal: 10000, interestRate: 6, termMonths: 60, startDate: '2026-01-01' },
+    };
+    vi.mocked(getAccountById).mockResolvedValue(loanAccount as never);
+    // The DB ledger simply subtracts the full payment amount, which overstates principal paydown
+    // once part of the payment is interest — the raw fromAccountBalanceAfter is -9000 + 200 = -8800.
+    vi.mocked(addTransaction).mockResolvedValue({
+      id: 456,
+      fromAccountBalanceAfter: -8800,
+      toAccountBalanceAfter: null,
+    } as never);
+    vi.mocked(getLoanBalanceSnapshotForAccount).mockResolvedValue({
+      balance: 8850,
+      amortizationSummary: {} as never,
+    } as never);
+    vi.mocked(getLoanDisplayBalance).mockReturnValue(8850);
+
+    const result = await addTransactionsTool(
+      {
+        accountId: 2,
+        transactions: [
+          {
+            type: TransactionTypes.Income,
+            amount: 200,
+            notes: 'Monthly payment',
+            date: '2026-04-28',
+          },
+        ],
+        createPayee: undefined,
+      },
+      financesContext,
+    );
+
+    const payload = parseToolPayload(result) as { account: { balance: number } };
+
+    expect(getLoanBalanceSnapshotForAccount).toHaveBeenCalledWith('user-1', 1, loanAccount);
+    expect(getLoanDisplayBalance).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 2, balance: -8800 }),
+      expect.objectContaining({ balance: 8850 }),
+    );
+    expect(payload.account.balance).toBe(8850);
   });
 
   it('returns empty categoryProgress when no categories are used', async () => {

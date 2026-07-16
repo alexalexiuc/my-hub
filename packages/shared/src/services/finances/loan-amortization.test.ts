@@ -1,6 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import type { LoanAccountDetails } from '../../types';
-import { calculateLoanAmortizationSummary, buildLoanSummary } from './loan-amortization';
+import type { FinanceAccount, LoanAccountDetails } from '../../types';
+import {
+  calculateLoanAmortizationSummary,
+  buildLoanSummary,
+  getLoanDisplayBalance,
+  type LoanBalanceSnapshot,
+} from './loan-amortization';
+
+function makeLoanAccount(details: LoanAccountDetails, balance: number): FinanceAccount {
+  return {
+    id: 1,
+    budgetId: 1,
+    name: 'Loan',
+    description: null,
+    type: 'loan',
+    currency: 'USD',
+    balance,
+    archived: false,
+    details,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } as unknown as FinanceAccount;
+}
 
 describe('calculateLoanAmortizationSummary', () => {
   it('uses the schedule formula when no payment history is provided', () => {
@@ -167,5 +188,43 @@ describe('buildLoanSummary', () => {
     expect(summary.remainingPrincipal).toBe(800);
     expect(summary.totalInterestScheduled).toBe(0);
     expect(summary.originalObligation).toBe(1200);
+  });
+});
+
+describe('getLoanDisplayBalance', () => {
+  const interestBearingDetails: LoanAccountDetails = {
+    type: 'loan',
+    principal: 10000,
+    interestRate: 6,
+    termMonths: 60,
+    startDate: '2026-01-01',
+  };
+
+  it('returns the ledger balance unchanged for non-loan accounts (no snapshot)', () => {
+    const account = makeLoanAccount(interestBearingDetails, -8800);
+    expect(getLoanDisplayBalance(account, null)).toBe(-8800);
+  });
+
+  it('uses the amortization-derived remaining principal for interest-bearing loans, not the raw ledger balance', () => {
+    // A $200 payment against a 6% loan is part interest, part principal, so the ledger balance
+    // (which subtracts the full $200) understates the true remaining principal ($8850 vs $8800).
+    const account = makeLoanAccount(interestBearingDetails, -8800);
+    const snapshot: LoanBalanceSnapshot = {
+      balance: 8850,
+      amortizationSummary: {} as LoanBalanceSnapshot['amortizationSummary'],
+    };
+
+    expect(getLoanDisplayBalance(account, snapshot)).toBe(8850);
+  });
+
+  it('uses the negated raw ledger balance for zero-interest loans, since every payment is pure principal', () => {
+    const zeroInterestDetails: LoanAccountDetails = { ...interestBearingDetails, interestRate: 0 };
+    const account = makeLoanAccount(zeroInterestDetails, -8800);
+    const snapshot: LoanBalanceSnapshot = {
+      balance: 8800,
+      amortizationSummary: {} as LoanBalanceSnapshot['amortizationSummary'],
+    };
+
+    expect(getLoanDisplayBalance(account, snapshot)).toBe(8800);
   });
 });
