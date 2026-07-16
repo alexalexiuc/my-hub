@@ -64,6 +64,13 @@
       "when": 1781514056924,
       "tag": "0008_little_darkhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784137430013,
+      "tag": "0009_known_lady_deathstrike",
+      "breakpoints": true
     }
   ]
 }

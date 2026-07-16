@@ -1,11 +1,11 @@
 .calories-theme {
-  --bg: #0f0a04;
+  --bg: #110c05;
   --overlay: rgba(15, 8, 2, 0.7);
-  --shell: #160d06;
-  --card: #1e1309;
-  --card2: #261a0e;
-  --card3: #2f2114;
-  --border: #42300f;
+  --shell: #181008;
+  --card: #221609;
+  --card2: #2c1e0f;
+  --card3: #352513;
+  --border: #4e3a14;
   --text: #fff5e9;
   --muted: #b8956a;
   --subtle: #6b4f2e;

@@ -243,8 +243,12 @@ export async function setAccountAvailableInclusion(
 }
 
 /** Removes all availability preferences for a user. Used by delete-all-data flow. */
-export async function deleteAllUserAvailableOverrides(userId: string): Promise<void> {
-  await db.delete(financeAccountAvailability).where(eq(financeAccountAvailability.userId, userId));
+export async function deleteAllUserAvailableOverrides(userId: string): Promise<number> {
+  const deleted = await db
+    .delete(financeAccountAvailability)
+    .where(eq(financeAccountAvailability.userId, userId))
+    .returning({ id: financeAccountAvailability.accountId });
+  return deleted.length;
 }
 
 /** System maintenance: returns all account IDs across all budgets. No auth required — worker use only. */

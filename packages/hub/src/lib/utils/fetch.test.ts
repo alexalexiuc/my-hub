@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { z } from 'zod';
 import { apiFetch, ApiError } from './fetch';
 
 // Minimal fetch mock
@@ -90,5 +91,42 @@ describe('apiFetch — error cases', () => {
   it('falls back to statusText when body has no error field', async () => {
     global.fetch = makeFetch(500, { foo: 'bar' });
     await expect(apiFetch('/api/x')).rejects.toThrow('Error');
+  });
+});
+
+describe('apiFetch — schema-driven contracts', () => {
+  const TodoSchema = z.object({ id: z.number(), title: z.string() });
+  const ResponseSchema = z.object({ todos: z.array(TodoSchema) });
+  const BodySchema = z.object({ title: z.string().trim().min(1) });
+
+  it('parses and types the response via responseSchema', async () => {
+    global.fetch = makeFetch(200, { todos: [{ id: 1, title: 'Buy milk' }] });
+    const data = await apiFetch('/api/todo', { responseSchema: ResponseSchema });
+    expect(data).toEqual({ todos: [{ id: 1, title: 'Buy milk' }] });
+  });
+
+  it('throws when the response does not match responseSchema', async () => {
+    global.fetch = makeFetch(200, { todos: [{ id: 'not-a-number', title: 'Buy milk' }] });
+    await expect(apiFetch('/api/todo', { responseSchema: ResponseSchema })).rejects.toThrow('Invalid response body');
+  });
+
+  it('validates and transforms the outgoing body via bodySchema', async () => {
+    global.fetch = makeFetch(201, { todos: [] });
+    await apiFetch('/api/todo', { method: 'POST', body: { title: '  Buy milk  ' }, bodySchema: BodySchema });
+    const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect(init.body).toBe(JSON.stringify({ title: 'Buy milk' }));
+  });
+
+  it('throws when the outgoing body does not match bodySchema', async () => {
+    global.fetch = makeFetch(201, {});
+    await expect(
+      apiFetch('/api/todo', { method: 'POST', body: { title: '   ' }, bodySchema: BodySchema }),
+    ).rejects.toThrow('Invalid request body');
+  });
+
+  it('resolves to undefined for an empty-body success even when responseSchema is set', async () => {
+    global.fetch = makeFetch(204, '');
+    const data = await apiFetch('/api/todo', { method: 'DELETE', responseSchema: ResponseSchema, silentToast: true });
+    expect(data).toBeUndefined();
   });
 });

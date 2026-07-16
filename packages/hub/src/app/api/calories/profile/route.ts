@@ -15,6 +15,8 @@ const ProfileUpdateSchema = z.object({
   goalProtein: z.number().nonnegative().nullable().optional(),
   goalCarbs: z.number().nonnegative().nullable().optional(),
   goalFat: z.number().nonnegative().nullable().optional(),
+  gymDays: z.array(z.number().int().min(0).max(6)).nullable().optional(),
+  gymDayCalorieBonus: z.number().nonnegative().nullable().optional(),
   notes: z.string().optional(),
 });
 

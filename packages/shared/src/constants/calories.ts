@@ -40,7 +40,13 @@ export const MealTypes = {
   Lunch: 'lunch',
   Dinner: 'dinner',
   Snack: 'snack',
+  PreWorkout: 'pre_workout',
+  PostWorkout: 'post_workout',
+  Other: 'other',
 } as const;
 
 export type MealType = (typeof MealTypes)[keyof typeof MealTypes];
 export const MealTypesValues: MealType[] = Object.values(MealTypes);
+
+/** Default calorie bonus applied to a day's target when it's a gym day. Matches the `calorie_profiles.gym_day_calorie_bonus` column default — used as the fallback when a user has no profile row yet. */
+export const DEFAULT_GYM_DAY_CALORIE_BONUS = 300;

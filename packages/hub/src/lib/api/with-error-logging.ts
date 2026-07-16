@@ -1,11 +1,8 @@
 import { putLog } from '@my-hub/shared/services';
 import { logger } from '@my-hub/shared/utils';
 import { NextResponse } from 'next/server';
-import type { ZodError } from 'zod';
 
-export function formatZodError(err: ZodError): string {
-  return err.issues.map(i => (i.path.length ? `${i.path.join('.')}: ${i.message}` : i.message)).join('; ');
-}
+export { formatZodError } from './format-zod-error';
 
 type MaybePromise<T> = T | Promise<T>;
 type ParamsRecord = Record<string, string | string[] | undefined>;

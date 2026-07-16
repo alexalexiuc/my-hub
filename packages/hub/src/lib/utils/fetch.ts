@@ -1,11 +1,42 @@
+import type { ZodType } from 'zod';
+import { z } from 'zod';
+import { formatZodError } from '@/lib/api/format-zod-error';
+
 type QueryParams = Record<string, string | number | boolean | null | undefined>;
 
-interface ApiFetchOptions<TBody = unknown, TQuery extends QueryParams = QueryParams> {
+/** Resolves to the schema's inferred output type, or `TFallback` when no schema is supplied. */
+type SchemaOutput<TSchema extends ZodType | undefined, TFallback> = TSchema extends ZodType
+  ? z.infer<TSchema>
+  : TFallback;
+
+/** Resolves to the schema's input type (pre-parse/transform), or `TFallback` when no schema is supplied. */
+type SchemaInput<TSchema extends ZodType | undefined, TFallback> = TSchema extends ZodType
+  ? z.input<TSchema>
+  : TFallback;
+
+interface ApiFetchOptions<
+  TBody = unknown,
+  TQuery extends QueryParams = QueryParams,
+  TResponseSchema extends ZodType | undefined = undefined,
+  TBodySchema extends ZodType | undefined = undefined,
+> {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   query?: TQuery;
-  body?: TBody;
+  body?: SchemaInput<TBodySchema, TBody>;
   headers?: Record<string, string>;
   silentToast?: boolean;
+  /** Validates the JSON response and infers the resolved type — pass the same schema the API route declares as `response`. */
+  responseSchema?: TResponseSchema;
+  /** Validates (and applies any Zod transforms to) the outgoing body — pass the same schema the API route declares as `body`. */
+  bodySchema?: TBodySchema;
+}
+
+function parseOrThrow<TSchema extends ZodType>(schema: TSchema, value: unknown, context: string): z.infer<TSchema> {
+  const parsed = schema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(`Invalid ${context}: ${formatZodError(parsed.error)}`);
+  }
+  return parsed.data as z.infer<TSchema>;
 }
 
 const SUCCESS_TOAST_METHODS = new Set<ApiFetchOptions['method']>(['POST', 'PUT', 'PATCH', 'DELETE'] as const);
@@ -45,12 +76,41 @@ class ApiError extends Error {
  * - Set `silentToast: true` to suppress all toasts for a specific request.
  * - Throws `ApiError` (with `.status`) on non-2xx responses.
  * - Returns `undefined` for empty responses (e.g. 204 No Content).
+ *
+ * Pass `responseSchema`/`bodySchema` — the same Zod schemas the API route declares via
+ * `route({ response, body })` — to derive `apiFetch`'s types directly from the route's real
+ * contract instead of hand-duplicating interfaces, and to validate payloads at runtime:
+ *
+ * @example
+ *   const data = await apiFetch('/api/calories/menu', { responseSchema: GetMenusResponseSchema });
+ *   //    ^? z.infer<typeof GetMenusResponseSchema>
+ *
+ *   await apiFetch(`/api/calories/menu/${menuId}/meals`, {
+ *     method: 'POST',
+ *     body: { dayOfWeek, mealType, description },
+ *     bodySchema: MenuMealWriteSchema,
+ *     responseSchema: MenuMealResponseSchema,
+ *   });
  */
-export async function apiFetch<T = undefined, TBody = unknown, TQuery extends QueryParams = QueryParams>(
+export async function apiFetch<
+  T = undefined,
+  TBody = unknown,
+  TQuery extends QueryParams = QueryParams,
+  TResponseSchema extends ZodType | undefined = undefined,
+  TBodySchema extends ZodType | undefined = undefined,
+>(
   path: string,
-  options?: ApiFetchOptions<TBody, TQuery>,
-): Promise<T> {
-  const { method = 'GET', query, body, headers: extraHeaders = {}, silentToast = false } = options ?? {};
+  options?: ApiFetchOptions<TBody, TQuery, TResponseSchema, TBodySchema>,
+): Promise<SchemaOutput<TResponseSchema, T>> {
+  const {
+    method = 'GET',
+    query,
+    body,
+    headers: extraHeaders = {},
+    silentToast = false,
+    responseSchema,
+    bodySchema,
+  } = options ?? {};
 
   let url = path;
   if (query) {
@@ -69,8 +129,9 @@ export async function apiFetch<T = undefined, TBody = unknown, TQuery extends Qu
     if (body instanceof FormData) {
       serialisedBody = body;
     } else {
+      const validatedBody = bodySchema ? parseOrThrow(bodySchema, body, 'request body') : body;
       headers['Content-Type'] = 'application/json';
-      serialisedBody = JSON.stringify(body);
+      serialisedBody = JSON.stringify(validatedBody);
     }
   }
 
@@ -101,8 +162,16 @@ export async function apiFetch<T = undefined, TBody = unknown, TQuery extends Qu
   }
 
   const text = await res.text();
-  if (!text) return undefined as T;
-  return JSON.parse(text) as T;
+  const json = text ? (JSON.parse(text) as unknown) : undefined;
+
+  // Empty successful responses (e.g. 204 No Content) resolve to undefined even when a
+  // responseSchema is set — validating `undefined` against an object schema would turn
+  // a legitimate empty-body success into a thrown "Invalid response body".
+  if (responseSchema && json !== undefined) {
+    return parseOrThrow(responseSchema, json, 'response body') as SchemaOutput<TResponseSchema, T>;
+  }
+
+  return json as SchemaOutput<TResponseSchema, T>;
 }
 
 export { ApiError };

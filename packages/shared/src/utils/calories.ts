@@ -2,8 +2,10 @@
  * Calorie / TDEE calculation utilities
  * - calculateBMR(age, sex, heightCm, weightKg) — Basal Metabolic Rate via Mifflin-St Jeor; returns null if inputs missing
  * - calculateCalorieTargets(params) — derives tdee, goalCalories, minCalories, maxCalories from profile + goal settings
+ * - profileToTargets(profile, weightKg?) — maps a (possibly partial/null) calorie profile + latest weight to calculateCalorieTargets
+ * - hasDuplicateMealSlot(meals) — true if any (dayOfWeek, mealType) slot appears more than once in a weekly-menu meal list
  * - ActivityLevelMultipliers — Record<ActivityLevel, number> mapping activity levels to TDEE multipliers
- * Types: CalorieTargets, CalorieTargetParams
+ * Types: CalorieTargets, CalorieTargetParams, CalorieProfileLike
  */
 
 // ---------------------------------------------------------------------------
@@ -119,9 +121,48 @@ export function calculateCalorieTargets(params: CalorieTargetParams): CalorieTar
 }
 
 /**
+ * Any object carrying the profile fields needed for target calculation —
+ * a DB `CalorieProfile` row, an API payload, or a partial client-side shape.
+ * Every field may be absent or null.
+ */
+export type CalorieProfileLike = Partial<Omit<CalorieTargetParams, 'weightKg'>>;
+
+/**
+ * Maps a (possibly partial or missing) calorie profile plus the latest weight
+ * measurement to `calculateCalorieTargets`. Single home for the profile→params
+ * field mapping so call sites don't each repeat the nine `?? null` lines.
+ */
+export function profileToTargets(
+  profile: CalorieProfileLike | null | undefined,
+  weightKg?: number | null,
+): CalorieTargets {
+  return calculateCalorieTargets({
+    age: profile?.age ?? null,
+    sex: profile?.sex ?? null,
+    heightCm: profile?.heightCm ?? null,
+    weightKg: weightKg ?? null,
+    activityLevel: profile?.activityLevel ?? null,
+    goalType: profile?.goalType ?? null,
+    goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? null,
+    goalMinCalories: profile?.goalMinCalories ?? null,
+    goalMaxCalories: profile?.goalMaxCalories ?? null,
+  });
+}
+
+/**
  * Converts macro grams to total kilocalories.
  * Protein: 4 kcal/g, Carbs: 4 kcal/g, Fat: 9 kcal/g.
  */
 export function calculateMacroKcal(proteinG: number, carbsG: number, fatG: number): number {
   return Math.round(proteinG * 4 + carbsG * 4 + fatG * 9);
+}
+
+/**
+ * True if `meals` contains more than one entry for the same (dayOfWeek, mealType) slot.
+ * Single source of truth for the weekly-menu "one meal per slot" rule — used by the Hub
+ * create-menu validation, CreateMenuModal's live duplicate hint, and the MCP
+ * create-weekly-menu tool, so every write path agrees on what counts as a duplicate.
+ */
+export function hasDuplicateMealSlot(meals: { dayOfWeek: number; mealType: string }[]): boolean {
+  return new Set(meals.map(m => `${m.dayOfWeek}:${m.mealType}`)).size !== meals.length;
 }

@@ -23,6 +23,8 @@ import {
   deleteAllUserTrips,
   deleteAllUserFinanceBudgets,
   deleteAllUserAvailableOverrides,
+  deleteAllUserWeeklyMenus,
+  deleteAllUserShoppingListItems,
 } from '@my-hub/shared/services';
 
 /**
@@ -30,14 +32,20 @@ import {
  * Useful for e2e test cleanup and for the "nuke everything" UI action.
  */
 export const POST = route(async ({ user }) => {
+  // Before the menus themselves — running it concurrently with deleteAllUserWeeklyMenus
+  // would race the FK cascade on the same rows.
+  const shoppingListItems = await deleteAllUserShoppingListItems(user.id);
+
   const [
     meals,
     measurements,
     calorieProfiles,
     oauthRefreshTokens,
     mcpClients,
-    mcpServers,
+    // Order must mirror the Promise.all call list below: deleteAllUserTodos runs
+    // before deleteAllUserMcpServers.
     todos,
+    mcpServers,
     notificationPreferences,
     apiRequestLogs,
     apiaryTasks,
@@ -53,6 +61,8 @@ export const POST = route(async ({ user }) => {
     tripBookings,
     trips,
     finances,
+    availableOverrides,
+    weeklyMenus,
   ] = await Promise.all([
     deleteAllUserMeals(user.id),
     deleteAllUserMeasurements(user.id),
@@ -77,6 +87,7 @@ export const POST = route(async ({ user }) => {
     deleteAllUserTrips(user.id),
     deleteAllUserFinanceBudgets(user.id),
     deleteAllUserAvailableOverrides(user.id),
+    deleteAllUserWeeklyMenus(user.id),
   ]);
 
   return {
@@ -103,6 +114,9 @@ export const POST = route(async ({ user }) => {
       tripBookings,
       trips,
       finances,
+      availableOverrides,
+      weeklyMenus,
+      shoppingListItems,
     },
   };
 });

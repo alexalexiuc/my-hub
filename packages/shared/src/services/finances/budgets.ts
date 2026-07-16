@@ -217,9 +217,12 @@ export async function removeBudgetMember(userId: string, budgetId: number, targe
   budgetsCache.delete(targetUserId);
 }
 
-export async function deleteAllUserFinanceBudgets(userId: string): Promise<void> {
+export async function deleteAllUserFinanceBudgets(userId: string): Promise<number> {
   // Delete budgets the user created — cascade removes all child rows.
-  await db.delete(financeBudgets).where(eq(financeBudgets.createdByUserId, userId));
+  const deletedBudgets = await db
+    .delete(financeBudgets)
+    .where(eq(financeBudgets.createdByUserId, userId))
+    .returning({ financeBudgetId: financeBudgets.id });
   // Remove user from any remaining shared budget memberships.
   await db.delete(financeBudgetMembers).where(eq(financeBudgetMembers.userId, userId));
 
@@ -229,4 +232,6 @@ export async function deleteAllUserFinanceBudgets(userId: string): Promise<void>
     .keys()
     .filter(key => key.startsWith(`${userId}:`))
     .forEach(key => budgetAccessCache.delete(key));
+
+  return deletedBudgets.length;
 }
