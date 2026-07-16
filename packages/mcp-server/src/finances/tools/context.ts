@@ -9,6 +9,7 @@ import {
   getCategories,
   getGroups,
   getLoanBalanceSnapshotForAccount,
+  getLoanDisplayBalance,
   getLoanSummaryForAccount,
 } from '@my-hub/shared/services';
 
@@ -52,7 +53,7 @@ export const listContextTool: ToolHandler<typeof ListContextSchema.shape> = asyn
         name: account.name,
         type: account.type,
         currency: account.currency,
-        balance: loanSnapshot?.balance ?? account.balance,
+        balance: getLoanDisplayBalance(account, loanSnapshot),
         archived: account.archived,
         ...(loanSnapshot ? { amortizationSummary: loanSnapshot.amortizationSummary } : {}),
         ...(loanSummary ? { loanSummary } : {}),

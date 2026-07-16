@@ -17,11 +17,27 @@ import {
   getTransactionById,
   getBudgetProgress,
   syncLabels,
+  getLoanBalanceSnapshotForAccount,
+  getLoanDisplayBalance,
 } from '@my-hub/shared/services';
 import { TransactionTypes, AccountTypes } from '@my-hub/shared/constants';
 import type { TransactionInsert } from '@my-hub/shared/services';
+import type { FinanceAccount } from '@my-hub/shared/types';
 import { currentDateString, isPayeeRequired, omitUndefined, trimOrNull, logger } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
+
+// Loan repayments are recorded as their total amount (principal + interest), so the raw ledger
+// balance understates the true remaining principal once the loan carries any interest.
+async function resolveDisplayBalance(
+  userId: string,
+  budgetId: number,
+  account: FinanceAccount | null | undefined,
+  rawBalance: number,
+): Promise<number> {
+  if (!account || account.type !== AccountTypes.Loan) return rawBalance;
+  const loanSnapshot = await getLoanBalanceSnapshotForAccount(userId, budgetId, account);
+  return getLoanDisplayBalance({ balance: rawBalance, details: account.details }, loanSnapshot);
+}
 
 function getAccountAvailable(
   acc: { type: string; balance: number; details: unknown } | null | undefined,
@@ -365,12 +381,13 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
   }
 
   const finalBalance = lastBalanceAfter ?? account.balance;
+  const displayBalance = await resolveDisplayBalance(userId, budget.id, account, finalBalance);
 
   const accountSummary = {
     id: account.id,
     name: account.name,
-    balance: finalBalance,
-    availableAfter: getAccountAvailable({ type: account.type, balance: finalBalance, details: account.details }),
+    balance: displayBalance,
+    availableAfter: getAccountAvailable({ type: account.type, balance: displayBalance, details: account.details }),
   };
 
   const categoryProgress: Array<{
@@ -508,12 +525,20 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
   if (input.labels !== undefined && input.labels.length > 0) {
     syncLabels(userId, budget.id, input.labels).catch(err => logger.warn('[finances] label sync failed:', err));
   }
-  const resolvedAccount = await getAccountById(userId, budget.id, updated.accountId);
+  const [resolvedAccount, toAccount] = await Promise.all([
+    getAccountById(userId, budget.id, updated.accountId),
+    updated.toAccountBalanceAfter != null ? getAccountById(userId, budget.id, updated.toAccountId!) : null,
+  ]);
+  const rawFromBalance = updated.fromAccountBalanceAfter ?? resolvedAccount?.balance ?? 0;
+  const [fromDisplayBalance, toDisplayBalance] = await Promise.all([
+    resolveDisplayBalance(userId, budget.id, resolvedAccount, rawFromBalance),
+    resolveDisplayBalance(userId, budget.id, toAccount, updated.toAccountBalanceAfter ?? 0),
+  ]);
 
   const responseData: Record<string, unknown> = {
     index: 0,
     transactionId: updated.id,
-    fromAccountBalanceAfter: updated.fromAccountBalanceAfter,
+    fromAccountBalanceAfter: fromDisplayBalance,
     fromAccountAvailableAfter: getAccountAvailable(resolvedAccount),
     resolvedAccount: resolvedAccount?.name ?? String(updated.accountId),
     resolvedCategory: updated.categoryId != null ? String(updated.categoryId) : null,
@@ -521,8 +546,7 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
   };
 
   if (updated.toAccountBalanceAfter != null) {
-    responseData.toAccountBalanceAfter = updated.toAccountBalanceAfter;
-    const toAccount = await getAccountById(userId, budget.id, updated.toAccountId!);
+    responseData.toAccountBalanceAfter = toDisplayBalance;
     if (toAccount) {
       responseData.toAccountAvailableAfter = getAccountAvailable(toAccount);
     }
@@ -568,7 +592,15 @@ export const deleteTransactionTool: ToolHandler<typeof DeleteTransactionSchema.s
 
   const result = await deleteTransaction(userId, budget.id, input.transactionId);
 
-  return toolResponse({ deleted: true, accountBalanceAfter: result.accountBalanceAfter });
+  const affectedAccount = await getAccountById(userId, budget.id, existing.accountId);
+  const accountBalanceAfter = await resolveDisplayBalance(
+    userId,
+    budget.id,
+    affectedAccount,
+    result.accountBalanceAfter,
+  );
+
+  return toolResponse({ deleted: true, accountBalanceAfter });
 };
 
 // ─── query_transactions ───────────────────────────────────────────────────────
