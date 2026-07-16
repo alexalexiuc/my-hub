@@ -5,27 +5,7 @@ import { PlusOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 import { DAY_LABELS, MealTypesValues } from '@my-hub/shared/constants';
 import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from '@/app/calories/constants';
-
-// ---------------------------------------------------------------------------
-// Form-row model — shared with CreateMenuModal (its week totals + submit payload)
-// ---------------------------------------------------------------------------
-
-export interface MealFormRow {
-  id: string; // local key for React list
-  mealType: MealType;
-  description: string;
-  kcal: string;
-  protein: string;
-  carbs: string;
-  fat: string;
-}
-
-export const MACRO_KEYS = ['kcal', 'protein', 'carbs', 'fat'] as const;
-export type MacroKey = (typeof MACRO_KEYS)[number];
-
-export function makeRow(mealType: MealType = 'lunch'): MealFormRow {
-  return { id: crypto.randomUUID(), mealType, description: '', kcal: '', protein: '', carbs: '', fat: '' };
-}
+import type { MacroKey, MealFormRow } from './menu-form.schema';
 
 const MEAL_TYPE_OPTIONS = MealTypesValues.map(t => ({ value: t, label: MEAL_LABEL[t] }));
 

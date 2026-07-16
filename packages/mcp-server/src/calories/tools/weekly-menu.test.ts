@@ -423,8 +423,8 @@ describe('planWeekTool', () => {
       title: null,
       notes: 'Roast 1kg chicken Sunday',
       meals: [{ mealType: 'lunch' }],
+      shoppingList: [{ id: 1 }, { id: 2 }],
     } as never);
-    vi.mocked(replaceShoppingListItems).mockResolvedValue([{ id: 1 }, { id: 2 }] as never);
 
     const result = await planWeekTool(
       {
@@ -447,9 +447,15 @@ describe('planWeekTool', () => {
       ctx,
     );
 
-    // prepNotes maps to the menu's notes column
-    expect(createWeeklyMenu).toHaveBeenCalledWith(expect.objectContaining({ notes: 'Roast 1kg chicken Sunday' }));
-    expect(replaceShoppingListItems).toHaveBeenCalledWith('user-1', 'menu-1', ['1kg chicken breast', '500g oats']);
+    // The meals, prep notes and shopping list go to the service as one write —
+    // prepNotes maps to the menu's notes column.
+    expect(createWeeklyMenu).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notes: 'Roast 1kg chicken Sunday',
+        shoppingList: ['1kg chicken breast', '500g oats'],
+      }),
+    );
+    expect(replaceShoppingListItems).not.toHaveBeenCalled();
 
     const payload = parsePayload(result) as { prepNotes: string; shoppingListItems: number };
     expect(payload.prepNotes).toBe('Roast 1kg chicken Sunday');

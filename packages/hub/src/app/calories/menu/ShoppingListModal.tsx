@@ -27,8 +27,6 @@ interface Props {
 export function ShoppingListModal({ menuId, weekLabel, onClose }: Props) {
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newItem, setNewItem] = useState('');
-  const [adding, setAdding] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -48,27 +46,15 @@ export function ShoppingListModal({ menuId, weekLabel, onClose }: Props) {
     };
   }, [menuId]);
 
-  async function addItems(texts: string[]) {
-    setAdding(true);
-    try {
-      const data = await apiFetch(`/api/calories/menu/${menuId}/shopping-list`, {
-        method: 'POST',
-        body: { texts },
-        bodySchema: AddShoppingItemsSchema,
-        responseSchema: AddShoppingItemsResponseSchema,
-        silentToast: true,
-      });
-      setItems(prev => [...prev, ...data.items]);
-    } finally {
-      setAdding(false);
-    }
-  }
-
-  async function handleAdd() {
-    const text = newItem.trim();
-    if (!text) return;
-    await addItems([text]);
-    setNewItem('');
+  async function handleAdd(text: string) {
+    const data = await apiFetch(`/api/calories/menu/${menuId}/shopping-list`, {
+      method: 'POST',
+      body: { texts: [text] },
+      bodySchema: AddShoppingItemsSchema,
+      responseSchema: AddShoppingItemsResponseSchema,
+      silentToast: true,
+    });
+    setItems(prev => [...prev, ...data.items]);
   }
 
   function toggle(item: ShoppingItem) {
@@ -140,10 +126,7 @@ export function ShoppingListModal({ menuId, weekLabel, onClose }: Props) {
         <ShoppingListItems
           items={items}
           loading={loading}
-          newItem={newItem}
-          onNewItemChange={setNewItem}
-          onSubmit={() => void handleAdd()}
-          adding={adding}
+          onAdd={handleAdd}
           onToggle={toggle}
           onRemove={item => void remove(item)}
         />

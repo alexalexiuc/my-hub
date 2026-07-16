@@ -2,6 +2,24 @@ import { z } from 'zod';
 import { MealTypesValues } from '@my-hub/shared/constants';
 import type { MealType } from '@my-hub/shared/constants';
 
+/** One editable meal row in the create-menu form. Shared by the day editor and the modal's week totals. */
+export interface MealFormRow {
+  id: string; // local key for React list
+  mealType: MealType;
+  description: string;
+  kcal: string;
+  protein: string;
+  carbs: string;
+  fat: string;
+}
+
+export const MACRO_KEYS = ['kcal', 'protein', 'carbs', 'fat'] as const;
+export type MacroKey = (typeof MACRO_KEYS)[number];
+
+export function makeRow(mealType: MealType = 'lunch'): MealFormRow {
+  return { id: crypto.randomUUID(), mealType, description: '', kcal: '', protein: '', carbs: '', fat: '' };
+}
+
 export const AddMealFormSchema = z.object({
   mealType: z.enum(MealTypesValues as [MealType, ...MealType[]]),
   description: z.string().trim().min(1, 'Description is required'),

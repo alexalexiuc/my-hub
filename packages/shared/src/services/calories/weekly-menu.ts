@@ -4,7 +4,7 @@
  * Named exports:
  * - `WeeklyMenu`, `WeeklyMenuMeal`, `WeeklyMenuMealInput`, `CreateWeeklyMenuInput`, `UpdateWeeklyMenuMealInput`, `LogMenuMealInput` — service types
  * - `hasAccessToMenu(userId, menuId)` — ownership check (1s promise cache)
- * - `createWeeklyMenu(input)` — create (or replace, per user+week) a menu with its meals
+ * - `createWeeklyMenu(input)` — transactionally create (or replace, per user+week) a menu with its meals and optional shopping list
  * - `updateWeeklyMenu(userId, menuId, { title?, notes? })` — patch a menu's title/prep notes without touching meals
  * - `getWeeklyMenus(userId)` — all menus, ascending by weekStart, without meal rows
  * - `getWeeklyMenu(userId, menuId)` / `getWeeklyMenuByWeek(userId, weekStart)` — single menu with meals
@@ -19,11 +19,18 @@
  */
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { weeklyMenus, weeklyMenuMeals, weeklyMenuDayLogs, mealLogs } from '../../db/schema/calories';
+import {
+  weeklyMenus,
+  weeklyMenuMeals,
+  weeklyMenuDayLogs,
+  weeklyMenuShoppingItems,
+  mealLogs,
+} from '../../db/schema/calories';
 import type { MealType } from '../../constants/calories';
 import type { DayOfWeek } from '../../constants/weekly-menu';
+import type { ShoppingListItem } from './shopping-list';
 import { PromiseCacheX } from 'promise-cachex';
-import { logger, omitUndefined } from '../../utils';
+import { dedupeTrimmed, logger, omitUndefined } from '../../utils';
 
 const menuAccessCache = new PromiseCacheX<boolean>({ ttl: 1000 }); // 1 second
 
@@ -47,6 +54,8 @@ export interface CreateWeeklyMenuInput {
   title?: string | null;
   notes?: string | null;
   meals: WeeklyMenuMealInput[];
+  /** Shopping list for the week. Trimmed and deduped case-insensitively, like the other write paths. */
+  shoppingList?: string[];
 }
 
 export interface WeeklyMenuMeal {
@@ -89,60 +98,80 @@ export async function hasAccessToMenu(userId: string, menuId: string): Promise<b
 }
 
 /**
- * Create a new weekly menu with its meals for a user.
+ * Create a new weekly menu with its meals — and optionally its shopping list — for a user.
  * If a menu for the same weekStart already exists, it is replaced (delete + insert).
  * Duplicate (dayOfWeek, mealType) slots in the input collapse to the first occurrence
  * (enforced by the `uq_weekly_menu_meal_slot` unique constraint + onConflictDoNothing).
+ *
+ * The whole replacement runs in one transaction, so a failure part-way through cannot
+ * leave the user with their old menu deleted and nothing in its place.
  */
-export async function createWeeklyMenu(input: CreateWeeklyMenuInput): Promise<WeeklyMenu> {
+export async function createWeeklyMenu(
+  input: CreateWeeklyMenuInput,
+): Promise<WeeklyMenu & { shoppingList: ShoppingListItem[] }> {
   const menuId = crypto.randomUUID();
+  const shoppingTexts = dedupeTrimmed(input.shoppingList ?? []);
 
-  // Delete any existing menu for this user + week (one menu per week)
-  const replaced = await db
-    .delete(weeklyMenus)
-    .where(and(eq(weeklyMenus.userId, input.userId), eq(weeklyMenus.weekStart, input.weekStart)))
-    .returning({ menuId: weeklyMenus.menuId });
+  const { menu, meals, shoppingList, replaced } = await db.transaction(async tx => {
+    // Delete any existing menu for this user + week (one menu per week)
+    const replaced = await tx
+      .delete(weeklyMenus)
+      .where(and(eq(weeklyMenus.userId, input.userId), eq(weeklyMenus.weekStart, input.weekStart)))
+      .returning({ menuId: weeklyMenus.menuId });
 
-  // Evict the replaced menu's cached access grant — a stale `true` within the TTL would
-  // let an in-flight write insert child rows referencing the deleted menu (FK violation).
+    const [menu] = await tx
+      .insert(weeklyMenus)
+      .values({
+        menuId,
+        userId: input.userId,
+        weekStart: input.weekStart,
+        title: input.title ?? null,
+        notes: input.notes ?? null,
+      })
+      .returning();
+
+    if (!menu) throw new Error('Insert did not return a row');
+
+    const meals =
+      input.meals.length > 0
+        ? await tx
+            .insert(weeklyMenuMeals)
+            .values(
+              input.meals.map(m => ({
+                menuId,
+                dayOfWeek: m.dayOfWeek,
+                mealType: m.mealType,
+                description: m.description,
+                kcal: m.kcal ?? null,
+                protein: m.protein ?? null,
+                carbs: m.carbs ?? null,
+                fat: m.fat ?? null,
+              })),
+            )
+            .onConflictDoNothing()
+            .returning()
+        : [];
+
+    // The menu is brand new, so there is nothing to clear and no ownership to re-check.
+    const shoppingList =
+      shoppingTexts.length > 0
+        ? await tx
+            .insert(weeklyMenuShoppingItems)
+            .values(shoppingTexts.map(text => ({ menuId, userId: input.userId, text })))
+            .returning()
+        : [];
+
+    return { menu, meals, shoppingList, replaced };
+  });
+
+  // Evict the replaced menu's cached access grant once the delete is actually visible — a
+  // stale `true` within the TTL would let an in-flight write insert child rows referencing
+  // the deleted menu (FK violation).
   for (const row of replaced) {
     menuAccessCache.delete(`${input.userId}:${row.menuId}`);
   }
 
-  const [menu] = await db
-    .insert(weeklyMenus)
-    .values({
-      menuId,
-      userId: input.userId,
-      weekStart: input.weekStart,
-      title: input.title ?? null,
-      notes: input.notes ?? null,
-    })
-    .returning();
-
-  if (!menu) throw new Error('Insert did not return a row');
-
-  const mealRows =
-    input.meals.length > 0
-      ? await db
-          .insert(weeklyMenuMeals)
-          .values(
-            input.meals.map(m => ({
-              menuId,
-              dayOfWeek: m.dayOfWeek,
-              mealType: m.mealType,
-              description: m.description,
-              kcal: m.kcal ?? null,
-              protein: m.protein ?? null,
-              carbs: m.carbs ?? null,
-              fat: m.fat ?? null,
-            })),
-          )
-          .onConflictDoNothing()
-          .returning()
-      : [];
-
-  return { ...menu, meals: mealRows };
+  return { ...menu, meals, shoppingList };
 }
 
 export interface UpdateWeeklyMenuInput {

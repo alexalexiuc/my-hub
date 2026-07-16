@@ -1,6 +1,6 @@
 'use client';
 
-import { DAY_LABELS, DaysOfWeekValues } from '@my-hub/shared/constants';
+import { DAY_LABELS_SHORT, DaysOfWeekValues } from '@my-hub/shared/constants';
 import type { DayOfWeek } from '@my-hub/shared/constants';
 import { DumbbellIcon } from '@/components/icons';
 
@@ -43,7 +43,7 @@ export function CreateMenuDayTabs({
                   : 'border border-[var(--border)] text-[var(--subtle)] hover:text-[var(--text)]'
               }`}
             >
-              {DAY_LABELS[d].slice(0, 3)}
+              {DAY_LABELS_SHORT[d]}
               {isGymDay && <DumbbellIcon className="inline-block ml-0.5 size-3 text-[var(--accent)]" title="Gym day" />}
               {count > 0 && (
                 <span

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { z } from 'zod';
 import { Button, Checkbox, Input } from '@/components';
 import { PlusOutlineIcon, TrashOutlineIcon } from '@/components/icons';
@@ -10,38 +11,42 @@ export type ShoppingItem = z.infer<typeof ShoppingItemRecordSchema>;
 export interface ShoppingListItemsProps {
   items: ShoppingItem[];
   loading: boolean;
-  newItem: string;
-  onNewItemChange: (value: string) => void;
-  onSubmit: () => void;
-  adding: boolean;
+  onAdd: (text: string) => Promise<void>;
   onToggle: (item: ShoppingItem) => void;
   onRemove: (item: ShoppingItem) => void;
 }
 
 /** The week's persisted shopping list — written by the assistant, editable by the user (add / check / remove). */
-export function ShoppingListItems({
-  items,
-  loading,
-  newItem,
-  onNewItemChange,
-  onSubmit,
-  adding,
-  onToggle,
-  onRemove,
-}: ShoppingListItemsProps) {
+export function ShoppingListItems({ items, loading, onAdd, onToggle, onRemove }: ShoppingListItemsProps) {
+  const [newItem, setNewItem] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  async function handleSubmit() {
+    const text = newItem.trim();
+    if (!text) return;
+
+    setAdding(true);
+    try {
+      await onAdd(text);
+      setNewItem('');
+    } finally {
+      setAdding(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {/* Add item */}
       <form
         onSubmit={e => {
           e.preventDefault();
-          onSubmit();
+          void handleSubmit();
         }}
         className="flex gap-1.5"
       >
         <Input
           value={newItem}
-          onChange={e => onNewItemChange(e.target.value)}
+          onChange={e => setNewItem(e.target.value)}
           placeholder="Add an item…"
           className="flex-1 text-sm"
         />

@@ -135,7 +135,7 @@ export const ShoppingItemRecordSchema = z.object({
 /** Response shape for GET /api/calories/menu/[menuId]/shopping-list. */
 export const GetShoppingListResponseSchema = z.object({ items: z.array(ShoppingItemRecordSchema) });
 
-/** Body for POST — one or more item texts (bulk import sends many at once). */
+/** Body for POST — one or more item texts. */
 export const AddShoppingItemsSchema = z.object({ texts: z.array(z.string().trim().min(1)).min(1) });
 
 /** Response for POST — only the rows that were actually inserted (duplicates are skipped). */

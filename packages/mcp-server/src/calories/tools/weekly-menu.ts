@@ -45,7 +45,7 @@ const mealTypeSchema = z
 
 const MenuMealSchema = z.object({
   dayOfWeek: z
-    .nativeEnum(DaysOfWeek)
+    .enum(DaysOfWeek)
     .describe('Day of week: 0=Monday, 1=Tuesday, 2=Wednesday, 3=Thursday, 4=Friday, 5=Saturday, 6=Sunday'),
   mealType: mealTypeSchema,
   description: z.string().describe('What to eat, e.g. "Grilled salmon with quinoa and broccoli"'),
@@ -55,27 +55,31 @@ const MenuMealSchema = z.object({
   fat: z.number().positive().optional().describe('Fat in grams'),
 });
 
+const menuIdSchema = z.string().describe('The menuId of the weekly menu. Get it from calories_get_weekly_menu.');
+
+// The model reads these descriptions, so the plan-the-week and update-one-field tools must
+// describe the same field the same way. Only the trailing "how this call treats it" differs.
+const PREP_NOTES_DESC =
+  'Actionable prep and batch-cooking instructions for the week. Cover: what to cook in advance, when to ' +
+  'prep it, and how it maps to specific meals (cook-once, eat-twice). Be specific about quantities and ' +
+  'timing. Example: "Sunday: roast 1 kg chicken breast → Mon lunch + Thu/Sun dinner. Cook 500 g rice. ' +
+  'Wed: hard-boil 6 eggs. Each morning: portion overnight oats from Sunday batch." No motivational text.';
+
+const SHOPPING_LIST_DESC =
+  'The shopping list for the week, one entry per line with quantities where useful, e.g. ' +
+  '["1kg chicken breast", "6 eggs", "500g oats", "2 avocados"]. Aggregate ingredients across all planned ' +
+  'meals so the user can shop once.';
+
 export const PlanWeekSchema = z.object({
   weekStart: yyyyMmDdSchema.describe(
     'The Monday of the target week in YYYY-MM-DD format. Use the upcoming Monday for "next week", or the current Monday for "this week".',
   ),
   title: z.string().optional().describe('Optional menu title, e.g. "High protein week"'),
-  prepNotes: z
-    .string()
-    .optional()
-    .describe(
-      'Optional free-text prep & cooking notes for the week — batch-cooking and "cook once, eat twice" guidance, ' +
-        'e.g. "Roast 1kg chicken breast Sunday → use for Mon lunch, Thu & Sun dinner. Make overnight oats x4 for breakfasts." ' +
-        'Written for the user to read in the hub; keep it practical.',
-    ),
+  prepNotes: z.string().optional().describe(`${PREP_NOTES_DESC} Optional.`),
   shoppingList: z
     .array(z.string())
     .optional()
-    .describe(
-      'Optional shopping list for the week, one entry per line with quantities where useful, ' +
-        'e.g. ["1kg chicken breast", "6 eggs", "500g oats", "2 avocados"]. Aggregate ingredients across all ' +
-        'planned meals so the user can shop once. Replaces any existing list for the week.',
-    ),
+    .describe(`${SHOPPING_LIST_DESC} Optional. Replaces any existing list for the week.`),
   meals: z
     .array(MenuMealSchema)
     .min(1)
@@ -153,6 +157,8 @@ export const planWeekTool: ToolHandler<typeof PlanWeekSchema.shape> = async (inp
     }
   }
 
+  // Meals, prep notes and the shopping list are written as one unit, so the whole
+  // week either lands or it doesn't.
   let menu: Awaited<ReturnType<typeof createWeeklyMenu>>;
   try {
     menu = await createWeeklyMenu({
@@ -169,6 +175,7 @@ export const planWeekTool: ToolHandler<typeof PlanWeekSchema.shape> = async (inp
         carbs: m.carbs ?? null,
         fat: m.fat ?? null,
       })),
+      shoppingList: input.shoppingList,
     });
   } catch (err) {
     logger.error(`[calories] planWeek failed for user ${userId}, week ${input.weekStart}:`, err);
@@ -178,20 +185,13 @@ export const planWeekTool: ToolHandler<typeof PlanWeekSchema.shape> = async (inp
     });
   }
 
-  // Write the shopping list in the same flow so the AI can plan meals + shopping in one call.
-  let shoppingListCount = 0;
-  if (input.shoppingList && input.shoppingList.length > 0) {
-    const items = await replaceShoppingListItems(userId, menu.menuId, input.shoppingList);
-    shoppingListCount = items?.length ?? 0;
-  }
-
   return toolResponse({
     menuId: menu.menuId,
     weekStart: menu.weekStart,
     title: menu.title,
     totalMeals: menu.meals.length,
     prepNotes: menu.notes,
-    shoppingListItems: shoppingListCount,
+    shoppingListItems: menu.shoppingList.length,
     todayDate,
     todayDayOfWeek,
     planFromDayOfWeek,
@@ -243,16 +243,7 @@ export const getWeeklyMenuTool: ToolHandler<typeof GetWeeklyMenuSchema.shape> = 
 // Set (add or swap) a single meal
 // ---------------------------------------------------------------------------
 
-export const SetMenuMealSchema = z.object({
-  menuId: z.string().describe('The menuId of the weekly menu to update'),
-  dayOfWeek: z.nativeEnum(DaysOfWeek).describe('Day of week: 0=Monday … 6=Sunday'),
-  mealType: mealTypeSchema,
-  description: z.string().describe('What to eat, e.g. "Grilled salmon with quinoa and broccoli"'),
-  kcal: z.number().int().positive().optional().describe('Estimated calories'),
-  protein: z.number().positive().optional().describe('Protein in grams'),
-  carbs: z.number().positive().optional().describe('Carbohydrates in grams'),
-  fat: z.number().positive().optional().describe('Fat in grams'),
-});
+export const SetMenuMealSchema = MenuMealSchema.extend({ menuId: menuIdSchema });
 
 export const setMenuMealTool: ToolHandler<typeof SetMenuMealSchema.shape> = async (input, context) => {
   const { userId } = context;
@@ -283,10 +274,8 @@ export const setMenuMealTool: ToolHandler<typeof SetMenuMealSchema.shape> = asyn
 // Remove a single meal
 // ---------------------------------------------------------------------------
 
-export const RemoveMenuMealSchema = z.object({
-  menuId: z.string().describe('The menuId of the weekly menu to remove the meal from'),
-  dayOfWeek: z.nativeEnum(DaysOfWeek).describe('Day of week: 0=Monday … 6=Sunday'),
-  mealType: mealTypeSchema,
+export const RemoveMenuMealSchema = MenuMealSchema.pick({ dayOfWeek: true, mealType: true }).extend({
+  menuId: menuIdSchema,
 });
 
 export const removeMenuMealTool: ToolHandler<typeof RemoveMenuMealSchema.shape> = async (input, context) => {
@@ -336,13 +325,8 @@ export const deleteWeeklyMenuTool: ToolHandler<typeof DeleteWeeklyMenuSchema.sha
 // ---------------------------------------------------------------------------
 
 export const SetPrepNotesSchema = z.object({
-  menuId: z.string().describe('The menuId of the weekly menu. Get it from calories_get_weekly_menu.'),
-  prepNotes: z
-    .string()
-    .describe(
-      'Free-text prep & cooking notes for the week — batch-cooking / "cook once, eat twice" guidance the user reads ' +
-        'in the hub, e.g. "Roast 1kg chicken Sunday → Mon lunch, Thu & Sun dinner." Pass an empty string to clear.',
-    ),
+  menuId: menuIdSchema,
+  prepNotes: z.string().describe(`${PREP_NOTES_DESC} Pass an empty string to clear.`),
 });
 
 export const setPrepNotesTool: ToolHandler<typeof SetPrepNotesSchema.shape> = async (input, context) => {
@@ -368,14 +352,10 @@ export const setPrepNotesTool: ToolHandler<typeof SetPrepNotesSchema.shape> = as
 // ---------------------------------------------------------------------------
 
 export const SetShoppingListSchema = z.object({
-  menuId: z.string().describe('The menuId of the weekly menu. Get it from calories_get_weekly_menu.'),
+  menuId: menuIdSchema,
   items: z
     .array(z.string())
-    .describe(
-      'The full shopping list for the week, one entry per line with quantities where useful, ' +
-        'e.g. ["1kg chicken breast", "6 eggs", "500g oats"]. Aggregate ingredients across all planned meals. ' +
-        'This REPLACES the existing list. Pass an empty array to clear it.',
-    ),
+    .describe(`${SHOPPING_LIST_DESC} REPLACES the existing list. Pass an empty array to clear.`),
 });
 
 export const setShoppingListTool: ToolHandler<typeof SetShoppingListSchema.shape> = async (input, context) => {

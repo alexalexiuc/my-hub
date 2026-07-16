@@ -1,3 +1,4 @@
+export * from './arrays';
 export * from './calories';
 export * from './coordinates';
 export * from './finances';

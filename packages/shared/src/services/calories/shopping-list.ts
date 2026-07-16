@@ -14,7 +14,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { weeklyMenuShoppingItems } from '../../db/schema/calories';
 import { hasAccessToMenu } from './weekly-menu';
-import { logger } from '../../utils';
+import { dedupeTrimmed, logger } from '../../utils';
 
 export interface ShoppingListItem {
   id: number;
@@ -58,20 +58,14 @@ export async function addShoppingListItems(
     return null;
   }
 
+  // The unique constraint is case-sensitive, so this read is what makes the
+  // case-insensitive rule hold; onConflictDoNothing only backstops races.
   const existing = await db
     .select({ text: weeklyMenuShoppingItems.text })
     .from(weeklyMenuShoppingItems)
     .where(eq(weeklyMenuShoppingItems.menuId, menuId));
-  const seen = new Set(existing.map(r => r.text.toLowerCase()));
 
-  const toInsert: string[] = [];
-  for (const raw of texts) {
-    const text = raw.trim();
-    const lower = text.toLowerCase();
-    if (!text || seen.has(lower)) continue;
-    seen.add(lower);
-    toInsert.push(text);
-  }
+  const toInsert = dedupeTrimmed(texts, new Set(existing.map(r => r.text.toLowerCase())));
 
   if (toInsert.length === 0) return [];
 
@@ -99,15 +93,7 @@ export async function replaceShoppingListItems(
     return null;
   }
 
-  const seen = new Set<string>();
-  const toInsert: string[] = [];
-  for (const raw of texts) {
-    const text = raw.trim();
-    const lower = text.toLowerCase();
-    if (!text || seen.has(lower)) continue;
-    seen.add(lower);
-    toInsert.push(text);
-  }
+  const toInsert = dedupeTrimmed(texts);
 
   return db.transaction(async tx => {
     await tx.delete(weeklyMenuShoppingItems).where(eq(weeklyMenuShoppingItems.menuId, menuId));

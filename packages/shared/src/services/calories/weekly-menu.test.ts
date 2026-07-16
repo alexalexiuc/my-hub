@@ -1,6 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { addMealToMenu, updateWeeklyMenuMeal, upsertMenuMeal, deleteWeeklyMenuMeal, logMenuMeal } from './weekly-menu';
+import {
+  createWeeklyMenu,
+  addMealToMenu,
+  updateWeeklyMenuMeal,
+  upsertMenuMeal,
+  deleteWeeklyMenuMeal,
+  logMenuMeal,
+} from './weekly-menu';
 
 // ---------------------------------------------------------------------------
 // Mock the DB client
@@ -88,6 +95,98 @@ function mockUpsertReturning(rows: unknown[]) {
     returning: vi.fn().mockResolvedValue(rows),
   } as any);
 }
+
+// ---------------------------------------------------------------------------
+// createWeeklyMenu
+// ---------------------------------------------------------------------------
+
+/**
+ * Transaction handle for createWeeklyMenu: one delete (the replaced menu) and up to
+ * three inserts (menu row, meals, shopping items), each read back via `.returning()`.
+ */
+function makeCreateTx({
+  replacedRows = [] as unknown[],
+  menuRows = [{ menuId: 'menu-new', weekStart: '2026-07-13' }] as unknown[],
+  mealRows = [] as unknown[],
+  shoppingRows = [] as unknown[],
+} = {}) {
+  const values = (rows: unknown[]) => ({
+    values: vi.fn().mockReturnValue({
+      onConflictDoNothing: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue(rows) }),
+      returning: vi.fn().mockResolvedValue(rows),
+    }),
+  });
+
+  return {
+    delete: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue(replacedRows) }),
+    }),
+    insert: vi
+      .fn()
+      .mockReturnValueOnce(values(menuRows) as any)
+      .mockReturnValueOnce(values(mealRows) as any)
+      .mockReturnValueOnce(values(shoppingRows) as any),
+  };
+}
+
+describe('createWeeklyMenu', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('writes the menu, its meals and its shopping list in one transaction', async () => {
+    const tx = makeCreateTx({
+      mealRows: [MEAL_ROW],
+      shoppingRows: [{ id: 1, text: '1kg chicken breast' }],
+    });
+    vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(tx));
+
+    const result = await createWeeklyMenu({
+      userId: 'user-1',
+      weekStart: '2026-07-13',
+      meals: [{ dayOfWeek: 0, mealType: 'breakfast', description: 'Oatmeal with berries' }],
+      shoppingList: ['1kg chicken breast'],
+    });
+
+    // Everything goes through the tx handle — nothing is written outside it
+    expect(tx.delete).toHaveBeenCalledTimes(1);
+    expect(tx.insert).toHaveBeenCalledTimes(3); // menu + meals + shopping items
+    expect(vi.mocked(db).insert).not.toHaveBeenCalled();
+    expect(result.meals).toEqual([MEAL_ROW]);
+    expect(result.shoppingList).toEqual([{ id: 1, text: '1kg chicken breast' }]);
+  });
+
+  it('skips the shopping-list insert when no list is given', async () => {
+    const tx = makeCreateTx();
+    vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(tx));
+
+    const result = await createWeeklyMenu({
+      userId: 'user-1',
+      weekStart: '2026-07-13',
+      meals: [],
+    });
+
+    expect(tx.insert).toHaveBeenCalledTimes(1); // menu row only
+    expect(result.shoppingList).toEqual([]);
+  });
+
+  it('trims and case-insensitively dedupes the shopping list before inserting', async () => {
+    const tx = makeCreateTx({ shoppingRows: [{ id: 1 }] });
+    vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(tx));
+
+    await createWeeklyMenu({
+      userId: 'user-1',
+      weekStart: '2026-07-13',
+      meals: [],
+      shoppingList: ['  Eggs  ', 'eggs', '', '   '],
+    });
+
+    const shoppingInsert = tx.insert.mock.results[1]?.value;
+    expect(shoppingInsert.values).toHaveBeenCalledWith([
+      { menuId: expect.any(String), userId: 'user-1', text: 'Eggs' },
+    ]);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // addMealToMenu

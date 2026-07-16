@@ -9,8 +9,9 @@ import { apiFetch } from '@/lib/utils';
 import { CreateMenuSchema, CreateMenuResponseSchema, hasDuplicateMealSlot } from '@/app/api/calories/menu/menu.schemas';
 import { dateForDay, formatWeekLabel, currentWeekMonday, shiftWeek } from './menu.utils';
 import { CreateMenuDayTabs } from './CreateMenuDayTabs';
-import { CreateMenuMealEditor, MACRO_KEYS, makeRow } from './CreateMenuMealEditor';
-import type { MealFormRow, MacroKey } from './CreateMenuMealEditor';
+import { CreateMenuMealEditor } from './CreateMenuMealEditor';
+import { MACRO_KEYS, makeRow } from './menu-form.schema';
+import type { MealFormRow, MacroKey } from './menu-form.schema';
 import type { WeeklyMenu } from './types';
 
 // ---------------------------------------------------------------------------
