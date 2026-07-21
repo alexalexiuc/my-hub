@@ -50,6 +50,7 @@ export type PortfolioSettingsUpdate = Partial<
     | 'expectedAnnualReturnPct'
     | 'optimisticAnnualReturnPct'
     | 'plannedMonthlyContribution'
+    | 'targetAmount'
   >
 >;
 

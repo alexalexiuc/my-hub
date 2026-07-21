@@ -446,6 +446,8 @@ export const financePortfolios = pgTable(
     plannedMonthlyContribution: numericCasted('planned_monthly_contribution', { precision: 18, scale: 4 })
       .notNull()
       .default(0),
+    // Optional goal amount, in the portfolio base currency. Null = no target set.
+    targetAmount: numericCasted('target_amount', { precision: 18, scale: 4 }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },

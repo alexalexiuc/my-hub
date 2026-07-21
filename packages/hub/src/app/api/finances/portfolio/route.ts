@@ -25,6 +25,7 @@ export const settingsSchema = z.object({
   expectedAnnualReturnPct: z.number().min(-50).max(100),
   optimisticAnnualReturnPct: z.number().min(-50).max(100),
   plannedMonthlyContribution: z.number().min(0),
+  targetAmount: z.number().min(0).nullish(),
 });
 
 export const positionSchema = z.object({

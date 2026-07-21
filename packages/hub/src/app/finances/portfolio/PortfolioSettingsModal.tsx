@@ -56,6 +56,9 @@ export function PortfolioSettingsModal({ overview, onClose, onSaved }: Portfolio
   const [expected, setExpected] = useState(String(portfolio?.expectedAnnualReturnPct ?? 7));
   const [optimistic, setOptimistic] = useState(String(portfolio?.optimisticAnnualReturnPct ?? 10));
   const [contribution, setContribution] = useState(String(portfolio?.plannedMonthlyContribution ?? 0));
+  const [targetAmount, setTargetAmount] = useState(
+    portfolio?.targetAmount != null ? String(portfolio.targetAmount) : '',
+  );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -101,11 +104,17 @@ export function PortfolioSettingsModal({ overview, onClose, onSaved }: Portfolio
     if (!(p <= e && e <= o)) return setError('Returns must satisfy pessimistic ≤ expected ≤ optimistic.');
     if (!Number.isFinite(c) || c < 0) return setError('Monthly contribution must be ≥ 0.');
 
+    const trimmedTarget = targetAmount.trim();
+    if (trimmedTarget !== '' && (!Number.isFinite(Number(trimmedTarget)) || Number(trimmedTarget) < 0)) {
+      return setError('Target amount must be ≥ 0.');
+    }
+
     const settings = {
       pessimisticAnnualReturnPct: p,
       expectedAnnualReturnPct: e,
       optimisticAnnualReturnPct: o,
       plannedMonthlyContribution: c,
+      targetAmount: trimmedTarget === '' ? null : Number(trimmedTarget),
     };
     setSaving(true);
     try {
@@ -250,6 +259,18 @@ export function PortfolioSettingsModal({ overview, onClose, onSaved }: Portfolio
                 min="0"
                 value={contribution}
                 onChange={e => setContribution(e.target.value)}
+              />
+            </FinFieldCard>
+            <FinFieldCard label="Target amount">
+              <Input
+                variant="ghost"
+                className={finGhostInputClass}
+                type="number"
+                step="any"
+                min="0"
+                placeholder="No target set"
+                value={targetAmount}
+                onChange={e => setTargetAmount(e.target.value)}
               />
             </FinFieldCard>
           </div>

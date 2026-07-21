@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ResponsiveContainer, LineChart, Line, XAxis, Tooltip } from 'recharts';
+import { ResponsiveContainer, LineChart, Line, XAxis, Tooltip, ReferenceLine } from 'recharts';
 import { apiFetch } from '@/lib/utils';
 import { FinModalShell } from '../FinModalShell';
 import { fmt, tooltipBoxStyle } from '../ui';
@@ -10,10 +10,11 @@ import type { PortfolioHistoryResponse } from '@/app/api/finances/portfolio/hist
 
 type HistoryModalProps = {
   currency: string;
+  targetAmount: number | null;
   onClose: () => void;
 };
 
-export function HistoryModal({ currency, onClose }: HistoryModalProps) {
+export function HistoryModal({ currency, targetAmount, onClose }: HistoryModalProps) {
   const [points, setPoints] = useState<PortfolioHistoryPoint[] | null>(null);
 
   useEffect(() => {
@@ -89,6 +90,19 @@ export function HistoryModal({ currency, onClose }: HistoryModalProps) {
                 dot={false}
                 activeDot={{ r: 3, fill: 'var(--subtle)', strokeWidth: 0 }}
               />
+              {targetAmount != null && (
+                <ReferenceLine
+                  y={targetAmount}
+                  stroke="var(--subtle)"
+                  strokeDasharray="4 3"
+                  label={{
+                    value: `Target: ${fmt(targetAmount, currency)}`,
+                    position: 'insideTopLeft',
+                    fill: 'var(--subtle)',
+                    fontSize: 9,
+                  }}
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         </div>

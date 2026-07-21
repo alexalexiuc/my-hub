@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ResponsiveContainer, LineChart, Line, XAxis, Tooltip } from 'recharts';
+import { ResponsiveContainer, LineChart, Line, XAxis, Tooltip, ReferenceLine } from 'recharts';
 import { FinModalShell } from '../FinModalShell';
 import { fmt, tooltipBoxStyle, FinFieldCard } from '../ui';
 import { finGhostInputClass } from '../finances.utils';
@@ -157,6 +157,19 @@ export function ProjectionModal({ overview, onClose }: ProjectionModalProps) {
                 activeDot={{ r: 3, fill: s.color, strokeWidth: 0 }}
               />
             ))}
+            {portfolio.targetAmount != null && (
+              <ReferenceLine
+                y={portfolio.targetAmount}
+                stroke="var(--subtle)"
+                strokeDasharray="4 3"
+                label={{
+                  value: `Target: ${fmt(portfolio.targetAmount, currency)}`,
+                  position: 'insideTopLeft',
+                  fill: 'var(--subtle)',
+                  fontSize: 9,
+                }}
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>

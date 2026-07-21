@@ -16,6 +16,7 @@ const portfolio: FinancePortfolio = {
   expectedAnnualReturnPct: 7,
   optimisticAnnualReturnPct: 10,
   plannedMonthlyContribution: 1000,
+  targetAmount: null,
   createdAt: now,
   updatedAt: now,
 };
