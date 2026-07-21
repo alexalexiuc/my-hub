@@ -1,6 +1,6 @@
 'use client';
 
-import { Card } from '@/components';
+import { Card, ProgressBar } from '@/components';
 import { fmt, fmtSign } from '../ui';
 import type { PortfolioOverview } from '@my-hub/shared/services';
 import { currentDateString } from '@my-hub/shared/utils';
@@ -11,6 +11,7 @@ type PortfolioSummaryCardsProps = {
 
 export function PortfolioSummaryCards({ overview }: PortfolioSummaryCardsProps) {
   const { totals, pricesAsOf } = overview;
+  const { targetAmount } = overview.portfolio;
   const currency = overview.portfolio.baseCurrency;
   const stale = pricesAsOf !== null && pricesAsOf < currentDateString();
 
@@ -41,6 +42,17 @@ export function PortfolioSummaryCards({ overview }: PortfolioSummaryCardsProps) 
           totals.profitExclFees === null ? 'var(--muted)' : totals.profitExclFees >= 0 ? 'var(--green)' : 'var(--red)'
         }
       />
+      {targetAmount != null && (
+        <Card className="col-span-2 p-[14px] md:col-span-4">
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-[0.07em] text-[var(--muted)]">Target progress</span>
+            <span className="text-[11px] text-[var(--subtle)]">
+              {fmt(totals.currentValue ?? 0, currency)} of {fmt(targetAmount, currency)}
+            </span>
+          </div>
+          <ProgressBar value={totals.currentValue ?? 0} max={targetAmount} color="var(--accent)" thresholds={false} />
+        </Card>
+      )}
     </div>
   );
 }

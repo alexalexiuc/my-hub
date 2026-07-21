@@ -315,7 +315,8 @@ const financeTools = [
     name: 'finances_update_portfolio',
     description:
       'Create the investment portfolio or update its settings and positions. ' +
-      'Settings: name, base currency, projection assumptions (pessimistic/expected/optimistic annual return %, planned monthly contribution). ' +
+      'Settings: name, base currency, projection assumptions (pessimistic/expected/optimistic annual return %, planned monthly contribution), ' +
+      'and an optional target amount goal shown on graphs (pass null to clear it). ' +
       'Positions are upserted by symbol; yahooSymbol (e.g. SPYL.DE) is required when adding a new position. ' +
       'Target allocations across all positions must sum to 100%.',
     inputSchema: UpdatePortfolioSchema.shape,

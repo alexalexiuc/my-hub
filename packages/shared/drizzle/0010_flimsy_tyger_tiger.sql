@@ -1,0 +1,1 @@
+ALTER TABLE "finance_portfolios" ADD COLUMN "target_amount" numeric(18, 4);

@@ -21,17 +21,18 @@ automatically; charts show actual value history and compound-growth projections.
 
 ## Functional Requirements
 
-| ID    | Requirement                                                                                                                                                            |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FR-01 | A single Portfolio screen lives at `/finances/portfolio`, reachable from the finances sidebar and bottom-nav. Empty state offers a "Set up portfolio" flow.            |
-| FR-02 | Users define positions (display ticker, name, Yahoo symbol, optional Stooq symbol, target allocation %). Target allocations must sum to 100%.                          |
-| FR-03 | Users record supply events: a date, a total cash contributed, and one buy line per ticker (units, price per unit, fee). Total defaults to the sum of lines.            |
-| FR-04 | Supply events can be edited and deleted; the supplies table groups by date like the source spreadsheet.                                                                |
-| FR-05 | The positions table shows per-ticker units, average cost, current EOD price, value, profit (with and without fees, abs + %), actual %, target %, and deviations.       |
-| FR-06 | Summary cards show current value (with staleness indicator), invested, profit, and profit excluding fees.                                                              |
-| FR-07 | A history modal charts daily portfolio value vs. cumulative invested cash from the first supply to today.                                                              |
-| FR-08 | A projection modal charts compound-growth scenarios (pessimistic/expected/optimistic annual return + planned monthly contribution) overlaid for 10 years.              |
-| FR-09 | MCP tools expose portfolio view + CRUD: `finances_get_portfolio`, `finances_record_portfolio_supply`, `finances_update_portfolio`, `finances_delete_portfolio_supply`. |
+| ID    | Requirement                                                                                                                                                                                                                                                                  |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-01 | A single Portfolio screen lives at `/finances/portfolio`, reachable from the finances sidebar and bottom-nav. Empty state offers a "Set up portfolio" flow.                                                                                                                  |
+| FR-02 | Users define positions (display ticker, name, Yahoo symbol, optional Stooq symbol, target allocation %). Target allocations must sum to 100%.                                                                                                                                |
+| FR-03 | Users record supply events: a date, a total cash contributed, and one buy line per ticker (units, price per unit, fee). Total defaults to the sum of lines.                                                                                                                  |
+| FR-04 | Supply events can be edited and deleted; the supplies table groups by date like the source spreadsheet.                                                                                                                                                                      |
+| FR-05 | The positions table shows per-ticker units, average cost, current EOD price, value, profit (with and without fees, abs + %), actual %, target %, and deviations.                                                                                                             |
+| FR-06 | Summary cards show current value (with staleness indicator), invested, profit, and profit excluding fees.                                                                                                                                                                    |
+| FR-07 | A history modal charts daily portfolio value vs. cumulative invested cash from the first supply to today.                                                                                                                                                                    |
+| FR-08 | A projection modal charts compound-growth scenarios (pessimistic/expected/optimistic annual return + planned monthly contribution) overlaid for 10 years.                                                                                                                    |
+| FR-09 | MCP tools expose portfolio view + CRUD: `finances_get_portfolio`, `finances_record_portfolio_supply`, `finances_update_portfolio`, `finances_delete_portfolio_supply`.                                                                                                       |
+| FR-10 | Users may set an optional target amount (goal) in the portfolio base currency, editable from Portfolio Settings alongside projection assumptions. When set, it is shown as a progress bar in the summary cards and as a reference line on the history and projection charts. |
 
 ---
 
@@ -48,6 +49,7 @@ automatically; charts show actual value history and compound-growth projections.
 | TR-07 | Reads (`getPortfolioOverview`, `getPortfolioValueHistory`) best-effort backfill the price cache before computing, so historical prices are present even if the worker has not run. A daily worker cron (`0 18 * * *` UTC) keeps prices current.                                                                                                 |
 | TR-08 | All dates are `YYYY-MM-DD` strings end-to-end; date arithmetic is UTC-only. FX conversion via the existing `getExchangeRate` only when a price currency differs from the base currency.                                                                                                                                                         |
 | TR-09 | Portfolio value is standalone and does NOT feed `finance_accounts` or net worth in v1.                                                                                                                                                                                                                                                          |
+| TR-10 | `target_amount` is a nullable `numeric(18,4)` column on `finance_portfolios` (null = no target set). No separate migration or table — it is a settings field alongside the projection assumptions, updated via `updatePortfolioSettings`.                                                                                                       |
 
 ---
 
@@ -68,3 +70,4 @@ automatically; charts show actual value history and compound-growth projections.
 - [x] Profit-with-fees is lower than profit-excluding-fees for the same position.
 - [x] MCP `finances_record_portfolio_supply` resolves tickers by symbol and rejects unknown symbols.
 - [x] The worker `ticker-price-sync` job fetches only missing price ranges and never throws on API failure.
+- [x] Setting a target amount shows a progress bar in the summary cards and a reference line on the history and projection charts; clearing it (empty field / `null`) removes both.
