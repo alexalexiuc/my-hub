@@ -218,6 +218,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
   if (!account) throw new HandledError(`Account ${input.accountId} not found`);
 
   const results: Array<Record<string, unknown>> = [];
+  const errors: Array<Record<string, unknown>> = [];
   let lastBalanceAfter: number | null = null;
   const categoryMonthsUsed = new Map<number, Set<string>>();
   let categoryTargetsById: Map<number, number | null> | null = null;
@@ -246,14 +247,14 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
             const newPayee = await upsertPayee(userId, budget.id, trimmedPayeeName);
             payeeId = newPayee.id;
           } else {
-            return toolResponse({
-              error: {
-                code: 'payee_not_found',
-                message: `Payee not found: ${trimmedPayeeName}`,
-                normalizedName: trimmedPayeeName.toLowerCase(),
-                requirePayeeCreation: true,
-              },
+            errors.push({
+              index: i,
+              code: 'payee_not_found',
+              reason: `Payee not found: ${trimmedPayeeName}`,
+              normalizedName: trimmedPayeeName.toLowerCase(),
+              requirePayeeCreation: true,
             });
+            continue;
           }
         } else {
           payeeId = resolvedPayee.id;
@@ -373,9 +374,9 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
 
       results.push(result);
     } catch (err) {
-      results.push({
+      errors.push({
         index: i,
-        error: err instanceof Error ? err.message : 'Unknown error',
+        reason: err instanceof Error ? err.message : 'Unknown error',
       });
     }
   }
@@ -433,7 +434,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
     }
   }
 
-  return toolResponse({ results, account: accountSummary, categoryProgress });
+  return toolResponse({ results, errors, account: accountSummary, categoryProgress });
 };
 
 // ─── update_transaction ───────────────────────────────────────────────────────

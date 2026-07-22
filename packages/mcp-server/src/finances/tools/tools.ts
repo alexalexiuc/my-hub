@@ -170,12 +170,15 @@ const financeTools = [
       'Provide accountId at the root — all transactions in the batch go to the same account. ' +
       'Accepts an array so a full batch parsed from a bank screenshot can be submitted in one step. ' +
       'If payeeName matches an existing canonical payee alias, the existing payee is reused instead of creating a duplicate. ' +
-      'Each item is processed independently — a duplicate warning on one does not block the others. ' +
+      'Each item is processed independently — a failure on one item (e.g. payee_not_found) does not block or roll back the others. ' +
+      'The response has a results array (one entry per successfully committed transaction, with its index) and an ' +
+      'errors array (one entry per failed item, with its index and reason). On partial failure, do not resubmit the ' +
+      'whole batch — retry only the items whose index appears in errors, since items in results already committed. ' +
       'Only populate the notes field when you have meaningful information to add. ' +
       'The tool automatically detects possible duplicates and includes a warning in the result if found. ' +
       'categoryId is optional for all transaction types including transfers. ' +
       'For loan repayments and other categorised transfers, set categoryId to track the spending. ' +
-      'If a payeeName is not recognized and createPayee is false (default), the call returns a payee_not_found error — ' +
+      'If a payeeName is not recognized and createPayee is false (default), that item fails with code payee_not_found in errors — ' +
       'use finances_upsert_payee to create the payee first, or set createPayee: true to create it automatically. ' +
       '\n\nExtras field guidance:\n' +
       '- extras is optional. Provide it only when you have meaningful structured metadata beyond the core transaction fields. ' +

@@ -430,14 +430,56 @@ describe('addTransactionsTool', () => {
     );
 
     const payload = parseToolPayload(result) as {
-      results: Array<{ error: string }>;
+      results: unknown[];
+      errors: Array<{ index: number; reason: string }>;
       account: { balance: number };
       categoryProgress: unknown[];
     };
 
-    expect(payload.results[0]).toHaveProperty('error');
+    expect(payload.results).toEqual([]);
+    expect(payload.errors[0]).toEqual({ index: 0, reason: 'DB error' });
     expect(payload.account.balance).toBe(1000);
     expect(payload.categoryProgress).toEqual([]);
+  });
+
+  it('reports payee_not_found in errors and still commits earlier succeeded items in the same batch', async () => {
+    vi.mocked(addTransaction).mockResolvedValueOnce({
+      id: 10,
+      fromAccountBalanceAfter: 950,
+      toAccountBalanceAfter: null,
+    } as never);
+    vi.mocked(findPayeeByNameOrAlias)
+      .mockResolvedValueOnce({ id: 1, name: 'GitHub' } as never)
+      .mockResolvedValueOnce(null as never);
+
+    const result = await addTransactionsTool(
+      {
+        accountId: 1,
+        transactions: [
+          {
+            type: TransactionTypes.Expense,
+            amount: 50,
+            payeeName: 'GitHub',
+            notes: 'Subscription',
+            date: '2026-04-28',
+          },
+          { type: TransactionTypes.Expense, amount: 20, payeeName: 'GOG', notes: 'Game', date: '2026-04-28' },
+        ],
+        createPayee: undefined,
+      },
+      financesContext,
+    );
+
+    const payload = parseToolPayload(result) as {
+      results: Array<{ index: number; transactionId: number }>;
+      errors: Array<{ index: number; code: string; reason: string }>;
+    };
+
+    expect(payload.results).toHaveLength(1);
+    expect(payload.results[0]).toMatchObject({ index: 0, transactionId: 10 });
+    expect(payload.errors).toHaveLength(1);
+    expect(payload.errors[0]).toMatchObject({ index: 1, code: 'payee_not_found' });
+    expect(addTransaction).toHaveBeenCalledTimes(1);
   });
 });
 

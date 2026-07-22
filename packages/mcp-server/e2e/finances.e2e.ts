@@ -84,20 +84,19 @@ interface AddTransactionResult {
   fromAccountBalanceAfter?: number;
   resolvedAccount?: string;
   resolvedPayee?: string | null;
-  error?: string;
+}
+
+interface AddTransactionError {
+  index: number;
+  code?: string;
+  reason: string;
+  normalizedName?: string;
+  requirePayeeCreation?: boolean;
 }
 
 interface AddTransactionsResult {
   results: AddTransactionResult[];
-}
-
-interface PayeeNotFoundResult {
-  error: {
-    code: string;
-    message: string;
-    normalizedName: string;
-    requirePayeeCreation: boolean;
-  };
+  errors: AddTransactionError[];
 }
 
 /**
@@ -667,10 +666,12 @@ describe.sequential('finances — add_transactions with createPayee flag', () =>
       },
     });
 
-    const data = parseToolResult<PayeeNotFoundResult>(result);
+    const data = parseToolResult<AddTransactionsResult>(result);
 
-    expect(data.error.code).toBe('payee_not_found');
-    expect(data.error.requirePayeeCreation).toBe(true);
+    expect(data.results).toHaveLength(0);
+    expect(data.errors).toHaveLength(1);
+    expect(data.errors[0]!.code).toBe('payee_not_found');
+    expect(data.errors[0]!.requirePayeeCreation).toBe(true);
   });
 
   it('auto-creates payee and adds transaction when createPayee is true', async () => {
@@ -700,9 +701,9 @@ describe.sequential('finances — add_transactions with createPayee flag', () =>
 
     expect(Array.isArray(data.results)).toBe(true);
     expect(data.results).toHaveLength(1);
+    expect(data.errors).toHaveLength(0);
 
     const txResult = data.results[0]!;
-    expect(txResult.error).toBeUndefined();
     expect(typeof txResult.transactionId).toBe('number');
     expect(txResult.resolvedPayee).toBe(newPayeeName);
 
