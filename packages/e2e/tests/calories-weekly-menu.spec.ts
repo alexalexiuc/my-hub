@@ -58,7 +58,7 @@ test.describe('Calories — Weekly Menu page', () => {
   /**
    * One natural journey through the whole feature:
    * empty state → create a current-week menu (with modal validation checks) →
-   * edit / add / remove meals on today's card → log meals (single + full day) →
+   * edit / add / remove meals on today's card, including ingredients → log meals (single + full day) →
    * verify logged meals appear on the Today page and survive a reload →
    * navigate between two menus → delete both → empty state again.
    *
@@ -85,7 +85,7 @@ test.describe('Calories — Weekly Menu page', () => {
     // ── 3. Validation: submit disabled while days are missing ─────────────────
     const submitBtn = modal.getByRole('button', { name: 'Create menu' });
     await expect(submitBtn).toBeDisabled();
-    await expect(modal.getByText(/Still missing:/)).toBeVisible();
+    await expect(modal.getByText(/Add at least one meal for:/)).toBeVisible();
 
     // ── 4. Validation: duplicate meal type on the same day is flagged ─────────
     await fillModalDay(modal, today, descFor(today), '600');
@@ -108,34 +108,69 @@ test.describe('Calories — Weekly Menu page', () => {
 
     // ── 6. Menu detail renders: navigator, target card, today's meal ──────────
     await expect(page.getByText('1 / 1')).toBeVisible();
+    // With a menu on screen the header button plans a *different* week — it must stop
+    // reading "Create", which invites people looking for the per-day "Add meal" button.
+    await expect(page.getByRole('button', { name: 'Plan another week' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create', exact: true })).toHaveCount(0);
     await expectSelectedWeek(page, monday);
     await expect(page.getByText('Week plan vs. target')).toBeVisible();
     const todayCard = page.locator(`[data-day="${today}"]`);
     await expect(todayCard.getByText(descFor(today))).toBeVisible();
     await expect(todayCard.getByText('600 kcal').first()).toBeVisible();
 
-    // ── 7. Edit (swap) today's meal ────────────────────────────────────────────
+    // Days already gone cannot take new meals — the plan must not be writable after the fact,
+    // or adherence ends up scored against a plan written to match. Guarded: on a Monday run
+    // the week has no past day to assert against.
+    await expect(todayCard.getByRole('button', { name: 'Add meal' })).toBeEnabled();
+    if (today > 0) {
+      await expect(page.locator('[data-day="0"]').getByRole('button', { name: 'Add meal' })).toBeDisabled();
+    }
+    // Today stays fully editable — the read-only rule applies only behind it.
+    await expect(todayCard.getByRole('button', { name: 'Edit this meal' })).toBeEnabled();
+    await expect(todayCard.getByRole('button', { name: 'Remove this meal' })).toBeEnabled();
+
+    // ── 7. Edit today's meal, giving it ingredients ───────────────────────────
     const swappedDesc = uniqueDesc('Swapped meal');
     await todayCard.getByRole('button', { name: 'Edit this meal' }).click();
     await expect(modal.getByText('Edit meal')).toBeVisible();
     await modal.getByPlaceholder('e.g. Grilled sea bass with roasted vegetables').fill(swappedDesc);
+    await modal.getByLabel('Ingredients (optional)').fill('200g cod fillet\n1 lemon');
     await modal.getByRole('button', { name: 'Save' }).click();
     await expect(todayCard.getByText(swappedDesc)).toBeVisible({ timeout: 8_000 });
     await expect(todayCard.getByText(descFor(today))).not.toBeVisible();
 
-    // ── 8. Add a second meal to today's card via the inline form ──────────────
+    // ── 7b. Title and prep notes are editable in the Hub, not only via Claude ─
+    const menuTitle = uniqueDesc('High protein');
+    // Page-scoped, not modal-scoped: this section edits inline on the page, it is not a dialog.
+    await page.getByRole('button', { name: /add a title or prep notes/i }).click();
+    await page.getByPlaceholder(/Menu title/).fill(menuTitle);
+    await page.getByPlaceholder(/Prep notes/).fill('Sunday: roast a big batch.');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByRole('heading', { name: menuTitle })).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText('Sunday: roast a big batch.')).toBeVisible();
+
+    // Ingredients render collapsed — a week of open lists would bury the plan itself
+    const swappedRow = mealRow(todayCard, swappedDesc);
+    const ingredientsToggle = swappedRow.getByRole('button', { name: '2 ingredients' });
+    await expect(ingredientsToggle).toBeVisible();
+    await expect(todayCard.getByText('200g cod fillet')).not.toBeVisible();
+    await ingredientsToggle.click();
+    await expect(todayCard.getByText('200g cod fillet')).toBeVisible();
+
+    // ── 8. Add a second meal — the same modal, in "add" mode ──────────────────
     const addedDesc = uniqueDesc('Added breakfast');
     await todayCard.getByRole('button', { name: /add meal/i }).click();
-    await todayCard.getByPlaceholder('What will you eat?').fill(addedDesc);
-    await todayCard.getByPlaceholder('kcal', { exact: true }).fill('250');
-    await todayCard.getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(modal.getByText('Add meal')).toBeVisible();
+    await modal.getByPlaceholder('What will you eat?').fill(addedDesc);
+    await modal.getByPlaceholder('kcal', { exact: true }).fill('250');
+    await modal.getByRole('button', { name: 'Add', exact: true }).click();
     await expect(todayCard.getByText(addedDesc)).toBeVisible({ timeout: 8_000 });
 
     // ── 9. Add a third meal, then remove it via the confirm dialog ────────────
     const removedDesc = uniqueDesc('Removable meal');
     await todayCard.getByRole('button', { name: /add meal/i }).click();
-    await todayCard.getByPlaceholder('What will you eat?').fill(removedDesc);
-    await todayCard.getByRole('button', { name: 'Add', exact: true }).click();
+    await modal.getByPlaceholder('What will you eat?').fill(removedDesc);
+    await modal.getByRole('button', { name: 'Add', exact: true }).click();
     await expect(todayCard.getByText(removedDesc)).toBeVisible({ timeout: 8_000 });
 
     await mealRow(todayCard, removedDesc).getByRole('button', { name: 'Remove this meal' }).click();
@@ -155,8 +190,13 @@ test.describe('Calories — Weekly Menu page', () => {
     await modal.getByRole('button', { name: 'Add item' }).click();
     await expect(modal.getByText(shoppingItem)).toBeVisible();
 
-    // Check it off — the progress counter reflects it
-    await modal.getByRole('checkbox').first().check();
+    // Check it off — the progress counter reflects it. The toggle is optimistic, so "1/1" alone
+    // would only prove the local state; wait for the PATCH to land before closing, or the reopen
+    // below races the write it is meant to verify.
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('/shopping-list/') && r.request().method() === 'PATCH' && r.ok()),
+      modal.getByRole('checkbox').first().check(),
+    ]);
     await expect(modal.getByText('1/1')).toBeVisible();
 
     // Close and reopen — the list is persisted server-side against the menu
@@ -179,8 +219,28 @@ test.describe('Calories — Weekly Menu page', () => {
     await expect(todayCard.getByText('1/2')).toBeVisible();
 
     await todayCard.getByRole('button', { name: /log full day/i }).click();
-    await expect(todayCard.getByText('✓ Full day logged')).toBeVisible({ timeout: 8_000 });
+    await expect(todayCard.getByRole('button', { name: /full day logged/i })).toBeVisible({ timeout: 8_000 });
     await expect(page.getByText('Adherence')).toBeVisible();
+
+    // ── 11b. Undo the whole day, then re-log it ───────────────────────────────
+    // Logging a day is one tap, so undoing it has to be too; and a log that cannot be taken back
+    // is a trap on past days, where editing the meal is disabled.
+    await todayCard.getByRole('button', { name: /full day logged/i }).click();
+    await expect(todayCard.getByRole('button', { name: /log full day/i })).toBeVisible({ timeout: 8_000 });
+    await expect(mealRow(todayCard, addedDesc).getByRole('button', { name: 'Log', exact: true })).toBeVisible();
+
+    // Undoing a single meal must also put its Log button back
+    await mealRow(todayCard, addedDesc).getByRole('button', { name: 'Log', exact: true }).click();
+    await expect(mealRow(todayCard, addedDesc).getByRole('button', { name: '✓ Logged' })).toBeVisible({
+      timeout: 8_000,
+    });
+    await mealRow(todayCard, addedDesc).getByRole('button', { name: '✓ Logged' }).click();
+    await expect(mealRow(todayCard, addedDesc).getByRole('button', { name: 'Log', exact: true })).toBeVisible({
+      timeout: 8_000,
+    });
+
+    await todayCard.getByRole('button', { name: /log full day/i }).click();
+    await expect(todayCard.getByRole('button', { name: /full day logged/i })).toBeVisible({ timeout: 8_000 });
 
     // ── 12. Logged meals appear on the Today page ──────────────────────────────
     await page.goto('/calories');
@@ -203,7 +263,17 @@ test.describe('Calories — Weekly Menu page', () => {
 
     // Current week is auto-selected; logged state survived the reload (server persistence)
     await expect(page.getByText('1 / 2')).toBeVisible();
-    await expect(todayCard.getByText('✓ Full day logged')).toBeVisible();
+    await expect(todayCard.getByRole('button', { name: /full day logged/i })).toBeVisible();
+
+    // ── 12b. Day jump chips are a phone-only shortcut ─────────────────────────
+    // The desktop grid already shows every day, so the row must not appear there.
+    const dayChips = page.getByRole('button', { name: /^Jump to/ });
+    await expect(dayChips).toHaveCount(0);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await expect(dayChips).toHaveCount(7);
+    await dayChips.first().click();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect(dayChips).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Next week' }).click();
     await expect(page.getByText('2 / 2')).toBeVisible();
@@ -215,6 +285,19 @@ test.describe('Calories — Weekly Menu page', () => {
     await page.getByRole('button', { name: 'Previous week' }).click();
     await expectSelectedWeek(page, monday);
     await expect(todayCard.getByText(swappedDesc)).toBeVisible();
+
+    // ── 13b. Planning a further week starts from the one on screen ────────────
+    // Copying carries the meals *and* what describes them — prep notes and the shopping list —
+    // since regenerating those by hand is the work the button exists to avoid.
+    await page.getByRole('button', { name: 'Plan another week' }).click();
+    await expect(modal.getByText('Create weekly menu')).toBeVisible();
+    await modal.getByRole('button', { name: /Copy meals from/ }).click();
+    await expect(modal.getByText(/Also copied:/)).toBeVisible({ timeout: 8_000 });
+    await expect(modal.getByText(/prep notes/)).toBeVisible();
+    // The copied meals land as editable rows, not as a submitted duplicate
+    await expect(modal.getByPlaceholder('e.g. Oats with banana').first()).not.toBeEmpty();
+    await modal.getByRole('button', { name: 'Cancel' }).click();
+    await expect(modal.getByText('Create weekly menu')).not.toBeVisible();
 
     // ── 14. Delete both menus → back to empty state ────────────────────────────
     await page.getByRole('button', { name: 'Next week' }).click();

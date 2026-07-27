@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { route } from '@/lib/api/route';
 import { getCalorieProfile, upsertCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shared/services';
-import { ActivityLevelsValues, GoalTypesValues, SexesValues } from '@my-hub/shared/constants';
+import { ActivityLevelsValues, GoalTypesValues, GymTimesValues, SexesValues } from '@my-hub/shared/constants';
 
 const ProfileUpdateSchema = z.object({
   age: z.number().int().positive().optional(),
@@ -17,6 +17,10 @@ const ProfileUpdateSchema = z.object({
   goalFat: z.number().nonnegative().nullable().optional(),
   gymDays: z.array(z.number().int().min(0).max(6)).nullable().optional(),
   gymDayCalorieBonus: z.number().nonnegative().nullable().optional(),
+  gymTime: z
+    .enum(GymTimesValues as [string, ...string[]])
+    .nullable()
+    .optional(),
   notes: z.string().optional(),
 });
 

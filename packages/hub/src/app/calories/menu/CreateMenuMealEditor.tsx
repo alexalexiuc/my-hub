@@ -1,13 +1,14 @@
 'use client';
 
-import { Input, Button, Select } from '@/components';
+import { Input, Button, Select, Textarea } from '@/components';
 import { PlusOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 import { DAY_LABELS, MealTypesValues } from '@my-hub/shared/constants';
 import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
-import { MEAL_LABEL } from '@/app/calories/constants';
+import { INGREDIENT_LINE_HINT } from './menu-form.schema';
 import type { MacroKey, MealFormRow } from './menu-form.schema';
+import { mealTypeOptions } from './menu.utils';
 
-const MEAL_TYPE_OPTIONS = MealTypesValues.map(t => ({ value: t, label: MEAL_LABEL[t] }));
+const MEAL_TYPE_OPTIONS = mealTypeOptions(MealTypesValues);
 
 /** Render metadata for the per-meal macro inputs. */
 const MACRO_FIELDS: { key: MacroKey; placeholder: string; width: string }[] = [
@@ -86,8 +87,19 @@ export function CreateMenuMealEditor({
               />
             ))}
           </div>
+          {/* Row 3: optional ingredients, one per line */}
+          <Textarea
+            value={row.ingredients}
+            onChange={e => onUpdateRow(row.id, { ingredients: e.target.value })}
+            placeholder="Ingredients, one per line (optional)"
+            rows={2}
+            className="resize-none text-xs"
+          />
         </div>
       ))}
+
+      {/* Stated once for the whole day rather than under each row — a day can hold up to 7 meals */}
+      {rows.length > 0 && <p className="text-[10px] text-[var(--subtle)]">{INGREDIENT_LINE_HINT}</p>}
 
       <div className="flex items-center justify-between mt-1">
         <Button type="button" variant="ghost" size="sm" onClick={onAddRow} className="flex items-center">

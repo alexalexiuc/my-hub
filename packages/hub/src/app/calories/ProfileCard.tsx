@@ -18,6 +18,8 @@ import {
   DaysOfWeekValues,
   DAY_LABELS,
   DAY_LABELS_SHORT,
+  GymTimesValues,
+  GYM_TIME_LABELS,
 } from '@my-hub/shared/constants';
 import { Card, Field, Button, Input, Select, Textarea } from '@/components';
 import { pctToGrams, gramsToPct, computeMacroSummary } from './calories.utils';
@@ -45,6 +47,8 @@ const ACTIVITY_DESCRIPTIONS: Record<string, string> = Object.fromEntries(
   ACTIVITY_OPTIONS.map(o => [o.value, o.description]),
 );
 
+const GYM_TIME_OPTIONS = GymTimesValues.map(value => ({ value, label: GYM_TIME_LABELS[value] }));
+
 const GOAL_LABELS: Record<GoalType, string> = {
   [GoalTypes.WeightLoss]: 'Lose weight',
   [GoalTypes.Maintain]: 'Maintain',
@@ -65,6 +69,7 @@ const ProfileFormSchema = z.object({
   goalFat: z.string(),
   gymDays: z.nativeEnum(DaysOfWeek).array(), // Using deprecated `nativeEnum` because `enum` does not support number values
   gymDayCalorieBonus: z.string(),
+  gymTime: z.string(), // '' = not set; the Select's blank option
   notes: z.string(),
 });
 
@@ -85,6 +90,7 @@ function buildFormValues(profile: Props['profile']): ProfileFormValues {
     goalFat: profile?.goalFat?.toString() ?? '',
     gymDays: profile?.gymDays ?? [],
     gymDayCalorieBonus: profile?.gymDayCalorieBonus?.toString() ?? '',
+    gymTime: profile?.gymTime ?? '',
     notes: profile?.notes ?? '',
   };
 }
@@ -169,6 +175,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
           : null,
         gymDays: values.gymDays.length > 0 ? values.gymDays : null,
         gymDayCalorieBonus: values.gymDayCalorieBonus ? Number(values.gymDayCalorieBonus) : null,
+        gymTime: values.gymTime || null,
         notes: values.notes || undefined,
       },
     });
@@ -220,6 +227,9 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
                 )}
                 {profile.gymDays && profile.gymDays.length > 0 && profile.gymDayCalorieBonus != null && (
                   <Stat label="Gym day bonus" value={`+${profile.gymDayCalorieBonus} kcal`} />
+                )}
+                {profile.gymDays && profile.gymDays.length > 0 && profile.gymTime && (
+                  <Stat label="Training time" value={GYM_TIME_LABELS[profile.gymTime]} />
                 )}
               </div>
 
@@ -322,9 +332,17 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
                 </div>
               )}
             />
-            <Field label="Gym day calorie bonus" className="mt-2 max-w-[160px]">
-              <Input type="number" step="1" min="0" placeholder="e.g. 300" {...register('gymDayCalorieBonus')} />
-            </Field>
+            <div className="mt-2 flex flex-wrap gap-3">
+              <Field label="Gym day calorie bonus" className="max-w-[160px]">
+                <Input type="number" step="1" min="0" placeholder="e.g. 300" {...register('gymDayCalorieBonus')} />
+              </Field>
+              {/* A band, not a clock time — it only decides which meals fall either side of the session */}
+              <Field label="Training time" className="max-w-[160px]">
+                <Select {...register('gymTime')} options={GYM_TIME_OPTIONS}>
+                  <option value="">Not set</option>
+                </Select>
+              </Field>
+            </div>
           </div>
 
           <p className="text-xs font-semibold text-[var(--subtle)] uppercase tracking-wide pt-1">Goal</p>

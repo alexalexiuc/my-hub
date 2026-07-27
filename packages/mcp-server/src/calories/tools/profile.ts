@@ -4,7 +4,8 @@ import { omitUndefined } from '@my-hub/shared/utils';
 import { z } from 'zod';
 import { toolResponse } from '../../shared/toolsUtils';
 import { rowToProfile, profileToTargets } from '../models/profile';
-import { ActivityLevels, GoalTypes, MeasurementTypes, Sexes } from '@my-hub/shared/constants';
+import { ActivityLevels, GoalTypes, GymTimesValues, MeasurementTypes, Sexes } from '@my-hub/shared/constants';
+import type { GymTime } from '@my-hub/shared/constants';
 
 export const UpdateProfileSchema = z.object({
   age: z.number().int().positive().optional().describe('Age in years'),
@@ -86,6 +87,15 @@ export const UpdateProfileSchema = z.object({
     .describe(
       'Extra kcal added to the daily calorie target on gym days (defaults to 300). Pass null to reset to the default.',
     ),
+  gymTime: z
+    .enum(GymTimesValues as [GymTime, ...GymTime[]])
+    .optional()
+    .nullable()
+    .describe(
+      'When in the day the user trains: "morning" | "midday" | "evening". Decides which meals fall either side of ' +
+        'the session, so pre_workout / post_workout meals can be placed correctly. A coarse band on purpose — do not ' +
+        'ask for a clock time. Pass null to clear.',
+    ),
   notes: z.string().optional().describe('Additional notes about your health goals'),
 });
 
@@ -110,6 +120,7 @@ export const updateProfileTool: ToolHandler<typeof UpdateProfileSchema.shape> = 
   if (input.goalFatG !== undefined) updates.goalFat = input.goalFatG;
   if (input.gymDays !== undefined) updates.gymDays = input.gymDays ?? null;
   if (input.gymDayCalorieBonus !== undefined) updates.gymDayCalorieBonus = input.gymDayCalorieBonus;
+  if (input.gymTime !== undefined) updates.gymTime = input.gymTime;
 
   const row = await upsertCalorieProfile(userId, updates);
 

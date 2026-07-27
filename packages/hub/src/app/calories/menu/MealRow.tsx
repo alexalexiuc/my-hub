@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { apiFetch, cn } from '@/lib/utils';
 import { Button, IconButton, ConfirmModal } from '@/components';
-import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
+import { ChevronDownOutlineIcon, PencilIcon, TrashOutlineIcon } from '@/components/icons';
 import type { DayOfWeek } from '@my-hub/shared/constants';
-import { DeleteMenuMealSchema, LogDayBodySchema, LogDayResponseSchema } from '@/app/api/calories/menu/menu.schemas';
+import { DeleteMenuMealSchema } from '@/app/api/calories/menu/menu.schemas';
 import { MEAL_LABEL } from '@/app/calories/constants';
-import { SwapMealModal } from './SwapMealModal';
+import { MealEditorModal } from './MealEditorModal';
+import { setMealLogged } from './menu.utils';
 import type { WeeklyMenuMeal } from './types';
 
 type MealRowProps = {
@@ -15,9 +16,11 @@ type MealRowProps = {
   menuId: string;
   dayOfWeek: DayOfWeek;
   dayDate: string;
+  /** Today, as YYYY-MM-DD. Past/future are derived from it rather than passed as separate flags. */
+  today: string;
   logged: boolean;
-  isFuture: boolean;
-  onLogged: () => void;
+  /** Fired after the slot's logged state flips, with the new value. */
+  onLogChanged: (logged: boolean) => void;
   onSwapped: (updated: WeeklyMenuMeal) => void;
   onDeleted: () => void;
 };
@@ -27,17 +30,24 @@ export function MealRow({
   menuId,
   dayOfWeek,
   dayDate,
+  today,
   logged,
-  isFuture,
-  onLogged,
+  onLogChanged,
   onSwapped,
   onDeleted,
 }: MealRowProps) {
+  // One source for the row's place in time. Taking `isFuture` and `isPast` as separate props let
+  // a caller pass a pair that cannot both be true — nothing enforced the third state.
+  const isFuture = dayDate > today;
+  const isPast = dayDate < today;
   const [logging, setLogging] = useState(false);
   const [error, setError] = useState(false);
-  const [showSwap, setShowSwap] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showIngredients, setShowIngredients] = useState(false);
+
+  const ingredients = meal.ingredients ?? [];
 
   async function handleDelete() {
     setDeleting(true);
@@ -54,28 +64,20 @@ export function MealRow({
     }
   }
 
-  async function handleLog() {
+  /**
+   * Flip the slot's logged state. One function rather than a log/unlog pair: they differed only
+   * in the request and the boolean, and the request now lives in `setMealLogged`.
+   *
+   * Undo matters because a mis-tap is otherwise permanent — the marker is only cleared as a side
+   * effect of editing or removing the meal, and both are disabled once the day has passed, which
+   * is exactly when you notice the mistake.
+   */
+  async function toggleLog() {
     setLogging(true);
     setError(false);
     try {
-      // Single call — the route journals the calorie entry and marks the slot
-      // logged in one transaction, so a retry can never duplicate the entry.
-      await apiFetch(`/api/calories/menu/${menuId}/log-day`, {
-        method: 'POST',
-        body: {
-          dayOfWeek,
-          loggedDate: dayDate,
-          mealType: meal.mealType,
-          description: meal.description,
-          kcal: meal.kcal,
-          protein: meal.protein,
-          carbs: meal.carbs,
-          fat: meal.fat,
-        },
-        bodySchema: LogDayBodySchema,
-        responseSchema: LogDayResponseSchema,
-      });
-      onLogged();
+      await setMealLogged(menuId, dayDate, dayOfWeek, meal, !logged);
+      onLogChanged(!logged);
     } catch {
       setError(true);
     } finally {
@@ -96,43 +98,53 @@ export function MealRow({
             {MEAL_LABEL[meal.mealType]}
           </span>
           <div className="flex items-center gap-1">
+            {/* Editing and removing stop once the day has passed — otherwise an unfollowed meal
+                could simply be deleted, and with it the day's share of the adherence denominator.
+                Logging deliberately stays available: recording a meal you did eat, late, is the
+                one change to a past day that makes the record more accurate rather than less.
+                The title sits on the wrapper because a disabled button shows none of its own. */}
             {!logged && (
-              <IconButton
-                label="Edit this meal"
-                icon={<PencilIcon className="size-3" />}
-                onClick={() => setShowSwap(true)}
-                variant="ghost"
-                className="rounded px-1.5 py-0.5 border border-[var(--border)] text-[var(--subtle)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]"
-              />
+              <span
+                className="flex items-center gap-1"
+                title={isPast ? 'Past day — planned meals can no longer be changed' : undefined}
+              >
+                <IconButton
+                  label="Edit this meal"
+                  icon={<PencilIcon className="size-3" />}
+                  onClick={() => setShowEditor(true)}
+                  disabled={isPast}
+                  variant="ghost"
+                  className="rounded px-1.5 py-0.5 border border-[var(--border)] text-[var(--subtle)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]"
+                />
+                <IconButton
+                  label="Remove this meal"
+                  icon={<TrashOutlineIcon className="size-3" />}
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={deleting || isPast}
+                  variant="ghost"
+                  className="rounded px-1.5 py-0.5 border border-[var(--border)] text-[var(--subtle)] hover:border-red-400/50 hover:text-red-400"
+                />
+              </span>
             )}
-            {!logged && (
-              <IconButton
-                label="Remove this meal"
-                icon={<TrashOutlineIcon className="size-3" />}
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={deleting}
-                variant="ghost"
-                className="rounded px-1.5 py-0.5 border border-[var(--border)] text-[var(--subtle)] hover:border-red-400/50 hover:text-red-400"
-              />
-            )}
+            {/* Once logged the same control undoes it, so a mis-tap stays recoverable */}
             {!isFuture && (
               <Button
                 type="button"
                 variant="ghost"
                 size="xs"
-                onClick={handleLog}
-                disabled={logged || logging}
-                title={logged ? 'Already logged' : 'Log this meal'}
+                onClick={() => void toggleLog()}
+                disabled={logging}
+                title={logged ? "Undo — I didn't eat this" : 'Log this meal'}
                 className={cn(
                   'shrink-0 rounded px-2 py-0.5 text-[10px] font-medium border',
                   logged
-                    ? 'border-green-500/30 bg-green-500/10 text-green-400 cursor-default'
+                    ? 'border-green-500/30 bg-green-500/10 text-green-400 hover:border-red-400/50 hover:text-red-400'
                     : error
                       ? 'border-red-500/30 bg-red-500/10 text-red-400'
                       : 'border-[var(--border)] text-[var(--subtle)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]',
                 )}
               >
-                {logged ? '✓ Logged' : logging ? '…' : 'Log'}
+                {logging ? '…' : logged ? '✓ Logged' : 'Log'}
               </Button>
             )}
           </div>
@@ -146,6 +158,27 @@ export function MealRow({
             {meal.carbs != null && ` · C ${meal.carbs}g`}
             {meal.fat != null && ` · F ${meal.fat}g`}
           </span>
+        )}
+        {/* Ingredients stay collapsed by default — a week of expanded lists would bury the plan itself */}
+        {ingredients.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={() => setShowIngredients(v => !v)}
+              aria-expanded={showIngredients}
+              className="flex w-fit items-center gap-1 text-[10px] text-[var(--subtle)] hover:text-[var(--accent)] transition-colors"
+            >
+              <ChevronDownOutlineIcon className={cn('size-3 transition-transform', showIngredients && 'rotate-180')} />
+              {ingredients.length} ingredient{ingredients.length === 1 ? '' : 's'}
+            </button>
+            {showIngredients && (
+              <ul className="list-disc pl-4 text-[10px] text-[var(--subtle)] leading-relaxed">
+                {ingredients.map(item => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </div>
 
@@ -161,16 +194,14 @@ export function MealRow({
         />
       )}
 
-      {showSwap && (
-        <SwapMealModal
+      {showEditor && (
+        <MealEditorModal
+          mode="edit"
           meal={meal}
           menuId={menuId}
           dayOfWeek={dayOfWeek}
-          dayDate={dayDate}
-          onClose={() => setShowSwap(false)}
-          onSwapped={updated => {
-            onSwapped(updated);
-          }}
+          onClose={() => setShowEditor(false)}
+          onSaved={onSwapped}
         />
       )}
     </>

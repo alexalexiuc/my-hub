@@ -50,3 +50,27 @@ export const MealTypesValues: MealType[] = Object.values(MealTypes);
 
 /** Default calorie bonus applied to a day's target when it's a gym day. Matches the `calorie_profiles.gym_day_calorie_bonus` column default — used as the fallback when a user has no profile row yet. */
 export const DEFAULT_GYM_DAY_CALORIE_BONUS = 300;
+
+/**
+ * When in the day the user trains. Deliberately a coarse band rather than a clock time:
+ * what changes a meal plan is which meals fall either side of the session, and no planner
+ * produces a different week for 18:00 than for 18:30.
+ */
+export const GymTimes = {
+  /** Trains before or around breakfast — breakfast is the post-workout meal. */
+  Morning: 'morning',
+  /** Trains around midday — lunch splits either side of the session. */
+  Midday: 'midday',
+  /** Trains after work — dinner is the post-workout meal, lunch is the fuel. */
+  Evening: 'evening',
+} as const;
+
+export type GymTime = (typeof GymTimes)[keyof typeof GymTimes];
+export const GymTimesValues: GymTime[] = Object.values(GymTimes);
+
+/** UI labels for the gym-time bands, shared by the Hub settings form and MCP tool descriptions. */
+export const GYM_TIME_LABELS: Record<GymTime, string> = {
+  morning: 'Morning',
+  midday: 'Midday',
+  evening: 'Evening',
+};

@@ -22,6 +22,7 @@ export const PATCH = route({ params: MenuParamsSchema, body: MenuMealWriteSchema
   async ({ user, params, body }) => {
     const updated = await updateWeeklyMenuMeal(user.id, params.menuId, body.dayOfWeek, body.mealType, {
       description: body.description,
+      ingredients: body.ingredients,
       kcal: body.kcal,
       protein: body.protein,
       carbs: body.carbs,

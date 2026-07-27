@@ -1,0 +1,1 @@
+ALTER TABLE "calorie_profiles" ADD COLUMN "gym_time" text;
