@@ -10,7 +10,9 @@ const SYM_B = 'E2EBBB';
 const modal = (page: Page) => page.locator('.modal-shell');
 
 async function fillNthByPlaceholder(page: Page, placeholder: string, index: number, value: string) {
-  await modal(page).getByPlaceholder(placeholder).nth(index).fill(value);
+  // exact: true avoids cross-matches between overlapping placeholders, e.g. 'SPYL' is a
+  // substring of 'SPYL.DE', and '0' is a substring of 'SPDR S&P 500 UCITS ETF'.
+  await modal(page).getByPlaceholder(placeholder, { exact: true }).nth(index).fill(value);
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -34,7 +36,7 @@ test.describe('Finances – Portfolio', () => {
     await expect(page.getByText('Track your ETF portfolio')).toBeVisible({ timeout: 15_000 });
     await page.getByRole('button', { name: 'Set up portfolio' }).click();
 
-    await expect(modal(page).getByText('Set up Portfolio')).toBeVisible();
+    await expect(modal(page).locator('[data-layout="desktop"]').getByText('Set up Portfolio')).toBeVisible();
 
     // One row exists by default — add a second.
     await modal(page).getByRole('button', { name: '+ Add position' }).click();
@@ -56,7 +58,7 @@ test.describe('Finances – Portfolio', () => {
 
   test('records a supply with auto-computed total', async ({ page }) => {
     await page.getByRole('button', { name: 'Add Supply' }).click();
-    await expect(modal(page).getByText('Add Supply')).toBeVisible();
+    await expect(modal(page).locator('[data-layout="desktop"]').getByText('Add Supply')).toBeVisible();
 
     // Date defaults to today; fill the two pre-populated lines.
     const units = modal(page).getByPlaceholder('0', { exact: true });
@@ -80,7 +82,7 @@ test.describe('Finances – Portfolio', () => {
 
   test('settings modal rejects allocations that do not sum to 100', async ({ page }) => {
     await page.getByRole('button', { name: 'Settings' }).click();
-    await expect(modal(page).getByText('Portfolio Settings')).toBeVisible();
+    await expect(modal(page).locator('[data-layout="desktop"]').getByText('Portfolio Settings')).toBeVisible();
 
     // Change the first target so the sum drifts away from 100.
     await modal(page).getByPlaceholder('0').first().fill('10');
