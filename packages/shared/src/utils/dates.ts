@@ -18,6 +18,8 @@
  * - monthLabel(monthStart) — "Month YYYY" string from a UTC month-start date
  * - shiftMonthStr(month, delta) — shift a YYYY-MM string by delta months, returns YYYY-MM
  * - formatMonthStr(month) — format a YYYY-MM string as "Month YYYY"
+ * - shiftWeekStr(monday, delta) — shift a YYYY-MM-DD Monday by delta weeks, returns YYYY-MM-DD (UTC-safe)
+ * - formatWeekRangeStr(weekStart, includeYear?) — format a YYYY-MM-DD Monday as "Mon D – Mon D[, YYYY]"
  * - weekLabel(weekStart) — "Week W, YYYY" string from an ISO week-start date
  * - calendarDays(startAt, endAt) — array of YYYY-MM-DD strings for each day start→end inclusive
  * - formatDayHeading(dateStr) — YYYY-MM-DD → locale short heading e.g. "Mon, 1 Jan"
@@ -214,6 +216,28 @@ export function shiftMonthStr(month: string, delta: number): string {
 /** Formats a YYYY-MM string as "Month YYYY", e.g. '2026-05' → 'May 2026'. */
 export function formatMonthStr(month: string): string {
   return monthLabel(parseMonthStr(month));
+}
+
+/**
+ * Shifts a YYYY-MM-DD Monday by delta weeks and returns a new YYYY-MM-DD Monday.
+ * All-UTC (parse, add, format) — mixing a local parse with UTC day arithmetic drifts one day
+ * across DST transitions.
+ */
+export function shiftWeekStr(monday: string, delta: number): string {
+  return toUTCDateStr(addDays(new Date(monday), delta * 7));
+}
+
+/**
+ * Formats a week's date range as e.g. "Jun 1 – Jun 7" from its Monday start date.
+ * Pass `includeYear` to append the year, e.g. "Jun 1 – Jun 7, 2026".
+ */
+export function formatWeekRangeStr(weekStart: string, includeYear = false): string {
+  const date = new Date(weekStart + 'T00:00:00');
+  const end = new Date(date);
+  end.setDate(date.getDate() + 6);
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const range = `${fmt(date)} – ${fmt(end)}`;
+  return includeYear ? `${range}, ${date.getFullYear()}` : range;
 }
 
 /** Returns the start (Monday) of the previous ISO week at UTC midnight. */

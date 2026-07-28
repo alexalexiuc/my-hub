@@ -5,19 +5,12 @@ import { IconButton, ConfirmModal } from '@/components';
 import { ListChecksOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 import { DaysOfWeekValues } from '@my-hub/shared/constants';
 import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
-import { dateToString } from '@my-hub/shared/utils';
+import { dateToString, formatWeekRangeStr } from '@my-hub/shared/utils';
 import { ShoppingListModal } from './ShoppingListModal';
 import { DayCard } from './DayCard';
 import { MenuMetaSection } from './MenuMetaSection';
 import { DayJumpChips } from './DayJumpChips';
-import {
-  formatWeekLabel,
-  dateForDay,
-  dayTargetKcal,
-  targetPct,
-  targetColorClasses,
-  resolveDailyTarget,
-} from './menu.utils';
+import { dateForDay, dayTargetKcal, targetPct, targetColorClasses, resolveDailyTarget } from './menu.utils';
 import { TargetBar } from './TargetBar';
 import type { LoggedMeals } from './menu.utils';
 import type { WeeklyMenu, WeeklyMenuMeal } from './types';
@@ -162,7 +155,7 @@ export function MenuDetail({
       {showShoppingList && (
         <ShoppingListModal
           menuId={menu.menuId}
-          weekLabel={formatWeekLabel(menu.weekStart)}
+          weekLabel={formatWeekRangeStr(menu.weekStart)}
           onClose={() => setShowShoppingList(false)}
         />
       )}

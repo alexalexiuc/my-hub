@@ -79,8 +79,8 @@ test.describe('Calories — Weekly Menu page', () => {
     await page.getByRole('button', { name: 'Create' }).click();
     const modal = page.locator('.modal-card');
     await expect(modal.getByText('Create weekly menu')).toBeVisible();
-    // ‹ is disabled on the current week (past weeks are not allowed)
-    await expect(modal.getByRole('button', { name: '‹' })).toBeDisabled();
+    // Previous week is disabled on the current week (past weeks are not allowed)
+    await expect(modal.getByRole('button', { name: 'Previous week' })).toBeDisabled();
 
     // ── 3. Validation: submit disabled while days are missing ─────────────────
     const submitBtn = modal.getByRole('button', { name: 'Create menu' });

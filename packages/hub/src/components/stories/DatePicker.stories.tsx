@@ -37,3 +37,7 @@ export const RangeMode: Story = {
 export const AllTime: Story = {
   args: { extendedFilters: true, dateMode: 'all' },
 };
+
+export const WeekMode: Story = {
+  args: { month: '2026-06-01', dateMode: 'week', currentMonth: undefined, minMonth: '2026-06-01' },
+};

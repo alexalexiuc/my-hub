@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Modal, Button } from '@/components';
+import { Modal, Button, DatePicker } from '@/components';
 import { ClipboardIcon } from '@/components/icons';
 import { DAY_LABELS, DaysOfWeekValues } from '@my-hub/shared/constants';
 import type { DayOfWeek } from '@my-hub/shared/constants';
-import { dateToString, dayOfWeekMon0, omitNullish } from '@my-hub/shared/utils';
+import { dateToString, dayOfWeekMon0, omitNullish, formatWeekRangeStr } from '@my-hub/shared/utils';
 import { apiFetch } from '@/lib/utils';
 import {
   CreateMenuSchema,
@@ -13,7 +13,7 @@ import {
   GetShoppingListResponseSchema,
   hasDuplicateMealSlot,
 } from '@/app/api/calories/menu/menu.schemas';
-import { dateForDay, formatWeekLabel, currentWeekMonday, shiftWeek } from './menu.utils';
+import { dateForDay, currentWeekMonday } from './menu.utils';
 import { CreateMenuDayTabs } from './CreateMenuDayTabs';
 import { CreateMenuMealEditor } from './CreateMenuMealEditor';
 import { MACRO_KEYS, existingMenuMealFormValues, makeRow, parseIngredientLines } from './menu-form.schema';
@@ -275,34 +275,21 @@ export function CreateMenuModal({
         )}
 
         {/* Week selector — current week and future only */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              const prev = shiftWeek(weekStart, -1);
-              setWeekStart(prev);
-              const now = dateToString();
-              if (dateForDay(prev, activeDay) < now) {
-                const firstAvailable = DaysOfWeekValues.find(d => dateForDay(prev, d) >= now);
-                if (firstAvailable !== undefined) setActiveDay(firstAvailable);
-              }
-            }}
-            disabled={weekStart <= thisMonday}
-            className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--subtle)] hover:text-[var(--text)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            ‹
-          </button>
-          <div className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-center text-sm font-medium text-[var(--text)]">
-            {formatWeekLabel(weekStart, true)}
-          </div>
-          <button
-            type="button"
-            onClick={() => setWeekStart(w => shiftWeek(w, 1))}
-            className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--subtle)] hover:text-[var(--text)] transition-colors"
-          >
-            ›
-          </button>
-        </div>
+        <DatePicker
+          month={weekStart}
+          dateMode="week"
+          minMonth={thisMonday}
+          onChange={({ month: newWeekStart }) => {
+            if (!newWeekStart) return;
+            setWeekStart(newWeekStart);
+            const now = dateToString();
+            if (dateForDay(newWeekStart, activeDay) < now) {
+              const firstAvailable = DaysOfWeekValues.find(d => dateForDay(newWeekStart, d) >= now);
+              if (firstAvailable !== undefined) setActiveDay(firstAvailable);
+            }
+          }}
+          fullBleed={false}
+        />
 
         {/* Offered rather than applied: copying is the common case, but it must not overwrite a
             form the user has already started filling in. Styled as a real button — as quiet muted
@@ -316,7 +303,7 @@ export function CreateMenuModal({
             className="self-start inline-flex items-center gap-2 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20"
           >
             <ClipboardIcon className="size-4" />
-            Copy meals from {formatWeekLabel(copyFrom.weekStart)}
+            Copy meals from {formatWeekRangeStr(copyFrom.weekStart)}
           </Button>
         )}
 
@@ -325,7 +312,7 @@ export function CreateMenuModal({
 
         {replacesExisting && (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
-            {formatWeekLabel(weekStart)} already has a menu. Creating one here <strong>replaces</strong> it — its
+            {formatWeekRangeStr(weekStart)} already has a menu. Creating one here <strong>replaces</strong> it — its
             shopping list and logged meals are removed too. To change a single meal, close this and use the pencil on
             that meal instead.
           </div>

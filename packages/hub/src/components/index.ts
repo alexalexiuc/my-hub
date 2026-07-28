@@ -25,6 +25,8 @@ export { Modal } from './Modal';
 export type { ModalProps } from './Modal';
 export { MultiButtonGroup } from './MultiButtonGroup';
 export { MultiSelect } from './MultiSelect';
+export { NavRow } from './NavRow';
+export type { NavRowProps } from './NavRow';
 export { PageHeader } from './PageHeader';
 export { PasswordInput } from './PasswordInput';
 export { PasswordStrength } from './PasswordStrength';

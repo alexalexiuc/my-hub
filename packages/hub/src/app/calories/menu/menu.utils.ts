@@ -1,4 +1,4 @@
-import { toUTCDateStr, addDays, dateToString, startOfWeekMonday } from '@my-hub/shared/utils';
+import { toUTCDateStr, addDays, dateToString, startOfWeekMonday, shiftWeekStr } from '@my-hub/shared/utils';
 import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from '@/app/calories/constants';
 import { apiFetch } from '@/lib/utils';
@@ -113,15 +113,6 @@ export function currentWeekMonday(): string {
 }
 
 /**
- * Advances/retreats a YYYY-MM-DD Monday by n weeks.
- * All-UTC (parse, add, format) — mixing a local parse with UTC day arithmetic drifts one day
- * across DST transitions.
- */
-export function shiftWeek(monday: string, n: number): string {
-  return toUTCDateStr(addDays(new Date(monday), n * 7));
-}
-
-/**
  * The menu closest to `week` on the given side (`-1` = closest earlier, `1` = closest later).
  * Compares weekStart values instead of array positions, so a change in the service's sort
  * order can never silently invert prev/next navigation.
@@ -141,20 +132,7 @@ export function closestMenu<T extends { weekStart: string }>(menus: T[], week: s
 export function nextMenuWeekStart(menus: { weekStart: string }[], currentWeekStart: string): string {
   const latest = latestMenu(menus);
   const anchor = latest && latest.weekStart >= currentWeekStart ? latest.weekStart : null;
-  return anchor ? shiftWeek(anchor, 1) : currentWeekStart;
-}
-
-/**
- * Formats a week's date range as e.g. "Jun 1 – Jun 7" from its Monday `weekStart`.
- * Pass `includeYear` to append the year, e.g. "Jun 1 – Jun 7, 2026".
- */
-export function formatWeekLabel(weekStart: string, includeYear = false): string {
-  const date = new Date(weekStart + 'T00:00:00');
-  const end = new Date(date);
-  end.setDate(date.getDate() + 6);
-  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const range = `${fmt(date)} – ${fmt(end)}`;
-  return includeYear ? `${range}, ${date.getFullYear()}` : range;
+  return anchor ? shiftWeekStr(anchor, 1) : currentWeekStart;
 }
 
 // ---------------------------------------------------------------------------
