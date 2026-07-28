@@ -27,6 +27,7 @@
  * - getMonthStart(date) — first day of the month at local midnight
  * - getMonthEnd(date) — last day of the month at local midnight
  * - startOfWeekMonday(date) — Monday of the week containing date, at local midnight
+ * - dayOfWeekMon0(dateStr) — day index for a YYYY-MM-DD string, Monday-first (0=Mon … 6=Sun)
  * - isSameDay(a, b) — true if two dates fall on the same local calendar day
  * - toDate(value) — coerce unknown to Date; returns null on invalid input
  * - startOfDay(date) — copy of date with time set to 00:00:00.000 local
@@ -378,6 +379,18 @@ export function startOfWeekMonday(date: Date): Date {
   d.setDate(d.getDate() + diff);
   d.setHours(0, 0, 0, 0);
   return d;
+}
+
+/**
+ * Day-of-week index for a YYYY-MM-DD string in the Monday-first convention this codebase uses
+ * everywhere (0=Mon … 6=Sun) — as opposed to `Date.getDay()`, which is Sunday-first. Parsed at
+ * local midnight so the index matches the calendar day the string names, not UTC's.
+ *
+ * Exists so the Sun=0 → Mon=0 correction lives in one place: it was being re-derived inline at
+ * every call site, each with its own comment explaining the `+ 6) % 7`.
+ */
+export function dayOfWeekMon0(dateStr: string): 0 | 1 | 2 | 3 | 4 | 5 | 6 {
+  return ((new Date(`${dateStr}T00:00:00`).getDay() + 6) % 7) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 /** Returns true if `a` and `b` fall on the same local calendar day (year + month + date). */

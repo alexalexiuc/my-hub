@@ -111,7 +111,18 @@ export default function WeeklyMenuPage() {
           className="shrink-0 flex items-center"
         >
           <PlusOutlineIcon className="w-4 h-4 mr-1.5" />
-          Create
+          {/* Once a menu exists this plans a *different* week — "Create" reads like "add something
+              here" and sends people looking for the per-day "Add meal" button to the wrong place.
+              Shortened on phones: the full phrasing takes 144px of a 375px row and squeezes the
+              heading beside it onto two lines. */}
+          {menus.length === 0 ? (
+            'Create'
+          ) : (
+            <>
+              <span className="hidden sm:inline">Plan another week</span>
+              <span className="sm:hidden">Plan week</span>
+            </>
+          )}
         </Button>
       </div>
 
@@ -121,6 +132,8 @@ export default function WeeklyMenuPage() {
           onCreated={menu => void handleCreated(menu)}
           gymDays={gymDays}
           defaultWeekStart={nextMenuWeekStart(menus, currentWeekStart)}
+          existingWeekStarts={menus.map(m => m.weekStart)}
+          copyFrom={selectedMenu}
         />
       )}
 
@@ -141,7 +154,18 @@ export default function WeeklyMenuPage() {
               gymDays={gymDays}
               dailyTargetKcal={dailyTargetKcal}
               gymDayCalorieBonus={gymDayCalorieBonus}
-              onMealLogged={(day, mealType) => setLoggedMeals(prev => ({ ...prev, [`${day}:${mealType}`]: true }))}
+              onMetaUpdated={meta => {
+                setSelectedMenu(prev => (prev ? { ...prev, ...meta } : prev));
+                setMenus(prev => prev.map(m => (m.menuId === selectedMenu.menuId ? { ...m, ...meta } : m)));
+              }}
+              onMealLogChanged={(day, mealType, logged) =>
+                setLoggedMeals(prev => {
+                  const key = `${day}:${mealType}`;
+                  if (logged) return { ...prev, [key]: true };
+                  const { [key]: _removed, ...rest } = prev;
+                  return rest;
+                })
+              }
               onMealSwapped={(day, updated) =>
                 setSelectedMenu(prev =>
                   prev

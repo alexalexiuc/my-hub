@@ -33,11 +33,13 @@ export const POST = route({ body: CreateMenuSchema, response: CreateMenuResponse
       dayOfWeek: m.dayOfWeek,
       mealType: m.mealType,
       description: m.description,
+      ingredients: m.ingredients ?? null,
       kcal: m.kcal ?? null,
       protein: m.protein ?? null,
       carbs: m.carbs ?? null,
       fat: m.fat ?? null,
     })),
+    shoppingList: body.shoppingList,
   });
   return created({ menu });
 });

@@ -133,18 +133,31 @@ const caloriesTools = [
       'Use this when the user asks you to plan meals for a week, create a menu, or suggest what to eat. ' +
       'IMPORTANT: Before calling this tool, follow these steps in order: ' +
       '1. Call calories_get_weekly_menu (without weekStart) to fetch the last few weeks of menus. ' +
-      'Use this history to respect the meals the user clearly repeats (their staples) and to plan realistic batch cooking — ' +
-      'reuse the same dish across several days where it saves effort (e.g. roast a large batch once, eat it Mon/Thu/Sun), ' +
-      'and only vary meals where the user seems to want variety. Do not force novelty for its own sake. ' +
+      'Use this history to respect the meals the user clearly repeats (their staples). ' +
+      'Absent such a signal — including the very first menu, when there is no history at all — plan for VARIETY by ' +
+      'default: vary the dish across the week in every slot, and never put the same breakfast, lunch or dinner on all ' +
+      'seven days. The user should have to ask for repetition, not for variety. ' +
+      'The one thing that earns a repeat is batch cooking that genuinely saves work: cook one large batch and eat it ' +
+      'on 2-3 days (e.g. roast 1 kg chicken on Sunday for Mon/Thu/Sun), and say so in prepNotes. Repeating a dish that ' +
+      'needs no real prep (cereal, yoghurt, toast) saves nothing and only makes the week monotonous. ' +
+      'Do not swing the other way either — 28 entirely different dishes is unrealistic to shop for and cook. ' +
       '2. Read the calories://profile resource (or call calories_get_daily_summary) ' +
       "to know the user's daily calorie target (min/max), macro goals (protein, carbs, fat), goal type (weight_loss, weight_gain, maintain), " +
       "and any dietary notes. Plan every day's meals to hit those targets. " +
       'If no profile is set, proceed with creating a balanced default menu anyway, ' +
       'but inform the user that no calorie goal is configured and their meals were not tailored to specific targets — ' +
       'suggest they set up their profile under Calories → Settings to get personalised menus in future. ' +
-      'Plan all 7 days with breakfast, lunch, dinner, and snack. Include estimated calories and macros for each meal. ' +
+      'Plan all 7 days with breakfast, lunch, dinner, and snack. Include estimated calories and macros for each meal, ' +
+      'plus per-meal ingredients for any dish that needs cooking. ' +
+      '3. On gym days, shape the day around the profile\'s gymTime ("morning" | "midday" | "evening"): keep the meal ' +
+      'before training lighter and carb-led so it digests in time, and make the meal after it the largest and most ' +
+      'protein-heavy. Morning training makes breakfast the recovery meal (a small pre_workout snack before it, if any); ' +
+      'evening training makes dinner the recovery meal and lunch the fuel. Add explicit pre_workout / post_workout ' +
+      'meals only where they earn their place — do not add four extra slots a week for the sake of it. ' +
+      'If gymDays are set but gymTime is null, ask the user when they train rather than guessing. ' +
       'In the SAME call, also provide prepNotes (batch-cooking / "cook once, eat twice" guidance) and a shoppingList ' +
-      '(ingredients aggregated across the week with quantities) so the whole week is planned in one go. ' +
+      "(the same ingredients aggregated across the week with quantities — per-meal amounts stay on each meal's " +
+      'ingredients field) so the whole week is planned in one go. ' +
       'The menu is saved to the hub and the user can view it under Calories → Weekly Menu. ' +
       'If a menu already exists for that week it will be replaced. ' +
       "The tool returns userTargets and any warnings if days exceed or fall below the user's calorie targets. " +
@@ -174,7 +187,10 @@ const caloriesTools = [
       '1. Call calories_get_weekly_menu with the weekStart to get the menuId and see any current meal in that slot. ' +
       "2. Generate a dish that fits the same calorie slot and the user's dietary profile. " +
       '3. Call this tool with the meal details. ' +
-      'Only the specified slot is affected — all other days and meals remain untouched.',
+      'Only the specified slot is affected — all other days and meals remain untouched. ' +
+      'The whole slot is overwritten, so re-send ingredients and macros with every call — anything omitted is cleared. ' +
+      "Swapping a dish does not update the week's shopping list; if the new ingredients change what the user needs " +
+      'to buy, follow up with calories_set_shopping_list.',
     inputSchema: SetMenuMealSchema.shape,
     annotations: { idempotentHint: true, destructiveHint: false },
     callback: setMenuMealTool,

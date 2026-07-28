@@ -9,6 +9,7 @@ import { calculateCalorieTargets, dateToString } from '@my-hub/shared/utils';
 import { Card, DatePicker } from '@/components';
 import { mealEvents } from './mealEvents';
 import { MealsSection } from './MealsSection';
+import { NextMealCard } from './NextMealCard';
 import { MacroChart } from './MacroChart';
 import { CaloriesDonut } from './CaloriesDonut';
 
@@ -128,10 +129,20 @@ export default function TodayPage() {
         />
       </div>
 
-      {/* 3-part grid: left = 1 part, right = 2 parts */}
+      {/* 3-part grid: left = 1 part, right = 2 parts.
+          The wide column comes first in the DOM so that on a phone — where the grid collapses to
+          a stack — the plan leads instead of sitting below the donut and the macro card. Columns
+          are placed explicitly rather than left to auto-flow, so that source order doesn't decide
+          the desktop layout. Rows are deliberately *not* placed: `NextMealCard` renders nothing on
+          a day with no plan, and a reserved row would leave a hole above the meals list. */}
       <div className="flex flex-col gap-4 md:grid md:grid-cols-3 md:items-start">
+        <div className="flex flex-col gap-4 md:col-start-2 md:col-span-2">
+          <NextMealCard date={selectedDate} />
+          <MealsSection meals={meals} selectedDate={selectedDate} onChanged={loadData} />
+        </div>
+
         {/* Left column (col-span-1): calorie summary + macro chart */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 md:col-start-1 md:row-start-1">
           <Card className="flex flex-col items-center gap-3 p-5">
             <CaloriesDonut eaten={totalKcal} cap={cap} min={calorieTargets.minCalories ?? null} textSize="text-2xl" />
             <div className="w-full text-center">
@@ -164,11 +175,6 @@ export default function TodayPage() {
             goalCarbs={profile?.goalCarbs ?? null}
             goalFat={profile?.goalFat ?? null}
           />
-        </div>
-
-        {/* Right column (col-span-2): meals list */}
-        <div className="col-span-2">
-          <MealsSection meals={meals} selectedDate={selectedDate} onChanged={loadData} />
         </div>
       </div>
     </main>

@@ -147,6 +147,7 @@ describe('setMenuMealTool', () => {
         dayOfWeek: 0,
         mealType: 'pre_workout',
         description: 'Banana and protein shake',
+        ingredients: undefined,
         kcal: 250,
         protein: undefined,
         carbs: undefined,
@@ -173,6 +174,7 @@ describe('setMenuMealTool', () => {
         dayOfWeek: 0,
         mealType: 'lunch',
         description: 'Tuna salad',
+        ingredients: undefined,
         kcal: 400,
         protein: undefined,
         carbs: undefined,
@@ -196,6 +198,7 @@ describe('setMenuMealTool', () => {
         dayOfWeek: 0,
         mealType: 'breakfast',
         description: 'Eggs',
+        ingredients: undefined,
         kcal: undefined,
         protein: undefined,
         carbs: undefined,
@@ -209,7 +212,7 @@ describe('setMenuMealTool', () => {
     expect(payload.message).toContain('not found');
   });
 
-  it('passes kcal and macros correctly to upsertMenuMeal', async () => {
+  it('passes kcal, macros and ingredients correctly to upsertMenuMeal', async () => {
     vi.mocked(upsertMenuMeal).mockResolvedValue(BASE_MEAL as never);
 
     await setMenuMealTool(
@@ -218,6 +221,7 @@ describe('setMenuMealTool', () => {
         dayOfWeek: 2,
         mealType: 'dinner',
         description: 'Steak',
+        ingredients: ['250g sirloin', '1 tbsp butter'],
         kcal: 700,
         protein: 60,
         carbs: 10,
@@ -233,6 +237,7 @@ describe('setMenuMealTool', () => {
         dayOfWeek: 2,
         mealType: 'dinner',
         description: 'Steak',
+        ingredients: ['250g sirloin', '1 tbsp butter'],
         kcal: 700,
         protein: 60,
         carbs: 10,
@@ -250,6 +255,7 @@ describe('setMenuMealTool', () => {
         dayOfWeek: 1,
         mealType: 'snack',
         description: 'Nuts',
+        ingredients: undefined,
         kcal: undefined,
         protein: undefined,
         carbs: undefined,
@@ -262,6 +268,7 @@ describe('setMenuMealTool', () => {
       'user-1',
       'menu-xyz',
       expect.objectContaining({
+        ingredients: null,
         kcal: null,
         protein: null,
         carbs: null,

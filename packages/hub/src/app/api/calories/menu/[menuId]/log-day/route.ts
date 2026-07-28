@@ -1,6 +1,6 @@
 import { route, routeHttpError } from '@/lib/api/route';
-import { logMenuMeal } from '@my-hub/shared/services';
-import { LogDayBodySchema, LogDayResponseSchema, MenuParamsSchema } from '../../menu.schemas';
+import { logMenuMeal, unlogMenuMeal } from '@my-hub/shared/services';
+import { DeleteMenuMealSchema, LogDayBodySchema, LogDayResponseSchema, MenuParamsSchema } from '../../menu.schemas';
 
 export const POST = route({ params: MenuParamsSchema, body: LogDayBodySchema, response: LogDayResponseSchema })(async ({
   user,
@@ -20,4 +20,18 @@ export const POST = route({ params: MenuParamsSchema, body: LogDayBodySchema, re
   if (!marked) return routeHttpError(404, { error: 'Menu not found' });
 
   return { marked: true, dayOfWeek: body.dayOfWeek, mealType: body.mealType, loggedDate: body.loggedDate };
+});
+
+/**
+ * Undo a log. Identified by slot, like the other slot-addressed routes — the marker's own date is
+ * what the service uses to find the journal entry, so the caller doesn't need to supply it.
+ */
+export const DELETE = route({ params: MenuParamsSchema, body: DeleteMenuMealSchema })(async ({
+  user,
+  params,
+  body,
+}) => {
+  const unlogged = await unlogMenuMeal(user.id, params.menuId, body.dayOfWeek, body.mealType);
+  if (!unlogged) return routeHttpError(404, { error: 'Logged meal not found' });
+  return { unlogged: true };
 });
