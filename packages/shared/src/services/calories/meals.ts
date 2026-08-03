@@ -3,6 +3,7 @@ import { db } from '../../db/client';
 import { mealLogs } from '../../db/schema/calories';
 import type { MealLog, NewMealLog } from '../../types';
 import { MealType } from '../../constants';
+import { omitUndefined } from '../../utils/objects';
 
 export interface GetMealsFilter {
   date?: string;
@@ -35,7 +36,8 @@ export async function getMeals(userId: string, filter: GetMealsFilter = {}): Pro
     .orderBy(mealLogs.loggedAt)
     .offset(offset);
 
-  //TODO: Verify generated query
+  // Drizzle's `limit()` mutates the builder and returns it, so applying it without reassigning
+  // is correct here.
   if (limit !== undefined) query.limit(limit);
 
   const rows = await query;
@@ -64,6 +66,11 @@ export async function deleteAllUserMeals(userId: string): Promise<number> {
   return rows.length;
 }
 
+/**
+ * Patch a meal the user owns. `undefined` leaves a field untouched, `null` clears it — so the
+ * caller can distinguish "not editing the calories" from "this meal has no calorie count".
+ * Returns null when no meal with that id belongs to the user.
+ */
 export async function updateMeal(
   userId: string,
   mealId: string,
@@ -71,7 +78,7 @@ export async function updateMeal(
 ): Promise<MealLog | null> {
   const [row] = await db
     .update(mealLogs)
-    .set(data)
+    .set(omitUndefined(data))
     .where(and(eq(mealLogs.userId, userId), eq(mealLogs.mealId, mealId)))
     .returning();
   return row ?? null;

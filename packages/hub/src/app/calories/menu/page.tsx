@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/utils';
 import { Button } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons';
 import { GetMenuResponseSchema, GetMenusResponseSchema } from '@/app/api/calories/menu/menu.schemas';
+import type { GymTime } from '@my-hub/shared/constants';
 import { WeekNavigator } from './WeekNavigator';
 import { EmptyState } from './EmptyState';
 import { MenuDetail } from './MenuDetail';
@@ -20,6 +21,7 @@ export default function WeeklyMenuPage() {
   const [gymDays, setGymDays] = useState<number[]>([]);
   const [dailyTargetKcal, setDailyTargetKcal] = useState<number | null>(null);
   const [gymDayCalorieBonus, setGymDayCalorieBonus] = useState(0);
+  const [gymTime, setGymTime] = useState<GymTime | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -37,6 +39,7 @@ export default function WeeklyMenuPage() {
       setGymDays(data.gymDays);
       setDailyTargetKcal(data.goalCalories);
       setGymDayCalorieBonus(data.gymDayCalorieBonus);
+      setGymTime(data.gymTime);
       const toSelect = data.menus.find(m => m.weekStart === currentWeekStart) ?? latestMenu(data.menus);
       if (toSelect) {
         const detail = await apiFetch(`/api/calories/menu/${toSelect.menuId}`, {
@@ -154,6 +157,7 @@ export default function WeeklyMenuPage() {
               gymDays={gymDays}
               dailyTargetKcal={dailyTargetKcal}
               gymDayCalorieBonus={gymDayCalorieBonus}
+              gymTime={gymTime}
               onMetaUpdated={meta => {
                 setSelectedMenu(prev => (prev ? { ...prev, ...meta } : prev));
                 setMenus(prev => prev.map(m => (m.menuId === selectedMenu.menuId ? { ...m, ...meta } : m)));

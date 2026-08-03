@@ -4,6 +4,10 @@
  * - calculateCalorieTargets(params) — derives tdee, goalCalories, minCalories, maxCalories from profile + goal settings
  * - profileToTargets(profile, weightKg?) — maps a (possibly partial/null) calorie profile + latest weight to calculateCalorieTargets
  * - hasDuplicateMealSlot(meals) — true if any (dayOfWeek, mealType) slot appears more than once in a weekly-menu meal list
+ * - dayTargetKcal(baseTarget, isGymDay, gymDayBonus) — one day's calorie target, including the gym-day bonus
+ * - dayCalorieTargets(profile, weightKg, date) — the whole per-day rule: ceiling, floor, gym-day flag and bonus
+ * - latestWeightKg(measurements) — most recent weight value from a latest-per-type measurement list
+ * - mealOrder(gymTime) — the order a day's meal slots are displayed in, with pre/post-workout placed around the training session
  * - ActivityLevelMultipliers — Record<ActivityLevel, number> mapping activity levels to TDEE multipliers
  * Types: CalorieTargets, CalorieTargetParams, CalorieProfileLike
  */
@@ -12,7 +16,21 @@
 // Calorie / TDEE calculation utilities
 // ---------------------------------------------------------------------------
 
-import { ActivityLevel, ActivityLevels, Sex, GoalType, Sexes, GoalTypes } from '../constants';
+import {
+  ActivityLevel,
+  ActivityLevels,
+  Sex,
+  GoalType,
+  Sexes,
+  GoalTypes,
+  GymTime,
+  GymTimes,
+  MealType,
+  MealTypes,
+  MeasurementTypes,
+  DEFAULT_GYM_DAY_CALORIE_BONUS,
+} from '../constants';
+import { dayOfWeekMon0 } from './dates';
 
 export const ActivityLevelMultipliers: Record<ActivityLevel, number> = {
   [ActivityLevels.Sedentary]: 1.2,
@@ -165,4 +183,114 @@ export function calculateMacroKcal(proteinG: number, carbsG: number, fatG: numbe
  */
 export function hasDuplicateMealSlot(meals: { dayOfWeek: number; mealType: string }[]): boolean {
   return new Set(meals.map(m => `${m.dayOfWeek}:${m.mealType}`)).size !== meals.length;
+}
+
+/**
+ * The calorie target for a single day: the base daily target, plus the gym-day bonus when the
+ * user trains that day. Every surface that shows a day's target has to apply this — a day shown
+ * as over target on one screen and on track on another is the same day counted two ways.
+ */
+export function dayTargetKcal(baseTarget: number, isGymDay: boolean, gymDayBonus: number): number {
+  return isGymDay ? baseTarget + gymDayBonus : baseTarget;
+}
+
+/** A calorie profile plus the training fields a day's target depends on. Every field may be absent. */
+export type DayTargetProfileLike = CalorieProfileLike & {
+  gymDays?: number[] | null;
+  gymDayCalorieBonus?: number | null;
+};
+
+export interface DayCalorieTargets {
+  /** Ceiling for the day, bonus included. Null when the profile can't produce a target. */
+  target: number | null;
+  /** Floor for the day, bonus included. Null when the profile sets no minimum. */
+  min: number | null;
+  isGymDay: boolean;
+  gymDayBonus: number;
+}
+
+/**
+ * Everything a screen needs to judge one day's intake: the ceiling, the floor, and whether the
+ * bonus applied.
+ *
+ * This is the whole rule, not just the addition — which base target counts, how the training day
+ * is decided, and what the bonus falls back to. Each of those was restated per screen, and the
+ * copies disagreed: that is exactly how the same day came to read as over target on one tab and
+ * on track on another.
+ */
+export function dayCalorieTargets(
+  profile: DayTargetProfileLike | null | undefined,
+  weightKg: number | null,
+  date: string,
+): DayCalorieTargets {
+  const targets = profileToTargets(profile, weightKg);
+  const base = targets.maxCalories ?? targets.goalCalories;
+  const isGymDay = (profile?.gymDays ?? []).includes(dayOfWeekMon0(date));
+  const gymDayBonus = profile?.gymDayCalorieBonus ?? DEFAULT_GYM_DAY_CALORIE_BONUS;
+
+  return {
+    target: base === null ? null : dayTargetKcal(base, isGymDay, gymDayBonus),
+    min: targets.minCalories === null ? null : dayTargetKcal(targets.minCalories, isGymDay, gymDayBonus),
+    isGymDay,
+    gymDayBonus,
+  };
+}
+
+/** The most recent weight value from a latest-per-type measurement list, or null if never recorded. */
+export function latestWeightKg(measurements: { typeKey: string; value: number }[]): number | null {
+  return measurements.find(m => m.typeKey === MeasurementTypes.Weight)?.value ?? null;
+}
+
+/**
+ * The meal that follows the training session, per gym-time band. `pre_workout` and
+ * `post_workout` are positioned relative to this anchor rather than being pinned to fixed
+ * indexes, so a new band only needs an entry here.
+ */
+const GYM_TIME_ANCHOR: Record<GymTime, MealType> = {
+  [GymTimes.Morning]: MealTypes.Breakfast,
+  [GymTimes.Midday]: MealTypes.Lunch,
+  [GymTimes.Evening]: MealTypes.Dinner,
+};
+
+/** The three fixed meals in clock order, plus the two that have no fixed moment in the day. */
+const BASE_ORDER: MealType[] = [
+  MealTypes.Breakfast,
+  MealTypes.Lunch,
+  MealTypes.Dinner,
+  MealTypes.Snack,
+  MealTypes.Other,
+];
+
+/** Order used when no gym-time band is set — the pre/post pair kept together at the tail. */
+const ANCHORLESS_ORDER: MealType[] = [
+  MealTypes.Breakfast,
+  MealTypes.Lunch,
+  MealTypes.Dinner,
+  MealTypes.Snack,
+  MealTypes.PreWorkout,
+  MealTypes.PostWorkout,
+  MealTypes.Other,
+];
+
+/**
+ * The order a day's meal slots are displayed in, given when the user trains.
+ *
+ * `gymTime` identifies the meal that follows the session (morning → breakfast, midday → lunch,
+ * evening → dinner), and the `pre_workout` / `post_workout` pair is spliced in immediately
+ * before it: both happen either side of a session that ends just before that meal. A single
+ * fixed order instead puts a morning trainer's pre-workout meal after dinner.
+ *
+ * `snack` and `other` stay at the tail in every case — neither has a fixed moment in the day.
+ *
+ * Returns every slot type, whether or not the day uses it; callers index into the result and
+ * skip what they haven't planned.
+ */
+export function mealOrder(gymTime: GymTime | null): MealType[] {
+  // No band set means no anchor to derive. Guessing a session time the user never gave would
+  // reorder their plan on the strength of a default.
+  if (!gymTime) return ANCHORLESS_ORDER;
+  const anchor = GYM_TIME_ANCHOR[gymTime];
+  return BASE_ORDER.flatMap(mealType =>
+    mealType === anchor ? [MealTypes.PreWorkout, MealTypes.PostWorkout, mealType] : [mealType],
+  );
 }

@@ -7,8 +7,10 @@ import { apiFetch } from '@/lib/utils';
 import { Button } from '@/components';
 import { UtensilsOutlineIcon } from '@/components/icons';
 import { TodayPlanResponseSchema } from '@/app/api/calories/menu/menu.schemas';
+import { mealOrder } from '@my-hub/shared/utils';
+import type { GymTime } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from './constants';
-import { MEAL_ORDER, setMealLogged } from './menu/menu.utils';
+import { setMealLogged } from './menu/menu.utils';
 import { mealEvents } from './mealEvents';
 
 type PlannedMeal = z.infer<typeof TodayPlanResponseSchema>['meals'][number];
@@ -29,6 +31,7 @@ type NextMealCardProps = {
 export function NextMealCard({ date }: NextMealCardProps) {
   const [meals, setMeals] = useState<PlannedMeal[]>([]);
   const [menuId, setMenuId] = useState<string | null>(null);
+  const [gymTime, setGymTime] = useState<GymTime | null>(null);
   const [logging, setLogging] = useState(false);
 
   // The date this component is currently showing. Two rapid clicks on the date arrows leave two
@@ -47,6 +50,7 @@ export function NextMealCard({ date }: NextMealCardProps) {
         if (shownDateRef.current !== requested) return;
         setMenuId(data.menuId);
         setMeals(data.meals);
+        setGymTime(data.gymTime);
       })
       .catch(() => {
         if (shownDateRef.current !== requested) return;
@@ -69,7 +73,8 @@ export function NextMealCard({ date }: NextMealCardProps) {
 
   if (!menuId || meals.length === 0) return null;
 
-  const ordered = [...meals].sort((a, b) => MEAL_ORDER.indexOf(a.mealType) - MEAL_ORDER.indexOf(b.mealType));
+  const order = mealOrder(gymTime);
+  const ordered = [...meals].sort((a, b) => order.indexOf(a.mealType) - order.indexOf(b.mealType));
   const next = ordered.find(m => !m.logged);
   const remaining = ordered.filter(m => !m.logged).length;
 

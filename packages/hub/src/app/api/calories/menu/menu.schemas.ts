@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { MealTypesValues, DaysOfWeek } from '@my-hub/shared/constants';
+import { MealTypesValues, DaysOfWeek, GymTimesValues } from '@my-hub/shared/constants';
 import { hasDuplicateMealSlot } from '@my-hub/shared/utils';
+import { isoDateSchema } from '@/lib/schemas/common';
 
 // Re-exported for CreateMenuModal's live duplicate hint — the rule itself lives in
 // shared so the Hub API, the modal, and the MCP create tool can never disagree.
@@ -15,11 +16,13 @@ export { hasDuplicateMealSlot };
 // Using deprecated `nativeEnum` because `enum` does not support number values
 const DayOfWeekSchema = z.nativeEnum(DaysOfWeek);
 const MealTypeSchema = z.enum(MealTypesValues);
+/** Null when the user hasn't said when they train — meal ordering falls back to a fixed order. */
+const GymTimeSchema = z.enum(GymTimesValues).nullable();
 const KcalSchema = z.number().int().positive();
 const MacroGramsSchema = z.number().positive();
 /** Free-text ingredient lines for one dish, e.g. ["200g chicken breast", "1 red pepper"]. */
 const IngredientsSchema = z.array(z.string().trim().min(1));
-const IsoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD');
+const IsoDateSchema = isoDateSchema;
 // `z.coerce.date()` (not `z.date()`): response payloads cross the wire as JSON, where Dates
 // serialise to ISO strings — both the server's `route({ response })` validation and apiFetch's
 // client-side `responseSchema` validation re-parse that JSON, so the schema must accept strings.
@@ -130,6 +133,8 @@ export const GetMenusResponseSchema = z.object({
   goalCalories: z.number().nullable(),
   /** Extra kcal added to the daily target on gym days. */
   gymDayCalorieBonus: z.number(),
+  /** When the user trains — drives where the pre/post-workout meals sit in each day's order. */
+  gymTime: GymTimeSchema,
 });
 
 export const GetMenuResponseSchema = z.object({
@@ -149,6 +154,12 @@ export const TodayPlanResponseSchema = z.object({
   /** Null when the week has no menu at all — the caller renders nothing rather than an empty card. */
   menuId: z.string().nullable(),
   meals: z.array(MenuMealRecordSchema.extend({ logged: z.boolean() })),
+  /**
+   * When the user trains, so the card can order the day the same way the Weekly Menu tab does.
+   * Served here rather than passed as a prop because the card fetches its own plan — a prop
+   * would make every page that renders it responsible for loading the profile.
+   */
+  gymTime: GymTimeSchema,
 });
 
 /** Response shape for POST /api/calories/menu */

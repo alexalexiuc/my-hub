@@ -4,18 +4,11 @@ import { useState } from 'react';
 import { Button } from '@/components';
 import { PlusOutlineIcon, DumbbellIcon } from '@/components/icons';
 import { DAY_LABELS } from '@my-hub/shared/constants';
-import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
+import type { DayOfWeek, GymTime, MealType } from '@my-hub/shared/constants';
+import { mealOrder, dayTargetKcal } from '@my-hub/shared/utils';
 import { MealRow } from './MealRow';
 import { MealEditorModal } from './MealEditorModal';
-import {
-  MEAL_ORDER,
-  dateForDay,
-  dayTargetKcal,
-  setDayLogged,
-  targetPct,
-  targetColorClasses,
-  resolveDailyTarget,
-} from './menu.utils';
+import { dateForDay, setDayLogged, targetPct, targetColorClasses, resolveDailyTarget } from './menu.utils';
 import { TargetBar } from './TargetBar';
 import type { LoggedMeals } from './menu.utils';
 import type { WeeklyMenuMeal } from './types';
@@ -33,6 +26,8 @@ type DayCardProps = {
   dailyTargetKcal: number | null;
   /** Extra kcal added to the daily target on gym days. */
   gymDayCalorieBonus: number;
+  /** When the user trains — decides where the pre/post-workout meals sit in the day's order. */
+  gymTime: GymTime | null;
   onMealLogChanged: (mealType: MealType, logged: boolean) => void;
   onMealSwapped: (day: DayOfWeek, updated: WeeklyMenuMeal) => void;
   onMealAdded: (day: DayOfWeek, added: WeeklyMenuMeal) => void;
@@ -50,6 +45,7 @@ export function DayCard({
   isGymDay,
   dailyTargetKcal,
   gymDayCalorieBonus,
+  gymTime,
   onMealLogChanged,
   onMealSwapped,
   onMealAdded,
@@ -70,11 +66,14 @@ export function DayCard({
   const targetPercent = targetPct(dayKcal, target);
   const targetColors = targetColorClasses(targetPercent, isTargetEstimated);
 
+  // Both the rendered rows and the "add a meal" slot list follow the same order, so the modal
+  // offers a morning trainer pre-workout first rather than buried under dinner.
+  const order = mealOrder(gymTime);
   const plannedTypes = new Set(meals.map(m => m.mealType));
-  const availableTypes = MEAL_ORDER.filter(mt => !plannedTypes.has(mt));
+  const availableTypes = order.filter(mt => !plannedTypes.has(mt));
 
   const mealByType = new Map(meals.map(m => [m.mealType, m]));
-  const orderedMeals = MEAL_ORDER.flatMap(mt => {
+  const orderedMeals = order.flatMap(mt => {
     const meal = mealByType.get(mt);
     return meal ? [{ meal, logged: `${day}:${mt}` in loggedMeals }] : [];
   });

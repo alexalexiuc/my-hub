@@ -45,4 +45,21 @@ describe('BottomNav', () => {
     render(<BottomNav leftItems={leftItems} moreItems={moreItems} />);
     expect(screen.getByText('More')).toBeTruthy();
   });
+
+  // The bar lays every child out as an equal flex cell, so "centred FAB" means "middle cell".
+  // Pinned as a test because the arrangement is what callers have to balance their item counts
+  // against, and nothing else fails when it drifts — the FAB just quietly sits off centre.
+  it('places the FAB in the middle cell when the item counts are balanced', () => {
+    const { container } = render(
+      <BottomNav
+        leftItems={leftItems}
+        rightItems={[{ id: 'menu', icon: '🗓', label: 'Menu', path: '/menu' }]}
+        moreItems={[{ id: 'settings', icon: '⚙', label: 'Settings', path: '/settings' }]}
+        fab={{ label: 'Add', onClick: vi.fn() }}
+      />,
+    );
+    const cells = [...container.querySelectorAll(':scope > div > button')];
+    expect(cells).toHaveLength(5);
+    expect(cells[2]).toBe(screen.getByText('Add').closest('button'));
+  });
 });

@@ -87,6 +87,19 @@ function MoreSheet({ items, onClose }: { items: BottomNavItem[]; onClose: () => 
   );
 }
 
+/**
+ * Fixed bottom tab bar: nav items either side of an optional FAB, plus an optional "More"
+ * sheet for the destinations that don't fit.
+ *
+ * Every child is an equal `flex-1` cell — the nav items, the FAB and the "More" button alike —
+ * so the FAB lands dead centre only when the bar holds an odd number of cells:
+ *
+ *     leftItems.length === rightItems.length + (moreItems.length ? 1 : 0)
+ *
+ * Break it and the FAB sits half a cell off centre. Note that moving a single destination into
+ * `moreItems` does not change the count: the "More" button takes the cell it vacated, so
+ * rebalancing means moving two.
+ */
 export function BottomNav({ leftItems, rightItems = [], moreItems = [], fab, className }: BottomNavProps) {
   const pathname = usePathname();
   const router = useRouter();

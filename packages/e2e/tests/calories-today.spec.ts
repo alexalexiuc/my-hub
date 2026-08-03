@@ -87,7 +87,22 @@ test.describe('Calories — Today page', () => {
     await expect(page.locator('[data-layout="desktop"]').getByText(original)).not.toBeVisible();
     await expect(page.locator('[data-layout="desktop"]').getByText('520 kcal')).toBeVisible();
 
-    // ── 4. Delete meal ────────────────────────────────────────────────────────
+    // ── 4. Clear the calorie count ────────────────────────────────────────────
+    // Emptying a field has to remove the value, not leave the old one in place: the save used to
+    // report success while silently keeping 520, because a blank field was sent as "unchanged".
+    const editedRow = page.locator('[data-layout="desktop"]').filter({ hasText: updated }).first();
+    await editedRow.hover();
+    await editedRow.getByRole('button', { name: /edit meal/i }).click();
+    await expect(page.getByLabel(/calories \(kcal\)/i)).toHaveValue('520', { timeout: 5_000 });
+
+    await page.getByLabel(/calories \(kcal\)/i).fill('');
+    await page.getByRole('button', { name: /^save$/i }).click();
+
+    await expect(page.getByLabel(/description/i)).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('[data-layout="desktop"]').getByText(updated)).toBeVisible();
+    await expect(page.locator('[data-layout="desktop"]').getByText('520 kcal')).not.toBeVisible();
+
+    // ── 5. Delete meal ────────────────────────────────────────────────────────
     const updatedRow = page.locator('[data-layout="desktop"]').filter({ hasText: updated }).first();
     await updatedRow.hover();
     await updatedRow.getByRole('button', { name: /delete meal/i }).click();
@@ -120,6 +135,34 @@ test.describe('Calories — Today page', () => {
     await expect(desktopRow.getByText(/P 40g/)).toBeVisible();
     await expect(desktopRow.getByText(/C 20g/)).toBeVisible();
     await expect(desktopRow.getByText(/F 5g/)).toBeVisible();
+  });
+
+  /**
+   * Separate from the lifecycle flow: this one deliberately never creates a meal until the last
+   * step, and its whole point is the state where the form refuses to submit.
+   */
+  test('rejects invalid input with a visible reason, then saves once corrected', async ({ page }) => {
+    const name = uniqueMeal('Validated meal');
+
+    // ── 1. Empty description and a negative calorie count are both refused ─────
+    await openAddMealModal(page);
+    await page.getByLabel(/calories \(kcal\)/i).fill('-500');
+    await page.getByRole('button', { name: /^add$/i }).click();
+
+    // The modal stays open and says why — it used to reject silently, leaving the user pressing
+    // a button that appeared to do nothing.
+    await expect(page.getByText(/description is required/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/calories must be a positive number/i)).toBeVisible();
+    await expect(page.getByLabel(/description/i)).toBeVisible();
+
+    // ── 2. Correcting both clears the errors and saves ────────────────────────
+    await page.getByLabel(/description/i).fill(name);
+    await page.getByLabel(/calories \(kcal\)/i).fill('420');
+    await page.getByRole('button', { name: /^add$/i }).click();
+
+    await expect(page.getByLabel(/description/i)).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('[data-layout="desktop"]').getByText(name)).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('[data-layout="desktop"]').getByText('420 kcal')).toBeVisible();
   });
 
   test('multiple meals show a totals row with summed calories', async ({ page }) => {

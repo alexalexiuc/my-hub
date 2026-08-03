@@ -515,15 +515,17 @@ export function getTimezoneBadge(date: Date, timezone: string | null): { short: 
 }
 
 /**
- * Returns the 7 days of the current ISO week (Mon–Sun) as YYYY-MM-DD strings with short labels.
- * The current day is labelled "Today"; all other days use short weekday names (Mon, Tue…).
+ * Returns the 7 days of an ISO week (Mon–Sun) as YYYY-MM-DD strings with short labels.
+ * Today is labelled "Today"; all other days use short weekday names (Mon, Tue…).
+ *
+ * Pass a `weekStart` (YYYY-MM-DD Monday) to describe any week; omit it for the current one. The
+ * week is a parameter rather than a second function because only the starting Monday differs —
+ * the labelling convention, including the "Today" case, has to stay identical across screens.
  */
-export function getCurrentWeekDays(): { date: string; label: string }[] {
+export function getCurrentWeekDays(weekStart?: string): { date: string; label: string }[] {
   const days: { date: string; label: string }[] = [];
   const today = new Date();
-  const daysSinceMonday = (today.getDay() + 6) % 7;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - daysSinceMonday);
+  const monday = weekStart ? new Date(`${weekStart}T00:00:00`) : startOfWeekMonday(today);
   const cursor = new Date(monday);
   for (let i = 0; i < 7; i += 1) {
     days.push({

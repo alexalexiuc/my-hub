@@ -1,6 +1,68 @@
 import type { MealLog } from '@my-hub/shared/types';
 import type { MealType } from '@my-hub/shared/constants';
+import { GoalTypes } from '@my-hub/shared/constants';
 import { dateToString } from '@my-hub/shared/utils';
+
+/** A weight entry, reduced to what the goal-progress maths needs. */
+export interface WeightPoint {
+  date: string;
+  value: number;
+}
+
+/**
+ * The daily weight change implied by a weekly goal: negative for loss, positive for gain, zero
+ * for maintain. Returns null when the goal cannot imply one — no rate given, or a rate that is
+ * zero or negative, which would describe a goal moving the wrong way.
+ */
+export function getDailyGoalDelta(goalType: string | null, goalWeeklyRateKg: number | null): number | null {
+  if (goalType === GoalTypes.Maintain) return 0;
+  if (!goalWeeklyRateKg || goalWeeklyRateKg <= 0) return null;
+  if (goalType === GoalTypes.WeightLoss) return -(goalWeeklyRateKg / 7);
+  if (goalType === GoalTypes.WeightGain) return goalWeeklyRateKg / 7;
+  return null;
+}
+
+/**
+ * The weight a week's projection starts from: the weigh-in on the Monday itself, or the most
+ * recent one before it. Falls back to the newest entry of all when the whole history postdates
+ * the week, so a user who only started weighing mid-week still gets a line to compare against.
+ *
+ * Expects `weightRows` sorted newest first.
+ */
+export function getBaselineWeightForWeek(weightRows: WeightPoint[], weekStartDate: string): number | null {
+  const mondayWeightOrLast =
+    weightRows.find(row => row.date === weekStartDate || row.date < weekStartDate)?.value ?? null;
+  if (mondayWeightOrLast !== null) return mondayWeightOrLast;
+  return weightRows[0]?.value ?? null;
+}
+
+/**
+ * The weight recorded on `date`. With `nearestIfNone`, an absent entry falls back to the most
+ * recent earlier one instead of leaving a gap — used for the first day of a week, where the line
+ * has to start somewhere, while later days stay null so the chart shows the gap honestly.
+ *
+ * Expects `weightRows` sorted newest first.
+ */
+export function findPastWeight(weightRows: WeightPoint[], date: string, nearestIfNone = false): number | null {
+  for (const row of weightRows) {
+    if (nearestIfNone && row.date <= date) return row.value;
+    if (row.date === date) return row.value;
+  }
+  return null;
+}
+
+/**
+ * Bar colour for one day's intake against that day's own target: red past the ceiling, amber
+ * below the floor, grey for a day with nothing logged, green in between. Neutral when the
+ * profile yields neither bound, since there is nothing to judge the day against.
+ */
+export function intakeBarColor(kcal: number, min: number | null, target: number | null): string {
+  if (target === null && min === null) return 'var(--subtle)';
+  if (kcal === 0) return 'var(--border)';
+  if (target !== null && kcal > target) return 'var(--red)';
+  if (min !== null && kcal < min) return 'var(--accent)';
+  return 'var(--green)';
+}
 
 export interface CalorieDonutState {
   isOver: boolean;

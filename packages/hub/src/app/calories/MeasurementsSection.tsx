@@ -5,9 +5,9 @@ import type { MeasurementType } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { apiFetch } from '@/lib/utils';
 import { Card, ConfirmModal } from '@/components';
-import { PlusOutlineIcon, TrashOutlineIcon } from '@/components/icons';
+import { PlusOutlineIcon, PencilIcon, TrashOutlineIcon } from '@/components/icons';
 import { MeasurementModal } from './MeasurementModal';
-import { mealEvents } from './mealEvents';
+import { formatDateLabel } from './calories.utils';
 
 type MeasurementsSectionProps = {
   latestMeasurements: MeasurementWithType[];
@@ -16,7 +16,9 @@ type MeasurementsSectionProps = {
 };
 
 export function MeasurementsSection({ latestMeasurements, measurementTypes, onChanged }: MeasurementsSectionProps) {
-  const [showAdd, setShowAdd] = useState(false);
+  // One question — which modal is open — so it is one piece of state. Two booleans would allow
+  // "adding and editing at once", which has no meaning here.
+  const [modal, setModal] = useState<'add' | MeasurementWithType | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
@@ -34,13 +36,13 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
 
   return (
     <>
-      {showAdd && (
+      {modal && (
         <MeasurementModal
           measurementTypes={measurementTypes}
-          onClose={() => setShowAdd(false)}
+          measurement={modal === 'add' ? undefined : modal}
+          onClose={() => setModal(null)}
           onSaved={() => {
-            setShowAdd(false);
-            mealEvents.emit('changed');
+            setModal(null);
             onChanged();
           }}
         />
@@ -64,7 +66,7 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
           </h2>
           <button
             type="button"
-            onClick={() => setShowAdd(true)}
+            onClick={() => setModal('add')}
             className="flex items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
           >
             <PlusOutlineIcon className="size-3" />
@@ -86,21 +88,36 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
                   {m.value}
                   <span className="ml-1 text-sm font-normal text-[var(--muted)]">{m.typeUnit}</span>
                 </p>
-                <p className="mt-0.5 text-xs text-[var(--subtle)]">{m.date}</p>
+                <p className="mt-0.5 text-xs text-[var(--subtle)]">{formatDateLabel(m.date)}</p>
                 {m.entrySource !== 'hub' && (
                   <span className="mt-1 inline-block rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">
                     {m.entrySource}
                   </span>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setConfirmDeleteId(m.id)}
-                  disabled={deletingId === m.id}
-                  className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md text-[var(--subtle)] opacity-0 transition-opacity hover:bg-[var(--card3)] hover:text-[var(--red)] group-hover:opacity-100"
-                  aria-label="Delete measurement"
-                >
-                  <TrashOutlineIcon className="size-3" />
-                </button>
+                {/*
+                  Visible by default and only hover-gated from `md` up. Revealing these on hover
+                  alone left them unreachable on a phone, where there is no hover at all — the
+                  entries could be added but never corrected or removed.
+                */}
+                <div className="absolute right-1.5 top-1.5 flex gap-0.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                  <button
+                    type="button"
+                    onClick={() => setModal(m)}
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--subtle)] hover:bg-[var(--card3)] hover:text-[var(--accent)]"
+                    aria-label="Edit measurement"
+                  >
+                    <PencilIcon className="size-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDeleteId(m.id)}
+                    disabled={deletingId === m.id}
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--subtle)] hover:bg-[var(--card3)] hover:text-[var(--red)]"
+                    aria-label="Delete measurement"
+                  >
+                    <TrashOutlineIcon className="size-3" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
