@@ -82,10 +82,10 @@ test.describe('Calories — Weekly Menu page', () => {
     // Previous week is disabled on the current week (past weeks are not allowed)
     await expect(modal.getByRole('button', { name: 'Previous week' })).toBeDisabled();
 
-    // ── 3. Validation: submit disabled while days are missing ─────────────────
+    // ── 3. Validation: an entirely empty week cannot be saved ─────────────────
     const submitBtn = modal.getByRole('button', { name: 'Create menu' });
     await expect(submitBtn).toBeDisabled();
-    await expect(modal.getByText(/Add at least one meal for:/)).toBeVisible();
+    await expect(modal.getByText('Add at least one meal to create the menu')).toBeVisible();
 
     // ── 4. Validation: duplicate meal type on the same day is flagged ─────────
     await fillModalDay(modal, today, descFor(today), '600');
@@ -96,6 +96,13 @@ test.describe('Calories — Weekly Menu page', () => {
     await expect(submitBtn).toBeDisabled();
     await modal.getByRole('button', { name: 'Remove meal' }).last().click();
     await expect(modal.getByText(/Duplicate meal types on:/)).not.toBeVisible();
+
+    // ── 4b. A partly planned week saves: empty days are reported, not enforced ─
+    // Only today has a meal at this point. Requiring every day used to deadlock "copy meals
+    // from" whenever the source week had a gap — and a day can be emptied again straight after
+    // creation anyway, so the rule guarded nothing.
+    await expect(submitBtn).toBeEnabled();
+    await expect(modal.getByText(/No meals planned for .* — you can add them later/)).toBeVisible();
 
     // ── 5. Fill the remaining available days and create ────────────────────────
     for (let d = today + 1; d <= 6; d++) {

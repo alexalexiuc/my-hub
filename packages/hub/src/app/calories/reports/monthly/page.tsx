@@ -1,91 +1,30 @@
 'use client';
 
-import { Suspense, useState, useEffect, useCallback } from 'react';
-import { apiFetch } from '@/lib/utils';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { addMonths, getLastMonthStart, monthLabel, toUTCDateStr } from '@my-hub/shared/utils';
 import { IconButton } from '@/components/IconButton';
 import { PageHeader } from '@/components/PageHeader';
 import { BarChartIcon } from '@/components/icons';
+import { PERIODS, PeriodReport, parsePeriodParam } from '../ReportView';
 
+/**
+ * Standalone monthly report — the "view in app" target of the emailed monthly report, which
+ * deep-links it with `?monthStart=`. Without the param it opens on the finished month the email
+ * covers, unlike the tabbed page which opens on the month in progress.
+ */
 function MonthlyReportContent() {
-  const searchParams = useSearchParams();
-
-  const [monthStart, setMonthStart] = useState<Date>(() => {
-    const param = searchParams.get('monthStart');
-    if (param && /^\d{4}-\d{2}-\d{2}$/.test(param)) return new Date(`${param}T00:00:00Z`);
-    return getLastMonthStart();
-  });
-
-  const [html, setHtml] = useState<string | null>(null);
-  const [noData, setNoData] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async (date: Date) => {
-    setLoading(true);
-    setHtml(null);
-    setNoData(false);
-    try {
-      const json = await apiFetch<{ html?: string; skipped?: string }>('/api/calories/reports/monthly-preview', {
-        query: { monthStart: toUTCDateStr(date) },
-      });
-      if (json.skipped === 'no_data') {
-        setNoData(true);
-        return;
-      }
-      setHtml(json.html ?? null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load(monthStart);
-  }, [monthStart, load]);
-
-  function navigate(delta: number) {
-    setMonthStart(prev => addMonths(prev, delta));
-  }
+  const initialStart =
+    parsePeriodParam(useSearchParams().get('monthStart')) ?? PERIODS.monthly.step(PERIODS.monthly.current(), -1);
 
   return (
-    <main className="mx-auto max-w-5xl p-8 space-y-4">
+    <main className="mx-auto max-w-5xl space-y-4 p-8">
       <PageHeader
         title="Monthly Report"
         backHref="/calories"
         backLabel="← Calories"
         actions={<IconButton href="/calories/reports/weekly" label="Weekly Reports" icon={<BarChartIcon />} />}
       />
-
-      <div className="flex items-center justify-center gap-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="px-3 py-1.5 rounded bg-[#13283d] border border-[#1e3a52] text-sm hover:bg-[#1a3349] transition-colors"
-        >
-          ← Prev
-        </button>
-        <span className="text-sm text-[#8ca0b5] min-w-[160px] text-center">{monthLabel(monthStart)}</span>
-        <button
-          onClick={() => navigate(1)}
-          className="px-3 py-1.5 rounded bg-[#13283d] border border-[#1e3a52] text-sm hover:bg-[#1a3349] transition-colors"
-        >
-          Next →
-        </button>
-      </div>
-
-      {loading && <p className="text-[#8ca0b5] text-sm">Loading…</p>}
-      {noData && <p className="text-[#8ca0b5] text-sm">No meals logged for this month.</p>}
-      {html && (
-        <iframe
-          srcDoc={html}
-          className="w-full border-0 rounded-lg"
-          style={{ minHeight: '900px' }}
-          onLoad={e => {
-            const iframe = e.currentTarget;
-            const doc = iframe.contentDocument;
-            if (doc) iframe.style.height = `${doc.documentElement.scrollHeight}px`;
-          }}
-        />
-      )}
+      <PeriodReport config={PERIODS.monthly} initialStart={initialStart} />
     </main>
   );
 }
@@ -95,7 +34,7 @@ export default function MonthlyReportPage() {
     <Suspense
       fallback={
         <main className="mx-auto max-w-5xl p-8">
-          <p className="text-[#8ca0b5] text-sm">Loading…</p>
+          <p className="text-sm text-[var(--muted)]">Loading…</p>
         </main>
       }
     >

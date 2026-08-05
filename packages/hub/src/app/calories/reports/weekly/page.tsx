@@ -1,91 +1,30 @@
 'use client';
 
-import { Suspense, useState, useEffect, useCallback } from 'react';
-import { apiFetch } from '@/lib/utils';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { addDays, getLastMonday, toUTCDateStr, weekLabel } from '@my-hub/shared/utils';
 import { IconButton } from '@/components/IconButton';
 import { PageHeader } from '@/components/PageHeader';
 import { CalendarIcon } from '@/components/icons';
+import { PERIODS, PeriodReport, parsePeriodParam } from '../ReportView';
 
+/**
+ * Standalone weekly report — the "view in app" target of the emailed weekly report, which
+ * deep-links it with `?weekStart=`. Without the param it opens on the finished week the email
+ * covers, unlike the tabbed page which opens on the week in progress.
+ */
 function WeeklyReportContent() {
-  const searchParams = useSearchParams();
-
-  const [weekStart, setWeekStart] = useState<Date>(() => {
-    const param = searchParams.get('weekStart');
-    if (param && /^\d{4}-\d{2}-\d{2}$/.test(param)) return new Date(`${param}T00:00:00Z`);
-    return getLastMonday();
-  });
-
-  const [html, setHtml] = useState<string | null>(null);
-  const [noData, setNoData] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async (date: Date) => {
-    setLoading(true);
-    setHtml(null);
-    setNoData(false);
-    try {
-      const json = await apiFetch<{ html?: string; skipped?: string }>('/api/calories/reports/weekly-preview', {
-        query: { weekStart: toUTCDateStr(date) },
-      });
-      if (json.skipped === 'no_data') {
-        setNoData(true);
-        return;
-      }
-      setHtml(json.html ?? null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load(weekStart);
-  }, [weekStart, load]);
-
-  function navigate(delta: number) {
-    setWeekStart(prev => addDays(prev, delta * 7));
-  }
+  const initialStart =
+    parsePeriodParam(useSearchParams().get('weekStart')) ?? PERIODS.weekly.step(PERIODS.weekly.current(), -1);
 
   return (
-    <main className="mx-auto max-w-5xl p-8 space-y-4">
+    <main className="mx-auto max-w-5xl space-y-4 p-8">
       <PageHeader
         title="Weekly Report"
         backHref="/calories"
         backLabel="← Calories"
         actions={<IconButton href="/calories/reports/monthly" label="Monthly Reports" icon={<CalendarIcon />} />}
       />
-
-      <div className="flex items-center justify-center gap-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="px-3 py-1.5 rounded bg-[#13283d] border border-[#1e3a52] text-sm hover:bg-[#1a3349] transition-colors"
-        >
-          ← Prev
-        </button>
-        <span className="text-sm text-[#8ca0b5] min-w-[140px] text-center">{weekLabel(weekStart)}</span>
-        <button
-          onClick={() => navigate(1)}
-          className="px-3 py-1.5 rounded bg-[#13283d] border border-[#1e3a52] text-sm hover:bg-[#1a3349] transition-colors"
-        >
-          Next →
-        </button>
-      </div>
-
-      {loading && <p className="text-[#8ca0b5] text-sm">Loading…</p>}
-      {noData && <p className="text-[#8ca0b5] text-sm">No meals logged for this week.</p>}
-      {html && (
-        <iframe
-          srcDoc={html}
-          className="w-full border-0 rounded-lg"
-          style={{ minHeight: '800px' }}
-          onLoad={e => {
-            const iframe = e.currentTarget;
-            const doc = iframe.contentDocument;
-            if (doc) iframe.style.height = `${doc.documentElement.scrollHeight}px`;
-          }}
-        />
-      )}
+      <PeriodReport config={PERIODS.weekly} initialStart={initialStart} />
     </main>
   );
 }
@@ -95,7 +34,7 @@ export default function WeeklyReportPage() {
     <Suspense
       fallback={
         <main className="mx-auto max-w-5xl p-8">
-          <p className="text-[#8ca0b5] text-sm">Loading…</p>
+          <p className="text-sm text-[var(--muted)]">Loading…</p>
         </main>
       }
     >

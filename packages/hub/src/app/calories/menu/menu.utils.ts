@@ -12,8 +12,6 @@ import {
 } from '@/app/api/calories/menu/menu.schemas';
 import type { WeeklyMenuMeal } from './types';
 
-export const MEAL_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout', 'other'];
-
 /**
  * Meal types as `Select` options. Takes the types to offer, since the create editor lists them
  * all while the add-a-meal modal offers only the slots a day still has free.
@@ -139,11 +137,6 @@ export function nextMenuWeekStart(menus: { weekStart: string }[], currentWeekSta
 // Planned-vs-target visual helpers, shared by DayCard's per-day bar and
 // MenuDetail's weekly summary card so both use identical thresholds.
 // ---------------------------------------------------------------------------
-
-/** The calorie target for a given day: the base daily target, plus the gym-day bonus if applicable. */
-export function dayTargetKcal(baseTarget: number, isGymDay: boolean, gymDayBonus: number): number {
-  return isGymDay ? baseTarget + gymDayBonus : baseTarget;
-}
 
 /** Planned kcal as a percentage of target, rounded. Returns null if target is not a positive number. */
 export function targetPct(planned: number, target: number | null): number | null {

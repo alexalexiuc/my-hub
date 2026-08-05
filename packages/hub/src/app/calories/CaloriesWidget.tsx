@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { dateToString, calculateMacroKcal, calculateCalorieTargets } from '@my-hub/shared/utils';
+import { dateToString, calculateMacroKcal, dayCalorieTargets, latestWeightKg } from '@my-hub/shared/utils';
 import { SectionCard } from '@/components';
 import { PlusOutlineIcon, ScaleIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
@@ -10,6 +10,7 @@ import { MealModal } from './MealModal';
 import { MeasurementModal } from './MeasurementModal';
 import { mealEvents } from './mealEvents';
 import { measurementTypeDefinitions } from '@my-hub/shared/constants';
+import type { GymTime } from '@my-hub/shared/constants';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 
@@ -63,7 +64,8 @@ export function CaloriesWidget() {
   const [todayKcal, setTodayKcal] = useState(0);
   const [todayTarget, setTodayTarget] = useState<number | null>(null);
   const [minCalories, setMinCalories] = useState<number | null>(null);
-  const [maxCalories, setMaxCalories] = useState<number | null>(null);
+  // Held so the Add-meal modal doesn't re-fetch the profile this widget has already loaded.
+  const [gymTime, setGymTime] = useState<GymTime | null>(null);
   const [macros, setMacros] = useState<Macros>({ protein: 0, carbs: 0, fat: 0 });
   const [macroGoals, setMacroGoals] = useState<Macros | null>(null);
   const [showAddMeal, setShowAddMeal] = useState(false);
@@ -91,23 +93,14 @@ export function CaloriesWidget() {
         fat: Math.round(meals.reduce((sum, m) => sum + (m.fat ?? 0), 0)),
       };
 
-      const latestWeight = measurements.find(m => m.typeKey === 'weight');
-      const targets = calculateCalorieTargets({
-        age: profile?.age ?? null,
-        sex: profile?.sex ?? null,
-        heightCm: profile?.heightCm ?? null,
-        weightKg: latestWeight?.value ?? null,
-        activityLevel: profile?.activityLevel ?? null,
-        goalType: profile?.goalType ?? null,
-        goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? null,
-        goalMinCalories: profile?.goalMinCalories ?? null,
-        goalMaxCalories: profile?.goalMaxCalories ?? null,
-      });
+      // Same resolver as the Today tab and the weekly menu — this widget is a fourth surface
+      // showing today's target, and it used to omit the gym-day bonus the others apply.
+      const { target, min } = dayCalorieTargets(profile, latestWeightKg(measurements), today);
 
       setTodayKcal(kcal);
-      setTodayTarget(targets.maxCalories ?? targets.goalCalories ?? targets.tdee ?? null);
-      setMinCalories(targets.minCalories ?? null);
-      setMaxCalories(targets.maxCalories ?? null);
+      setTodayTarget(target);
+      setMinCalories(min);
+      setGymTime(profile?.gymTime ?? null);
       setMacros(newMacros);
       setMacroGoals(
         profile?.goalProtein != null || profile?.goalCarbs != null || profile?.goalFat != null
@@ -132,7 +125,8 @@ export function CaloriesWidget() {
   const totalMacroKcal = calculateMacroKcal(macros.protein, macros.carbs, macros.fat);
   const sharePct = (kcal: number) => (totalMacroKcal > 0 ? Math.round((kcal / totalMacroKcal) * 100) : 0);
 
-  const cap = maxCalories ?? todayTarget;
+  // `dayCalorieTargets` already resolves the one ceiling for the day, bonus included.
+  const cap = todayTarget;
   const today = dateToString(new Date());
 
   return (
@@ -140,6 +134,7 @@ export function CaloriesWidget() {
       {showAddMeal && (
         <MealModal
           date={today}
+          gymTime={gymTime}
           onClose={() => setShowAddMeal(false)}
           onSaved={() => {
             setShowAddMeal(false);

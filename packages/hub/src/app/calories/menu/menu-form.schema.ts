@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { MealTypesValues } from '@my-hub/shared/constants';
 import type { MealType } from '@my-hub/shared/constants';
 import { dedupeTrimmed } from '@my-hub/shared/utils';
+import { optionalNumber } from '@/lib/schemas/common';
 import type { WeeklyMenuMeal } from './types';
 
 /** One editable meal row in the create-menu form. Shared by the day editor and the modal's week totals. */
@@ -52,9 +53,8 @@ export function parseIngredientLines(text: string): string[] | undefined {
  */
 export const INGREDIENT_LINE_HINT = 'One ingredient per line — two on the same line are saved as a single entry.';
 
-const OptionalNumericString = z
-  .string()
-  .refine(v => v.trim() === '' || (Number.isFinite(Number(v)) && Number(v) > 0), 'Must be a positive number');
+/** A planned meal of 0 kcal is a slot someone forgot to fill, unlike a logged meal, which may genuinely be zero. */
+const positiveNumericString = (label: string) => optionalNumber(label, { allowZero: false });
 
 /**
  * The single meal-detail form, used both to add a meal to an empty slot and to edit an existing
@@ -65,10 +65,10 @@ export const MenuMealFormSchema = z.object({
   mealType: z.enum(MealTypesValues as [MealType, ...MealType[]]),
   description: z.string().trim().min(1, 'Description is required'),
   ingredients: z.string(),
-  kcal: OptionalNumericString,
-  protein: OptionalNumericString,
-  carbs: OptionalNumericString,
-  fat: OptionalNumericString,
+  kcal: positiveNumericString('Calories'),
+  protein: positiveNumericString('Protein'),
+  carbs: positiveNumericString('Carbs'),
+  fat: positiveNumericString('Fat'),
 });
 
 export type MenuMealFormValues = z.infer<typeof MenuMealFormSchema>;

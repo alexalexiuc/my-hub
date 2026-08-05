@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 import { IconButton, ConfirmModal } from '@/components';
 import { ListChecksOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 import { DaysOfWeekValues } from '@my-hub/shared/constants';
-import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
-import { dateToString, formatWeekRangeStr } from '@my-hub/shared/utils';
+import type { DayOfWeek, GymTime, MealType } from '@my-hub/shared/constants';
+import { dateToString, dayTargetKcal, formatWeekRangeStr } from '@my-hub/shared/utils';
 import { ShoppingListModal } from './ShoppingListModal';
 import { DayCard } from './DayCard';
 import { MenuMetaSection } from './MenuMetaSection';
 import { DayJumpChips } from './DayJumpChips';
-import { dateForDay, dayTargetKcal, targetPct, targetColorClasses, resolveDailyTarget } from './menu.utils';
+import { dateForDay, targetPct, targetColorClasses, resolveDailyTarget } from './menu.utils';
 import { TargetBar } from './TargetBar';
 import type { LoggedMeals } from './menu.utils';
 import type { WeeklyMenu, WeeklyMenuMeal } from './types';
@@ -23,6 +23,8 @@ type MenuDetailProps = {
   dailyTargetKcal: number | null;
   /** Extra kcal added to the daily target on gym days. */
   gymDayCalorieBonus: number;
+  /** When the user trains — decides where the pre/post-workout meals sit in each day's order. */
+  gymTime: GymTime | null;
   onMealLogChanged: (day: DayOfWeek, mealType: MealType, logged: boolean) => void;
   onMealSwapped: (day: DayOfWeek, updated: WeeklyMenuMeal) => void;
   onMealAdded: (day: DayOfWeek, added: WeeklyMenuMeal) => void;
@@ -39,6 +41,7 @@ export function MenuDetail({
   gymDays,
   dailyTargetKcal,
   gymDayCalorieBonus,
+  gymTime,
   onMealLogChanged,
   onMealSwapped,
   onMealAdded,
@@ -239,6 +242,7 @@ export function MenuDetail({
             isGymDay={gymDays.includes(day)}
             dailyTargetKcal={dailyTargetKcal}
             gymDayCalorieBonus={gymDayCalorieBonus}
+            gymTime={gymTime}
             onMealLogChanged={(mealType, logged) => onMealLogChanged(day, mealType, logged)}
             onMealSwapped={onMealSwapped}
             onMealAdded={onMealAdded}

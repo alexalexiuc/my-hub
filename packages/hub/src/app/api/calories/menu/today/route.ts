@@ -1,5 +1,5 @@
 import { route } from '@/lib/api/route';
-import { getPlannedMealsForDate } from '@my-hub/shared/services';
+import { getPlannedMealsForDate, getCalorieProfile } from '@my-hub/shared/services';
 import { TodayPlanQuerySchema, TodayPlanResponseSchema } from '../menu.schemas';
 
 /**
@@ -14,6 +14,6 @@ export const GET = route({ query: TodayPlanQuerySchema, response: TodayPlanRespo
   user,
   query,
 }) => {
-  const meals = await getPlannedMealsForDate(user.id, query.date);
-  return { menuId: meals[0]?.menuId ?? null, meals };
+  const [meals, profile] = await Promise.all([getPlannedMealsForDate(user.id, query.date), getCalorieProfile(user.id)]);
+  return { menuId: meals[0]?.menuId ?? null, meals, gymTime: profile?.gymTime ?? null };
 });

@@ -245,13 +245,19 @@ export function CreateMenuModal({
   >;
   // All available days (days strictly before today are excluded regardless of week)
   const availableDays = DaysOfWeekValues.filter(d => dayDates[d] >= today);
+  // Reported, not enforced. A day without meals is a legitimate plan — the menu page renders one
+  // as "No meals planned", deleting a day's last meal afterwards is allowed, and `calories_plan_week`
+  // can write a week with gaps. Blocking here only at creation forbade a state reachable a second
+  // later by hand, and it deadlocked "Copy meals from" whenever the source week had an empty day.
   const missingDays = availableDays.filter(d => mealCountPerDay[d] === 0);
   // Each (day, mealType) slot may appear at most once — the DB enforces this with a
   // unique constraint, so surface the conflict here instead of silently collapsing it.
   const duplicateSlotDays = DaysOfWeekValues.filter(d =>
     hasDuplicateMealSlot(filledRowsPerDay[d].map(r => ({ dayOfWeek: d, mealType: r.mealType }))),
   );
-  const canSubmit = missingDays.length === 0 && duplicateSlotDays.length === 0;
+  // Mirrors the API's `meals.min(1)`: the only real floor is that the week isn't entirely empty.
+  const totalMeals = DaysOfWeekValues.reduce<number>((sum, d) => sum + mealCountPerDay[d], 0);
+  const canSubmit = totalMeals > 0 && duplicateSlotDays.length === 0;
   // The API replaces (delete + insert) rather than merges, so submitting over an existing week
   // drops its shopping list and logged-meal markers with it. Say so before, not after.
   const replacesExisting = existingWeekStarts.includes(weekStart);
@@ -356,11 +362,14 @@ export function CreateMenuModal({
             appear once per day
           </p>
         )}
-        {missingDays.length > 0 ? (
-          <p className="text-xs text-amber-400">
-            Add at least one meal for: {missingDays.map(d => DAY_LABELS[d].slice(0, 3)).join(', ')}
+        {totalMeals === 0 ? (
+          <p className="text-xs text-amber-400">Add at least one meal to create the menu</p>
+        ) : missingDays.length > 0 ? (
+          /* Stated, not enforced — a partly planned week is a normal thing to save. */
+          <p className="text-xs text-[var(--subtle)]">
+            No meals planned for {missingDays.map(d => DAY_LABELS[d].slice(0, 3)).join(', ')} — you can add them later
           </p>
-        ) : duplicateSlotDays.length === 0 && Object.values(mealCountPerDay).some(c => c > 0) ? (
+        ) : duplicateSlotDays.length === 0 ? (
           <p className="text-xs text-green-400">All days have at least one meal ✓</p>
         ) : null}
       </div>
