@@ -44,8 +44,6 @@ export function MeasurementModal({
     if (!form.typeKey || !form.value) return;
     setSaving(true);
     try {
-      // `notes: null` on edit, not `undefined` — an emptied note has to clear rather than be
-      // read as "leave the old one".
       await apiFetch(isEdit ? `/api/calories/measurements/${measurement.id}` : '/api/calories/measurements', {
         method: isEdit ? 'PATCH' : 'POST',
         body: {

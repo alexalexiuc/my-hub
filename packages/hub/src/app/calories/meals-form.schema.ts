@@ -51,11 +51,7 @@ export function formToAddBody(values: MealFormValues, date: string) {
   };
 }
 
-/**
- * Body for editing an existing meal. Emptied fields go as explicit `null`, not `undefined`:
- * the update path treats `undefined` as "leave this alone", so omitting a cleared field made it
- * impossible to ever remove a calorie count or a note once one had been saved.
- */
+/** Body for editing an existing meal. */
 export function formToUpdateBody(values: MealFormValues) {
   return {
     description: values.description,

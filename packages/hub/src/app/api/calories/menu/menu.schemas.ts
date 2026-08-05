@@ -22,7 +22,6 @@ const KcalSchema = z.number().int().positive();
 const MacroGramsSchema = z.number().positive();
 /** Free-text ingredient lines for one dish, e.g. ["200g chicken breast", "1 red pepper"]. */
 const IngredientsSchema = z.array(z.string().trim().min(1));
-const IsoDateSchema = isoDateSchema;
 // `z.coerce.date()` (not `z.date()`): response payloads cross the wire as JSON, where Dates
 // serialise to ISO strings — both the server's `route({ response })` validation and apiFetch's
 // client-side `responseSchema` validation re-parse that JSON, so the schema must accept strings.
@@ -86,7 +85,7 @@ export const MenuMealResponseSchema = z.object({ meal: MenuMealRecordSchema });
 
 export const CreateMenuSchema = z
   .object({
-    weekStart: IsoDateSchema,
+    weekStart: isoDateSchema,
     title: z.string().optional(),
     notes: z.string().optional(),
     meals: z.array(MenuMealInputSchema).min(1),
@@ -148,7 +147,7 @@ export const GetMenuResponseSchema = z.object({
  * derived server-side: the browser knows its own local day, and deriving it from server time
  * would put the two an hour apart either side of midnight.
  */
-export const TodayPlanQuerySchema = z.object({ date: IsoDateSchema });
+export const TodayPlanQuerySchema = z.object({ date: isoDateSchema });
 
 export const TodayPlanResponseSchema = z.object({
   /** Null when the week has no menu at all — the caller renders nothing rather than an empty card. */
@@ -206,7 +205,7 @@ export const ShoppingItemResponseSchema = z.object({ item: ShoppingItemRecordSch
  */
 export const LogDayBodySchema = z.object({
   dayOfWeek: DayOfWeekSchema,
-  loggedDate: IsoDateSchema,
+  loggedDate: isoDateSchema,
   mealType: MealTypeSchema,
   description: z.string().min(1),
   kcal: KcalSchema.nullish(),
@@ -220,7 +219,7 @@ export const LogDayBodySchema = z.object({
  * plan itself, so the journal cannot drift from it, and one transaction replaces one request
  * per slot.
  */
-export const LogWholeDaySchema = z.object({ dayOfWeek: DayOfWeekSchema, loggedDate: IsoDateSchema });
+export const LogWholeDaySchema = z.object({ dayOfWeek: DayOfWeekSchema, loggedDate: isoDateSchema });
 export const UnlogWholeDaySchema = z.object({ dayOfWeek: DayOfWeekSchema });
 export const WholeDayResponseSchema = z.object({ affected: z.number().int().nonnegative() });
 

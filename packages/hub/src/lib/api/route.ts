@@ -62,6 +62,13 @@ type RouteSchemas<
   body?: TBody;
   query?: TQuery;
   response?: TResponse;
+  /**
+   * Accept a body that validates to an object with no fields. Off by default, because such a
+   * request is normally malformed — see `isEmptyBody`. Turn it on for a route where an empty
+   * body is the request: `DELETE /api/finances/budget` sends `{}` to mean "delete the budget
+   * itself" rather than one of its members.
+   */
+  allowEmptyBody?: boolean;
 };
 
 type ProtectedRouteOptions<
@@ -88,6 +95,7 @@ type AnyRouteOptions = {
   query?: ZodType;
   response?: ZodType;
   public?: boolean;
+  allowEmptyBody?: boolean;
 };
 
 export class RouteHttpError extends Error {
@@ -125,6 +133,18 @@ export function created(payload: RouteJsonValue): Response {
 /** Return a 204 No Content response from a route handler. */
 export function noContent(): Response {
   return new Response(null, { status: 204 });
+}
+
+/**
+ * True when a validated body is an object with no fields left — either it arrived as `{}` or every
+ * field it did carry was stripped by the schema. Such a request reaches the service layer as an
+ * empty update, which Drizzle rejects with an empty `SET`, surfacing as a 500 for what is really a
+ * malformed request. Checked after parsing so schema defaults still count as fields, and rejected
+ * for every method unless the route sets `allowEmptyBody`.
+ */
+function isEmptyBody(data: unknown): boolean {
+  if (data === null || typeof data !== 'object' || Array.isArray(data)) return false;
+  return Object.values(data).every(value => value === undefined);
 }
 
 function toResponse(result: RouteResult): Response {
@@ -230,6 +250,10 @@ function createRouteHandler<
         if (!parsed.success) {
           void log(400, formatZodError(parsed.error), userId);
           return NextResponse.json({ error: formatZodError(parsed.error) }, { status: 400 });
+        }
+        if (!options.allowEmptyBody && isEmptyBody(parsed.data)) {
+          void log(400, 'Empty request body', userId);
+          return NextResponse.json({ error: 'Request body must not be empty' }, { status: 400 });
         }
         ctx.body = parsed.data;
         payloads.body = parsed.data;

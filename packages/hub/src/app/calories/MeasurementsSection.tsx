@@ -16,8 +16,6 @@ type MeasurementsSectionProps = {
 };
 
 export function MeasurementsSection({ latestMeasurements, measurementTypes, onChanged }: MeasurementsSectionProps) {
-  // One question — which modal is open — so it is one piece of state. Two booleans would allow
-  // "adding and editing at once", which has no meaning here.
   const [modal, setModal] = useState<'add' | MeasurementWithType | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);

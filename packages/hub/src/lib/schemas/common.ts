@@ -23,13 +23,3 @@ export const optionalNumber = (label: string, { allowZero = true }: { allowZero?
       v => v.trim() === '' || (Number.isFinite(Number(v)) && (allowZero ? Number(v) >= 0 : Number(v) > 0)),
       `${label} must be a positive number`,
     );
-
-/**
- * Rejects a PATCH body in which every field was omitted. Without it the empty object reaches
- * Drizzle as an empty SET and throws, surfacing as a 500 for what is really a malformed request.
- */
-export function nonEmptyPatch<T extends z.ZodRawShape>(schema: z.ZodObject<T>) {
-  return schema.refine(body => Object.values(body).some(v => v !== undefined), {
-    message: 'No fields to update',
-  });
-}

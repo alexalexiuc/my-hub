@@ -30,9 +30,16 @@ const BudgetUpdateSchema = z.object({
   defaultCurrency: supportedCurrencySchema.optional(),
 });
 
-const BudgetDeleteSchema = z.object({
-  removeMemberUserId: z.string().optional(),
-});
+/**
+ * Strict, and the id must be non-empty: an unrecognised or blank `removeMemberUserId` would
+ * otherwise be stripped or read as falsy, and DELETE falls through to deleting the whole budget.
+ * A typo in a member-removal request has to fail, not escalate.
+ */
+const BudgetDeleteSchema = z
+  .object({
+    removeMemberUserId: z.string().min(1).optional(),
+  })
+  .strict();
 
 export const GET = route({ response: budgetDetailResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);
@@ -71,7 +78,11 @@ export const PATCH = route({ body: BudgetUpdateSchema, response: budgetMutationR
   return { budget: { ...updated, isOwner: updated.createdByUserId === user.id } };
 });
 
-export const DELETE = route({ body: BudgetDeleteSchema, response: okResponseSchema })(async ({ user, body }) => {
+// An empty body is the request here: no `removeMemberUserId` means "delete the budget itself".
+export const DELETE = route({ body: BudgetDeleteSchema, response: okResponseSchema, allowEmptyBody: true })(async ({
+  user,
+  body,
+}) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
