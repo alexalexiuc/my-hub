@@ -18,6 +18,7 @@ const LEFT_ITEMS: BottomNavItem[] = [
 const RIGHT_ITEMS: BottomNavItem[] = [{ id: 'menu', icon: '🗓', label: 'Menu', path: '/calories/menu' }];
 
 const MORE_ITEMS: BottomNavItem[] = [
+  { id: 'calendar', icon: '📅', label: 'Calendar', path: '/calories/calendar' },
   { id: 'reports', icon: '▦', label: 'Reports', path: '/calories/reports' },
   { id: 'settings', icon: '⚙', label: 'Settings', path: '/calories/settings' },
 ];
