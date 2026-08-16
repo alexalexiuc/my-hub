@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { usePortalTheme } from '@/hooks/usePortalTheme';
+import { useCloseOnBackButton } from '@/hooks/useCloseOnBackButton';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { XOutlineIcon } from '@/components/icons/XOutlineIcon';
@@ -47,6 +48,8 @@ export function Modal({
 }: ModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [themeAnchorRef, themeClassName] = usePortalTheme();
+
+  useCloseOnBackButton(onClose);
 
   useEffect(() => {
     const prev = document.body.style.overflow;

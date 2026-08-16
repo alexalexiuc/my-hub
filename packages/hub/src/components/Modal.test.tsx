@@ -77,4 +77,29 @@ describe('Modal', () => {
     expect(shell).not.toBeNull();
     expect(shell!.closest('.opacity-50')).toBeNull();
   });
+
+  it('calls onClose when the browser back button is pressed', () => {
+    const onClose = vi.fn();
+    render(
+      <Modal title="Test" onClose={onClose}>
+        body
+      </Modal>,
+    );
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('discards its pushed history entry when closed without a back-press', () => {
+    const historyBackSpy = vi
+      .spyOn(window.history, 'back')
+      .mockImplementation(() => window.dispatchEvent(new PopStateEvent('popstate')));
+    const { unmount } = render(
+      <Modal title="Test" onClose={vi.fn()}>
+        body
+      </Modal>,
+    );
+    unmount();
+    expect(historyBackSpy).toHaveBeenCalledOnce();
+    historyBackSpy.mockRestore();
+  });
 });
