@@ -10,6 +10,7 @@ import { dateToString } from '@my-hub/shared/utils';
 const NAV_ITEMS: SidebarNavItem[] = [
   { id: 'today', label: 'Today', icon: '◉', path: '/calories', exact: true },
   { id: 'progress', label: 'Progress', icon: '▲', path: '/calories/progress' },
+  { id: 'calendar', label: 'Calendar', icon: '📅', path: '/calories/calendar' },
   { id: 'menu', label: 'Weekly Menu', icon: '🗓', path: '/calories/menu' },
   { id: 'reports', label: 'Reports', icon: '▦', path: '/calories/reports' },
   { id: 'settings', label: 'Settings', icon: '⚙', path: '/calories/settings' },
