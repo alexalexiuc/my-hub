@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import type { MealLog } from '@my-hub/shared/types';
 import { apiFetch } from '@/lib/utils';
-import { dateToString } from '@my-hub/shared/utils';
+import { dateToString, mealOrder } from '@my-hub/shared/utils';
 import { Card, ConfirmModal, SwipeRow } from '@/components';
 import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
-import { MealTypesValues } from '@my-hub/shared/constants';
+import type { GymTime } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from './constants';
 import { groupByMealType } from './calories.utils';
 import { MealModal } from './MealModal';
@@ -14,10 +14,12 @@ import { MealModal } from './MealModal';
 type MealsSectionProps = {
   meals: MealLog[];
   selectedDate: string;
+  /** When the user trains — orders the logged groups the same way every other meal list is ordered. */
+  gymTime: GymTime | null;
   onChanged: () => void;
 };
 
-export function MealsSection({ meals, selectedDate, onChanged }: MealsSectionProps) {
+export function MealsSection({ meals, selectedDate, gymTime, onChanged }: MealsSectionProps) {
   const today = dateToString(new Date());
   const [editingMeal, setEditingMeal] = useState<MealLog | null>(null);
   const [deletingMeal, setDeletingMeal] = useState<MealLog | null>(null);
@@ -49,6 +51,7 @@ export function MealsSection({ meals, selectedDate, onChanged }: MealsSectionPro
         <MealModal
           date={selectedDate}
           meal={editingMeal}
+          gymTime={gymTime}
           onClose={() => setEditingMeal(null)}
           onSaved={() => {
             setEditingMeal(null);
@@ -76,59 +79,61 @@ export function MealsSection({ meals, selectedDate, onChanged }: MealsSectionPro
           </p>
         ) : (
           <>
-            {MealTypesValues.filter(t => grouped[t]?.length).map(type => (
-              <div key={type} className="border-b border-[var(--border)] last:border-b-0">
-                <div className="px-5 py-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--muted)]">
-                    {MEAL_LABEL[type]}
-                  </span>
-                </div>
-                {grouped[type]!.map(meal => (
-                  <div key={meal.id}>
-                    {/* Mobile: swipe-to-reveal edit/delete */}
-                    <div data-layout="mobile" className="md:hidden">
-                      <SwipeRow
-                        isOpen={openRowId === meal.mealId}
-                        onOpen={() => setOpenRowId(meal.mealId ?? null)}
-                        onClose={() => setOpenRowId(null)}
-                        onEdit={() => setEditingMeal(meal)}
-                        onDelete={() => setDeletingMeal(meal)}
-                      >
-                        <div className="flex items-center gap-3 px-5 py-2.5">
-                          <MealRowContent meal={meal} />
-                        </div>
-                      </SwipeRow>
-                    </div>
+            {mealOrder(gymTime)
+              .filter(t => grouped[t]?.length)
+              .map(type => (
+                <div key={type} className="border-b border-[var(--border)] last:border-b-0">
+                  <div className="px-5 py-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--muted)]">
+                      {MEAL_LABEL[type]}
+                    </span>
+                  </div>
+                  {grouped[type]!.map(meal => (
+                    <div key={meal.id}>
+                      {/* Mobile: swipe-to-reveal edit/delete */}
+                      <div data-layout="mobile" className="md:hidden">
+                        <SwipeRow
+                          isOpen={openRowId === meal.mealId}
+                          onOpen={() => setOpenRowId(meal.mealId ?? null)}
+                          onClose={() => setOpenRowId(null)}
+                          onEdit={() => setEditingMeal(meal)}
+                          onDelete={() => setDeletingMeal(meal)}
+                        >
+                          <div className="flex items-center gap-3 px-5 py-2.5">
+                            <MealRowContent meal={meal} />
+                          </div>
+                        </SwipeRow>
+                      </div>
 
-                    {/* Desktop: hover buttons */}
-                    <div
-                      data-layout="desktop"
-                      className="group hidden items-center justify-between gap-3 px-5 py-2.5 hover:bg-[var(--card2)] md:flex"
-                    >
-                      <MealRowContent meal={meal} />
-                      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                        <button
-                          type="button"
-                          onClick={() => setEditingMeal(meal)}
-                          className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--accent)]"
-                          aria-label="Edit meal"
-                        >
-                          <PencilIcon className="size-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeletingMeal(meal)}
-                          className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--red)]"
-                          aria-label="Delete meal"
-                        >
-                          <TrashOutlineIcon className="size-3.5" />
-                        </button>
+                      {/* Desktop: hover buttons */}
+                      <div
+                        data-layout="desktop"
+                        className="group hidden items-center justify-between gap-3 px-5 py-2.5 hover:bg-[var(--card2)] md:flex"
+                      >
+                        <MealRowContent meal={meal} />
+                        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={() => setEditingMeal(meal)}
+                            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--accent)]"
+                            aria-label="Edit meal"
+                          >
+                            <PencilIcon className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeletingMeal(meal)}
+                            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--red)]"
+                            aria-label="Delete meal"
+                          >
+                            <TrashOutlineIcon className="size-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ))}
+                  ))}
+                </div>
+              ))}
 
             {/* Totals row */}
             <div className="flex items-center justify-between bg-[var(--card2)] px-5 py-2.5 text-xs">

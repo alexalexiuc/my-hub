@@ -5,10 +5,18 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { Input } from '@/components/Input';
+import { NavRow } from '@/components/NavRow';
 import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon, ChevronDownOutlineIcon } from '@/components/icons';
-import { shiftMonthStr, formatMonthStr, addDays, dateToString } from '@my-hub/shared/utils';
+import {
+  shiftMonthStr,
+  formatMonthStr,
+  addDays,
+  dateToString,
+  shiftWeekStr,
+  formatWeekRangeStr,
+} from '@my-hub/shared/utils';
 
-export type DateMode = 'month' | 'range' | 'all' | 'day';
+export type DateMode = 'month' | 'range' | 'all' | 'day' | 'week';
 
 export type DatePickerProps = {
   month: string;
@@ -17,6 +25,8 @@ export type DatePickerProps = {
   currentMonth?: string;
   /** Disables the forward arrow once month reaches this value. */
   maxMonth?: string;
+  /** Disables the backward arrow once month reaches this value. */
+  minMonth?: string;
   /** When true, adds Date range and All time tabs to the dropdown. Default: false. */
   extendedFilters?: boolean;
   /** Required when extendedFilters is true. */
@@ -26,6 +36,8 @@ export type DatePickerProps = {
   className?: string;
   /** Extra content rendered at the trailing end of the picker row on all breakpoints. */
   trailing?: React.ReactNode;
+  /** Full-bleed mobile strip treatment — on by default, since DatePicker is normally its own top-of-page header. Pass false when it's embedded inside a card, modal, or list. */
+  fullBleed?: boolean;
 };
 
 /** Shifts a YYYY-MM-DD string by n days. */
@@ -66,12 +78,14 @@ export function DatePicker({
   onChange,
   currentMonth,
   maxMonth,
+  minMonth,
   extendedFilters = false,
   dateMode = 'month',
   fromDate = '',
   toDate = '',
   className,
   trailing,
+  fullBleed = true,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<DateMode>(dateMode);
@@ -116,6 +130,17 @@ export function DatePicker({
     setOpen(false);
   }
 
+  // Single source of truth for "what does a fixed date step look like in this mode" — the label
+  // suffix and the shift-by-n logic used to move the arrows, so adding a mode means updating one
+  // branch instead of chasing matching ternaries through the label, onClick, and displayLabel.
+  const stepConfig =
+    dateMode === 'day'
+      ? { unit: 'day', step: (n: number) => onChange({ day: shiftDayStr(month, n) }) }
+      : dateMode === 'week'
+        ? { unit: 'week', step: (n: number) => onChange({ month: shiftWeekStr(month, n) }) }
+        : { unit: 'month', step: (n: number) => onChange({ month: shiftMonthStr(month, n) }) };
+  const canStep = dateMode === 'month' || dateMode === 'day' || dateMode === 'week';
+
   const displayLabel =
     dateMode === 'all'
       ? 'All time'
@@ -123,95 +148,63 @@ export function DatePicker({
         ? formatDateRange(fromDate, toDate)
         : dateMode === 'day'
           ? formatDayStr(month)
-          : formatMonthStr(month);
+          : dateMode === 'week'
+            ? formatWeekRangeStr(month, true)
+            : formatMonthStr(month);
 
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        'relative flex items-center gap-2',
-        // Mobile: full-bleed strip (counteracts layout px-7), top/bottom borders only
-        '-mx-7 border-y border-[var(--border)] bg-[var(--card2)] px-7 py-2.5',
-        // Desktop: reset to inline
-        'md:mx-0 md:border-0 md:bg-transparent md:p-0',
-        className,
-      )}
-    >
-      {(dateMode === 'month' || dateMode === 'day') && (
-        <IconButton
-          label={dateMode === 'day' ? 'Previous day' : 'Previous month'}
-          icon={<ChevronLeftOutlineIcon />}
-          onClick={() =>
-            dateMode === 'day'
-              ? onChange({ day: shiftDayStr(month, -1) })
-              : onChange({ month: shiftMonthStr(month, -1) })
-          }
-          className="bg-transparent text-[var(--muted)] hover:bg-transparent hover:text-[var(--text)]"
-        />
-      )}
-
-      {extendedFilters || dateMode === 'day' ? (
-        /* Clickable label with dropdown */
-        <button
-          onClick={() => setOpen(o => !o)}
-          className="flex flex-1 items-center gap-1 rounded-lg px-1 py-0.5 transition-colors md:flex-none md:hover:bg-[var(--card2)]"
-        >
-          <span
-            className={cn(
-              'font-bold tracking-tight text-[var(--text)]',
-              'flex-1 text-center text-[32px] leading-none',
-              'md:flex-none md:min-w-44 md:text-left md:text-[22px] md:leading-normal',
-            )}
-          >
-            {displayLabel}
-          </span>
-          {dateMode !== 'day' && (
-            <ChevronDownOutlineIcon
-              className={cn(
-                'shrink-0 text-[var(--muted)] transition-transform duration-150',
-                open && 'rotate-180',
-                'size-6 md:size-5',
-              )}
-            />
-          )}
-        </button>
-      ) : (
-        /* Plain label — carousel-style, no dropdown */
-        <h2
+  const label =
+    extendedFilters || dateMode === 'day' ? (
+      /* Clickable label with dropdown */
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex flex-1 items-center gap-1 rounded-lg px-1 py-0.5 transition-colors md:flex-none md:hover:bg-[var(--card2)]"
+      >
+        <span
           className={cn(
-            'font-bold tracking-tight text-[var(--text)] text-center',
-            'flex-1 text-[32px] leading-none',
-            'md:flex-none md:w-44 md:text-[22px] md:leading-normal',
+            'font-bold tracking-tight text-[var(--text)]',
+            'flex-1 text-center text-[32px] leading-none',
+            'md:flex-none md:min-w-44 md:text-left md:text-[22px] md:leading-normal',
           )}
         >
           {displayLabel}
-        </h2>
-      )}
+        </span>
+        {dateMode !== 'day' && (
+          <ChevronDownOutlineIcon
+            className={cn(
+              'shrink-0 text-[var(--muted)] transition-transform duration-150',
+              open && 'rotate-180',
+              'size-6 md:size-5',
+            )}
+          />
+        )}
+      </button>
+    ) : (
+      /* Plain label — carousel-style, no dropdown */
+      <h2
+        className={cn(
+          'font-bold tracking-tight text-[var(--text)] text-center',
+          'flex-1 text-[32px] leading-none',
+          'md:flex-none md:text-[22px] md:leading-normal',
+          // Week ranges ("Jun 1 – Jun 7, 2026") run wider than month/day labels.
+          dateMode === 'week' ? 'md:w-64' : 'md:w-44',
+        )}
+      >
+        {displayLabel}
+      </h2>
+    );
 
-      {(dateMode === 'month' || dateMode === 'day') && (
-        <IconButton
-          label={dateMode === 'day' ? 'Next day' : 'Next month'}
-          icon={<ChevronRightOutlineIcon />}
-          onClick={() =>
-            dateMode === 'day' ? onChange({ day: shiftDayStr(month, 1) }) : onChange({ month: shiftMonthStr(month, 1) })
-          }
-          disabled={maxMonth !== undefined && month >= maxMonth}
-          className="bg-transparent text-[var(--muted)] hover:bg-transparent hover:text-[var(--text)] disabled:opacity-30"
-        />
-      )}
+  const todayPill = currentMonth !== undefined && month !== currentMonth && canStep && (
+    <Button
+      variant="fin-pill"
+      size="xs"
+      onClick={() => onChange(dateMode === 'day' ? { day: currentMonth } : { month: currentMonth })}
+    >
+      Today
+    </Button>
+  );
 
-      {currentMonth !== undefined && month !== currentMonth && (dateMode === 'month' || dateMode === 'day') && (
-        <Button
-          variant="fin-pill"
-          size="xs"
-          onClick={() => onChange(dateMode === 'day' ? { day: currentMonth } : { month: currentMonth })}
-        >
-          Today
-        </Button>
-      )}
-
-      {trailing != null && <div className="ml-auto shrink-0">{trailing}</div>}
-
+  const overlay = (
+    <>
       {dateMode === 'day' && open && (
         <div className="absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-xl">
           <Input
@@ -319,6 +312,24 @@ export function DatePicker({
           )}
         </div>
       )}
-    </div>
+    </>
+  );
+
+  return (
+    <NavRow
+      ref={ref}
+      onPrev={canStep ? () => stepConfig.step(-1) : undefined}
+      onNext={canStep ? () => stepConfig.step(1) : undefined}
+      prevLabel={`Previous ${stepConfig.unit}`}
+      nextLabel={`Next ${stepConfig.unit}`}
+      prevDisabled={minMonth !== undefined && month <= minMonth}
+      nextDisabled={maxMonth !== undefined && month >= maxMonth}
+      label={label}
+      afterNext={todayPill}
+      trailing={trailing}
+      overlay={overlay}
+      fullBleed={fullBleed}
+      className={className}
+    />
   );
 }

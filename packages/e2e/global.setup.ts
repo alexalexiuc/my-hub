@@ -15,15 +15,19 @@ setup('write seeds, create test user and authenticate', async ({ request, page }
     },
   });
   const status = registerRes.status();
-  if (status !== 201 && status !== 409) {
+  // 201 = created, 409 = already there. 403 means this instance gates registration behind an
+  // invite link, which the endpoint checks *before* it checks whether the user already exists —
+  // so a seeded test user gets 403 rather than 409. That is not a failure: the seed script
+  // creates the user directly, and the sign-in below is the real assertion either way.
+  if (status !== 201 && status !== 409 && status !== 403) {
     const body = await registerRes.text();
     throw new Error(
       `Failed to register test user (status ${status}): ${body}\n` +
-        `Make sure ${TEST_USER.email} is in ALLOWED_EMAILS (or ALLOWED_EMAILS is empty).`,
+        `Make sure ${TEST_USER.email} is in ALLOWED_EMAILS, or seed it first with ` +
+        `\`pnpm --filter @my-hub/e2e seed\`.`,
     );
-  } else {
-    console.log(`Test user registration response: ${status} ${registerRes.statusText()}`);
   }
+  console.log(`Test user registration response: ${status} ${registerRes.statusText()}`);
 
   // Sign in via the credentials form
   await page.goto(`${BASE_URL}/auth/signin`);

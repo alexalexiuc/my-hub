@@ -12,51 +12,40 @@ import {
 } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import { Card } from '@/components';
+import { intakeBarColor } from './calories.utils';
 
 interface DayData {
   date: string;
   label: string;
   kcal: number;
+  /**
+   * This day's ceiling. Carried per day rather than once for the week because a gym day's target
+   * includes the training bonus — judging every bar against one number marked gym days as over.
+   */
+  target: number | null;
+  /** This day's floor, or null when the profile sets no minimum. */
+  min: number | null;
 }
 
 type WeeklyChartProps = {
   data: DayData[];
-  target: number | null;
-  min?: number | null;
-  max?: number | null;
 };
-
-function getBarColor(
-  kcal: number,
-  min: number | null | undefined,
-  max: number | null | undefined,
-  target: number | null,
-): string {
-  if (!target && !min && !max) return 'var(--subtle)';
-  const ceiling = max ?? target;
-  if (ceiling !== null && kcal > ceiling) return 'var(--red)';
-  if (min != null && kcal > 0 && kcal < min) return 'var(--accent)';
-  if (kcal === 0) return 'var(--border)';
-  return 'var(--green)';
-}
 
 function CustomTooltip({ active, payload, label }: TooltipContentProps<number, string>) {
   if (!active || !payload?.length) return null;
+  const row = (payload[0] as { payload?: DayData })?.payload;
   const kcal = (payload[0]?.value as number | undefined) ?? 0;
-  const target = (payload[0] as { payload?: { _target?: number | null } })?.payload?._target ?? null;
-  const min = (payload[0] as { payload?: { _min?: number | null } })?.payload?._min ?? null;
-  const max = (payload[0] as { payload?: { _max?: number | null } })?.payload?._max ?? null;
-  const date = (payload[0] as { payload?: { date?: string } })?.payload?.date ?? label;
+  const target = row?.target ?? null;
+  const min = row?.min ?? null;
+  const date = row?.date ?? label;
 
-  const ceiling = max ?? target;
-  const ceilingLabel = max != null ? 'limit' : 'target';
   let deltaLine: string | null = null;
-  if (ceiling !== null) {
-    const delta = kcal - ceiling;
-    if (delta > 0) deltaLine = `+${delta} kcal above ${ceilingLabel}`;
-    else if (delta < 0) deltaLine = `${Math.abs(delta)} kcal below ${ceilingLabel}`;
-    else deltaLine = `On ${ceilingLabel}`;
-  } else if (min != null && kcal < min) {
+  if (target !== null) {
+    const delta = kcal - target;
+    if (delta > 0) deltaLine = `+${delta} kcal above target`;
+    else if (delta < 0) deltaLine = `${Math.abs(delta)} kcal below target`;
+    else deltaLine = 'On target';
+  } else if (min !== null && kcal < min) {
     deltaLine = `${min - kcal} kcal below min`;
   }
 
@@ -78,22 +67,22 @@ function CustomTooltip({ active, payload, label }: TooltipContentProps<number, s
   );
 }
 
-export function WeeklyChart({ data, target, min, max }: WeeklyChartProps) {
+export function WeeklyChart({ data }: WeeklyChartProps) {
   if (data.length === 0) return null;
 
-  const ceiling = max ?? target;
-  const lineLabel = max != null ? 'Limit' : 'Target';
-  const maxVal = Math.max(...data.map(d => d.kcal), ceiling ?? 0, min ?? 0);
+  // One reference line per distinct target in the week — normally one, two when the week mixes
+  // gym and rest days. Drawing only the base target would put every gym-day bar above the line
+  // while its bar is correctly coloured on target, which reads as a bug.
+  const levels = [...new Set(data.map(d => d.target).filter((t): t is number => t !== null))].sort((a, b) => a - b);
+  const maxVal = Math.max(...data.map(d => d.kcal), ...levels, ...data.map(d => d.min ?? 0));
   const maxDisplayValue = Math.ceil(maxVal * 1.15);
-
-  const chartData = data.map(d => ({ ...d, _target: target, _min: min ?? null, _max: max ?? null }));
 
   return (
     <Card className="p-5">
       <h2 className="mb-4 text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">This week</h2>
       <div className="h-52">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 8, right: 4, bottom: 0, left: -16 }}>
+          <BarChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: -16 }}>
             <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--subtle)', fontSize: 12 }} />
             <YAxis
               axisLine={false}
@@ -117,23 +106,24 @@ export function WeeklyChart({ data, target, min, max }: WeeklyChartProps) {
             />
             <Bar dataKey="kcal" radius={[4, 4, 0, 0]} maxBarSize={40}>
               {data.map(entry => (
-                <Cell key={entry.date} fill={getBarColor(entry.kcal, min, max, target)} />
+                <Cell key={entry.date} fill={intakeBarColor(entry.kcal, entry.min, entry.target)} />
               ))}
             </Bar>
-            {ceiling != null && (
+            {levels.map((level, i) => (
               <ReferenceLine
-                y={ceiling}
+                key={level}
+                y={level}
                 stroke="var(--amber)"
                 strokeDasharray="6 3"
                 strokeWidth={1.5}
                 label={{
-                  value: `${lineLabel} ${ceiling}`,
+                  value: levels.length > 1 && i === levels.length - 1 ? `Gym day ${level}` : `Target ${level}`,
                   position: 'right',
                   fill: 'var(--muted)',
                   fontSize: 11,
                 }}
               />
-            )}
+            ))}
           </BarChart>
         </ResponsiveContainer>
       </div>

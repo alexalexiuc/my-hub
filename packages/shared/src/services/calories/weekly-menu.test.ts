@@ -7,6 +7,10 @@ import {
   upsertMenuMeal,
   deleteWeeklyMenuMeal,
   logMenuMeal,
+  unlogMenuMeal,
+  logMenuDay,
+  unlogMenuDay,
+  getMenuStatusForRange,
 } from './weekly-menu';
 
 // ---------------------------------------------------------------------------
@@ -39,12 +43,21 @@ const MEAL_ROW = {
   dayOfWeek: 0,
   mealType: 'breakfast',
   description: 'Oatmeal with berries',
+  ingredients: null,
   kcal: 350,
   protein: 12,
   carbs: 60,
   fat: 7,
   createdAt: new Date(),
 };
+
+/** Make db.select() resolve the menu's weekStart for the log-date guard. */
+function mockSelectMenuWeek(weekStart: string) {
+  vi.mocked(db).select.mockReturnValueOnce({
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockResolvedValue([{ weekStart }]),
+  } as any);
+}
 
 /** Make db.select() resolve to rows for the ownership check */
 function mockSelectOwnership(rows: unknown[]) {
@@ -265,6 +278,55 @@ describe('addMealToMenu', () => {
     expect(capturedValues.protein).toBeNull();
     expect(capturedValues.carbs).toBeNull();
     expect(capturedValues.fat).toBeNull();
+    expect(capturedValues.ingredients).toBeNull();
+  });
+
+  it('trims, dedupes and drops blank ingredient lines before inserting', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+
+    let capturedValues: any = null;
+    vi.mocked(db).insert.mockReturnValueOnce({
+      values: vi.fn().mockImplementation((v: any) => {
+        capturedValues = v;
+        return {
+          onConflictDoNothing: vi.fn().mockReturnThis(),
+          returning: vi.fn().mockResolvedValue([MEAL_ROW]),
+        };
+      }),
+    } as any);
+
+    await addMealToMenu('user-add-5', 'menu-abc', {
+      dayOfWeek: 1,
+      mealType: 'lunch',
+      description: 'Omelette',
+      ingredients: ['  3 Eggs  ', '3 eggs', '', '   ', '1 tbsp butter'],
+    });
+
+    expect(capturedValues.ingredients).toEqual(['3 Eggs', '1 tbsp butter']);
+  });
+
+  it('stores an all-blank ingredient list as null rather than an empty array', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+
+    let capturedValues: any = null;
+    vi.mocked(db).insert.mockReturnValueOnce({
+      values: vi.fn().mockImplementation((v: any) => {
+        capturedValues = v;
+        return {
+          onConflictDoNothing: vi.fn().mockReturnThis(),
+          returning: vi.fn().mockResolvedValue([MEAL_ROW]),
+        };
+      }),
+    } as any);
+
+    await addMealToMenu('user-add-6', 'menu-abc', {
+      dayOfWeek: 1,
+      mealType: 'lunch',
+      description: 'Salad',
+      ingredients: ['   ', ''],
+    });
+
+    expect(capturedValues.ingredients).toBeNull();
   });
 });
 
@@ -387,7 +449,245 @@ describe('updateWeeklyMenuMeal', () => {
     expect(capturedSet.protein).toBeNull();
     expect(capturedSet.carbs).toBeNull();
     expect(capturedSet.fat).toBeNull();
+    // A swap replaces the whole dish, so the previous meal's ingredient list must be cleared too
+    expect(capturedSet.ingredients).toBeNull();
     expect(capturedSet.description).toBe('Plain oats');
+  });
+
+  it('normalizes the ingredient list it writes', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    mockDeleteResolves(); // day-log cleanup after the successful update
+
+    let capturedSet: any = null;
+    vi.mocked(db).update.mockReturnValueOnce({
+      set: vi.fn().mockImplementation((data: any) => {
+        capturedSet = data;
+        return {
+          where: vi.fn().mockReturnThis(),
+          returning: vi.fn().mockResolvedValue([MEAL_ROW]),
+        };
+      }),
+    } as any);
+
+    await updateWeeklyMenuMeal('user-update-6', 'menu-abc', 0, 'breakfast', {
+      description: 'Omelette',
+      ingredients: [' 3 eggs ', '3 EGGS', '', '1 tbsp butter'],
+    });
+
+    expect(capturedSet.ingredients).toEqual(['3 eggs', '1 tbsp butter']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// unlogMenuMeal
+// ---------------------------------------------------------------------------
+
+/** Transaction handle for unlogMenuMeal: delete the marker, then delete the row it points at. */
+function makeUnlogTx({ markerRows = [{ mealLogId: 'meal-1' }] as unknown[] } = {}) {
+  return {
+    handle: {
+      delete: vi
+        .fn()
+        .mockReturnValueOnce({ where: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue(markerRows) }) })
+        .mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
+    },
+  };
+}
+
+describe('unlogMenuMeal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns false when the menu is not the user’s, without touching anything', async () => {
+    mockSelectOwnership([ACCESS_DENIED_ROW]);
+    const result = await unlogMenuMeal('user-unlog-1', 'menu-abc', 0, 'breakfast');
+    expect(result).toBe(false);
+    expect(vi.mocked(db).transaction).not.toHaveBeenCalled();
+  });
+
+  it('returns false when the slot was never logged', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    const { handle } = makeUnlogTx({ markerRows: [] });
+    vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(handle));
+
+    expect(await unlogMenuMeal('user-unlog-2', 'menu-abc', 0, 'breakfast')).toBe(false);
+    // No marker means nothing to reconcile — the journal must be left alone.
+    expect(handle.delete).toHaveBeenCalledTimes(1);
+  });
+
+  it('deletes the journal entry by id, not by matching its description', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    const { handle } = makeUnlogTx({ markerRows: [{ mealLogId: 'meal-42' }] });
+    vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(handle));
+
+    expect(await unlogMenuMeal('user-unlog-3', 'menu-abc', 0, 'breakfast')).toBe(true);
+    expect(handle.delete).toHaveBeenCalledTimes(2); // marker + the one row it points at
+    // A description match would also hit meals the user logged by hand that name the same dish,
+    // so the planned meal must not be read at all.
+    expect((handle as { select?: unknown }).select).toBeUndefined();
+  });
+
+  it('leaves the journal alone when the marker predates the linking column', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    const { handle } = makeUnlogTx({ markerRows: [{ mealLogId: null }] });
+    vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(handle));
+
+    // The marker still goes — leaving it would keep the slot counted as adhered to forever —
+    // but with no id there is nothing to delete safely, so the entry stays.
+    expect(await unlogMenuMeal('user-unlog-4', 'menu-abc', 0, 'breakfast')).toBe(true);
+    expect(handle.delete).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// logMenuDay / unlogMenuDay — the whole-day counterparts
+// ---------------------------------------------------------------------------
+
+/** Transaction handle for logMenuDay: select planned meals → insert markers → insert journal rows. */
+function makeLogDayTx({ plannedRows = [] as unknown[], markedRows = [] as unknown[] } = {}) {
+  const journalInsert = { values: vi.fn().mockResolvedValue(undefined) };
+  return {
+    handle: {
+      select: vi
+        .fn()
+        .mockReturnValue({ from: vi.fn().mockReturnThis(), where: vi.fn().mockResolvedValue(plannedRows) }),
+      insert: vi
+        .fn()
+        .mockReturnValueOnce({
+          values: vi.fn().mockReturnValue({
+            onConflictDoNothing: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue(markedRows) }),
+          }),
+        } as any)
+        .mockReturnValueOnce(journalInsert as any),
+      // Links each marker to the journal row it created, once the row exists.
+      update: vi
+        .fn()
+        .mockReturnValue({ set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }) }),
+    },
+    journalInsert,
+  };
+}
+
+describe('logMenuDay', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns null when the menu is not the user’s, without opening a transaction', async () => {
+    mockSelectOwnership([ACCESS_DENIED_ROW]);
+    expect(await logMenuDay('user-logday-1', 'menu-abc', 0, '2026-07-20')).toBeNull();
+    expect(vi.mocked(db).transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects a loggedDate that is not that weekday of the menu’s week', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    mockSelectMenuWeek('2026-07-20');
+
+    expect(await logMenuDay('user-logday-5', 'menu-abc', 3, '2026-07-20')).toBeNull();
+    expect(vi.mocked(db).transaction).not.toHaveBeenCalled();
+  });
+
+  it('returns 0 and writes nothing when the day has no planned meals', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    mockSelectMenuWeek('2026-07-20');
+    const { handle } = makeLogDayTx({ plannedRows: [] });
+    vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(handle));
+
+    expect(await logMenuDay('user-logday-2', 'menu-abc', 0, '2026-07-20')).toBe(0);
+    expect(handle.insert).not.toHaveBeenCalled();
+  });
+
+  it('journals every slot it newly marked, in the same transaction', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    const planned = [
+      { mealType: 'breakfast', description: 'Oats', kcal: 350, protein: 12, carbs: 60, fat: 7 },
+      { mealType: 'lunch', description: 'Salad', kcal: 400, protein: 20, carbs: 30, fat: 15 },
+    ];
+    mockSelectMenuWeek('2026-07-20');
+    const { handle, journalInsert } = makeLogDayTx({
+      plannedRows: planned,
+      markedRows: [{ mealType: 'breakfast' }, { mealType: 'lunch' }],
+    });
+    vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(handle));
+
+    expect(await logMenuDay('user-logday-3', 'menu-abc', 0, '2026-07-20')).toBe(2);
+    const journalled = journalInsert.values.mock.calls[0]?.[0] as { description: string }[];
+    expect(journalled.map(r => r.description)).toEqual(['Oats', 'Salad']);
+  });
+
+  it('skips slots that were already logged rather than duplicating their journal entries', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    mockSelectMenuWeek('2026-07-20');
+    const { handle, journalInsert } = makeLogDayTx({
+      plannedRows: [
+        { mealType: 'breakfast', description: 'Oats', kcal: 350 },
+        { mealType: 'lunch', description: 'Salad', kcal: 400 },
+      ],
+      // onConflictDoNothing returns only the rows it actually inserted — lunch was already logged.
+      markedRows: [{ mealType: 'breakfast' }],
+    });
+    vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(handle));
+
+    expect(await logMenuDay('user-logday-4', 'menu-abc', 0, '2026-07-20')).toBe(1);
+    const journalled = journalInsert.values.mock.calls[0]?.[0] as { description: string }[];
+    expect(journalled.map(r => r.description)).toEqual(['Oats']);
+  });
+});
+
+/** Transaction handle for unlogMenuDay: delete the markers, then the rows they point at. */
+function makeUnlogDayTx({ markerRows = [] as unknown[] } = {}) {
+  return {
+    handle: {
+      delete: vi
+        .fn()
+        .mockReturnValueOnce({
+          where: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue(markerRows) }),
+        } as any)
+        .mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
+    },
+  };
+}
+
+describe('unlogMenuDay', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns null when the menu is not the user’s', async () => {
+    mockSelectOwnership([ACCESS_DENIED_ROW]);
+    expect(await unlogMenuDay('user-unlogday-1', 'menu-abc', 0)).toBeNull();
+    expect(vi.mocked(db).transaction).not.toHaveBeenCalled();
+  });
+
+  it('returns 0 and leaves the journal alone when the day was never logged', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    const { handle } = makeUnlogDayTx({ markerRows: [] });
+    vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(handle));
+
+    expect(await unlogMenuDay('user-unlogday-2', 'menu-abc', 0)).toBe(0);
+    expect(handle.delete).toHaveBeenCalledTimes(1); // markers only — nothing to reconcile
+  });
+
+  it('deletes the journal rows the markers point at, by id', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    const { handle } = makeUnlogDayTx({
+      markerRows: [{ mealLogId: 'meal-1' }, { mealLogId: 'meal-2' }],
+    });
+    vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(handle));
+
+    expect(await unlogMenuDay('user-unlogday-3', 'menu-abc', 0)).toBe(2);
+    // marker delete + one bulk delete of the linked rows — never a description match
+    expect(handle.delete).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears markers that carry no link without touching the journal', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    const { handle } = makeUnlogDayTx({ markerRows: [{ mealLogId: null }, { mealLogId: null }] });
+    vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(handle));
+
+    expect(await unlogMenuDay('user-unlogday-4', 'menu-abc', 0)).toBe(2);
+    expect(handle.delete).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -451,7 +751,11 @@ function makeTx(dayLogRows: unknown[]) {
     .mockReturnValueOnce({
       values: vi.fn().mockResolvedValue(undefined),
     } as any);
-  return { insert };
+  // The marker is linked to the journal row it created, after the insert.
+  const update = vi
+    .fn()
+    .mockReturnValue({ set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }) });
+  return { insert, update };
 }
 
 describe('logMenuMeal', () => {
@@ -470,6 +774,7 @@ describe('logMenuMeal', () => {
 
   it('marks the slot and writes the journal entry in one transaction', async () => {
     mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    mockSelectMenuWeek('2026-07-13');
     const tx = makeTx([{ id: 7 }]);
     vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(tx));
 
@@ -485,6 +790,7 @@ describe('logMenuMeal', () => {
 
   it('does not duplicate the journal entry when the slot is already logged', async () => {
     mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    mockSelectMenuWeek('2026-07-13');
     const tx = makeTx([]); // onConflictDoNothing skipped the marker insert
     vi.mocked(db).transaction.mockImplementationOnce(async (fn: any) => fn(tx));
 
@@ -492,5 +798,77 @@ describe('logMenuMeal', () => {
 
     expect(result).toBe(true);
     expect(tx.insert).toHaveBeenCalledTimes(1); // marker attempt only — no second journal row
+  });
+
+  it('rejects a loggedDate that is not that weekday of the menu’s week', async () => {
+    mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    mockSelectMenuWeek('2026-07-13'); // Monday of the menu's week
+
+    // dayOfWeek 0 is 2026-07-13, so this date belongs to no part of this menu. Accepting it would
+    // journal calories against an unrelated day while the menu still showed the slot as logged.
+    const result = await logMenuMeal('user-log-4', 'menu-abc', 0, 'breakfast', '2020-01-01', { description: 'Oats' });
+
+    expect(result).toBe(false);
+    expect(vi.mocked(db).transaction).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getMenuStatusForRange
+// ---------------------------------------------------------------------------
+
+describe('getMenuStatusForRange', () => {
+  it('returns an empty object when no menu falls in the range', async () => {
+    mockSelectOwnership([]);
+
+    const result = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
+
+    expect(result).toEqual({});
+  });
+
+  it('marks a day hasMenu:true, logged:false when its planned slot has not been logged', async () => {
+    mockSelectOwnership([{ menuId: 'menu-abc', weekStart: '2026-08-10' }]);
+    mockSelectOwnership([{ menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' }]);
+    mockSelectOwnership([]);
+
+    const result = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
+
+    expect(result['2026-08-10']).toEqual({ hasMenu: true, logged: false });
+  });
+
+  it('marks a day logged:true only once every planned slot for it has been logged', async () => {
+    mockSelectOwnership([{ menuId: 'menu-abc', weekStart: '2026-08-10' }]);
+    mockSelectOwnership([
+      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' },
+      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'lunch' },
+    ]);
+    mockSelectOwnership([{ menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' }]);
+
+    const partial = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
+    expect(partial['2026-08-10']).toEqual({ hasMenu: true, logged: false });
+
+    mockSelectOwnership([{ menuId: 'menu-abc', weekStart: '2026-08-10' }]);
+    mockSelectOwnership([
+      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' },
+      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'lunch' },
+    ]);
+    mockSelectOwnership([
+      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' },
+      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'lunch' },
+    ]);
+
+    const full = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
+    expect(full['2026-08-10']).toEqual({ hasMenu: true, logged: true });
+  });
+
+  it('excludes dates outside the requested range even when the menu week covers them', async () => {
+    // Week of 2026-07-27; dayOfWeek 0 (Monday) falls before the requested range start.
+    mockSelectOwnership([{ menuId: 'menu-abc', weekStart: '2026-07-27' }]);
+    mockSelectOwnership([{ menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' }]);
+    mockSelectOwnership([]);
+
+    const result = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
+
+    expect(result).toEqual({});
   });
 });

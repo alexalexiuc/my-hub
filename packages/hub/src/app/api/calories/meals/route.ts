@@ -2,24 +2,24 @@ import { z } from 'zod';
 import { route, created } from '@/lib/api/route';
 import { getMeals, getMealsForDateRange, logMeal } from '@my-hub/shared/services';
 import { MealTypesValues } from '@my-hub/shared/constants';
-import type { MealType } from '@my-hub/shared/constants';
+import { isoDateSchema } from '@/lib/schemas/common';
 
 const MealQuerySchema = z.object({
-  date: z.string().optional(),
-  dateFrom: z.string().optional(),
-  dateTo: z.string().optional(),
-  mealType: z.string().optional(),
+  date: isoDateSchema.optional(),
+  dateFrom: isoDateSchema.optional(),
+  dateTo: isoDateSchema.optional(),
+  mealType: z.enum(MealTypesValues).optional(),
   limit: z.coerce.number().int().positive().optional(),
 });
 
 const MealCreateSchema = z.object({
   description: z.string().trim().min(1, 'description is required'),
   mealType: z.enum(MealTypesValues),
-  date: z.string().optional(),
-  kcal: z.number().optional(),
-  protein: z.number().optional(),
-  carbs: z.number().optional(),
-  fat: z.number().optional(),
+  date: isoDateSchema.optional(),
+  kcal: z.number().int().nonnegative().optional(),
+  protein: z.number().nonnegative().optional(),
+  carbs: z.number().nonnegative().optional(),
+  fat: z.number().nonnegative().optional(),
   notes: z.string().optional(),
 });
 
@@ -31,20 +31,22 @@ export const GET = route({ query: MealQuerySchema })(async ({ user, query }) => 
 
   const meals = await getMeals(user.id, {
     date: query.date,
-    mealType: query.mealType as MealType | undefined,
+    mealType: query.mealType,
     limit: query.limit ?? 100,
   });
   return { meals };
 });
 
 export const POST = route({ body: MealCreateSchema })(async ({ user, body }) => {
+  // Only a fallback: every caller that knows the user's day sends it, because neither UTC nor the
+  // server's timezone is that day. Around midnight the two differ, so an omitted date is a guess.
   const today = new Date().toISOString().split('T')[0]!;
 
   const meal = await logMeal({
     mealId: crypto.randomUUID(),
     userId: user.id,
     date: body.date ?? today,
-    mealType: body.mealType as MealType,
+    mealType: body.mealType,
     description: body.description,
     kcal: body.kcal != null ? Math.round(body.kcal) : null,
     protein: body.protein ?? null,

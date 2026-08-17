@@ -37,11 +37,24 @@ describe.sequential('finances — portfolio tools', () => {
   const symA = `E2EA${runId}`.slice(0, 12);
   const symB = `E2EB${runId}`.slice(0, 12);
   let supplyId: number | undefined;
+  // finances_update_portfolio upserts by symbol rather than replacing the full
+  // position set, and the portfolio is a per-budget singleton with no
+  // delete-position MCP tool — so positions from previous local e2e runs
+  // persist. The sum-to-100 validation runs over the whole merged set in a
+  // single call, so leftover symbols must be zeroed out in the *same* call
+  // that creates this run's positions (a separate zero-only call would itself
+  // sum to 0 and be rejected).
+  let staleSymbols: string[] = [];
 
   beforeAll(async () => {
     const { baseUrl } = getE2eEnv();
     const token = await generateToken();
     client = await createMcpClient(baseUrl, '/finances/mcp', token);
+
+    const existing = parseToolResult<GetPortfolioResult>(
+      await client.callTool({ name: 'finances_get_portfolio', arguments: { recentSuppliesLimit: 0 } }),
+    );
+    staleSymbols = existing.exists ? (existing.positions ?? []).map(p => p.symbol) : [];
   });
 
   afterAll(async () => {
@@ -61,6 +74,7 @@ describe.sequential('finances — portfolio tools', () => {
       arguments: {
         settings: { expectedAnnualReturnPct: 7, plannedMonthlyContribution: 1000 },
         positions: [
+          ...staleSymbols.map(symbol => ({ symbol, targetAllocationPct: 0 })),
           { symbol: symA, yahooSymbol: `${symA}.DE`, targetAllocationPct: 60 },
           { symbol: symB, yahooSymbol: `${symB}.DE`, targetAllocationPct: 40 },
         ],

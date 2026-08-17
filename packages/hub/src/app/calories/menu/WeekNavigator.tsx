@@ -1,8 +1,8 @@
 'use client';
 
-import { IconButton } from '@/components';
-import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon } from '@/components/icons';
-import { closestMenu, formatWeekLabel } from './menu.utils';
+import { NavRow } from '@/components';
+import { formatWeekRangeStr } from '@my-hub/shared/utils';
+import { closestMenu } from './menu.utils';
 import type { WeeklyMenuSummary } from './types';
 
 type WeekNavigatorProps = {
@@ -20,34 +20,27 @@ export function WeekNavigator({ menus, selectedMenu, onSelect }: WeekNavigatorPr
   const position = selectedWeek ? menus.filter(m => m.weekStart <= selectedWeek).length : 0;
 
   return (
-    <div className="flex items-center gap-2">
-      <IconButton
-        label="Previous week"
-        icon={<ChevronLeftOutlineIcon />}
-        onClick={() => prevMenu && onSelect(prevMenu)}
-        disabled={!prevMenu}
-        className="rounded-lg border border-[var(--border)] bg-[var(--card2)] text-[var(--text)] hover:bg-[var(--card)]"
-      />
-
-      {/* data-week-start lets tests assert the selected week without re-deriving the label format */}
-      <span
-        data-week-start={selectedMenu?.weekStart}
-        className="text-sm font-medium text-[var(--text)] min-w-[160px] text-center"
-      >
-        {selectedMenu ? formatWeekLabel(selectedMenu.weekStart) : '—'}
-      </span>
-
-      <IconButton
-        label="Next week"
-        icon={<ChevronRightOutlineIcon />}
-        onClick={() => nextMenu && onSelect(nextMenu)}
-        disabled={!nextMenu}
-        className="rounded-lg border border-[var(--border)] bg-[var(--card2)] text-[var(--text)] hover:bg-[var(--card)]"
-      />
-
-      <span className="text-xs text-[var(--subtle)] ml-1">
-        {position} / {menus.length}
-      </span>
-    </div>
+    <NavRow
+      prevLabel="Previous week"
+      nextLabel="Next week"
+      onPrev={() => prevMenu && onSelect(prevMenu)}
+      onNext={() => nextMenu && onSelect(nextMenu)}
+      prevDisabled={!prevMenu}
+      nextDisabled={!nextMenu}
+      label={
+        // data-week-start lets tests assert the selected week without re-deriving the label format
+        <span
+          data-week-start={selectedMenu?.weekStart}
+          className="text-sm font-medium text-[var(--text)] min-w-[160px] text-center"
+        >
+          {selectedMenu ? formatWeekRangeStr(selectedMenu.weekStart) : '—'}
+        </span>
+      }
+      trailing={
+        <span className="text-xs text-[var(--subtle)] ml-1">
+          {position} / {menus.length}
+        </span>
+      }
+    />
   );
 }

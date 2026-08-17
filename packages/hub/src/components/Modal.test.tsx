@@ -26,12 +26,14 @@ describe('Modal', () => {
 
   it('calls onClose when the desktop backdrop is clicked', () => {
     const onClose = vi.fn();
-    const { container } = render(
+    // `baseElement`, not `container`: the modal is portaled to document.body, so it is not a
+    // descendant of the render container.
+    const { baseElement } = render(
       <Modal title="Test" onClose={onClose}>
         body
       </Modal>,
     );
-    const backdrop = container.querySelector('[data-layout="desktop"]') as HTMLElement;
+    const backdrop = baseElement.querySelector('[data-layout="desktop"]') as HTMLElement;
     fireEvent.click(backdrop);
     expect(onClose).toHaveBeenCalledOnce();
   });
@@ -54,5 +56,50 @@ describe('Modal', () => {
     );
     fireEvent.click(screen.getAllByText('Save')[0]!);
     expect(onSubmit).toHaveBeenCalledOnce();
+  });
+
+  /**
+   * The portal is what keeps a modal readable when whatever opened it is faded or transformed —
+   * CSS `opacity` applies to a whole subtree and a child cannot opt out, so a dialog rendered
+   * inside the weekly menu's dimmed future-day card came out half-transparent.
+   */
+  it('renders outside the tree that opened it, into document.body', () => {
+    const { container, baseElement } = render(
+      <div className="opacity-50">
+        <Modal title="Portaled" onClose={vi.fn()}>
+          body
+        </Modal>
+      </div>,
+    );
+
+    expect(container.querySelector('.modal-shell')).toBeNull();
+    const shell = baseElement.querySelector('.modal-shell');
+    expect(shell).not.toBeNull();
+    expect(shell!.closest('.opacity-50')).toBeNull();
+  });
+
+  it('calls onClose when the browser back button is pressed', () => {
+    const onClose = vi.fn();
+    render(
+      <Modal title="Test" onClose={onClose}>
+        body
+      </Modal>,
+    );
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('discards its pushed history entry when closed without a back-press', () => {
+    const historyBackSpy = vi
+      .spyOn(window.history, 'back')
+      .mockImplementation(() => window.dispatchEvent(new PopStateEvent('popstate')));
+    const { unmount } = render(
+      <Modal title="Test" onClose={vi.fn()}>
+        body
+      </Modal>,
+    );
+    unmount();
+    expect(historyBackSpy).toHaveBeenCalledOnce();
+    historyBackSpy.mockRestore();
   });
 });

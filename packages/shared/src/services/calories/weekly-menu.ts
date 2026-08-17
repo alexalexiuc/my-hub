@@ -14,13 +14,20 @@
  * - `deleteWeeklyMenuMeal(userId, menuId, dayOfWeek, mealType)` — remove a slot (clears its day-log)
  * - `deleteWeeklyMenu(userId, menuId)` / `deleteAllUserWeeklyMenus(userId)` — menu deletion (evicts access cache)
  * - `logMenuMeal(userId, menuId, dayOfWeek, mealType, loggedDate, meal)` — transactionally journal a meal AND mark its slot logged
- * - `markDayAsLogged(userId, menuId, dayOfWeek, loggedDate, mealType)` — mark a slot logged (idempotent, marker only)
+ * - `unlogMenuMeal(userId, menuId, dayOfWeek, mealType)` — undo the above: drop the marker and the journal entry it created
+ * - `logMenuDay(userId, menuId, dayOfWeek, loggedDate)` / `unlogMenuDay(...)` — same, for every slot of a day in one transaction
+ * - `getPlannedMealsForDate(userId, date)` — the day's planned meals, each flagged logged
  * - `getLoggedDays(userId, menuId)` — `{ "day:mealType": loggedDate }` map of logged slots
+ * - `getMenuStatusForRange(userId, start, end)` — per-date `{ hasMenu, logged }` for the Hub Calendar's menu icon (`logged` true only once every planned slot for that date is logged)
  * - `getWeeklyMenuForViewer(viewerUserId, ownerUserId, weekStart)` — a shared-with-viewer menu for one week, or null without access
  * - `getSharedMenusForWeek(viewerUserId, weekStart)` — every menu + calorie targets shared with viewer for one week
  * Types (cont.): SharedWeeklyMenu
+ *
+ * There is deliberately no marker-only "mark as logged" helper: writing a day-log without its
+ * journal entry is the desync `logMenuMeal`'s transaction exists to prevent, and a slot marked
+ * that way would count towards adherence while never appearing in the calorie journal.
  */
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import {
   weeklyMenus,
@@ -36,7 +43,16 @@ import { hasMenuShareAccess, listSharedWithMe } from './shares';
 import { getUserCalorieTargets } from './profile';
 import type { UserCalorieTargets } from './profile';
 import { PromiseCacheX } from 'promise-cachex';
-import { dedupeTrimmed, logger, omitUndefined } from '../../utils';
+import {
+  addDays,
+  dateToString,
+  dayOfWeekMon0,
+  dedupeTrimmed,
+  logger,
+  omitUndefined,
+  startOfWeekMonday,
+  toUTCDateStr,
+} from '../../utils';
 
 const menuAccessCache = new PromiseCacheX<boolean>({ ttl: 1000 }); // 1 second
 
@@ -48,10 +64,23 @@ export interface WeeklyMenuMealInput {
   dayOfWeek: DayOfWeek;
   mealType: MealType;
   description: string;
+  /** Free-text ingredient lines, e.g. `["200g chicken breast", "1 red pepper"]`. */
+  ingredients?: string[] | null;
   kcal?: number | null;
   protein?: number | null;
   carbs?: number | null;
   fat?: number | null;
+}
+
+/**
+ * Trim, drop blanks and case-insensitive duplicates from an ingredient list. An
+ * absent or empty list collapses to `null` so "no ingredients" has a single
+ * representation in the column.
+ */
+function normalizeIngredients(ingredients: string[] | null | undefined): string[] | null {
+  if (ingredients == null) return null;
+  const cleaned = dedupeTrimmed(ingredients);
+  return cleaned.length > 0 ? cleaned : null;
 }
 
 export interface CreateWeeklyMenuInput {
@@ -70,6 +99,7 @@ export interface WeeklyMenuMeal {
   dayOfWeek: DayOfWeek;
   mealType: MealType;
   description: string;
+  ingredients: string[] | null;
   kcal: number | null;
   protein: number | null;
   carbs: number | null;
@@ -91,6 +121,21 @@ export interface WeeklyMenu {
 // ---------------------------------------------------------------------------
 // Service functions
 // ---------------------------------------------------------------------------
+
+/**
+ * True when `loggedDate` really is the calendar date that `dayOfWeek` falls on in this menu's
+ * week. The date is supplied by the caller, so without this a wrong or replayed request could
+ * journal meals against an unrelated day while the menu still showed the slot as logged.
+ */
+async function isDateInMenuWeek(menuId: string, dayOfWeek: DayOfWeek, loggedDate: string): Promise<boolean> {
+  const [menu] = await db
+    .select({ weekStart: weeklyMenus.weekStart })
+    .from(weeklyMenus)
+    .where(eq(weeklyMenus.menuId, menuId));
+
+  if (!menu) return false;
+  return toUTCDateStr(addDays(new Date(menu.weekStart), dayOfWeek)) === loggedDate;
+}
 
 export async function hasAccessToMenu(userId: string, menuId: string): Promise<boolean> {
   return menuAccessCache.get(`${userId}:${menuId}`, async () => {
@@ -148,6 +193,7 @@ export async function createWeeklyMenu(
                 dayOfWeek: m.dayOfWeek,
                 mealType: m.mealType,
                 description: m.description,
+                ingredients: normalizeIngredients(m.ingredients),
                 kcal: m.kcal ?? null,
                 protein: m.protein ?? null,
                 carbs: m.carbs ?? null,
@@ -271,6 +317,7 @@ export async function addMealToMenu(
       dayOfWeek: meal.dayOfWeek,
       mealType: meal.mealType,
       description: meal.description,
+      ingredients: normalizeIngredients(meal.ingredients),
       kcal: meal.kcal ?? null,
       protein: meal.protein ?? null,
       carbs: meal.carbs ?? null,
@@ -284,6 +331,7 @@ export async function addMealToMenu(
 
 export interface UpdateWeeklyMenuMealInput {
   description: string;
+  ingredients?: string[] | null;
   kcal?: number | null;
   protein?: number | null;
   carbs?: number | null;
@@ -321,12 +369,14 @@ export async function updateWeeklyMenuMeal(
     return null;
   }
 
-  // A swap replaces the whole dish, so unspecified macros are cleared (null) rather than
-  // inherited from the previous meal — otherwise "Plain oats" would keep the old salmon's macros.
+  // A swap replaces the whole dish, so unspecified macros and ingredients are cleared (null)
+  // rather than inherited from the previous meal — otherwise "Plain oats" would keep the old
+  // salmon's macros and ingredient list.
   const [updated] = await db
     .update(weeklyMenuMeals)
     .set({
       description: updates.description,
+      ingredients: normalizeIngredients(updates.ingredients),
       kcal: updates.kcal ?? null,
       protein: updates.protein ?? null,
       carbs: updates.carbs ?? null,
@@ -366,6 +416,7 @@ export async function upsertMenuMeal(
   }
 
   const values = {
+    ingredients: normalizeIngredients(meal.ingredients),
     kcal: meal.kcal ?? null,
     protein: meal.protein ?? null,
     carbs: meal.carbs ?? null,
@@ -492,7 +543,14 @@ export async function logMenuMeal(
     return false;
   }
 
+  if (!(await isDateInMenuWeek(menuId, dayOfWeek, loggedDate))) {
+    logger.warn(`Rejected log for menu ${menuId}: ${loggedDate} is not day ${dayOfWeek} of its week`);
+    return false;
+  }
+
   await db.transaction(async tx => {
+    // Marker first: its unique slot constraint is what makes this call idempotent, and inserting
+    // the journal row before knowing whether the slot was free would orphan it on a re-log.
     const marked = await tx
       .insert(weeklyMenuDayLogs)
       .values({ menuId, dayOfWeek, mealType, loggedDate })
@@ -502,8 +560,9 @@ export async function logMenuMeal(
     // Slot already logged — keep the call idempotent instead of duplicating the journal entry.
     if (marked.length === 0) return;
 
+    const mealId = crypto.randomUUID();
     await tx.insert(mealLogs).values({
-      mealId: crypto.randomUUID(),
+      mealId,
       userId,
       date: loggedDate,
       mealType,
@@ -513,30 +572,207 @@ export async function logMenuMeal(
       carbs: meal.carbs ?? null,
       fat: meal.fat ?? null,
     });
+
+    // Point the marker at the row it just created. Separate statement because the foreign key is
+    // checked immediately, so the reference cannot be written before the journal row exists.
+    await tx.update(weeklyMenuDayLogs).set({ mealLogId: mealId }).where(eq(weeklyMenuDayLogs.id, marked[0]!.id));
   });
 
   return true;
 }
 
 /**
- * Mark a specific meal as logged. Idempotent — safe to call if already logged.
- * Verifies that menuId belongs to userId before writing.
+ * Undo `logMenuMeal`: drop the slot's logged marker and the journal entry it created, in one
+ * transaction. The entry is matched on the fields `logMenuMeal` wrote (date, meal type and the
+ * dish's description) rather than by id, since the marker holds no reference to it — if the user
+ * has since edited that journal entry by hand, only the marker is removed and their edit stands.
+ * Returns false when the menu isn't the user's or the slot wasn't logged.
  */
-export async function markDayAsLogged(
+export async function unlogMenuMeal(
+  userId: string,
+  menuId: string,
+  dayOfWeek: DayOfWeek,
+  mealType: MealType,
+): Promise<boolean> {
+  if (!(await hasAccessToMenu(userId, menuId))) {
+    logger.warn(`Unauthorized unlog attempt by user ${userId} to menu ${menuId}`);
+    return false;
+  }
+
+  return db.transaction(async tx => {
+    const [marker] = await tx
+      .delete(weeklyMenuDayLogs)
+      .where(
+        and(
+          eq(weeklyMenuDayLogs.menuId, menuId),
+          eq(weeklyMenuDayLogs.dayOfWeek, dayOfWeek),
+          eq(weeklyMenuDayLogs.mealType, mealType),
+        ),
+      )
+      .returning({ mealLogId: weeklyMenuDayLogs.mealLogId });
+
+    if (!marker) return false;
+
+    // Delete by id: matching on (date, meal type, description) instead would also hit entries the
+    // user added by hand that happen to name the same dish. A null id means the marker predates
+    // the column — the marker still goes, but its entry is left rather than guessed at.
+    if (marker.mealLogId) {
+      await tx.delete(mealLogs).where(and(eq(mealLogs.userId, userId), eq(mealLogs.mealId, marker.mealLogId)));
+    }
+
+    return true;
+  });
+}
+
+/**
+ * Log every not-yet-logged meal of a day in one transaction. The alternative — the client firing
+ * one request per slot — leaves a half-logged day when any of them fails, which is the same
+ * desync `logMenuMeal` guards against, one level up. Meal details are read here rather than sent
+ * by the caller, so the journal always mirrors the plan.
+ *
+ * Returns the number of slots newly logged, or null when the menu isn't the user's.
+ */
+export async function logMenuDay(
   userId: string,
   menuId: string,
   dayOfWeek: DayOfWeek,
   loggedDate: string,
-  mealType: MealType,
-): Promise<boolean> {
+): Promise<number | null> {
   if (!(await hasAccessToMenu(userId, menuId))) {
-    logger.warn(`Unauthorized log attempt by user ${userId} to menu ${menuId}`);
-    return false;
+    logger.warn(`Unauthorized day-log attempt by user ${userId} to menu ${menuId}`);
+    return null;
   }
 
-  await db.insert(weeklyMenuDayLogs).values({ menuId, dayOfWeek, mealType, loggedDate }).onConflictDoNothing();
+  if (!(await isDateInMenuWeek(menuId, dayOfWeek, loggedDate))) {
+    logger.warn(`Rejected day-log for menu ${menuId}: ${loggedDate} is not day ${dayOfWeek} of its week`);
+    return null;
+  }
 
-  return true;
+  return db.transaction(async tx => {
+    const planned = await tx
+      .select()
+      .from(weeklyMenuMeals)
+      .where(and(eq(weeklyMenuMeals.menuId, menuId), eq(weeklyMenuMeals.dayOfWeek, dayOfWeek)));
+
+    if (planned.length === 0) return 0;
+
+    // onConflictDoNothing makes this idempotent: slots already logged return no row and are
+    // skipped below, so re-running never duplicates a journal entry.
+    const marked = await tx
+      .insert(weeklyMenuDayLogs)
+      .values(planned.map(m => ({ menuId, dayOfWeek, mealType: m.mealType, loggedDate })))
+      .onConflictDoNothing()
+      .returning({ mealType: weeklyMenuDayLogs.mealType });
+
+    if (marked.length === 0) return 0;
+
+    const newlyLogged = new Set(marked.map(m => m.mealType));
+    const rows = planned
+      .filter(m => newlyLogged.has(m.mealType))
+      .map(m => ({
+        mealId: crypto.randomUUID(),
+        userId,
+        date: loggedDate,
+        mealType: m.mealType,
+        description: m.description,
+        kcal: m.kcal != null ? Math.round(m.kcal) : null,
+        protein: m.protein,
+        carbs: m.carbs,
+        fat: m.fat,
+      }));
+
+    await tx.insert(mealLogs).values(rows);
+
+    // Link each marker to the entry it created, so undo can delete by id instead of guessing
+    // from the description. Written after the insert: the foreign key is checked immediately.
+    for (const row of rows) {
+      await tx
+        .update(weeklyMenuDayLogs)
+        .set({ mealLogId: row.mealId })
+        .where(
+          and(
+            eq(weeklyMenuDayLogs.menuId, menuId),
+            eq(weeklyMenuDayLogs.dayOfWeek, dayOfWeek),
+            eq(weeklyMenuDayLogs.mealType, row.mealType),
+          ),
+        );
+    }
+
+    return marked.length;
+  });
+}
+
+/**
+ * Undo `logMenuDay` for a whole day: drop every marker and the journal entries they created,
+ * in one transaction. Same matching caveat as `unlogMenuMeal` — an entry the user has since
+ * edited by hand no longer matches and is left alone.
+ *
+ * Returns the number of slots un-logged, or null when the menu isn't the user's.
+ */
+export async function unlogMenuDay(userId: string, menuId: string, dayOfWeek: DayOfWeek): Promise<number | null> {
+  if (!(await hasAccessToMenu(userId, menuId))) {
+    logger.warn(`Unauthorized day-unlog attempt by user ${userId} to menu ${menuId}`);
+    return null;
+  }
+
+  return db.transaction(async tx => {
+    const markers = await tx
+      .delete(weeklyMenuDayLogs)
+      .where(and(eq(weeklyMenuDayLogs.menuId, menuId), eq(weeklyMenuDayLogs.dayOfWeek, dayOfWeek)))
+      .returning({ mealLogId: weeklyMenuDayLogs.mealLogId });
+
+    if (markers.length === 0) return 0;
+
+    // By id, for the same reason as unlogMenuMeal: a description match would also delete meals
+    // the user logged by hand. Markers written before the column exists carry no id and are
+    // simply dropped, leaving their entry in the journal rather than deleting the wrong one.
+    const mealLogIds = markers.map(m => m.mealLogId).filter((id): id is string => id !== null);
+    if (mealLogIds.length > 0) {
+      await tx.delete(mealLogs).where(and(eq(mealLogs.userId, userId), inArray(mealLogs.mealId, mealLogIds)));
+    }
+
+    return markers.length;
+  });
+}
+
+/** A planned meal plus whether its slot has been logged. */
+export interface PlannedMealForDate extends WeeklyMenuMeal {
+  logged: boolean;
+}
+
+/**
+ * The meals planned for one calendar date, each flagged with whether it has been logged. Lives
+ * here rather than being assembled by a route: "what am I eating, and have I had it yet" is a
+ * domain question, and both the Hub and the MCP tools ask it.
+ *
+ * Returns an empty list when the date's week has no menu.
+ */
+export async function getPlannedMealsForDate(userId: string, date: string): Promise<PlannedMealForDate[]> {
+  const weekStart = dateToString(startOfWeekMonday(new Date(`${date}T00:00:00`)));
+  const menu = await getWeeklyMenuByWeek(userId, weekStart);
+  if (!menu) return [];
+
+  const dayOfWeek = dayOfWeekMon0(date);
+  // Ownership was established by the menu lookup above, so the marker read skips re-checking it.
+  const markers = await readDayLogs(menu.menuId);
+
+  return menu.meals
+    .filter(m => m.dayOfWeek === dayOfWeek)
+    .map(m => ({ ...m, logged: `${m.dayOfWeek}:${m.mealType}` in markers }));
+}
+
+/** Day-log markers for a menu, without an ownership check — callers must have established it. */
+async function readDayLogs(menuId: string): Promise<Record<string, string>> {
+  const rows = await db
+    .select({
+      dayOfWeek: weeklyMenuDayLogs.dayOfWeek,
+      mealType: weeklyMenuDayLogs.mealType,
+      loggedDate: weeklyMenuDayLogs.loggedDate,
+    })
+    .from(weeklyMenuDayLogs)
+    .where(eq(weeklyMenuDayLogs.menuId, menuId));
+
+  return Object.fromEntries(rows.map(r => [`${r.dayOfWeek}:${r.mealType}`, r.loggedDate]));
 }
 
 /**
@@ -548,16 +784,77 @@ export async function getLoggedDays(userId: string, menuId: string): Promise<Rec
     return {};
   }
 
-  const rows = await db
-    .select({
-      dayOfWeek: weeklyMenuDayLogs.dayOfWeek,
-      mealType: weeklyMenuDayLogs.mealType,
-      loggedDate: weeklyMenuDayLogs.loggedDate,
-    })
-    .from(weeklyMenuDayLogs)
-    .where(eq(weeklyMenuDayLogs.menuId, menuId));
+  return readDayLogs(menuId);
+}
 
-  return Object.fromEntries(rows.map(r => [`${r.dayOfWeek}:${r.mealType}`, r.loggedDate]));
+export interface DayMenuStatus {
+  hasMenu: boolean;
+  /** True only when `hasMenu` and every planned slot for that date has been logged. */
+  logged: boolean;
+}
+
+/**
+ * Per-date `{ hasMenu, logged }` for every day in `[start, end]` that a weekly menu covers — the
+ * Hub Calendar's menu icon needs this in one shot for a whole month rather than one
+ * `getPlannedMealsForDate` call per day. Three batch queries (menus in range, their meals, their
+ * day-logs) regardless of how many days the range spans, mirroring `getDailySummariesForRange`.
+ * Dates with no menu are simply absent from the result.
+ */
+export async function getMenuStatusForRange(
+  userId: string,
+  start: string,
+  end: string,
+): Promise<Record<string, DayMenuStatus>> {
+  const startWeek = dateToString(startOfWeekMonday(new Date(`${start}T00:00:00`)));
+  const endWeek = dateToString(startOfWeekMonday(new Date(`${end}T00:00:00`)));
+
+  const menus = await db
+    .select({ menuId: weeklyMenus.menuId, weekStart: weeklyMenus.weekStart })
+    .from(weeklyMenus)
+    .where(
+      and(eq(weeklyMenus.userId, userId), gte(weeklyMenus.weekStart, startWeek), lte(weeklyMenus.weekStart, endWeek)),
+    );
+
+  if (menus.length === 0) return {};
+
+  const menuIds = menus.map(m => m.menuId);
+  const weekStartByMenu = new Map(menus.map(m => [m.menuId, m.weekStart]));
+
+  const [meals, logs] = await Promise.all([
+    db
+      .select({
+        menuId: weeklyMenuMeals.menuId,
+        dayOfWeek: weeklyMenuMeals.dayOfWeek,
+        mealType: weeklyMenuMeals.mealType,
+      })
+      .from(weeklyMenuMeals)
+      .where(inArray(weeklyMenuMeals.menuId, menuIds)),
+    db
+      .select({
+        menuId: weeklyMenuDayLogs.menuId,
+        dayOfWeek: weeklyMenuDayLogs.dayOfWeek,
+        mealType: weeklyMenuDayLogs.mealType,
+      })
+      .from(weeklyMenuDayLogs)
+      .where(inArray(weeklyMenuDayLogs.menuId, menuIds)),
+  ]);
+
+  const loggedSlots = new Set(logs.map(l => `${l.menuId}:${l.dayOfWeek}:${l.mealType}`));
+
+  const statuses: Record<string, DayMenuStatus> = {};
+  for (const meal of meals) {
+    const weekStart = weekStartByMenu.get(meal.menuId);
+    if (!weekStart) continue;
+    const date = toUTCDateStr(addDays(new Date(`${weekStart}T00:00:00`), meal.dayOfWeek));
+    if (date < start || date > end) continue;
+
+    const entry = statuses[date] ?? { hasMenu: false, logged: true };
+    entry.hasMenu = true;
+    entry.logged = entry.logged && loggedSlots.has(`${meal.menuId}:${meal.dayOfWeek}:${meal.mealType}`);
+    statuses[date] = entry;
+  }
+
+  return statuses;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,10 +1,95 @@
-import { toUTCDateStr, addDays, dateToString, startOfWeekMonday } from '@my-hub/shared/utils';
+import { toUTCDateStr, addDays, dateToString, startOfWeekMonday, shiftWeekStr } from '@my-hub/shared/utils';
 import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
+import { MEAL_LABEL } from '@/app/calories/constants';
+import { apiFetch } from '@/lib/utils';
+import {
+  DeleteMenuMealSchema,
+  LogDayBodySchema,
+  LogDayResponseSchema,
+  LogWholeDaySchema,
+  UnlogWholeDaySchema,
+  WholeDayResponseSchema,
+} from '@/app/api/calories/menu/menu.schemas';
+import type { WeeklyMenuMeal } from './types';
 
-export const MEAL_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout', 'other'];
+/**
+ * Meal types as `Select` options. Takes the types to offer, since the create editor lists them
+ * all while the add-a-meal modal offers only the slots a day still has free.
+ */
+export function mealTypeOptions(types: MealType[]): { value: MealType; label: string }[] {
+  return types.map(value => ({ value, label: MEAL_LABEL[value] }));
+}
 
 /** `${dayOfWeek}:${mealType}` → true */
 export type LoggedMeals = Record<string, true>;
+
+/**
+ * Flip one meal slot's logged state. The request was written out at three call sites (the meal
+ * row, the day card and the Today page's next-meal card) with the same eight-field body, so a
+ * field added to `LogDayBodySchema` had to be found in all of them.
+ */
+export async function setMealLogged(
+  menuId: string,
+  loggedDate: string,
+  dayOfWeek: DayOfWeek,
+  meal: WeeklyMenuMeal,
+  logged: boolean,
+  opts: { silentToast?: boolean } = {},
+): Promise<void> {
+  if (!logged) {
+    await apiFetch(`/api/calories/menu/${menuId}/log-day`, {
+      method: 'DELETE',
+      body: { dayOfWeek, mealType: meal.mealType },
+      bodySchema: DeleteMenuMealSchema,
+      ...opts,
+    });
+    return;
+  }
+
+  await apiFetch(`/api/calories/menu/${menuId}/log-day`, {
+    method: 'POST',
+    body: {
+      dayOfWeek,
+      loggedDate,
+      mealType: meal.mealType,
+      description: meal.description,
+      kcal: meal.kcal,
+      protein: meal.protein,
+      carbs: meal.carbs,
+      fat: meal.fat,
+    },
+    bodySchema: LogDayBodySchema,
+    responseSchema: LogDayResponseSchema,
+    ...opts,
+  });
+}
+
+/** Flip a whole day's logged state — one request and one transaction, not one per meal. */
+export async function setDayLogged(
+  menuId: string,
+  loggedDate: string,
+  dayOfWeek: DayOfWeek,
+  logged: boolean,
+): Promise<void> {
+  // Split rather than ternaries inside one call: the body and its schema have to stay paired,
+  // and a conditional `bodySchema` loses the inference that keeps them in step.
+  if (!logged) {
+    await apiFetch(`/api/calories/menu/${menuId}/log-day/all`, {
+      method: 'DELETE',
+      body: { dayOfWeek },
+      bodySchema: UnlogWholeDaySchema,
+      responseSchema: WholeDayResponseSchema,
+    });
+    return;
+  }
+
+  await apiFetch(`/api/calories/menu/${menuId}/log-day/all`, {
+    method: 'POST',
+    body: { dayOfWeek, loggedDate },
+    bodySchema: LogWholeDaySchema,
+    responseSchema: WholeDayResponseSchema,
+  });
+}
 
 /** Returns YYYY-MM-DD for the given day of the week relative to a weekStart (Monday). */
 export function dateForDay(weekStart: string, dayOfWeek: DayOfWeek): string {
@@ -23,15 +108,6 @@ export function latestMenu<T extends { weekStart: string }>(menus: T[]): T | nul
 /** Returns the ISO Monday (YYYY-MM-DD) for the week containing today (local date). */
 export function currentWeekMonday(): string {
   return dateToString(startOfWeekMonday(new Date()));
-}
-
-/**
- * Advances/retreats a YYYY-MM-DD Monday by n weeks.
- * All-UTC (parse, add, format) — mixing a local parse with UTC day arithmetic drifts one day
- * across DST transitions.
- */
-export function shiftWeek(monday: string, n: number): string {
-  return toUTCDateStr(addDays(new Date(monday), n * 7));
 }
 
 /**
@@ -54,31 +130,13 @@ export function closestMenu<T extends { weekStart: string }>(menus: T[], week: s
 export function nextMenuWeekStart(menus: { weekStart: string }[], currentWeekStart: string): string {
   const latest = latestMenu(menus);
   const anchor = latest && latest.weekStart >= currentWeekStart ? latest.weekStart : null;
-  return anchor ? shiftWeek(anchor, 1) : currentWeekStart;
-}
-
-/**
- * Formats a week's date range as e.g. "Jun 1 – Jun 7" from its Monday `weekStart`.
- * Pass `includeYear` to append the year, e.g. "Jun 1 – Jun 7, 2026".
- */
-export function formatWeekLabel(weekStart: string, includeYear = false): string {
-  const date = new Date(weekStart + 'T00:00:00');
-  const end = new Date(date);
-  end.setDate(date.getDate() + 6);
-  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const range = `${fmt(date)} – ${fmt(end)}`;
-  return includeYear ? `${range}, ${date.getFullYear()}` : range;
+  return anchor ? shiftWeekStr(anchor, 1) : currentWeekStart;
 }
 
 // ---------------------------------------------------------------------------
 // Planned-vs-target visual helpers, shared by DayCard's per-day bar and
 // MenuDetail's weekly summary card so both use identical thresholds.
 // ---------------------------------------------------------------------------
-
-/** The calorie target for a given day: the base daily target, plus the gym-day bonus if applicable. */
-export function dayTargetKcal(baseTarget: number, isGymDay: boolean, gymDayBonus: number): number {
-  return isGymDay ? baseTarget + gymDayBonus : baseTarget;
-}
 
 /** Planned kcal as a percentage of target, rounded. Returns null if target is not a positive number. */
 export function targetPct(planned: number, target: number | null): number | null {

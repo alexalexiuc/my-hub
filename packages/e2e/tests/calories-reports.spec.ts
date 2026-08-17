@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { deleteFeatures } from './helpers';
+import { deleteFeatures, periodLabel } from './helpers';
 
 function dateStr(d: Date): string {
   const yyyy = d.getFullYear();
@@ -61,6 +61,39 @@ test.describe('Calories Reports', () => {
   });
 
   /**
+   * The tabbed page is the one the sidebar and bottom nav link to — the standalone weekly/monthly
+   * pages below are only reachable from the emailed reports' "view in app" link.
+   */
+  test('tabbed reports page: switches period, records it in the URL, and stops at the current one', async ({
+    page,
+  }) => {
+    await addMealForToday(page);
+
+    await page.goto('/calories/reports');
+    await page.waitForLoadState('networkidle');
+
+    const label = periodLabel(page);
+
+    // ── 1. Opens on the week in progress, which is as far forward as it goes ──
+    await expect(label).toHaveText('This week');
+    await expect(page.getByRole('button', { name: 'Next period' })).toBeDisabled();
+    await expect(page.locator('iframe')).toBeVisible({ timeout: 10_000 });
+
+    // ── 2. Switching to monthly is reflected in the URL, so the view is linkable ──
+    await page.getByRole('button', { name: 'monthly', exact: true }).click();
+    await expect(page).toHaveURL(/\?tab=monthly/);
+    await expect(label).toHaveText('This month');
+
+    // ── 3. The period resets per tab rather than carrying a week index into months ──
+    await page.getByRole('button', { name: 'Previous period' }).click();
+    await expect(label).not.toHaveText('This month');
+
+    await page.getByRole('button', { name: 'weekly', exact: true }).click();
+    await expect(page).toHaveURL(/\?tab=weekly/);
+    await expect(label).toHaveText('This week');
+  });
+
+  /**
    * With-data rendering: weekly and monthly reports both render a preview iframe,
    * cross-report navigation works, and month navigation updates the label.
    */
@@ -82,11 +115,23 @@ test.describe('Calories Reports', () => {
     await expect(page.getByRole('heading', { name: 'Monthly Report', level: 1 })).toBeVisible();
     await expect(page.locator('iframe')).toBeVisible({ timeout: 10_000 });
 
-    // ── 3. Month navigation updates label ─────────────────────────────────────
-    const nav = page.locator('div.flex.items-center.justify-center.gap-4').first();
-    const label = nav.locator('span').first();
-    const initialLabel = (await label.textContent()) ?? '';
-    await nav.getByRole('button', { name: /^Next/ }).click();
-    await expect(label).not.toHaveText(initialLabel);
+    // ── 3. Month navigation: back a month updates the label, forward is barred ─
+    // Stepping back rather than forward, because the page is on the current month and every
+    // period beyond it can only be empty — "Next" is deliberately disabled there.
+    const nextButton = page.getByRole('button', { name: 'Next period' });
+    const prevButton = page.getByRole('button', { name: 'Previous period' });
+    const label = page.getByText('This month', { exact: true });
+
+    await expect(label).toBeVisible();
+    await expect(nextButton).toBeDisabled();
+
+    await prevButton.click();
+    await expect(page.getByText('This month', { exact: true })).toBeHidden();
+    await expect(nextButton).toBeEnabled();
+
+    // ── 4. And forward again returns to the current month ─────────────────────
+    await nextButton.click();
+    await expect(page.getByText('This month', { exact: true })).toBeVisible();
+    await expect(nextButton).toBeDisabled();
   });
 });

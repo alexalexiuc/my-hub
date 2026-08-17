@@ -50,4 +50,11 @@ describe('MobileSelectSheet', () => {
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'xyz' } });
     expect(screen.getByText('No options found')).toBeTruthy();
   });
+
+  it('calls onClose when the browser back button is pressed', () => {
+    const onClose = vi.fn();
+    render(<MobileSelectSheet options={options} onChange={vi.fn()} onClose={onClose} />);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
 });

@@ -18,6 +18,8 @@
  * - monthLabel(monthStart) — "Month YYYY" string from a UTC month-start date
  * - shiftMonthStr(month, delta) — shift a YYYY-MM string by delta months, returns YYYY-MM
  * - formatMonthStr(month) — format a YYYY-MM string as "Month YYYY"
+ * - shiftWeekStr(monday, delta) — shift a YYYY-MM-DD Monday by delta weeks, returns YYYY-MM-DD (UTC-safe)
+ * - formatWeekRangeStr(weekStart, includeYear?) — format a YYYY-MM-DD Monday as "Mon D – Mon D[, YYYY]"
  * - weekLabel(weekStart) — "Week W, YYYY" string from an ISO week-start date
  * - calendarDays(startAt, endAt) — array of YYYY-MM-DD strings for each day start→end inclusive
  * - formatDayHeading(dateStr) — YYYY-MM-DD → locale short heading e.g. "Mon, 1 Jan"
@@ -27,6 +29,7 @@
  * - getMonthStart(date) — first day of the month at local midnight
  * - getMonthEnd(date) — last day of the month at local midnight
  * - startOfWeekMonday(date) — Monday of the week containing date, at local midnight
+ * - dayOfWeekMon0(dateStr) — day index for a YYYY-MM-DD string, Monday-first (0=Mon … 6=Sun)
  * - isSameDay(a, b) — true if two dates fall on the same local calendar day
  * - toDate(value) — coerce unknown to Date; returns null on invalid input
  * - startOfDay(date) — copy of date with time set to 00:00:00.000 local
@@ -215,6 +218,28 @@ export function formatMonthStr(month: string): string {
   return monthLabel(parseMonthStr(month));
 }
 
+/**
+ * Shifts a YYYY-MM-DD Monday by delta weeks and returns a new YYYY-MM-DD Monday.
+ * All-UTC (parse, add, format) — mixing a local parse with UTC day arithmetic drifts one day
+ * across DST transitions.
+ */
+export function shiftWeekStr(monday: string, delta: number): string {
+  return toUTCDateStr(addDays(new Date(monday), delta * 7));
+}
+
+/**
+ * Formats a week's date range as e.g. "Jun 1 – Jun 7" from its Monday start date.
+ * Pass `includeYear` to append the year, e.g. "Jun 1 – Jun 7, 2026".
+ */
+export function formatWeekRangeStr(weekStart: string, includeYear = false): string {
+  const date = new Date(weekStart + 'T00:00:00');
+  const end = new Date(date);
+  end.setDate(date.getDate() + 6);
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const range = `${fmt(date)} – ${fmt(end)}`;
+  return includeYear ? `${range}, ${date.getFullYear()}` : range;
+}
+
 /** Returns the start (Monday) of the previous ISO week at UTC midnight. */
 export function getLastMonday(referenceDate: Date = new Date()): Date {
   const todayUtc = new Date(
@@ -380,6 +405,18 @@ export function startOfWeekMonday(date: Date): Date {
   return d;
 }
 
+/**
+ * Day-of-week index for a YYYY-MM-DD string in the Monday-first convention this codebase uses
+ * everywhere (0=Mon … 6=Sun) — as opposed to `Date.getDay()`, which is Sunday-first. Parsed at
+ * local midnight so the index matches the calendar day the string names, not UTC's.
+ *
+ * Exists so the Sun=0 → Mon=0 correction lives in one place: it was being re-derived inline at
+ * every call site, each with its own comment explaining the `+ 6) % 7`.
+ */
+export function dayOfWeekMon0(dateStr: string): 0 | 1 | 2 | 3 | 4 | 5 | 6 {
+  return ((new Date(`${dateStr}T00:00:00`).getDay() + 6) % 7) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+}
+
 /** Returns true if `a` and `b` fall on the same local calendar day (year + month + date). */
 export function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -478,15 +515,17 @@ export function getTimezoneBadge(date: Date, timezone: string | null): { short: 
 }
 
 /**
- * Returns the 7 days of the current ISO week (Mon–Sun) as YYYY-MM-DD strings with short labels.
- * The current day is labelled "Today"; all other days use short weekday names (Mon, Tue…).
+ * Returns the 7 days of an ISO week (Mon–Sun) as YYYY-MM-DD strings with short labels.
+ * Today is labelled "Today"; all other days use short weekday names (Mon, Tue…).
+ *
+ * Pass a `weekStart` (YYYY-MM-DD Monday) to describe any week; omit it for the current one. The
+ * week is a parameter rather than a second function because only the starting Monday differs —
+ * the labelling convention, including the "Today" case, has to stay identical across screens.
  */
-export function getCurrentWeekDays(): { date: string; label: string }[] {
+export function getCurrentWeekDays(weekStart?: string): { date: string; label: string }[] {
   const days: { date: string; label: string }[] = [];
   const today = new Date();
-  const daysSinceMonday = (today.getDay() + 6) % 7;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - daysSinceMonday);
+  const monday = weekStart ? new Date(`${weekStart}T00:00:00`) : startOfWeekMonday(today);
   const cursor = new Date(monday);
   for (let i = 0; i < 7; i += 1) {
     days.push({

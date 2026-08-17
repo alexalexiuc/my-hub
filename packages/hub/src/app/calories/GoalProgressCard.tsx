@@ -4,20 +4,16 @@ import { ComposedChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip as Rech
 import { Card } from '@/components';
 import type { TooltipContentProps, TooltipPayloadEntry } from 'recharts';
 import { GoalTypes } from '@my-hub/shared/constants';
+import { findPastWeight, getBaselineWeightForWeek, getDailyGoalDelta, type WeightPoint } from './calories.utils';
 
 interface DayData {
   date: string;
   label: string;
 }
 
-interface WeightMeasurement {
-  date: string;
-  value: number;
-}
-
 type GoalProgressCardProps = {
   days: DayData[];
-  weightHistory: WeightMeasurement[];
+  weightHistory: WeightPoint[];
   goalType: string | null;
   goalWeeklyRateKg: number | null;
 };
@@ -49,39 +45,6 @@ function CustomTooltip({ active, payload, label }: TooltipContentProps<number, s
       ))}
     </div>
   );
-}
-
-/**
- * Calculates the daily weight change needed to meet the weekly goal, based on the goal type and weekly rate.
- * Returns null if inputs are invalid or insufficient to determine a daily delta.
- */
-function getDailyGoalDelta(goalType: string | null, goalWeeklyRateKg: number | null): number | null {
-  if (goalType === GoalTypes.Maintain) return 0;
-  if (!goalWeeklyRateKg || goalWeeklyRateKg <= 0) return null;
-  if (goalType === GoalTypes.WeightLoss) return -(goalWeeklyRateKg / 7);
-  if (goalType === GoalTypes.WeightGain) return goalWeeklyRateKg / 7;
-  return null;
-}
-
-/**
- * Returns the baseline weight for the week, which is ideally the Monday weight. If Monday's weight is not available, falls back to the most recent known weight before that week. Returns null if no weight data is available at all.
- */
-function getBaselineWeightForWeek(weightRows: WeightMeasurement[], weekStartDate: string): number | null {
-  const mondayWeightOrLast =
-    weightRows.find(row => row.date === weekStartDate || row.date < weekStartDate)?.value ?? null;
-  if (mondayWeightOrLast !== null) return mondayWeightOrLast;
-  return weightRows[0]?.value ?? null;
-}
-
-/**
- * Finds the weight for the given date. If `nearestIfNone` is true and there's no exact match, returns the most recent past weight.
- */
-function findPastWeight(weightRows: WeightMeasurement[], date: string, nearestIfNone: boolean = false): number | null {
-  for (const row of weightRows) {
-    if (nearestIfNone && row.date <= date) return row.value;
-    if (row.date === date) return row.value;
-  }
-  return null;
 }
 
 export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRateKg }: GoalProgressCardProps) {

@@ -5,10 +5,11 @@ import { apiFetch, ApiError } from '@/lib/utils';
 import Link from 'next/link';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { calculateCalorieTargets, dateToString } from '@my-hub/shared/utils';
+import { dateToString, dayCalorieTargets, latestWeightKg } from '@my-hub/shared/utils';
 import { Card, DatePicker } from '@/components';
 import { mealEvents } from './mealEvents';
 import { MealsSection } from './MealsSection';
+import { NextMealCard } from './NextMealCard';
 import { MacroChart } from './MacroChart';
 import { CaloriesDonut } from './CaloriesDonut';
 
@@ -89,19 +90,12 @@ export default function TodayPage() {
     );
   }
 
-  const calorieTargets = calculateCalorieTargets({
-    age: profile?.age ?? null,
-    sex: profile?.sex ?? null,
-    heightCm: profile?.heightCm ?? null,
-    weightKg: latestMeasurements.find(m => m.typeKey === 'weight')?.value ?? null,
-    activityLevel: profile?.activityLevel ?? null,
-    goalType: profile?.goalType ?? null,
-    goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? null,
-    goalMinCalories: profile?.goalMinCalories ?? null,
-    goalMaxCalories: profile?.goalMaxCalories ?? null,
-  });
-
-  const cap = (calorieTargets.maxCalories ?? calorieTargets.goalCalories) || null;
+  const {
+    target: cap,
+    min: minTarget,
+    isGymDay,
+    gymDayBonus,
+  } = dayCalorieTargets(profile, latestWeightKg(latestMeasurements), selectedDate);
   const totalKcal = meals.reduce((sum, m) => sum + (m.kcal ?? 0), 0);
   const totalProtein = Math.round(meals.reduce((sum, m) => sum + (m.protein ?? 0), 0));
   const totalCarbs = Math.round(meals.reduce((sum, m) => sum + (m.carbs ?? 0), 0));
@@ -128,22 +122,40 @@ export default function TodayPage() {
         />
       </div>
 
-      {/* 3-part grid: left = 1 part, right = 2 parts */}
+      {/* 3-part grid: left = 1 part, right = 2 parts.
+          The wide column comes first in the DOM so that on a phone — where the grid collapses to
+          a stack — the plan leads instead of sitting below the donut and the macro card. Columns
+          are placed explicitly rather than left to auto-flow, so that source order doesn't decide
+          the desktop layout. Rows are deliberately *not* placed: `NextMealCard` renders nothing on
+          a day with no plan, and a reserved row would leave a hole above the meals list. */}
       <div className="flex flex-col gap-4 md:grid md:grid-cols-3 md:items-start">
+        <div className="flex flex-col gap-4 md:col-start-2 md:col-span-2">
+          <NextMealCard date={selectedDate} />
+          <MealsSection
+            meals={meals}
+            selectedDate={selectedDate}
+            gymTime={profile?.gymTime ?? null}
+            onChanged={loadData}
+          />
+        </div>
+
         {/* Left column (col-span-1): calorie summary + macro chart */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 md:col-start-1 md:row-start-1">
           <Card className="flex flex-col items-center gap-3 p-5">
-            <CaloriesDonut eaten={totalKcal} cap={cap} min={calorieTargets.minCalories ?? null} textSize="text-2xl" />
+            <CaloriesDonut eaten={totalKcal} cap={cap} min={minTarget} textSize="text-2xl" />
             <div className="w-full text-center">
               <p className="text-sm text-[var(--muted)]">
                 <span className="text-xl font-bold text-[var(--text)]">{totalKcal}</span>
                 {cap !== null && <span className="text-[var(--subtle)]"> / {cap}</span>}
                 <span className="ml-1">kcal</span>
               </p>
-              {calorieTargets.minCalories !== null && cap !== null && (
+              {minTarget !== null && cap !== null && (
                 <p className="mt-1 text-xs text-[var(--subtle)]">
-                  Range: {calorieTargets.minCalories}–{cap} kcal
+                  Range: {minTarget}–{cap} kcal
                 </p>
+              )}
+              {isGymDay && cap !== null && (
+                <p className="mt-1 text-xs text-[var(--accent)]">Gym day · +{gymDayBonus} kcal</p>
               )}
               {cap === null && (
                 <p className="mt-1 text-xs text-[var(--subtle)]">
@@ -164,11 +176,6 @@ export default function TodayPage() {
             goalCarbs={profile?.goalCarbs ?? null}
             goalFat={profile?.goalFat ?? null}
           />
-        </div>
-
-        {/* Right column (col-span-2): meals list */}
-        <div className="col-span-2">
-          <MealsSection meals={meals} selectedDate={selectedDate} onChanged={loadData} />
         </div>
       </div>
     </main>

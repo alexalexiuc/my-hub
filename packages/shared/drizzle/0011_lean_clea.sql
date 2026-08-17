@@ -1,0 +1,1 @@
+ALTER TABLE "weekly_menu_meals" ADD COLUMN "ingredients" text[];

@@ -1,16 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiFetch, ApiError } from '@/lib/utils';
 import Link from 'next/link';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { calculateCalorieTargets, dateToString, getCurrentWeekDays } from '@my-hub/shared/utils';
+import { dayCalorieTargets, latestWeightKg, getCurrentWeekDays, shiftWeekStr, weekLabel } from '@my-hub/shared/utils';
 import { measurementTypeDefinitions } from '@my-hub/shared/constants';
+import { currentWeekMonday } from '../menu/menu.utils';
 import { GoalProgressCard } from '../GoalProgressCard';
 import { WeeklyChart } from '../WeeklyChart';
 import { WeightChart } from '../WeightChart';
 import { MeasurementsSection } from '../MeasurementsSection';
+import { PeriodNav } from '../ui';
+import { shiftDate } from '../calories.utils';
 import { mealEvents } from '../mealEvents';
 
 export default function ProgressPage() {
@@ -21,44 +24,59 @@ export default function ProgressPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const today = dateToString(new Date());
-  const weekDays = getCurrentWeekDays();
-  const weekStart = weekDays[0]!.date;
+  const thisWeekStart = currentWeekMonday();
+  // The week on screen. Previously pinned to the current week with no way to look back, so a
+  // finished week became unreachable the moment Monday arrived.
+  const [weekStart, setWeekStart] = useState(thisWeekStart);
+  const isCurrentWeek = weekStart === thisWeekStart;
+  const weekEnd = shiftDate(weekStart, 6);
+  // `weekLabel` reads UTC components, so it needs a UTC-midnight date. Parsing the same string at
+  // local midnight puts a positive-offset timezone on the previous UTC day — and therefore in the
+  // previous ISO week, which labelled the week before this one as two weeks back.
+  const weekStartUtc = new Date(`${weekStart}T00:00:00Z`);
 
-  const loadData = useCallback(async () => {
+  const weekDays = useMemo(() => getCurrentWeekDays(weekStart), [weekStart]);
+
+  /**
+   * Profile and weight history, which describe the user rather than the week on screen. Kept out
+   * of the week-dependent loader so paging back through months doesn't refetch them per arrow.
+   */
+  const loadProfile = useCallback(async () => {
     try {
-      const [profileData, weightData, weeklyData] = await Promise.all([
+      const [profileData, weightData] = await Promise.all([
         apiFetch<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>('/api/calories/profile'),
         apiFetch<{ measurements: MeasurementWithType[] }>('/api/calories/measurements', {
           query: { type: 'weight', limit: 30 },
         }),
-        apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { dateFrom: weekStart, dateTo: today } }),
       ]);
       setProfile(profileData.profile);
       setLatestMeasurements(profileData.measurements);
       setWeightHistory(weightData.measurements);
-      setWeeklyMeals(weeklyData.meals);
     } catch (e) {
       setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
     } finally {
       setLoading(false);
     }
-  }, [today, weekStart]);
+  }, []);
 
   const loadWeeklyMeals = useCallback(async () => {
     try {
       const data = await apiFetch<{ meals: MealLog[] }>('/api/calories/meals', {
-        query: { dateFrom: weekStart, dateTo: today },
+        query: { dateFrom: weekStart, dateTo: weekEnd },
       });
       setWeeklyMeals(data.meals);
     } catch {
       // ignore — stale weekly totals are acceptable on a silent refresh
     }
-  }, [today, weekStart]);
+  }, [weekEnd, weekStart]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadProfile();
+  }, [loadProfile]);
+
+  useEffect(() => {
+    void loadWeeklyMeals();
+  }, [loadWeeklyMeals]);
 
   useEffect(() => {
     mealEvents.on('changed', loadWeeklyMeals);
@@ -86,37 +104,39 @@ export default function ProgressPage() {
     );
   }
 
-  const calorieTargets = calculateCalorieTargets({
-    age: profile?.age ?? null,
-    sex: profile?.sex ?? null,
-    heightCm: profile?.heightCm ?? null,
-    weightKg: latestMeasurements.find(m => m.typeKey === 'weight')?.value ?? null,
-    activityLevel: profile?.activityLevel ?? null,
-    goalType: profile?.goalType ?? null,
-    goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? null,
-    goalMinCalories: profile?.goalMinCalories ?? null,
-    goalMaxCalories: profile?.goalMaxCalories ?? null,
-  });
+  const weightKg = latestWeightKg(latestMeasurements);
 
+  // Targets are resolved per day so training days carry their bonus, matching the weekly menu
+  // and the Today page rather than judging every day against one flat number.
   const weeklyData = weekDays.map(({ date, label }) => {
-    const dayMeals = weeklyMeals.filter(m => m.date === date);
-    return { date, label, kcal: dayMeals.reduce((sum, m) => sum + (m.kcal ?? 0), 0) };
+    const { target, min } = dayCalorieTargets(profile, weightKg, date);
+    return {
+      date,
+      label,
+      kcal: weeklyMeals.filter(m => m.date === date).reduce((sum, m) => sum + (m.kcal ?? 0), 0),
+      target,
+      min,
+    };
   });
 
-  const weightChartData = weightHistory
-    .filter(m => m.typeKey === 'weight')
+  // Copied before sorting: `sort` is in-place, and this array is React state that the API hands
+  // over newest-first — reordering it here would silently flip the order every other reader sees.
+  const weightChartData = [...weightHistory]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(-20)
     .map(m => ({ date: m.date, label: m.date.slice(5), value: m.value }));
 
   return (
     <main className="mx-auto max-w-2xl space-y-4">
-      <WeeklyChart
-        data={weeklyData}
-        target={calorieTargets.goalCalories ?? null}
-        min={calorieTargets.minCalories ?? null}
-        max={calorieTargets.maxCalories ?? null}
+      <PeriodNav
+        compact
+        label={isCurrentWeek ? 'This week' : weekLabel(weekStartUtc)}
+        isCurrent={isCurrentWeek}
+        onPrev={() => setWeekStart(shiftWeekStr(weekStart, -1))}
+        onNext={() => setWeekStart(shiftWeekStr(weekStart, 1))}
       />
+
+      <WeeklyChart data={weeklyData} />
 
       <GoalProgressCard
         days={weekDays}
@@ -130,7 +150,7 @@ export default function ProgressPage() {
       <MeasurementsSection
         latestMeasurements={latestMeasurements}
         measurementTypes={measurementTypeDefinitions}
-        onChanged={loadData}
+        onChanged={loadProfile}
       />
     </main>
   );

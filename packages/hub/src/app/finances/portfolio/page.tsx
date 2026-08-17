@@ -118,7 +118,11 @@ export default function PortfolioPage() {
         <PortfolioSettingsModal overview={overview} onClose={() => setOpenModal(null)} onSaved={handleSaved} />
       )}
       {openModal === 'history' && overview && (
-        <HistoryModal currency={overview.portfolio.baseCurrency} onClose={() => setOpenModal(null)} />
+        <HistoryModal
+          currency={overview.portfolio.baseCurrency}
+          targetAmount={overview.portfolio.targetAmount}
+          onClose={() => setOpenModal(null)}
+        />
       )}
       {openModal === 'projection' && overview && (
         <ProjectionModal overview={overview} onClose={() => setOpenModal(null)} />

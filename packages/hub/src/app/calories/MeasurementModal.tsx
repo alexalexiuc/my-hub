@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { MeasurementType } from '@my-hub/shared/types';
+import type { MeasurementWithType } from '@my-hub/shared/services';
 import { apiFetch } from '@/lib/utils';
 import { Modal, Input, SearchableSelect } from '@/components';
 import { dateToString } from '@my-hub/shared/utils';
@@ -10,17 +11,26 @@ import { FieldCard } from './ui';
 type MeasurementModalProps = {
   measurementTypes: MeasurementType[];
   defaultTypeKey?: string;
+  /** Pass an existing entry to edit it in place; omit to log a new one. */
+  measurement?: MeasurementWithType;
   onClose: () => void;
   onSaved: () => void;
 };
 
-export function MeasurementModal({ measurementTypes, defaultTypeKey, onClose, onSaved }: MeasurementModalProps) {
+export function MeasurementModal({
+  measurementTypes,
+  defaultTypeKey,
+  measurement,
+  onClose,
+  onSaved,
+}: MeasurementModalProps) {
+  const isEdit = !!measurement;
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    typeKey: defaultTypeKey ?? '',
-    value: '',
-    date: dateToString(new Date()),
-    notes: '',
+    typeKey: measurement?.typeKey ?? defaultTypeKey ?? '',
+    value: measurement?.value?.toString() ?? '',
+    date: measurement?.date ?? dateToString(new Date()),
+    notes: measurement?.notes ?? '',
   });
 
   const selectedType = measurementTypes.find(t => t.key === form.typeKey);
@@ -34,13 +44,13 @@ export function MeasurementModal({ measurementTypes, defaultTypeKey, onClose, on
     if (!form.typeKey || !form.value) return;
     setSaving(true);
     try {
-      await apiFetch('/api/calories/measurements', {
-        method: 'POST',
+      await apiFetch(isEdit ? `/api/calories/measurements/${measurement.id}` : '/api/calories/measurements', {
+        method: isEdit ? 'PATCH' : 'POST',
         body: {
           typeKey: form.typeKey,
           value: Number(form.value),
           date: form.date,
-          notes: form.notes || undefined,
+          notes: form.notes || (isEdit ? null : undefined),
         },
       });
       onSaved();
@@ -51,7 +61,7 @@ export function MeasurementModal({ measurementTypes, defaultTypeKey, onClose, on
 
   return (
     <Modal
-      title="Log Measurement"
+      title={isEdit ? 'Edit Measurement' : 'Log Measurement'}
       onClose={onClose}
       onSubmit={handleSubmit}
       submitLabel="Save"

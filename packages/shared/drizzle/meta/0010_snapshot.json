@@ -1,5 +1,5 @@
 {
-  "id": "c19f5ca4-59a7-49af-9095-e5e4c9ce781f",
+  "id": "755b4ac7-cc09-4ae5-a0cc-0fea8b98a150",
   "prevId": "ccae110f-6d09-4e02-b3c1-2c0a04a35fa5",
   "version": "7",
   "dialect": "postgresql",
@@ -863,122 +863,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.weekly_menu_shares": {
-      "name": "weekly_menu_shares",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "owner_user_id": {
-          "name": "owner_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "shared_with_user_id": {
-          "name": "shared_with_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "permission": {
-          "name": "permission",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'view'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "uniq_weekly_menu_shares_owner_shared_with": {
-          "name": "uniq_weekly_menu_shares_owner_shared_with",
-          "columns": [
-            {
-              "expression": "owner_user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "shared_with_user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_weekly_menu_shares_shared_with_user_id": {
-          "name": "idx_weekly_menu_shares_shared_with_user_id",
-          "columns": [
-            {
-              "expression": "shared_with_user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "weekly_menu_shares_owner_user_id_users_id_fk": {
-          "name": "weekly_menu_shares_owner_user_id_users_id_fk",
-          "tableFrom": "weekly_menu_shares",
-          "tableTo": "users",
-          "columnsFrom": [
-            "owner_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "weekly_menu_shares_shared_with_user_id_users_id_fk": {
-          "name": "weekly_menu_shares_shared_with_user_id_users_id_fk",
-          "tableFrom": "weekly_menu_shares",
-          "tableTo": "users",
-          "columnsFrom": [
-            "shared_with_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -5541,6 +5425,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "target_amount": {
+          "name": "target_amount",
+          "type": "numeric(18, 4)",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",

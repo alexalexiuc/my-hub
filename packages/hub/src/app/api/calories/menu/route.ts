@@ -18,8 +18,12 @@ export const GET = route({ response: GetMenusResponseSchema })(async ({ user }) 
   return {
     menus,
     gymDays,
-    goalCalories: targets.goalCalories,
+    // The ceiling, resolved the same way `dayCalorieTargets` resolves it for every other screen.
+    // Sending the bare `goalCalories` made the Weekly Menu judge days against a different number
+    // than Today and Progress whenever the profile set an explicit max.
+    goalCalories: targets.maxCalories ?? targets.goalCalories,
     gymDayCalorieBonus: profile?.gymDayCalorieBonus ?? DEFAULT_GYM_DAY_CALORIE_BONUS,
+    gymTime: profile?.gymTime ?? null,
   };
 });
 
@@ -33,11 +37,13 @@ export const POST = route({ body: CreateMenuSchema, response: CreateMenuResponse
       dayOfWeek: m.dayOfWeek,
       mealType: m.mealType,
       description: m.description,
+      ingredients: m.ingredients ?? null,
       kcal: m.kcal ?? null,
       protein: m.protein ?? null,
       carbs: m.carbs ?? null,
       fat: m.fat ?? null,
     })),
+    shoppingList: body.shoppingList,
   });
   return created({ menu });
 });

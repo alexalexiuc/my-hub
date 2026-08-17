@@ -7,8 +7,9 @@ import { z } from 'zod';
 import type { CalorieProfile } from '@my-hub/shared/types';
 import { apiFetch } from '@/lib/utils';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { profileToTargets, calculateBMR } from '@my-hub/shared/utils';
+import { profileToTargets, calculateBMR, dateToString, latestWeightKg } from '@my-hub/shared/utils';
 import {
+  MeasurementTypes,
   ActivityLevel,
   ActivityLevels,
   GoalType,
@@ -18,6 +19,8 @@ import {
   DaysOfWeekValues,
   DAY_LABELS,
   DAY_LABELS_SHORT,
+  GymTimesValues,
+  GYM_TIME_LABELS,
 } from '@my-hub/shared/constants';
 import { Card, Field, Button, Input, Select, Textarea } from '@/components';
 import { pctToGrams, gramsToPct, computeMacroSummary } from './calories.utils';
@@ -45,6 +48,8 @@ const ACTIVITY_DESCRIPTIONS: Record<string, string> = Object.fromEntries(
   ACTIVITY_OPTIONS.map(o => [o.value, o.description]),
 );
 
+const GYM_TIME_OPTIONS = GymTimesValues.map(value => ({ value, label: GYM_TIME_LABELS[value] }));
+
 const GOAL_LABELS: Record<GoalType, string> = {
   [GoalTypes.WeightLoss]: 'Lose weight',
   [GoalTypes.Maintain]: 'Maintain',
@@ -55,6 +60,13 @@ const ProfileFormSchema = z.object({
   age: z.string(),
   sex: z.string(),
   heightCm: z.string(),
+  /**
+   * Weight is not a profile column — it is the latest `weight` measurement, and saving the form
+   * writes a new one. It lives here anyway because every calorie target depends on it: without a
+   * weight the whole feature reports "no goal set", and the only place to enter one used to be a
+   * modal on another tab, which this card's own "Set up profile" link did not lead to.
+   */
+  weightKg: z.string(),
   activityLevel: z.string(),
   goalType: z.string(),
   goalWeeklyRateKg: z.string(),
@@ -65,16 +77,18 @@ const ProfileFormSchema = z.object({
   goalFat: z.string(),
   gymDays: z.nativeEnum(DaysOfWeek).array(), // Using deprecated `nativeEnum` because `enum` does not support number values
   gymDayCalorieBonus: z.string(),
+  gymTime: z.string(), // '' = not set; the Select's blank option
   notes: z.string(),
 });
 
 type ProfileFormValues = z.infer<typeof ProfileFormSchema>;
 
-function buildFormValues(profile: Props['profile']): ProfileFormValues {
+function buildFormValues(profile: Props['profile'], weightKg: number | undefined): ProfileFormValues {
   return {
     age: profile?.age?.toString() ?? '',
     sex: profile?.sex ?? '',
     heightCm: profile?.heightCm?.toString() ?? '',
+    weightKg: weightKg?.toString() ?? '',
     activityLevel: profile?.activityLevel ?? '',
     goalType: profile?.goalType ?? '',
     goalWeeklyRateKg: profile?.goalWeeklyRateKg?.toString() ?? '',
@@ -85,6 +99,7 @@ function buildFormValues(profile: Props['profile']): ProfileFormValues {
     goalFat: profile?.goalFat?.toString() ?? '',
     gymDays: profile?.gymDays ?? [],
     gymDayCalorieBonus: profile?.gymDayCalorieBonus?.toString() ?? '',
+    gymTime: profile?.gymTime ?? '',
     notes: profile?.notes ?? '',
   };
 }
@@ -92,6 +107,7 @@ function buildFormValues(profile: Props['profile']): ProfileFormValues {
 export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
   const [editing, setEditing] = useState(false);
   const [macroMode, setMacroMode] = useState<'g' | '%'>('g');
+  const currentWeight = latestWeightKg(latestMeasurements) ?? undefined;
 
   const {
     register,
@@ -103,7 +119,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
     formState: { isSubmitting },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(ProfileFormSchema),
-    defaultValues: buildFormValues(profile),
+    defaultValues: buildFormValues(profile, currentWeight),
   });
 
   const goalType = watch('goalType');
@@ -113,15 +129,13 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
   const goalCarbs = watch('goalCarbs');
   const goalFat = watch('goalFat');
 
-  const weightMeasure = latestMeasurements.find(m => m.typeKey === 'weight');
-
-  const targets = profileToTargets(profile, weightMeasure?.value);
+  const targets = profileToTargets(profile, currentWeight);
 
   const bmr = calculateBMR(
     profile?.age ?? null,
     profile?.sex ?? null,
     profile?.heightCm ?? null,
-    weightMeasure?.value ?? null,
+    currentWeight ?? null,
   );
   const activeEnergy = targets.tdee !== null && bmr !== null ? targets.tdee - Math.round(bmr) : null;
 
@@ -147,7 +161,22 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
   }
 
   async function save(values: ProfileFormValues) {
-    await apiFetch('/api/calories/profile', {
+    // A new weight is a measurement, not a profile field, so it goes to its own endpoint — and
+    // only when it actually changed, so re-saving the form doesn't stamp a duplicate entry into
+    // the weight history and flatten the trend chart.
+    const enteredWeight = values.weightKg ? Number(values.weightKg) : null;
+    const weightWrite =
+      enteredWeight !== null && enteredWeight !== currentWeight
+        ? apiFetch('/api/calories/measurements', {
+            method: 'POST',
+            body: { typeKey: MeasurementTypes.Weight, value: enteredWeight, date: dateToString(new Date()) },
+            silentToast: true,
+          })
+        : Promise.resolve();
+
+    // Two independent tables, neither read by the other — no reason to pay for both round trips
+    // in series when the user is waiting on the save.
+    const profileWrite = apiFetch('/api/calories/profile', {
       method: 'PUT',
       body: {
         age: values.age ? Number(values.age) : undefined,
@@ -169,15 +198,18 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
           : null,
         gymDays: values.gymDays.length > 0 ? values.gymDays : null,
         gymDayCalorieBonus: values.gymDayCalorieBonus ? Number(values.gymDayCalorieBonus) : null,
+        gymTime: values.gymTime || null,
         notes: values.notes || undefined,
       },
     });
+
+    await Promise.all([weightWrite, profileWrite]);
     setEditing(false);
     onUpdated();
   }
 
   function openEdit() {
-    reset(buildFormValues(profile));
+    reset(buildFormValues(profile, currentWeight));
     setMacroMode('g');
     setEditing(true);
   }
@@ -207,7 +239,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
                 <Stat label="Age" value={`${profile!.age}`} />
                 <Stat label="Sex" value={profile!.sex === Sexes.Male ? 'Male' : 'Female'} />
                 <Stat label="Height" value={`${profile!.heightCm} cm`} />
-                {weightMeasure && <Stat label="Weight" value={`${weightMeasure.value} kg`} />}
+                {currentWeight != null && <Stat label="Weight" value={`${currentWeight} kg`} />}
                 {profile!.activityLevel && (
                   <Stat
                     label="Activity"
@@ -220,6 +252,9 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
                 )}
                 {profile.gymDays && profile.gymDays.length > 0 && profile.gymDayCalorieBonus != null && (
                   <Stat label="Gym day bonus" value={`+${profile.gymDayCalorieBonus} kcal`} />
+                )}
+                {profile.gymDays && profile.gymDays.length > 0 && profile.gymTime && (
+                  <Stat label="Training time" value={GYM_TIME_LABELS[profile.gymTime]} />
                 )}
               </div>
 
@@ -277,6 +312,12 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
             <Field label="Height (cm)">
               <Input type="number" placeholder="e.g. 175" {...register('heightCm')} />
             </Field>
+            <Field label="Weight (kg)">
+              <Input type="number" step="0.1" min="0" placeholder="e.g. 78" {...register('weightKg')} />
+              <span className="mt-1 block text-[11px] text-[var(--subtle)]">
+                Saved as today&apos;s weigh-in — calorie targets need it.
+              </span>
+            </Field>
             <Field label="Activity level">
               <Select
                 {...register('activityLevel')}
@@ -322,9 +363,17 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
                 </div>
               )}
             />
-            <Field label="Gym day calorie bonus" className="mt-2 max-w-[160px]">
-              <Input type="number" step="1" min="0" placeholder="e.g. 300" {...register('gymDayCalorieBonus')} />
-            </Field>
+            <div className="mt-2 flex flex-wrap gap-3">
+              <Field label="Gym day calorie bonus" className="max-w-[160px]">
+                <Input type="number" step="1" min="0" placeholder="e.g. 300" {...register('gymDayCalorieBonus')} />
+              </Field>
+              {/* A band, not a clock time — it only decides which meals fall either side of the session */}
+              <Field label="Training time" className="max-w-[160px]">
+                <Select {...register('gymTime')} options={GYM_TIME_OPTIONS}>
+                  <option value="">Not set</option>
+                </Select>
+              </Field>
+            </div>
           </div>
 
           <p className="text-xs font-semibold text-[var(--subtle)] uppercase tracking-wide pt-1">Goal</p>

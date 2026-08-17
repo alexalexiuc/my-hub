@@ -6,6 +6,7 @@
  *   logMeasurementsBatch — inserts multiple measurements sharing one createdAt timestamp
  *   getMeasurements      — fetches measurements with type/date/entrySource filters
  *   getLatestMeasurementsPerType — latest value per measurement type for a user
+ *   updateMeasurement    — patches type/value/date/notes on one measurement
  *   deleteMeasurement    — deletes a single measurement by id + userId
  *   deleteAllUserMeasurements — bulk delete all measurements for a user
  */
@@ -15,6 +16,7 @@ import { bodyMeasurements } from '../../db/schema/measurements';
 import type { MeasurementTypeKey, MeasurementEntrySource } from '../../db/schema/measurements';
 import type { BodyMeasurement, NewBodyMeasurement } from '../../types';
 import { measurementTypeDefinitionsByKey } from '../../constants';
+import { omitUndefined } from '../../utils/objects';
 
 export interface GetMeasurementsFilter {
   typeKey?: MeasurementTypeKey;
@@ -151,6 +153,23 @@ export async function deleteAllUserMeasurements(userId: string): Promise<number>
     .where(eq(bodyMeasurements.userId, userId))
     .returning({ id: bodyMeasurements.id });
   return rows.length;
+}
+
+/**
+ * Patch one measurement the user owns. `undefined` leaves a field alone; `notes` may be set to
+ * `null` to clear it. Returns null when no row with that id belongs to the user.
+ */
+export async function updateMeasurement(
+  id: number,
+  userId: string,
+  data: Partial<Pick<BodyMeasurement, 'typeKey' | 'value' | 'date' | 'notes'>>,
+): Promise<BodyMeasurement | null> {
+  const [row] = await db
+    .update(bodyMeasurements)
+    .set(omitUndefined(data))
+    .where(and(eq(bodyMeasurements.id, id), eq(bodyMeasurements.userId, userId)))
+    .returning();
+  return row ?? null;
 }
 
 export async function deleteMeasurement(id: number, userId: string): Promise<BodyMeasurement | null> {

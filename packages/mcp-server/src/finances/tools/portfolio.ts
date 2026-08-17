@@ -59,6 +59,7 @@ export const getPortfolioTool: ToolHandler<typeof GetPortfolioSchema.shape> = as
       expectedAnnualReturnPct: overview.portfolio.expectedAnnualReturnPct,
       optimisticAnnualReturnPct: overview.portfolio.optimisticAnnualReturnPct,
       plannedMonthlyContribution: overview.portfolio.plannedMonthlyContribution,
+      targetAmount: overview.portfolio.targetAmount,
     },
     positions: overview.positions,
     totals: overview.totals,
@@ -161,6 +162,12 @@ const PortfolioSettingsSchema = z.object({
   expectedAnnualReturnPct: z.number().min(-50).max(100).optional(),
   optimisticAnnualReturnPct: z.number().min(-50).max(100).optional(),
   plannedMonthlyContribution: z.number().min(0).optional(),
+  targetAmount: z
+    .number()
+    .min(0)
+    .nullable()
+    .optional()
+    .describe('Optional goal amount in the portfolio base currency, shown on graphs. Pass null to clear it.'),
 });
 
 export const UpdatePortfolioSchema = z.object({
@@ -240,6 +247,7 @@ export const updatePortfolioTool: ToolHandler<typeof UpdatePortfolioSchema.shape
       expectedAnnualReturnPct: portfolio.expectedAnnualReturnPct,
       optimisticAnnualReturnPct: portfolio.optimisticAnnualReturnPct,
       plannedMonthlyContribution: portfolio.plannedMonthlyContribution,
+      targetAmount: portfolio.targetAmount,
     },
     positions: positions.map(p => ({
       symbol: p.symbol,

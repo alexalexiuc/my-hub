@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { usePortalTheme } from '@/hooks/usePortalTheme';
+import { useCloseOnBackButton } from '@/hooks/useCloseOnBackButton';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { Input } from '@/components/Input';
@@ -65,6 +66,8 @@ export function MobileSelectSheet({
   const overlayRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [themeAnchorRef, themeClassName] = usePortalTheme();
+
+  useCloseOnBackButton(onClose);
 
   useEffect(() => {
     if (!searchable) return;

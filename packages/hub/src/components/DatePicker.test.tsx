@@ -5,6 +5,8 @@ import { DatePicker } from './DatePicker';
 vi.mock('@my-hub/shared/utils', () => ({
   shiftMonthStr: vi.fn((m: string, delta: number) => (delta < 0 ? 'prev-month' : 'next-month')),
   formatMonthStr: vi.fn((m: string) => m),
+  shiftWeekStr: vi.fn((m: string, delta: number) => (delta < 0 ? 'prev-week' : 'next-week')),
+  formatWeekRangeStr: vi.fn((m: string) => m),
 }));
 
 describe('DatePicker', () => {
@@ -42,5 +44,23 @@ describe('DatePicker', () => {
   it('does not show a Today pill when displayed month matches currentMonth', () => {
     render(<DatePicker month="2026-06" onChange={vi.fn()} currentMonth="2026-06" />);
     expect(screen.queryByText('Today')).toBeNull();
+  });
+
+  it('renders the week label and steps by week in week mode', () => {
+    const onChange = vi.fn();
+    render(<DatePicker month="2026-06-01" dateMode="week" onChange={onChange} />);
+    expect(screen.getByRole('heading', { name: '2026-06-01' })).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText('Previous week'));
+    expect(onChange).toHaveBeenCalledWith({ month: 'prev-week' });
+
+    fireEvent.click(screen.getByLabelText('Next week'));
+    expect(onChange).toHaveBeenCalledWith({ month: 'next-week' });
+  });
+
+  it('disables the previous-week arrow once month reaches minMonth', () => {
+    render(<DatePicker month="2026-06-01" dateMode="week" onChange={vi.fn()} minMonth="2026-06-01" />);
+    const prevBtn = screen.getByLabelText('Previous week') as HTMLButtonElement;
+    expect(prevBtn.disabled).toBe(true);
   });
 });

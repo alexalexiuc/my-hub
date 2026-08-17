@@ -54,7 +54,7 @@ export function Button({
   ...props
 }: Props) {
   const resolvedClassName = cn(
-    'rounded-lg transition disabled:opacity-50 self-center',
+    'rounded-lg transition disabled:cursor-not-allowed disabled:opacity-50 self-center',
     variants[variant],
     sizes[size],
     active && activeVariants[variant],

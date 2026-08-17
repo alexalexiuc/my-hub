@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
+import { usePortalTheme } from '@/hooks/usePortalTheme';
+import { useCloseOnBackButton } from '@/hooks/useCloseOnBackButton';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { XOutlineIcon } from '@/components/icons/XOutlineIcon';
@@ -44,6 +47,9 @@ export function Modal({
   submitLoading,
 }: ModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [themeAnchorRef, themeClassName] = usePortalTheme();
+
+  useCloseOnBackButton(onClose);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -66,105 +72,126 @@ export function Modal({
     return () => el.removeEventListener('focusin', handle);
   }, []);
 
+  /*
+   * Portaled to `document.body` rather than rendered in place. A modal opened from inside a
+   * faded or transformed subtree inherits it — the weekly menu dims future day cards with
+   * `opacity-50`, and CSS opacity applies to the whole subtree with no way for a child to opt
+   * out, so editing a future meal showed a half-transparent dialog. `position: fixed` has the
+   * same problem with an ancestor `transform`. Escaping to the body puts the overlay where it
+   * belongs and makes it immune to whatever renders it.
+   *
+   * `usePortalTheme` carries the `*-theme` class across, since the CSS custom properties are
+   * scoped to that wrapper and would otherwise be missing at the body level.
+   */
   return (
-    <div
-      ref={containerRef}
-      className="modal-shell fixed inset-x-0 top-0 h-[100dvh] z-[1000] flex flex-col bg-[var(--card)] md:inset-0 md:h-auto md:items-center md:justify-center md:bg-[var(--overlay)] md:p-4"
-    >
-      {/* Desktop backdrop — absolute so it doesn't affect flex layout */}
-      <div data-layout="desktop" className="absolute inset-0 hidden md:block" onClick={onClose} />
+    <>
+      {/* Stays in the tree so the theme hook can find the `*-theme` ancestor to copy across. */}
+      <span ref={themeAnchorRef} aria-hidden="true" className="hidden" />
+      {createPortal(
+        <div
+          ref={containerRef}
+          className={cn(
+            themeClassName,
+            'modal-shell fixed inset-x-0 top-0 h-[100dvh] z-[1000] flex flex-col bg-[var(--card)] md:inset-0 md:h-auto md:items-center md:justify-center md:bg-[var(--overlay)] md:p-4',
+          )}
+        >
+          {/* Desktop backdrop — absolute so it doesn't affect flex layout */}
+          <div data-layout="desktop" className="absolute inset-0 hidden md:block" onClick={onClose} />
 
-      {/* Mobile header */}
-      <div
-        data-layout="mobile"
-        className="flex shrink-0 items-center border-b border-[var(--border)] px-4 py-4 md:hidden"
-      >
-        <IconButton
-          variant="ghost"
-          label="Close"
-          icon={<XOutlineIcon className="size-7" />}
-          onClick={onClose}
-          className="text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--accent)]"
-        />
-        <h2 className="flex-1 text-center text-base font-bold text-[var(--text)]">{title}</h2>
-        <div className="h-8 w-8" />
-      </div>
-
-      {/* Content — full-height on mobile, constrained card on desktop */}
-      <div
-        className={cn(
-          'modal-card relative flex-1 bg-[var(--card)]',
-          scrollable ? 'overflow-y-auto p-4' : 'flex flex-col',
-          'md:flex-none md:w-full md:max-h-[90vh] md:overflow-y-auto md:rounded-[14px] md:border md:border-[var(--border)] md:p-5',
-          className,
-        )}
-      >
-        {/* Desktop title */}
-        <div data-layout="desktop" className="mb-4 hidden text-base font-bold text-[var(--text)] md:block">
-          <div className="flex items-center justify-between">
-            {title}
+          {/* Mobile header */}
+          <div
+            data-layout="mobile"
+            className="flex shrink-0 items-center border-b border-[var(--border)] px-4 py-4 md:hidden"
+          >
             <IconButton
               variant="ghost"
               label="Close"
-              icon={<XOutlineIcon className="size-6" />}
+              icon={<XOutlineIcon className="size-7" />}
               onClick={onClose}
               className="text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--accent)]"
             />
+            <h2 className="flex-1 text-center text-base font-bold text-[var(--text)]">{title}</h2>
+            <div className="h-8 w-8" />
           </div>
-        </div>
-        {children}
-        {/* Desktop footer — inside scrollable card, after content */}
-        {onSubmit && (
-          <div data-layout="desktop" className="mt-4 hidden gap-2 md:flex">
-            <Button
-              type="button"
-              variant="neutral"
-              size="sm"
-              className="flex-1 py-2.5 text-[13px] font-semibold hover:border-[var(--red)] hover:text-[var(--red)]"
-              onClick={onClose}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="accent"
-              className="flex-[2] py-2.5 text-[13px]"
-              disabled={submitDisabled}
-              loading={submitLoading}
-              onClick={onSubmit}
-            >
-              {submitLabel}
-            </Button>
-          </div>
-        )}
-      </div>
 
-      {/* Mobile footer — pinned at bottom of full-screen, outside scrollable area */}
-      {onSubmit && (
-        <div data-layout="mobile" className="flex shrink-0 gap-2 border-t border-[var(--border)] p-2 md:hidden">
-          <Button
-            type="button"
-            variant="neutral"
-            size="sm"
-            className="flex-1 py-2.5 text-[13px] font-semibold hover:border-[var(--red)] hover:text-[var(--red)]"
-            onClick={onClose}
+          {/* Content — full-height on mobile, constrained card on desktop */}
+          <div
+            className={cn(
+              'modal-card relative flex-1 bg-[var(--card)]',
+              scrollable ? 'overflow-y-auto p-4' : 'flex flex-col',
+              'md:flex-none md:w-full md:max-h-[90vh] md:overflow-y-auto md:rounded-[14px] md:border md:border-[var(--border)] md:p-5',
+              className,
+            )}
           >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            variant="accent"
-            size="sm"
-            className="flex-[2] py-2.5 text-[13px]"
-            disabled={submitDisabled}
-            loading={submitLoading}
-            onClick={onSubmit}
-          >
-            {submitLabel}
-          </Button>
-        </div>
+            {/* Desktop title */}
+            <div data-layout="desktop" className="mb-4 hidden text-base font-bold text-[var(--text)] md:block">
+              <div className="flex items-center justify-between">
+                {title}
+                <IconButton
+                  variant="ghost"
+                  label="Close"
+                  icon={<XOutlineIcon className="size-6" />}
+                  onClick={onClose}
+                  className="text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--accent)]"
+                />
+              </div>
+            </div>
+            {children}
+            {/* Desktop footer — inside scrollable card, after content */}
+            {onSubmit && (
+              <div data-layout="desktop" className="mt-4 hidden gap-2 md:flex">
+                <Button
+                  type="button"
+                  variant="neutral"
+                  size="sm"
+                  className="flex-1 py-2.5 text-[13px] font-semibold hover:border-[var(--red)] hover:text-[var(--red)]"
+                  onClick={onClose}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="accent"
+                  className="flex-[2] py-2.5 text-[13px]"
+                  disabled={submitDisabled}
+                  loading={submitLoading}
+                  onClick={onSubmit}
+                >
+                  {submitLabel}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile footer — pinned at bottom of full-screen, outside scrollable area */}
+          {onSubmit && (
+            <div data-layout="mobile" className="flex shrink-0 gap-2 border-t border-[var(--border)] p-2 md:hidden">
+              <Button
+                type="button"
+                variant="neutral"
+                size="sm"
+                className="flex-1 py-2.5 text-[13px] font-semibold hover:border-[var(--red)] hover:text-[var(--red)]"
+                onClick={onClose}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="accent"
+                size="sm"
+                className="flex-[2] py-2.5 text-[13px]"
+                disabled={submitDisabled}
+                loading={submitLoading}
+                onClick={onSubmit}
+              >
+                {submitLabel}
+              </Button>
+            </div>
+          )}
+        </div>,
+        document.body,
       )}
-    </div>
+    </>
   );
 }

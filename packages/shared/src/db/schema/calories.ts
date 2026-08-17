@@ -12,7 +12,14 @@ import {
   uniqueIndex,
   boolean,
 } from 'drizzle-orm/pg-core';
-import type { ActivityLevel, GoalType, MealType, Sex, WeeklyMenuSharePermission } from '../../constants/calories';
+import type {
+  ActivityLevel,
+  GoalType,
+  GymTime,
+  MealType,
+  Sex,
+  WeeklyMenuSharePermission,
+} from '../../constants/calories';
 import { WeeklyMenuSharePermissions } from '../../constants/calories';
 import { users } from './users';
 import type { DayOfWeek } from '../../constants/weekly-menu';
@@ -42,6 +49,7 @@ export const calorieProfiles = pgTable('calorie_profiles', {
   goalFat: real('goal_fat'), // optional daily fat target in grams
   gymDays: jsonb('gym_days').$type<DayOfWeek[]>(), // days of week user goes to gym: 0=Mon … 6=Sun
   gymDayCalorieBonus: real('gym_day_calorie_bonus').default(300), // kcal added to the daily target on gym days
+  gymTime: text('gym_time').$type<GymTime>(), // when in the day training happens: morning | midday | evening
   notes: text('notes'),
   automationApiKey: text('automation_api_key'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -108,6 +116,11 @@ export const weeklyMenuMeals = pgTable(
     dayOfWeek: integer('day_of_week').notNull().$type<DayOfWeek>(), // 0=Monday … 6=Sunday
     mealType: text('meal_type').$type<MealType>().notNull(),
     description: text('description').notNull(),
+    // Free-text ingredient lines for the dish, e.g. ["200g chicken breast", "1 red pepper"].
+    // Null when unspecified. Deliberately unstructured — quantities/units stay in the string;
+    // this is a cooking aid, not a normalised recipe model. The menu's shopping list
+    // (`weekly_menu_shopping_items`) stays the authored source of truth for what to buy.
+    ingredients: text('ingredients').array(),
     kcal: integer('kcal'),
     protein: real('protein'),
     carbs: real('carbs'),
@@ -154,6 +167,11 @@ export const weeklyMenuDayLogs = pgTable(
     dayOfWeek: integer('day_of_week').notNull().$type<DayOfWeek>(), // 0=Monday … 6=Sunday
     mealType: text('meal_type').$type<MealType>().notNull(), // breakfast | lunch | dinner | snack
     loggedDate: text('logged_date').notNull(), // YYYY-MM-DD — the calendar date it was logged for
+    // The journal entry this marker created, so undoing a log removes exactly that row. Without
+    // it the only link was (date, meal type, description), which also matches meals the user
+    // entered by hand. Nullable: markers written before this column existed have no id, and the
+    // entry may be deleted from the Today page independently (ON DELETE SET NULL).
+    mealLogId: text('meal_log_id').references(() => mealLogs.mealId, { onDelete: 'set null' }),
     loggedAt: timestamp('logged_at').notNull().defaultNow(),
   },
   table => [unique('uq_weekly_menu_day_log').on(table.menuId, table.dayOfWeek, table.mealType)],

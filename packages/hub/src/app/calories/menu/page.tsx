@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/utils';
 import { Button } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons';
 import { GetMenuResponseSchema, GetMenusResponseSchema } from '@/app/api/calories/menu/menu.schemas';
+import type { GymTime } from '@my-hub/shared/constants';
 import { WeekNavigator } from './WeekNavigator';
 import { EmptyState } from './EmptyState';
 import { MenuDetail } from './MenuDetail';
@@ -20,6 +21,7 @@ export default function WeeklyMenuPage() {
   const [gymDays, setGymDays] = useState<number[]>([]);
   const [dailyTargetKcal, setDailyTargetKcal] = useState<number | null>(null);
   const [gymDayCalorieBonus, setGymDayCalorieBonus] = useState(0);
+  const [gymTime, setGymTime] = useState<GymTime | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -37,6 +39,7 @@ export default function WeeklyMenuPage() {
       setGymDays(data.gymDays);
       setDailyTargetKcal(data.goalCalories);
       setGymDayCalorieBonus(data.gymDayCalorieBonus);
+      setGymTime(data.gymTime);
       const toSelect = data.menus.find(m => m.weekStart === currentWeekStart) ?? latestMenu(data.menus);
       if (toSelect) {
         const detail = await apiFetch(`/api/calories/menu/${toSelect.menuId}`, {
@@ -111,7 +114,18 @@ export default function WeeklyMenuPage() {
           className="shrink-0 flex items-center"
         >
           <PlusOutlineIcon className="w-4 h-4 mr-1.5" />
-          Create
+          {/* Once a menu exists this plans a *different* week — "Create" reads like "add something
+              here" and sends people looking for the per-day "Add meal" button to the wrong place.
+              Shortened on phones: the full phrasing takes 144px of a 375px row and squeezes the
+              heading beside it onto two lines. */}
+          {menus.length === 0 ? (
+            'Create'
+          ) : (
+            <>
+              <span className="hidden sm:inline">Plan another week</span>
+              <span className="sm:hidden">Plan week</span>
+            </>
+          )}
         </Button>
       </div>
 
@@ -121,6 +135,8 @@ export default function WeeklyMenuPage() {
           onCreated={menu => void handleCreated(menu)}
           gymDays={gymDays}
           defaultWeekStart={nextMenuWeekStart(menus, currentWeekStart)}
+          existingWeekStarts={menus.map(m => m.weekStart)}
+          copyFrom={selectedMenu}
         />
       )}
 
@@ -141,7 +157,19 @@ export default function WeeklyMenuPage() {
               gymDays={gymDays}
               dailyTargetKcal={dailyTargetKcal}
               gymDayCalorieBonus={gymDayCalorieBonus}
-              onMealLogged={(day, mealType) => setLoggedMeals(prev => ({ ...prev, [`${day}:${mealType}`]: true }))}
+              gymTime={gymTime}
+              onMetaUpdated={meta => {
+                setSelectedMenu(prev => (prev ? { ...prev, ...meta } : prev));
+                setMenus(prev => prev.map(m => (m.menuId === selectedMenu.menuId ? { ...m, ...meta } : m)));
+              }}
+              onMealLogChanged={(day, mealType, logged) =>
+                setLoggedMeals(prev => {
+                  const key = `${day}:${mealType}`;
+                  if (logged) return { ...prev, [key]: true };
+                  const { [key]: _removed, ...rest } = prev;
+                  return rest;
+                })
+              }
               onMealSwapped={(day, updated) =>
                 setSelectedMenu(prev =>
                   prev

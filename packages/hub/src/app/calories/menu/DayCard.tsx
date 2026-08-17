@@ -1,31 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { apiFetch } from '@/lib/utils';
-import { Button, Select, Input } from '@/components';
+import { Button } from '@/components';
 import { PlusOutlineIcon, DumbbellIcon } from '@/components/icons';
 import { DAY_LABELS } from '@my-hub/shared/constants';
-import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
-import { MEAL_LABEL } from '@/app/calories/constants';
-import {
-  LogDayBodySchema,
-  LogDayResponseSchema,
-  MenuMealResponseSchema,
-  MenuMealWriteSchema,
-} from '@/app/api/calories/menu/menu.schemas';
+import type { DayOfWeek, GymTime, MealType } from '@my-hub/shared/constants';
+import { mealOrder, dayTargetKcal } from '@my-hub/shared/utils';
 import { MealRow } from './MealRow';
-import { MEAL_ORDER, dateForDay, dayTargetKcal, targetPct, targetColorClasses, resolveDailyTarget } from './menu.utils';
+import { MealEditorModal } from './MealEditorModal';
+import { dateForDay, setDayLogged, targetPct, targetColorClasses, resolveDailyTarget } from './menu.utils';
 import { TargetBar } from './TargetBar';
 import type { LoggedMeals } from './menu.utils';
 import type { WeeklyMenuMeal } from './types';
-import {
-  AddMealFormSchema,
-  defaultAddMealFormValues,
-  addMealFormToBody,
-  type AddMealFormValues,
-} from './menu-form.schema';
 
 type DayCardProps = {
   day: DayOfWeek;
@@ -40,7 +26,9 @@ type DayCardProps = {
   dailyTargetKcal: number | null;
   /** Extra kcal added to the daily target on gym days. */
   gymDayCalorieBonus: number;
-  onMealLogged: (mealType: MealType) => void;
+  /** When the user trains — decides where the pre/post-workout meals sit in the day's order. */
+  gymTime: GymTime | null;
+  onMealLogChanged: (mealType: MealType, logged: boolean) => void;
   onMealSwapped: (day: DayOfWeek, updated: WeeklyMenuMeal) => void;
   onMealAdded: (day: DayOfWeek, added: WeeklyMenuMeal) => void;
   onMealDeleted: (day: DayOfWeek, mealType: MealType) => void;
@@ -57,50 +45,35 @@ export function DayCard({
   isGymDay,
   dailyTargetKcal,
   gymDayCalorieBonus,
-  onMealLogged,
+  gymTime,
+  onMealLogChanged,
   onMealSwapped,
   onMealAdded,
   onMealDeleted,
 }: DayCardProps) {
   const [loggingAll, setLoggingAll] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const dayKcal = meals.reduce((s, m) => s + (m.kcal ?? 0), 0);
   const dayDate = dateForDay(weekStart, day);
   const isToday = isCurrentWeek && dayDate === today;
   const isFuture = dayDate > today;
+  // Today counts as neither — the rest of the day is still plannable.
+  const isPast = dayDate < today;
 
   const { baseTarget, isEstimated: isTargetEstimated } = resolveDailyTarget(dailyTargetKcal);
   const target = dayTargetKcal(baseTarget, isGymDay, gymDayCalorieBonus);
   const targetPercent = targetPct(dayKcal, target);
   const targetColors = targetColorClasses(targetPercent, isTargetEstimated);
 
+  // Both the rendered rows and the "add a meal" slot list follow the same order, so the modal
+  // offers a morning trainer pre-workout first rather than buried under dinner.
+  const order = mealOrder(gymTime);
   const plannedTypes = new Set(meals.map(m => m.mealType));
-  const availableTypes = MEAL_ORDER.filter(mt => !plannedTypes.has(mt));
-
-  const addMealForm = useForm<AddMealFormValues>({
-    resolver: zodResolver(AddMealFormSchema),
-    defaultValues: defaultAddMealFormValues(availableTypes[0] ?? 'snack'),
-  });
-
-  function setAddFormOpen(open: boolean) {
-    addMealForm.reset(defaultAddMealFormValues(availableTypes[0] ?? 'snack'));
-    setShowAddForm(open);
-  }
-
-  async function handleAddMeal(values: AddMealFormValues) {
-    const data = await apiFetch(`/api/calories/menu/${menuId}/meals`, {
-      method: 'POST',
-      body: { dayOfWeek: day, ...addMealFormToBody(values) },
-      bodySchema: MenuMealWriteSchema,
-      responseSchema: MenuMealResponseSchema,
-    });
-    onMealAdded(day, data.meal);
-    setAddFormOpen(false);
-  }
+  const availableTypes = order.filter(mt => !plannedTypes.has(mt));
 
   const mealByType = new Map(meals.map(m => [m.mealType, m]));
-  const orderedMeals = MEAL_ORDER.flatMap(mt => {
+  const orderedMeals = order.flatMap(mt => {
     const meal = mealByType.get(mt);
     return meal ? [{ meal, logged: `${day}:${mt}` in loggedMeals }] : [];
   });
@@ -109,39 +82,28 @@ export function DayCard({
   const allLogged = unloggedMeals.length === 0 && meals.length > 0;
   const loggedCount = meals.length - unloggedMeals.length;
 
-  async function handleLogAll() {
+  /**
+   * Flip the whole day in one request. This used to fan out one call per meal, which meant N
+   * round trips, N transactions and N separate state updates for a single tap — and a partial
+   * failure left the day half-logged with the button already flipped back.
+   */
+  async function toggleLogAll(logged: boolean) {
     setLoggingAll(true);
     try {
-      // One call per meal — the route journals the calorie entry and marks the slot
-      // logged in a single transaction, so a partial failure can't desync the two.
-      await Promise.all(
-        unloggedMeals.map(m =>
-          apiFetch(`/api/calories/menu/${menuId}/log-day`, {
-            method: 'POST',
-            body: {
-              dayOfWeek: day,
-              loggedDate: dayDate,
-              mealType: m.mealType,
-              description: m.description,
-              kcal: m.kcal,
-              protein: m.protein,
-              carbs: m.carbs,
-              fat: m.fat,
-            },
-            bodySchema: LogDayBodySchema,
-            responseSchema: LogDayResponseSchema,
-          }).then(() => onMealLogged(m.mealType)),
-        ),
-      );
+      await setDayLogged(menuId, dayDate, day, logged);
+      for (const { meal } of orderedMeals) onMealLogChanged(meal.mealType, logged);
     } finally {
       setLoggingAll(false);
     }
   }
 
+  // No width or shrink classes: stacked on phones the card fills the column on its own, and in
+  // the desktop grid the track sizes it. It also takes only the height its own meals need — the
+  // card no longer shares a row with the fullest day of the week.
   return (
     <div
       data-day={day}
-      className={`snap-start shrink-0 w-[88vw] md:w-auto rounded-xl border p-4 flex flex-col gap-3 ${
+      className={`rounded-xl border p-4 flex flex-col gap-3 ${
         isToday
           ? 'border-green-500/60 bg-green-500/5'
           : isFuture
@@ -190,9 +152,9 @@ export function DayCard({
               menuId={menuId}
               dayOfWeek={day}
               dayDate={dayDate}
+              today={today}
               logged={logged}
-              isFuture={isFuture}
-              onLogged={() => onMealLogged(meal.mealType)}
+              onLogChanged={logged => onMealLogChanged(meal.mealType, logged)}
               onSwapped={updated => onMealSwapped(day, updated)}
               onDeleted={() => onMealDeleted(day, meal.mealType)}
             />
@@ -200,78 +162,58 @@ export function DayCard({
         </div>
       )}
 
-      {/* Add meal inline form */}
-      {availableTypes.length > 0 &&
-        (showAddForm ? (
-          <form
-            onSubmit={addMealForm.handleSubmit(handleAddMeal)}
-            className="flex flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] p-2.5"
-          >
-            <div className="flex gap-1.5">
-              <Select {...addMealForm.register('mealType')} className="px-2 py-1 text-[10px]">
-                {availableTypes.map(mt => (
-                  <option key={mt} value={mt}>
-                    {MEAL_LABEL[mt]}
-                  </option>
-                ))}
-              </Select>
-              <Input
-                {...addMealForm.register('kcal')}
-                type="number"
-                placeholder="kcal"
-                className="w-16 px-2 py-1 text-[10px]"
-              />
-            </div>
-            <Input
-              {...addMealForm.register('description')}
-              type="text"
-              placeholder="What will you eat?"
-              className="px-2 py-1 text-xs"
-            />
-            <div className="flex gap-1.5">
-              <Button
-                type="button"
-                variant="neutral"
-                size="xs"
-                className="flex-1"
-                onClick={() => setAddFormOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="accent"
-                size="xs"
-                className="flex-1"
-                disabled={!addMealForm.formState.isValid}
-                loading={addMealForm.formState.isSubmitting}
-              >
-                Add
-              </Button>
-            </div>
-          </form>
-        ) : (
+      {/* Add meal — opens the same detail modal the pencil does, so both write the same fields.
+          Disabled once the day has passed: the menu is the plan, and back-filling it after the
+          fact would also let adherence be scored against a plan written to match. Recording what
+          was actually eaten belongs in the Today tab, which can log against any date.
+          The title sits on the wrapper because Chrome fires no mouse events — and so shows no
+          tooltip — on a disabled button. */}
+      {availableTypes.length > 0 && (
+        <span className="block" title={isPast ? 'Past day — log what you ate from the Today tab' : undefined}>
           <Button
             type="button"
             variant="ghost"
-            onClick={() => setAddFormOpen(true)}
-            className="w-full inline-flex items-center justify-center gap-1 rounded-lg border border-dashed border-[var(--border)] py-1.5 text-[10px] text-[var(--muted)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]"
+            disabled={isPast}
+            onClick={() => setShowAddModal(true)}
+            className="w-full inline-flex items-center justify-center gap-1 rounded-lg border border-dashed border-[var(--border)] py-1.5 text-[10px] text-[var(--muted)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)] disabled:opacity-30 disabled:hover:border-[var(--border)] disabled:hover:text-[var(--muted)]"
           >
             <PlusOutlineIcon className="size-3" />
             Add meal
           </Button>
-        ))}
+        </span>
+      )}
 
-      {/* Log all button */}
+      {showAddModal && (
+        <MealEditorModal
+          mode="add"
+          availableTypes={availableTypes}
+          menuId={menuId}
+          dayOfWeek={day}
+          onClose={() => setShowAddModal(false)}
+          onSaved={added => onMealAdded(day, added)}
+        />
+      )}
+
+      {/* Log all / undo all. Logging seven meals takes one tap, so undoing them must too —
+          otherwise a mistaken "Log full day" costs one click to make and seven to take back. */}
       {meals.length > 0 && (
         <div className="mt-auto border-t border-[var(--border)] pt-2 h-10 flex items-center justify-center">
           {allLogged ? (
-            <p className="text-xs text-green-400 font-medium text-center">✓ Full day logged</p>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => void toggleLogAll(false)}
+              loading={loggingAll}
+              title="Undo — I didn't eat this day's meals"
+              className="w-full rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs font-medium text-green-400 hover:border-red-400/50 hover:text-red-400"
+            >
+              ✓ Full day logged
+            </Button>
           ) : isFuture ? null : (
             <Button
               type="button"
               variant="ghost"
-              onClick={handleLogAll}
+              onClick={() => void toggleLogAll(true)}
               loading={loggingAll}
               className="w-full rounded-lg bg-[var(--accent)]/10 border border-[var(--accent)]/30 px-3 py-2 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20"
             >

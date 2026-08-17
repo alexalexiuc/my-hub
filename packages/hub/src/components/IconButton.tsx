@@ -46,7 +46,7 @@ export function IconButton({
     <button
       onClick={onClick}
       disabled={loading || disabled}
-      className={cn(base, 'disabled:opacity-50', className)}
+      className={cn(base, 'disabled:cursor-not-allowed disabled:opacity-50', className)}
       aria-label={label}
       title={label}
       aria-expanded={ariaExpanded}

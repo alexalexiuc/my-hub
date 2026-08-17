@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { MealTypesValues, DaysOfWeek } from '@my-hub/shared/constants';
+import { MealTypesValues, DaysOfWeek, GymTimesValues } from '@my-hub/shared/constants';
 import { hasDuplicateMealSlot } from '@my-hub/shared/utils';
+import { isoDateSchema } from '@/lib/schemas/common';
 
 // Re-exported for CreateMenuModal's live duplicate hint — the rule itself lives in
 // shared so the Hub API, the modal, and the MCP create tool can never disagree.
@@ -15,9 +16,12 @@ export { hasDuplicateMealSlot };
 // Using deprecated `nativeEnum` because `enum` does not support number values
 const DayOfWeekSchema = z.nativeEnum(DaysOfWeek);
 const MealTypeSchema = z.enum(MealTypesValues);
+/** Null when the user hasn't said when they train — meal ordering falls back to a fixed order. */
+const GymTimeSchema = z.enum(GymTimesValues).nullable();
 const KcalSchema = z.number().int().positive();
 const MacroGramsSchema = z.number().positive();
-const IsoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD');
+/** Free-text ingredient lines for one dish, e.g. ["200g chicken breast", "1 red pepper"]. */
+const IngredientsSchema = z.array(z.string().trim().min(1));
 // `z.coerce.date()` (not `z.date()`): response payloads cross the wire as JSON, where Dates
 // serialise to ISO strings — both the server's `route({ response })` validation and apiFetch's
 // client-side `responseSchema` validation re-parse that JSON, so the schema must accept strings.
@@ -44,6 +48,7 @@ export const DeleteMenuMealSchema = MealSlotSchema;
 
 export const MenuMealInputSchema = MealSlotSchema.extend({
   description: z.string().trim().min(1),
+  ingredients: IngredientsSchema.optional(),
   kcal: KcalSchema.optional(),
   protein: MacroGramsSchema.optional(),
   carbs: MacroGramsSchema.optional(),
@@ -52,6 +57,7 @@ export const MenuMealInputSchema = MealSlotSchema.extend({
 
 export const MenuMealWriteSchema = MealSlotSchema.extend({
   description: z.string().min(1),
+  ingredients: IngredientsSchema.nullish(),
   kcal: KcalSchema.nullish(),
   protein: MacroGramsSchema.nullish(),
   carbs: MacroGramsSchema.nullish(),
@@ -62,6 +68,7 @@ export const MenuMealRecordSchema = MealSlotSchema.extend({
   id: z.number(),
   menuId: z.string(),
   description: z.string(),
+  ingredients: IngredientsSchema.nullable(),
   kcal: KcalSchema.nullable(),
   protein: MacroGramsSchema.nullable(),
   carbs: MacroGramsSchema.nullable(),
@@ -78,10 +85,16 @@ export const MenuMealResponseSchema = z.object({ meal: MenuMealRecordSchema });
 
 export const CreateMenuSchema = z
   .object({
-    weekStart: IsoDateSchema,
+    weekStart: isoDateSchema,
     title: z.string().optional(),
     notes: z.string().optional(),
     meals: z.array(MenuMealInputSchema).min(1),
+    /**
+     * The week's shopping list. Carried here so copying a week can bring the list with it —
+     * the service already writes it in the same transaction as the meals. This is transport,
+     * not authoring: FR-18 still says the list's *content* is written by the assistant.
+     */
+    shoppingList: z.array(z.string().trim().min(1)).optional(),
   })
   .refine(({ meals }) => !hasDuplicateMealSlot(meals), {
     message: 'Duplicate meal slot — each (dayOfWeek, mealType) pair may appear at most once',
@@ -101,6 +114,17 @@ export const WeeklyMenuSchema = z.object({
 
 export const WeeklyMenuWithoutMealsSchema = WeeklyMenuSchema.omit({ meals: true });
 
+/**
+ * Body for PATCH /api/calories/menu/[menuId]/details — the menu's own fields. Both are nullish:
+ * omitted leaves the field alone, explicit `null` clears it (the service's `omitUndefined` rule).
+ */
+export const UpdateMenuDetailsSchema = z.object({
+  title: z.string().trim().nullish(),
+  notes: z.string().nullish(),
+});
+
+export const UpdateMenuDetailsResponseSchema = z.object({ menu: WeeklyMenuWithoutMealsSchema });
+
 export const GetMenusResponseSchema = z.object({
   menus: z.array(WeeklyMenuWithoutMealsSchema),
   gymDays: z.array(DayOfWeekSchema),
@@ -108,11 +132,33 @@ export const GetMenusResponseSchema = z.object({
   goalCalories: z.number().nullable(),
   /** Extra kcal added to the daily target on gym days. */
   gymDayCalorieBonus: z.number(),
+  /** When the user trains — drives where the pre/post-workout meals sit in each day's order. */
+  gymTime: GymTimeSchema,
 });
 
 export const GetMenuResponseSchema = z.object({
   menu: WeeklyMenuSchema.nullable(),
   loggedDays: z.record(z.string(), z.string()), // `{ [dayOfWeek:mealType]: '2020-01-01' }` for meals that have been logged
+});
+
+/**
+ * Query + response for GET /api/calories/menu/today — the planned meals for one calendar day,
+ * each flagged with whether it has been logged. The date comes from the client rather than being
+ * derived server-side: the browser knows its own local day, and deriving it from server time
+ * would put the two an hour apart either side of midnight.
+ */
+export const TodayPlanQuerySchema = z.object({ date: isoDateSchema });
+
+export const TodayPlanResponseSchema = z.object({
+  /** Null when the week has no menu at all — the caller renders nothing rather than an empty card. */
+  menuId: z.string().nullable(),
+  meals: z.array(MenuMealRecordSchema.extend({ logged: z.boolean() })),
+  /**
+   * When the user trains, so the card can order the day the same way the Weekly Menu tab does.
+   * Served here rather than passed as a prop because the card fetches its own plan — a prop
+   * would make every page that renders it responsible for loading the profile.
+   */
+  gymTime: GymTimeSchema,
 });
 
 /** Response shape for POST /api/calories/menu */
@@ -159,7 +205,7 @@ export const ShoppingItemResponseSchema = z.object({ item: ShoppingItemRecordSch
  */
 export const LogDayBodySchema = z.object({
   dayOfWeek: DayOfWeekSchema,
-  loggedDate: IsoDateSchema,
+  loggedDate: isoDateSchema,
   mealType: MealTypeSchema,
   description: z.string().min(1),
   kcal: KcalSchema.nullish(),
@@ -167,6 +213,15 @@ export const LogDayBodySchema = z.object({
   carbs: MacroGramsSchema.nullish(),
   fat: MacroGramsSchema.nullish(),
 });
+
+/**
+ * Body for the day-scoped variants of the log-day route. No meal details: the service reads the
+ * plan itself, so the journal cannot drift from it, and one transaction replaces one request
+ * per slot.
+ */
+export const LogWholeDaySchema = z.object({ dayOfWeek: DayOfWeekSchema, loggedDate: isoDateSchema });
+export const UnlogWholeDaySchema = z.object({ dayOfWeek: DayOfWeekSchema });
+export const WholeDayResponseSchema = z.object({ affected: z.number().int().nonnegative() });
 
 export const LogDayResponseSchema = z.object({
   marked: z.boolean(),

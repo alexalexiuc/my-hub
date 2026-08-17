@@ -12,8 +12,13 @@ const LEFT_ITEMS: BottomNavItem[] = [
   { id: 'progress', icon: '▲', label: 'Progress', path: '/calories/progress' },
 ];
 
-const RIGHT_ITEMS: BottomNavItem[] = [
-  { id: 'menu', icon: '🗓', label: 'Menu', path: '/calories/menu' },
+// One item, balancing the two on the left — see BottomNav's cell-count rule. Two destinations
+// had to move, not one: the "More" button takes a cell of its own, so promoting a single item
+// into the sheet would have left the count unchanged and the FAB still off centre.
+const RIGHT_ITEMS: BottomNavItem[] = [{ id: 'menu', icon: '🗓', label: 'Menu', path: '/calories/menu' }];
+
+const MORE_ITEMS: BottomNavItem[] = [
+  { id: 'calendar', icon: '📅', label: 'Calendar', path: '/calories/calendar' },
   { id: 'reports', icon: '▦', label: 'Reports', path: '/calories/reports' },
   { id: 'settings', icon: '⚙', label: 'Settings', path: '/calories/settings' },
 ];
@@ -36,6 +41,7 @@ export function CaloriesBottomNav() {
       <BottomNav
         leftItems={LEFT_ITEMS}
         rightItems={RIGHT_ITEMS}
+        moreItems={MORE_ITEMS}
         fab={{ label: 'Add', onClick: () => setShowAddMeal(true) }}
       />
     </>

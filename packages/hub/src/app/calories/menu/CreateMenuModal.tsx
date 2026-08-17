@@ -1,16 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { Modal } from '@/components';
+import { Modal, Button, DatePicker } from '@/components';
+import { ClipboardIcon } from '@/components/icons';
 import { DAY_LABELS, DaysOfWeekValues } from '@my-hub/shared/constants';
 import type { DayOfWeek } from '@my-hub/shared/constants';
-import { dateToString, omitNullish } from '@my-hub/shared/utils';
+import { dateToString, dayOfWeekMon0, omitNullish, formatWeekRangeStr } from '@my-hub/shared/utils';
 import { apiFetch } from '@/lib/utils';
-import { CreateMenuSchema, CreateMenuResponseSchema, hasDuplicateMealSlot } from '@/app/api/calories/menu/menu.schemas';
-import { dateForDay, formatWeekLabel, currentWeekMonday, shiftWeek } from './menu.utils';
+import {
+  CreateMenuSchema,
+  CreateMenuResponseSchema,
+  GetShoppingListResponseSchema,
+  hasDuplicateMealSlot,
+} from '@/app/api/calories/menu/menu.schemas';
+import { dateForDay, currentWeekMonday } from './menu.utils';
 import { CreateMenuDayTabs } from './CreateMenuDayTabs';
 import { CreateMenuMealEditor } from './CreateMenuMealEditor';
-import { MACRO_KEYS, makeRow } from './menu-form.schema';
+import { MACRO_KEYS, existingMenuMealFormValues, makeRow, parseIngredientLines } from './menu-form.schema';
 import type { MealFormRow, MacroKey } from './menu-form.schema';
 import type { WeeklyMenu } from './types';
 
@@ -24,12 +30,6 @@ function initialDayMeals(): DayMeals {
   return Object.fromEntries(DaysOfWeekValues.map(d => [d, [makeRow()]])) as DayMeals;
 }
 
-/** Returns today's day of week as DayOfWeek (0=Mon … 6=Sun). */
-function todayDayOfWeek(): DayOfWeek {
-  const jsDay = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  return ((jsDay === 0 ? 7 : jsDay) - 1) as DayOfWeek; // convert to 0=Mon … 6=Sun
-}
-
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -39,19 +39,90 @@ interface Props {
   onCreated: (menu: WeeklyMenu) => void;
   gymDays?: number[];
   defaultWeekStart?: string;
+  /** Weeks that already hold a menu — submitting one of these replaces it rather than adding. */
+  existingWeekStarts?: string[];
+  /** The menu on screen, offered as a starting point — most weeks resemble the one before them. */
+  copyFrom?: WeeklyMenu | null;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function CreateMenuModal({ onClose, onCreated, gymDays = [], defaultWeekStart }: Props) {
+export function CreateMenuModal({
+  onClose,
+  onCreated,
+  gymDays = [],
+  defaultWeekStart,
+  existingWeekStarts = [],
+  copyFrom = null,
+}: Props) {
   const thisMonday = currentWeekMonday();
   const [weekStart, setWeekStart] = useState(defaultWeekStart ?? thisMonday);
   const [dayMeals, setDayMeals] = useState<DayMeals>(initialDayMeals);
-  const [activeDay, setActiveDay] = useState<DayOfWeek>(todayDayOfWeek());
+  const [activeDay, setActiveDay] = useState<DayOfWeek>(dayOfWeekMon0(dateToString()));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<{ title: string | null; notes: string | null; shoppingList: string[] } | null>(
+    null,
+  );
+
+  /**
+   * Fill the form from an existing week. Days already past are skipped: their tabs are disabled,
+   * so rows there would be invisible and unremovable. Everything lands as editable rows rather
+   * than being submitted directly — the point is a starting draft, not a blind duplicate.
+   *
+   * The title, prep notes and shopping list come along too: all three describe the meals being
+   * copied, so carrying the meals alone would leave the user regenerating things whose content
+   * is already correct. The shopping list lives in its own table, hence the extra fetch.
+   */
+  async function copyMealsFrom(source: WeeklyMenu) {
+    const filled = initialDayMeals();
+    const today = dateToString();
+
+    for (const meal of source.meals) {
+      if (dateForDay(weekStart, meal.dayOfWeek) < today) continue;
+      // Reuses the meal→form mapping the edit modal already relies on; only `description` is
+      // overridden, because that helper deliberately blanks it for the "replace this dish" flow.
+      const row: MealFormRow = {
+        id: crypto.randomUUID(),
+        ...existingMenuMealFormValues(meal),
+        description: meal.description,
+      };
+      // initialDayMeals seeds one blank row per day; the first copied meal takes its place.
+      const existing = filled[meal.dayOfWeek];
+      const isSeedRow = existing.length === 1 && !existing[0]?.description;
+      filled[meal.dayOfWeek] = isSeedRow ? [row] : [...existing, row];
+    }
+
+    setDayMeals(filled);
+
+    // A failed list fetch must not lose the meals that already landed — the copy is still useful
+    // without it, so this degrades rather than throws.
+    let shoppingList: string[] = [];
+    try {
+      const data = await apiFetch(`/api/calories/menu/${source.menuId}/shopping-list`, {
+        responseSchema: GetShoppingListResponseSchema,
+      });
+      shoppingList = data.items.map(i => i.text);
+    } catch {
+      // Losing the list must not lose the meals that already landed.
+    }
+
+    setCopied({ title: source.title, notes: source.notes, shoppingList });
+  }
+
+  /** What the last copy brought across beyond the meals, which the day tabs already show. */
+  const copiedExtras = (() => {
+    if (!copied) return null;
+    const listCount = copied.shoppingList.length;
+    const parts = [
+      copied.title ? 'the title' : null,
+      copied.notes ? 'prep notes' : null,
+      listCount > 0 ? `${listCount} shopping list item${listCount === 1 ? '' : 's'}` : null,
+    ].filter(Boolean);
+    return parts.length > 0 ? `Also copied: ${parts.join(', ')}.` : null;
+  })();
 
   // ---------------------------------------------------------------------------
   // Meal row helpers
@@ -79,8 +150,15 @@ export function CreateMenuModal({ onClose, onCreated, gymDays = [], defaultWeekS
   // Rows with a non-empty description, per day — the single source of truth for "what actually
   // gets submitted", reused by the meal count, the duplicate-slot check, and the submit payload
   // so all three can never disagree about what counts as a filled row.
+  //
+  // Days already past contribute nothing, whatever their rows hold. Copying into a future week
+  // fills all seven days; stepping back to the current week then leaves those rows in state with
+  // their tabs disabled — visible to no one, removable by no one, and otherwise still submitted.
   const filledRowsPerDay = Object.fromEntries(
-    DaysOfWeekValues.map(d => [d, dayMeals[d].filter(r => r.description.trim().length > 0)]),
+    DaysOfWeekValues.map(d => [
+      d,
+      dateForDay(weekStart, d) < dateToString() ? [] : dayMeals[d].filter(r => r.description.trim().length > 0),
+    ]),
   ) as Record<DayOfWeek, MealFormRow[]>;
 
   // ---------------------------------------------------------------------------
@@ -98,6 +176,7 @@ export function CreateMenuModal({ onClose, onCreated, gymDays = [], defaultWeekS
           mealType: r.mealType,
           description: r.description.trim(),
           ...omitNullish({
+            ingredients: parseIngredientLines(r.ingredients),
             kcal: r.kcal ? parseInt(r.kcal, 10) : undefined,
             protein: r.protein ? parseInt(r.protein, 10) : undefined,
             carbs: r.carbs ? parseInt(r.carbs, 10) : undefined,
@@ -108,7 +187,16 @@ export function CreateMenuModal({ onClose, onCreated, gymDays = [], defaultWeekS
 
       const data = await apiFetch('/api/calories/menu', {
         method: 'POST',
-        body: { weekStart, meals },
+        // omitNullish so a copy with no title or no notes doesn't send empty strings.
+        body: {
+          weekStart,
+          meals,
+          ...omitNullish({
+            title: copied?.title ?? undefined,
+            notes: copied?.notes ?? undefined,
+            shoppingList: copied?.shoppingList.length ? copied.shoppingList : undefined,
+          }),
+        },
         bodySchema: CreateMenuSchema,
         responseSchema: CreateMenuResponseSchema,
       });
@@ -157,20 +245,29 @@ export function CreateMenuModal({ onClose, onCreated, gymDays = [], defaultWeekS
   >;
   // All available days (days strictly before today are excluded regardless of week)
   const availableDays = DaysOfWeekValues.filter(d => dayDates[d] >= today);
+  // Reported, not enforced. A day without meals is a legitimate plan — the menu page renders one
+  // as "No meals planned", deleting a day's last meal afterwards is allowed, and `calories_plan_week`
+  // can write a week with gaps. Blocking here only at creation forbade a state reachable a second
+  // later by hand, and it deadlocked "Copy meals from" whenever the source week had an empty day.
   const missingDays = availableDays.filter(d => mealCountPerDay[d] === 0);
   // Each (day, mealType) slot may appear at most once — the DB enforces this with a
   // unique constraint, so surface the conflict here instead of silently collapsing it.
   const duplicateSlotDays = DaysOfWeekValues.filter(d =>
     hasDuplicateMealSlot(filledRowsPerDay[d].map(r => ({ dayOfWeek: d, mealType: r.mealType }))),
   );
-  const canSubmit = missingDays.length === 0 && duplicateSlotDays.length === 0;
+  // Mirrors the API's `meals.min(1)`: the only real floor is that the week isn't entirely empty.
+  const totalMeals = DaysOfWeekValues.reduce<number>((sum, d) => sum + mealCountPerDay[d], 0);
+  const canSubmit = totalMeals > 0 && duplicateSlotDays.length === 0;
+  // The API replaces (delete + insert) rather than merges, so submitting over an existing week
+  // drops its shopping list and logged-meal markers with it. Say so before, not after.
+  const replacesExisting = existingWeekStarts.includes(weekStart);
 
   return (
     <Modal
       title="Create weekly menu"
       onClose={onClose}
       onSubmit={() => void handleSubmit()}
-      submitLabel="Create menu"
+      submitLabel={replacesExisting ? 'Replace menu' : 'Create menu'}
       submitDisabled={!canSubmit}
       submitLoading={submitting}
       className="md:max-w-2xl"
@@ -184,34 +281,48 @@ export function CreateMenuModal({ onClose, onCreated, gymDays = [], defaultWeekS
         )}
 
         {/* Week selector — current week and future only */}
-        <div className="flex items-center gap-2">
-          <button
+        <DatePicker
+          month={weekStart}
+          dateMode="week"
+          minMonth={thisMonday}
+          onChange={({ month: newWeekStart }) => {
+            if (!newWeekStart) return;
+            setWeekStart(newWeekStart);
+            const now = dateToString();
+            if (dateForDay(newWeekStart, activeDay) < now) {
+              const firstAvailable = DaysOfWeekValues.find(d => dateForDay(newWeekStart, d) >= now);
+              if (firstAvailable !== undefined) setActiveDay(firstAvailable);
+            }
+          }}
+          fullBleed={false}
+        />
+
+        {/* Offered rather than applied: copying is the common case, but it must not overwrite a
+            form the user has already started filling in. Styled as a real button — as quiet muted
+            text it was indistinguishable from the hint line below and nobody found it. */}
+        {copyFrom && copyFrom.weekStart !== weekStart && copyFrom.meals.length > 0 && (
+          <Button
             type="button"
-            onClick={() => {
-              const prev = shiftWeek(weekStart, -1);
-              setWeekStart(prev);
-              const now = dateToString();
-              if (dateForDay(prev, activeDay) < now) {
-                const firstAvailable = DaysOfWeekValues.find(d => dateForDay(prev, d) >= now);
-                if (firstAvailable !== undefined) setActiveDay(firstAvailable);
-              }
-            }}
-            disabled={weekStart <= thisMonday}
-            className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--subtle)] hover:text-[var(--text)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            variant="ghost"
+            size="sm"
+            onClick={() => void copyMealsFrom(copyFrom)}
+            className="self-start inline-flex items-center gap-2 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20"
           >
-            ‹
-          </button>
-          <div className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-center text-sm font-medium text-[var(--text)]">
-            {formatWeekLabel(weekStart, true)}
+            <ClipboardIcon className="size-4" />
+            Copy meals from {formatWeekRangeStr(copyFrom.weekStart)}
+          </Button>
+        )}
+
+        {/* Named explicitly — the meals are visible in the tabs, these are not */}
+        {copiedExtras && <p className="-mt-1 text-[11px] text-[var(--subtle)]">{copiedExtras}</p>}
+
+        {replacesExisting && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
+            {formatWeekRangeStr(weekStart)} already has a menu. Creating one here <strong>replaces</strong> it — its
+            shopping list and logged meals are removed too. To change a single meal, close this and use the pencil on
+            that meal instead.
           </div>
-          <button
-            type="button"
-            onClick={() => setWeekStart(w => shiftWeek(w, 1))}
-            className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--subtle)] hover:text-[var(--text)] transition-colors"
-          >
-            ›
-          </button>
-        </div>
+        )}
 
         <CreateMenuDayTabs
           activeDay={activeDay}
@@ -251,11 +362,14 @@ export function CreateMenuModal({ onClose, onCreated, gymDays = [], defaultWeekS
             appear once per day
           </p>
         )}
-        {missingDays.length > 0 ? (
-          <p className="text-xs text-amber-400">
-            Add at least one meal for: {missingDays.map(d => DAY_LABELS[d].slice(0, 3)).join(', ')}
+        {totalMeals === 0 ? (
+          <p className="text-xs text-amber-400">Add at least one meal to create the menu</p>
+        ) : missingDays.length > 0 ? (
+          /* Stated, not enforced — a partly planned week is a normal thing to save. */
+          <p className="text-xs text-[var(--subtle)]">
+            No meals planned for {missingDays.map(d => DAY_LABELS[d].slice(0, 3)).join(', ')} — you can add them later
           </p>
-        ) : duplicateSlotDays.length === 0 && Object.values(mealCountPerDay).some(c => c > 0) ? (
+        ) : duplicateSlotDays.length === 0 ? (
           <p className="text-xs text-green-400">All days have at least one meal ✓</p>
         ) : null}
       </div>

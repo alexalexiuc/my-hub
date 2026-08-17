@@ -89,14 +89,10 @@ export const GET = route({ params: ParamsSchema, response: monthlyPlanResponseSc
   return buildResponse(user.id, budget.id, params.month);
 });
 
-const UpdateSchema = z
-  .object({
-    availableAmount: z.number().optional(),
-    incomeAccountId: z.number().int().nullable().optional(),
-  })
-  .refine(body => body.availableAmount !== undefined || body.incomeAccountId !== undefined, {
-    message: 'At least one field is required',
-  });
+const UpdateSchema = z.object({
+  availableAmount: z.number().optional(),
+  incomeAccountId: z.number().int().nullable().optional(),
+});
 
 export const PATCH = route({ params: ParamsSchema, body: UpdateSchema, response: monthlyPlanResponseSchema })(async ({
   user,
