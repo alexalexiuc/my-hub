@@ -18,12 +18,13 @@
  * - `logMenuDay(userId, menuId, dayOfWeek, loggedDate)` / `unlogMenuDay(...)` — same, for every slot of a day in one transaction
  * - `getPlannedMealsForDate(userId, date)` — the day's planned meals, each flagged logged
  * - `getLoggedDays(userId, menuId)` — `{ "day:mealType": loggedDate }` map of logged slots
+ * - `getMenuStatusForRange(userId, start, end)` — per-date `{ hasMenu, logged }` for the Hub Calendar's menu icon (`logged` true only once every planned slot for that date is logged)
  *
  * There is deliberately no marker-only "mark as logged" helper: writing a day-log without its
  * journal entry is the desync `logMenuMeal`'s transaction exists to prevent, and a slot marked
  * that way would count towards adherence while never appearing in the calorie journal.
  */
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import {
   weeklyMenus,
@@ -778,4 +779,74 @@ export async function getLoggedDays(userId: string, menuId: string): Promise<Rec
   }
 
   return readDayLogs(menuId);
+}
+
+export interface DayMenuStatus {
+  hasMenu: boolean;
+  /** True only when `hasMenu` and every planned slot for that date has been logged. */
+  logged: boolean;
+}
+
+/**
+ * Per-date `{ hasMenu, logged }` for every day in `[start, end]` that a weekly menu covers — the
+ * Hub Calendar's menu icon needs this in one shot for a whole month rather than one
+ * `getPlannedMealsForDate` call per day. Three batch queries (menus in range, their meals, their
+ * day-logs) regardless of how many days the range spans, mirroring `getDailySummariesForRange`.
+ * Dates with no menu are simply absent from the result.
+ */
+export async function getMenuStatusForRange(
+  userId: string,
+  start: string,
+  end: string,
+): Promise<Record<string, DayMenuStatus>> {
+  const startWeek = dateToString(startOfWeekMonday(new Date(`${start}T00:00:00`)));
+  const endWeek = dateToString(startOfWeekMonday(new Date(`${end}T00:00:00`)));
+
+  const menus = await db
+    .select({ menuId: weeklyMenus.menuId, weekStart: weeklyMenus.weekStart })
+    .from(weeklyMenus)
+    .where(
+      and(eq(weeklyMenus.userId, userId), gte(weeklyMenus.weekStart, startWeek), lte(weeklyMenus.weekStart, endWeek)),
+    );
+
+  if (menus.length === 0) return {};
+
+  const menuIds = menus.map(m => m.menuId);
+  const weekStartByMenu = new Map(menus.map(m => [m.menuId, m.weekStart]));
+
+  const [meals, logs] = await Promise.all([
+    db
+      .select({
+        menuId: weeklyMenuMeals.menuId,
+        dayOfWeek: weeklyMenuMeals.dayOfWeek,
+        mealType: weeklyMenuMeals.mealType,
+      })
+      .from(weeklyMenuMeals)
+      .where(inArray(weeklyMenuMeals.menuId, menuIds)),
+    db
+      .select({
+        menuId: weeklyMenuDayLogs.menuId,
+        dayOfWeek: weeklyMenuDayLogs.dayOfWeek,
+        mealType: weeklyMenuDayLogs.mealType,
+      })
+      .from(weeklyMenuDayLogs)
+      .where(inArray(weeklyMenuDayLogs.menuId, menuIds)),
+  ]);
+
+  const loggedSlots = new Set(logs.map(l => `${l.menuId}:${l.dayOfWeek}:${l.mealType}`));
+
+  const statuses: Record<string, DayMenuStatus> = {};
+  for (const meal of meals) {
+    const weekStart = weekStartByMenu.get(meal.menuId);
+    if (!weekStart) continue;
+    const date = toUTCDateStr(addDays(new Date(`${weekStart}T00:00:00`), meal.dayOfWeek));
+    if (date < start || date > end) continue;
+
+    const entry = statuses[date] ?? { hasMenu: false, logged: true };
+    entry.hasMenu = true;
+    entry.logged = entry.logged && loggedSlots.has(`${meal.menuId}:${meal.dayOfWeek}:${meal.mealType}`);
+    statuses[date] = entry;
+  }
+
+  return statuses;
 }

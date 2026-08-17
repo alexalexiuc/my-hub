@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildMonthGridDays } from './calendar.utils';
+import { buildMonthGridDays, menuDayStatus } from './calendar.utils';
 
 describe('buildMonthGridDays', () => {
   it('pads a month that starts on a Saturday back to the preceding Monday', () => {
@@ -30,5 +30,25 @@ describe('buildMonthGridDays', () => {
     expect(inMonthDates).toHaveLength(28);
     expect(inMonthDates[0]).toBe('2026-02-01');
     expect(inMonthDates[inMonthDates.length - 1]).toBe('2026-02-28');
+  });
+});
+
+describe('menuDayStatus', () => {
+  it('is "none" when no menu is planned, regardless of logged/past', () => {
+    expect(menuDayStatus(false, false, false)).toBe('none');
+    expect(menuDayStatus(false, true, true)).toBe('none');
+  });
+
+  it('is "logged" when the day has a menu and it has all been logged', () => {
+    expect(menuDayStatus(true, true, false)).toBe('logged');
+    expect(menuDayStatus(true, true, true)).toBe('logged');
+  });
+
+  it('is "missed" when the day has passed with something planned left unlogged', () => {
+    expect(menuDayStatus(true, false, true)).toBe('missed');
+  });
+
+  it('is "planned" for an unlogged menu on today or a future day', () => {
+    expect(menuDayStatus(true, false, false)).toBe('planned');
   });
 });
