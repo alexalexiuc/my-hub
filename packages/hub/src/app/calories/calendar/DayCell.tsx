@@ -1,7 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { intakeBarColor } from '../calories.utils';
+import { intakeBarColor, macroCalorieSplit } from '../calories.utils';
+import { MACRO_COLORS } from '../constants';
 import type { CalendarDay } from './types';
 import type { MonthGridDay } from './calendar.utils';
 
@@ -22,6 +23,12 @@ export function DayCell({ day, summary, isToday, onSelect }: DayCellProps) {
   const hasData = (summary?.mealCount ?? 0) > 0;
   const color = intakeBarColor(kcal, summary?.min ?? null, summary?.target ?? null);
   const dayNum = Number(day.date.slice(-2));
+  const {
+    proteinCal,
+    carbsCal,
+    fatCal,
+    total: macroTotal,
+  } = macroCalorieSplit(summary?.protein ?? 0, summary?.carbs ?? 0, summary?.fat ?? 0);
 
   return (
     <button
@@ -44,6 +51,13 @@ export function DayCell({ day, summary, isToday, onSelect }: DayCellProps) {
         <span className="text-[11px] font-semibold" style={{ color }}>
           {Math.round(kcal)}
         </span>
+      )}
+      {day.inMonth && hasData && macroTotal > 0 && (
+        <div className="flex h-[3px] w-3/4 max-w-[28px] overflow-hidden rounded-full">
+          <div style={{ width: `${(proteinCal / macroTotal) * 100}%`, backgroundColor: MACRO_COLORS.protein }} />
+          <div style={{ width: `${(carbsCal / macroTotal) * 100}%`, backgroundColor: MACRO_COLORS.carbs }} />
+          <div style={{ width: `${(fatCal / macroTotal) * 100}%`, backgroundColor: MACRO_COLORS.fat }} />
+        </div>
       )}
     </button>
   );
