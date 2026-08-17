@@ -7,7 +7,7 @@
  *   deleteCalorieProfile           — delete a calorie profile
  *   deleteAllUserCalorieProfiles   — bulk delete all profiles for a user
  *   generateCaloriesAutomationKey  — generate and persist a new automation API key
- *   getUserCalorieTargets          — profile + latest weight → daily calorie/macro targets, single source for weekly-menu tools
+ *   getUserCalorieTargets          — profile + latest weight → daily calorie/macro targets (incl. gymTime), single source for weekly-menu tools
  * Types: UserCalorieTargets
  */
 import { randomBytes } from 'crypto';
@@ -15,7 +15,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { calorieProfiles } from '../../db/schema/calories';
 import type { CalorieProfile } from '../../types';
-import type { DayOfWeek, GoalType } from '../../constants';
+import type { DayOfWeek, GoalType, GymTime } from '../../constants';
 import { MeasurementTypes, DEFAULT_GYM_DAY_CALORIE_BONUS } from '../../constants';
 import { profileToTargets } from '../../utils';
 import { getLatestMeasurementsPerType } from '../measurements/measurements';
@@ -82,6 +82,7 @@ export interface UserCalorieTargets {
   macros: { protein: number | null; carbs: number | null; fat: number | null };
   gymDays: DayOfWeek[] | null;
   gymDayCalorieBonus: number;
+  gymTime: GymTime | null;
 }
 
 /**
@@ -106,5 +107,6 @@ export async function getUserCalorieTargets(userId: string): Promise<UserCalorie
     macros: { protein: profile.goalProtein ?? null, carbs: profile.goalCarbs ?? null, fat: profile.goalFat ?? null },
     gymDays: gymDays.length > 0 ? gymDays : null,
     gymDayCalorieBonus: profile.gymDayCalorieBonus ?? DEFAULT_GYM_DAY_CALORIE_BONUS,
+    gymTime: profile.gymTime ?? null,
   };
 }
