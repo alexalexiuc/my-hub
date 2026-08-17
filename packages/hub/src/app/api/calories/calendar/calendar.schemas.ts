@@ -17,6 +17,10 @@ export const CalendarDaySchema = z.object({
   /** Floor for the day, gym-day bonus included. Null when the profile sets no minimum. */
   min: z.number().nullable(),
   isGymDay: z.boolean(),
+  /** Whether a weekly menu has a planned meal for this day. */
+  hasMenu: z.boolean(),
+  /** True only when `hasMenu` and every one of that day's planned meals has been logged. */
+  menuLogged: z.boolean(),
 });
 
 export const CalendarResponseSchema = z.object({ days: z.array(CalendarDaySchema) });

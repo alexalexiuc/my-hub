@@ -47,3 +47,4 @@ export { InfoCircleIcon } from './InfoCircleIcon';
 export { FunnelIcon } from './FunnelIcon';
 export { GearOutlineIcon } from './GearOutlineIcon';
 export { TrendingUpOutlineIcon } from './TrendingUpOutlineIcon';
+export { ClocheIcon } from './ClocheIcon';

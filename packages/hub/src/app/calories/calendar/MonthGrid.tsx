@@ -31,6 +31,7 @@ export function MonthGrid({ days, summaries, today, onSelectDay }: MonthGridProp
             day={day}
             summary={summaries.get(day.date)}
             isToday={day.date === today}
+            isPast={day.date < today}
             onSelect={onSelectDay}
           />
         ))}

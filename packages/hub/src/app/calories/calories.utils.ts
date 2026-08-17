@@ -117,6 +117,24 @@ export function calcCalorieDonutState(eaten: number, cap: number | null, min: nu
   };
 }
 
+export interface MacroCalorieSplit {
+  proteinCal: number;
+  carbsCal: number;
+  fatCal: number;
+  total: number;
+}
+
+/**
+ * Converts grams of each macro to their calorie contribution (protein/carbs = 4 kcal/g, fat = 9
+ * kcal/g), for anything that needs to render a macro split (donut chart, calendar day bar).
+ */
+export function macroCalorieSplit(protein: number, carbs: number, fat: number): MacroCalorieSplit {
+  const proteinCal = protein * 4;
+  const carbsCal = carbs * 4;
+  const fatCal = fat * 9;
+  return { proteinCal, carbsCal, fatCal, total: proteinCal + carbsCal + fatCal };
+}
+
 /**
  * Groups an array of meal logs by their meal type.
  * @param meals - Array of meal log entries to group

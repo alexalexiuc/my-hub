@@ -2,6 +2,8 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card } from '@/components';
+import { MACRO_COLORS } from './constants';
+import { macroCalorieSplit } from './calories.utils';
 
 interface Props {
   protein: number;
@@ -10,30 +12,25 @@ interface Props {
   goalProtein: number | null;
   goalCarbs: number | null;
   goalFat: number | null;
+  /** Use the bordered-card-at-all-sizes style instead of the default mobile full-bleed — for
+   * embedding inside a modal or another card, where full-bleed would break out of the parent's
+   * own padding. */
+  compact?: boolean;
 }
 
-const COLORS = {
-  carbs: '#fbbf24', // amber-400
-  protein: '#38bdf8', // sky-400
-  fat: '#fb7185', // rose-400
-};
-
-export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFat }: Props) {
-  const proteinCal = protein * 4;
-  const carbsCal = carbs * 4;
-  const fatCal = fat * 9;
-  const total = proteinCal + carbsCal + fatCal;
+export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFat, compact }: Props) {
+  const { proteinCal, carbsCal, fatCal, total } = macroCalorieSplit(protein, carbs, fat);
 
   const data = [
-    { name: 'Carbs', value: carbsCal, grams: carbs, goal: goalCarbs, color: COLORS.carbs },
-    { name: 'Protein', value: proteinCal, grams: protein, goal: goalProtein, color: COLORS.protein },
-    { name: 'Fat', value: fatCal, grams: fat, goal: goalFat, color: COLORS.fat },
+    { name: 'Carbs', value: carbsCal, grams: carbs, goal: goalCarbs, color: MACRO_COLORS.carbs },
+    { name: 'Protein', value: proteinCal, grams: protein, goal: goalProtein, color: MACRO_COLORS.protein },
+    { name: 'Fat', value: fatCal, grams: fat, goal: goalFat, color: MACRO_COLORS.fat },
   ];
 
   const pct = (val: number) => (total > 0 ? Math.round((val / total) * 100) : 0);
 
   return (
-    <Card className="p-5">
+    <Card className="p-5" compact={compact}>
       <h2 className="mb-4 text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Macro split</h2>
       {total === 0 ? (
         <div className="flex h-32 items-center justify-center">

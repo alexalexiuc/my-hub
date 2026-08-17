@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { Modal } from '@/components';
-import type { MealLog } from '@my-hub/shared/types';
+import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MealType, GymTime } from '@my-hub/shared/constants';
 import { mealOrder } from '@my-hub/shared/utils';
 import { MEAL_LABEL } from '../constants';
 import { formatDateLabel, groupByMealType } from '../calories.utils';
 import { targetPct, targetColorClasses } from '../menu/menu.utils';
 import { TargetBar } from '../menu/TargetBar';
+import { MacroChart } from '../MacroChart';
 import type { CalendarDay } from './types';
 
 type PlannedMeal = {
@@ -31,6 +32,7 @@ export function DayDetailModal({ date, summary, onClose }: DayDetailModalProps) 
   const [meals, setMeals] = useState<MealLog[]>([]);
   const [plannedMeals, setPlannedMeals] = useState<PlannedMeal[]>([]);
   const [gymTime, setGymTime] = useState<GymTime | null>(null);
+  const [profile, setProfile] = useState<CalorieProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,12 +44,14 @@ export function DayDetailModal({ date, summary, onClose }: DayDetailModalProps) 
         query: { date },
         silentToast: true,
       }),
+      apiFetch<{ profile: CalorieProfile | null }>('/api/calories/profile', { silentToast: true }),
     ])
-      .then(([mealsData, planData]) => {
+      .then(([mealsData, planData, profileData]) => {
         if (cancelled) return;
         setMeals(mealsData.meals);
         setPlannedMeals(planData.meals);
         setGymTime(planData.gymTime);
+        setProfile(profileData.profile);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -89,20 +93,15 @@ export function DayDetailModal({ date, summary, onClose }: DayDetailModalProps) 
           {target !== null && <TargetBar pct={pct} colors={colors} size="sm" />}
         </div>
 
-        <div className="grid grid-cols-3 gap-2 text-center text-xs">
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--card2)] py-2">
-            <div className="font-semibold text-[var(--text)]">{Math.round(summary?.protein ?? 0)}g</div>
-            <div className="text-[10px] text-[var(--subtle)]">Protein</div>
-          </div>
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--card2)] py-2">
-            <div className="font-semibold text-[var(--text)]">{Math.round(summary?.carbs ?? 0)}g</div>
-            <div className="text-[10px] text-[var(--subtle)]">Carbs</div>
-          </div>
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--card2)] py-2">
-            <div className="font-semibold text-[var(--text)]">{Math.round(summary?.fat ?? 0)}g</div>
-            <div className="text-[10px] text-[var(--subtle)]">Fat</div>
-          </div>
-        </div>
+        <MacroChart
+          protein={Math.round(summary?.protein ?? 0)}
+          carbs={Math.round(summary?.carbs ?? 0)}
+          fat={Math.round(summary?.fat ?? 0)}
+          goalProtein={profile?.goalProtein ?? null}
+          goalCarbs={profile?.goalCarbs ?? null}
+          goalFat={profile?.goalFat ?? null}
+          compact
+        />
 
         {loading ? (
           <p className="text-xs text-[var(--muted)]">Loading…</p>

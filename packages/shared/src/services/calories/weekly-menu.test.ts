@@ -10,6 +10,7 @@ import {
   unlogMenuMeal,
   logMenuDay,
   unlogMenuDay,
+  getMenuStatusForRange,
 } from './weekly-menu';
 
 // ---------------------------------------------------------------------------
@@ -809,5 +810,65 @@ describe('logMenuMeal', () => {
 
     expect(result).toBe(false);
     expect(vi.mocked(db).transaction).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getMenuStatusForRange
+// ---------------------------------------------------------------------------
+
+describe('getMenuStatusForRange', () => {
+  it('returns an empty object when no menu falls in the range', async () => {
+    mockSelectOwnership([]);
+
+    const result = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
+
+    expect(result).toEqual({});
+  });
+
+  it('marks a day hasMenu:true, logged:false when its planned slot has not been logged', async () => {
+    mockSelectOwnership([{ menuId: 'menu-abc', weekStart: '2026-08-10' }]);
+    mockSelectOwnership([{ menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' }]);
+    mockSelectOwnership([]);
+
+    const result = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
+
+    expect(result['2026-08-10']).toEqual({ hasMenu: true, logged: false });
+  });
+
+  it('marks a day logged:true only once every planned slot for it has been logged', async () => {
+    mockSelectOwnership([{ menuId: 'menu-abc', weekStart: '2026-08-10' }]);
+    mockSelectOwnership([
+      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' },
+      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'lunch' },
+    ]);
+    mockSelectOwnership([{ menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' }]);
+
+    const partial = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
+    expect(partial['2026-08-10']).toEqual({ hasMenu: true, logged: false });
+
+    mockSelectOwnership([{ menuId: 'menu-abc', weekStart: '2026-08-10' }]);
+    mockSelectOwnership([
+      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' },
+      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'lunch' },
+    ]);
+    mockSelectOwnership([
+      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' },
+      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'lunch' },
+    ]);
+
+    const full = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
+    expect(full['2026-08-10']).toEqual({ hasMenu: true, logged: true });
+  });
+
+  it('excludes dates outside the requested range even when the menu week covers them', async () => {
+    // Week of 2026-07-27; dayOfWeek 0 (Monday) falls before the requested range start.
+    mockSelectOwnership([{ menuId: 'menu-abc', weekStart: '2026-07-27' }]);
+    mockSelectOwnership([{ menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' }]);
+    mockSelectOwnership([]);
+
+    const result = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
+
+    expect(result).toEqual({});
   });
 });

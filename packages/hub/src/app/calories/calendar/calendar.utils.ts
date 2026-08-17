@@ -33,3 +33,20 @@ export function buildMonthGridDays(month: string): MonthGridDay[] {
     inMonth: date >= firstOfMonth && date <= lastOfMonth,
   }));
 }
+
+/**
+ * A day cell's weekly-menu badge state:
+ * - `none` — no menu planned for the day, so no icon shows at all.
+ * - `planned` — a menu is planned and the day hasn't passed unlogged yet; icon alone.
+ * - `logged` — every planned meal for the day has been logged; icon + green check.
+ * - `missed` — the day is in the past and something planned was never logged; icon + red x.
+ */
+export type MenuDayStatus = 'none' | 'planned' | 'logged' | 'missed';
+
+/** Resolves a day cell's menu badge state from the calendar API's per-day menu flags. */
+export function menuDayStatus(hasMenu: boolean, logged: boolean, isPast: boolean): MenuDayStatus {
+  if (!hasMenu) return 'none';
+  if (logged) return 'logged';
+  if (isPast) return 'missed';
+  return 'planned';
+}
