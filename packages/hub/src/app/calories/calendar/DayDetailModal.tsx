@@ -7,7 +7,7 @@ import type { MealLog } from '@my-hub/shared/types';
 import type { MealType, GymTime } from '@my-hub/shared/constants';
 import { mealOrder } from '@my-hub/shared/utils';
 import { MEAL_LABEL } from '../constants';
-import { formatDateLabel } from '../calories.utils';
+import { formatDateLabel, groupByMealType } from '../calories.utils';
 import { targetPct, targetColorClasses } from '../menu/menu.utils';
 import { TargetBar } from '../menu/TargetBar';
 import type { CalendarDay } from './types';
@@ -69,9 +69,8 @@ export function DayDetailModal({ date, summary, onClose }: DayDetailModalProps) 
     const i = order.indexOf(mt);
     return i === -1 ? order.length : i;
   };
-  const orderedMeals = [...meals].sort(
-    (a, b) => orderIndex(a.mealType as MealType) - orderIndex(b.mealType as MealType),
-  );
+  const groupedMeals = groupByMealType(meals);
+  const orderedMealGroups = order.filter(t => groupedMeals[t]?.length).map(t => [t, groupedMeals[t]!] as const);
   const orderedPlanned = [...plannedMeals].sort((a, b) => orderIndex(a.mealType) - orderIndex(b.mealType));
 
   return (
@@ -109,19 +108,27 @@ export function DayDetailModal({ date, summary, onClose }: DayDetailModalProps) 
           <p className="text-xs text-[var(--muted)]">Loading…</p>
         ) : (
           <>
-            {orderedMeals.length > 0 && (
-              <section className="flex flex-col gap-1.5">
+            {orderedMealGroups.length > 0 && (
+              <section className="flex flex-col gap-2.5">
                 <h3 className="text-[10px] font-semibold uppercase tracking-wide text-[var(--subtle)]">Logged</h3>
-                {orderedMeals.map(meal => (
-                  <div
-                    key={meal.id}
-                    className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--card2)] px-2.5 py-2 text-xs"
-                  >
-                    <div className="flex flex-col">
-                      <span className="text-[var(--text)]">{meal.description}</span>
-                      <span className="text-[10px] text-[var(--subtle)]">{MEAL_LABEL[meal.mealType as MealType]}</span>
+                {orderedMealGroups.map(([mealType, group]) => (
+                  <div key={mealType} className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                      {MEAL_LABEL[mealType]}
+                    </span>
+                    <div className="flex flex-col gap-1">
+                      {group.map(meal => (
+                        <div
+                          key={meal.id}
+                          className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--card2)] px-2.5 py-2 text-xs"
+                        >
+                          <span className="text-[var(--text)]">{meal.description}</span>
+                          {meal.kcal !== null && (
+                            <span className="shrink-0 pl-2 text-[var(--muted)]">{meal.kcal} kcal</span>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    {meal.kcal !== null && <span className="text-[var(--muted)]">{meal.kcal} kcal</span>}
                   </div>
                 ))}
               </section>
@@ -149,7 +156,7 @@ export function DayDetailModal({ date, summary, onClose }: DayDetailModalProps) 
               </section>
             )}
 
-            {orderedMeals.length === 0 && orderedPlanned.length === 0 && (
+            {orderedMealGroups.length === 0 && orderedPlanned.length === 0 && (
               <p className="text-xs text-[var(--subtle)] italic">Nothing logged or planned for this day.</p>
             )}
           </>
