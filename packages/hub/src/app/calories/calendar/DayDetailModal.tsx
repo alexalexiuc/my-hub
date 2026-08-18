@@ -5,20 +5,18 @@ import { apiFetch } from '@/lib/utils';
 import { Modal } from '@/components';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MealType, GymTime } from '@my-hub/shared/constants';
-import { mealOrder } from '@my-hub/shared/utils';
+import { dateToString, mealOrder } from '@my-hub/shared/utils';
 import { MEAL_LABEL } from '../constants';
 import { formatDateLabel, groupByMealType } from '../calories.utils';
 import { targetPct, targetColorClasses } from '../menu/menu.utils';
 import { TargetBar } from '../menu/TargetBar';
 import { MacroChart } from '../MacroChart';
+import { MealRow } from '../menu/MealRow';
+import { mealEvents } from '../mealEvents';
+import type { WeeklyMenuMeal } from '../menu/types';
 import type { CalendarDay } from './types';
 
-type PlannedMeal = {
-  mealType: MealType;
-  description: string;
-  kcal: number | null;
-  logged: boolean;
-};
+type PlannedMeal = WeeklyMenuMeal & { logged: boolean };
 
 type DayDetailModalProps = {
   date: string;
@@ -27,13 +25,36 @@ type DayDetailModalProps = {
   onClose: () => void;
 };
 
-/** kcal + macros + logged/planned meals for one day, opened from a calendar cell. Read-only. */
+/**
+ * kcal + macros + logged/planned meals for one day, opened from a calendar cell. The logged
+ * section is a read-only summary of the calorie journal, but planned menu items reuse `MealRow` —
+ * the same row the Weekly Menu tab renders — so this modal gets log/edit/delete for free and
+ * never drifts from how a planned meal looks and behaves everywhere else.
+ */
 export function DayDetailModal({ date, summary, onClose }: DayDetailModalProps) {
+  const today = dateToString(new Date());
   const [meals, setMeals] = useState<MealLog[]>([]);
+  const [menuId, setMenuId] = useState<string | null>(null);
   const [plannedMeals, setPlannedMeals] = useState<PlannedMeal[]>([]);
   const [gymTime, setGymTime] = useState<GymTime | null>(null);
   const [profile, setProfile] = useState<CalorieProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  // Bumped after a mutation inside the modal (log/edit/delete via MealRow) to re-run the
+  // day-scoped fetch below without needing a stable function identity to key an effect on.
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // The profile (goals/macro targets) doesn't change when a meal is logged, so it's fetched once
+  // on mount rather than on every reload below — logging/editing/deleting a meal has no reason to
+  // re-request it.
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch<{ profile: CalorieProfile | null }>('/api/calories/profile', { silentToast: true }).then(data => {
+      if (!cancelled) setProfile(data.profile);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,14 +65,13 @@ export function DayDetailModal({ date, summary, onClose }: DayDetailModalProps) 
         query: { date },
         silentToast: true,
       }),
-      apiFetch<{ profile: CalorieProfile | null }>('/api/calories/profile', { silentToast: true }),
     ])
-      .then(([mealsData, planData, profileData]) => {
+      .then(([mealsData, planData]) => {
         if (cancelled) return;
         setMeals(mealsData.meals);
+        setMenuId(planData.menuId);
         setPlannedMeals(planData.meals);
         setGymTime(planData.gymTime);
-        setProfile(profileData.profile);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -59,7 +79,21 @@ export function DayDetailModal({ date, summary, onClose }: DayDetailModalProps) 
     return () => {
       cancelled = true;
     };
-  }, [date]);
+  }, [date, reloadKey]);
+
+  /**
+   * Logging/editing/deleting a planned meal here also touches the calorie journal (log-day
+   * writes both in one transaction) and this day's kcal/macro totals, which the modal doesn't
+   * own — they come in as the `summary` prop from the month grid. Bumping `reloadKey` (re-running
+   * the day-scoped fetch above) and re-emitting `mealEvents` (the feature's cross-widget refresh
+   * signal, which the month grid listens for) keeps both the "Logged" list here and the grid's
+   * totals/badge in step with a single source of truth, instead of hand-patching local state to
+   * match what the server just did.
+   */
+  function handleMealChanged() {
+    setReloadKey(k => k + 1);
+    mealEvents.emit('changed');
+  }
 
   const kcal = summary?.kcal ?? 0;
   const target = summary?.target ?? null;
@@ -133,24 +167,22 @@ export function DayDetailModal({ date, summary, onClose }: DayDetailModalProps) 
               </section>
             )}
 
-            {orderedPlanned.length > 0 && (
-              <section className="flex flex-col gap-1.5">
+            {orderedPlanned.length > 0 && menuId && (
+              <section className="flex flex-col gap-2">
                 <h3 className="text-[10px] font-semibold uppercase tracking-wide text-[var(--subtle)]">Planned menu</h3>
                 {orderedPlanned.map(meal => (
-                  <div
+                  <MealRow
                     key={meal.mealType}
-                    className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--card2)] px-2.5 py-2 text-xs"
-                  >
-                    <div className="flex flex-col">
-                      <span className={meal.logged ? 'text-[var(--text)]' : 'text-[var(--muted)]'}>
-                        {meal.description}
-                      </span>
-                      <span className="text-[10px] text-[var(--subtle)]">{MEAL_LABEL[meal.mealType]}</span>
-                    </div>
-                    <span className={meal.logged ? 'text-[var(--green)]' : 'text-[var(--subtle)]'}>
-                      {meal.logged ? '✓ logged' : meal.kcal ? `${meal.kcal} kcal` : ''}
-                    </span>
-                  </div>
+                    meal={meal}
+                    menuId={menuId}
+                    dayOfWeek={meal.dayOfWeek}
+                    dayDate={date}
+                    today={today}
+                    logged={meal.logged}
+                    onLogChanged={handleMealChanged}
+                    onSwapped={handleMealChanged}
+                    onDeleted={handleMealChanged}
+                  />
                 ))}
               </section>
             )}

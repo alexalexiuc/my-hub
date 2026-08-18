@@ -3,7 +3,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card } from '@/components';
 import { MACRO_COLORS } from './constants';
-import { macroCalorieSplit } from './calories.utils';
+import { macroCalorieSplit, pctOfTotal } from './calories.utils';
 
 interface Props {
   protein: number;
@@ -27,7 +27,7 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
     { name: 'Fat', value: fatCal, grams: fat, goal: goalFat, color: MACRO_COLORS.fat },
   ];
 
-  const pct = (val: number) => (total > 0 ? Math.round((val / total) * 100) : 0);
+  const pct = (val: number) => pctOfTotal(val, total);
 
   return (
     <Card className="p-5" compact={compact}>
