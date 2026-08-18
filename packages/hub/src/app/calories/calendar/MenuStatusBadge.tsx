@@ -10,8 +10,9 @@ type MenuStatusBadgeProps = {
 
 /**
  * Corner badge on a calendar day cell for that day's weekly-menu plan: a covered-dish icon alone
- * while the day still has time to be logged, a green check once every planned meal is logged, and
- * a red x once the day has passed with something unlogged. Renders nothing when no menu is planned.
+ * while the day still has time to be logged (`planned` or `pending`), a green check once every
+ * planned meal is logged, and a red x once the day has passed with something unlogged. Renders
+ * nothing when no menu is planned.
  */
 export function MenuStatusBadge({ status }: MenuStatusBadgeProps) {
   if (status === 'none') return null;
@@ -19,7 +20,7 @@ export function MenuStatusBadge({ status }: MenuStatusBadgeProps) {
   return (
     <span className="absolute top-0.5 right-0.5 text-[var(--subtle)]">
       <ClocheIcon className="size-3" />
-      {status !== 'planned' && (
+      {(status === 'logged' || status === 'missed') && (
         <span
           className={cn(
             'absolute -bottom-0.5 -right-0.5 flex size-2.5 items-center justify-center rounded-full',

@@ -35,20 +35,25 @@ describe('buildMonthGridDays', () => {
 
 describe('menuDayStatus', () => {
   it('is "none" when no menu is planned, regardless of logged/past', () => {
-    expect(menuDayStatus(false, false, false)).toBe('none');
-    expect(menuDayStatus(false, true, true)).toBe('none');
+    expect(menuDayStatus(false, false, false, false)).toBe('none');
+    expect(menuDayStatus(false, true, true, false)).toBe('none');
   });
 
   it('is "logged" when the day has a menu and it has all been logged', () => {
-    expect(menuDayStatus(true, true, false)).toBe('logged');
-    expect(menuDayStatus(true, true, true)).toBe('logged');
+    expect(menuDayStatus(true, true, false, false)).toBe('logged');
+    expect(menuDayStatus(true, true, true, false)).toBe('logged');
+    expect(menuDayStatus(true, true, false, true)).toBe('logged');
   });
 
   it('is "missed" when the day has passed with something planned left unlogged', () => {
-    expect(menuDayStatus(true, false, true)).toBe('missed');
+    expect(menuDayStatus(true, false, true, false)).toBe('missed');
   });
 
-  it('is "planned" for an unlogged menu on today or a future day', () => {
-    expect(menuDayStatus(true, false, false)).toBe('planned');
+  it('is "pending" — never "missed" — for an unlogged menu on today, since the day isn\'t over', () => {
+    expect(menuDayStatus(true, false, false, true)).toBe('pending');
+  });
+
+  it('is "planned" for an unlogged menu on a future day', () => {
+    expect(menuDayStatus(true, false, false, false)).toBe('planned');
   });
 });
