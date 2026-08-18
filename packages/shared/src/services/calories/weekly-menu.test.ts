@@ -883,20 +883,12 @@ describe('tryLinkLoggedMealToPlan', () => {
   const DATE = '2026-08-18';
   const DAY_OF_WEEK = dayOfWeekMon0(DATE);
 
-  /** getWeeklyMenuByWeek's first query: the menu row itself. */
-  function mockMenuRow(rows: unknown[]) {
-    vi.mocked(db).select.mockReturnValueOnce({
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockResolvedValue(rows),
-    } as any);
-  }
-
-  /** getWeeklyMenuByWeek's second query: the menu's meals, ordered. */
-  function mockMealsRows(rows: unknown[]) {
+  /** The one planned-slot row query: a targeted lookup, not the whole week's meals. */
+  function mockPlannedSlotRow(rows: unknown[]) {
     vi.mocked(db).select.mockReturnValueOnce({
       from: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
-      orderBy: vi.fn().mockResolvedValue(rows),
+      limit: vi.fn().mockResolvedValue(rows),
     } as any);
   }
 
@@ -905,7 +897,7 @@ describe('tryLinkLoggedMealToPlan', () => {
   });
 
   it('is a no-op when the date’s week has no menu', async () => {
-    mockMenuRow([]);
+    mockSelectOwnership([]);
 
     const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1');
 
@@ -914,8 +906,8 @@ describe('tryLinkLoggedMealToPlan', () => {
   });
 
   it('is a no-op when the menu has no planned meal for that slot', async () => {
-    mockMenuRow([{ menuId: 'menu-abc', weekStart: '2026-08-17' }]);
-    mockMealsRows([{ ...MEAL_ROW, dayOfWeek: DAY_OF_WEEK, mealType: 'dinner', description: 'Steak' }]);
+    mockSelectOwnership([{ menuId: 'menu-abc' }]);
+    mockPlannedSlotRow([]);
 
     const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1');
 
@@ -924,15 +916,9 @@ describe('tryLinkLoggedMealToPlan', () => {
   });
 
   it('links and marks the slot logged even when the logged meal differs from the plan', async () => {
-    mockMenuRow([{ menuId: 'menu-abc', weekStart: '2026-08-17' }]);
-    mockMealsRows([
-      {
-        ...MEAL_ROW,
-        dayOfWeek: DAY_OF_WEEK,
-        mealType: 'lunch',
-        description: 'Paste Barilla cu carne tocată, sos de roșii și salată mare de castraveți/ardei',
-      },
-    ]);
+    // The menu organizes, it doesn't police — see tryLinkLoggedMealToPlan's JSDoc.
+    mockSelectOwnership([{ menuId: 'menu-abc' }]);
+    mockPlannedSlotRow([{ id: 7 }]);
     const values = vi.fn().mockReturnThis();
     vi.mocked(db).insert.mockReturnValueOnce({
       values,
@@ -940,8 +926,6 @@ describe('tryLinkLoggedMealToPlan', () => {
       returning: vi.fn().mockResolvedValue([{ id: 42 }]),
     } as any);
 
-    // The menu organizes, it doesn't police — a side item logged for the slot, or a substitution
-    // eaten instead of the planned dish, both fulfill it just the same. The plan is never rewritten.
     const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1');
 
     expect(result).toBe(true);
@@ -955,15 +939,8 @@ describe('tryLinkLoggedMealToPlan', () => {
   });
 
   it('is a no-op when the slot is already logged (onConflictDoNothing skips the insert)', async () => {
-    mockMenuRow([{ menuId: 'menu-abc', weekStart: '2026-08-17' }]);
-    mockMealsRows([
-      {
-        ...MEAL_ROW,
-        dayOfWeek: DAY_OF_WEEK,
-        mealType: 'lunch',
-        description: 'Paste Barilla cu carne tocată',
-      },
-    ]);
+    mockSelectOwnership([{ menuId: 'menu-abc' }]);
+    mockPlannedSlotRow([{ id: 7 }]);
     vi.mocked(db).insert.mockReturnValueOnce({
       values: vi.fn().mockReturnThis(),
       onConflictDoNothing: vi.fn().mockReturnThis(),

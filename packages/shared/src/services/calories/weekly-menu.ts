@@ -796,11 +796,28 @@ export async function tryLinkLoggedMealToPlan(
   mealLogId: string,
 ): Promise<boolean> {
   const weekStart = dateToString(startOfWeekMonday(new Date(`${date}T00:00:00`)));
-  const menu = await getWeeklyMenuByWeek(userId, weekStart);
+
+  // Two targeted single-row lookups (menu, then the one slot) rather than `getWeeklyMenuByWeek`,
+  // which would pull every meal in the week just to check whether one (dayOfWeek, mealType) slot
+  // is planned — this runs on every meal logged, menu or not, so it stays as cheap as the check it's doing.
+  const [menu] = await db
+    .select({ menuId: weeklyMenus.menuId })
+    .from(weeklyMenus)
+    .where(and(eq(weeklyMenus.userId, userId), eq(weeklyMenus.weekStart, weekStart)));
   if (!menu) return false;
 
   const dayOfWeek = dayOfWeekMon0(date);
-  const planned = menu.meals.some(m => m.dayOfWeek === dayOfWeek && m.mealType === mealType);
+  const [planned] = await db
+    .select({ id: weeklyMenuMeals.id })
+    .from(weeklyMenuMeals)
+    .where(
+      and(
+        eq(weeklyMenuMeals.menuId, menu.menuId),
+        eq(weeklyMenuMeals.dayOfWeek, dayOfWeek),
+        eq(weeklyMenuMeals.mealType, mealType),
+      ),
+    )
+    .limit(1);
   if (!planned) return false;
 
   // onConflictDoNothing is the guard against an already-logged slot: the unique constraint makes
