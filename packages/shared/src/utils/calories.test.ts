@@ -7,7 +7,6 @@ import {
   dayTargetKcal,
   hasDuplicateMealSlot,
   latestWeightKg,
-  matchesPlannedMeal,
   mealOrder,
   profileToTargets,
 } from './calories';
@@ -298,43 +297,5 @@ describe('mealOrder', () => {
       const order = mealOrder(gymTime);
       expect(order.indexOf('post_workout') - order.indexOf('pre_workout')).toBe(1);
     }
-  });
-});
-
-describe('matchesPlannedMeal', () => {
-  it('matches near-identical wording of the same dish, diacritics and small edits aside', () => {
-    expect(
-      matchesPlannedMeal(
-        'Paste Barilla cu carne toca, sos de roșii și salată castraveți/ardei',
-        'Paste Barilla cu carne tocată, sos de roșii și salată mare de castraveți/ardei',
-      ),
-    ).toBe(true);
-  });
-
-  it('matches an exact repeat of the description', () => {
-    expect(matchesPlannedMeal('Grilled chicken with rice', 'Grilled chicken with rice')).toBe(true);
-  });
-
-  it('does not match a side item logged on its own against the full planned dish', () => {
-    expect(matchesPlannedMeal('Ketchup, 20g', 'Paste Barilla cu carne tocată, sos de roșii și salată mare')).toBe(
-      false,
-    );
-  });
-
-  it('does not match a single shared connector word between otherwise unrelated dishes', () => {
-    expect(matchesPlannedMeal('Salad with fries', 'Ketchup with fries')).toBe(false);
-  });
-
-  it('does not match a single ingredient logged alone against a multi-ingredient planned dish', () => {
-    expect(matchesPlannedMeal('rice', 'Grilled chicken with rice')).toBe(false);
-  });
-
-  it('does not match unrelated dishes', () => {
-    expect(matchesPlannedMeal('Greek yogurt with berries', 'Grilled salmon with asparagus')).toBe(false);
-  });
-
-  it('returns false when either description is empty or only stopwords', () => {
-    expect(matchesPlannedMeal('', 'Grilled chicken with rice')).toBe(false);
-    expect(matchesPlannedMeal('with the a', 'Grilled chicken with rice')).toBe(false);
   });
 });

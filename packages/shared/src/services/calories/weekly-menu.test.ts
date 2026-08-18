@@ -907,7 +907,7 @@ describe('tryLinkLoggedMealToPlan', () => {
   it('is a no-op when the date’s week has no menu', async () => {
     mockMenuRow([]);
 
-    const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1', 'Paste Barilla cu carne');
+    const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1');
 
     expect(result).toBe(false);
     expect(vi.mocked(db).insert).not.toHaveBeenCalled();
@@ -917,31 +917,13 @@ describe('tryLinkLoggedMealToPlan', () => {
     mockMenuRow([{ menuId: 'menu-abc', weekStart: '2026-08-17' }]);
     mockMealsRows([{ ...MEAL_ROW, dayOfWeek: DAY_OF_WEEK, mealType: 'dinner', description: 'Steak' }]);
 
-    const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1', 'Anything');
+    const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1');
 
     expect(result).toBe(false);
     expect(vi.mocked(db).insert).not.toHaveBeenCalled();
   });
 
-  it('is a no-op when the logged description does not match the planned dish', async () => {
-    mockMenuRow([{ menuId: 'menu-abc', weekStart: '2026-08-17' }]);
-    mockMealsRows([
-      {
-        ...MEAL_ROW,
-        dayOfWeek: DAY_OF_WEEK,
-        mealType: 'lunch',
-        description: 'Paste Barilla cu carne tocată, sos de roșii și salată mare de castraveți/ardei',
-      },
-    ]);
-
-    // A side item logged for the same slot must not consume it on its own.
-    const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1', 'Ketchup, 20g');
-
-    expect(result).toBe(false);
-    expect(vi.mocked(db).insert).not.toHaveBeenCalled();
-  });
-
-  it('links and marks the slot logged when the description matches the planned dish', async () => {
+  it('links and marks the slot logged even when the logged meal differs from the plan', async () => {
     mockMenuRow([{ menuId: 'menu-abc', weekStart: '2026-08-17' }]);
     mockMealsRows([
       {
@@ -958,13 +940,9 @@ describe('tryLinkLoggedMealToPlan', () => {
       returning: vi.fn().mockResolvedValue([{ id: 42 }]),
     } as any);
 
-    const result = await tryLinkLoggedMealToPlan(
-      'user-1',
-      DATE,
-      'lunch',
-      'meal-1',
-      'Paste Barilla cu carne toca, sos de roșii și salată castraveți/ardei',
-    );
+    // The menu organizes, it doesn't police — a side item logged for the slot, or a substitution
+    // eaten instead of the planned dish, both fulfill it just the same. The plan is never rewritten.
+    const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1');
 
     expect(result).toBe(true);
     expect(values).toHaveBeenCalledWith({
@@ -992,7 +970,7 @@ describe('tryLinkLoggedMealToPlan', () => {
       returning: vi.fn().mockResolvedValue([]),
     } as any);
 
-    const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-2', 'Paste Barilla cu carne tocată');
+    const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-2');
 
     expect(result).toBe(false);
   });

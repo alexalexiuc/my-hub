@@ -16,12 +16,12 @@ export interface GetMealsFilter {
 }
 
 /**
- * Journal one meal. If the date's week has a weekly menu with a not-yet-logged planned meal for
- * the same slot whose description matches closely enough, that slot is marked logged too
- * (`tryLinkLoggedMealToPlan`) — so a meal logged directly (Hub "add a meal" form, or the assistant
- * via `calories_log_meal`) that turns out to be a planned dish shows up as fulfilled on the
- * planned-meal card instead of still asking to be logged. Best-effort: a failure here must not
- * fail the meal log itself, since the journal write already succeeded.
+ * Journal one meal. If the date's week has a weekly menu with a not-yet-logged planned slot for
+ * the same meal type, that slot is marked logged too (`tryLinkLoggedMealToPlan`) — so a meal
+ * logged directly (Hub "add a meal" form, or the assistant via `calories_log_meal`) fulfills its
+ * planned slot on the Today card whether it matches the plan exactly or not; the menu organizes
+ * what to eat, it doesn't police it. Best-effort: a failure here must not fail the meal log
+ * itself, since the journal write already succeeded.
  */
 export async function logMeal(data: Omit<NewMealLog, 'id' | 'createdAt' | 'loggedAt'>): Promise<MealLog> {
   const [row] = await db.insert(mealLogs).values(data).returning();
@@ -29,7 +29,7 @@ export async function logMeal(data: Omit<NewMealLog, 'id' | 'createdAt' | 'logge
 
   if (row.mealId) {
     try {
-      await tryLinkLoggedMealToPlan(row.userId, row.date, row.mealType, row.mealId, row.description);
+      await tryLinkLoggedMealToPlan(row.userId, row.date, row.mealType, row.mealId);
     } catch (err) {
       logger.error('[calories] Failed to link logged meal to planned menu slot:', err);
     }

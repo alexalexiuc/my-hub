@@ -106,18 +106,12 @@ describe('logMeal', () => {
     await expect(logMeal({ ...MEAL_ROW } as any)).rejects.toThrow(/did not return a row/i);
   });
 
-  it('tries to link the new entry to a matching planned menu slot', async () => {
+  it('tries to link the new entry to its planned menu slot', async () => {
     mockInsert([MEAL_ROW]);
 
     await logMeal({ ...MEAL_ROW } as any);
 
-    expect(tryLinkLoggedMealToPlan).toHaveBeenCalledWith(
-      'user-1',
-      '2026-08-01',
-      'lunch',
-      'meal-abc',
-      'Chicken and rice',
-    );
+    expect(tryLinkLoggedMealToPlan).toHaveBeenCalledWith('user-1', '2026-08-01', 'lunch', 'meal-abc');
   });
 
   it('does not attempt to link when the inserted row has no mealId', async () => {
