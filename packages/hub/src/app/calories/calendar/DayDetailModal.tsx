@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { Modal } from '@/components';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
@@ -39,8 +39,24 @@ export function DayDetailModal({ date, summary, onClose }: DayDetailModalProps) 
   const [gymTime, setGymTime] = useState<GymTime | null>(null);
   const [profile, setProfile] = useState<CalorieProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  // Bumped after a mutation inside the modal (log/edit/delete via MealRow) to re-run the
+  // day-scoped fetch below without needing a stable function identity to key an effect on.
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const load = useCallback(() => {
+  // The profile (goals/macro targets) doesn't change when a meal is logged, so it's fetched once
+  // on mount rather than on every reload below — logging/editing/deleting a meal has no reason to
+  // re-request it.
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch<{ profile: CalorieProfile | null }>('/api/calories/profile', { silentToast: true }).then(data => {
+      if (!cancelled) setProfile(data.profile);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     Promise.all([
@@ -49,15 +65,13 @@ export function DayDetailModal({ date, summary, onClose }: DayDetailModalProps) 
         query: { date },
         silentToast: true,
       }),
-      apiFetch<{ profile: CalorieProfile | null }>('/api/calories/profile', { silentToast: true }),
     ])
-      .then(([mealsData, planData, profileData]) => {
+      .then(([mealsData, planData]) => {
         if (cancelled) return;
         setMeals(mealsData.meals);
         setMenuId(planData.menuId);
         setPlannedMeals(planData.meals);
         setGymTime(planData.gymTime);
-        setProfile(profileData.profile);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -65,20 +79,19 @@ export function DayDetailModal({ date, summary, onClose }: DayDetailModalProps) 
     return () => {
       cancelled = true;
     };
-  }, [date]);
-
-  useEffect(() => load(), [load]);
+  }, [date, reloadKey]);
 
   /**
    * Logging/editing/deleting a planned meal here also touches the calorie journal (log-day
    * writes both in one transaction) and this day's kcal/macro totals, which the modal doesn't
-   * own — they come in as the `summary` prop from the month grid. Reloading the modal's own data
-   * and re-emitting `mealEvents` (the feature's cross-widget refresh signal) keeps both the
-   * "Logged" list here and the month grid's totals/badge in step with a single source of truth,
-   * instead of hand-patching local state to match what the server just did.
+   * own — they come in as the `summary` prop from the month grid. Bumping `reloadKey` (re-running
+   * the day-scoped fetch above) and re-emitting `mealEvents` (the feature's cross-widget refresh
+   * signal, which the month grid listens for) keeps both the "Logged" list here and the grid's
+   * totals/badge in step with a single source of truth, instead of hand-patching local state to
+   * match what the server just did.
    */
   function handleMealChanged() {
-    load();
+    setReloadKey(k => k + 1);
     mealEvents.emit('changed');
   }
 

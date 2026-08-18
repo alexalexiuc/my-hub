@@ -1,13 +1,13 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { intakeBarColor, macroCalorieSplit } from '../calories.utils';
+import { intakeBarColor, macroCalorieSplit, pctOfTotal } from '../calories.utils';
 import { MACRO_COLORS } from '../constants';
 import { MenuStatusBadge } from './MenuStatusBadge';
 import { MenuStatusIcon } from './MenuStatusIcon';
 import { menuDayStatus } from './calendar.utils';
 import type { CalendarDay } from './types';
-import type { MonthGridDay } from './calendar.utils';
+import type { DayRelation, MonthGridDay } from './calendar.utils';
 
 type DayCellProps = {
   day: MonthGridDay;
@@ -37,37 +37,38 @@ export function DayCell({ day, summary, isToday, isPast, onSelect }: DayCellProp
     fatCal,
     total: macroTotal,
   } = macroCalorieSplit(summary?.protein ?? 0, summary?.carbs ?? 0, summary?.fat ?? 0);
-  const status = menuDayStatus(summary?.hasMenu ?? false, summary?.menuLogged ?? false, isPast, isToday);
-  const macroPct = (cal: number) => (macroTotal > 0 ? Math.round((cal / macroTotal) * 100) : 0);
+  // A single derived relation instead of passing isPast/isToday through separately — the pair
+  // can't both be true, but nothing enforces that at the call site, so menuDayStatus takes one
+  // value with the invalid combination made unrepresentable.
+  const dayRelation: DayRelation = isToday ? 'today' : isPast ? 'past' : 'future';
+  const status = menuDayStatus(summary?.hasMenu ?? false, summary?.menuLogged ?? false, dayRelation);
 
   const cellStyle =
     day.inMonth && hasData
       ? { backgroundColor: `color-mix(in srgb, ${color} 16%, var(--card2))`, borderColor: color }
       : undefined;
 
-  const baseClasses = cn(
-    'relative flex flex-col items-center rounded-lg border text-center transition-colors',
-    day.inMonth ? 'border-[var(--border)] bg-[var(--card2)]' : 'border-transparent bg-transparent opacity-40',
-    isToday && 'border-[var(--accent)]',
-    'hover:border-[var(--accent)]/60',
-  );
-
-  const dayNumLabel = (
-    <span className={cn('text-[10px]', day.inMonth ? 'text-[var(--muted)]' : 'text-[var(--subtle)]')}>{dayNum}</span>
-  );
-
   return (
-    <>
+    <button
+      type="button"
+      onClick={() => onSelect(day.date)}
+      className={cn(
+        'relative flex flex-col items-center rounded-lg border text-center transition-colors',
+        day.inMonth ? 'border-[var(--border)] bg-[var(--card2)]' : 'border-transparent bg-transparent opacity-40',
+        isToday && 'border-[var(--accent)]',
+        'hover:border-[var(--accent)]/60',
+      )}
+      style={cellStyle}
+    >
       {/* Desktop: compact square cell — day number, kcal, thin macro bar, corner menu badge. */}
-      <button
-        type="button"
+      <div
         data-layout="desktop"
-        onClick={() => onSelect(day.date)}
-        className={cn(baseClasses, 'hidden aspect-square justify-center gap-0.5 md:flex')}
-        style={cellStyle}
+        className="hidden aspect-square w-full flex-col items-center justify-center gap-0.5 md:flex"
       >
         {day.inMonth && <MenuStatusBadge status={status} />}
-        {dayNumLabel}
+        <span className={cn('text-[10px]', day.inMonth ? 'text-[var(--muted)]' : 'text-[var(--subtle)]')}>
+          {dayNum}
+        </span>
         {day.inMonth && hasData && (
           <span className="text-[11px] font-semibold" style={{ color }}>
             {Math.round(kcal)}
@@ -80,18 +81,17 @@ export function DayCell({ day, summary, isToday, isPast, onSelect }: DayCellProp
             <div style={{ width: `${(fatCal / macroTotal) * 100}%`, backgroundColor: MACRO_COLORS.fat }} />
           </div>
         )}
-      </button>
+      </div>
 
       {/* Mobile: taller cell with room for a per-macro percentage line each and a bigger status
           icon anchored to the bottom, instead of a tiny corner badge. */}
-      <button
-        type="button"
+      <div
         data-layout="mobile"
-        onClick={() => onSelect(day.date)}
-        className={cn(baseClasses, 'flex aspect-[3/4] justify-between gap-0.5 py-1.5 md:hidden')}
-        style={cellStyle}
+        className="flex aspect-[3/4] w-full flex-col items-center justify-between gap-0.5 py-1.5 md:hidden"
       >
-        {dayNumLabel}
+        <span className={cn('text-[10px]', day.inMonth ? 'text-[var(--muted)]' : 'text-[var(--subtle)]')}>
+          {dayNum}
+        </span>
 
         {day.inMonth && hasData && (
           <div className="flex flex-col items-center gap-0.5">
@@ -101,13 +101,13 @@ export function DayCell({ day, summary, isToday, isPast, onSelect }: DayCellProp
             {macroTotal > 0 && (
               <div className="flex flex-col items-center gap-px leading-none">
                 <span className="text-[9px] font-medium" style={{ color: MACRO_COLORS.protein }}>
-                  P {macroPct(proteinCal)}%
+                  P {pctOfTotal(proteinCal, macroTotal)}%
                 </span>
                 <span className="text-[9px] font-medium" style={{ color: MACRO_COLORS.carbs }}>
-                  C {macroPct(carbsCal)}%
+                  C {pctOfTotal(carbsCal, macroTotal)}%
                 </span>
                 <span className="text-[9px] font-medium" style={{ color: MACRO_COLORS.fat }}>
-                  F {macroPct(fatCal)}%
+                  F {pctOfTotal(fatCal, macroTotal)}%
                 </span>
               </div>
             )}
@@ -115,7 +115,7 @@ export function DayCell({ day, summary, isToday, isPast, onSelect }: DayCellProp
         )}
 
         {day.inMonth && <MenuStatusIcon status={status} className="mt-auto" />}
-      </button>
-    </>
+      </div>
+    </button>
   );
 }
