@@ -3,7 +3,9 @@ import { db } from '../../db/client';
 import { mealLogs } from '../../db/schema/calories';
 import type { MealLog, NewMealLog } from '../../types';
 import { MealType } from '../../constants';
+import { logger } from '../../utils/logger';
 import { omitUndefined } from '../../utils/objects';
+import { tryLinkLoggedMealToPlan } from './weekly-menu';
 
 export interface GetMealsFilter {
   date?: string;
@@ -13,9 +15,26 @@ export interface GetMealsFilter {
   offset?: number;
 }
 
+/**
+ * Journal one meal. If the date's week has a weekly menu with a not-yet-logged planned meal for
+ * the same slot whose description matches closely enough, that slot is marked logged too
+ * (`tryLinkLoggedMealToPlan`) — so a meal logged directly (Hub "add a meal" form, or the assistant
+ * via `calories_log_meal`) that turns out to be a planned dish shows up as fulfilled on the
+ * planned-meal card instead of still asking to be logged. Best-effort: a failure here must not
+ * fail the meal log itself, since the journal write already succeeded.
+ */
 export async function logMeal(data: Omit<NewMealLog, 'id' | 'createdAt' | 'loggedAt'>): Promise<MealLog> {
   const [row] = await db.insert(mealLogs).values(data).returning();
   if (!row) throw new Error('Insert did not return a row');
+
+  if (row.mealId) {
+    try {
+      await tryLinkLoggedMealToPlan(row.userId, row.date, row.mealType, row.mealId, row.description);
+    } catch (err) {
+      logger.error('[calories] Failed to link logged meal to planned menu slot:', err);
+    }
+  }
+
   return row;
 }
 

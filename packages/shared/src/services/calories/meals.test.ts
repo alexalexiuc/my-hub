@@ -6,6 +6,9 @@ vi.mock('../../db/client.js', () => ({
   db: { select: vi.fn(), insert: vi.fn(), update: vi.fn(), delete: vi.fn(), transaction: vi.fn() },
 }));
 
+const tryLinkLoggedMealToPlan = vi.fn().mockResolvedValue(false);
+vi.mock('./weekly-menu', () => ({ tryLinkLoggedMealToPlan: (...args: unknown[]) => tryLinkLoggedMealToPlan(...args) }));
+
 import { db } from '../../db/client.js';
 
 const MEAL_ROW = {
@@ -74,14 +77,22 @@ describe('updateMeal', () => {
 });
 
 describe('logMeal', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    tryLinkLoggedMealToPlan.mockReset().mockResolvedValue(false);
+  });
 
-  it('inserts the row as given and returns it', async () => {
+  function mockInsert(rows: unknown[]) {
     const values = vi.fn().mockReturnThis();
     vi.mocked(db).insert.mockReturnValueOnce({
       values,
-      returning: vi.fn().mockResolvedValue([MEAL_ROW]),
+      returning: vi.fn().mockResolvedValue(rows),
     } as any);
+    return values;
+  }
+
+  it('inserts the row as given and returns it', async () => {
+    const values = mockInsert([MEAL_ROW]);
 
     const result = await logMeal({ ...MEAL_ROW } as any);
 
@@ -90,12 +101,40 @@ describe('logMeal', () => {
   });
 
   it('throws rather than returning nothing when the insert reports no row', async () => {
-    vi.mocked(db).insert.mockReturnValueOnce({
-      values: vi.fn().mockReturnThis(),
-      returning: vi.fn().mockResolvedValue([]),
-    } as any);
+    mockInsert([]);
 
     await expect(logMeal({ ...MEAL_ROW } as any)).rejects.toThrow(/did not return a row/i);
+  });
+
+  it('tries to link the new entry to a matching planned menu slot', async () => {
+    mockInsert([MEAL_ROW]);
+
+    await logMeal({ ...MEAL_ROW } as any);
+
+    expect(tryLinkLoggedMealToPlan).toHaveBeenCalledWith(
+      'user-1',
+      '2026-08-01',
+      'lunch',
+      'meal-abc',
+      'Chicken and rice',
+    );
+  });
+
+  it('does not attempt to link when the inserted row has no mealId', async () => {
+    mockInsert([{ ...MEAL_ROW, mealId: null }]);
+
+    await logMeal({ ...MEAL_ROW, mealId: null } as any);
+
+    expect(tryLinkLoggedMealToPlan).not.toHaveBeenCalled();
+  });
+
+  it('still returns the logged meal when linking fails, since the journal write already succeeded', async () => {
+    mockInsert([MEAL_ROW]);
+    tryLinkLoggedMealToPlan.mockRejectedValueOnce(new Error('boom'));
+
+    const result = await logMeal({ ...MEAL_ROW } as any);
+
+    expect(result).toEqual(MEAL_ROW);
   });
 });
 

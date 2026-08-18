@@ -11,7 +11,9 @@ import {
   logMenuDay,
   unlogMenuDay,
   getMenuStatusForRange,
+  tryLinkLoggedMealToPlan,
 } from './weekly-menu';
+import { dayOfWeekMon0 } from '../../utils';
 
 // ---------------------------------------------------------------------------
 // Mock the DB client
@@ -870,5 +872,128 @@ describe('getMenuStatusForRange', () => {
     const result = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
 
     expect(result).toEqual({});
+  });
+});
+
+// ---------------------------------------------------------------------------
+// tryLinkLoggedMealToPlan
+// ---------------------------------------------------------------------------
+
+describe('tryLinkLoggedMealToPlan', () => {
+  const DATE = '2026-08-18';
+  const DAY_OF_WEEK = dayOfWeekMon0(DATE);
+
+  /** getWeeklyMenuByWeek's first query: the menu row itself. */
+  function mockMenuRow(rows: unknown[]) {
+    vi.mocked(db).select.mockReturnValueOnce({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue(rows),
+    } as any);
+  }
+
+  /** getWeeklyMenuByWeek's second query: the menu's meals, ordered. */
+  function mockMealsRows(rows: unknown[]) {
+    vi.mocked(db).select.mockReturnValueOnce({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockResolvedValue(rows),
+    } as any);
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('is a no-op when the date’s week has no menu', async () => {
+    mockMenuRow([]);
+
+    const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1', 'Paste Barilla cu carne');
+
+    expect(result).toBe(false);
+    expect(vi.mocked(db).insert).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op when the menu has no planned meal for that slot', async () => {
+    mockMenuRow([{ menuId: 'menu-abc', weekStart: '2026-08-17' }]);
+    mockMealsRows([{ ...MEAL_ROW, dayOfWeek: DAY_OF_WEEK, mealType: 'dinner', description: 'Steak' }]);
+
+    const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1', 'Anything');
+
+    expect(result).toBe(false);
+    expect(vi.mocked(db).insert).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op when the logged description does not match the planned dish', async () => {
+    mockMenuRow([{ menuId: 'menu-abc', weekStart: '2026-08-17' }]);
+    mockMealsRows([
+      {
+        ...MEAL_ROW,
+        dayOfWeek: DAY_OF_WEEK,
+        mealType: 'lunch',
+        description: 'Paste Barilla cu carne tocată, sos de roșii și salată mare de castraveți/ardei',
+      },
+    ]);
+
+    // A side item logged for the same slot must not consume it on its own.
+    const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1', 'Ketchup, 20g');
+
+    expect(result).toBe(false);
+    expect(vi.mocked(db).insert).not.toHaveBeenCalled();
+  });
+
+  it('links and marks the slot logged when the description matches the planned dish', async () => {
+    mockMenuRow([{ menuId: 'menu-abc', weekStart: '2026-08-17' }]);
+    mockMealsRows([
+      {
+        ...MEAL_ROW,
+        dayOfWeek: DAY_OF_WEEK,
+        mealType: 'lunch',
+        description: 'Paste Barilla cu carne tocată, sos de roșii și salată mare de castraveți/ardei',
+      },
+    ]);
+    const values = vi.fn().mockReturnThis();
+    vi.mocked(db).insert.mockReturnValueOnce({
+      values,
+      onConflictDoNothing: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([{ id: 42 }]),
+    } as any);
+
+    const result = await tryLinkLoggedMealToPlan(
+      'user-1',
+      DATE,
+      'lunch',
+      'meal-1',
+      'Paste Barilla cu carne toca, sos de roșii și salată castraveți/ardei',
+    );
+
+    expect(result).toBe(true);
+    expect(values).toHaveBeenCalledWith({
+      menuId: 'menu-abc',
+      dayOfWeek: DAY_OF_WEEK,
+      mealType: 'lunch',
+      loggedDate: DATE,
+      mealLogId: 'meal-1',
+    });
+  });
+
+  it('is a no-op when the slot is already logged (onConflictDoNothing skips the insert)', async () => {
+    mockMenuRow([{ menuId: 'menu-abc', weekStart: '2026-08-17' }]);
+    mockMealsRows([
+      {
+        ...MEAL_ROW,
+        dayOfWeek: DAY_OF_WEEK,
+        mealType: 'lunch',
+        description: 'Paste Barilla cu carne tocată',
+      },
+    ]);
+    vi.mocked(db).insert.mockReturnValueOnce({
+      values: vi.fn().mockReturnThis(),
+      onConflictDoNothing: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([]),
+    } as any);
+
+    const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-2', 'Paste Barilla cu carne tocată');
+
+    expect(result).toBe(false);
   });
 });

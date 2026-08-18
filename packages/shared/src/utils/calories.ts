@@ -8,6 +8,7 @@
  * - dayCalorieTargets(profile, weightKg, date) — the whole per-day rule: ceiling, floor, gym-day flag and bonus
  * - latestWeightKg(measurements) — most recent weight value from a latest-per-type measurement list
  * - mealOrder(gymTime) — the order a day's meal slots are displayed in, with pre/post-workout placed around the training session
+ * - matchesPlannedMeal(loggedDescription, plannedDescription) — true when a freely-logged meal is almost certainly the same dish as a planned menu meal (Jaccard word-overlap over stopword-stripped, normalized text)
  * - ActivityLevelMultipliers — Record<ActivityLevel, number> mapping activity levels to TDEE multipliers
  * Types: CalorieTargets, CalorieTargetParams, CalorieProfileLike
  */
@@ -293,4 +294,68 @@ export function mealOrder(gymTime: GymTime | null): MealType[] {
   return BASE_ORDER.flatMap(mealType =>
     mealType === anchor ? [MealTypes.PreWorkout, MealTypes.PostWorkout, mealType] : [mealType],
   );
+}
+
+/**
+ * Function words stripped before comparing meal descriptions. Without this, two unrelated short
+ * dishes can share enough connectors ("with", "cu", "de") to look alike; English and Romanian
+ * cover the bilingual menu text this app actually sees.
+ */
+const MEAL_TEXT_STOPWORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'the',
+  'with',
+  'of',
+  'in',
+  'on',
+  'for',
+  'to',
+  'cu',
+  'de',
+  'la',
+  'si',
+  'pe',
+  'un',
+  'o',
+  'ai',
+  'al',
+]);
+
+/** Lowercased, diacritic-stripped, punctuation-stripped, stopword-filtered word set for one description. */
+function mealTextTokens(text: string): Set<string> {
+  const normalized = text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ');
+
+  const words = normalized.split(/\s+/).filter(word => word.length > 0 && !MEAL_TEXT_STOPWORDS.has(word));
+  return new Set(words);
+}
+
+/**
+ * True when a freely-logged meal's description is close enough to a planned menu meal's
+ * description that they are almost certainly the same dish — e.g. the assistant logged the
+ * planned meal via `calories_log_meal` by describing it again, instead of the Hub's "Log it"
+ * control (which links the two explicitly).
+ *
+ * Compares normalized, stopword-stripped word sets with Jaccard similarity (intersection over
+ * union) so a side item logged on its own ("Ketchup, 20g") never satisfies a much larger planned
+ * dish, while near-identical wording of the same meal does. Callers are expected to have already
+ * narrowed to the same user, date and meal type — this only judges whether the *dish* matches.
+ */
+export function matchesPlannedMeal(loggedDescription: string, plannedDescription: string): boolean {
+  const logged = mealTextTokens(loggedDescription);
+  const planned = mealTextTokens(plannedDescription);
+  if (logged.size === 0 || planned.size === 0) return false;
+
+  let intersection = 0;
+  for (const word of logged) {
+    if (planned.has(word)) intersection++;
+  }
+  const union = logged.size + planned.size - intersection;
+
+  return intersection / union >= 0.5;
 }

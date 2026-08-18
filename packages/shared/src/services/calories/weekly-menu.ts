@@ -19,10 +19,13 @@
  * - `getPlannedMealsForDate(userId, date)` — the day's planned meals, each flagged logged
  * - `getLoggedDays(userId, menuId)` — `{ "day:mealType": loggedDate }` map of logged slots
  * - `getMenuStatusForRange(userId, start, end)` — per-date `{ hasMenu, logged }` for the Hub Calendar's menu icon (`logged` true only once every planned slot for that date is logged)
+ * - `tryLinkLoggedMealToPlan(userId, date, mealType, mealLogId, description)` — called after a freely-logged meal (`calories_log_meal`, the Hub "add a meal" form) is journaled; marks a matching planned slot logged if the slot exists, isn't already logged, and the description matches (`matchesPlannedMeal`)
  *
  * There is deliberately no marker-only "mark as logged" helper: writing a day-log without its
  * journal entry is the desync `logMenuMeal`'s transaction exists to prevent, and a slot marked
  * that way would count towards adherence while never appearing in the calorie journal.
+ * `tryLinkLoggedMealToPlan` does not violate this — it only ever points the marker at a journal
+ * row that has already been written by its caller.
  */
 import { and, asc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -43,6 +46,7 @@ import {
   dayOfWeekMon0,
   dedupeTrimmed,
   logger,
+  matchesPlannedMeal,
   omitUndefined,
   startOfWeekMonday,
   toUTCDateStr,
@@ -767,6 +771,46 @@ async function readDayLogs(menuId: string): Promise<Record<string, string>> {
     .where(eq(weeklyMenuDayLogs.menuId, menuId));
 
   return Object.fromEntries(rows.map(r => [`${r.dayOfWeek}:${r.mealType}`, r.loggedDate]));
+}
+
+/**
+ * Called after a freely-logged meal (via `calories_log_meal` or the Hub's "add a meal" form) has
+ * already been journaled. If that date's week has a menu with a not-yet-logged slot for the same
+ * meal type, and the logged description is close enough to the planned dish (`matchesPlannedMeal`)
+ * to almost certainly be the same meal, marks the slot logged and points it at the journal row the
+ * caller just created — the same outcome as pressing "Log it" on the planned-meal card, reached by
+ * the other route into the journal.
+ *
+ * A no-op (returns false) when: the week has no menu, the slot has no planned meal, the slot is
+ * already logged, or the description doesn't match closely enough — e.g. a side item ("Ketchup,
+ * 20g") logged alongside the real dish must never consume the slot on its own.
+ */
+export async function tryLinkLoggedMealToPlan(
+  userId: string,
+  date: string,
+  mealType: MealType,
+  mealLogId: string,
+  description: string,
+): Promise<boolean> {
+  const weekStart = dateToString(startOfWeekMonday(new Date(`${date}T00:00:00`)));
+  const menu = await getWeeklyMenuByWeek(userId, weekStart);
+  if (!menu) return false;
+
+  const dayOfWeek = dayOfWeekMon0(date);
+  const planned = menu.meals.find(m => m.dayOfWeek === dayOfWeek && m.mealType === mealType);
+  if (!planned) return false;
+
+  if (!matchesPlannedMeal(description, planned.description)) return false;
+
+  // onConflictDoNothing is the guard against an already-logged slot: the unique constraint makes
+  // this safe to call from concurrent inserts (e.g. several `items` logged in one MCP call).
+  const inserted = await db
+    .insert(weeklyMenuDayLogs)
+    .values({ menuId: menu.menuId, dayOfWeek, mealType, loggedDate: date, mealLogId })
+    .onConflictDoNothing()
+    .returning({ id: weeklyMenuDayLogs.id });
+
+  return inserted.length > 0;
 }
 
 /**
