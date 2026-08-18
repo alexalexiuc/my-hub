@@ -225,6 +225,7 @@ describe('addMealToMenu', () => {
 
   it('returns the inserted meal on success', async () => {
     mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    mockSelectOwnership([{ weekStart: '2026-08-17' }]); // getMenuWeekStart
     mockInsertReturning([MEAL_ROW]);
 
     const result = await addMealToMenu('user-add-2', 'menu-abc', {
@@ -245,6 +246,7 @@ describe('addMealToMenu', () => {
 
   it('returns null when onConflictDoNothing skips the insert (slot already exists)', async () => {
     mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    mockSelectOwnership([{ weekStart: '2026-08-17' }]); // getMenuWeekStart
     mockInsertReturning([]); // conflict → no rows returned
 
     const result = await addMealToMenu('user-add-3', 'menu-abc', {
@@ -258,6 +260,7 @@ describe('addMealToMenu', () => {
 
   it('passes optional fields as null when omitted', async () => {
     mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    mockSelectOwnership([{ weekStart: '2026-08-17' }]); // getMenuWeekStart
 
     let capturedValues: any = null;
     vi.mocked(db).insert.mockReturnValueOnce({
@@ -285,6 +288,7 @@ describe('addMealToMenu', () => {
 
   it('trims, dedupes and drops blank ingredient lines before inserting', async () => {
     mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    mockSelectOwnership([{ weekStart: '2026-08-17' }]); // getMenuWeekStart
 
     let capturedValues: any = null;
     vi.mocked(db).insert.mockReturnValueOnce({
@@ -309,6 +313,7 @@ describe('addMealToMenu', () => {
 
   it('stores an all-blank ingredient list as null rather than an empty array', async () => {
     mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    mockSelectOwnership([{ weekStart: '2026-08-17' }]); // getMenuWeekStart
 
     let capturedValues: any = null;
     vi.mocked(db).insert.mockReturnValueOnce({
@@ -354,6 +359,7 @@ describe('upsertMenuMeal', () => {
 
   it('returns the meal and clears the slot day-log on insert-or-overwrite', async () => {
     mockSelectOwnership([ACCESS_GRANTED_ROW]);
+    mockSelectOwnership([{ weekStart: '2026-08-17' }]); // getMenuWeekStart
     const upserted = { ...MEAL_ROW, description: 'Tuna salad', kcal: 400 };
     mockUpsertReturning([upserted]);
     mockDeleteResolves(); // day-log cleanup
@@ -820,8 +826,25 @@ describe('logMenuMeal', () => {
 // ---------------------------------------------------------------------------
 
 describe('getMenuStatusForRange', () => {
+  /** The meals-in-range join query, resolving directly on `.where()`. */
+  function mockMealsInRange(rows: unknown[]) {
+    vi.mocked(db).select.mockReturnValueOnce({
+      from: vi.fn().mockReturnThis(),
+      innerJoin: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue(rows),
+    } as any);
+  }
+
+  /** The day-logs-in-range join query — same chain shape as the meals query. */
+  const mockLogsInRange = mockMealsInRange;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('returns an empty object when no menu falls in the range', async () => {
-    mockSelectOwnership([]);
+    mockMealsInRange([]);
+    mockLogsInRange([]);
 
     const result = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
 
@@ -829,9 +852,8 @@ describe('getMenuStatusForRange', () => {
   });
 
   it('marks a day hasMenu:true, logged:false when its planned slot has not been logged', async () => {
-    mockSelectOwnership([{ menuId: 'menu-abc', weekStart: '2026-08-10' }]);
-    mockSelectOwnership([{ menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' }]);
-    mockSelectOwnership([]);
+    mockMealsInRange([{ date: '2026-08-10', menuId: 'menu-abc', mealType: 'breakfast' }]);
+    mockLogsInRange([]);
 
     const result = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
 
@@ -839,39 +861,25 @@ describe('getMenuStatusForRange', () => {
   });
 
   it('marks a day logged:true only once every planned slot for it has been logged', async () => {
-    mockSelectOwnership([{ menuId: 'menu-abc', weekStart: '2026-08-10' }]);
-    mockSelectOwnership([
-      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' },
-      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'lunch' },
-    ]);
-    mockSelectOwnership([{ menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' }]);
+    const meals = [
+      { date: '2026-08-10', menuId: 'menu-abc', mealType: 'breakfast' },
+      { date: '2026-08-10', menuId: 'menu-abc', mealType: 'lunch' },
+    ];
+
+    mockMealsInRange(meals);
+    mockLogsInRange([{ date: '2026-08-10', menuId: 'menu-abc', mealType: 'breakfast' }]);
 
     const partial = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
     expect(partial['2026-08-10']).toEqual({ hasMenu: true, logged: false });
 
-    mockSelectOwnership([{ menuId: 'menu-abc', weekStart: '2026-08-10' }]);
-    mockSelectOwnership([
-      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' },
-      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'lunch' },
-    ]);
-    mockSelectOwnership([
-      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' },
-      { menuId: 'menu-abc', dayOfWeek: 0, mealType: 'lunch' },
+    mockMealsInRange(meals);
+    mockLogsInRange([
+      { date: '2026-08-10', menuId: 'menu-abc', mealType: 'breakfast' },
+      { date: '2026-08-10', menuId: 'menu-abc', mealType: 'lunch' },
     ]);
 
     const full = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
     expect(full['2026-08-10']).toEqual({ hasMenu: true, logged: true });
-  });
-
-  it('excludes dates outside the requested range even when the menu week covers them', async () => {
-    // Week of 2026-07-27; dayOfWeek 0 (Monday) falls before the requested range start.
-    mockSelectOwnership([{ menuId: 'menu-abc', weekStart: '2026-07-27' }]);
-    mockSelectOwnership([{ menuId: 'menu-abc', dayOfWeek: 0, mealType: 'breakfast' }]);
-    mockSelectOwnership([]);
-
-    const result = await getMenuStatusForRange('user-1', '2026-08-01', '2026-08-31');
-
-    expect(result).toEqual({});
   });
 });
 
@@ -883,10 +891,11 @@ describe('tryLinkLoggedMealToPlan', () => {
   const DATE = '2026-08-18';
   const DAY_OF_WEEK = dayOfWeekMon0(DATE);
 
-  /** The one planned-slot row query: a targeted lookup, not the whole week's meals. */
+  /** The single joined lookup for the one planned slot in question. */
   function mockPlannedSlotRow(rows: unknown[]) {
     vi.mocked(db).select.mockReturnValueOnce({
       from: vi.fn().mockReturnThis(),
+      innerJoin: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
       limit: vi.fn().mockResolvedValue(rows),
     } as any);
@@ -896,17 +905,9 @@ describe('tryLinkLoggedMealToPlan', () => {
     vi.clearAllMocks();
   });
 
-  it('is a no-op when the date’s week has no menu', async () => {
-    mockSelectOwnership([]);
-
-    const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1');
-
-    expect(result).toBe(false);
-    expect(vi.mocked(db).insert).not.toHaveBeenCalled();
-  });
-
-  it('is a no-op when the menu has no planned meal for that slot', async () => {
-    mockSelectOwnership([{ menuId: 'menu-abc' }]);
+  it('is a no-op when there is no planned slot for that user/date/mealType', async () => {
+    // Covers both real-world cases the join collapses into one query: no menu for that week, and
+    // a menu with nothing planned for that slot.
     mockPlannedSlotRow([]);
 
     const result = await tryLinkLoggedMealToPlan('user-1', DATE, 'lunch', 'meal-1');
@@ -917,8 +918,7 @@ describe('tryLinkLoggedMealToPlan', () => {
 
   it('links and marks the slot logged even when the logged meal differs from the plan', async () => {
     // The menu organizes, it doesn't police — see tryLinkLoggedMealToPlan's JSDoc.
-    mockSelectOwnership([{ menuId: 'menu-abc' }]);
-    mockPlannedSlotRow([{ id: 7 }]);
+    mockPlannedSlotRow([{ menuId: 'menu-abc', dayOfWeek: DAY_OF_WEEK }]);
     const values = vi.fn().mockReturnThis();
     vi.mocked(db).insert.mockReturnValueOnce({
       values,
@@ -939,8 +939,7 @@ describe('tryLinkLoggedMealToPlan', () => {
   });
 
   it('is a no-op when the slot is already logged (onConflictDoNothing skips the insert)', async () => {
-    mockSelectOwnership([{ menuId: 'menu-abc' }]);
-    mockPlannedSlotRow([{ id: 7 }]);
+    mockPlannedSlotRow([{ menuId: 'menu-abc', dayOfWeek: DAY_OF_WEEK }]);
     vi.mocked(db).insert.mockReturnValueOnce({
       values: vi.fn().mockReturnThis(),
       onConflictDoNothing: vi.fn().mockReturnThis(),

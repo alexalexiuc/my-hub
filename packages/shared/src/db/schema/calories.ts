@@ -11,6 +11,7 @@ import {
   unique,
   boolean,
 } from 'drizzle-orm/pg-core';
+import { sql, type SQL } from 'drizzle-orm';
 import type { ActivityLevel, GoalType, GymTime, MealType, Sex } from '../../constants/calories';
 import { users } from './users';
 import type { DayOfWeek } from '../../constants/weekly-menu';
@@ -106,6 +107,22 @@ export const weeklyMenuMeals = pgTable(
       .references(() => weeklyMenus.menuId, { onDelete: 'cascade' }),
     dayOfWeek: integer('day_of_week').notNull().$type<DayOfWeek>(), // 0=Monday … 6=Sunday
     mealType: text('meal_type').$type<MealType>().notNull(),
+    // Copied verbatim from the parent menu's `weekStart` at insert time. A menu's week never
+    // changes after creation (replacing a week's menu always assigns a new menuId — see
+    // createWeeklyMenu), so this never needs updating once set. It exists only to feed `date`
+    // below: Postgres generated columns can only reference columns on their own row, so deriving
+    // an absolute date from `dayOfWeek` requires the week's start to live on this row too.
+    weekStart: text('week_start').notNull(),
+    // The slot's absolute calendar date (YYYY-MM-DD), generated and stored by Postgres from
+    // `weekStart` + `dayOfWeek` — never written directly, never able to drift from them. Lets
+    // callers that only have a date (a logged meal, a calendar range) query this table directly
+    // instead of resolving date → weekStart → menu → dayOfWeek by hand first.
+    date: text('date')
+      .notNull()
+      .generatedAlwaysAs(
+        (): SQL =>
+          sql`(${weeklyMenuMeals.weekStart}::date + (${weeklyMenuMeals.dayOfWeek}::text || ' days')::interval)::date::text`,
+      ),
     description: text('description').notNull(),
     // Free-text ingredient lines for the dish, e.g. ["200g chicken breast", "1 red pepper"].
     // Null when unspecified. Deliberately unstructured — quantities/units stay in the string;
@@ -120,6 +137,9 @@ export const weeklyMenuMeals = pgTable(
   },
   table => [
     index('idx_weekly_menu_meals_menu').on(table.menuId),
+    // Serves the direct by-date lookups (tryLinkLoggedMealToPlan, getPlannedMealsForDate,
+    // getMenuStatusForRange) — without this they'd fall back to a sequential scan per query.
+    index('idx_weekly_menu_meals_date').on(table.date),
     // One meal per slot — addMealToMenu's onConflictDoNothing and the slot-addressed
     // update/delete service functions all rely on this invariant.
     unique('uq_weekly_menu_meal_slot').on(table.menuId, table.dayOfWeek, table.mealType),

@@ -40,16 +40,7 @@ import type { MealType } from '../../constants/calories';
 import type { DayOfWeek } from '../../constants/weekly-menu';
 import type { ShoppingListItem } from './shopping-list';
 import { PromiseCacheX } from 'promise-cachex';
-import {
-  addDays,
-  dateToString,
-  dayOfWeekMon0,
-  dedupeTrimmed,
-  logger,
-  omitUndefined,
-  startOfWeekMonday,
-  toUTCDateStr,
-} from '../../utils';
+import { addDays, dedupeTrimmed, logger, omitUndefined, toUTCDateStr } from '../../utils';
 
 const menuAccessCache = new PromiseCacheX<boolean>({ ttl: 1000 }); // 1 second
 
@@ -102,7 +93,31 @@ export interface WeeklyMenuMeal {
   carbs: number | null;
   fat: number | null;
   createdAt: Date;
+  /** This slot's absolute calendar date (YYYY-MM-DD), generated in the DB from `weekStart` + `dayOfWeek`. */
+  date: string;
 }
+
+/**
+ * Column list for reading or returning a meal row — every `weeklyMenuMeals` read/write path uses
+ * this instead of a bare `.select()`/`.returning()`, so the internal `weekStart` column (kept only
+ * to feed the `date` generated column) never leaks into a `WeeklyMenu` handed back to a caller —
+ * MCP tool responses are raw `JSON.stringify`, so an implicit all-columns select would otherwise
+ * surface it as an undocumented field in `calories_get_weekly_menu` / `calories_plan_week` output.
+ */
+const weeklyMenuMealColumns = {
+  id: weeklyMenuMeals.id,
+  menuId: weeklyMenuMeals.menuId,
+  dayOfWeek: weeklyMenuMeals.dayOfWeek,
+  mealType: weeklyMenuMeals.mealType,
+  description: weeklyMenuMeals.description,
+  ingredients: weeklyMenuMeals.ingredients,
+  kcal: weeklyMenuMeals.kcal,
+  protein: weeklyMenuMeals.protein,
+  carbs: weeklyMenuMeals.carbs,
+  fat: weeklyMenuMeals.fat,
+  createdAt: weeklyMenuMeals.createdAt,
+  date: weeklyMenuMeals.date,
+} as const;
 
 export interface WeeklyMenu {
   menuId: string;
@@ -119,19 +134,25 @@ export interface WeeklyMenu {
 // Service functions
 // ---------------------------------------------------------------------------
 
+/** The week a menu belongs to, or null if the menuId doesn't exist. */
+async function getMenuWeekStart(menuId: string): Promise<string | null> {
+  const [menu] = await db
+    .select({ weekStart: weeklyMenus.weekStart })
+    .from(weeklyMenus)
+    .where(eq(weeklyMenus.menuId, menuId));
+
+  return menu?.weekStart ?? null;
+}
+
 /**
  * True when `loggedDate` really is the calendar date that `dayOfWeek` falls on in this menu's
  * week. The date is supplied by the caller, so without this a wrong or replayed request could
  * journal meals against an unrelated day while the menu still showed the slot as logged.
  */
 async function isDateInMenuWeek(menuId: string, dayOfWeek: DayOfWeek, loggedDate: string): Promise<boolean> {
-  const [menu] = await db
-    .select({ weekStart: weeklyMenus.weekStart })
-    .from(weeklyMenus)
-    .where(eq(weeklyMenus.menuId, menuId));
-
-  if (!menu) return false;
-  return toUTCDateStr(addDays(new Date(menu.weekStart), dayOfWeek)) === loggedDate;
+  const weekStart = await getMenuWeekStart(menuId);
+  if (!weekStart) return false;
+  return toUTCDateStr(addDays(new Date(weekStart), dayOfWeek)) === loggedDate;
 }
 
 export async function hasAccessToMenu(userId: string, menuId: string): Promise<boolean> {
@@ -187,6 +208,7 @@ export async function createWeeklyMenu(
             .values(
               input.meals.map(m => ({
                 menuId,
+                weekStart: input.weekStart,
                 dayOfWeek: m.dayOfWeek,
                 mealType: m.mealType,
                 description: m.description,
@@ -198,7 +220,7 @@ export async function createWeeklyMenu(
               })),
             )
             .onConflictDoNothing()
-            .returning()
+            .returning(weeklyMenuMealColumns)
         : [];
 
     // The menu is brand new, so there is nothing to clear and no ownership to re-check.
@@ -271,7 +293,7 @@ async function getWeeklyMenuWhere(where: ReturnType<typeof and>): Promise<Weekly
   if (!menu) return null;
 
   const meals = await db
-    .select()
+    .select(weeklyMenuMealColumns)
     .from(weeklyMenuMeals)
     .where(eq(weeklyMenuMeals.menuId, menu.menuId))
     .orderBy(weeklyMenuMeals.dayOfWeek, weeklyMenuMeals.mealType);
@@ -307,10 +329,14 @@ export async function addMealToMenu(
     return null;
   }
 
+  const weekStart = await getMenuWeekStart(menuId);
+  if (!weekStart) return null;
+
   const [inserted] = await db
     .insert(weeklyMenuMeals)
     .values({
       menuId,
+      weekStart,
       dayOfWeek: meal.dayOfWeek,
       mealType: meal.mealType,
       description: meal.description,
@@ -321,7 +347,7 @@ export async function addMealToMenu(
       fat: meal.fat ?? null,
     })
     .onConflictDoNothing()
-    .returning();
+    .returning(weeklyMenuMealColumns);
 
   return inserted ?? null;
 }
@@ -386,7 +412,7 @@ export async function updateWeeklyMenuMeal(
         eq(weeklyMenuMeals.mealType, mealType),
       ),
     )
-    .returning();
+    .returning(weeklyMenuMealColumns);
 
   if (!updated) return null;
 
@@ -412,6 +438,9 @@ export async function upsertMenuMeal(
     return null;
   }
 
+  const weekStart = await getMenuWeekStart(menuId);
+  if (!weekStart) return null;
+
   const values = {
     ingredients: normalizeIngredients(meal.ingredients),
     kcal: meal.kcal ?? null,
@@ -422,12 +451,21 @@ export async function upsertMenuMeal(
 
   const [upserted] = await db
     .insert(weeklyMenuMeals)
-    .values({ menuId, dayOfWeek: meal.dayOfWeek, mealType: meal.mealType, description: meal.description, ...values })
+    .values({
+      menuId,
+      weekStart,
+      dayOfWeek: meal.dayOfWeek,
+      mealType: meal.mealType,
+      description: meal.description,
+      ...values,
+    })
     .onConflictDoUpdate({
       target: [weeklyMenuMeals.menuId, weeklyMenuMeals.dayOfWeek, weeklyMenuMeals.mealType],
+      // weekStart is not re-set on conflict: it's identical on any existing row for this menuId
+      // (a menu's week never changes after creation), so there's nothing to overwrite.
       set: { description: meal.description, ...values },
     })
-    .returning();
+    .returning(weeklyMenuMealColumns);
 
   if (!upserted) return null;
 
@@ -745,17 +783,21 @@ export interface PlannedMealForDate extends WeeklyMenuMeal {
  * Returns an empty list when the date's week has no menu.
  */
 export async function getPlannedMealsForDate(userId: string, date: string): Promise<PlannedMealForDate[]> {
-  const weekStart = dateToString(startOfWeekMonday(new Date(`${date}T00:00:00`)));
-  const menu = await getWeeklyMenuByWeek(userId, weekStart);
-  if (!menu) return [];
+  // A direct join on `date` instead of resolving date → weekStart → menu → dayOfWeek and fetching
+  // the whole week's meals to filter down to one day.
+  const meals = await db
+    .select(weeklyMenuMealColumns)
+    .from(weeklyMenuMeals)
+    .innerJoin(weeklyMenus, eq(weeklyMenus.menuId, weeklyMenuMeals.menuId))
+    .where(and(eq(weeklyMenus.userId, userId), eq(weeklyMenuMeals.date, date)))
+    .orderBy(weeklyMenuMeals.mealType);
 
-  const dayOfWeek = dayOfWeekMon0(date);
-  // Ownership was established by the menu lookup above, so the marker read skips re-checking it.
-  const markers = await readDayLogs(menu.menuId);
+  if (meals.length === 0) return [];
 
-  return menu.meals
-    .filter(m => m.dayOfWeek === dayOfWeek)
-    .map(m => ({ ...m, logged: `${m.dayOfWeek}:${m.mealType}` in markers }));
+  // Ownership was established by the join above, so the marker read skips re-checking it.
+  const markers = await readDayLogs(meals[0]!.menuId);
+
+  return meals.map(m => ({ ...m, logged: `${m.dayOfWeek}:${m.mealType}` in markers }));
 }
 
 /** Day-log markers for a menu, without an ownership check — callers must have established it. */
@@ -795,28 +837,15 @@ export async function tryLinkLoggedMealToPlan(
   mealType: MealType,
   mealLogId: string,
 ): Promise<boolean> {
-  const weekStart = dateToString(startOfWeekMonday(new Date(`${date}T00:00:00`)));
-
-  // Two targeted single-row lookups (menu, then the one slot) rather than `getWeeklyMenuByWeek`,
-  // which would pull every meal in the week just to check whether one (dayOfWeek, mealType) slot
-  // is planned — this runs on every meal logged, menu or not, so it stays as cheap as the check it's doing.
-  const [menu] = await db
-    .select({ menuId: weeklyMenus.menuId })
-    .from(weeklyMenus)
-    .where(and(eq(weeklyMenus.userId, userId), eq(weeklyMenus.weekStart, weekStart)));
-  if (!menu) return false;
-
-  const dayOfWeek = dayOfWeekMon0(date);
+  // One targeted lookup for the one slot in question — the `date` column (generated from
+  // weekStart + dayOfWeek) lets this join straight to the user's meal for that day and meal type,
+  // rather than resolving date → weekStart → menu → dayOfWeek by hand first. This runs on every
+  // meal logged, menu or not, so it stays as cheap as the check it's doing.
   const [planned] = await db
-    .select({ id: weeklyMenuMeals.id })
+    .select({ menuId: weeklyMenuMeals.menuId, dayOfWeek: weeklyMenuMeals.dayOfWeek })
     .from(weeklyMenuMeals)
-    .where(
-      and(
-        eq(weeklyMenuMeals.menuId, menu.menuId),
-        eq(weeklyMenuMeals.dayOfWeek, dayOfWeek),
-        eq(weeklyMenuMeals.mealType, mealType),
-      ),
-    )
+    .innerJoin(weeklyMenus, eq(weeklyMenus.menuId, weeklyMenuMeals.menuId))
+    .where(and(eq(weeklyMenus.userId, userId), eq(weeklyMenuMeals.date, date), eq(weeklyMenuMeals.mealType, mealType)))
     .limit(1);
   if (!planned) return false;
 
@@ -824,7 +853,7 @@ export async function tryLinkLoggedMealToPlan(
   // this safe to call from concurrent inserts (e.g. several `items` logged in one MCP call).
   const inserted = await db
     .insert(weeklyMenuDayLogs)
-    .values({ menuId: menu.menuId, dayOfWeek, mealType, loggedDate: date, mealLogId })
+    .values({ menuId: planned.menuId, dayOfWeek: planned.dayOfWeek, mealType, loggedDate: date, mealLogId })
     .onConflictDoNothing()
     .returning({ id: weeklyMenuDayLogs.id });
 
@@ -852,62 +881,52 @@ export interface DayMenuStatus {
 /**
  * Per-date `{ hasMenu, logged }` for every day in `[start, end]` that a weekly menu covers — the
  * Hub Calendar's menu icon needs this in one shot for a whole month rather than one
- * `getPlannedMealsForDate` call per day. Three batch queries (menus in range, their meals, their
- * day-logs) regardless of how many days the range spans, mirroring `getDailySummariesForRange`.
- * Dates with no menu are simply absent from the result.
+ * `getPlannedMealsForDate` call per day. Two batch queries (meals in range, their day-logs, each
+ * filtered directly by `date`/`loggedDate` — no more resolving weeks first and discarding the
+ * meals that land outside the requested range) regardless of how many days the range spans,
+ * mirroring `getDailySummariesForRange`. Dates with no menu are simply absent from the result.
  */
 export async function getMenuStatusForRange(
   userId: string,
   start: string,
   end: string,
 ): Promise<Record<string, DayMenuStatus>> {
-  const startWeek = dateToString(startOfWeekMonday(new Date(`${start}T00:00:00`)));
-  const endWeek = dateToString(startOfWeekMonday(new Date(`${end}T00:00:00`)));
-
-  const menus = await db
-    .select({ menuId: weeklyMenus.menuId, weekStart: weeklyMenus.weekStart })
-    .from(weeklyMenus)
-    .where(
-      and(eq(weeklyMenus.userId, userId), gte(weeklyMenus.weekStart, startWeek), lte(weeklyMenus.weekStart, endWeek)),
-    );
-
-  if (menus.length === 0) return {};
-
-  const menuIds = menus.map(m => m.menuId);
-  const weekStartByMenu = new Map(menus.map(m => [m.menuId, m.weekStart]));
-
   const [meals, logs] = await Promise.all([
     db
-      .select({
-        menuId: weeklyMenuMeals.menuId,
-        dayOfWeek: weeklyMenuMeals.dayOfWeek,
-        mealType: weeklyMenuMeals.mealType,
-      })
+      .select({ date: weeklyMenuMeals.date, menuId: weeklyMenuMeals.menuId, mealType: weeklyMenuMeals.mealType })
       .from(weeklyMenuMeals)
-      .where(inArray(weeklyMenuMeals.menuId, menuIds)),
+      .innerJoin(weeklyMenus, eq(weeklyMenus.menuId, weeklyMenuMeals.menuId))
+      .where(and(eq(weeklyMenus.userId, userId), gte(weeklyMenuMeals.date, start), lte(weeklyMenuMeals.date, end))),
     db
       .select({
         menuId: weeklyMenuDayLogs.menuId,
-        dayOfWeek: weeklyMenuDayLogs.dayOfWeek,
         mealType: weeklyMenuDayLogs.mealType,
+        date: weeklyMenuDayLogs.loggedDate,
       })
       .from(weeklyMenuDayLogs)
-      .where(inArray(weeklyMenuDayLogs.menuId, menuIds)),
+      .innerJoin(weeklyMenus, eq(weeklyMenus.menuId, weeklyMenuDayLogs.menuId))
+      .where(
+        and(
+          eq(weeklyMenus.userId, userId),
+          gte(weeklyMenuDayLogs.loggedDate, start),
+          lte(weeklyMenuDayLogs.loggedDate, end),
+        ),
+      ),
   ]);
 
-  const loggedSlots = new Set(logs.map(l => `${l.menuId}:${l.dayOfWeek}:${l.mealType}`));
+  if (meals.length === 0) return {};
+
+  // A (menuId, date, mealType) triple identifies one slot's calendar date unambiguously, so this
+  // is a safe join key between the two queries even though they're keyed by different columns
+  // (`date` vs `loggedDate`) on the source tables.
+  const loggedSlots = new Set(logs.map(l => `${l.menuId}:${l.date}:${l.mealType}`));
 
   const statuses: Record<string, DayMenuStatus> = {};
   for (const meal of meals) {
-    const weekStart = weekStartByMenu.get(meal.menuId);
-    if (!weekStart) continue;
-    const date = toUTCDateStr(addDays(new Date(`${weekStart}T00:00:00`), meal.dayOfWeek));
-    if (date < start || date > end) continue;
-
-    const entry = statuses[date] ?? { hasMenu: false, logged: true };
+    const entry = statuses[meal.date] ?? { hasMenu: false, logged: true };
     entry.hasMenu = true;
-    entry.logged = entry.logged && loggedSlots.has(`${meal.menuId}:${meal.dayOfWeek}:${meal.mealType}`);
-    statuses[date] = entry;
+    entry.logged = entry.logged && loggedSlots.has(`${meal.menuId}:${meal.date}:${meal.mealType}`);
+    statuses[meal.date] = entry;
   }
 
   return statuses;
