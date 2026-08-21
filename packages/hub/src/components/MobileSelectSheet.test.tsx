@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MobileSelectSheet } from './MobileSelectSheet';
 import type { DropdownOption } from './searchableSelect.utils';
@@ -10,11 +10,26 @@ const options: DropdownOption[] = [
 ];
 
 describe('MobileSelectSheet', () => {
+  let historyBackSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     vi.useFakeTimers();
+    // useCloseOnBackButton's popstate listener is a permanent module-level singleton. Real
+    // history.back() fires popstate asynchronously, so without mocking it synchronously here,
+    // an un-unmounted sheet from an earlier test in this file (auto-unmounted later by the
+    // global afterEach(cleanup)) can leak a stray real back-navigation into a later test.
+    historyBackSpy = vi
+      .spyOn(window.history, 'back')
+      .mockImplementation(() => window.dispatchEvent(new PopStateEvent('popstate')));
   });
 
   afterEach(() => {
+    // Unmount here, before restoring the spy: the global afterEach(cleanup) in vitest.setup.ts
+    // runs in an outer scope and tears down *after* this one, so restoring first would let an
+    // unmounting sheet's history.back() call hit the real (async) implementation and leak a
+    // stray back-navigation into a later test.
+    cleanup();
+    historyBackSpy.mockRestore();
     vi.useRealTimers();
   });
 
