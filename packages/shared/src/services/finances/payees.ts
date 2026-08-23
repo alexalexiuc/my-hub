@@ -3,7 +3,7 @@
  * - findPayeeByNameOrAlias(userId, budgetId, name) — resolves a payee by canonical name or aliases
  * - upsertPayee(userId, budgetId, name) — insert-or-return, case-insensitive via normalizedName/aliases matching
  * - resolvePayeeIdByNameOrAlias(userId, budgetId, name) — resolves payee id or undefined
- * - updatePayee(userId, budgetId, payeeId, patch) — updates payee name/aliases/description
+ * - updatePayee(userId, budgetId, payeeId, patch) — updates payee name/aliases/description; throws a clear error (not a DB constraint violation) when the new name collides with another payee in the budget
  * - getPayees(userId, budgetId) — returns all payees ranked by user usage; includes aliases, description, and stats
  * - getPayeeSummary(userId, budgetId, payeeId) — all-time stats for a single payee: txCount, totalSpent, totalIncome, avgSpent, firstDate, lastDate, topCategory, topAccount
  * - deletePayee(userId, budgetId, payeeId) — hard delete
@@ -126,8 +126,19 @@ export async function updatePayee(
   if (patch.name !== undefined) {
     const trimmed = patch.name.trim();
     if (!trimmed) throw new Error('Payee name is required');
+    const normalizedName = normalizePayeeName(trimmed);
+
+    const [existing] = await db
+      .select({ id: financePayees.id })
+      .from(financePayees)
+      .where(and(eq(financePayees.budgetId, budgetId), eq(financePayees.normalizedName, normalizedName)))
+      .limit(1);
+    if (existing && existing.id !== payeeId) {
+      throw new Error(`A payee named "${trimmed}" already exists`);
+    }
+
     changes.name = trimmed;
-    changes.normalizedName = normalizePayeeName(trimmed);
+    changes.normalizedName = normalizedName;
   }
   if (patch.aliases !== undefined) {
     changes.aliases = patch.aliases.map(a => a.trim()).filter(Boolean);
