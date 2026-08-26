@@ -9,9 +9,18 @@ import {
   uuid,
   index,
   unique,
+  uniqueIndex,
   boolean,
 } from 'drizzle-orm/pg-core';
-import type { ActivityLevel, GoalType, GymTime, MealType, Sex } from '../../constants/calories';
+import type {
+  ActivityLevel,
+  GoalType,
+  GymTime,
+  MealType,
+  Sex,
+  WeeklyMenuSharePermission,
+} from '../../constants/calories';
+import { WeeklyMenuSharePermissions } from '../../constants/calories';
 import { users } from './users';
 import type { DayOfWeek } from '../../constants/weekly-menu';
 
@@ -166,4 +175,29 @@ export const weeklyMenuDayLogs = pgTable(
     loggedAt: timestamp('logged_at').notNull().defaultNow(),
   },
   table => [unique('uq_weekly_menu_day_log').on(table.menuId, table.dayOfWeek, table.mealType)],
+);
+
+// Standing share of a user's weekly menus with another user — not tied to a
+// specific menuId, since it must cover the owner's current and future weeks.
+export const weeklyMenuShares = pgTable(
+  'weekly_menu_shares',
+  {
+    id: serial('id').primaryKey(),
+    ownerUserId: uuid('owner_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    sharedWithUserId: uuid('shared_with_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    permission: text('permission')
+      .$type<WeeklyMenuSharePermission>()
+      .notNull()
+      .default(WeeklyMenuSharePermissions.View),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  table => [
+    uniqueIndex('uniq_weekly_menu_shares_owner_shared_with').on(table.ownerUserId, table.sharedWithUserId),
+    index('idx_weekly_menu_shares_shared_with_user_id').on(table.sharedWithUserId),
+  ],
 );

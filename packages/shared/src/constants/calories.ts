@@ -51,6 +51,14 @@ export const MealTypesValues: MealType[] = Object.values(MealTypes);
 /** Default calorie bonus applied to a day's target when it's a gym day. Matches the `calorie_profiles.gym_day_calorie_bonus` column default — used as the fallback when a user has no profile row yet. */
 export const DEFAULT_GYM_DAY_CALORIE_BONUS = 300;
 
+/** Standing weekly-menu share permission levels. Only 'view' exists today; the column exists so edit-sharing can be added later without a migration. */
+export const WeeklyMenuSharePermissions = {
+  View: 'view',
+} as const;
+
+export type WeeklyMenuSharePermission = (typeof WeeklyMenuSharePermissions)[keyof typeof WeeklyMenuSharePermissions];
+export const weeklyMenuSharePermissionValues: WeeklyMenuSharePermission[] = Object.values(WeeklyMenuSharePermissions);
+
 /**
  * When in the day the user trains. Deliberately a coarse band rather than a clock time:
  * what changes a meal plan is which meals fall either side of the session, and no planner

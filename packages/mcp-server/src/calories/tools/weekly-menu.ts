@@ -4,25 +4,18 @@ import {
   updateWeeklyMenu,
   getWeeklyMenuByWeek,
   getWeeklyMenus,
-  getCalorieProfile,
-  getLatestMeasurementsPerType,
+  getUserCalorieTargets,
+  getSharedMenusForWeek,
   upsertMenuMeal,
   deleteWeeklyMenuMeal,
   deleteWeeklyMenu,
   replaceShoppingListItems,
 } from '@my-hub/shared/services';
-import {
-  MealTypesValues,
-  DaysOfWeek,
-  DAY_LABELS_SHORT,
-  MeasurementTypes,
-  DEFAULT_GYM_DAY_CALORIE_BONUS,
-} from '@my-hub/shared/constants';
+import { MealTypesValues, DaysOfWeek, DAY_LABELS_SHORT } from '@my-hub/shared/constants';
 import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
 import { toolResponse } from '../../shared/toolsUtils';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import type { ToolHandler } from '../../shared/types';
-import { rowToProfile, profileToTargets } from '../models/profile';
 import {
   localDateString,
   startOfWeekMonday,
@@ -129,28 +122,17 @@ export const planWeekTool: ToolHandler<typeof PlanWeekSchema.shape> = async (inp
   // For the current week, only plan from today onwards; for future weeks, plan all 7 days
   const planFromDayOfWeek = isCurrentWeek ? todayDayOfWeek : 0;
 
-  // Fetch the user's calorie profile and latest weight to compute their daily targets
-  const [profileRow, latestMeasurements] = await Promise.all([
-    getCalorieProfile(userId),
-    getLatestMeasurementsPerType(userId),
-  ]);
-
-  const profile = profileRow ? rowToProfile(profileRow) : {};
-  const weightM = latestMeasurements.find(m => m.typeKey === MeasurementTypes.Weight);
-  const targets = profileToTargets(profile, weightM?.value);
-
-  // Gym days from profile — used to label training vs rest days in the response. Everything here
-  // reads off `profile`, never `profileRow`: rowToProfile already resolves the bonus against its
-  // default, and going around it is how the tool's warning math drifts from the profile resource.
-  // The `??` below only covers the no-profile-row case, where `profile` is an empty object.
-  const gymDays = profile.gymDays ?? [];
-  const gymDayCalorieBonus = profile.gymDayCalorieBonus ?? DEFAULT_GYM_DAY_CALORIE_BONUS;
+  // Fetch the user's daily calorie/macro targets (shared computation, also used by
+  // calories_get_weekly_menu so both tools' userTargets never drift apart).
+  const userTargets = await getUserCalorieTargets(userId);
+  const gymDays = userTargets?.gymDays ?? [];
+  const gymDayCalorieBonus = userTargets?.gymDayCalorieBonus ?? 0;
   // Which meals fall either side of training — drives pre_workout / post_workout placement.
-  const gymTime = profile.gymTime ?? null;
+  const gymTime = userTargets?.gymTime ?? null;
 
   // Validate that planned meals respect the user's daily calorie targets
   const warnings: string[] = [];
-  if (targets.maxCalories !== null || targets.minCalories !== null) {
+  if (userTargets && (userTargets.dailyCalories.max !== null || userTargets.dailyCalories.min !== null)) {
     // Group meals by day and sum kcal
     const dailyKcal: Record<number, number> = {};
     for (const m of input.meals) {
@@ -163,11 +145,15 @@ export const planWeekTool: ToolHandler<typeof PlanWeekSchema.shape> = async (inp
       // so the tool never warns about a correctly-planned gym day.
       const bonus = gymDays.includes(Number(day) as DayOfWeek) ? gymDayCalorieBonus : 0;
       const gymNote = bonus > 0 ? ' (gym day — bonus included)' : '';
-      if (targets.maxCalories !== null && kcal > targets.maxCalories + bonus) {
-        warnings.push(`Day ${day}: ${kcal} kcal exceeds max target of ${targets.maxCalories + bonus} kcal${gymNote}`);
+      if (userTargets.dailyCalories.max !== null && kcal > userTargets.dailyCalories.max + bonus) {
+        warnings.push(
+          `Day ${day}: ${kcal} kcal exceeds max target of ${userTargets.dailyCalories.max + bonus} kcal${gymNote}`,
+        );
       }
-      if (targets.minCalories !== null && kcal < targets.minCalories + bonus) {
-        warnings.push(`Day ${day}: ${kcal} kcal is below min target of ${targets.minCalories + bonus} kcal${gymNote}`);
+      if (userTargets.dailyCalories.min !== null && kcal < userTargets.dailyCalories.min + bonus) {
+        warnings.push(
+          `Day ${day}: ${kcal} kcal is below min target of ${userTargets.dailyCalories.min + bonus} kcal${gymNote}`,
+        );
       }
     }
   }
@@ -211,28 +197,11 @@ export const planWeekTool: ToolHandler<typeof PlanWeekSchema.shape> = async (inp
     todayDate,
     todayDayOfWeek,
     planFromDayOfWeek,
-    noProfile: !profileRow,
-    noTargets: !!profileRow && targets.maxCalories === null && targets.minCalories === null,
-    userTargets: profileRow
-      ? {
-          goalType: profile.goalType ?? null,
-          dailyCalories: {
-            min: targets.minCalories,
-            goal: targets.goalCalories,
-            max: targets.maxCalories,
-          },
-          macros: {
-            protein: profile.goalProtein ?? null,
-            carbs: profile.goalCarbs ?? null,
-            fat: profile.goalFat ?? null,
-          },
-          gymDays: gymDays.length > 0 ? gymDays : null,
-          gymDayCalorieBonus,
-          gymTime,
-        }
-      : null,
+    noProfile: !userTargets,
+    noTargets: !!userTargets && userTargets.dailyCalories.max === null && userTargets.dailyCalories.min === null,
+    userTargets,
     warnings: warnings.length > 0 ? warnings : null,
-    message: !profileRow
+    message: !userTargets
       ? `Weekly menu saved for ${menu.weekStart} as a balanced default — no calorie profile is set so meals were not tailored to specific targets. Suggest the user sets up their profile under Calories → Settings.`
       : `Weekly menu saved for ${menu.weekStart}. The user can view it in the hub under Calories → Weekly Menu.${isCurrentWeek && planFromDayOfWeek > 0 ? ` Only planned from ${DAY_LABELS_SHORT[planFromDayOfWeek]} (today) onwards — past days were skipped.` : ''}${gymDays.length > 0 ? ` Gym days (${gymDays.map(d => DAY_LABELS_SHORT[d]).join(', ')}) have been taken into account — plan higher calories/carbs on those days.${gymTime ? ` Training happens in the ${gymTime}, so place the lighter pre-workout and the recovery meal accordingly.` : ' No training time is set — ask the user when they train so pre/post-workout meals can be placed.'}` : ''}${warnings.length > 0 ? " Note: some days exceed the user's calorie targets — consider revising." : ''}`,
   });
@@ -241,20 +210,47 @@ export const planWeekTool: ToolHandler<typeof PlanWeekSchema.shape> = async (inp
 export const getWeeklyMenuTool: ToolHandler<typeof GetWeeklyMenuSchema.shape> = async (input, context) => {
   const { userId } = context;
 
-  const [profileRow, menuResult] = await Promise.all([
-    getCalorieProfile(userId),
+  const [userTargets, menuResult] = await Promise.all([
+    getUserCalorieTargets(userId),
     input.weekStart ? getWeeklyMenuByWeek(userId, input.weekStart) : getWeeklyMenus(userId),
   ]);
-  const profile = profileRow ? rowToProfile(profileRow) : null;
-  const gymDaysOrNull = profile?.gymDays?.length ? profile.gymDays : null;
-  const gymTime = profile?.gymTime ?? null;
+  const gymDaysOrNull = userTargets?.gymDays ?? null;
+  const gymTime = userTargets?.gymTime ?? null;
 
   if (input.weekStart) {
-    if (!menuResult) return toolResponse({ menu: null, message: `No menu found for week of ${input.weekStart}.` });
-    return toolResponse({ menu: menuResult, gymDays: gymDaysOrNull, gymTime });
+    if (!menuResult) {
+      return toolResponse({
+        menu: null,
+        userTargets,
+        gymDays: gymDaysOrNull,
+        gymTime,
+        message: `No menu found for week of ${input.weekStart}.`,
+      });
+    }
+
+    // Menus shared with the caller for the same week, plus each sharer's own calorie/macro
+    // targets — gives the model the full picture across everyone sharing a kitchen, so it
+    // can help align meals (same dish, portions/macros suited to each person's own targets).
+    const sharedByOthers = await getSharedMenusForWeek(userId, input.weekStart);
+    const sharedMenus = sharedByOthers.map(s => ({
+      ownerName: s.ownerName,
+      weekStart: input.weekStart,
+      hasMenu: !!s.menu,
+      prepNotes: s.menu?.notes ?? null,
+      meals: s.menu?.meals ?? [],
+      userTargets: s.userTargets,
+    }));
+
+    return toolResponse({
+      menu: menuResult,
+      userTargets,
+      gymDays: gymDaysOrNull,
+      gymTime,
+      sharedMenus: sharedMenus.length > 0 ? sharedMenus : null,
+    });
   }
 
-  return toolResponse({ menus: menuResult, gymDays: gymDaysOrNull, gymTime });
+  return toolResponse({ menus: menuResult, userTargets, gymDays: gymDaysOrNull, gymTime });
 };
 
 // ---------------------------------------------------------------------------

@@ -6,8 +6,7 @@ import {
   createWeeklyMenu,
   updateWeeklyMenu,
   replaceShoppingListItems,
-  getCalorieProfile,
-  getLatestMeasurementsPerType,
+  getUserCalorieTargets,
 } from '@my-hub/shared/services';
 import {
   SetMenuMealSchema,
@@ -32,8 +31,8 @@ vi.mock('@my-hub/shared/services', () => ({
   createWeeklyMenu: vi.fn(),
   updateWeeklyMenu: vi.fn(),
   replaceShoppingListItems: vi.fn(),
-  getCalorieProfile: vi.fn(),
-  getLatestMeasurementsPerType: vi.fn(),
+  getUserCalorieTargets: vi.fn(),
+  getSharedMenusForWeek: vi.fn(),
   getWeeklyMenuByWeek: vi.fn(),
   getWeeklyMenus: vi.fn(),
 }));
@@ -391,8 +390,7 @@ describe('planWeekTool', () => {
   });
 
   it('returns success=false when the menu cannot be saved', async () => {
-    vi.mocked(getCalorieProfile).mockResolvedValue(null as never);
-    vi.mocked(getLatestMeasurementsPerType).mockResolvedValue([] as never);
+    vi.mocked(getUserCalorieTargets).mockResolvedValue(null);
     vi.mocked(createWeeklyMenu).mockRejectedValue(new Error('db down'));
 
     const result = await planWeekTool(
@@ -422,8 +420,7 @@ describe('planWeekTool', () => {
   });
 
   it('writes prep notes and the shopping list in one call', async () => {
-    vi.mocked(getCalorieProfile).mockResolvedValue(null as never);
-    vi.mocked(getLatestMeasurementsPerType).mockResolvedValue([] as never);
+    vi.mocked(getUserCalorieTargets).mockResolvedValue(null);
     vi.mocked(createWeeklyMenu).mockResolvedValue({
       menuId: 'menu-1',
       weekStart: '2026-07-13',
