@@ -470,32 +470,34 @@ describe('addTransactionsTool', () => {
 });
 
 describe('updateTransactionTool', () => {
+  const baseTransaction = {
+    id: 10,
+    budgetId: 1,
+    type: TransactionTypes.Expense,
+    accountId: 1,
+    toAccountId: null,
+    amount: 50,
+    exchangeRate: 1,
+    date: '2026-04-27',
+    categoryId: null,
+    payeeId: null,
+    notes: 'Lunch',
+    extras: null,
+    isCorrection: false,
+    fromAccountBalanceAfter: 950,
+    toAccountBalanceAfter: null,
+    addedByUserId: 'user-1',
+    createdAt: new Date('2026-04-27T10:00:00.000Z'),
+    updatedAt: new Date('2026-04-27T10:00:00.000Z'),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getUserActiveBudget).mockResolvedValue({ id: 1, defaultCurrency: 'USD' } as never);
   });
 
   it('throws when changing to transfer without a destination account', async () => {
-    vi.mocked(getTransactionById).mockResolvedValue({
-      id: 10,
-      budgetId: 1,
-      type: TransactionTypes.Expense,
-      accountId: 1,
-      toAccountId: null,
-      amount: 50,
-      exchangeRate: 1,
-      date: '2026-04-27',
-      categoryId: null,
-      payeeId: null,
-      notes: 'Lunch',
-      extras: null,
-      isCorrection: false,
-      fromAccountBalanceAfter: 950,
-      toAccountBalanceAfter: null,
-      addedByUserId: 'user-1',
-      createdAt: new Date('2026-04-27T10:00:00.000Z'),
-      updatedAt: new Date('2026-04-27T10:00:00.000Z'),
-    } as never);
+    vi.mocked(getTransactionById).mockResolvedValue(baseTransaction as never);
 
     await expect(
       updateTransactionTool(
@@ -520,26 +522,7 @@ describe('updateTransactionTool', () => {
   });
 
   it('returns resolved account name after update', async () => {
-    vi.mocked(getTransactionById).mockResolvedValue({
-      id: 10,
-      budgetId: 1,
-      type: TransactionTypes.Expense,
-      accountId: 1,
-      toAccountId: null,
-      amount: 50,
-      exchangeRate: 1,
-      date: '2026-04-27',
-      categoryId: null,
-      payeeId: null,
-      notes: 'Lunch',
-      extras: null,
-      isCorrection: false,
-      fromAccountBalanceAfter: 950,
-      toAccountBalanceAfter: null,
-      addedByUserId: 'user-1',
-      createdAt: new Date('2026-04-27T10:00:00.000Z'),
-      updatedAt: new Date('2026-04-27T10:00:00.000Z'),
-    } as never);
+    vi.mocked(getTransactionById).mockResolvedValue(baseTransaction as never);
 
     vi.mocked(updateTransaction).mockResolvedValue({
       id: 10,
@@ -584,24 +567,9 @@ describe('updateTransactionTool', () => {
 
   it('reports existing itemsCount without a suggestion when the transaction already has items', async () => {
     vi.mocked(getTransactionById).mockResolvedValue({
-      id: 10,
-      budgetId: 1,
-      type: TransactionTypes.Expense,
-      accountId: 1,
-      toAccountId: null,
-      amount: 50,
-      exchangeRate: 1,
-      date: '2026-04-27',
-      categoryId: null,
-      payeeId: null,
+      ...baseTransaction,
       notes: 'Groceries',
       extras: { kind: 'receipt', items: [{ name: 'Milk', totalPrice: 20 }] },
-      isCorrection: false,
-      fromAccountBalanceAfter: 950,
-      toAccountBalanceAfter: null,
-      addedByUserId: 'user-1',
-      createdAt: new Date('2026-04-27T10:00:00.000Z'),
-      updatedAt: new Date('2026-04-27T10:00:00.000Z'),
     } as never);
 
     vi.mocked(updateTransaction).mockResolvedValue({

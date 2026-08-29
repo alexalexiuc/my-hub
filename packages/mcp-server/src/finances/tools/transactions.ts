@@ -598,14 +598,24 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
 
 // ─── itemize_transaction ───────────────────────────────────────────────────────
 
-export const ItemizeTransactionSchema = z
-  .object({
+const ITEMIZE_RECEIPT_FIELDS = [
+  'payeeAddress',
+  'receiptNumber',
+  'taxAmount',
+  'tipAmount',
+  'discountAmount',
+  'items',
+] as const;
+
+export const ItemizeTransactionSchema = TransactionExtrasSchema.pick({
+  payeeAddress: true,
+  receiptNumber: true,
+  taxAmount: true,
+  tipAmount: true,
+  discountAmount: true,
+})
+  .extend({
     transactionId: z.number().int().positive(),
-    payeeAddress: z.string().optional(),
-    receiptNumber: z.string().optional(),
-    taxAmount: z.number().optional().describe('Tax amount in the same currency as the transaction amount.'),
-    tipAmount: z.number().optional().describe('Tip amount in the same currency as the transaction amount.'),
-    discountAmount: z.number().optional().describe('Discount amount in the same currency as the transaction amount.'),
     items: z
       .array(ReceiptLineItemSchema)
       .min(1)
@@ -616,14 +626,7 @@ export const ItemizeTransactionSchema = z
       ),
   })
   .superRefine((input, ctx) => {
-    const hasAnyField =
-      input.payeeAddress !== undefined ||
-      input.receiptNumber !== undefined ||
-      input.taxAmount !== undefined ||
-      input.tipAmount !== undefined ||
-      input.discountAmount !== undefined ||
-      input.items !== undefined;
-    if (!hasAnyField) {
+    if (ITEMIZE_RECEIPT_FIELDS.every(field => input[field] === undefined)) {
       ctx.addIssue({
         code: 'custom',
         path: [],
@@ -643,18 +646,12 @@ export const itemizeTransactionTool: ToolHandler<typeof ItemizeTransactionSchema
   if (!existing) throw new HandledError('Transaction not found');
   if (existing.addedByUserId !== userId) throw new HandledError('You can only edit your own transactions');
 
-  const existingReceipt = existing.extras?.kind === 'receipt' ? (existing.extras as ReceiptTransactionDetails) : null;
-
-  const merged = omitUndefined({
+  const { transactionId, ...receiptFields } = input;
+  const merged = {
     ...existing.extras,
+    ...omitUndefined(receiptFields),
     kind: 'receipt',
-    payeeAddress: input.payeeAddress ?? existingReceipt?.payeeAddress,
-    receiptNumber: input.receiptNumber ?? existingReceipt?.receiptNumber,
-    taxAmount: input.taxAmount ?? existingReceipt?.taxAmount,
-    tipAmount: input.tipAmount ?? existingReceipt?.tipAmount,
-    discountAmount: input.discountAmount ?? existingReceipt?.discountAmount,
-    items: input.items ?? existingReceipt?.items,
-  }) as TransactionInsert['extras'];
+  } as TransactionInsert['extras'];
 
   const updated = await updateTransaction(userId, budget.id, input.transactionId, { extras: merged });
 
