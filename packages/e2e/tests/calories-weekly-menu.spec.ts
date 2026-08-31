@@ -121,7 +121,12 @@ test.describe('Calories — Weekly Menu page', () => {
     await expect(page.getByRole('button', { name: 'Create', exact: true })).toHaveCount(0);
     await expectSelectedWeek(page, monday);
     await expect(page.getByText('Week plan vs. target')).toBeVisible();
-    const todayCard = page.locator(`[data-day="${today}"]`);
+    // Scoped to the desktop grid: below `md`, `MobileDayView` renders the same-numbered
+    // `data-day` for whichever single day is selected, so an unscoped locator would match two
+    // elements (one CSS-hidden) once both layouts are in the DOM. The default Playwright
+    // viewport is desktop-sized, so the rest of this journey exercises the grid.
+    const desktopGrid = page.locator('[data-layout="desktop"]');
+    const todayCard = desktopGrid.locator(`[data-day="${today}"]`);
     await expect(todayCard.getByText(descFor(today))).toBeVisible();
     await expect(todayCard.getByText('600 kcal').first()).toBeVisible();
 
@@ -130,7 +135,7 @@ test.describe('Calories — Weekly Menu page', () => {
     // the week has no past day to assert against.
     await expect(todayCard.getByRole('button', { name: 'Add meal' })).toBeEnabled();
     if (today > 0) {
-      await expect(page.locator('[data-day="0"]').getByRole('button', { name: 'Add meal' })).toBeDisabled();
+      await expect(desktopGrid.locator('[data-day="0"]').getByRole('button', { name: 'Add meal' })).toBeDisabled();
     }
     // Today stays fully editable — the read-only rule applies only behind it.
     await expect(todayCard.getByRole('button', { name: 'Edit this meal' })).toBeEnabled();
@@ -148,13 +153,19 @@ test.describe('Calories — Weekly Menu page', () => {
 
     // ── 7b. Title and prep notes are editable in the Hub, not only via Claude ─
     const menuTitle = uniqueDesc('High protein');
-    // Page-scoped, not modal-scoped: this section edits inline on the page, it is not a dialog.
-    await page.getByRole('button', { name: /add a title or prep notes/i }).click();
-    await page.getByPlaceholder(/Menu title/).fill(menuTitle);
-    await page.getByPlaceholder(/Prep notes/).fill('Sunday: roast a big batch.');
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
-    await expect(page.getByRole('heading', { name: menuTitle })).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByText('Sunday: roast a big batch.')).toBeVisible();
+    await page.getByRole('button', { name: 'Prep notes' }).click();
+    await expect(modal.getByText('Prep notes')).toBeVisible();
+    await modal.getByPlaceholder(/Menu title/).fill(menuTitle);
+    await modal.getByPlaceholder(/Prep notes/).fill('Sunday: roast a big batch.');
+    await modal.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(modal.getByText('Prep notes')).not.toBeVisible({ timeout: 8_000 });
+    await expect(page.getByRole('heading', { name: menuTitle })).toBeVisible();
+
+    // Reopen to verify the notes persisted server-side — nothing renders inline on the page now
+    await page.getByRole('button', { name: 'Prep notes' }).click();
+    await expect(modal.getByPlaceholder(/Prep notes/)).toHaveValue('Sunday: roast a big batch.');
+    await modal.getByRole('button', { name: 'Close' }).click();
+    await expect(modal.getByText('Prep notes')).not.toBeVisible();
 
     // Ingredients render collapsed — a week of open lists would bury the plan itself
     const swappedRow = mealRow(todayCard, swappedDesc);
@@ -285,7 +296,7 @@ test.describe('Calories — Weekly Menu page', () => {
     await page.getByRole('button', { name: 'Next week' }).click();
     await expect(page.getByText('2 / 2')).toBeVisible();
     await expectSelectedWeek(page, nextMonday);
-    await expect(page.locator('[data-day="0"]').getByText(nextWeekDesc)).toBeVisible();
+    await expect(desktopGrid.locator('[data-day="0"]').getByText(nextWeekDesc)).toBeVisible();
     // Future week: logging is not available
     await expect(page.getByText('Log full day ✓')).toHaveCount(0);
 

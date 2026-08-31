@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { IconButton, ConfirmModal } from '@/components';
 import { ListChecksOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 import { DaysOfWeekValues } from '@my-hub/shared/constants';
@@ -9,7 +9,7 @@ import { dateToString, dayTargetKcal, formatWeekRangeStr } from '@my-hub/shared/
 import { ShoppingListModal } from './ShoppingListModal';
 import { DayCard } from './DayCard';
 import { MenuMetaSection } from './MenuMetaSection';
-import { DayJumpChips } from './DayJumpChips';
+import { MobileDayView } from './MobileDayView';
 import { dateForDay, targetPct, targetColorClasses, resolveDailyTarget } from './menu.utils';
 import { TargetBar } from './TargetBar';
 import type { LoggedMeals } from './menu.utils';
@@ -59,31 +59,7 @@ export function MenuDetail({
   }, {});
   const today = dateToString();
 
-  // Bring today's card into view when the stacked list pushes it below the fold. `nearest` on
-  // purpose: it moves the page the minimum needed and does nothing at all when the card is
-  // already visible, which is the common case now that empty days collapse. Scrolling a page
-  // further than that on load costs the reader the week summary they never asked to skip.
-  const dayTrackRef = useRef<HTMLDivElement>(null);
   const todayIndex = isCurrentWeek ? DaysOfWeekValues.find(d => dateForDay(menu.weekStart, d) === today) : undefined;
-
-  /** Scroll a day card into view without moving the page more than it has to. */
-  function jumpToDay(day: DayOfWeek) {
-    dayTrackRef.current?.querySelector<HTMLElement>(`[data-day="${day}"]`)?.scrollIntoView({
-      block: 'start',
-      behavior: 'smooth',
-    });
-  }
-
-  useEffect(() => {
-    const track = dayTrackRef.current;
-    if (!track || todayIndex === undefined) return;
-    // Ask the layout rather than re-testing the `md` breakpoint: once the track is a grid the
-    // whole week is on screen and there is nothing to bring into view. Hard-coding 768 here
-    // would put a third copy of that number in the repo, silently tied to the Tailwind config.
-    if (getComputedStyle(track).display === 'grid') return;
-
-    track.querySelector<HTMLElement>(`[data-day="${todayIndex}"]`)?.scrollIntoView({ block: 'nearest' });
-  }, [menu.menuId, todayIndex]);
 
   // Adherence summary: how much of the whole week's plan is logged so far, across every day
   // that has meals planned — including days later in the week that haven't happened yet
@@ -134,13 +110,14 @@ export function MenuDetail({
         {/* The menu's name, where a name reads as one — beside the week it belongs to. Rendered
             only when set: an empty heading is still a heading to a screen reader. */}
         {menu.title && <h2 className="truncate text-base font-semibold text-[var(--text)]">{menu.title}</h2>}
-        <div className="ml-auto flex shrink-0 items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <MenuMetaSection menuId={menu.menuId} title={menu.title} notes={menu.notes} onUpdated={onMetaUpdated} />
           <IconButton
             label="Shopping list"
             icon={<ListChecksOutlineIcon />}
             onClick={() => setShowShoppingList(true)}
             variant="ghost"
-            className="text-[var(--accent)] hover:text-[var(--accent-hover)]"
+            className="flex min-h-11 min-w-11 items-center justify-center text-[var(--accent)] hover:text-[var(--accent-hover)]"
           />
           <IconButton
             label="Delete menu"
@@ -148,12 +125,10 @@ export function MenuDetail({
             onClick={() => setShowDeleteConfirm(true)}
             disabled={deleting}
             variant="ghost"
-            className="text-red-400 hover:text-red-300"
+            className="flex min-h-11 min-w-11 items-center justify-center text-red-400 hover:text-red-300"
           />
         </div>
       </div>
-
-      <MenuMetaSection menuId={menu.menuId} title={menu.title} notes={menu.notes} onUpdated={onMetaUpdated} />
 
       {showShoppingList && (
         <ShoppingListModal
@@ -216,22 +191,13 @@ export function MenuDetail({
         </div>
       )}
 
-      <DayJumpChips
-        mealCounts={
-          Object.fromEntries(DaysOfWeekValues.map(d => [d, byDay[d]?.length ?? 0])) as Record<DayOfWeek, number>
-        }
-        todayIndex={todayIndex}
-        onJump={jumpToDay}
-      />
-
-      {/* Phones stack the days and scroll with the page: a horizontal carousel nested inside a
-          vertical scroll made every card as tall as the fullest day, so an empty day cost a whole
-          blank screen — and once a card filled the width there was nothing left to hint that more
-          days lay sideways. Stacked, each card takes only the height its meals need. */}
-      <div ref={dayTrackRef} className="flex flex-col gap-3 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {/* Desktop: grid of all seven days at once — the whole week is on screen, so there is
+          nothing to page through. */}
+      <div data-layout="desktop" className="hidden gap-3 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {DaysOfWeekValues.map(day => (
           <DayCard
             key={day}
+            variant="grid"
             day={day}
             meals={byDay[day] ?? []}
             menuId={menu.menuId}
@@ -249,6 +215,29 @@ export function MenuDetail({
             onMealDeleted={onMealDeleted}
           />
         ))}
+      </div>
+
+      {/* Phones: one day at a time — a nested horizontal scroll or a carousel of stacked cards
+          both forced every card to the height of the fullest day; paging through a single
+          rendered day avoids that entirely. */}
+      <div data-layout="mobile" className="md:hidden">
+        <MobileDayView
+          weekStart={menu.weekStart}
+          menuId={menu.menuId}
+          isCurrentWeek={isCurrentWeek}
+          today={today}
+          byDay={byDay}
+          todayIndex={todayIndex}
+          loggedMeals={loggedMeals}
+          gymDays={gymDays}
+          dailyTargetKcal={dailyTargetKcal}
+          gymDayCalorieBonus={gymDayCalorieBonus}
+          gymTime={gymTime}
+          onMealLogChanged={onMealLogChanged}
+          onMealSwapped={onMealSwapped}
+          onMealAdded={onMealAdded}
+          onMealDeleted={onMealDeleted}
+        />
       </div>
     </div>
   );

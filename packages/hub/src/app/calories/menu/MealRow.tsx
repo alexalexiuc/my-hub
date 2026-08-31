@@ -12,6 +12,9 @@ import { setMealLogged } from './menu.utils';
 import type { WeeklyMenuMeal } from './types';
 
 type MealRowProps = {
+  /** `boxed` (default): the rounded/bordered box used in the desktop grid. `flat`: a row with
+   * just a bottom border, for `MobileDayView`'s edge-to-edge list. */
+  variant?: 'boxed' | 'flat';
   meal: WeeklyMenuMeal;
   menuId: string;
   dayOfWeek: DayOfWeek;
@@ -26,6 +29,7 @@ type MealRowProps = {
 };
 
 export function MealRow({
+  variant = 'boxed',
   meal,
   menuId,
   dayOfWeek,
@@ -88,9 +92,15 @@ export function MealRow({
   return (
     <>
       <div
-        className={`rounded-lg p-2.5 flex flex-col gap-1 ${
-          logged ? 'bg-green-500/5 border border-green-500/20' : 'bg-[var(--card)] border border-[var(--border)]'
-        }`}
+        className={cn(
+          'flex flex-col gap-1',
+          variant === 'flat'
+            ? cn('px-4 py-2.5 border-b border-[var(--border)] last:border-b-0', logged && 'bg-green-500/5')
+            : cn(
+                'rounded-lg p-2.5 border',
+                logged ? 'bg-green-500/5 border-green-500/20' : 'bg-[var(--card)] border-[var(--border)]',
+              ),
+        )}
       >
         {/* Meal type + buttons on same row */}
         <div className="flex items-center justify-between gap-2">
