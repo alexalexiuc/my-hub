@@ -3,6 +3,7 @@ import {
   serial,
   text,
   timestamp,
+  date,
   integer,
   real,
   jsonb,
@@ -55,7 +56,7 @@ export const mealLogs = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id),
-    date: text('date').notNull(), // YYYY-MM-DD for easy filtering
+    date: date('date').notNull(),
     loggedAt: timestamp('logged_at').notNull().defaultNow(),
     mealType: text('meal_type').$type<MealType>().notNull(), // breakfast | lunch | dinner | snack
     description: text('description').notNull(),
@@ -85,7 +86,7 @@ export const weeklyMenus = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id),
-    weekStart: text('week_start').notNull(), // YYYY-MM-DD (Monday of the week)
+    weekStart: date('week_start').notNull(), // Monday of the week
     title: text('title'),
     notes: text('notes'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -157,7 +158,7 @@ export const weeklyMenuDayLogs = pgTable(
       .references(() => weeklyMenus.menuId, { onDelete: 'cascade' }),
     dayOfWeek: integer('day_of_week').notNull().$type<DayOfWeek>(), // 0=Monday … 6=Sunday
     mealType: text('meal_type').$type<MealType>().notNull(), // breakfast | lunch | dinner | snack
-    loggedDate: text('logged_date').notNull(), // YYYY-MM-DD — the calendar date it was logged for
+    loggedDate: date('logged_date').notNull(), // the calendar date it was logged for
     // The journal entry this marker created, so undoing a log removes exactly that row. Without
     // it the only link was (date, meal type, description), which also matches meals the user
     // entered by hand. Nullable: markers written before this column existed have no id, and the
