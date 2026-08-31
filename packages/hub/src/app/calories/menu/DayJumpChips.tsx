@@ -8,33 +8,35 @@ type DayJumpChipsProps = {
   /** Planned meal count per day — drives the badge and the "nothing here" dimming. */
   mealCounts: Record<DayOfWeek, number>;
   todayIndex: DayOfWeek | undefined;
-  onJump: (day: DayOfWeek) => void;
+  /** The day currently shown by `MobileDayView` — gets a ring so the chip row stays in sync with the arrows. */
+  selectedDay: DayOfWeek;
+  onSelect: (day: DayOfWeek) => void;
 };
 
 /**
- * Phone-only shortcut row. The stacked day list is seven cards tall, so reaching Friday means
- * scrolling past everything before it; these jump straight there. Not rendered on desktop, where
- * the grid already shows the whole week at once.
+ * Phone-only day selector. `MobileDayView` shows one day at a time; these chips pick which one,
+ * alongside the prev/next-day arrows above them.
  */
-export function DayJumpChips({ mealCounts, todayIndex, onJump }: DayJumpChipsProps) {
+export function DayJumpChips({ mealCounts, todayIndex, selectedDay, onSelect }: DayJumpChipsProps) {
   // Equal-width, never scrolling: all seven have to be reachable in one tap, or the row is just
   // another thing to scroll past. The meal count sits under the label rather than beside it,
   // since side-by-side would not fit seven chips across a phone.
   //
-  // Deliberately no `data-layout="mobile"`: that attribute marks one half of a desktop/mobile
-  // pair, and this row has no desktop counterpart — Modal already uses it, so a shared selector
-  // would match both. Tests target the chips by their "Jump to …" labels.
+  // No `md:hidden` of its own: this component only ever renders inside `MobileDayView`, which is
+  // already wrapped in a `data-layout="mobile"` / `md:hidden` container by its caller.
   return (
-    <div className="flex gap-1 md:hidden">
+    <div className="flex gap-1">
       {DaysOfWeekValues.map(day => {
         const count = mealCounts[day];
         const isToday = day === todayIndex;
+        const isSelected = day === selectedDay;
         return (
           <button
             key={day}
             type="button"
-            onClick={() => onJump(day)}
+            onClick={() => onSelect(day)}
             aria-label={`Jump to ${DAY_LABELS_SHORT[day]}`}
+            aria-current={isSelected ? 'true' : undefined}
             className={cn(
               'flex flex-1 flex-col items-center rounded-lg border px-0.5 py-1 text-[11px] font-medium leading-tight transition-colors',
               isToday
@@ -42,6 +44,7 @@ export function DayJumpChips({ mealCounts, todayIndex, onJump }: DayJumpChipsPro
                 : count > 0
                   ? 'border-[var(--border)] text-[var(--text)]'
                   : 'border-[var(--border)] text-[var(--muted)]',
+              isSelected && 'ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--bg)]',
             )}
           >
             {DAY_LABELS_SHORT[day]}

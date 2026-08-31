@@ -5,6 +5,7 @@ import { Button } from '@/components';
 import { PlusOutlineIcon, DumbbellIcon } from '@/components/icons';
 import { DAY_LABELS } from '@my-hub/shared/constants';
 import type { DayOfWeek, GymTime, MealType } from '@my-hub/shared/constants';
+import { cn } from '@/lib/utils';
 import { mealOrder, dayTargetKcal } from '@my-hub/shared/utils';
 import { MealRow } from './MealRow';
 import { MealEditorModal } from './MealEditorModal';
@@ -14,6 +15,9 @@ import type { LoggedMeals } from './menu.utils';
 import type { WeeklyMenuMeal } from './types';
 
 type DayCardProps = {
+  /** `grid` (default): the padded, bordered box used in the desktop week grid. `flat`: no
+   * padding/border/rounding of its own — for `MobileDayView`, which wraps it in a `Card`. */
+  variant?: 'grid' | 'flat';
   day: DayOfWeek;
   meals: WeeklyMenuMeal[];
   menuId: string;
@@ -35,6 +39,7 @@ type DayCardProps = {
 };
 
 export function DayCard({
+  variant = 'grid',
   day,
   meals,
   menuId,
@@ -81,6 +86,7 @@ export function DayCard({
 
   const allLogged = unloggedMeals.length === 0 && meals.length > 0;
   const loggedCount = meals.length - unloggedMeals.length;
+  const isFlat = variant === 'flat';
 
   /**
    * Flip the whole day in one request. This used to fan out one call per meal, which meant N
@@ -100,54 +106,65 @@ export function DayCard({
   // No width or shrink classes: stacked on phones the card fills the column on its own, and in
   // the desktop grid the track sizes it. It also takes only the height its own meals need — the
   // card no longer shares a row with the fullest day of the week.
+  //
+  // `flat` (used by `MobileDayView`) drops its own padding/border/rounding — the parent `Card`
+  // already supplies those — and pushes padding onto each section instead, so the meal rows can
+  // run edge-to-edge with only a `border-b` between them.
   return (
     <div
       data-day={day}
-      className={`rounded-xl border p-4 flex flex-col gap-3 ${
+      className={cn(
+        'flex flex-col',
+        isFlat ? 'gap-0' : 'gap-3 rounded-xl border p-4',
         isToday
-          ? 'border-green-500/60 bg-green-500/5'
+          ? isFlat
+            ? 'bg-green-500/5'
+            : 'border-green-500/60 bg-green-500/5'
           : isFuture
-            ? 'border-[var(--border)] bg-[var(--card2)] opacity-50'
-            : 'border-[var(--border)] bg-[var(--card2)]'
-      }`}
-    >
-      {/* Day header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <span className={`text-sm font-bold ${isToday ? 'text-green-400' : 'text-[var(--text)]'}`}>
-            {DAY_LABELS[day]}
-          </span>
-          {isGymDay && <DumbbellIcon className="size-3.5 text-[var(--accent)]" title="Gym day" />}
-          {!isFuture && !allLogged && meals.length > 0 && (
-            <span className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-[var(--card3)] text-[var(--muted)]">
-              {loggedCount}/{meals.length}
-            </span>
-          )}
-        </div>
-        {dayKcal > 0 && <span className="text-xs font-medium text-[var(--accent)]">{dayKcal} kcal</span>}
-      </div>
-
-      {/* Daily target bar */}
-      {meals.length > 0 && (
-        <div className="flex flex-col gap-1">
-          <TargetBar pct={targetPercent} colors={targetColors} size="sm" />
-          <div className="flex items-center justify-between text-[10px] text-[var(--muted)]">
-            <span>
-              {target} target{isGymDay ? ' (gym)' : ''}
-            </span>
-            {targetPercent !== null && <span className={`font-medium ${targetColors.text}`}>{targetPercent}%</span>}
-          </div>
-        </div>
+            ? cn(isFlat ? '' : 'border-[var(--border)]', 'bg-[var(--card2)] opacity-50')
+            : cn(isFlat ? '' : 'border-[var(--border)]', 'bg-[var(--card2)]'),
       )}
+    >
+      <div className={cn('flex flex-col gap-3', isFlat && 'border-b border-[var(--border)] px-4 py-3')}>
+        {/* Day header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className={`text-sm font-bold ${isToday ? 'text-green-400' : 'text-[var(--text)]'}`}>
+              {DAY_LABELS[day]}
+            </span>
+            {isGymDay && <DumbbellIcon className="size-3.5 text-[var(--accent)]" title="Gym day" />}
+            {!isFuture && !allLogged && meals.length > 0 && (
+              <span className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-[var(--card3)] text-[var(--muted)]">
+                {loggedCount}/{meals.length}
+              </span>
+            )}
+          </div>
+          {dayKcal > 0 && <span className="text-xs font-medium text-[var(--accent)]">{dayKcal} kcal</span>}
+        </div>
+
+        {/* Daily target bar */}
+        {meals.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <TargetBar pct={targetPercent} colors={targetColors} size="sm" />
+            <div className="flex items-center justify-between text-[10px] text-[var(--muted)]">
+              <span>
+                {target} target{isGymDay ? ' (gym)' : ''}
+              </span>
+              {targetPercent !== null && <span className={`font-medium ${targetColors.text}`}>{targetPercent}%</span>}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Meals */}
       {meals.length === 0 ? (
-        <p className="text-xs text-[var(--subtle)] italic">No meals planned</p>
+        <p className={cn('text-xs text-[var(--subtle)] italic', isFlat && 'px-4 py-3')}>No meals planned</p>
       ) : (
-        <div className="flex flex-col gap-2 flex-1">
+        <div className={cn('flex flex-1 flex-col', isFlat ? 'gap-0' : 'gap-2')}>
           {orderedMeals.map(({ meal, logged }) => (
             <MealRow
               key={meal.mealType}
+              variant={isFlat ? 'flat' : 'boxed'}
               meal={meal}
               menuId={menuId}
               dayOfWeek={day}
@@ -169,7 +186,10 @@ export function DayCard({
           The title sits on the wrapper because Chrome fires no mouse events — and so shows no
           tooltip — on a disabled button. */}
       {availableTypes.length > 0 && (
-        <span className="block" title={isPast ? 'Past day — log what you ate from the Today tab' : undefined}>
+        <span
+          className={cn('block', isFlat && 'px-4 pb-3')}
+          title={isPast ? 'Past day — log what you ate from the Today tab' : undefined}
+        >
           <Button
             type="button"
             variant="ghost"
@@ -197,7 +217,12 @@ export function DayCard({
       {/* Log all / undo all. Logging seven meals takes one tap, so undoing them must too —
           otherwise a mistaken "Log full day" costs one click to make and seven to take back. */}
       {meals.length > 0 && (
-        <div className="mt-auto border-t border-[var(--border)] pt-2 h-10 flex items-center justify-center">
+        <div
+          className={cn(
+            'mt-auto flex h-10 items-center justify-center border-t border-[var(--border)] pt-2',
+            isFlat && 'px-4 pb-3',
+          )}
+        >
           {allLogged ? (
             <Button
               type="button"

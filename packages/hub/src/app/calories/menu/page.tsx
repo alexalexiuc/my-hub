@@ -99,7 +99,7 @@ export default function WeeklyMenuPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-5xl mx-auto p-4 md:p-6">
+    <main className="flex flex-col gap-6 max-w-5xl mx-auto">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-[var(--text)]">Weekly Menu</h1>
@@ -199,6 +199,6 @@ export default function WeeklyMenuPage() {
           )}
         </div>
       )}
-    </div>
+    </main>
   );
 }
