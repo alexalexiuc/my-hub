@@ -51,7 +51,7 @@ test.describe('Finances – Portfolio', () => {
     await modal(page).getByRole('button', { name: 'Save' }).click();
 
     // Populated state — positions table shows both tickers.
-    await expect(page.getByText('Positions')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Positions', { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(SYM_A)).toBeVisible();
     await expect(page.getByText(SYM_B)).toBeVisible();
   });
@@ -69,23 +69,26 @@ test.describe('Finances – Portfolio', () => {
     await units.nth(1).fill('5');
     await prices.nth(1).fill('40');
 
-    // Total field auto-syncs to Σ(units×price+fee) = 10×50 + 5×40 = 900 (fees default 0).
+    // Total field auto-syncs to Σ(units×price+fee) = 10×50 + 5×40 = 700 (fees default 0).
     const totalInput = modal(page).getByPlaceholder('0.00').last();
-    await expect(totalInput).toHaveValue('900');
+    await expect(totalInput).toHaveValue('700');
 
     await modal(page).getByRole('button', { name: 'Save' }).click();
 
     // Summary "Invested" card reflects the contributed total.
     await expect(page.getByText('Invested')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText('900,00 €')).toBeVisible();
+    await expect(page.getByText('700,00 €')).toBeVisible();
   });
 
   test('settings modal rejects allocations that do not sum to 100', async ({ page }) => {
-    await page.getByRole('button', { name: 'Settings' }).click();
+    // exact: true — the sidebar nav also has a "⚙ Settings" link that substring-matches.
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(modal(page).locator('[data-layout="desktop"]').getByText('Portfolio Settings')).toBeVisible();
 
-    // Change the first target so the sum drifts away from 100.
-    await modal(page).getByPlaceholder('0').first().fill('10');
+    // Change the first target so the sum drifts away from 100. exact: true — '0' is a
+    // substring of the name field's placeholder ('SPDR S&P 500 UCITS ETF'), same collision
+    // documented on fillNthByPlaceholder above.
+    await modal(page).getByPlaceholder('0', { exact: true }).first().fill('10');
     await modal(page).getByRole('button', { name: 'Save' }).click();
 
     await expect(modal(page).getByText(/must sum to 100/i)).toBeVisible();

@@ -63,6 +63,9 @@ test.describe('Finances – Accounts', () => {
     );
     await page.getByRole('button', { name: 'Save Changes' }).click();
     expect((await editCcRes).status()).toBe(200);
+    // Wait for the modal-close refetch to settle before navigating away — otherwise the
+    // in-flight account reload can race with the next page.goto and abort it.
+    await expect(page.getByText('Limit 7.500,00 €')).toBeVisible({ timeout: 10_000 });
 
     // ── 3. Update goal target amount ───────────────────────────────────────
     await page.goto(`/finances/accounts/${goalAcc.id}`);

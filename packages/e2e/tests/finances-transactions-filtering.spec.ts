@@ -85,13 +85,16 @@ test.describe('Finances - Transactions Filtering', () => {
     await expect(page.getByText('Search notes', { exact: true })).toBeVisible();
 
     // ── 1. Type filter ────────────────────────────────────────────────────
-    await page.getByRole('button', { name: 'Expenses', exact: true }).click();
+    // The type-segment buttons render the raw transaction type ('expense', 'income',
+    // 'transfer') and rely on CSS `capitalize` for display only — the accessible name
+    // stays lowercase, so match on that rather than the visually capitalized text.
+    await page.getByRole('button', { name: 'expense', exact: true }).click();
     await page.waitForLoadState('networkidle');
     await expect(page.getByTitle(superMart)).toBeVisible();
     await expect(page.getByTitle(bulkBuy)).toBeVisible();
     await expect(page.getByTitle(employer)).not.toBeVisible();
 
-    await page.getByRole('button', { name: 'Income', exact: true }).click();
+    await page.getByRole('button', { name: 'income', exact: true }).click();
     await page.waitForLoadState('networkidle');
     await expect(page.getByTitle(employer)).toBeVisible();
     await expect(page.getByTitle(superMart)).not.toBeVisible();
@@ -130,7 +133,9 @@ test.describe('Finances - Transactions Filtering', () => {
     await expect(page.getByTitle(bulkBuy)).not.toBeVisible();
     await expect(page.getByTitle(employer)).not.toBeVisible();
 
-    await page.getByRole('button', { name: 'Clear label filter' }).click();
+    // exact: true — the non-searchable dropdown trigger sits inside the same <label> as this
+    // clear button, so a substring match ambiguously resolves to both.
+    await page.getByRole('button', { name: 'Clear label filter', exact: true }).click();
     await page.waitForLoadState('networkidle');
 
     // ── 5. Amount range filter ────────────────────────────────────────────
