@@ -7,18 +7,24 @@
  * - getBudgetById(userId, budgetId) — single budget with access check, null if not found or no access
  * - getBudgetMembers(userId, budgetId) — lists members (id, email, name, joinedAt) with access check
  * - updateBudget(userId, budgetId, data) — partial update; requires budget membership
- * - deleteBudget(userId, budgetId) — hard delete; requires budget membership
+ * - deleteBudget(userId, budgetId) — hard delete; requires budget membership; clears portfolio supply lines first (see below)
  * - addBudgetMember(userId, budgetId, targetUserId) — adds a new member (inactive); requires budget membership; idempotent
  * - removeBudgetMember(userId, budgetId, targetUserId) — removes a member from the budget; requires membership; cannot remove creator
- * - deleteAllUserFinanceBudgets(userId) — bulk delete owned budgets + remove from shared memberships
+ * - deleteAllUserFinanceBudgets(userId) — bulk delete owned budgets + remove from shared memberships; clears portfolio supply lines first (ON DELETE RESTRICT on finance_portfolio_supply_lines.position_id would otherwise block it)
  * - hasAccessToBudget(userId, budgetId) — returns true if user is a budget member
  * - enforceBudgetAccess(userId, budgetId) — throws if user is not a budget member
  * Types: BudgetInsert, BudgetUpdate, UserBudget
  */
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { PromiseCacheX } from 'promise-cachex';
 import { db } from '../../db/client';
-import { financeBudgets, financeBudgetMembers } from '../../db/schema/finances';
+import {
+  financeBudgets,
+  financeBudgetMembers,
+  financePortfolios,
+  financePortfolioPositions,
+  financePortfolioSupplyLines,
+} from '../../db/schema/finances';
 import { users } from '../../db/schema/users';
 import { logger, omitUndefined } from '../../utils';
 import type { FinanceBudget, NewFinanceBudget } from '../../types';
@@ -144,6 +150,28 @@ export async function updateBudget(userId: string, budgetId: number, data: Budge
   return row;
 }
 
+/**
+ * Portfolio positions with recorded buys block a cascading budget delete —
+ * finance_portfolio_supply_lines.position_id is ON DELETE RESTRICT, by design, so a
+ * single position with buys can't be deleted on its own (see deletePosition). A budget
+ * delete removes everything regardless, so clear those supply lines explicitly first.
+ */
+async function deletePortfolioSupplyLinesForBudgets(budgetIds: number[]): Promise<void> {
+  if (budgetIds.length === 0) return;
+  await db
+    .delete(financePortfolioSupplyLines)
+    .where(
+      inArray(
+        financePortfolioSupplyLines.positionId,
+        db
+          .select({ id: financePortfolioPositions.id })
+          .from(financePortfolioPositions)
+          .innerJoin(financePortfolios, eq(financePortfolios.id, financePortfolioPositions.portfolioId))
+          .where(inArray(financePortfolios.budgetId, budgetIds)),
+      ),
+    );
+}
+
 export async function deleteBudget(userId: string, budgetId: number): Promise<void> {
   await enforceBudgetAccess(userId, budgetId);
 
@@ -153,6 +181,7 @@ export async function deleteBudget(userId: string, budgetId: number): Promise<vo
     .from(financeBudgetMembers)
     .where(eq(financeBudgetMembers.budgetId, budgetId));
 
+  await deletePortfolioSupplyLinesForBudgets([budgetId]);
   await db.delete(financeBudgets).where(eq(financeBudgets.id, budgetId));
 
   for (const m of members) {
@@ -218,7 +247,13 @@ export async function removeBudgetMember(userId: string, budgetId: number, targe
 }
 
 export async function deleteAllUserFinanceBudgets(userId: string): Promise<number> {
-  // Delete budgets the user created — cascade removes all child rows.
+  const ownedBudgets = await db
+    .select({ id: financeBudgets.id })
+    .from(financeBudgets)
+    .where(eq(financeBudgets.createdByUserId, userId));
+  await deletePortfolioSupplyLinesForBudgets(ownedBudgets.map(b => b.id));
+
+  // Delete budgets the user created — cascade removes all other child rows.
   const deletedBudgets = await db
     .delete(financeBudgets)
     .where(eq(financeBudgets.createdByUserId, userId))
