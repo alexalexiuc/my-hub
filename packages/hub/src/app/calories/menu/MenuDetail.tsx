@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { IconButton, ConfirmModal } from '@/components';
+import { Card, IconButton, ConfirmModal } from '@/components';
 import { ListChecksOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 import { DaysOfWeekValues } from '@my-hub/shared/constants';
 import type { DayOfWeek, GymTime, MealType } from '@my-hub/shared/constants';
@@ -151,7 +151,7 @@ export function MenuDetail({
       )}
 
       {menu.meals.length > 0 && (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 flex flex-col gap-2">
+        <Card className="-mx-4 flex flex-col gap-2 md:mx-0">
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">
               Week plan vs. target
@@ -167,11 +167,11 @@ export function MenuDetail({
             {gymDays.length > 0 && `Target rises to ${gymTargetKcal.toLocaleString()} kcal on gym days. `}
             Macro breakdown stays in the Today tab.
           </p>
-        </div>
+        </Card>
       )}
 
       {daysWithMealsCount > 0 && (
-        <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2">
+        <Card className="-mx-4 flex items-center gap-3 md:mx-0">
           <span className="text-xs text-[var(--muted)] shrink-0">Adherence</span>
           <div className="flex-1 h-1.5 rounded-full bg-[var(--card3)]">
             <div
@@ -188,7 +188,7 @@ export function MenuDetail({
           >
             {fullyLoggedDaysCount}/{daysWithMealsCount} days
           </span>
-        </div>
+        </Card>
       )}
 
       {/* Desktop: grid of all seven days at once — the whole week is on screen, so there is

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { z } from 'zod';
 import { apiFetch, cn } from '@/lib/utils';
-import { Button } from '@/components';
+import { Button, Card } from '@/components';
 import { AnimatedCheckIcon, UtensilsOutlineIcon } from '@/components/icons';
 import { TodayPlanResponseSchema } from '@/app/api/calories/menu/menu.schemas';
 import { mealOrder } from '@my-hub/shared/utils';
@@ -120,7 +120,7 @@ export function NextMealCard({ date }: NextMealCardProps) {
   }
 
   return (
-    <div className="rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/5 p-4 flex flex-col gap-2">
+    <Card className="-mx-4 flex flex-col gap-2 border-[var(--accent)]/25 bg-[var(--accent)]/5 md:mx-0 md:border-[var(--accent)]/25">
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-[var(--accent)]">
           <UtensilsOutlineIcon className="size-3.5" />
@@ -167,6 +167,6 @@ export function NextMealCard({ date }: NextMealCardProps) {
           <p className="text-sm text-green-400">✓ Everything planned for today is logged.</p>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
