@@ -22,7 +22,7 @@ import {
 } from '@my-hub/shared/services';
 import { TransactionTypes, AccountTypes } from '@my-hub/shared/constants';
 import type { TransactionInsert } from '@my-hub/shared/services';
-import type { FinanceAccount } from '@my-hub/shared/types';
+import type { FinanceAccount, ReceiptTransactionDetails, TransactionDetails } from '@my-hub/shared/types';
 import { currentDateString, isPayeeRequired, omitUndefined, trimOrNull, logger } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
 
@@ -52,6 +52,26 @@ function getAccountAvailable(
     return targetAmount - acc.balance;
   }
   return null;
+}
+
+// Surfaces the current receipt-item count on every transaction response so a missing
+// itemization (e.g. a dropped extras write) is visible immediately instead of requiring
+// a manual re-query to notice. Only nudges toward itemizing on expenses — transfers and
+// income structurally never carry receipt line items.
+function withItemsHint(
+  extras: TransactionDetails | null | undefined,
+  type: (typeof TransactionTypes)[keyof typeof TransactionTypes],
+): { itemsCount: number; suggestion?: string } {
+  const itemsCount = extras?.kind === 'receipt' ? ((extras as ReceiptTransactionDetails).items?.length ?? 0) : 0;
+  if (itemsCount === 0 && type === TransactionTypes.Expense) {
+    return {
+      itemsCount,
+      suggestion:
+        'No itemized line data on this transaction yet. If a receipt is available, call finances_itemize_transaction ' +
+        'with the line items to enable price checks, comparisons, and price-evolution tracking.',
+    };
+  }
+  return { itemsCount };
 }
 
 // ─── add_transactions ─────────────────────────────────────────────────────────
@@ -355,6 +375,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         date,
         amount: item.amount,
         resolvedPayee: item.payeeName ?? null,
+        ...withItemsHint(inferredExtras, item.type),
       };
 
       if (tx.toAccountBalanceAfter != null) {
@@ -543,6 +564,7 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
     resolvedAccount: resolvedAccount?.name ?? String(updated.accountId),
     resolvedCategory: updated.categoryId != null ? String(updated.categoryId) : null,
     resolvedPayee: input.payeeName ?? null,
+    ...withItemsHint(updated.extras, updated.type),
   };
 
   if (updated.toAccountBalanceAfter != null) {
@@ -572,6 +594,71 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
   }
 
   return toolResponse(responseData);
+};
+
+// ─── itemize_transaction ───────────────────────────────────────────────────────
+
+const ITEMIZE_RECEIPT_FIELDS = [
+  'payeeAddress',
+  'receiptNumber',
+  'taxAmount',
+  'tipAmount',
+  'discountAmount',
+  'items',
+] as const;
+
+export const ItemizeTransactionSchema = TransactionExtrasSchema.pick({
+  payeeAddress: true,
+  receiptNumber: true,
+  taxAmount: true,
+  tipAmount: true,
+  discountAmount: true,
+})
+  .extend({
+    transactionId: z.number().int().positive(),
+    items: z
+      .array(ReceiptLineItemSchema)
+      .min(1)
+      .optional()
+      .describe(
+        'Full list of receipt line items — replaces any existing items on the transaction, not a merge. ' +
+          'Pass the complete set you want on the transaction, including any items already recorded.',
+      ),
+  })
+  .superRefine((input, ctx) => {
+    if (ITEMIZE_RECEIPT_FIELDS.every(field => input[field] === undefined)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [],
+        message:
+          'Provide at least one field to update (items, taxAmount, tipAmount, discountAmount, receiptNumber, payeeAddress).',
+      });
+    }
+  });
+
+export const itemizeTransactionTool: ToolHandler<typeof ItemizeTransactionSchema.shape> = async (input, context) => {
+  const { userId } = context;
+
+  const budget = await getUserActiveBudget(userId);
+  if (!budget) throw new HandledError('No active budget.');
+
+  const existing = await getTransactionById(userId, budget.id, input.transactionId);
+  if (!existing) throw new HandledError('Transaction not found');
+  if (existing.addedByUserId !== userId) throw new HandledError('You can only edit your own transactions');
+
+  const { transactionId, ...receiptFields } = input;
+  const merged = {
+    ...existing.extras,
+    ...omitUndefined(receiptFields),
+    kind: 'receipt',
+  } as TransactionInsert['extras'];
+
+  const updated = await updateTransaction(userId, budget.id, input.transactionId, { extras: merged });
+
+  return toolResponse({
+    transactionId: updated.id,
+    ...withItemsHint(updated.extras, updated.type),
+  });
 };
 
 // ─── delete_transaction ───────────────────────────────────────────────────────
