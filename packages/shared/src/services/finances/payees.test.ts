@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { findPayeeByNameOrAlias, getPayees, mergePayees } from './payees';
+import { findPayeeByNameOrAlias, getPayees, mergePayees, updatePayee } from './payees';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -148,6 +148,48 @@ describe('findPayeeByNameOrAlias', () => {
     const result = await findPayeeByNameOrAlias('user-1', 1, 'unknown vendor');
 
     expect(result).toBeNull();
+  });
+});
+
+// ─── updatePayee ─────────────────────────────────────────────────────────────
+
+describe('updatePayee', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(hasAccessToBudget).mockResolvedValue(true);
+  });
+
+  it('throws a clear error instead of a DB constraint violation when renaming to an existing payee name', async () => {
+    const collidingPayee = makeDbPayee(2, 'Kaufland');
+    (vi.mocked(db) as any).select.mockReturnValue({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue([collidingPayee]),
+    });
+
+    await expect(updatePayee('user-1', 1, 1, { name: 'kaufland' })).rejects.toThrow(
+      'A payee named "kaufland" already exists',
+    );
+    expect((vi.mocked(db) as any).update).not.toHaveBeenCalled();
+  });
+
+  it('allows renaming a payee to its own current name', async () => {
+    const self = makeDbPayee(1, 'Kaufland');
+    (vi.mocked(db) as any).select.mockReturnValue({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue([self]),
+    });
+    const updated = { ...self, name: 'Kaufland' };
+    (vi.mocked(db) as any).update.mockReturnValue({
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([updated]),
+    });
+
+    const result = await updatePayee('user-1', 1, 1, { name: 'Kaufland' });
+
+    expect(result).toEqual(updated);
   });
 });
 

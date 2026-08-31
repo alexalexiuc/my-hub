@@ -136,6 +136,15 @@ export function macroCalorieSplit(protein: number, carbs: number, fat: number): 
 }
 
 /**
+ * A value's share of a total as a rounded percentage, 0 when the total is 0 — the "what % of the
+ * day's macro calories is this one" math shared by the macro donut legend and the calendar day
+ * cell's per-macro lines.
+ */
+export function pctOfTotal(value: number, total: number): number {
+  return total > 0 ? Math.round((value / total) * 100) : 0;
+}
+
+/**
  * Groups an array of meal logs by their meal type.
  * @param meals - Array of meal log entries to group
  */

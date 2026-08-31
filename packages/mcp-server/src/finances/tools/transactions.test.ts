@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AddTransactionsSchema,
   UpdateTransactionSchema,
+  ItemizeTransactionSchema,
   addTransactionsTool,
   queryTransactionsTool,
   updateTransactionTool,
+  itemizeTransactionTool,
 } from './transactions';
 import {
   addTransaction,
@@ -96,6 +98,21 @@ describe('finances transaction schemas', () => {
 
     expect(parsed.success).toBe(true);
   });
+
+  it('rejects itemize schema when no receipt fields are provided', () => {
+    const parsed = ItemizeTransactionSchema.safeParse({ transactionId: 10 });
+
+    expect(parsed.success).toBe(false);
+  });
+
+  it('accepts itemize schema with only items provided', () => {
+    const parsed = ItemizeTransactionSchema.safeParse({
+      transactionId: 10,
+      items: [{ name: 'Milk', totalPrice: 20 }],
+    });
+
+    expect(parsed.success).toBe(true);
+  });
 });
 
 describe('addTransactionsTool', () => {
@@ -119,8 +136,8 @@ describe('addTransactionsTool', () => {
     } as never);
   });
 
-  it('stores null extras when none are provided', async () => {
-    await addTransactionsTool(
+  it('stores null extras when none are provided and suggests itemizing an expense with no items', async () => {
+    const result = await addTransactionsTool(
       {
         accountId: 1,
         transactions: [
@@ -137,10 +154,14 @@ describe('addTransactionsTool', () => {
     );
 
     expect(addTransaction).toHaveBeenCalledWith('user-1', 1, expect.objectContaining({ extras: null, notes: 'Lunch' }));
+
+    const payload = parseToolPayload(result) as { results: Array<{ itemsCount: number; suggestion?: string }> };
+    expect(payload.results[0]?.itemsCount).toBe(0);
+    expect(payload.results[0]?.suggestion).toContain('finances_itemize_transaction');
   });
 
-  it('infers receipt extras kind when receipt fields are present', async () => {
-    await addTransactionsTool(
+  it('infers receipt extras kind when receipt fields are present and reports itemsCount without a suggestion', async () => {
+    const result = await addTransactionsTool(
       {
         accountId: 1,
         transactions: [
@@ -172,6 +193,10 @@ describe('addTransactionsTool', () => {
         }),
       }),
     );
+
+    const payload = parseToolPayload(result) as { results: Array<{ itemsCount: number; suggestion?: string }> };
+    expect(payload.results[0]?.itemsCount).toBe(1);
+    expect(payload.results[0]?.suggestion).toBeUndefined();
   });
 
   it('returns category budget progress in root summary for categories with monthly targets', async () => {
@@ -353,12 +378,15 @@ describe('addTransactionsTool', () => {
     );
 
     const payload = parseToolPayload(result) as {
-      results: Array<{ toAccountBalanceAfter?: number }>;
+      results: Array<{ toAccountBalanceAfter?: number; itemsCount: number; suggestion?: string }>;
       account: { balance: number };
     };
 
     expect(payload.results[0]?.toAccountBalanceAfter).toBe(1500);
     expect(payload.account.balance).toBe(800);
+    // Transfers structurally never carry receipt items — itemsCount is still reported, but no nudge to itemize.
+    expect(payload.results[0]?.itemsCount).toBe(0);
+    expect(payload.results[0]?.suggestion).toBeUndefined();
   });
 
   it('includes original amount currency in extras for shared conversion', async () => {
@@ -442,32 +470,34 @@ describe('addTransactionsTool', () => {
 });
 
 describe('updateTransactionTool', () => {
+  const baseTransaction = {
+    id: 10,
+    budgetId: 1,
+    type: TransactionTypes.Expense,
+    accountId: 1,
+    toAccountId: null,
+    amount: 50,
+    exchangeRate: 1,
+    date: '2026-04-27',
+    categoryId: null,
+    payeeId: null,
+    notes: 'Lunch',
+    extras: null,
+    isCorrection: false,
+    fromAccountBalanceAfter: 950,
+    toAccountBalanceAfter: null,
+    addedByUserId: 'user-1',
+    createdAt: new Date('2026-04-27T10:00:00.000Z'),
+    updatedAt: new Date('2026-04-27T10:00:00.000Z'),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getUserActiveBudget).mockResolvedValue({ id: 1, defaultCurrency: 'USD' } as never);
   });
 
   it('throws when changing to transfer without a destination account', async () => {
-    vi.mocked(getTransactionById).mockResolvedValue({
-      id: 10,
-      budgetId: 1,
-      type: TransactionTypes.Expense,
-      accountId: 1,
-      toAccountId: null,
-      amount: 50,
-      exchangeRate: 1,
-      date: '2026-04-27',
-      categoryId: null,
-      payeeId: null,
-      notes: 'Lunch',
-      extras: null,
-      isCorrection: false,
-      fromAccountBalanceAfter: 950,
-      toAccountBalanceAfter: null,
-      addedByUserId: 'user-1',
-      createdAt: new Date('2026-04-27T10:00:00.000Z'),
-      updatedAt: new Date('2026-04-27T10:00:00.000Z'),
-    } as never);
+    vi.mocked(getTransactionById).mockResolvedValue(baseTransaction as never);
 
     await expect(
       updateTransactionTool(
@@ -492,31 +522,14 @@ describe('updateTransactionTool', () => {
   });
 
   it('returns resolved account name after update', async () => {
-    vi.mocked(getTransactionById).mockResolvedValue({
-      id: 10,
-      budgetId: 1,
-      type: TransactionTypes.Expense,
-      accountId: 1,
-      toAccountId: null,
-      amount: 50,
-      exchangeRate: 1,
-      date: '2026-04-27',
-      categoryId: null,
-      payeeId: null,
-      notes: 'Lunch',
-      extras: null,
-      isCorrection: false,
-      fromAccountBalanceAfter: 950,
-      toAccountBalanceAfter: null,
-      addedByUserId: 'user-1',
-      createdAt: new Date('2026-04-27T10:00:00.000Z'),
-      updatedAt: new Date('2026-04-27T10:00:00.000Z'),
-    } as never);
+    vi.mocked(getTransactionById).mockResolvedValue(baseTransaction as never);
 
     vi.mocked(updateTransaction).mockResolvedValue({
       id: 10,
       accountId: 2,
+      type: TransactionTypes.Expense,
       categoryId: null,
+      extras: null,
       fromAccountBalanceAfter: 900,
       toAccountBalanceAfter: null,
     } as never);
@@ -542,10 +555,55 @@ describe('updateTransactionTool', () => {
       },
       financesContext,
     );
-    const payload = parseToolPayload(result) as { resolvedAccount: string };
+    const payload = parseToolPayload(result) as { resolvedAccount: string; itemsCount: number; suggestion?: string };
 
     expect(payload.resolvedAccount).toBe('Primary Checking');
     expect(getAccountById).toHaveBeenCalledWith('user-1', 1, 2);
+    // Closes the RCA gap: a generic update on a transaction with no items now surfaces that fact,
+    // instead of silently succeeding with no visibility into missing receipt data.
+    expect(payload.itemsCount).toBe(0);
+    expect(payload.suggestion).toContain('finances_itemize_transaction');
+  });
+
+  it('reports existing itemsCount without a suggestion when the transaction already has items', async () => {
+    vi.mocked(getTransactionById).mockResolvedValue({
+      ...baseTransaction,
+      notes: 'Groceries',
+      extras: { kind: 'receipt', items: [{ name: 'Milk', totalPrice: 20 }] },
+    } as never);
+
+    vi.mocked(updateTransaction).mockResolvedValue({
+      id: 10,
+      accountId: 1,
+      type: TransactionTypes.Expense,
+      categoryId: null,
+      extras: { kind: 'receipt', items: [{ name: 'Milk', totalPrice: 20 }] },
+      fromAccountBalanceAfter: 950,
+      toAccountBalanceAfter: null,
+    } as never);
+
+    vi.mocked(getAccountById).mockResolvedValue({ id: 1, name: 'Checking' } as never);
+
+    const result = await updateTransactionTool(
+      {
+        transactionId: 10,
+        type: undefined,
+        amount: undefined,
+        date: undefined,
+        accountId: undefined,
+        toAccountId: undefined,
+        categoryId: undefined,
+        payeeName: undefined,
+        notes: 'Updated note',
+        labels: undefined,
+        isCorrection: undefined,
+      },
+      financesContext,
+    );
+    const payload = parseToolPayload(result) as { itemsCount: number; suggestion?: string };
+
+    expect(payload.itemsCount).toBe(1);
+    expect(payload.suggestion).toBeUndefined();
   });
 
   it('clears destination account when updating a transfer to expense', async () => {
@@ -598,6 +656,164 @@ describe('updateTransactionTool', () => {
     );
 
     expect(updateTransaction).toHaveBeenCalledWith('user-1', 1, 10, expect.objectContaining({ toAccountId: null }));
+  });
+});
+
+describe('finances_itemize_transaction', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getUserActiveBudget).mockResolvedValue({ id: 1, defaultCurrency: 'USD' } as never);
+  });
+
+  const baseTransaction = {
+    id: 10,
+    budgetId: 1,
+    type: TransactionTypes.Expense,
+    accountId: 1,
+    toAccountId: null,
+    amount: 50,
+    exchangeRate: 1,
+    date: '2026-04-27',
+    categoryId: null,
+    payeeId: null,
+    notes: 'Groceries',
+    isCorrection: false,
+    fromAccountBalanceAfter: 950,
+    toAccountBalanceAfter: null,
+    addedByUserId: 'user-1',
+    createdAt: new Date('2026-04-27T10:00:00.000Z'),
+    updatedAt: new Date('2026-04-27T10:00:00.000Z'),
+  };
+
+  const baseItemizeInput = {
+    payeeAddress: undefined,
+    receiptNumber: undefined,
+    taxAmount: undefined,
+    tipAmount: undefined,
+    discountAmount: undefined,
+    items: undefined,
+  };
+
+  it('sets kind to receipt and merges provided items onto a manual transaction', async () => {
+    vi.mocked(getTransactionById).mockResolvedValue({
+      ...baseTransaction,
+      extras: { kind: 'manual', source: 'mcp' },
+    } as never);
+    vi.mocked(updateTransaction).mockResolvedValue({
+      ...baseTransaction,
+      extras: { kind: 'receipt', source: 'mcp', items: [{ name: 'Milk', totalPrice: 20 }] },
+    } as never);
+
+    const result = await itemizeTransactionTool(
+      { ...baseItemizeInput, transactionId: 10, items: [{ name: 'Milk', totalPrice: 20 }] },
+      financesContext,
+    );
+
+    expect(updateTransaction).toHaveBeenCalledWith(
+      'user-1',
+      1,
+      10,
+      expect.objectContaining({
+        extras: expect.objectContaining({
+          kind: 'receipt',
+          source: 'mcp',
+          items: [{ name: 'Milk', totalPrice: 20 }],
+        }),
+      }),
+    );
+
+    const payload = parseToolPayload(result) as { transactionId: number; itemsCount: number; suggestion?: string };
+    expect(payload.transactionId).toBe(10);
+    expect(payload.itemsCount).toBe(1);
+    expect(payload.suggestion).toBeUndefined();
+  });
+
+  it('replaces the existing items array rather than merging it', async () => {
+    vi.mocked(getTransactionById).mockResolvedValue({
+      ...baseTransaction,
+      extras: {
+        kind: 'receipt',
+        items: [
+          { name: 'Milk', totalPrice: 20 },
+          { name: 'Bread', totalPrice: 15 },
+        ],
+      },
+    } as never);
+    vi.mocked(updateTransaction).mockResolvedValue({
+      ...baseTransaction,
+      extras: { kind: 'receipt', items: [{ name: 'Eggs', totalPrice: 30 }] },
+    } as never);
+
+    await itemizeTransactionTool(
+      { ...baseItemizeInput, transactionId: 10, items: [{ name: 'Eggs', totalPrice: 30 }] },
+      financesContext,
+    );
+
+    expect(updateTransaction).toHaveBeenCalledWith(
+      'user-1',
+      1,
+      10,
+      expect.objectContaining({
+        extras: expect.objectContaining({ items: [{ name: 'Eggs', totalPrice: 30 }] }),
+      }),
+    );
+  });
+
+  it('preserves existing fields not included in the call', async () => {
+    vi.mocked(getTransactionById).mockResolvedValue({
+      ...baseTransaction,
+      extras: {
+        kind: 'receipt',
+        receiptNumber: 'R-100',
+        items: [{ name: 'Milk', totalPrice: 20 }],
+      },
+    } as never);
+    vi.mocked(updateTransaction).mockResolvedValue({
+      ...baseTransaction,
+      extras: {
+        kind: 'receipt',
+        receiptNumber: 'R-100',
+        taxAmount: 5,
+        items: [{ name: 'Milk', totalPrice: 20 }],
+      },
+    } as never);
+
+    await itemizeTransactionTool({ ...baseItemizeInput, transactionId: 10, taxAmount: 5 }, financesContext);
+
+    expect(updateTransaction).toHaveBeenCalledWith(
+      'user-1',
+      1,
+      10,
+      expect.objectContaining({
+        extras: expect.objectContaining({
+          receiptNumber: 'R-100',
+          taxAmount: 5,
+          items: [{ name: 'Milk', totalPrice: 20 }],
+        }),
+      }),
+    );
+  });
+
+  it('throws when the transaction was not added by the current user', async () => {
+    vi.mocked(getTransactionById).mockResolvedValue({
+      ...baseTransaction,
+      extras: null,
+      addedByUserId: 'someone-else',
+    } as never);
+
+    await expect(
+      itemizeTransactionTool({ ...baseItemizeInput, transactionId: 10, taxAmount: 5 }, financesContext),
+    ).rejects.toThrow('You can only edit your own transactions');
+    expect(updateTransaction).not.toHaveBeenCalled();
+  });
+
+  it('throws when the transaction does not exist', async () => {
+    vi.mocked(getTransactionById).mockResolvedValue(null as never);
+
+    await expect(
+      itemizeTransactionTool({ ...baseItemizeInput, transactionId: 999, taxAmount: 5 }, financesContext),
+    ).rejects.toThrow('Transaction not found');
+    expect(updateTransaction).not.toHaveBeenCalled();
   });
 });
 

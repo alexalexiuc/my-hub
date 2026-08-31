@@ -9,13 +9,31 @@ import { useEffect, useRef } from 'react';
  */
 const stack: Array<() => void> = [];
 
+/**
+ * `window.history.back()` (called from `unsubscribe` below) fires `popstate` asynchronously.
+ * Without this counter, a UI-driven close (e.g. selecting an option in a `MobileSelectSheet`)
+ * removes its own entry from `stack` and then, when its deferred `popstate` finally arrives,
+ * `handlePopState` would pop whatever overlay is still open underneath it — closing a parent
+ * `Modal` that the user never asked to close. Every programmatic `history.back()` call must be
+ * swallowed by the next `popstate` instead of being treated as a real back-press.
+ */
+let pendingProgrammaticBacks = 0;
+let listenerInstalled = false;
+
 function handlePopState() {
+  if (pendingProgrammaticBacks > 0) {
+    pendingProgrammaticBacks--;
+    return;
+  }
   const onClose = stack.pop();
   onClose?.();
 }
 
 function subscribe(onClose: () => void) {
-  if (stack.length === 0) window.addEventListener('popstate', handlePopState);
+  if (!listenerInstalled) {
+    listenerInstalled = true;
+    window.addEventListener('popstate', handlePopState);
+  }
   stack.push(onClose);
 }
 
@@ -23,9 +41,9 @@ function unsubscribe(onClose: () => void) {
   const index = stack.lastIndexOf(onClose);
   if (index === -1) return; // already popped by a popstate back-press
   stack.splice(index, 1);
-  if (stack.length === 0) window.removeEventListener('popstate', handlePopState);
   // Closed via UI (X/Cancel/backdrop/save), not a back-press — discard the synthetic history
   // entry pushed on mount so a second real back-press isn't needed to leave the page.
+  pendingProgrammaticBacks++;
   window.history.back();
 }
 

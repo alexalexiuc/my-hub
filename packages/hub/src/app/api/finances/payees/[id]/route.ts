@@ -49,11 +49,17 @@ export const PATCH = route({
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
-  const payee = await updatePayee(user.id, budget.id, params.id, {
-    name: body.name,
-    aliases: body.aliases,
-    description: trimOrNull(body.description),
-  });
+  let payee;
+  try {
+    payee = await updatePayee(user.id, budget.id, params.id, {
+      name: body.name,
+      aliases: body.aliases,
+      description: trimOrNull(body.description),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Update failed';
+    routeHttpError(msg === 'Payee not found' ? 404 : 409, { error: msg });
+  }
 
   return {
     id: payee.id,

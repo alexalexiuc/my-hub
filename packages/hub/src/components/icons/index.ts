@@ -35,6 +35,7 @@ export { PlaneOutlineIcon } from './PlaneOutlineIcon';
 export { ServerOutlineIcon } from './ServerOutlineIcon';
 export { UserPlusOutlineIcon } from './UserPlusOutlineIcon';
 export { CheckOutlineIcon } from './CheckOutlineIcon';
+export { AnimatedCheckIcon } from './AnimatedCheckIcon';
 export { TrashOutlineIcon } from './TrashOutlineIcon';
 export { SpinnerIcon } from './SpinnerIcon';
 export { EyeOutlineIcon } from './EyeOutlineIcon';

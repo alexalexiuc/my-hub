@@ -726,6 +726,150 @@ describe.sequential('finances — add_transactions with createPayee flag', () =>
   });
 });
 
+// ─── finances_itemize_transaction ──────────────────────────────────────────────
+
+interface ItemizeTransactionResult {
+  transactionId: number;
+  itemsCount: number;
+  suggestion?: string;
+}
+
+interface QueryTransactionsResult {
+  transactions: Array<{
+    id: number;
+    extras?: {
+      kind?: string;
+      items?: Array<{ name: string; totalPrice?: number }>;
+      taxAmount?: number;
+    };
+  }>;
+  total: number;
+}
+
+describe.sequential('finances — itemize_transaction', () => {
+  let client: McpClient;
+  let testAccountId: number | undefined;
+  let createdTransactionId: number | undefined;
+  const runId = Date.now().toString(36);
+
+  beforeAll(async () => {
+    const { baseUrl } = getE2eEnv();
+    const token = await generateToken();
+    client = await createMcpClient(baseUrl, '/finances/mcp', token);
+
+    const contextResult = await client.callTool({
+      name: 'finances_list_context',
+      arguments: {},
+    });
+    const context = parseToolResult<ListContextResult>(contextResult);
+    testAccountId = context.accounts[0]?.id;
+
+    if (testAccountId) {
+      const addResult = await client.callTool({
+        name: 'finances_add_transactions',
+        arguments: {
+          accountId: testAccountId,
+          transactions: [
+            {
+              type: 'expense',
+              amount: 42.5,
+              notes: `[e2e:${runId}] itemize test`,
+              date: '2099-01-01',
+            },
+          ],
+        },
+      });
+      const addData = parseToolResult<AddTransactionsResult>(addResult);
+      createdTransactionId = addData.results[0]?.transactionId;
+    }
+  });
+
+  afterAll(async () => {
+    if (createdTransactionId !== undefined) {
+      await client.callTool({
+        name: 'finances_delete_transaction',
+        arguments: { transactionId: createdTransactionId },
+      });
+    }
+    await client.close();
+  });
+
+  it('reports itemsCount 0 and a suggestion on the freshly logged expense', async () => {
+    if (!createdTransactionId) {
+      console.log('No account available, skipping test');
+      return;
+    }
+
+    const queryResult = await client.callTool({
+      name: 'finances_query_transactions',
+      arguments: { search: `[e2e:${runId}]`, includeExtras: true, limit: 10, offset: 0 },
+    });
+    const data = parseToolResult<QueryTransactionsResult>(queryResult);
+    const tx = data.transactions.find(t => t.id === createdTransactionId);
+
+    expect(tx).toBeDefined();
+    expect(tx?.extras).toBeUndefined();
+  });
+
+  it('returns an error when no receipt fields are provided', async () => {
+    if (!createdTransactionId) {
+      console.log('No account available, skipping test');
+      return;
+    }
+
+    const result = await client.callTool({
+      name: 'finances_itemize_transaction',
+      arguments: { transactionId: createdTransactionId },
+    });
+
+    expect(result.isError).toBe(true);
+  });
+
+  it('returns an error when itemizing a transaction that does not exist', async () => {
+    const result = await client.callTool({
+      name: 'finances_itemize_transaction',
+      arguments: { transactionId: 999999999, taxAmount: 1 },
+    });
+
+    expect(result.isError).toBe(true);
+  });
+
+  it('adds itemized receipt data and reports the item count, persisted for later query', async () => {
+    if (!createdTransactionId) {
+      console.log('No account available, skipping test');
+      return;
+    }
+
+    const result = await client.callTool({
+      name: 'finances_itemize_transaction',
+      arguments: {
+        transactionId: createdTransactionId,
+        taxAmount: 2.5,
+        items: [
+          { name: 'Milk', quantity: 1, totalPrice: 20 },
+          { name: 'Bread', quantity: 1, totalPrice: 22.5 },
+        ],
+      },
+    });
+
+    const data = parseToolResult<ItemizeTransactionResult>(result);
+    expect(data.transactionId).toBe(createdTransactionId);
+    expect(data.itemsCount).toBe(2);
+    expect(data.suggestion).toBeUndefined();
+
+    const queryResult = await client.callTool({
+      name: 'finances_query_transactions',
+      arguments: { search: `[e2e:${runId}]`, includeExtras: true, limit: 10, offset: 0 },
+    });
+    const queryData = parseToolResult<QueryTransactionsResult>(queryResult);
+    const tx = queryData.transactions.find(t => t.id === createdTransactionId);
+
+    expect(tx?.extras?.kind).toBe('receipt');
+    expect(tx?.extras?.items).toHaveLength(2);
+    expect(tx?.extras?.taxAmount).toBe(2.5);
+  });
+});
+
 // ─── finances_get_comparison ──────────────────────────────────────────────────
 
 interface ComparisonGroupEntry {
