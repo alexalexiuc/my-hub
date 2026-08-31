@@ -8,7 +8,8 @@ import { Button } from '@/components';
 import { AnimatedCheckIcon, UtensilsOutlineIcon } from '@/components/icons';
 import { TodayPlanResponseSchema } from '@/app/api/calories/menu/menu.schemas';
 import { mealOrder } from '@my-hub/shared/utils';
-import type { GymTime } from '@my-hub/shared/constants';
+import type { GymTime, MealType } from '@my-hub/shared/constants';
+import type { MealLog } from '@my-hub/shared/types';
 import { MEAL_LABEL } from './constants';
 import { setMealLogged } from './menu/menu.utils';
 import { mealEvents } from './mealEvents';
@@ -36,6 +37,10 @@ export function NextMealCard({ date }: NextMealCardProps) {
   const [meals, setMeals] = useState<PlannedMeal[]>([]);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [gymTime, setGymTime] = useState<GymTime | null>(null);
+  // Meal types actually logged for the day, from the calorie journal directly — not just the
+  // ones logged against this exact planned dish. A meal logged some other way (the generic
+  // meal-log modal, `calories_log_meal`) fills a slot just as much as clicking "Log it" here does.
+  const [loggedMealTypes, setLoggedMealTypes] = useState<Set<MealType>>(new Set());
   const [logging, setLogging] = useState(false);
   // The just-logged meal's display info, frozen for the checkmark hold so the card doesn't
   // jump to the next meal before the "logged" animation has had a chance to play.
@@ -51,20 +56,25 @@ export function NextMealCard({ date }: NextMealCardProps) {
 
   const load = useCallback(() => {
     const requested = date;
-    apiFetch('/api/calories/menu/today', {
-      query: { date: requested },
-      responseSchema: TodayPlanResponseSchema,
-    })
-      .then(data => {
+    Promise.all([
+      apiFetch('/api/calories/menu/today', {
+        query: { date: requested },
+        responseSchema: TodayPlanResponseSchema,
+      }),
+      apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date: requested }, silentToast: true }),
+    ])
+      .then(([plan, loggedRes]) => {
         if (shownDateRef.current !== requested) return;
-        setMenuId(data.menuId);
-        setMeals(data.meals);
-        setGymTime(data.gymTime);
+        setMenuId(plan.menuId);
+        setMeals(plan.meals);
+        setGymTime(plan.gymTime);
+        setLoggedMealTypes(new Set(loggedRes.meals.map(m => m.mealType)));
       })
       .catch(() => {
         if (shownDateRef.current !== requested) return;
         setMenuId(null);
         setMeals([]);
+        setLoggedMealTypes(new Set());
       });
   }, [date]);
 
@@ -84,8 +94,8 @@ export function NextMealCard({ date }: NextMealCardProps) {
 
   const order = mealOrder(gymTime);
   const ordered = [...meals].sort((a, b) => order.indexOf(a.mealType) - order.indexOf(b.mealType));
-  const next = ordered.find(m => !m.logged);
-  const remaining = ordered.filter(m => !m.logged).length;
+  const next = ordered.find(m => !loggedMealTypes.has(m.mealType));
+  const remaining = ordered.filter(m => !loggedMealTypes.has(m.mealType)).length;
 
   // While `frozen` is set, keep showing the meal that was just logged (and its remaining count
   // as it was before logging) so the checkmark animation isn't cut short by a background refetch.
