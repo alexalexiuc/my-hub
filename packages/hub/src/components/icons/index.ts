@@ -49,3 +49,4 @@ export { FunnelIcon } from './FunnelIcon';
 export { GearOutlineIcon } from './GearOutlineIcon';
 export { TrendingUpOutlineIcon } from './TrendingUpOutlineIcon';
 export { ClocheIcon } from './ClocheIcon';
+export { ShareOutlineIcon } from './ShareOutlineIcon';
