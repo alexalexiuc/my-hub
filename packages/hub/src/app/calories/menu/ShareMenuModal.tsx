@@ -1,10 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Modal, Button } from '@/components';
+import { Modal, Button, Select } from '@/components';
 import { ClipboardIcon } from '@/components/icons';
-import type { GymTime } from '@my-hub/shared/constants';
-import { formatMenuAsText } from './menu.utils';
+import { DaysOfWeekValues, DAY_LABELS } from '@my-hub/shared/constants';
+import type { DayOfWeek, GymTime } from '@my-hub/shared/constants';
+import { formatMenuAsText, formatDayAsText } from './menu.utils';
 import type { WeeklyMenu } from './types';
 
 type ShareMenuModalProps = {
@@ -14,15 +15,29 @@ type ShareMenuModalProps = {
   onClose: () => void;
 };
 
+/** Scope value for the "whole week" option in the day picker — day values are `DayOfWeek` numbers. */
+const WHOLE_WEEK = 'week';
+
 /**
- * Share panel for a weekly menu. Copy-to-clipboard (plain text, macros included) is the only
- * sharing method for now — the aim is a household sharing a menu without cooking two different
- * sets of meals, and a macro breakdown a person or an AI model can read back to plan for two.
- * In-app sharing with another Hub user is a planned follow-up, not implemented here.
+ * Share panel for a weekly menu. Copy-to-clipboard (plain text) is the only sharing method for
+ * now — the aim is a household sharing a menu without cooking two different sets of meals, so
+ * the text lists each meal's exact ingredients and amounts (not just a macro summary) plus the
+ * macro breakdown, spelled out so it's unambiguous if pasted back into an AI model to plan for
+ * two. A day picker lets the whole week be copied, or just one day. In-app sharing with another
+ * Hub user is a planned follow-up, not implemented here.
  */
 export function ShareMenuModal({ menu, gymDays, gymTime, onClose }: ShareMenuModalProps) {
+  const daysWithMeals = useMemo(
+    () => DaysOfWeekValues.filter(d => menu.meals.some(m => m.dayOfWeek === d)),
+    [menu.meals],
+  );
+  const [scope, setScope] = useState<string>(WHOLE_WEEK);
   const [copied, setCopied] = useState(false);
-  const text = useMemo(() => formatMenuAsText(menu, gymDays, gymTime), [menu, gymDays, gymTime]);
+
+  const text = useMemo(() => {
+    if (scope === WHOLE_WEEK) return formatMenuAsText(menu, gymDays, gymTime);
+    return formatDayAsText(menu, Number(scope) as DayOfWeek, gymDays, gymTime);
+  }, [scope, menu, gymDays, gymTime]);
 
   function copy() {
     void navigator.clipboard.writeText(text).then(() => {
@@ -35,9 +50,20 @@ export function ShareMenuModal({ menu, gymDays, gymTime, onClose }: ShareMenuMod
     <Modal title="Share Weekly Menu" onClose={onClose} className="md:max-w-md">
       <div className="flex flex-col gap-4">
         <p className="text-xs text-[var(--muted)]">
-          Copy this week&apos;s plan as text — share it with someone in your house so you&apos;re not cooking two
-          different meals, or paste it to an AI model along with theirs to plan a combined menu for two.
+          Copy the exact meals — ingredients, amounts and macros, not just an overview — so someone in your house can
+          see exactly what to prepare, or paste it to an AI model along with theirs to plan a combined menu for two.
         </p>
+
+        {daysWithMeals.length > 1 && (
+          <Select value={scope} onChange={e => setScope(e.target.value)} aria-label="What to copy">
+            <option value={WHOLE_WEEK}>Whole week</option>
+            {daysWithMeals.map(d => (
+              <option key={d} value={d}>
+                {DAY_LABELS[d]} only
+              </option>
+            ))}
+          </Select>
+        )}
 
         <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg border border-[var(--border)] bg-[var(--card2)] p-3 text-xs text-[var(--text)]">
           {text}

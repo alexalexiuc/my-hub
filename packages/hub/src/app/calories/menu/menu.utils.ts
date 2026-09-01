@@ -169,10 +169,35 @@ export function targetColorClasses(pct: number | null, isEstimated = false): { t
 }
 
 /**
+ * One day's meals as share-ready lines: meal label, description, then every ingredient on its
+ * own line with its exact amount (e.g. "200g chicken breast") — the point is to show a housemate
+ * exactly what's being made, not just a macro summary — followed by the macro line spelled out
+ * in full so it reads unambiguously (not "P/C/F" shorthand) if pasted back into an AI model.
+ */
+function formatDayMealLines(dayMeals: WeeklyMenuMeal[], order: MealType[]): string[] {
+  const mealByType = new Map(dayMeals.map(m => [m.mealType, m]));
+  const lines: string[] = [];
+  for (const mealType of order) {
+    const meal = mealByType.get(mealType);
+    if (!meal) continue;
+    lines.push(`${MEAL_LABEL[mealType]}: ${meal.description}`);
+    for (const ingredient of meal.ingredients ?? []) {
+      lines.push(`  • ${ingredient}`);
+    }
+    const macros = [
+      meal.kcal != null ? `${meal.kcal} kcal` : null,
+      meal.protein != null ? `${meal.protein}g protein` : null,
+      meal.carbs != null ? `${meal.carbs}g carbs` : null,
+      meal.fat != null ? `${meal.fat}g fat` : null,
+    ].filter((m): m is string => m !== null);
+    if (macros.length > 0) lines.push(`  (${macros.join(', ')})`);
+  }
+  return lines;
+}
+
+/**
  * Renders a weekly menu as plain text for the Share panel's "copy to clipboard" action — the
- * only sharing method for now (in-app sharing between housemates is a planned follow-up). Each
- * meal's macros are spelled out with units on one line so the text stays useful if it's pasted
- * back into an AI model to combine two people's menus into a shared one.
+ * only sharing method for now (in-app sharing between housemates is a planned follow-up).
  */
 export function formatMenuAsText(menu: WeeklyMenu, gymDays: number[], gymTime: GymTime | null): string {
   const byDay = menu.meals.reduce<Record<number, WeeklyMenuMeal[]>>((acc, meal) => {
@@ -187,28 +212,32 @@ export function formatMenuAsText(menu: WeeklyMenu, gymDays: number[], gymTime: G
   for (const day of DaysOfWeekValues) {
     const dayMeals = byDay[day] ?? [];
     if (dayMeals.length === 0) continue;
-    const mealByType = new Map(dayMeals.map(m => [m.mealType, m]));
-
-    lines.push('');
-    lines.push(`${DAY_LABELS[day]}${gymDays.includes(day) ? ' (Gym day)' : ''}`);
-    for (const mealType of order) {
-      const meal = mealByType.get(mealType);
-      if (!meal) continue;
-      const macros = [
-        meal.kcal != null ? `${meal.kcal} kcal` : null,
-        meal.protein != null ? `P ${meal.protein}g` : null,
-        meal.carbs != null ? `C ${meal.carbs}g` : null,
-        meal.fat != null ? `F ${meal.fat}g` : null,
-      ].filter((m): m is string => m !== null);
-      lines.push(
-        `- ${MEAL_LABEL[mealType]}: ${meal.description}${macros.length > 0 ? ` (${macros.join(' / ')})` : ''}`,
-      );
-    }
+    lines.push(
+      '',
+      `${DAY_LABELS[day]}${gymDays.includes(day) ? ' (Gym day)' : ''}`,
+      ...formatDayMealLines(dayMeals, order),
+    );
   }
 
   if (menu.notes) {
     lines.push('', `Notes: ${menu.notes}`);
   }
+
+  return lines.join('\n');
+}
+
+/**
+ * Same as `formatMenuAsText`, scoped to a single day — for sharing just "what's for dinner
+ * tonight" without pasting the whole week.
+ */
+export function formatDayAsText(menu: WeeklyMenu, day: DayOfWeek, gymDays: number[], gymTime: GymTime | null): string {
+  const dayMeals = menu.meals.filter(m => m.dayOfWeek === day);
+  const order = mealOrder(gymTime);
+
+  const lines: string[] = [
+    `${DAY_LABELS[day]}${gymDays.includes(day) ? ' (Gym day)' : ''} — ${formatWeekRangeStr(menu.weekStart, true)}`,
+    ...formatDayMealLines(dayMeals, order),
+  ];
 
   return lines.join('\n');
 }
