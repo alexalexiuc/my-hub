@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { Card, IconButton, ConfirmModal } from '@/components';
-import { ListChecksOutlineIcon, TrashOutlineIcon } from '@/components/icons';
+import { ListChecksOutlineIcon, ShareOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 import { DaysOfWeekValues } from '@my-hub/shared/constants';
 import type { DayOfWeek, GymTime, MealType } from '@my-hub/shared/constants';
 import { dateToString, dayTargetKcal, formatWeekRangeStr } from '@my-hub/shared/utils';
 import { ShoppingListModal } from './ShoppingListModal';
+import { ShareMenuModal } from './ShareMenuModal';
 import { DayCard } from './DayCard';
 import { MenuMetaSection } from './MenuMetaSection';
 import { MobileDayView } from './MobileDayView';
@@ -52,6 +53,7 @@ export function MenuDetail({
   isCurrentWeek,
 }: MenuDetailProps) {
   const [showShoppingList, setShowShoppingList] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const byDay = menu.meals.reduce<Record<number, WeeklyMenuMeal[]>>((acc, meal) => {
     (acc[meal.dayOfWeek] ??= []).push(meal);
@@ -113,6 +115,13 @@ export function MenuDetail({
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <MenuMetaSection menuId={menu.menuId} title={menu.title} notes={menu.notes} onUpdated={onMetaUpdated} />
           <IconButton
+            label="Share menu"
+            icon={<ShareOutlineIcon />}
+            onClick={() => setShowShareModal(true)}
+            variant="ghost"
+            className="flex min-h-11 min-w-11 items-center justify-center text-[var(--accent)] hover:text-[var(--accent-hover)]"
+          />
+          <IconButton
             label="Shopping list"
             icon={<ListChecksOutlineIcon />}
             onClick={() => setShowShoppingList(true)}
@@ -136,6 +145,10 @@ export function MenuDetail({
           weekLabel={formatWeekRangeStr(menu.weekStart)}
           onClose={() => setShowShoppingList(false)}
         />
+      )}
+
+      {showShareModal && (
+        <ShareMenuModal menu={menu} gymDays={gymDays} gymTime={gymTime} onClose={() => setShowShareModal(false)} />
       )}
 
       {showDeleteConfirm && (

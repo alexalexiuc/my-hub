@@ -1,5 +1,14 @@
-import { toUTCDateStr, addDays, dateToString, startOfWeekMonday, shiftWeekStr } from '@my-hub/shared/utils';
-import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
+import {
+  toUTCDateStr,
+  addDays,
+  dateToString,
+  startOfWeekMonday,
+  shiftWeekStr,
+  formatWeekRangeStr,
+  mealOrder,
+} from '@my-hub/shared/utils';
+import { DaysOfWeekValues, DAY_LABELS } from '@my-hub/shared/constants';
+import type { DayOfWeek, GymTime, MealType } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from '@/app/calories/constants';
 import { apiFetch } from '@/lib/utils';
 import {
@@ -10,7 +19,7 @@ import {
   UnlogWholeDaySchema,
   WholeDayResponseSchema,
 } from '@/app/api/calories/menu/menu.schemas';
-import type { WeeklyMenuMeal } from './types';
+import type { WeeklyMenu, WeeklyMenuMeal } from './types';
 
 /**
  * Meal types as `Select` options. Takes the types to offer, since the create editor lists them
@@ -157,6 +166,51 @@ export function targetColorClasses(pct: number | null, isEstimated = false): { t
   if (diff <= 10) return { text: 'text-green-400', bg: 'bg-green-400' };
   if (diff <= 30) return { text: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]' };
   return { text: 'text-red-400', bg: 'bg-red-400' };
+}
+
+/**
+ * Renders a weekly menu as plain text for the Share panel's "copy to clipboard" action — the
+ * only sharing method for now (in-app sharing between housemates is a planned follow-up). Each
+ * meal's macros are spelled out with units on one line so the text stays useful if it's pasted
+ * back into an AI model to combine two people's menus into a shared one.
+ */
+export function formatMenuAsText(menu: WeeklyMenu, gymDays: number[], gymTime: GymTime | null): string {
+  const byDay = menu.meals.reduce<Record<number, WeeklyMenuMeal[]>>((acc, meal) => {
+    (acc[meal.dayOfWeek] ??= []).push(meal);
+    return acc;
+  }, {});
+  const order = mealOrder(gymTime);
+
+  const lines: string[] = [`Weekly Menu — ${formatWeekRangeStr(menu.weekStart, true)}`];
+  if (menu.title) lines.push(`Title: ${menu.title}`);
+
+  for (const day of DaysOfWeekValues) {
+    const dayMeals = byDay[day] ?? [];
+    if (dayMeals.length === 0) continue;
+    const mealByType = new Map(dayMeals.map(m => [m.mealType, m]));
+
+    lines.push('');
+    lines.push(`${DAY_LABELS[day]}${gymDays.includes(day) ? ' (Gym day)' : ''}`);
+    for (const mealType of order) {
+      const meal = mealByType.get(mealType);
+      if (!meal) continue;
+      const macros = [
+        meal.kcal != null ? `${meal.kcal} kcal` : null,
+        meal.protein != null ? `P ${meal.protein}g` : null,
+        meal.carbs != null ? `C ${meal.carbs}g` : null,
+        meal.fat != null ? `F ${meal.fat}g` : null,
+      ].filter((m): m is string => m !== null);
+      lines.push(
+        `- ${MEAL_LABEL[mealType]}: ${meal.description}${macros.length > 0 ? ` (${macros.join(' / ')})` : ''}`,
+      );
+    }
+  }
+
+  if (menu.notes) {
+    lines.push('', `Notes: ${menu.notes}`);
+  }
+
+  return lines.join('\n');
 }
 
 /** Fallback daily target (kcal) used when the user's profile can't produce a real goalCalories value. */
