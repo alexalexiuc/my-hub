@@ -94,6 +94,8 @@ export const accountItemSchema = z
     dueDate: z.string().optional(),
     settled: z.boolean().optional(),
     includedInAvailable: z.boolean(),
+    showOnWidget: z.boolean(),
+    widgetSortOrder: z.number().int(),
     monthIncome: z.number().optional(),
     monthExpenses: z.number().optional(),
     amortizationSummary: z
@@ -234,6 +236,8 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
           balance: bal,
           archived: account.archived,
           includedInAvailable,
+          showOnWidget: account.showOnWidget,
+          widgetSortOrder: account.widgetSortOrder,
           ...flattenDetails(account.type, account.details),
           ...(loanSnapshot ? { amortizationSummary: loanSnapshot.amortizationSummary } : {}),
         };

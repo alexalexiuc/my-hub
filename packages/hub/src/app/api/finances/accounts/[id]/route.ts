@@ -60,6 +60,7 @@ const AccountPatchSchema = z.discriminatedUnion('action', [
     details: accountDetailsSchema.nullable().optional(),
   }),
   z.object({ action: z.literal('setAvailableInclusion'), include: z.boolean() }),
+  z.object({ action: z.literal('setWidgetVisibility'), show: z.boolean() }),
   z.object({ action: z.literal('recreateInitialBalance') }),
 ]);
 
@@ -74,6 +75,8 @@ function flattenAccount(a: FinanceAccount, includedInAvailable: boolean): Accoun
     balance: a.balance,
     archived: a.archived,
     includedInAvailable,
+    showOnWidget: a.showOnWidget,
+    widgetSortOrder: a.widgetSortOrder,
     ...(details ?? {}),
   } as AccountItem;
 }
@@ -159,6 +162,12 @@ export const PATCH = route({
   // All other actions need the current inclusion state for the response
   const prefs = await getAvailabilityPreferences(user.id, budget.id);
   const currentIncluded = isIncludedInAvailable(existing.type, prefs.get(accountId) ?? null);
+
+  if (body.action === 'setWidgetVisibility') {
+    if (existing.type !== AccountTypes.Loan) routeHttpError(400, { error: 'Only supported for loan accounts' });
+    const updated = await updateAccount(user.id, budget.id, accountId, { showOnWidget: body.show });
+    return { account: flattenAccount(updated, currentIncluded) };
+  }
 
   if (body.action === 'settle') {
     const currentDetails = (existing.details ?? {}) as BorrowedLentAccountDetails;

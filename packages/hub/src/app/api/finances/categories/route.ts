@@ -20,6 +20,7 @@ export const categoryRowSchema = z.object({
   color: categoryColorSchema,
   notes: z.string().nullable(),
   monthlyTarget: z.number().nullable(),
+  includeInSpendingBudget: z.boolean(),
   spent: z.number(),
   groupId: z.number().int().nullable(),
   sortOrder: z.number().int(),
@@ -58,6 +59,7 @@ export const categoryCreateBodySchema = z.object({
   color: z.string().optional(),
   notes: z.string().trim().nullable().optional(),
   monthlyTarget: z.number().nonnegative().nullable().optional(),
+  includeInSpendingBudget: z.boolean().optional(),
   groupId: z.number().int().positive().nullable().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
 });
@@ -117,6 +119,7 @@ export const GET = route({ query: CategoryQuerySchema, response: categoriesRespo
     color: c.color ?? null,
     notes: c.notes ?? null,
     monthlyTarget: c.monthlyTarget ?? null,
+    includeInSpendingBudget: c.includeInSpendingBudget,
     spent: spentByCategory.get(c.id) ?? 0,
     groupId: c.groupId ?? null,
     sortOrder: c.sortOrder,
@@ -159,6 +162,7 @@ export const POST = route({ body: categoryCreateBodySchema, response: categoryMu
     color: body.color ?? null,
     notes: trimOrNull(body.notes) ?? null,
     monthlyTarget: body.monthlyTarget ?? null,
+    includeInSpendingBudget: body.includeInSpendingBudget ?? true,
     groupId: body.groupId ?? null,
     sortOrder: body.sortOrder ?? 0,
   });

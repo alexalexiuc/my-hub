@@ -104,8 +104,12 @@ export async function getBudgetProgress(
     const spent = spendMap.get(cat.id) ?? 0;
     const target = cat.monthlyTarget ?? null;
 
-    if (target !== null) totalBudgeted += target;
-    totalSpent += spent;
+    // Categories excluded from the aggregate budget (e.g. loan repayment categories shown as
+    // their own widget card) still get their own progress row below, just not counted here.
+    if (cat.includeInSpendingBudget) {
+      if (target !== null) totalBudgeted += target;
+      totalSpent += spent;
+    }
 
     const remainingBudget = target !== null ? target - spent : null;
     const percentUsed = target !== null && target > 0 ? Math.round((spent / target) * 100) : null;

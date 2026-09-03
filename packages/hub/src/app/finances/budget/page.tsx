@@ -42,7 +42,8 @@ export default function BudgetPage() {
   }, [selectedMonth, load]);
 
   const currency = data?.currency ?? 'EUR';
-  const budgetCats = data?.allCategories.filter(c => c.monthlyTarget != null && c.monthlyTarget > 0) ?? [];
+  const budgetCats =
+    data?.allCategories.filter(c => c.monthlyTarget != null && c.monthlyTarget > 0 && c.includeInSpendingBudget) ?? [];
   const sortedCats = [...(data?.allCategories ?? [])].sort((a, b) => b.spent - a.spent);
   const totalBudget = budgetCats.reduce((s, c) => s + (c.monthlyTarget ?? 0), 0);
   const totalSpent = budgetCats.reduce((s, c) => s + c.spent, 0);

@@ -81,6 +81,11 @@ export const financeAccounts = pgTable(
     archived: boolean('archived').notNull().default(false),
     // Type-specific fields — see account-details.ts for the full discriminated union
     details: jsonb('details').$type<AccountDetails>(),
+    // Loan-type accounts only: whether this loan gets a dedicated card on the finances widget.
+    // Default false — a newly added/imported loan doesn't appear until explicitly opted in.
+    showOnWidget: boolean('show_on_widget').notNull().default(false),
+    // Left-to-right / top-to-bottom order among accounts flagged showOnWidget.
+    widgetSortOrder: integer('widget_sort_order').notNull().default(0),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -123,6 +128,10 @@ export const financeCategories = pgTable(
     notes: text('notes'),
     // Optional monthly spending target — nullable, no envelope-style allocation
     monthlyTarget: numericCasted('monthly_target', { precision: 18, scale: 4 }),
+    // Whether this category's target/spend rolls into the aggregate "Budget" total on the
+    // widget and Budget page. Default true; categories with their own dedicated widget card
+    // (e.g. loan repayment categories) are typically excluded to avoid double-counting.
+    includeInSpendingBudget: boolean('include_in_spending_budget').notNull().default(true),
     sortOrder: integer('sort_order').notNull().default(0),
     archivedAt: timestamp('archived_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),

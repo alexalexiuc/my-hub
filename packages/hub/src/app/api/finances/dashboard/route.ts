@@ -8,6 +8,9 @@ import {
   getAvailableBalance,
   getUserActiveBudget,
   getUserBudgets,
+  getBudgetProgress,
+  getPortfolioOverview,
+  getLoanSummaryForAccount,
 } from '@my-hub/shared/services';
 import { AccountTypes, TransactionTypes } from '@my-hub/shared/constants';
 import { monthToDateRange, shiftMonthStr } from '@my-hub/shared/utils';
@@ -34,6 +37,29 @@ export const dashboardGoalSchema = z.object({
   name: z.string(),
   balance: z.number(),
   target: z.number(),
+});
+
+export const dashboardLoanCardSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  currency: supportedCurrencySchema,
+  remainingObligation: z.number(),
+  monthsRemaining: z.number().int(),
+  payoffDate: z.string(),
+});
+
+export const dashboardNeedsAttentionSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  icon: categoryIconSchema,
+  color: categoryColorSchema,
+  spent: z.number(),
+});
+
+export const dashboardPortfolioSchema = z.object({
+  currency: supportedCurrencySchema,
+  value: z.number().nullable(),
+  returnPct: z.number().nullable(),
 });
 
 export const dashboardTransactionSchema = z.object({
@@ -71,6 +97,12 @@ export const financeDashboardDataSchema = z.object({
   dailySpending: z.array(dailySpendingPointSchema),
   goals: z.array(dashboardGoalSchema),
   recentTransactions: z.array(dashboardTransactionSchema),
+  budgetTotal: z.number(),
+  budgetSpent: z.number(),
+  excludedBudgetCategoriesCount: z.number().int(),
+  portfolio: dashboardPortfolioSchema.nullable(),
+  loans: z.array(dashboardLoanCardSchema),
+  needsAttention: z.array(dashboardNeedsAttentionSchema),
 });
 
 export const noBudgetResponseSchema = z.object({
@@ -83,6 +115,9 @@ export const dashboardResponseSchema = z.union([financeDashboardDataSchema, noBu
 export type DashboardCategory = z.infer<typeof dashboardCategorySchema>;
 export type DailySpendingPoint = z.infer<typeof dailySpendingPointSchema>;
 export type DashboardGoal = z.infer<typeof dashboardGoalSchema>;
+export type DashboardLoanCard = z.infer<typeof dashboardLoanCardSchema>;
+export type DashboardNeedsAttention = z.infer<typeof dashboardNeedsAttentionSchema>;
+export type DashboardPortfolio = z.infer<typeof dashboardPortfolioSchema>;
 export type DashboardTransaction = z.infer<typeof dashboardTransactionSchema>;
 export type AvailableBudget = z.infer<typeof availableBudgetSchema>;
 export type FinanceDashboardData = z.infer<typeof financeDashboardDataSchema>;
@@ -141,6 +176,8 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     availableBalance,
     prevExpenseTxns,
     prevTransferTxns,
+    budgetProgress,
+    portfolioOverview,
   ] = await Promise.all([
     getAccounts(user.id, budgetId),
     getCategories(user.id, budgetId),
@@ -176,6 +213,8 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
       toDate: prevMonthEnd,
       limit: 2000,
     }),
+    getBudgetProgress(user.id, budgetId, selectedMonth),
+    getPortfolioOverview(user.id, budgetId),
   ]);
 
   // Only transfers into a Loan account count as spending (loan repayments).
@@ -264,6 +303,54 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     })
     .filter(g => g.target > 0);
 
+  // Categories excluded from the aggregate budget total (see getBudgetProgress) but that still
+  // have a target set — shown as a caption on the widget's budget bar.
+  const excludedBudgetCategoriesCount = categories.filter(
+    c => c.monthlyTarget != null && !c.includeInSpendingBudget,
+  ).length;
+
+  const portfolio = portfolioOverview
+    ? {
+        currency: portfolioOverview.portfolio.baseCurrency,
+        value: portfolioOverview.totals.currentValue,
+        returnPct: portfolioOverview.totals.profitPct,
+      }
+    : null;
+
+  // Loans flagged for the widget — 0..N dedicated cards, ordered by widgetSortOrder then name.
+  const widgetLoanAccounts = accounts
+    .filter(a => a.type === AccountTypes.Loan && a.showOnWidget)
+    .sort((a, b) => a.widgetSortOrder - b.widgetSortOrder || a.name.localeCompare(b.name));
+  const loans = (
+    await Promise.all(
+      widgetLoanAccounts.map(async account => {
+        const summary = await getLoanSummaryForAccount(user.id, budgetId, account);
+        if (!summary) return null;
+        return {
+          id: account.id,
+          name: account.name,
+          currency: account.currency,
+          remainingObligation: summary.remainingObligation,
+          monthsRemaining: summary.paymentsRemaining,
+          payoffDate: summary.projectedPayoffDate,
+        };
+      }),
+    )
+  ).filter(loan => loan !== null);
+
+  // Categories with spend this month but no monthly target set — surfaced so they don't go unnoticed.
+  const needsAttention = categories
+    .filter(c => c.monthlyTarget == null && (spentByCategory.get(c.id) ?? 0) > 0)
+    .map(c => ({
+      id: c.id,
+      name: c.name,
+      icon: c.icon ?? null,
+      color: c.color ?? null,
+      spent: spentByCategory.get(c.id)!,
+    }))
+    .sort((a, b) => b.spent - a.spent)
+    .slice(0, 3);
+
   const data: FinanceDashboardData = {
     hasBudget: true,
     budgetId,
@@ -277,6 +364,12 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     dailySpending,
     goals,
     recentTransactions: recentTxns,
+    budgetTotal: budgetProgress.totalBudgeted,
+    budgetSpent: budgetProgress.totalSpent,
+    excludedBudgetCategoriesCount,
+    portfolio,
+    loans,
+    needsAttention,
   };
 
   return data;
