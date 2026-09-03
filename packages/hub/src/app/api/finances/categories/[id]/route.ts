@@ -22,6 +22,7 @@ export const categoryUpdateBodySchema = z.object({
   color: z.string().nullable().optional(),
   notes: z.string().trim().nullable().optional(),
   monthlyTarget: z.number().nonnegative().nullable().optional(),
+  includeInSpendingBudget: z.boolean().optional(),
   groupId: z.number().int().positive().nullable().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
 });
@@ -48,6 +49,7 @@ export const PATCH = route({
     color: body.color,
     notes: trimOrNull(body.notes),
     monthlyTarget: body.monthlyTarget,
+    includeInSpendingBudget: body.includeInSpendingBudget,
     groupId: body.groupId,
     sortOrder: body.sortOrder,
   });

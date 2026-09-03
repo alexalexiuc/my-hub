@@ -1,18 +1,18 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { SectionCard } from '@/components/SectionCard';
-import { EyeOffOutlineIcon, EyeOutlineIcon, PlusOutlineIcon } from '@/components/icons';
+import { SectionCard, ProgressBar } from '@/components';
+import { EyeOffOutlineIcon, EyeOutlineIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
-import { CategoryIcon, fmt } from './ui';
-import { TransactionModal } from './transactions/TransactionModal';
+import { CategoryIcon, fmt, pct } from './ui';
 import type { DashboardResponse, FinanceDashboardData } from '@/app/api/finances/dashboard/route';
 import Link from 'next/link';
+
+const HIDDEN = '*** **';
 
 export function FinancesWidget() {
   const [data, setData] = useState<FinanceDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
   const [revealed, setRevealed] = useState(false);
 
   const load = useCallback(async (silent = false) => {
@@ -39,30 +39,20 @@ export function FinancesWidget() {
         titleHoverClass="hover:text-violet-400"
         className="border-violet-800/50 bg-gradient-to-br from-violet-950/40 to-zinc-900"
         action={
-          <div className="flex items-center gap-2">
-            {data && (
-              <button
-                onClick={() => setRevealed(r => !r)}
-                className="text-zinc-500 hover:text-zinc-300 transition"
-                title={revealed ? 'Hide amounts' : 'Show amounts'}
-              >
-                {revealed ? <EyeOutlineIcon className="size-3.5" /> : <EyeOffOutlineIcon className="size-3.5" />}
-              </button>
-            )}
+          data && (
             <button
-              onClick={() => setShowAdd(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
-              title="Add transaction"
+              onClick={() => setRevealed(r => !r)}
+              className="text-zinc-500 hover:text-zinc-300 transition"
+              title={revealed ? 'Hide amounts' : 'Show amounts'}
             >
-              <PlusOutlineIcon className="size-3" />
-              Add
+              {revealed ? <EyeOutlineIcon className="size-3.5" /> : <EyeOffOutlineIcon className="size-3.5" />}
             </button>
-          </div>
+          )
         }
       >
         {loading ? (
-          <div className="grid grid-cols-4 gap-2 mt-2 animate-pulse">
-            {Array.from({ length: 8 }).map((_, i) => (
+          <div className="grid grid-cols-2 gap-2 mt-2 animate-pulse">
+            {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-14 rounded-lg bg-zinc-800" />
             ))}
           </div>
@@ -74,54 +64,93 @@ export function FinancesWidget() {
             to get started.
           </p>
         ) : (
-          <>
-            {/* Category grid */}
-            {data.categories.length > 0 && (
-              <div className="grid grid-cols-4 gap-1 mt-2">
-                {data.categories.slice(0, 8).map(cat => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setShowAdd(true)}
-                    className="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-zinc-800/60 transition-colors group"
-                  >
-                    <CategoryIcon color={cat.color} icon={cat.icon} size="lg" />
-                    <span className="text-[10px] text-zinc-500 group-hover:text-zinc-300 truncate w-full text-center transition-colors">
-                      {cat.name}
-                    </span>
-                  </button>
-                ))}
+          <div className="mt-2 flex flex-col gap-3.5">
+            {/* Budget bar */}
+            {data.budgetTotal > 0 && (
+              <div>
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">Budget</span>
+                  <span className="tabular-nums text-zinc-300">
+                    {revealed
+                      ? `${fmt(data.budgetSpent, data.currency)} / ${fmt(data.budgetTotal, data.currency)}`
+                      : HIDDEN}
+                  </span>
+                </div>
+                <ProgressBar value={data.budgetSpent} max={data.budgetTotal} height={5} />
+                {data.excludedBudgetCategoriesCount > 0 && (
+                  <p className="mt-1 text-[10px] text-zinc-500">
+                    {data.excludedBudgetCategoriesCount} categor{data.excludedBudgetCategoriesCount === 1 ? 'y' : 'ies'}{' '}
+                    shown separately, not counted here.
+                  </p>
+                )}
               </div>
             )}
 
-            {/* Recent transactions */}
-            {data.recentTransactions.length > 0 && (
-              <div className="mt-4 space-y-1.5">
-                {data.recentTransactions.slice(0, 3).map(tx => (
-                  <div key={tx.id} className="flex items-center justify-between px-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <CategoryIcon color={tx.categoryColor} icon={tx.categoryIcon} size="sm" />
-                      <span className="text-xs text-zinc-300 truncate">
-                        {tx.payeeName ?? tx.categoryName ?? 'Transaction'}
-                      </span>
+            {/* Metric grid: Available balance, Portfolio */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg bg-zinc-800/40 p-2.5">
+                <div className="text-[10px] uppercase tracking-wide text-zinc-500">Available</div>
+                <div className="mt-0.5 text-sm font-semibold tabular-nums text-zinc-100">
+                  {revealed ? fmt(data.availableBalance, data.currency) : HIDDEN}
+                </div>
+              </div>
+              <div className="rounded-lg bg-zinc-800/40 p-2.5">
+                <div className="text-[10px] uppercase tracking-wide text-zinc-500">Portfolio</div>
+                <div className="mt-0.5 text-sm font-semibold tabular-nums text-zinc-100">
+                  {!data.portfolio || data.portfolio.value === null
+                    ? '—'
+                    : revealed
+                      ? fmt(data.portfolio.value, data.portfolio.currency)
+                      : HIDDEN}
+                </div>
+                {data.portfolio?.returnPct != null && (
+                  <div
+                    className="text-[10px] tabular-nums"
+                    style={{ color: data.portfolio.returnPct >= 0 ? 'var(--green)' : 'var(--red)' }}
+                  >
+                    {pct(data.portfolio.returnPct, true)}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Loans — config-driven, 0..N cards */}
+            {data.loans.length > 0 && (
+              <div className="grid grid-cols-2 gap-2">
+                {data.loans.map(loan => (
+                  <div key={loan.id} className="rounded-lg bg-zinc-800/40 p-2.5">
+                    <div className="truncate text-[10px] uppercase tracking-wide text-zinc-500">{loan.name}</div>
+                    <div className="mt-0.5 text-sm font-semibold tabular-nums text-zinc-100">
+                      {revealed ? fmt(loan.remainingObligation, loan.currency) : HIDDEN}
                     </div>
-                    <span className="text-xs tabular-nums ml-2 shrink-0 text-zinc-200">
-                      {revealed ? fmt(tx.amount, data.currency) : '*** **'}
-                    </span>
+                    <div className="text-[10px] text-zinc-500">
+                      {loan.monthsRemaining} mo left · payoff {loan.payoffDate}
+                    </div>
                   </div>
                 ))}
               </div>
             )}
-          </>
-        )}
 
-        {showAdd && (
-          <TransactionModal
-            onCloseAction={() => setShowAdd(false)}
-            onSavedAction={() => {
-              setShowAdd(false);
-              load(true);
-            }}
-          />
+            {/* Needs attention — unbudgeted categories with spend this month */}
+            {data.needsAttention.length > 0 && (
+              <div>
+                <div className="mb-1.5 text-[10px] uppercase tracking-wide text-zinc-500">Needs attention</div>
+                <div className="space-y-1.5">
+                  {data.needsAttention.map(cat => (
+                    <div key={cat.id} className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <CategoryIcon color={cat.color} icon={cat.icon} size="sm" />
+                        <span className="text-xs text-zinc-300 truncate">{cat.name}</span>
+                      </div>
+                      <span className="text-xs tabular-nums ml-2 shrink-0 text-zinc-200">
+                        {revealed ? fmt(cat.spent, data.currency) : HIDDEN}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </SectionCard>
     </div>

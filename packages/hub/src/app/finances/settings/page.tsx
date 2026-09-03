@@ -6,6 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import { Button, Card, Input, SectionLabel, SubText } from '@/components';
 import { ClaudePromptSection } from './ClaudePromptSection';
 import { BudgetsSection } from './BudgetsSection';
+import { LoanWidgetSection } from './LoanWidgetSection';
 import type { BudgetDetailResponse } from '@/app/api/finances/budget/route';
 
 export default function FinancesSettingsPage() {
@@ -76,6 +77,8 @@ export default function FinancesSettingsPage() {
       <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Settings</div>
 
       <BudgetsSection onChanged={load} />
+
+      <LoanWidgetSection />
 
       {!data ? (
         <div className="flex flex-col gap-[14px]">

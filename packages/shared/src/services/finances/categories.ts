@@ -9,7 +9,7 @@
  * - createCategory(userId, budgetId, data) — creates a category
  * - getCategories(userId, budgetId) — lists active (non-archived) categories for a budget
  * - getCategoryById(userId, budgetId, categoryId) — single category with access check
- * - updateCategory(userId, budgetId, categoryId, data) — partial update
+ * - updateCategory(userId, budgetId, categoryId, data) — partial update; data.includeInSpendingBudget controls whether this category's target/spend rolls into the aggregate "Budget" total (see reporting.ts getBudgetProgress)
  * - deleteCategory(userId, budgetId, categoryId) — hard delete
  * - archiveCategory(userId, budgetId, categoryId) — soft-delete: sets archivedAt
  * - unarchiveCategory(userId, budgetId, categoryId) — clears archivedAt
@@ -27,7 +27,10 @@ export type GroupUpdate = Partial<Pick<GroupInsert, 'name' | 'notes' | 'sortOrde
 
 export type CategoryInsert = Omit<NewFinanceCategory, 'id' | 'budgetId' | 'createdAt' | 'updatedAt'>;
 export type CategoryUpdate = Partial<
-  Pick<CategoryInsert, 'name' | 'groupId' | 'color' | 'icon' | 'notes' | 'monthlyTarget' | 'sortOrder'>
+  Pick<
+    CategoryInsert,
+    'name' | 'groupId' | 'color' | 'icon' | 'notes' | 'monthlyTarget' | 'sortOrder' | 'includeInSpendingBudget'
+  >
 >;
 
 // ─── Groups ───────────────────────────────────────────────────────────────────

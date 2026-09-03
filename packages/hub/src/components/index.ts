@@ -17,6 +17,7 @@ export { Divider, SectionLabel, SubText } from './typography';
 export { Field } from './Field';
 export { FilePicker } from './FilePicker';
 export { IconButton } from './IconButton';
+export { IncludeExcludeChip } from './IncludeExcludeChip';
 export { Input } from './Input';
 export { MobileSelectSheet } from './MobileSelectSheet';
 export { MarkdownView } from './MarkdownView';

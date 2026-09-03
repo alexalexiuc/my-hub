@@ -68,6 +68,15 @@ export default function CategoriesPage() {
     router.push(`/finances/categories/${cat.id}?month=${selectedMonth}`);
   }
 
+  async function handleToggleBudgetInclusion(cat: CategoryRow) {
+    await apiFetch(`/api/finances/categories/${cat.id}`, {
+      method: 'PATCH',
+      body: { includeInSpendingBudget: !cat.includeInSpendingBudget },
+      silentToast: true,
+    });
+    load(selectedMonth);
+  }
+
   async function handleDeleteCategory(cat: CategoryRow) {
     if (!window.confirm(`Remove "${cat.name}"?`)) return;
     const result = await apiFetch<CategoryDeleteResponse>(`/api/finances/categories/${cat.id}`, {
@@ -160,6 +169,7 @@ export default function CategoriesPage() {
                 onEditCategory={setEditingCategory}
                 onDeleteCategory={handleDeleteCategory}
                 onOpenCategory={openCategory}
+                onToggleBudgetInclusion={handleToggleBudgetInclusion}
                 onChanged={() => load(selectedMonth)}
               />
             ))}
@@ -187,6 +197,7 @@ export default function CategoriesPage() {
                         onEdit={setEditingCategory}
                         onDelete={handleDeleteCategory}
                         onOpen={openCategory}
+                        onToggleBudgetInclusion={handleToggleBudgetInclusion}
                       />
                     </div>
                   ))}

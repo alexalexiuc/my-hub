@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Button, Divider, SubText } from '@/components';
+import { Divider, IncludeExcludeChip, SubText } from '@/components';
 import { fmt, AmountText } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { ACCOUNT_TYPE_NAMES, LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
@@ -56,19 +56,7 @@ function AccountListSection({ accounts, currency, included, onToggle }: AccountL
                     {fmt(acc.balance, currency)}
                   </span>
                 )}
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  onClick={() => onToggle(acc.id, included)}
-                  className={cn(
-                    'shrink-0 rounded-md border border-[var(--border)] text-[10px]',
-                    included
-                      ? 'hover:border-[var(--red)] hover:text-[var(--red)]'
-                      : 'hover:border-[var(--green)] hover:text-[var(--green)]',
-                  )}
-                >
-                  {included ? 'Exclude' : 'Include'}
-                </Button>
+                <IncludeExcludeChip included={included} onToggle={() => onToggle(acc.id, included)} />
               </div>
             </div>
           );

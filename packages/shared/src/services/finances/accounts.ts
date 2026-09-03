@@ -3,7 +3,7 @@
  * - createAccount(userId, budgetId, data) — creates an account inside a budget the user can access
  * - getAccounts(userId, budgetId, opts?) — lists accounts; optionally include archived
  * - getAccountById(userId, budgetId, accountId) — single account with access check
- * - updateAccount(userId, budgetId, accountId, data) — partial update
+ * - updateAccount(userId, budgetId, accountId, data) — partial update; data.showOnWidget/widgetSortOrder control whether a loan-type account gets a dedicated card on the finances widget and its display order
  * - deleteAccount(userId, budgetId, accountId) — hard delete
  * - getNetWorthHistory(userId, budgetId, limit?) — last N monthly net-worth snapshots, oldest-first
  * - getAvailableBalance(userId, budgetId) — sum of included non-archived account balances (liabilities subtracted). Default: bank+cash included, all others excluded. Per-user rows in financeAccountAvailability override the default.
@@ -36,7 +36,18 @@ export interface NetWorthSnapshot {
 
 export type AccountInsert = Omit<NewFinanceAccount, 'id' | 'budgetId' | 'createdAt' | 'updatedAt'>;
 export type AccountUpdate = Partial<
-  Pick<AccountInsert, 'name' | 'description' | 'type' | 'currency' | 'balance' | 'archived' | 'details'>
+  Pick<
+    AccountInsert,
+    | 'name'
+    | 'description'
+    | 'type'
+    | 'currency'
+    | 'balance'
+    | 'archived'
+    | 'details'
+    | 'showOnWidget'
+    | 'widgetSortOrder'
+  >
 >;
 
 export interface GetAccountsOpts {
