@@ -57,7 +57,7 @@ export interface LoanAccountDetails extends BaseAccountDetails {
   principal: number;
   interestRate: number; // 0 for interest-free installment plans
   termMonths: number;
-  startDate: string; // YYYY-MM-DD
+  firstPaymentDate: string; // YYYY-MM-DD — anchors the payment schedule; may differ from when the loan was contracted
   linkedItemName?: string;
 }
 

@@ -125,7 +125,7 @@ export const AddAccountSchema = z.object({
   principal: z.string(),
   interestRate: z.string(),
   termMonths: z.string(),
-  loanStartDate: z.string(),
+  loanFirstPaymentDate: z.string(),
   linkedItemName: z.string(),
   // Borrowed/Lent
   counterpartyName: z.string(),
@@ -151,7 +151,7 @@ export const defaultAddAccountValues: AddAccountValues = {
   principal: '',
   interestRate: '',
   termMonths: '',
-  loanStartDate: '',
+  loanFirstPaymentDate: '',
   linkedItemName: '',
   counterpartyName: '',
   direction: LentDirections.Gave,
@@ -184,7 +184,7 @@ export function formToAccountDetails(values: AddAccountValues): AccountDetails |
         principal: parseFloat(values.principal) || 0,
         interestRate: parseFloat(values.interestRate) || 0,
         termMonths: parseInt(values.termMonths) || 0,
-        startDate: values.loanStartDate || new Date().toISOString().slice(0, 10),
+        firstPaymentDate: values.loanFirstPaymentDate || new Date().toISOString().slice(0, 10),
         linkedItemName: values.linkedItemName,
       };
     case AccountTypes.BorrowedLent:
@@ -218,7 +218,7 @@ export function accountToEditValues(acc: {
   principal?: number;
   interestRate?: number;
   termMonths?: number;
-  startDate?: string;
+  firstPaymentDate?: string;
   linkedItemName?: string;
   counterpartyName?: string;
   direction?: LentDirection;
@@ -238,7 +238,7 @@ export function accountToEditValues(acc: {
     principal: String(acc.principal ?? ''),
     interestRate: String(acc.interestRate ?? ''),
     termMonths: String(acc.termMonths ?? ''),
-    loanStartDate: acc.startDate ?? '',
+    loanFirstPaymentDate: acc.firstPaymentDate ?? '',
     linkedItemName: acc.linkedItemName ?? '',
     counterpartyName: acc.counterpartyName ?? '',
     direction: acc.direction ?? LentDirections.Gave,
@@ -276,7 +276,7 @@ export function formToEditDetails(
         principal: parseFloat(values.principal) || 0,
         interestRate: parseFloat(values.interestRate) || 0,
         termMonths: parseInt(values.termMonths) || 0,
-        startDate: values.loanStartDate || new Date().toISOString().slice(0, 10),
+        firstPaymentDate: values.loanFirstPaymentDate || new Date().toISOString().slice(0, 10),
         ...(values.linkedItemName ? { linkedItemName: values.linkedItemName } : {}),
       };
     case AccountTypes.BorrowedLent:

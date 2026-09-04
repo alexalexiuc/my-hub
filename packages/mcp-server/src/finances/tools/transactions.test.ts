@@ -278,7 +278,7 @@ describe('addTransactionsTool', () => {
       currency: 'USD',
       type: 'loan',
       balance: -9000,
-      details: { principal: 10000, interestRate: 6, termMonths: 60, startDate: '2026-01-01' },
+      details: { principal: 10000, interestRate: 6, termMonths: 60, firstPaymentDate: '2026-01-01' },
     };
     vi.mocked(getAccountById).mockResolvedValue(loanAccount as never);
     // The DB ledger simply subtracts the full payment amount, which overstates principal paydown

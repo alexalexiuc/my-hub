@@ -88,10 +88,10 @@ export const UpsertAccountSchema = z.object({
           .min(0)
           .describe('Annual interest rate in percent (0 for interest-free installment plans).'),
         termMonths: z.number().int().positive().describe('Loan term in months.'),
-        startDate: z
+        firstPaymentDate: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
-          .describe('Loan start date (YYYY-MM-DD).'),
+          .describe('Date of the first scheduled payment (YYYY-MM-DD); anchors the payment schedule.'),
         linkedItemName: z.string().optional().describe('Optional label for the purchased item.'),
       }),
       z.object({
@@ -116,7 +116,7 @@ export const UpsertAccountSchema = z.object({
     .optional()
     .describe(
       'Type-specific account details. The "type" field must match the account type. ' +
-        'Required for: loan (principal, interestRate, termMonths, startDate), ' +
+        'Required for: loan (principal, interestRate, termMonths, firstPaymentDate), ' +
         'credit_card (creditLimit, statementDay), ' +
         'borrowed_lent (counterpartyName, direction), ' +
         'goal (targetAmount), ' +
@@ -238,10 +238,13 @@ export const AddLoanSchema = z.object({
     .min(0)
     .describe('Annual interest rate in percent. Use 0 for interest-free installment plans.'),
   termMonths: z.number().int().positive().describe('Total loan term in months.'),
-  startDate: z
+  firstPaymentDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .describe('Loan start / disbursement date (YYYY-MM-DD).'),
+    .describe(
+      'Date of the first scheduled payment (YYYY-MM-DD); anchors the payment schedule. ' +
+        'Also used as the date of the initial-balance transaction.',
+    ),
   linkedItemName: z.string().optional().describe('Optional label for the purchased item (e.g. "iPhone 15 Pro").'),
 });
 
@@ -262,7 +265,7 @@ export const addLoanTool: ToolHandler<typeof AddLoanSchema.shape> = async (input
       principal: input.principal,
       interestRate: input.interestRate,
       termMonths: input.termMonths,
-      startDate: input.startDate,
+      firstPaymentDate: input.firstPaymentDate,
       ...(input.linkedItemName !== undefined ? { linkedItemName: input.linkedItemName } : {}),
     },
   });
@@ -270,7 +273,7 @@ export const addLoanTool: ToolHandler<typeof AddLoanSchema.shape> = async (input
   await addTransaction(userId, budget.id, {
     type: TransactionTypes.Expense,
     amount: input.principal,
-    date: input.startDate,
+    date: input.firstPaymentDate,
     accountId: account.id,
     categoryId: null,
     payeeId: null,
@@ -290,7 +293,7 @@ export const addLoanTool: ToolHandler<typeof AddLoanSchema.shape> = async (input
       principal: input.principal,
       interestRate: input.interestRate,
       termMonths: input.termMonths,
-      startDate: input.startDate,
+      firstPaymentDate: input.firstPaymentDate,
       monthlyPayment: Math.round(getMonthlyPayment(input.principal, monthlyRate, input.termMonths) * 100) / 100,
       linkedItemName: input.linkedItemName,
       loanSummary,

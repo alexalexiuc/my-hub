@@ -22,7 +22,7 @@ export const amortizationResponseSchema = z.object({
   interestRate: z.number(),
   termMonths: z.number().int(),
   monthlyPayment: z.number(),
-  startDate: z.string(),
+  firstPaymentDate: z.string(),
   payoffDate: z.string(),
   totalCost: z.number(),
   totalInterest: z.number(),
@@ -61,7 +61,7 @@ export const GET = route({
     routeHttpError(400, { error: 'Loan account is missing required details.' });
   }
 
-  const { principal, interestRate, termMonths, startDate } = rawDetails as LoanAccountDetails;
+  const { principal, interestRate, termMonths, firstPaymentDate } = rawDetails as LoanAccountDetails;
   const r = interestRate / 100 / 12;
   const monthlyPayment =
     r === 0
@@ -69,12 +69,12 @@ export const GET = route({
       : (principal * r * Math.pow(1 + r, termMonths)) / (Math.pow(1 + r, termMonths) - 1);
   const monthlyPaymentRounded = Math.round(monthlyPayment * 100) / 100;
 
-  const payoffDate = toDateStr(addMonths(new Date(startDate), termMonths));
+  const payoffDate = toDateStr(addMonths(new Date(firstPaymentDate), termMonths));
   const totalCost = Math.round(monthlyPaymentRounded * termMonths * 100) / 100;
   const totalInterest = Math.round((totalCost - principal) * 100) / 100;
 
   const today = new Date().toISOString().slice(0, 10);
-  const start = new Date(startDate);
+  const start = new Date(firstPaymentDate);
   const rows: ScheduleRow[] = [];
   let balance = principal;
 
@@ -100,7 +100,7 @@ export const GET = route({
     interestRate,
     termMonths,
     monthlyPayment: monthlyPaymentRounded,
-    startDate,
+    firstPaymentDate,
     payoffDate,
     totalCost,
     totalInterest,

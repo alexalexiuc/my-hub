@@ -51,7 +51,7 @@ function mockUpdate() {
 //
 //   finance_accounts row:
 //     id=24, balance=-7500 at creation (opening_balance column removed)
-//     details: { type:"loan", principal:7500, startDate:"2026-05-05",
+//     details: { type:"loan", principal:7500, firstPaymentDate:"2026-05-05",
 //                termMonths:6, interestRate:0 }
 //
 //   finance_transactions rows:
