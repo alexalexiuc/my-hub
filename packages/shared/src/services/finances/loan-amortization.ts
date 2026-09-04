@@ -61,18 +61,21 @@ function toDateString(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+// Payment k (1-indexed) is due on firstPaymentDate + (k-1) months, so the payment due on
+// firstPaymentDate itself already counts — this returns the count of payments due on or
+// before asOfDate, not the number of full months elapsed since firstPaymentDate.
 function countScheduledPayments(firstPaymentDate: string, asOfDate: string): number {
   const start = new Date(firstPaymentDate);
   const asOf = new Date(asOfDate);
 
   if (asOf < start) return 0;
 
-  let months = (asOf.getFullYear() - start.getFullYear()) * 12 + (asOf.getMonth() - start.getMonth());
+  let monthsElapsed = (asOf.getFullYear() - start.getFullYear()) * 12 + (asOf.getMonth() - start.getMonth());
   if (asOf.getDate() < start.getDate()) {
-    months -= 1;
+    monthsElapsed -= 1;
   }
 
-  return Math.max(0, months);
+  return Math.max(0, monthsElapsed) + 1;
 }
 
 export function getMonthlyPayment(principal: number, monthlyRate: number, termMonths: number): number {
@@ -177,7 +180,8 @@ export function calculateLoanAmortizationSummary(
   const asOfDate = opts.asOfDate ?? currentDateString();
   const monthlyRate = details.interestRate / 100 / 12;
   const monthlyPayment = getMonthlyPayment(details.principal, monthlyRate, details.termMonths);
-  const scheduledPayoffDate = toDateString(addMonths(new Date(details.firstPaymentDate), details.termMonths));
+  // Payment #termMonths (the last one) is due termMonths-1 months after payment #1.
+  const scheduledPayoffDate = toDateString(addMonths(new Date(details.firstPaymentDate), details.termMonths - 1));
 
   const scheduledPaymentsMade = Math.min(
     details.termMonths,
@@ -241,7 +245,7 @@ export function calculateLoanAmortizationSummary(
     totalInterestPaid: roundToTwoDecimals(totalInterestPaid),
     totalInterestRemaining: roundToTwoDecimals(projection.totalInterestRemaining),
     actualPayoffDate: toDateString(
-      addMonths(new Date(details.firstPaymentDate), paymentsMade + projection.paymentsRemaining),
+      addMonths(new Date(details.firstPaymentDate), paymentsMade + projection.paymentsRemaining - 1),
     ),
     interestSavedVsSchedule: roundToTwoDecimals(Math.max(0, scheduledTotalInterest - expectedTotalInterestHybrid)),
   };
@@ -388,13 +392,12 @@ export function buildLoanSummary(
 
   if (paramsIncomplete) {
     const safePrincipal = Math.max(0, principal ?? 0);
-    const monthsElapsed = firstPaymentDate ? countScheduledPayments(firstPaymentDate, today) : 0;
-    const paymentsCompleted =
-      termMonths != null && termMonths > 0 ? Math.min(monthsElapsed, termMonths) : monthsElapsed;
+    const paymentsDue = firstPaymentDate ? countScheduledPayments(firstPaymentDate, today) : 0;
+    const paymentsCompleted = termMonths != null && termMonths > 0 ? Math.min(paymentsDue, termMonths) : paymentsDue;
     const paymentsRemaining = termMonths != null && termMonths > 0 ? Math.max(0, termMonths - paymentsCompleted) : 0;
     const projectedPayoffDate =
       firstPaymentDate && termMonths != null && termMonths > 0
-        ? toDateString(addMonths(new Date(firstPaymentDate), termMonths))
+        ? toDateString(addMonths(new Date(firstPaymentDate), termMonths - 1))
         : today;
     return {
       originalPrincipal: safePrincipal,
@@ -419,7 +422,7 @@ export function buildLoanSummary(
   const remainingPrincipal = computeRemainingPrincipal(principal!, interestRate!, termMonths!, paymentsCompleted);
   const remainingInterest = roundToTwoDecimals(Math.max(0, remainingObligation - remainingPrincipal));
   const paymentsRemaining = termMonths! - paymentsCompleted;
-  const projectedPayoffDate = toDateString(addMonths(new Date(firstPaymentDate!), termMonths!));
+  const projectedPayoffDate = toDateString(addMonths(new Date(firstPaymentDate!), termMonths! - 1));
 
   return {
     originalPrincipal: roundToTwoDecimals(principal!),
