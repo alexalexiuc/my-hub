@@ -199,8 +199,8 @@ export const PATCH = route({
   if (body.action === 'recreateInitialBalance') {
     if (existing.type !== AccountTypes.Loan) routeHttpError(400, { error: 'Only supported for loan accounts' });
     const details = existing.details as LoanAccountDetails | null;
-    if (!details?.principal || !details?.startDate) {
-      routeHttpError(400, { error: 'Loan is missing principal or startDate in details' });
+    if (!details?.principal || !details?.firstPaymentDate) {
+      routeHttpError(400, { error: 'Loan is missing principal or firstPaymentDate in details' });
     }
 
     const allTxs = await getTransactions(user.id, budget.id, { accountId, includeCorrections: true });
@@ -213,7 +213,7 @@ export const PATCH = route({
       toAccountId: null,
       amount: details.principal,
       exchangeRate: 1,
-      date: details.startDate,
+      date: details.firstPaymentDate,
       categoryId: null,
       payeeId: null,
       notes: 'Initial Balance',

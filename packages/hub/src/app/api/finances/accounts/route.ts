@@ -55,7 +55,7 @@ export const accountDetailsSchema = z.discriminatedUnion('type', [
     principal: z.number(),
     interestRate: z.number(),
     termMonths: z.number().int(),
-    startDate: z.string(),
+    firstPaymentDate: z.string(),
     linkedItemName: z.string().optional(),
   }),
   z.object({
@@ -87,7 +87,7 @@ export const accountItemSchema = z
     principal: z.number().optional(),
     interestRate: z.number().optional(),
     termMonths: z.number().optional(),
-    startDate: z.string().optional(),
+    firstPaymentDate: z.string().optional(),
     linkedItemName: z.string().optional(),
     counterpartyName: z.string().optional(),
     direction: z.enum(LentDirections).optional(),
@@ -172,7 +172,7 @@ function flattenDetails(type: string, details: unknown): Partial<AccountItem> {
         principal: d.principal,
         interestRate: d.interestRate,
         termMonths: d.termMonths,
-        startDate: d.startDate,
+        firstPaymentDate: d.firstPaymentDate,
         linkedItemName: d.linkedItemName,
       };
     }

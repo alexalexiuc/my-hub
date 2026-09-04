@@ -91,7 +91,7 @@ export default function AmortizationPage() {
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[12px] text-[var(--muted)]">
           <span>
-            {fmtDate(data.startDate)} → {fmtDate(data.payoffDate)}
+            {fmtDate(data.firstPaymentDate)} → {fmtDate(data.payoffDate)}
           </span>
           <span>·</span>
           <span>{data.termMonths} payments</span>

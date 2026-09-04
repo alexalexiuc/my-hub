@@ -173,8 +173,8 @@ function TypeSpecificFields({
                 className={ghostInputClass}
               />
             </FinFieldCard>
-            <FinFieldCard label="Start Date">
-              <Input {...register('loanStartDate')} type="date" variant="ghost" className={ghostInputClass} />
+            <FinFieldCard label="First Payment Date">
+              <Input {...register('loanFirstPaymentDate')} type="date" variant="ghost" className={ghostInputClass} />
             </FinFieldCard>
           </div>
           <FinFieldCard label="Linked Item (optional)">

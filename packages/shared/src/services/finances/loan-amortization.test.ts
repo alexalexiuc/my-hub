@@ -30,7 +30,7 @@ describe('calculateLoanAmortizationSummary', () => {
       principal: 120000,
       interestRate: 12,
       termMonths: 120,
-      startDate: '2020-01-15',
+      firstPaymentDate: '2020-01-15',
     };
 
     const summary = calculateLoanAmortizationSummary(details, { asOfDate: '2020-04-16' });
@@ -49,7 +49,7 @@ describe('calculateLoanAmortizationSummary', () => {
       principal: 1000,
       interestRate: 12,
       termMonths: 12,
-      startDate: '2020-01-01',
+      firstPaymentDate: '2020-01-01',
     };
 
     const summary = calculateLoanAmortizationSummary(details, {
@@ -72,7 +72,7 @@ describe('calculateLoanAmortizationSummary', () => {
       principal: 1000,
       interestRate: 12,
       termMonths: 12,
-      startDate: '2020-01-01',
+      firstPaymentDate: '2020-01-01',
     };
 
     const summary = calculateLoanAmortizationSummary(details, {
@@ -91,7 +91,7 @@ describe('calculateLoanAmortizationSummary', () => {
       principal: 1000,
       interestRate: 0,
       termMonths: 10,
-      startDate: '2020-01-01',
+      firstPaymentDate: '2020-01-01',
     };
 
     const summary = calculateLoanAmortizationSummary(details, {
@@ -109,7 +109,7 @@ describe('calculateLoanAmortizationSummary', () => {
 });
 
 describe('buildLoanSummary', () => {
-  // base loan: startDate 2024-01-01, 24 months
+  // base loan: firstPaymentDate 2024-01-01, 24 months
   // with today = '2024-06-01' → 5 months elapsed → k=5
   const today = '2024-06-01';
   const base: LoanAccountDetails = {
@@ -117,7 +117,7 @@ describe('buildLoanSummary', () => {
     principal: 12000,
     interestRate: 12,
     termMonths: 24,
-    startDate: '2024-01-01',
+    firstPaymentDate: '2024-01-01',
   };
 
   it('full params: remainingPrincipal + remainingInterest === remainingObligation (±rounding)', () => {
@@ -129,7 +129,7 @@ describe('buildLoanSummary', () => {
     expect(summary.remainingPrincipal! + summary.remainingInterest!).toBeCloseTo(summary.remainingObligation, 1);
   });
 
-  it('projectedPayoffDate is startDate + termMonths (fixed, not derived from today)', () => {
+  it('projectedPayoffDate is firstPaymentDate + termMonths (fixed, not derived from today)', () => {
     const summary = buildLoanSummary(base, 0, today);
     expect(summary.projectedPayoffDate).toBe('2026-01-01');
   });
@@ -150,9 +150,9 @@ describe('buildLoanSummary', () => {
     expect(summary.remainingPrincipal).toBeUndefined();
   });
 
-  it('k=0 when today === startDate: remainingPrincipal === originalPrincipal', () => {
-    // today == startDate → 0 months elapsed → k=0
-    const summary = buildLoanSummary(base, 0, base.startDate);
+  it('k=0 when today === firstPaymentDate: remainingPrincipal === originalPrincipal', () => {
+    // today == firstPaymentDate → 0 months elapsed → k=0
+    const summary = buildLoanSummary(base, 0, base.firstPaymentDate);
     expect(summary.remainingPrincipal).toBe(summary.originalPrincipal);
     expect(summary.paymentsCompleted).toBe(0);
     expect(summary.paymentsRemaining).toBe(24);
@@ -164,9 +164,9 @@ describe('buildLoanSummary', () => {
       principal: 10000,
       interestRate: 6,
       termMonths: 36,
-      startDate: '2024-01-01',
+      firstPaymentDate: '2024-01-01',
     };
-    // 2027-01-01 is exactly 36 months after startDate → k=36=termMonths
+    // 2027-01-01 is exactly 36 months after firstPaymentDate → k=36=termMonths
     const summary = buildLoanSummary(details, 0, '2027-01-01');
     expect(summary.paymentsCompleted).toBe(36);
     expect(summary.remainingPrincipal).toBeCloseTo(0, 1);
@@ -179,9 +179,9 @@ describe('buildLoanSummary', () => {
       principal: 1200,
       interestRate: 0,
       termMonths: 12,
-      startDate: '2024-01-01',
+      firstPaymentDate: '2024-01-01',
     };
-    // 2024-05-01 is 4 months after startDate → k=4
+    // 2024-05-01 is 4 months after firstPaymentDate → k=4
     // remainingPrincipal = 1200 - 4*(1200/12) = 800
     const summary = buildLoanSummary(details, 400, '2024-05-01');
     expect(summary.paymentsCompleted).toBe(4);
@@ -197,7 +197,7 @@ describe('getLoanDisplayBalance', () => {
     principal: 10000,
     interestRate: 6,
     termMonths: 60,
-    startDate: '2026-01-01',
+    firstPaymentDate: '2026-01-01',
   };
 
   it('returns the ledger balance unchanged for non-loan accounts (no snapshot)', () => {
