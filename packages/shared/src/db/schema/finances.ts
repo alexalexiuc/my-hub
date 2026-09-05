@@ -34,6 +34,8 @@ export const financeBudgets = pgTable('finance_budgets', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   defaultCurrency: text('default_currency').$type<SupportedCurrency>().notNull().default('MDL'),
+  // Controls whether the Finances widget masks currency amounts behind the eye toggle.
+  amountsHidden: boolean('amounts_hidden').notNull().default(false),
   // The user who created the budget — informational, does not imply elevated permissions.
   // All permission logic is driven by financeBudgetMembers.
   createdByUserId: uuid('created_by_user_id')

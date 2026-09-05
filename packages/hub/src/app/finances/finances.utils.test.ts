@@ -13,6 +13,7 @@ import type { BudgetInfo } from '@/app/api/finances/budget/budget.schema';
 function makeBudget(overrides: Partial<BudgetInfo> & { id: number; name: string }): BudgetInfo {
   return {
     defaultCurrency: 'EUR',
+    amountsHidden: false,
     createdByUserId: 'user-1',
     isOwner: true,
     isActive: false,

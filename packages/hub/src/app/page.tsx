@@ -71,12 +71,12 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col">
       <DashboardHeader />
 
-      <main className="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-8 py-8 space-y-8">
+      <main className="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-8 py-8 space-y-6">
         <TravelWidget />
 
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-3">Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
             <FinancesWidget />
             <CaloriesWidget />
           </div>

@@ -1,0 +1,1 @@
+ALTER TABLE "finance_budgets" ADD COLUMN "amounts_hidden" boolean DEFAULT false NOT NULL;

@@ -28,6 +28,7 @@ export type BudgetMutationResponse = z.infer<typeof budgetMutationResponseSchema
 const BudgetUpdateSchema = z.object({
   name: z.string().trim().min(1).optional(),
   defaultCurrency: supportedCurrencySchema.optional(),
+  amountsHidden: z.boolean().optional(),
 });
 
 /**
@@ -52,6 +53,7 @@ export const GET = route({ response: budgetDetailResponseSchema })(async ({ user
       id: budget.id,
       name: budget.name,
       defaultCurrency: budget.defaultCurrency,
+      amountsHidden: budget.amountsHidden,
       createdByUserId: budget.createdByUserId,
       isOwner: budget.createdByUserId === user.id,
     },
@@ -72,6 +74,7 @@ export const PATCH = route({ body: BudgetUpdateSchema, response: budgetMutationR
     omitUndefined({
       name: body.name?.trim(),
       defaultCurrency: body.defaultCurrency,
+      amountsHidden: body.amountsHidden,
     }),
   );
 

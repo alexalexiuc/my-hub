@@ -34,7 +34,7 @@ const budgetAccessCache = new PromiseCacheX<boolean>({ ttl: 1000 }); // 1 second
 const budgetsCache = new PromiseCacheX<UserBudget[]>({ ttl: 1000 }); // 1 second
 
 export type BudgetInsert = Omit<NewFinanceBudget, 'id' | 'createdByUserId' | 'createdAt' | 'updatedAt'>;
-export type BudgetUpdate = Partial<Pick<BudgetInsert, 'name' | 'defaultCurrency'>>;
+export type BudgetUpdate = Partial<Pick<BudgetInsert, 'name' | 'defaultCurrency' | 'amountsHidden'>>;
 
 /** Budget enriched with the requesting user's membership status. */
 export interface UserBudget extends FinanceBudget {
@@ -87,6 +87,7 @@ export async function getUserBudgets(userId: string): Promise<UserBudget[]> {
         id: financeBudgets.id,
         name: financeBudgets.name,
         defaultCurrency: financeBudgets.defaultCurrency,
+        amountsHidden: financeBudgets.amountsHidden,
         createdByUserId: financeBudgets.createdByUserId,
         createdAt: financeBudgets.createdAt,
         updatedAt: financeBudgets.updatedAt,
@@ -123,6 +124,7 @@ export async function getBudgetById(userId: string, budgetId: number): Promise<F
       id: financeBudgets.id,
       name: financeBudgets.name,
       defaultCurrency: financeBudgets.defaultCurrency,
+      amountsHidden: financeBudgets.amountsHidden,
       createdByUserId: financeBudgets.createdByUserId,
       createdAt: financeBudgets.createdAt,
       updatedAt: financeBudgets.updatedAt,

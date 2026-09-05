@@ -12,9 +12,9 @@ interface Props {
 
 export function SectionCard({ title, titleHref, titleHoverClass, action, children, className = '' }: Props) {
   return (
-    <section className={cn('rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-sm', className)}>
+    <section className={cn('rounded-xl border border-zinc-800 bg-zinc-900 p-5 shadow-sm', className)}>
       {(title || action) && (
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           {title && (
             <h2 className="text-lg font-semibold">
               {titleHref ? (
