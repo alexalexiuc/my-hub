@@ -35,8 +35,10 @@ describe('calculateLoanAmortizationSummary', () => {
 
     const summary = calculateLoanAmortizationSummary(details, { asOfDate: '2020-04-16' });
 
-    expect(summary.paymentsMade).toBe(3);
-    expect(summary.paymentsRemaining).toBe(117);
+    // Payment #1 is due on firstPaymentDate (2020-01-15) itself; by 2020-04-16 payments
+    // #1-#4 are due (Jan 15, Feb 15, Mar 15, Apr 15), so 4 are made.
+    expect(summary.paymentsMade).toBe(4);
+    expect(summary.paymentsRemaining).toBe(116);
     expect(summary.remainingPrincipal).toBeGreaterThan(0);
     expect(summary.remainingPrincipal).toBeLessThan(details.principal);
     expect(summary.actualPayoffDate).toBeUndefined();
@@ -80,7 +82,9 @@ describe('calculateLoanAmortizationSummary', () => {
       paymentHistory: [{ amount: 300, date: '2020-02-01', currencyMismatch: true }],
     });
 
-    expect(summary.paymentsMade).toBe(5);
+    // Payment #1 is due on firstPaymentDate (2020-01-01) itself, so by 2020-06-15 payments
+    // #1-#6 are due (Jan 1 through Jun 1).
+    expect(summary.paymentsMade).toBe(6);
     expect(summary.actualPayoffDate).toBeUndefined();
     expect(summary.interestSavedVsSchedule).toBeUndefined();
   });
@@ -109,8 +113,8 @@ describe('calculateLoanAmortizationSummary', () => {
 });
 
 describe('buildLoanSummary', () => {
-  // base loan: firstPaymentDate 2024-01-01, 24 months
-  // with today = '2024-06-01' → 5 months elapsed → k=5
+  // base loan: firstPaymentDate 2024-01-01 (payment #1 is due that day), 24 months
+  // with today = '2024-06-01' → payments #1-#6 due (Jan-Jun 1st) → k=6
   const today = '2024-06-01';
   const base: LoanAccountDetails = {
     type: 'loan',
@@ -123,15 +127,16 @@ describe('buildLoanSummary', () => {
   it('full params: remainingPrincipal + remainingInterest === remainingObligation (±rounding)', () => {
     const summary = buildLoanSummary(base, 2700, today);
     expect(summary.paramsIncomplete).toBeUndefined();
-    expect(summary.paymentsCompleted).toBe(5);
+    expect(summary.paymentsCompleted).toBe(6);
     expect(summary.remainingPrincipal).toBeDefined();
     expect(summary.remainingInterest).toBeDefined();
     expect(summary.remainingPrincipal! + summary.remainingInterest!).toBeCloseTo(summary.remainingObligation, 1);
   });
 
-  it('projectedPayoffDate is firstPaymentDate + termMonths (fixed, not derived from today)', () => {
+  it('projectedPayoffDate is firstPaymentDate + (termMonths - 1) months (fixed, not derived from today)', () => {
     const summary = buildLoanSummary(base, 0, today);
-    expect(summary.projectedPayoffDate).toBe('2026-01-01');
+    // Payment #24 (the last one) is due 23 months after payment #1 (2024-01-01).
+    expect(summary.projectedPayoffDate).toBe('2025-12-01');
   });
 
   it('missing params (null details): paramsIncomplete true, no crash, omits remainingPrincipal/Interest', () => {
@@ -150,9 +155,16 @@ describe('buildLoanSummary', () => {
     expect(summary.remainingPrincipal).toBeUndefined();
   });
 
-  it('k=0 when today === firstPaymentDate: remainingPrincipal === originalPrincipal', () => {
-    // today == firstPaymentDate → 0 months elapsed → k=0
+  it('k=1 when today === firstPaymentDate: payment #1 is already due', () => {
+    // today == firstPaymentDate → payment #1 is due that day → k=1
     const summary = buildLoanSummary(base, 0, base.firstPaymentDate);
+    expect(summary.paymentsCompleted).toBe(1);
+    expect(summary.paymentsRemaining).toBe(23);
+    expect(summary.remainingPrincipal).toBeLessThan(summary.originalPrincipal);
+  });
+
+  it('k=0 the day before firstPaymentDate: no payment due yet', () => {
+    const summary = buildLoanSummary(base, 0, '2023-12-31');
     expect(summary.remainingPrincipal).toBe(summary.originalPrincipal);
     expect(summary.paymentsCompleted).toBe(0);
     expect(summary.paymentsRemaining).toBe(24);
@@ -181,11 +193,11 @@ describe('buildLoanSummary', () => {
       termMonths: 12,
       firstPaymentDate: '2024-01-01',
     };
-    // 2024-05-01 is 4 months after firstPaymentDate → k=4
-    // remainingPrincipal = 1200 - 4*(1200/12) = 800
+    // Payment #1 is due on firstPaymentDate (2024-01-01); by 2024-05-01 payments #1-#5 are due → k=5
+    // remainingPrincipal = 1200 - 5*(1200/12) = 700
     const summary = buildLoanSummary(details, 400, '2024-05-01');
-    expect(summary.paymentsCompleted).toBe(4);
-    expect(summary.remainingPrincipal).toBe(800);
+    expect(summary.paymentsCompleted).toBe(5);
+    expect(summary.remainingPrincipal).toBe(700);
     expect(summary.totalInterestScheduled).toBe(0);
     expect(summary.originalObligation).toBe(1200);
   });

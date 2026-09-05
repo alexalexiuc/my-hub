@@ -69,7 +69,8 @@ export const GET = route({
       : (principal * r * Math.pow(1 + r, termMonths)) / (Math.pow(1 + r, termMonths) - 1);
   const monthlyPaymentRounded = Math.round(monthlyPayment * 100) / 100;
 
-  const payoffDate = toDateStr(addMonths(new Date(firstPaymentDate), termMonths));
+  // Payment #termMonths (the last one) is due termMonths-1 months after payment #1 (firstPaymentDate).
+  const payoffDate = toDateStr(addMonths(new Date(firstPaymentDate), termMonths - 1));
   const totalCost = Math.round(monthlyPaymentRounded * termMonths * 100) / 100;
   const totalInterest = Math.round((totalCost - principal) * 100) / 100;
 
@@ -82,7 +83,8 @@ export const GET = route({
     const interestPart = Math.round(balance * r * 100) / 100;
     const principalPart = Math.round(Math.min(monthlyPaymentRounded - interestPart, balance) * 100) / 100;
     balance = Math.round(Math.max(0, balance - principalPart) * 100) / 100;
-    const date = toDateStr(addMonths(start, n));
+    // Payment n (1-indexed) is due n-1 months after firstPaymentDate.
+    const date = toDateStr(addMonths(start, n - 1));
     rows.push({ n, date, principalPart, interestPart, balance, past: false, next: false });
   }
 
