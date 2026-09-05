@@ -13,6 +13,7 @@ export const budgetInfoSchema = z
     id: z.number().int(),
     name: z.string(),
     defaultCurrency: supportedCurrencySchema,
+    amountsHidden: z.boolean(),
     createdByUserId: z.string(),
     isOwner: z.boolean(),
     isActive: z.boolean().optional(),

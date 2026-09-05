@@ -21,7 +21,7 @@ function metricCardStyle(color: string): React.CSSProperties {
 export function FinancesWidget() {
   const [data, setData] = useState<FinanceDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [revealed, setRevealed] = useState(false);
+  const revealed = data ? !data.amountsHidden : false;
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -39,6 +39,13 @@ export function FinancesWidget() {
     load();
   }, [load]);
 
+  async function toggleRevealed() {
+    if (!data) return;
+    const amountsHidden = !data.amountsHidden;
+    setData({ ...data, amountsHidden });
+    await apiFetch('/api/finances/budget', { method: 'PATCH', body: { amountsHidden }, silentToast: true });
+  }
+
   return (
     <div className="finances-theme">
       <SectionCard
@@ -49,7 +56,7 @@ export function FinancesWidget() {
         action={
           data && (
             <button
-              onClick={() => setRevealed(r => !r)}
+              onClick={toggleRevealed}
               className="text-zinc-500 hover:text-zinc-300 transition"
               title={revealed ? 'Hide amounts' : 'Show amounts'}
             >
@@ -72,7 +79,7 @@ export function FinancesWidget() {
             to get started.
           </p>
         ) : (
-          <div className="mt-2 flex flex-col gap-3.5">
+          <div className="mt-1 flex flex-col gap-2.5">
             {/* Budget bar */}
             {data.budgetTotal > 0 && (
               <div>
