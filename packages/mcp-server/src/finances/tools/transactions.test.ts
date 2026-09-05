@@ -199,6 +199,34 @@ describe('addTransactionsTool', () => {
     expect(payload.results[0]?.suggestion).toBeUndefined();
   });
 
+  it('suggests providing price and quantity when receipt items are missing price info', async () => {
+    const result = await addTransactionsTool(
+      {
+        accountId: 1,
+        transactions: [
+          {
+            type: TransactionTypes.Expense,
+            amount: 80,
+            notes: 'Groceries',
+            date: '2026-04-28',
+            extras: {
+              rawInput: 'Milk, Bread',
+              receiptNumber: 'R-100',
+              items: [{ name: 'Milk' }, { name: 'Bread', unitPrice: 3 }],
+            },
+          },
+        ],
+        createPayee: undefined,
+      },
+      financesContext,
+    );
+
+    const payload = parseToolPayload(result) as { results: Array<{ itemsCount: number; suggestion?: string }> };
+    expect(payload.results[0]?.itemsCount).toBe(2);
+    expect(payload.results[0]?.suggestion).toContain('1 of 2 item(s) are missing price info');
+    expect(payload.results[0]?.suggestion).toContain('finances_itemize_transaction');
+  });
+
   it('returns category budget progress in root summary for categories with monthly targets', async () => {
     vi.mocked(getCategories).mockResolvedValue([{ id: 10, monthlyTarget: 300 }] as never);
     vi.mocked(getBudgetProgress).mockResolvedValue({
@@ -726,6 +754,27 @@ describe('finances_itemize_transaction', () => {
     expect(payload.transactionId).toBe(10);
     expect(payload.itemsCount).toBe(1);
     expect(payload.suggestion).toBeUndefined();
+  });
+
+  it('suggests providing price info when itemized items are missing both unitPrice and totalPrice', async () => {
+    vi.mocked(getTransactionById).mockResolvedValue({
+      ...baseTransaction,
+      extras: { kind: 'manual', source: 'mcp' },
+    } as never);
+    vi.mocked(updateTransaction).mockResolvedValue({
+      ...baseTransaction,
+      extras: { kind: 'receipt', source: 'mcp', items: [{ name: 'Milk', quantity: 2 }, { name: 'Bread' }] },
+    } as never);
+
+    const result = await itemizeTransactionTool(
+      { ...baseItemizeInput, transactionId: 10, items: [{ name: 'Milk', quantity: 2 }, { name: 'Bread' }] },
+      financesContext,
+    );
+
+    const payload = parseToolPayload(result) as { transactionId: number; itemsCount: number; suggestion?: string };
+    expect(payload.itemsCount).toBe(2);
+    expect(payload.suggestion).toContain('2 of 2 item(s) are missing price info');
+    expect(payload.suggestion).toContain('leave the items as-is');
   });
 
   it('replaces the existing items array rather than merging it', async () => {
