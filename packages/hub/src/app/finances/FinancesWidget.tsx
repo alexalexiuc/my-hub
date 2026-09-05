@@ -10,6 +10,14 @@ import Link from 'next/link';
 
 const HIDDEN = '*** **';
 
+const AVAILABLE_COLOR = 'var(--blue)';
+const PORTFOLIO_COLOR = 'var(--green)';
+const LOAN_COLOR = 'var(--amber)';
+
+function metricCardStyle(color: string): React.CSSProperties {
+  return { background: color + '14', border: `1px solid ${color}33` };
+}
+
 export function FinancesWidget() {
   const [data, setData] = useState<FinanceDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,15 +96,25 @@ export function FinancesWidget() {
 
             {/* Metric grid: Available balance, Portfolio */}
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-lg bg-zinc-800/40 p-2.5">
-                <div className="text-[10px] uppercase tracking-wide text-zinc-500">Available</div>
-                <div className="mt-0.5 text-sm font-semibold tabular-nums text-zinc-100">
+              <div className="rounded-lg p-2.5" style={metricCardStyle(AVAILABLE_COLOR)}>
+                <div className="flex items-center gap-1.5">
+                  <CategoryIcon color={AVAILABLE_COLOR} size="sm">
+                    🏦
+                  </CategoryIcon>
+                  <span className="text-[10px] uppercase tracking-wide text-zinc-500">Available</span>
+                </div>
+                <div className="mt-1 text-sm font-semibold tabular-nums text-zinc-100">
                   {revealed ? fmt(data.availableBalance, data.currency) : HIDDEN}
                 </div>
               </div>
-              <div className="rounded-lg bg-zinc-800/40 p-2.5">
-                <div className="text-[10px] uppercase tracking-wide text-zinc-500">Portfolio</div>
-                <div className="mt-0.5 text-sm font-semibold tabular-nums text-zinc-100">
+              <div className="rounded-lg p-2.5" style={metricCardStyle(PORTFOLIO_COLOR)}>
+                <div className="flex items-center gap-1.5">
+                  <CategoryIcon color={PORTFOLIO_COLOR} size="sm">
+                    📈
+                  </CategoryIcon>
+                  <span className="text-[10px] uppercase tracking-wide text-zinc-500">Portfolio</span>
+                </div>
+                <div className="mt-1 text-sm font-semibold tabular-nums text-zinc-100">
                   {!data.portfolio || data.portfolio.value === null
                     ? '—'
                     : revealed
@@ -118,9 +136,14 @@ export function FinancesWidget() {
             {data.loans.length > 0 && (
               <div className="grid grid-cols-2 gap-2">
                 {data.loans.map(loan => (
-                  <div key={loan.id} className="rounded-lg bg-zinc-800/40 p-2.5">
-                    <div className="truncate text-[10px] uppercase tracking-wide text-zinc-500">{loan.name}</div>
-                    <div className="mt-0.5 text-sm font-semibold tabular-nums text-zinc-100">
+                  <div key={loan.id} className="rounded-lg p-2.5" style={metricCardStyle(LOAN_COLOR)}>
+                    <div className="flex items-center gap-1.5">
+                      <CategoryIcon color={LOAN_COLOR} size="sm">
+                        🏷
+                      </CategoryIcon>
+                      <span className="truncate text-[10px] uppercase tracking-wide text-zinc-500">{loan.name}</span>
+                    </div>
+                    <div className="mt-1 text-sm font-semibold tabular-nums text-zinc-100">
                       {revealed ? fmt(loan.remainingObligation, loan.currency) : HIDDEN}
                     </div>
                     <div className="text-[10px] text-zinc-500">
