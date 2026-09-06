@@ -1,6 +1,6 @@
 'use client';
 
-import { FeatureTheme } from '@/components';
+import { FeatureTheme, IconButton } from '@/components';
 import { useState, useEffect, useCallback } from 'react';
 import { SectionCard, ProgressBar } from '@/components';
 import { EyeOffOutlineIcon, EyeOutlineIcon } from '@/components/icons';
@@ -16,12 +16,15 @@ const PORTFOLIO_COLOR = 'var(--green)';
 const LOAN_COLOR = 'var(--amber)';
 
 function metricCardStyle(color: string): React.CSSProperties {
-  return { background: color + '14', border: `1px solid ${color}33` };
+  return {
+    background: `color-mix(in srgb, ${color} 8%, transparent)`,
+    border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
+  };
 }
 
 function MetricLinkCard({ href, color, children }: { href: string; color: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="rounded-lg p-2.5 transition hover:brightness-125" style={metricCardStyle(color)}>
+    <Link href={href} className="rounded-lg px-2 py-1 transition hover:brightness-125" style={metricCardStyle(color)}>
       {children}
     </Link>
   );
@@ -64,13 +67,12 @@ export function FinancesWidget() {
         className="border-[var(--border)] bg-gradient-to-br from-[var(--card2)] to-[var(--card)]"
         action={
           data && (
-            <button
+            <IconButton
+              variant="ghost"
               onClick={toggleRevealed}
-              className="text-zinc-500 hover:text-zinc-300 transition"
-              title={revealed ? 'Hide amounts' : 'Show amounts'}
-            >
-              {revealed ? <EyeOutlineIcon className="size-3.5" /> : <EyeOffOutlineIcon className="size-3.5" />}
-            </button>
+              label={revealed ? 'Hide amounts' : 'Show amounts'}
+              icon={revealed ? <EyeOutlineIcon className="size-3.5" /> : <EyeOffOutlineIcon className="size-3.5" />}
+            />
           )
         }
       >
