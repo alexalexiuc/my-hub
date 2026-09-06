@@ -44,6 +44,7 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
       receipt.receiptNumber ||
       receipt.taxAmount != null ||
       receipt.tipAmount != null ||
+      receipt.deliveryAmount != null ||
       receipt.discountAmount != null);
   const hasItems = receipt?.items && receipt.items.length > 0;
 
@@ -101,6 +102,9 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
           {receipt.receiptNumber && <Row label="Receipt #" value={receipt.receiptNumber} />}
           {receipt.taxAmount != null && <Row label="Tax" value={fmt(receipt.taxAmount, receiptCurrency)} />}
           {receipt.tipAmount != null && <Row label="Tip" value={fmt(receipt.tipAmount, receiptCurrency)} />}
+          {receipt.deliveryAmount != null && (
+            <Row label="Delivery" value={fmt(receipt.deliveryAmount, receiptCurrency)} />
+          )}
           {receipt.discountAmount != null && (
             <Row label="Discount" value={fmt(receipt.discountAmount, receiptCurrency)} />
           )}

@@ -184,7 +184,8 @@ const financeTools = [
       '- For receipt transactions, populate extras.items with the line items that are clearly visible on the receipt. ' +
       '  Only include items you can actually read — do not guess, infer, or fabricate entries that are not visible. ' +
       '  If line items are partially illegible or absent, omit the items array entirely. ' +
-      '- extras.taxAmount, tipAmount, discountAmount should only be set when those values are explicitly shown on the receipt. ' +
+      '- extras.taxAmount, tipAmount, deliveryAmount, discountAmount should only be set when those values are explicitly shown on the receipt. ' +
+      '- extras.deliveryAmount is for the delivery fee on a delivery order (e.g. food delivery), when the receipt shows one. ' +
       '- extras.rawInput should contain the original text or description the transaction was parsed from. ' +
       '- If a receipt is not available yet at logging time, log the transaction without extras and call ' +
       '  finances_itemize_transaction once the receipt is available to add items later.',
@@ -199,7 +200,7 @@ const financeTools = [
       'Account balances are recomputed atomically when amount, account, or type changes. ' +
       'categoryId is supported for all transaction types including transfers; pass null to clear it. ' +
       'This tool does NOT support editing receipt line items or other extras fields (payeeAddress, receiptNumber, ' +
-      'taxAmount, tipAmount, discountAmount) — use finances_itemize_transaction for those.',
+      'taxAmount, tipAmount, deliveryAmount, discountAmount) — use finances_itemize_transaction for those.',
     inputSchema: UpdateTransactionSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: updateTransactionTool,
@@ -207,7 +208,7 @@ const financeTools = [
   defineTool({
     name: 'finances_itemize_transaction',
     description:
-      'Add or update receipt metadata (line items, tax/tip/discount amounts, receipt number, payee address) on a ' +
+      'Add or update receipt metadata (line items, tax/tip/delivery/discount amounts, receipt number, payee address) on a ' +
       'transaction that already exists. Only transactions you added can be itemized. Use this when a transaction was ' +
       "logged quickly without a receipt and one becomes available later, or to merge a second receipt's line items " +
       'into an existing transaction. ' +

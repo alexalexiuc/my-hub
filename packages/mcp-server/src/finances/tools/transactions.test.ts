@@ -690,6 +690,7 @@ describe('finances_itemize_transaction', () => {
     receiptNumber: undefined,
     taxAmount: undefined,
     tipAmount: undefined,
+    deliveryAmount: undefined,
     discountAmount: undefined,
     items: undefined,
   };

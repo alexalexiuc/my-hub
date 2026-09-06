@@ -133,6 +133,12 @@ const TransactionExtrasSchema = BaseExtrasSchema.extend({
     .describe(
       'Tip amount in the same currency as the transaction amount (i.e. the receipt currency, not the account currency).',
     ),
+  deliveryAmount: z
+    .number()
+    .optional()
+    .describe(
+      'Delivery fee amount, when the receipt is for a delivery order (e.g. food delivery), in the same currency as the transaction amount (i.e. the receipt currency, not the account currency).',
+    ),
   discountAmount: z
     .number()
     .optional()
@@ -187,7 +193,7 @@ const TransactionItemSchema = z
       ),
     extras: TransactionExtrasSchema.optional().describe(
       'Structured AI metadata. kind (receipt vs manual) is inferred automatically: ' +
-        'receipt when any of payeeAddress/receiptNumber/taxAmount/tipAmount/discountAmount/items is set, otherwise manual.',
+        'receipt when any of payeeAddress/receiptNumber/taxAmount/tipAmount/deliveryAmount/discountAmount/items is set, otherwise manual.',
     ),
   })
   .superRefine((item, ctx) => {
@@ -297,6 +303,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
           item.extras.receiptNumber != null ||
           item.extras.taxAmount != null ||
           item.extras.tipAmount != null ||
+          item.extras.deliveryAmount != null ||
           item.extras.discountAmount != null ||
           item.extras.items != null);
 
@@ -323,6 +330,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
             receiptNumber: item.extras?.receiptNumber,
             taxAmount: item.extras?.taxAmount,
             tipAmount: item.extras?.tipAmount,
+            deliveryAmount: item.extras?.deliveryAmount,
             discountAmount: item.extras?.discountAmount,
             items: item.extras?.items,
             extra: item.extras?.extra,
@@ -603,6 +611,7 @@ const ITEMIZE_RECEIPT_FIELDS = [
   'receiptNumber',
   'taxAmount',
   'tipAmount',
+  'deliveryAmount',
   'discountAmount',
   'items',
 ] as const;
@@ -612,6 +621,7 @@ export const ItemizeTransactionSchema = TransactionExtrasSchema.pick({
   receiptNumber: true,
   taxAmount: true,
   tipAmount: true,
+  deliveryAmount: true,
   discountAmount: true,
 })
   .extend({
@@ -631,7 +641,7 @@ export const ItemizeTransactionSchema = TransactionExtrasSchema.pick({
         code: 'custom',
         path: [],
         message:
-          'Provide at least one field to update (items, taxAmount, tipAmount, discountAmount, receiptNumber, payeeAddress).',
+          'Provide at least one field to update (items, taxAmount, tipAmount, deliveryAmount, discountAmount, receiptNumber, payeeAddress).',
       });
     }
   });
