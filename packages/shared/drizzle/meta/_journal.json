@@ -127,6 +127,13 @@
       "when": 1788590456317,
       "tag": "0017_conscious_colonel_america",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1788683773137,
+      "tag": "0018_freezing_stick",
+      "breakpoints": true
     }
   ]
 }
