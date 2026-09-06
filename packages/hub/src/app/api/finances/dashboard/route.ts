@@ -10,7 +10,8 @@ import {
   getUserBudgets,
   getBudgetProgress,
   getPortfolioOverview,
-  getLoanSummaryForAccount,
+  getLoanBalanceSnapshotForAccount,
+  getLoanDisplayBalance,
 } from '@my-hub/shared/services';
 import { AccountTypes, TransactionTypes } from '@my-hub/shared/constants';
 import { monthToDateRange, shiftMonthStr } from '@my-hub/shared/utils';
@@ -43,7 +44,7 @@ export const dashboardLoanCardSchema = z.object({
   id: z.number().int(),
   name: z.string(),
   currency: supportedCurrencySchema,
-  remainingObligation: z.number(),
+  balance: z.number(),
   monthsRemaining: z.number().int(),
   payoffDate: z.string(),
 });
@@ -322,18 +323,20 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
   const widgetLoanAccounts = accounts
     .filter(a => a.type === AccountTypes.Loan && a.showOnWidget)
     .sort((a, b) => a.widgetSortOrder - b.widgetSortOrder || a.name.localeCompare(b.name));
+  // Uses the same snapshot + display-balance resolution as the account list/detail screens
+  // (getLoanDisplayBalance) so the widget card always matches /finances/accounts/[id].
   const loans = (
     await Promise.all(
       widgetLoanAccounts.map(async account => {
-        const summary = await getLoanSummaryForAccount(user.id, budgetId, account);
-        if (!summary) return null;
+        const snapshot = await getLoanBalanceSnapshotForAccount(user.id, budgetId, account);
+        if (!snapshot) return null;
         return {
           id: account.id,
           name: account.name,
           currency: account.currency,
-          remainingObligation: summary.remainingObligation,
-          monthsRemaining: summary.paymentsRemaining,
-          payoffDate: summary.projectedPayoffDate,
+          balance: getLoanDisplayBalance(account, snapshot),
+          monthsRemaining: snapshot.amortizationSummary.paymentsRemaining,
+          payoffDate: snapshot.amortizationSummary.actualPayoffDate ?? snapshot.amortizationSummary.scheduledPayoffDate,
         };
       }),
     )

@@ -164,7 +164,7 @@ export function FinancesWidget() {
                       <span className="truncate text-[10px] uppercase tracking-wide text-zinc-500">{loan.name}</span>
                     </div>
                     <div className="mt-1 text-sm font-semibold tabular-nums text-zinc-100">
-                      {revealed ? fmt(loan.remainingObligation, loan.currency) : HIDDEN}
+                      {revealed ? fmt(loan.balance, loan.currency) : HIDDEN}
                     </div>
                     <div className="text-[10px] text-zinc-500">
                       {loan.monthsRemaining} mo left · payoff {loan.payoffDate}
