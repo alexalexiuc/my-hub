@@ -57,7 +57,7 @@ function TransportDetailsPill({ booking }: { booking: TripBookingExtended }) {
     td.meetingPoint && `Meet: ${td.meetingPoint}`,
   ].filter(Boolean);
 
-  return <p className="text-xs text-emerald-400">{parts.join(' · ')}</p>;
+  return <p className="text-xs text-[var(--accent)]">{parts.join(' · ')}</p>;
 }
 
 function ExtraDetailsSection({ booking }: { booking: TripBookingExtended }) {
@@ -88,7 +88,7 @@ function MealTypeButton({ mealType }: { mealType: MealType }) {
         label="Meal plan included"
         icon={<span>🍽</span>}
         onClick={() => setOpen(true)}
-        className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30 rounded-full p-1"
+        className="bg-[var(--accent-d)] border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent-d)] rounded-full p-1"
       />
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setOpen(false)}>

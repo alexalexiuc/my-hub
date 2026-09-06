@@ -60,8 +60,8 @@ export function FinancesWidget() {
       <SectionCard
         title="Finances"
         titleHref="/finances"
-        titleHoverClass="hover:text-violet-400"
-        className="border-violet-800/50 bg-gradient-to-br from-violet-950/40 to-zinc-900"
+        titleHoverClass="hover:text-[var(--accent)]"
+        className="border-[var(--border)] bg-gradient-to-br from-[var(--card2)] to-[var(--card)]"
         action={
           data && (
             <button
@@ -82,7 +82,7 @@ export function FinancesWidget() {
           </div>
         ) : !data ? (
           <p className="text-sm text-zinc-500 mt-2">
-            <Link href="/finances" className="text-violet-400 hover:underline">
+            <Link href="/finances" className="text-[var(--accent)] hover:underline">
               Set up a budget
             </Link>{' '}
             to get started.

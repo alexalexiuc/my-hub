@@ -115,7 +115,7 @@ export function BookingsCalendar({ bookings, tripColor, trip }: BookingsCalendar
               key={day.toISOString()}
               className={`min-h-24 rounded-md border p-1.5 ${
                 inMonth ? 'border-zinc-700 bg-zinc-900' : 'border-zinc-800 bg-zinc-950 text-zinc-600'
-              } ${isToday ? 'ring-1 ring-emerald-500/60' : ''}`}
+              } ${isToday ? 'ring-1 ring-[var(--accent)]' : ''}`}
               style={dayStyle}
             >
               <p className="mb-1 text-xs font-medium">{day.getDate()}</p>

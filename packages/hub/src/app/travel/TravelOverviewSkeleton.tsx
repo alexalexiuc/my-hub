@@ -3,7 +3,7 @@ import { SectionCard } from '@/components/SectionCard';
 export function TravelOverviewSkeleton() {
   return (
     <div className="space-y-6 animate-pulse" aria-hidden="true">
-      <SectionCard title="Itinerary" className="bg-sky-950/20 border-sky-800/50">
+      <SectionCard title="Itinerary" className="border-[var(--border)] bg-[var(--card)]">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-2">
           <div className="h-16 rounded-lg border border-zinc-700 bg-zinc-900/70 md:w-[210px] md:flex-none" />
           <div className="h-4 w-4 rounded bg-zinc-800 md:w-6" />
@@ -13,7 +13,7 @@ export function TravelOverviewSkeleton() {
         </div>
       </SectionCard>
 
-      <SectionCard title="Map" className="bg-teal-950/20 border-teal-800/50">
+      <SectionCard title="Map" className="border-[var(--border)] bg-[var(--card)]">
         <div className="h-[320px] w-full rounded-lg border border-zinc-700 bg-zinc-900/70" />
       </SectionCard>
 
@@ -36,7 +36,7 @@ export function TravelOverviewSkeleton() {
         ))}
       </div>
 
-      <SectionCard title="Day by day" className="bg-emerald-950/20 border-emerald-800/50">
+      <SectionCard title="Day by day" className="border-[var(--border)] bg-[var(--card)]">
         <div className="space-y-3">
           <div className="h-4 w-1/4 rounded bg-zinc-800" />
           <div className="h-16 w-full rounded-lg border border-zinc-700 bg-zinc-900/70" />
