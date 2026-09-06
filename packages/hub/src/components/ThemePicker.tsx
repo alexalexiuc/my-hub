@@ -46,9 +46,12 @@ export function ThemePicker({ value, onChange, inheritLabel, onInherit, disabled
   // Picking a hue before a mood should land somewhere sensible rather than doing nothing.
   const effectiveMood: ThemeMood = selectedMood ?? 'classic';
 
+  const rowLabel = 'text-[11px] uppercase tracking-wider text-[var(--subtle)]';
+
   return (
     <div className="space-y-3">
       {/* Hue row */}
+      <p className={rowLabel}>Colour</p>
       <div className="flex flex-wrap items-center gap-2">
         {inheritLabel && onInherit && (
           <button
@@ -88,7 +91,9 @@ export function ThemePicker({ value, onChange, inheritLabel, onInherit, disabled
         })}
       </div>
 
-      {/* Mood row — only meaningful once a hue is chosen. */}
+      {/* Mood row — only meaningful once a hue is chosen, so it is labelled to say so rather
+          than presenting three dead buttons on first load, when a signature preset is active. */}
+      <p className={rowLabel}>{selectedHue ? 'Depth' : 'Depth — pick a colour first'}</p>
       <div className="flex flex-wrap items-center gap-2">
         {THEME_MOODS.map(({ key, label, description }) => {
           const active = selectedMood === key;
@@ -115,7 +120,7 @@ export function ThemePicker({ value, onChange, inheritLabel, onInherit, disabled
 
       {/* Signature presets — the app's original hand-tuned palettes. */}
       <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3">
-        <span className="text-[11px] uppercase tracking-wider text-[var(--subtle)]">Signature</span>
+        <span className={rowLabel}>Signature</span>
         {THEME_SIGNATURES.map(({ key, label }) => {
           const active = value === key;
           return (

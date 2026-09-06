@@ -83,12 +83,12 @@ export function TripsSidebar({
   }
 
   return (
-    <SectionCard title="Trips" className="bg-emerald-950/20 border-emerald-800/50">
+    <SectionCard title="Trips" className="border-[var(--border)] bg-[var(--card)]">
       <div className="space-y-3">
         <TripForm
           onSubmit={createTrip}
           submitLabel="Create Trip"
-          submitClassName="bg-emerald-600 hover:bg-emerald-500"
+          submitClassName="bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-hover)]"
         />
 
         <div className="flex items-center justify-between">
@@ -116,7 +116,7 @@ export function TripsSidebar({
             <div
               key={trip.id}
               className={`w-full rounded-lg border px-3 py-2 text-left transition ${
-                activeTripId === trip.id ? 'bg-emerald-500/10' : 'bg-zinc-900 hover:border-zinc-500'
+                activeTripId === trip.id ? 'bg-[var(--accent-d)]' : 'bg-[var(--card)] hover:border-[var(--subtle)]'
               }`}
               style={{ borderColor: activeTripId === trip.id ? trip.color : undefined, borderLeftWidth: '4px' }}
             >

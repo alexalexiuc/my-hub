@@ -158,8 +158,8 @@ export function CaloriesWidget() {
       <SectionCard
         title="Calories"
         titleHref="/calories"
-        titleHoverClass="hover:text-orange-400"
-        className="border-orange-800/50 bg-gradient-to-br from-orange-950/40 to-zinc-900"
+        titleHoverClass="hover:text-[var(--accent)]"
+        className="border-[var(--border)] bg-gradient-to-br from-[var(--card2)] to-[var(--card)]"
         action={
           <div className="flex items-center gap-1.5">
             <button
