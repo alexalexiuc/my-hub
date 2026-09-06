@@ -34,16 +34,16 @@ A theme key is either a signature key or `<hue>-<mood>` — 40 in total.
 
 ## Functional Requirements
 
-| ID    | Requirement                                                                                                                           |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| FR-01 | The user must be able to choose a colour theme that applies to the entire app, from the Profile page.                                 |
-| FR-02 | The user must be able to override the theme independently for Travel, Finances and Calories.                                          |
-| FR-03 | A feature with no override must follow the global choice; clearing an override must restore that inheritance.                         |
-| FR-04 | With nothing chosen, each feature must render its original palette and the rest of the app the Graphite (zinc) palette.               |
-| FR-05 | Selecting a theme must repaint the page immediately, before the change is persisted.                                                  |
-| FR-06 | The chosen theme must persist across reloads and sessions, and must be applied on the first server render without flash.              |
-| FR-07 | Every preset must keep body and secondary text legible, and must keep success/warning/danger colours distinguishable from the accent. |
-| FR-08 | Deleting all user data must remove the user's stored theme preferences.                                                               |
+| ID    | Requirement                                                                                                                                                                       |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-01 | The user must be able to choose a colour theme that applies to the entire app, from the Profile page.                                                                             |
+| FR-02 | The user must be able to override the theme independently for Travel, Finances and Calories.                                                                                      |
+| FR-03 | A feature with no override must follow the global choice; clearing an override must restore that inheritance.                                                                     |
+| FR-04 | With nothing chosen, Travel and Finances must render their original palettes and the rest of the app the Graphite (zinc) palette. Calories defaults to `orange-deep` — see below. |
+| FR-05 | Selecting a theme must repaint the page immediately, before the change is persisted.                                                                                              |
+| FR-06 | The chosen theme must persist across reloads and sessions, and must be applied on the first server render without flash.                                                          |
+| FR-07 | Every preset must keep body and secondary text legible, and must keep success/warning/danger colours distinguishable from the accent.                                             |
+| FR-08 | Deleting all user data must remove the user's stored theme preferences.                                                                                                           |
 
 ---
 
@@ -75,6 +75,9 @@ A theme key is either a signature key or `<hue>-<mood>` — 40 in total.
 - Surfaces in the amber/orange band are pulled toward ember rather than olive. The muddiness of the
   original Calories palette was its surfaces sitting 19–33° off its own accent hue, not
   over-saturation — its surfaces actually carried _less_ chroma than Travel's.
+- Because that was a genuine defect rather than a style choice, **Calories defaults to `orange-deep`**
+  (the same colour family, drift corrected) rather than to `calories-signature`. The signature
+  palette is still selectable. Travel and Finances keep their signatures as defaults.
 - The 16 semantic tokens are frozen across all 36 palettes so `--red` always means danger. The one
   exception: a semantic token within 25° of hue and 0.08 of lightness of the accent is promoted to
   its lighter variant, so a Rose accent still has an unambiguous red.

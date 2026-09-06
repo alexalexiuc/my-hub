@@ -82,12 +82,19 @@ export const THEME_SCOPES = [
 export type ThemeScope = (typeof THEME_SCOPES)[number]['key'];
 export const THEME_SCOPE_KEYS: readonly ThemeScope[] = THEME_SCOPES.map(scope => scope.key);
 
-/** The theme each scope resolves to before the user has set any preference. */
+/**
+ * The theme each scope resolves to before the user has set any preference.
+ *
+ * Calories deliberately does NOT default to its signature palette. That palette's surfaces sit
+ * 19-33 degrees off its own accent hue, in the olive band, which is what made it read as muddy;
+ * `orange-deep` is the same colour family with that drift corrected. `calories-signature` remains
+ * selectable for anyone who wants the original back.
+ */
 export const DEFAULT_THEME_BY_SCOPE: Record<ThemeScope, ThemeKey> = {
   global: 'graphite-signature',
   travel: 'travel-signature',
   finances: 'finances-signature',
-  calories: 'calories-signature',
+  calories: 'orange-deep',
 };
 
 /**

@@ -38,7 +38,7 @@ test.describe('Appearance themes', () => {
    * The default state must be the palettes the app shipped with, so an untouched account sees
    * no visual change from this feature at all.
    */
-  test('defaults to each feature’s signature palette', async ({ page }) => {
+  test('defaults to the shipped palette for each feature', async ({ page }) => {
     await page.goto('/finances');
     await page.waitForLoadState('networkidle');
     expect(await featureThemeClass(page, 'finances')).toBe('finances-theme');
@@ -46,6 +46,12 @@ test.describe('Appearance themes', () => {
     await page.goto('/travel');
     await page.waitForLoadState('networkidle');
     expect(await featureThemeClass(page, 'travel')).toBe('travel-theme');
+
+    // Calories is the deliberate exception: its signature palette's surfaces drift off its own
+    // accent hue into the olive band, so the default is the drift-corrected orange instead.
+    await page.goto('/calories');
+    await page.waitForLoadState('networkidle');
+    expect(await featureThemeClass(page, 'calories')).toBe('orange-deep-theme');
   });
 
   /**
