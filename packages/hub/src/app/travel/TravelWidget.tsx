@@ -1,5 +1,6 @@
 'use client';
 
+import { FeatureTheme } from '@/components';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/utils';
@@ -133,7 +134,7 @@ export function TravelWidget() {
 
   if (loading) {
     return (
-      <div className="travel-theme">
+      <FeatureTheme feature="travel">
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Travel</h2>
           <div
@@ -148,14 +149,14 @@ export function TravelWidget() {
             <div className="mt-1.5 h-3 w-40 bg-zinc-700 rounded" />
           </div>
         </section>
-      </div>
+      </FeatureTheme>
     );
   }
 
   if (!travelFocus) return null;
 
   return (
-    <div className="travel-theme">
+    <FeatureTheme feature="travel">
       <section>
         <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Travel</h2>
         <Link
@@ -175,6 +176,6 @@ export function TravelWidget() {
           </p>
         </Link>
       </section>
-    </div>
+    </FeatureTheme>
   );
 }

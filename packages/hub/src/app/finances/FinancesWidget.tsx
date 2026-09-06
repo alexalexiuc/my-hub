@@ -1,5 +1,6 @@
 'use client';
 
+import { FeatureTheme } from '@/components';
 import { useState, useEffect, useCallback } from 'react';
 import { SectionCard, ProgressBar } from '@/components';
 import { EyeOffOutlineIcon, EyeOutlineIcon } from '@/components/icons';
@@ -55,7 +56,7 @@ export function FinancesWidget() {
   }
 
   return (
-    <div className="finances-theme">
+    <FeatureTheme feature="finances">
       <SectionCard
         title="Finances"
         titleHref="/finances"
@@ -191,6 +192,6 @@ export function FinancesWidget() {
           </div>
         )}
       </SectionCard>
-    </div>
+    </FeatureTheme>
   );
 }
