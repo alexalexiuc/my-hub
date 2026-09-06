@@ -32,6 +32,9 @@ jobs:
       - name: Type-check
         run: pnpm typecheck
 
+      - name: Palette drift check
+        run: pnpm --filter @my-hub/hub gen:palettes:check
+
       - name: Lint
         run: pnpm lint
 

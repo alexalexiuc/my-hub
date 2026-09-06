@@ -15,7 +15,10 @@
     "test:unit": "vitest run --passWithNoTests",
     "healthcheck": "node scripts/healthcheck.mjs",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "gen:palettes": "tsx scripts/gen-palettes.mts",
+    "gen:palettes:report": "tsx scripts/gen-palettes.mts --report",
+    "gen:palettes:check": "tsx scripts/gen-palettes.mts && git diff --exit-code -- src/styles/themes.generated.css src/lib/theme-swatches.generated.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
