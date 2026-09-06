@@ -24,6 +24,7 @@ import type {
   tripShares,
   tripDays,
   flightData,
+  userThemePreferences,
 } from '../db/schema/';
 import type {
   TripStatus,
@@ -191,3 +192,7 @@ export type NewTripShare = InferInsertModel<typeof tripShares>;
 export type TripDay = InferSelectModel<typeof tripDays>;
 export type NewTripDay = InferInsertModel<typeof tripDays>;
 export type { TripStatus, TripBookingType, TripPlacePriority, TripDocumentType, TripSharePermission };
+
+// Appearance / color themes
+export type UserThemePreference = InferSelectModel<typeof userThemePreferences>;
+export type NewUserThemePreference = InferInsertModel<typeof userThemePreferences>;

@@ -12,3 +12,4 @@ export * from './travel';
 export * from './notifications';
 export * from './password-reset-tokens';
 export * from './finances';
+export * from './user-theme-preferences';
