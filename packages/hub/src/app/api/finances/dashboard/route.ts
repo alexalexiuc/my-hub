@@ -10,7 +10,7 @@ import {
   getUserBudgets,
   getBudgetProgress,
   getPortfolioOverview,
-  getLoanSummaryForAccount,
+  getLoanCardBalance,
 } from '@my-hub/shared/services';
 import { AccountTypes, TransactionTypes } from '@my-hub/shared/constants';
 import { monthToDateRange, shiftMonthStr } from '@my-hub/shared/utils';
@@ -43,7 +43,7 @@ export const dashboardLoanCardSchema = z.object({
   id: z.number().int(),
   name: z.string(),
   currency: supportedCurrencySchema,
-  remainingObligation: z.number(),
+  balance: z.number(),
   monthsRemaining: z.number().int(),
   payoffDate: z.string(),
 });
@@ -322,18 +322,27 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
   const widgetLoanAccounts = accounts
     .filter(a => a.type === AccountTypes.Loan && a.showOnWidget)
     .sort((a, b) => a.widgetSortOrder - b.widgetSortOrder || a.name.localeCompare(b.name));
+  // Uses getLoanCardBalance — the same snapshot + display-balance resolution as the account
+  // list/detail screens — so the widget card always matches /finances/accounts/[id]. The currency
+  // map is built once up front so N loan cards cost one extra accounts query, not N.
+  const loanAccountCurrencyById =
+    widgetLoanAccounts.length > 0
+      ? new Map((await getAccounts(user.id, budgetId, { includeArchived: true })).map(a => [a.id, a.currency]))
+      : undefined;
   const loans = (
     await Promise.all(
       widgetLoanAccounts.map(async account => {
-        const summary = await getLoanSummaryForAccount(user.id, budgetId, account);
-        if (!summary) return null;
+        const loanCard = await getLoanCardBalance(user.id, budgetId, account, {
+          accountCurrencyById: loanAccountCurrencyById,
+        });
+        if (!loanCard) return null;
         return {
           id: account.id,
           name: account.name,
           currency: account.currency,
-          remainingObligation: summary.remainingObligation,
-          monthsRemaining: summary.paymentsRemaining,
-          payoffDate: summary.projectedPayoffDate,
+          balance: loanCard.balance,
+          monthsRemaining: loanCard.amortizationSummary.paymentsRemaining,
+          payoffDate: loanCard.amortizationSummary.actualPayoffDate ?? loanCard.amortizationSummary.scheduledPayoffDate,
         };
       }),
     )

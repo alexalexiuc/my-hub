@@ -4,6 +4,7 @@
  * - calculateLoanAmortizationSummary(details, opts?) — computes schedule-derived and hybrid payment summary for a loan
  * - getLoanBalanceSnapshotForAccount(userId, budgetId, account, opts?) — computes remaining principal + amortization summary for a loan account
  * - getLoanDisplayBalance(account, loanSnapshot) — resolves the balance to display for an account, substituting the amortization-derived remaining principal for interest-bearing loans
+ * - getLoanCardBalance(userId, budgetId, account, opts?) — fetches the loan snapshot and resolves it via getLoanDisplayBalance in one call; the single entry point loan card UIs should use
  * - buildLoanSummary(details, totalPaid, today) — pure closed-form loan summary; k derived from (firstPaymentDate, today), not transaction count
  * - getLoanSummaryForAccount(userId, budgetId, account, opts?) — fetches transactions then calls buildLoanSummary
  * Types: LoanPaymentHistoryEntry, LoanAmortizationSummary, LoanBalanceSnapshot, LoanSummary
@@ -273,9 +274,11 @@ export async function getLoanBalanceSnapshotForAccount(
       (await getAccounts(userId, budgetId, { includeArchived: true })).map(current => [current.id, current.currency]),
     );
 
+  // No fromDate filter: real-world repayments can land a few days before the scheduled
+  // firstPaymentDate (e.g. paid early), and this account is dedicated to the loan (created via
+  // finances_add_loan) so every non-correction transaction on it is a legitimate payment.
   const transactions = await getTransactions(userId, budgetId, {
     accountId: account.id,
-    fromDate: details.firstPaymentDate,
     includeCorrections: false,
   });
 
@@ -328,6 +331,26 @@ export function getLoanDisplayBalance(
   if (!loanSnapshot) return account.balance;
   const details = getAccountDetails('loan', account.details);
   return details?.interestRate === 0 ? -account.balance : loanSnapshot.balance;
+}
+
+/**
+ * Fetches a loan account's balance snapshot and resolves it to the same display balance shown
+ * on the account list/detail screens (getLoanDisplayBalance) — the single call every loan card UI
+ * (accounts list, account detail, dashboard widget) should make instead of repeating the
+ * snapshot + display-balance pairing inline. Returns null for non-loan accounts.
+ */
+export async function getLoanCardBalance(
+  userId: string,
+  budgetId: number,
+  account: FinanceAccount,
+  opts: {
+    asOfDate?: string;
+    accountCurrencyById?: Map<number, string>;
+  } = {},
+): Promise<{ balance: number; amortizationSummary: LoanAmortizationSummary } | null> {
+  const snapshot = await getLoanBalanceSnapshotForAccount(userId, budgetId, account, opts);
+  if (!snapshot) return null;
+  return { balance: getLoanDisplayBalance(account, snapshot), amortizationSummary: snapshot.amortizationSummary };
 }
 
 // ─── LoanSummary (closed-form, count-based) ───────────────────────────────────
@@ -455,9 +478,9 @@ export async function getLoanSummaryForAccount(
   const details = getAccountDetails('loan', account.details);
   const today = opts.asOfDate ?? currentDateString();
 
+  // No fromDate filter: see getLoanBalanceSnapshotForAccount for why early payments must count.
   const transactions = await getTransactions(userId, budgetId, {
     accountId: account.id,
-    ...(details?.firstPaymentDate ? { fromDate: details.firstPaymentDate } : {}),
     includeCorrections: false,
   });
 
