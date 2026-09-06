@@ -4,11 +4,12 @@ import { test, expect, type Page } from '@playwright/test';
 const appearanceSection = (page: Page) =>
   page.getByRole('heading', { name: /appearance/i }).locator('xpath=ancestor::section[1]');
 
-/** The picker block under one scope label ("Everything", "Travel", …) inside the Appearance card. */
-const scopeRow = (page: Page, label: string) =>
+/** The theme dropdown under one scope label ("Everything", "Travel", …) in the Appearance card. */
+const scopeSelect = (page: Page, label: string) =>
   appearanceSection(page)
     .locator('p', { hasText: new RegExp(`^${label}$`, 'i') })
-    .locator('xpath=following-sibling::div[1]/parent::div');
+    .locator('xpath=following-sibling::div[1]')
+    .getByRole('combobox', { name: 'Theme' });
 
 /** The theme class currently applied to a feature's wrapper, e.g. "ocean-deep-theme". */
 async function featureThemeClass(page: Page, feature: string): Promise<string> {
@@ -60,10 +61,8 @@ test.describe('Appearance themes', () => {
    * feature and confirm the override wins and can be cleared back to inheritance.
    */
   test('applies a global theme, persists it, and honours a per-feature override', async ({ page }) => {
-    // ── 1. Pick a global hue and depth ────────────────────────────────────────
-    const everything = scopeRow(page, 'Everything');
-    await everything.getByRole('button', { name: 'Ocean' }).click();
-    await everything.getByRole('button', { name: 'Deep' }).click();
+    // ── 1. Pick a global theme ────────────────────────────────────────────────
+    await scopeSelect(page, 'Everything').selectOption('ocean-deep');
     await page.waitForResponse(r => r.url().includes('/api/user/theme-preferences') && r.request().method() === 'PUT');
 
     // ── 2. It reaches a feature, and survives a reload ────────────────────────
@@ -78,8 +77,7 @@ test.describe('Appearance themes', () => {
     // ── 3. A feature override beats the global choice ─────────────────────────
     await page.goto('/profile');
     await page.waitForLoadState('networkidle');
-    const finances = scopeRow(page, 'Finances');
-    await finances.getByRole('button', { name: 'Rose' }).click();
+    await scopeSelect(page, 'Finances').selectOption('rose-classic');
     await page.waitForResponse(r => r.url().includes('/api/user/theme-preferences') && r.request().method() === 'PUT');
 
     await page.goto('/finances');
@@ -94,9 +92,7 @@ test.describe('Appearance themes', () => {
     // ── 4. Clearing the override restores inheritance ─────────────────────────
     await page.goto('/profile');
     await page.waitForLoadState('networkidle');
-    await scopeRow(page, 'Finances')
-      .getByRole('button', { name: /same as everything/i })
-      .click();
+    await scopeSelect(page, 'Finances').selectOption({ label: 'Same as everything' });
     await page.waitForResponse(r => r.url().includes('/api/user/theme-preferences') && r.request().method() === 'PUT');
 
     await page.goto('/finances');

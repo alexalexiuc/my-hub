@@ -12,9 +12,9 @@
 
 The Hub ships a library of dark colour themes that the user picks from on the Profile page. One
 choice applies to the whole app; each themed feature (Travel, Finances, Calories) can optionally
-override it. Themes are chosen on two axes — an accent **hue** and a **mood** controlling how
-deeply that hue tints the surfaces — plus four hand-preserved **signature** presets that reproduce
-the palettes the app shipped with. Until the user picks something, every surface looks exactly as
+override it. Themes are picked from a single dropdown listing every preset by name — the four
+hand-preserved **signature** palettes first, then each accent colour's three depths grouped
+together. Until the user picks something, every surface looks exactly as
 it did before.
 
 ---
@@ -60,7 +60,7 @@ A theme key is either a signature key or `<hue>-<mood>` — 40 in total.
 | TR-07 | `packages/hub/src/app/layout.tsx` resolves the user's overrides server-side and renders the global theme class on `<body>`, so the first paint is correct.                                                                                           |
 | TR-08 | `ThemeProvider` holds the raw overrides (not the resolved map) and re-derives resolution, so a global change flows through to features that never set an override. `FeatureTheme` applies the resolved class plus a stable `data-feature` attribute. |
 | TR-09 | `GET`/`PUT /api/user/theme-preferences`; `PUT` takes `{ scope, themeKey }` where `themeKey: null` clears the override.                                                                                                                               |
-| TR-10 | The picker is `packages/hub/src/components/ThemePicker.tsx`, mounted via `packages/hub/src/app/profile/AppearanceSection.tsx`.                                                                                                                       |
+| TR-10 | The picker is a single `<Select>` in `packages/hub/src/components/ThemePicker.tsx`, mounted via `packages/hub/src/app/profile/AppearanceSection.tsx`. Its options come from `THEME_OPTIONS` and are named by `themeLabel`.                           |
 | TR-11 | `deleteAllUserThemePreferences` is called from `packages/hub/src/app/api/user/delete-all/route.ts`.                                                                                                                                                  |
 
 ---

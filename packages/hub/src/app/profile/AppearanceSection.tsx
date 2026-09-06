@@ -35,7 +35,7 @@ export function AppearanceSection() {
         {THEME_SCOPES.map(({ key, label }) => {
           const isGlobal = key === 'global';
           // A feature row shows a concrete selection only when it has its own override; otherwise
-          // it is inheriting and the "Same as everything" chip is the active one.
+          // it is inheriting, and the dropdown sits on "Same as everything".
           const value = isGlobal ? themes.global : (overrides[key] ?? null);
 
           return (
@@ -43,6 +43,7 @@ export function AppearanceSection() {
               <p className="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--subtle)]">{label}</p>
               <ThemePicker
                 value={value ?? null}
+                effectiveKey={themes[key]}
                 disabled={saving === key}
                 onChange={themeKey => persist(key, themeKey)}
                 inheritLabel={isGlobal ? undefined : 'Same as everything'}
@@ -52,8 +53,7 @@ export function AppearanceSection() {
           );
         })}
         <p className="text-xs text-[var(--subtle)]">
-          Pick a colour, then adjust how deeply it tints the background. Each feature follows your
-          &ldquo;Everything&rdquo; choice unless you give it one of its own.
+          Each feature follows your &ldquo;Everything&rdquo; choice unless you give it one of its own.
         </p>
       </div>
     </SectionCard>

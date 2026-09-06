@@ -15,6 +15,8 @@
  *   applied to (global shell + the three themed features).
  * - `DEFAULT_THEME_BY_SCOPE` — the theme each scope falls back to before the user picks anything.
  * - `themeClassName` — maps a `ThemeKey` to its CSS class name (always ending in `-theme`).
+ * - `themeLabel` — human-readable name for a `ThemeKey`, e.g. 'Emerald Soft'.
+ * - `THEME_OPTIONS` — every theme as a flat `{ value, label, group }` list, in picker order.
  */
 
 /** The 12 accent hues offered by the generated palette, in picker display order. */
@@ -105,3 +107,30 @@ export const DEFAULT_THEME_BY_SCOPE: Record<ThemeScope, ThemeKey> = {
 export function themeClassName(key: ThemeKey): string {
   return `${key.replace(/-signature$/, '')}-theme`;
 }
+
+/** Human-readable name for a theme key, e.g. `violet-soft` -> "Violet Soft". */
+export function themeLabel(key: ThemeKey): string {
+  const signature = THEME_SIGNATURES.find(s => s.key === key);
+  if (signature) return signature.label;
+
+  const [hue, mood] = key.split('-');
+  const hueLabel = THEME_HUES.find(h => h.key === hue)?.label ?? hue;
+  const moodLabel = THEME_MOODS.find(m => m.key === mood)?.label ?? mood;
+  return `${hueLabel} ${moodLabel}`;
+}
+
+export type ThemeOption = { value: ThemeKey; label: string; group: string };
+
+/**
+ * Every theme as a flat option list for a single dropdown — signatures first, then each hue's
+ * three depths together so related shades sit next to each other.
+ */
+export const THEME_OPTIONS: readonly ThemeOption[] = [
+  ...THEME_SIGNATURES.map(s => ({ value: s.key as ThemeKey, label: s.label, group: 'Original' })),
+  ...THEME_HUES.flatMap(hue =>
+    THEME_MOODS.map(mood => {
+      const value = `${hue.key}-${mood.key}` as ThemeKey;
+      return { value, label: themeLabel(value), group: hue.label };
+    }),
+  ),
+];

@@ -166,6 +166,8 @@ Rules:
 - Wrap a feature subtree in `<FeatureTheme feature="travel|finances|calories">` rather than a
   literal class. It also sets `data-feature`, which is what CSS should key off when it needs to
   target a feature regardless of the active theme.
+- Themes are chosen from one flat dropdown (`ThemePicker`); `THEME_OPTIONS` and `themeLabel` in
+  `@my-hub/shared/constants` are the single source of the option list and its display names.
 - The 36 generated palettes are produced by `scripts/gen-palettes.mts`; edit the generator, never
   `src/styles/themes.generated.css`. Run `pnpm --filter @my-hub/hub gen:palettes` after changing it.
   `gen:palettes:report` prints the contrast matrix. CI fails on drift.

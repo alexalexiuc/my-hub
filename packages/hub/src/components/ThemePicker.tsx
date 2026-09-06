@@ -1,148 +1,88 @@
 'use client';
 
-import {
-  THEME_HUES,
-  THEME_MOODS,
-  THEME_SIGNATURES,
-  type ThemeHue,
-  type ThemeKey,
-  type ThemeMood,
-} from '@my-hub/shared/constants';
+import { THEME_OPTIONS, type ThemeKey } from '@my-hub/shared/constants';
 import { THEME_SWATCHES } from '@/lib/theme-swatches.generated';
+import { Select } from './Select';
 import { cn } from '@/lib/utils';
 
+/** Sentinel for the "inherit from the global theme" choice; not a real theme key. */
+const INHERIT = '__inherit__';
+
 export type ThemePickerProps = {
-  /** The currently selected theme, or `null` when this scope inherits from a broader one. */
+  /** The selected theme, or `null` when this scope inherits from a broader one. */
   value: ThemeKey | null;
   onChange: (key: ThemeKey) => void;
-  /** When provided, renders an "inherit" choice as the first option (used by per-feature pickers). */
+  /** When provided, the list gains an "inherit" choice at the top (used by per-feature pickers). */
   inheritLabel?: string;
   onInherit?: () => void;
   disabled?: boolean;
+  /** The theme actually in effect — used for the swatch when this scope is inheriting. */
+  effectiveKey?: ThemeKey;
+  className?: string;
 };
 
-const swatchOf = (key: ThemeKey) => THEME_SWATCHES[key] ?? { accent: '#6366f1', bg: '#09090b', card: '#18181b' };
-
-/** Splits a generated key into its hue and mood; signatures have neither. */
-function partsOf(key: ThemeKey | null): { hue: ThemeHue | null; mood: ThemeMood | null } {
-  if (!key || key.endsWith('-signature')) return { hue: null, mood: null };
-  const [hue, mood] = key.split('-') as [ThemeHue, ThemeMood];
-  return { hue, mood };
+/** Groups the flat option list into `<optgroup>`s, preserving order. */
+function groupedOptions() {
+  const groups: { name: string; options: (typeof THEME_OPTIONS)[number][] }[] = [];
+  for (const option of THEME_OPTIONS) {
+    const last = groups[groups.length - 1];
+    if (last && last.name === option.group) last.options.push(option);
+    else groups.push({ name: option.group, options: [option] });
+  }
+  return groups;
 }
 
-/** A round two-tone chip: the theme's background ring around its accent. */
-function Swatch({ themeKey, size = 'md' }: { themeKey: ThemeKey; size?: 'sm' | 'md' }) {
-  const { accent, bg } = swatchOf(themeKey);
+/** A round two-tone chip: the theme's background ringed by its accent. */
+function Swatch({ themeKey }: { themeKey: ThemeKey }) {
+  const { accent, bg } = THEME_SWATCHES[themeKey] ?? { accent: '#6366f1', bg: '#09090b' };
   return (
     <span
-      className={cn('block rounded-full', size === 'md' ? 'h-7 w-7' : 'h-5 w-5')}
-      style={{ backgroundColor: bg, boxShadow: `inset 0 0 0 ${size === 'md' ? 3 : 2}px ${accent}` }}
+      aria-hidden
+      className="block h-8 w-8 shrink-0 rounded-full"
+      style={{ backgroundColor: bg, boxShadow: `inset 0 0 0 3px ${accent}` }}
     />
   );
 }
 
-export function ThemePicker({ value, onChange, inheritLabel, onInherit, disabled = false }: ThemePickerProps) {
-  const { hue: selectedHue, mood: selectedMood } = partsOf(value);
-  // Picking a hue before a mood should land somewhere sensible rather than doing nothing.
-  const effectiveMood: ThemeMood = selectedMood ?? 'classic';
-
-  const rowLabel = 'text-[11px] uppercase tracking-wider text-[var(--subtle)]';
+/**
+ * A single dropdown listing every theme by name, with the palette in effect shown as a swatch.
+ * Signature presets come first, then each accent colour's three depths grouped together.
+ */
+export function ThemePicker({
+  value,
+  onChange,
+  inheritLabel,
+  onInherit,
+  disabled = false,
+  effectiveKey,
+  className,
+}: ThemePickerProps) {
+  const swatchKey = value ?? effectiveKey ?? 'graphite-signature';
 
   return (
-    <div className="space-y-3">
-      {/* Hue row */}
-      <p className={rowLabel}>Colour</p>
-      <div className="flex flex-wrap items-center gap-2">
-        {inheritLabel && onInherit && (
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={onInherit}
-            className={cn(
-              'rounded-full border px-3 py-1.5 text-xs transition disabled:opacity-50',
-              value === null
-                ? 'border-[var(--accent)] bg-[var(--accent-d)] text-[var(--accent)]'
-                : 'border-[var(--border)] bg-[var(--card2)] text-[var(--muted)] hover:text-[var(--text)]',
-            )}
-          >
-            {inheritLabel}
-          </button>
-        )}
-        {THEME_HUES.map(({ key, label }) => {
-          const optionKey = `${key}-${effectiveMood}` as ThemeKey;
-          const active = selectedHue === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              title={label}
-              aria-label={label}
-              aria-pressed={active}
-              disabled={disabled}
-              onClick={() => onChange(optionKey)}
-              className={cn(
-                'rounded-full p-0.5 transition disabled:opacity-50',
-                active ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--card)]' : 'hover:opacity-80',
-              )}
-            >
-              <Swatch themeKey={optionKey} />
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Mood row — only meaningful once a hue is chosen, so it is labelled to say so rather
-          than presenting three dead buttons on first load, when a signature preset is active. */}
-      <p className={rowLabel}>{selectedHue ? 'Depth' : 'Depth — pick a colour first'}</p>
-      <div className="flex flex-wrap items-center gap-2">
-        {THEME_MOODS.map(({ key, label, description }) => {
-          const active = selectedMood === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              title={description}
-              aria-pressed={active}
-              disabled={disabled || !selectedHue}
-              onClick={() => selectedHue && onChange(`${selectedHue}-${key}` as ThemeKey)}
-              className={cn(
-                'rounded-lg border px-3 py-1.5 text-xs transition disabled:cursor-not-allowed disabled:opacity-40',
-                active
-                  ? 'border-[var(--accent)] bg-[var(--accent-d)] text-[var(--accent)]'
-                  : 'border-[var(--border)] bg-[var(--card2)] text-[var(--muted)] hover:text-[var(--text)]',
-              )}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Signature presets — the app's original hand-tuned palettes. */}
-      <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3">
-        <span className={rowLabel}>Signature</span>
-        {THEME_SIGNATURES.map(({ key, label }) => {
-          const active = value === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={active}
-              disabled={disabled}
-              onClick={() => onChange(key)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs transition disabled:opacity-50',
-                active
-                  ? 'border-[var(--accent)] bg-[var(--accent-d)] text-[var(--accent)]'
-                  : 'border-[var(--border)] bg-[var(--card2)] text-[var(--muted)] hover:text-[var(--text)]',
-              )}
-            >
-              <Swatch themeKey={key} size="sm" />
-              {label}
-            </button>
-          );
-        })}
-      </div>
+    <div className={cn('flex items-center gap-3', className)}>
+      <Swatch themeKey={swatchKey} />
+      <Select
+        aria-label="Theme"
+        disabled={disabled}
+        value={value ?? (inheritLabel ? INHERIT : '')}
+        onChange={e => {
+          const next = e.target.value;
+          if (next === INHERIT) onInherit?.();
+          else onChange(next as ThemeKey);
+        }}
+      >
+        {inheritLabel && <option value={INHERIT}>{inheritLabel}</option>}
+        {groupedOptions().map(group => (
+          <optgroup key={group.name} label={group.name}>
+            {group.options.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </Select>
     </div>
   );
 }
