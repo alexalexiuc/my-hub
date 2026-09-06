@@ -18,6 +18,14 @@ function metricCardStyle(color: string): React.CSSProperties {
   return { background: color + '14', border: `1px solid ${color}33` };
 }
 
+function MetricLinkCard({ href, color, children }: { href: string; color: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className="rounded-lg p-2.5 transition hover:brightness-125" style={metricCardStyle(color)}>
+      {children}
+    </Link>
+  );
+}
+
 export function FinancesWidget() {
   const [data, setData] = useState<FinanceDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,11 +111,7 @@ export function FinancesWidget() {
 
             {/* Metric grid: Available balance, Portfolio */}
             <div className="grid grid-cols-2 gap-2">
-              <Link
-                href="/finances/accounts"
-                className="rounded-lg p-2.5 transition hover:brightness-125"
-                style={metricCardStyle(AVAILABLE_COLOR)}
-              >
+              <MetricLinkCard href="/finances/accounts" color={AVAILABLE_COLOR}>
                 <div className="flex items-center gap-1.5">
                   <CategoryIcon color={AVAILABLE_COLOR} size="sm">
                     🏦
@@ -117,12 +121,8 @@ export function FinancesWidget() {
                 <div className="mt-1 text-sm font-semibold tabular-nums text-zinc-100">
                   {revealed ? fmt(data.availableBalance, data.currency) : HIDDEN}
                 </div>
-              </Link>
-              <Link
-                href="/finances/portfolio"
-                className="rounded-lg p-2.5 transition hover:brightness-125"
-                style={metricCardStyle(PORTFOLIO_COLOR)}
-              >
+              </MetricLinkCard>
+              <MetricLinkCard href="/finances/portfolio" color={PORTFOLIO_COLOR}>
                 <div className="flex items-center gap-1.5">
                   <CategoryIcon color={PORTFOLIO_COLOR} size="sm">
                     📈
@@ -144,19 +144,14 @@ export function FinancesWidget() {
                     {pct(data.portfolio.returnPct, true)}
                   </div>
                 )}
-              </Link>
+              </MetricLinkCard>
             </div>
 
             {/* Loans — config-driven, 0..N cards */}
             {data.loans.length > 0 && (
               <div className="grid grid-cols-2 gap-2">
                 {data.loans.map(loan => (
-                  <Link
-                    key={loan.id}
-                    href={`/finances/accounts/${loan.id}`}
-                    className="rounded-lg p-2.5 transition hover:brightness-125"
-                    style={metricCardStyle(LOAN_COLOR)}
-                  >
+                  <MetricLinkCard key={loan.id} href={`/finances/accounts/${loan.id}`} color={LOAN_COLOR}>
                     <div className="flex items-center gap-1.5">
                       <CategoryIcon color={LOAN_COLOR} size="sm">
                         🏷
@@ -169,7 +164,7 @@ export function FinancesWidget() {
                     <div className="text-[10px] text-zinc-500">
                       {loan.monthsRemaining} mo left · payoff {loan.payoffDate}
                     </div>
-                  </Link>
+                  </MetricLinkCard>
                 ))}
               </div>
             )}

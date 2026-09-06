@@ -9,8 +9,7 @@ import {
   createAccount,
   addTransaction,
   getUserActiveBudget,
-  getLoanBalanceSnapshotForAccount,
-  getLoanDisplayBalance,
+  getLoanCardBalance,
   getAccountsCashflow,
 } from '@my-hub/shared/services';
 import {
@@ -215,10 +214,8 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
     Promise.all(
       rawAccounts.map(async account => {
         const isLoan = account.type === AccountTypes.Loan;
-        const loanSnapshot = isLoan
-          ? await getLoanBalanceSnapshotForAccount(user.id, budgetId, account, { accountCurrencyById })
-          : null;
-        const bal = getLoanDisplayBalance(account, loanSnapshot);
+        const loanCard = isLoan ? await getLoanCardBalance(user.id, budgetId, account, { accountCurrencyById }) : null;
+        const bal = loanCard ? loanCard.balance : account.balance;
         const isOtherLiability = !isLoan && LIABILITY_TYPES.has(account.type);
         const includedInAvailable = isIncludedInAvailable(account.type, prefs.get(account.id) ?? null);
         if (!account.archived) {
@@ -239,7 +236,7 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
           showOnWidget: account.showOnWidget,
           widgetSortOrder: account.widgetSortOrder,
           ...flattenDetails(account.type, account.details),
-          ...(loanSnapshot ? { amortizationSummary: loanSnapshot.amortizationSummary } : {}),
+          ...(loanCard ? { amortizationSummary: loanCard.amortizationSummary } : {}),
         };
       }),
     ),

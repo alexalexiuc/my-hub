@@ -12,8 +12,7 @@ import {
   getAvailabilityPreferences,
   isIncludedInAvailable,
   getUserActiveBudget,
-  getLoanBalanceSnapshotForAccount,
-  getLoanDisplayBalance,
+  getLoanCardBalance,
 } from '@my-hub/shared/services';
 import { AccountTypes, TransactionTypes, type BorrowedLentAccountDetails } from '@my-hub/shared/constants';
 import type { LoanAccountDetails } from '@my-hub/shared/types';
@@ -110,13 +109,9 @@ export const GET = route({
     ]);
     hasInitialBalanceTx = correctionTxs.some(t => t.isCorrection && t.notes === 'Initial Balance');
     const accountCurrencyById = new Map(allAccounts.map(current => [current.id, current.currency]));
-    const loanSnapshot = await getLoanBalanceSnapshotForAccount(user.id, budgetId, rawAccount, { accountCurrencyById });
-    if (loanSnapshot) {
-      account = {
-        ...account,
-        balance: getLoanDisplayBalance(rawAccount, loanSnapshot),
-        amortizationSummary: loanSnapshot.amortizationSummary,
-      };
+    const loanCard = await getLoanCardBalance(user.id, budgetId, rawAccount, { accountCurrencyById });
+    if (loanCard) {
+      account = { ...account, balance: loanCard.balance, amortizationSummary: loanCard.amortizationSummary };
     }
   }
 
