@@ -6,6 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import { AccountSection } from './AccountSection';
 import { DataDeletionSection } from './DataDeletionSection';
 import { DangerZoneSection } from './DangerZoneSection';
+import { AppearanceSection } from './AppearanceSection';
 import { NotificationsSection } from './NotificationsSection';
 import { PersonalInfoSection } from './PersonalInfoSection';
 import { ProfilePageSkeleton } from './ProfilePageSkeleton';
@@ -36,6 +37,7 @@ export default function ProfilePage() {
       {user && <AccountSection user={user} />}
       <PersonalInfoSection />
       <DataDeletionSection />
+      <AppearanceSection />
       <NotificationsSection />
       <DangerZoneSection />
       {user && <SessionSection email={user.email} />}

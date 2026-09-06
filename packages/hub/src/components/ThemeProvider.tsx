@@ -22,6 +22,11 @@ export type ThemeProviderProps = {
 export type ThemeContextValue = {
   /** The fully resolved theme for every scope (feature override -> global override -> that feature's own default). */
   themes: Record<ThemeScope, ThemeKey>;
+  /**
+   * The raw stored overrides. A scope absent here is inheriting, which the picker needs to
+   * distinguish from a scope explicitly set to the same value it would have inherited.
+   */
+  overrides: ThemeOverrides;
   /** Sets (or, with `null`, clears) the override for one scope. Local state only — callers persist via their own API call. */
   setTheme: (scope: ThemeScope, key: ThemeKey | null) => void;
   /** Convenience accessor for a single scope's resolved theme. */
@@ -71,7 +76,10 @@ export function ThemeProvider({ initial, children }: ThemeProviderProps) {
   const themes = useMemo(() => resolveThemeOverrides(overrides), [overrides]);
   const resolvedFor = useCallback((scope: ThemeScope) => themes[scope], [themes]);
 
-  const value = useMemo(() => ({ themes, setTheme, resolvedFor }), [themes, setTheme, resolvedFor]);
+  const value = useMemo(
+    () => ({ themes, overrides, setTheme, resolvedFor }),
+    [themes, overrides, setTheme, resolvedFor],
+  );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
