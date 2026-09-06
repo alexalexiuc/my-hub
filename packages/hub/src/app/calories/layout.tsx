@@ -1,3 +1,4 @@
+import { FeatureTheme } from '@/components';
 import Link from 'next/link';
 import { CaloriesSidebar } from './CaloriesSidebar';
 import { CaloriesBottomNav } from './CaloriesBottomNav';
@@ -7,7 +8,7 @@ export default function CaloriesLayout({ children }: { children: React.ReactNode
     // `h-dvh`, not `h-screen`: `100vh` on mobile browsers is the height with the URL bar retracted,
     // so a full-height column overshoots the visible area and pushes its bottom under the browser
     // chrome. The dynamic unit tracks the bar as it collapses.
-    <div className="calories-theme flex h-dvh flex-col bg-[var(--bg)]">
+    <FeatureTheme feature="calories" className="flex h-dvh flex-col bg-[var(--bg)]">
       {/* Breadcrumb strip */}
       <div className="shrink-0 border-b border-[var(--border)] bg-[var(--shell)] px-4 md:px-6">
         <div className="flex h-12 items-center gap-2.5">
@@ -38,6 +39,6 @@ export default function CaloriesLayout({ children }: { children: React.ReactNode
       <div data-layout="mobile" className="md:hidden">
         <CaloriesBottomNav />
       </div>
-    </div>
+    </FeatureTheme>
   );
 }

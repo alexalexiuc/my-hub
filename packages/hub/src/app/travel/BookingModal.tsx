@@ -91,7 +91,7 @@ export function BookingModal({ editingBooking, onClose, onSaved }: BookingModalP
                   className={cn(
                     'flex items-center gap-1 rounded-[7px] px-2 py-1 text-[11px] font-medium transition-colors',
                     field.value === t
-                      ? 'bg-[var(--accent)] text-white'
+                      ? 'bg-[var(--accent)] text-[var(--on-accent)]'
                       : 'bg-transparent text-[var(--muted)] hover:text-[var(--text)]',
                   )}
                 >

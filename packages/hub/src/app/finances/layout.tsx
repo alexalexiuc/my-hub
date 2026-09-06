@@ -1,10 +1,11 @@
+import { FeatureTheme } from '@/components';
 import Link from 'next/link';
 import { FinancesSidebar } from './FinancesSidebar';
 import { FinancesBottomNav } from './FinancesBottomNav';
 
 export default function FinancesLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="finances-theme flex h-screen flex-col bg-[var(--bg)]">
+    <FeatureTheme feature="finances" className="flex h-screen flex-col bg-[var(--bg)]">
       {/* Breadcrumb strip */}
       <div className="shrink-0 border-b border-[var(--border)] bg-[var(--shell)] px-6">
         <div className="flex h-12 items-center gap-2.5">
@@ -34,6 +35,6 @@ export default function FinancesLayout({ children }: { children: React.ReactNode
       <div data-layout="mobile" className="md:hidden">
         <FinancesBottomNav />
       </div>
-    </div>
+    </FeatureTheme>
   );
 }

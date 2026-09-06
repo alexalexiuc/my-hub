@@ -136,6 +136,42 @@ import { cn } from '@/lib/utils';
 cn('base-class', condition && 'conditional-class', className);
 ```
 
+## Colour tokens & theming
+
+All colour comes from CSS custom properties scoped to a `*-theme` class. **Never hardcode a
+Tailwind colour** (`bg-emerald-600`, `text-violet-400`, `border-zinc-800`) inside a themed
+subtree — it will not follow the user's chosen theme.
+
+| Group     | Tokens                                                                                                             |
+| --------- | ------------------------------------------------------------------------------------------------------------------ |
+| Surfaces  | `--bg` `--overlay` `--shell` `--card` `--card2` `--card3` `--border`                                               |
+| Text      | `--text` `--muted` `--subtle`                                                                                      |
+| Accent    | `--accent` `--accent-d` `--accent-shadow` `--accent-hover`                                                         |
+| Semantic  | `--green` `--blue` `--amber` `--red` `--violet` `--teal` `--orange` `--pink` `--emerald` `--sky` (+ `-d` variants) |
+| On-colour | `--on-accent` (text **on** `--accent`), `--on-solid` (text on a solid semantic fill)                               |
+
+Rules:
+
+- Use `text-[var(--on-accent)]` on anything with `bg-[var(--accent)]`. **Never `text-white`** —
+  pastel accents (soft Amber, soft Lime) are light, and white on them is unreadable. `--on-accent`
+  is generated to guarantee 4.5:1 against its own accent.
+- Semantic tokens carry meaning (`--red` = danger, `--green` = success). Use them for status, not
+  for decoration, and never substitute the accent for them.
+- Data colours are not theme colours. Per-trip colours, finance category swatches and `MACRO_COLORS`
+  are user/domain data and stay as they are.
+- Shared components in `src/components/` may be rendered outside a themed subtree, so they use a
+  fallback: `bg-[var(--card,#18181b)]`.
+- A theme class **must end in `-theme`**. `usePortalTheme` matches `/\b\S+-theme\b/` to copy the
+  palette onto portaled modals; a differently-shaped name silently breaks every modal.
+- Wrap a feature subtree in `<FeatureTheme feature="travel|finances|calories">` rather than a
+  literal class. It also sets `data-feature`, which is what CSS should key off when it needs to
+  target a feature regardless of the active theme.
+- Themes are chosen from one flat dropdown (`ThemePicker`); `THEME_OPTIONS` and `themeLabel` in
+  `@my-hub/shared/constants` are the single source of the option list and its display names.
+- The 36 generated palettes are produced by `scripts/gen-palettes.mts`; edit the generator, never
+  `src/styles/themes.generated.css`. Run `pnpm --filter @my-hub/hub gen:palettes` after changing it.
+  `gen:palettes:report` prints the contrast matrix. CI fails on drift.
+
 ## Input components
 
 Use these components from `@/components` instead of bare HTML elements:

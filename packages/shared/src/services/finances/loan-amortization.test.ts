@@ -68,6 +68,28 @@ describe('calculateLoanAmortizationSummary', () => {
     expect(summary.interestSavedVsSchedule).toBeGreaterThan(0);
   });
 
+  it('anchors the hybrid payoff date to the next scheduled due date, not payment transaction count', () => {
+    const details: LoanAccountDetails = {
+      type: 'loan',
+      principal: 1000,
+      interestRate: 0,
+      termMonths: 60,
+      firstPaymentDate: '2023-05-12',
+    };
+
+    const summary = calculateLoanAmortizationSummary(details, {
+      asOfDate: '2026-09-06',
+      paymentHistory: Array.from({ length: 14 }, (_, index) => ({
+        amount: 50,
+        date: `2023-${String(6 + index).padStart(2, '0')}-12`,
+      })),
+    });
+
+    expect(summary.paymentsMade).toBe(14);
+    expect(summary.paymentsRemaining).toBe(19);
+    expect(summary.actualPayoffDate).toBe('2028-03-12');
+  });
+
   it('falls back to schedule-only values when payment history has currency mismatch', () => {
     const details: LoanAccountDetails = {
       type: 'loan',

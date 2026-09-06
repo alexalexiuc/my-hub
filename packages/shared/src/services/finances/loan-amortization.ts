@@ -246,7 +246,7 @@ export function calculateLoanAmortizationSummary(
     totalInterestPaid: roundToTwoDecimals(totalInterestPaid),
     totalInterestRemaining: roundToTwoDecimals(projection.totalInterestRemaining),
     actualPayoffDate: toDateString(
-      addMonths(new Date(details.firstPaymentDate), paymentsMade + projection.paymentsRemaining - 1),
+      addMonths(new Date(details.firstPaymentDate), scheduledPaymentsMade + projection.paymentsRemaining - 1),
     ),
     interestSavedVsSchedule: roundToTwoDecimals(Math.max(0, scheduledTotalInterest - expectedTotalInterestHybrid)),
   };

@@ -39,7 +39,7 @@ export function CreateMenuDayTabs({
               disabled={isPast}
               className={`relative shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                 isActive
-                  ? 'bg-[var(--accent)] text-white'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)]'
                   : 'border border-[var(--border)] text-[var(--subtle)] hover:text-[var(--text)]'
               }`}
             >
