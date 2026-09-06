@@ -14,21 +14,22 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-indigo-600 text-white hover:bg-indigo-500',
-  secondary: 'border border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700',
+  primary: 'bg-[var(--accent,#4f46e5)] text-[var(--on-accent,#ffffff)] hover:bg-[var(--accent-hover,#6366f1)]',
+  secondary:
+    'border border-[var(--border,#3f3f46)] bg-[var(--card2,#27272a)] text-[var(--text,#e4e4e7)] hover:bg-[var(--card3,#3f3f46)]',
   neutral: 'border border-[var(--border)] bg-[var(--card2)] text-[var(--muted)] hover:text-[var(--text)]',
-  danger: 'bg-red-600 text-white hover:bg-red-500',
+  danger: 'bg-[var(--red,#dc2626)] text-[var(--on-solid,#ffffff)] hover:opacity-90',
   ghost: 'text-[var(--muted)] hover:text-[var(--text)]',
   transparent: 'bg-transparent',
-  accent: 'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]',
+  accent: 'bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-hover)]',
   'fin-pill':
     'rounded-[20px] border border-[var(--border)] bg-[var(--card2)] px-3 py-[5px] text-[11px] text-[var(--muted)] hover:text-[var(--text)]',
 };
 
 const activeVariants: Record<Variant, string> = {
-  primary: 'bg-indigo-700',
-  secondary: 'bg-zinc-700 border-zinc-600 text-white',
-  danger: 'bg-red-700',
+  primary: 'bg-[var(--accent-hover,#4338ca)]',
+  secondary: 'bg-[var(--card3,#3f3f46)] border-[var(--accent,#52525b)] text-[var(--text,#ffffff)]',
+  danger: 'brightness-90',
   ghost: 'border border-[var(--border)]',
   transparent: 'bg-zinc-800/30',
   accent: 'bg-[var(--accent-hover)]',

@@ -143,7 +143,7 @@ export function BottomNav({ leftItems, rightItems = [], moreItems = [], fab, cla
             onClick={fab.onClick}
             className="flex flex-1 cursor-pointer flex-col items-center border-none bg-transparent pt-1"
           >
-            <div className="-mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-solid)] shadow-[0_4px_12px_var(--accent-shadow)]">
+            <div className="-mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--on-accent)] shadow-[0_4px_12px_var(--accent-shadow)]">
               {fab.icon ?? <PlusOutlineIcon className="size-5" />}
             </div>
             <span className="mt-1 text-[9px] text-[var(--subtle)]">{fab.label}</span>

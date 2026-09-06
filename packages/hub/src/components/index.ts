@@ -36,6 +36,8 @@ export { PasswordStrength } from './PasswordStrength';
 export { Pill } from './Pill';
 export { ProgressBar } from './ProgressBar';
 export { Providers } from './Providers';
+export { ThemePicker } from './ThemePicker';
+export type { ThemePickerProps } from './ThemePicker';
 export { ThemeProvider, useThemes, resolveThemeOverrides } from './ThemeProvider';
 export type { ThemeProviderProps, ThemeContextValue, ThemeOverrides } from './ThemeProvider';
 export { RichTextEditor } from './RichTextEditor';

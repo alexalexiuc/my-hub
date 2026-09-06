@@ -272,7 +272,9 @@ export function DatePicker({
                       onClick={() => selectMonth(i)}
                       className={cn(
                         'rounded-lg py-1.5 text-[12px] font-medium transition-colors',
-                        isSelected ? 'bg-[var(--accent)] text-white' : 'text-[var(--text)] hover:bg-[var(--card2)]',
+                        isSelected
+                          ? 'bg-[var(--accent)] text-[var(--on-accent)]'
+                          : 'text-[var(--text)] hover:bg-[var(--card2)]',
                       )}
                     >
                       {name}
