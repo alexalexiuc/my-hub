@@ -1,60 +1,66 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { THEME_KEYS } from '@my-hub/shared/constants';
 import { ThemePicker } from './ThemePicker';
 
+const select = () => screen.getByRole('combobox', { name: 'Theme' }) as HTMLSelectElement;
+
 describe('ThemePicker', () => {
-  it('selects the hue at the current mood', () => {
-    const onChange = vi.fn();
-    render(<ThemePicker value="rose-deep" onChange={onChange} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Ocean' }));
-    expect(onChange).toHaveBeenCalledWith('ocean-deep');
+  it('lists every theme exactly once', () => {
+    render(<ThemePicker value="violet-soft" onChange={vi.fn()} />);
+    const values = Array.from(select().options).map(o => o.value);
+    expect(values).toHaveLength(THEME_KEYS.length);
+    expect([...values].sort()).toEqual([...THEME_KEYS].sort());
   });
 
-  it('defaults to the classic mood when nothing is selected yet', () => {
-    const onChange = vi.fn();
-    render(<ThemePicker value={null} onChange={onChange} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Teal' }));
-    expect(onChange).toHaveBeenCalledWith('teal-classic');
+  it('names themes in plain language rather than by key', () => {
+    render(<ThemePicker value="violet-soft" onChange={vi.fn()} />);
+    const labels = Array.from(select().options).map(o => o.text);
+    expect(labels).toContain('Violet Soft');
+    expect(labels).toContain('Ocean Deep');
+    expect(labels).toContain('Travel Emerald');
   });
 
-  it('keeps the hue when changing mood', () => {
-    const onChange = vi.fn();
-    render(<ThemePicker value="ocean-soft" onChange={onChange} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Deep' }));
-    expect(onChange).toHaveBeenCalledWith('ocean-deep');
-  });
-
-  it('disables the mood row until a hue is chosen, since mood alone means nothing', () => {
-    render(<ThemePicker value={null} onChange={vi.fn()} />);
-    expect((screen.getByRole('button', { name: 'Soft' }) as HTMLButtonElement).disabled).toBe(true);
-  });
-
-  it('marks the active hue and mood as pressed', () => {
+  it('reflects the current selection', () => {
     render(<ThemePicker value="lime-deep" onChange={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'Lime' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: 'Deep' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: 'Soft' }).getAttribute('aria-pressed')).toBe('false');
+    expect(select().value).toBe('lime-deep');
   });
 
-  it('offers the signature presets and reports them verbatim', () => {
+  it('reports the chosen theme key', () => {
     const onChange = vi.fn();
-    render(<ThemePicker value={null} onChange={onChange} />);
-    fireEvent.click(screen.getByRole('button', { name: /Finances Violet/ }));
-    expect(onChange).toHaveBeenCalledWith('finances-signature');
+    render(<ThemePicker value="violet-soft" onChange={onChange} />);
+    fireEvent.change(select(), { target: { value: 'ocean-deep' } });
+    expect(onChange).toHaveBeenCalledWith('ocean-deep');
   });
 
-  it('shows an inherit chip only when the scope can inherit, and reports it separately', () => {
-    const onInherit = vi.fn();
+  it('offers an inherit choice only when the scope can inherit', () => {
     const { rerender } = render(<ThemePicker value={null} onChange={vi.fn()} />);
-    expect(screen.queryByRole('button', { name: 'Same as everything' })).toBeNull();
+    expect(Array.from(select().options).some(o => /same as everything/i.test(o.text))).toBe(false);
 
-    rerender(<ThemePicker value={null} onChange={vi.fn()} inheritLabel="Same as everything" onInherit={onInherit} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Same as everything' }));
-    expect(onInherit).toHaveBeenCalledOnce();
+    rerender(<ThemePicker value={null} onChange={vi.fn()} inheritLabel="Same as everything" onInherit={vi.fn()} />);
+    expect(select().value).toBe('__inherit__');
   });
 
-  it('treats a signature selection as having no hue, so the mood row stays inert', () => {
-    render(<ThemePicker value="travel-signature" onChange={vi.fn()} />);
-    expect((screen.getByRole('button', { name: 'Classic' }) as HTMLButtonElement).disabled).toBe(true);
+  it('routes the inherit choice to onInherit, not onChange', () => {
+    const onChange = vi.fn();
+    const onInherit = vi.fn();
+    render(
+      <ThemePicker value="rose-soft" onChange={onChange} inheritLabel="Same as everything" onInherit={onInherit} />,
+    );
+    fireEvent.change(select(), { target: { value: '__inherit__' } });
+    expect(onInherit).toHaveBeenCalledOnce();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('groups options so a colour’s depths sit together', () => {
+    render(<ThemePicker value="violet-soft" onChange={vi.fn()} />);
+    const groups = Array.from(select().querySelectorAll('optgroup')).map(g => g.getAttribute('label'));
+    expect(groups[0]).toBe('Original');
+    expect(groups).toContain('Violet');
+  });
+
+  it('can be disabled while a save is in flight', () => {
+    render(<ThemePicker value="teal-classic" onChange={vi.fn()} disabled />);
+    expect(select().disabled).toBe(true);
   });
 });

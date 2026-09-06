@@ -13,9 +13,9 @@ const meta: Meta<typeof ThemePicker> = {
     docs: {
       description: {
         component:
-          'Two-axis picker: choose an accent hue, then how deeply it tints the surfaces. ' +
-          'Signature presets are the app’s original hand-tuned palettes. Per-feature pickers also ' +
-          'offer an inherit chip.',
+          'A single dropdown listing every theme by name, with the palette in effect shown as a ' +
+          'swatch. The original hand-tuned palettes come first, then each accent colour’s three ' +
+          'depths grouped together. Per-feature pickers also offer an inherit choice.',
       },
     },
   },
@@ -27,10 +27,11 @@ type Story = StoryObj<typeof ThemePicker>;
 function Standalone({ initial, inherit }: { initial: ThemeKey | null; inherit?: boolean }) {
   const [value, setValue] = useState<ThemeKey | null>(initial);
   return (
-    <div className="max-w-xl rounded-xl border border-[var(--border)] bg-[var(--card)] p-5">
+    <div className="max-w-md rounded-xl border border-[var(--border)] bg-[var(--card)] p-5">
       <ThemePicker
         value={value}
         onChange={setValue}
+        effectiveKey="finances-signature"
         inheritLabel={inherit ? 'Same as everything' : undefined}
         onInherit={inherit ? () => setValue(null) : undefined}
       />
