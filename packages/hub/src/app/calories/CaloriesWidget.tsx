@@ -1,5 +1,6 @@
 'use client';
 
+import { FeatureTheme } from '@/components';
 import { useState, useEffect, useCallback } from 'react';
 import { dateToString, calculateMacroKcal, dayCalorieTargets, latestWeightKg } from '@my-hub/shared/utils';
 import { SectionCard } from '@/components';
@@ -130,7 +131,7 @@ export function CaloriesWidget() {
   const today = dateToString(new Date());
 
   return (
-    <div className="calories-theme">
+    <FeatureTheme feature="calories">
       {showAddMeal && (
         <MealModal
           date={today}
@@ -259,6 +260,6 @@ export function CaloriesWidget() {
           </div>
         )}
       </SectionCard>
-    </div>
+    </FeatureTheme>
   );
 }

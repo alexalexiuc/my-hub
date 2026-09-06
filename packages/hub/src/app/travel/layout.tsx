@@ -1,10 +1,11 @@
+import { FeatureTheme } from '@/components';
 import Link from 'next/link';
 import { TravelSidebar } from './TravelSidebar';
 import { TravelBottomNav } from './TravelBottomNav';
 
 export default function TravelLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="travel-theme flex h-screen flex-col bg-[var(--bg)]">
+    <FeatureTheme feature="travel" className="flex h-screen flex-col bg-[var(--bg)]">
       {/* Breadcrumb strip */}
       <div className="shrink-0 border-b border-[var(--border)] bg-[var(--shell)] px-6">
         <div className="flex h-12 items-center gap-2.5">
@@ -31,6 +32,6 @@ export default function TravelLayout({ children }: { children: React.ReactNode }
       <div data-layout="mobile" className="md:hidden">
         <TravelBottomNav />
       </div>
-    </div>
+    </FeatureTheme>
   );
 }
