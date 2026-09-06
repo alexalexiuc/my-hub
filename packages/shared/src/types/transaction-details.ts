@@ -50,6 +50,7 @@ export interface ReceiptTransactionDetails extends TransactionDetails {
   receiptNumber?: string;
   taxAmount?: number;
   tipAmount?: number;
+  deliveryAmount?: number;
   discountAmount?: number;
   items?: ReceiptLineItem[];
 }
