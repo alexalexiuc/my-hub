@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import {
   getAccountById,
-  getAccounts,
   getTransactionListItems,
   getTransactions,
   addTransaction,
@@ -103,13 +102,11 @@ export const GET = route({
   let hasInitialBalanceTx: boolean | undefined;
 
   if (rawAccount.type === AccountTypes.Loan) {
-    const [allAccounts, correctionTxs] = await Promise.all([
-      getAccounts(user.id, budgetId, { includeArchived: true }),
+    const [correctionTxs, loanCard] = await Promise.all([
       getTransactions(user.id, budgetId, { accountId, includeCorrections: true, type: TransactionTypes.Expense }),
+      getLoanCardBalance(user.id, budgetId, rawAccount),
     ]);
     hasInitialBalanceTx = correctionTxs.some(t => t.isCorrection && t.notes === 'Initial Balance');
-    const accountCurrencyById = new Map(allAccounts.map(current => [current.id, current.currency]));
-    const loanCard = await getLoanCardBalance(user.id, budgetId, rawAccount, { accountCurrencyById });
     if (loanCard) {
       account = { ...account, balance: loanCard.balance, amortizationSummary: loanCard.amortizationSummary };
     }

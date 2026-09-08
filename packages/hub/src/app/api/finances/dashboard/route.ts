@@ -323,18 +323,11 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     .filter(a => a.type === AccountTypes.Loan && a.showOnWidget)
     .sort((a, b) => a.widgetSortOrder - b.widgetSortOrder || a.name.localeCompare(b.name));
   // Uses getLoanCardBalance — the same snapshot + display-balance resolution as the account
-  // list/detail screens — so the widget card always matches /finances/accounts/[id]. The currency
-  // map is built once up front so N loan cards cost one extra accounts query, not N.
-  const loanAccountCurrencyById =
-    widgetLoanAccounts.length > 0
-      ? new Map((await getAccounts(user.id, budgetId, { includeArchived: true })).map(a => [a.id, a.currency]))
-      : undefined;
+  // list/detail screens — so the widget card always matches /finances/accounts/[id].
   const loans = (
     await Promise.all(
       widgetLoanAccounts.map(async account => {
-        const loanCard = await getLoanCardBalance(user.id, budgetId, account, {
-          accountCurrencyById: loanAccountCurrencyById,
-        });
+        const loanCard = await getLoanCardBalance(user.id, budgetId, account);
         if (!loanCard) return null;
         return {
           id: account.id,
@@ -342,7 +335,7 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
           currency: account.currency,
           balance: loanCard.balance,
           monthsRemaining: loanCard.amortizationSummary.paymentsRemaining,
-          payoffDate: loanCard.amortizationSummary.actualPayoffDate ?? loanCard.amortizationSummary.scheduledPayoffDate,
+          payoffDate: loanCard.amortizationSummary.scheduledPayoffDate,
         };
       }),
     )

@@ -782,7 +782,6 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
     .where(and(eq(financeAccounts.budgetId, budgetId), eq(financeAccounts.archived, false)));
 
   const today = currentDateString();
-  const accountCurrencyById = new Map(accounts.map(account => [account.id, account.currency]));
 
   // Build byType map with currency conversion
   const byType: Partial<Record<AccountType, NetWorthByType>> = {};
@@ -795,7 +794,7 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
     let loanSummary: LoanSummary | undefined;
     if (acct.type === AccountTypes.Loan) {
       const [loanSnapshot, summary] = await Promise.all([
-        getLoanBalanceSnapshotForAccount(userId, budgetId, acct, { accountCurrencyById, asOfDate: today }),
+        getLoanBalanceSnapshotForAccount(userId, budgetId, acct, { asOfDate: today }),
         getLoanSummaryForAccount(userId, budgetId, acct, { asOfDate: today }),
       ]);
       if (loanSnapshot) {
