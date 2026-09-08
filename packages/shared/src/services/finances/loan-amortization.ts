@@ -221,23 +221,27 @@ export function calculateLoanAmortizationSummary(
   // transaction would re-run the split on each line item independently (an interest-only line
   // would get its own bogus "interest on the interest line" calculation) and inflate paymentsMade
   // by the number of line items per payment instead of the number of payments actually made.
-  const amountByDate = new Map<string, number>();
+  // paymentHistory is already sorted by date, so same-date entries are adjacent — merge into the
+  // last group instead of a map, since no attempt at grouping non-adjacent entries is needed.
+  const groupedPayments: LoanPaymentHistoryEntry[] = [];
   for (const payment of paymentHistory) {
-    amountByDate.set(payment.date, (amountByDate.get(payment.date) ?? 0) + payment.amount);
+    const lastGroup = groupedPayments[groupedPayments.length - 1];
+    if (lastGroup?.date === payment.date) {
+      lastGroup.amount += payment.amount;
+    } else {
+      groupedPayments.push({ date: payment.date, amount: payment.amount });
+    }
   }
-  const groupedPayments = Array.from(amountByDate, ([date, amount]) => ({ date, amount }));
 
   let remainingPrincipal = details.principal;
   let totalInterestPaid = 0;
   let paymentsMade = 0;
-  let lastPaymentDate = details.firstPaymentDate;
 
   for (const payment of groupedPayments) {
     const step = applyPayment(remainingPrincipal, monthlyRate, payment.amount);
     remainingPrincipal = step.remainingPrincipal;
     totalInterestPaid += step.totalInterestPaid;
     paymentsMade += 1;
-    lastPaymentDate = payment.date;
     if (remainingPrincipal <= 0) break;
   }
 
@@ -263,7 +267,7 @@ export function calculateLoanAmortizationSummary(
   // of the payment that did it.
   const actualPayoffDate =
     remainingPrincipal <= 0
-      ? lastPaymentDate
+      ? (groupedPayments[paymentsMade - 1]?.date ?? details.firstPaymentDate)
       : toDateString(addMonths(new Date(asOfDate), projection.paymentsRemaining - 1));
 
   summary = {
