@@ -89,6 +89,32 @@ describe('calculateLoanAmortizationSummary', () => {
     expect(summary.interestSavedVsSchedule).toBeUndefined();
   });
 
+  it('projects actualPayoffDate from today, not from firstPaymentDate + paymentsMade, when payments have fallen behind schedule', () => {
+    // 0% installment loan, far behind schedule: only 2 of the ~40 scheduled payments were
+    // actually recorded, so firstPaymentDate + paymentsMade would land in the past even though
+    // remainingPrincipal is still most of the principal.
+    const details: LoanAccountDetails = {
+      type: 'loan',
+      principal: 520000,
+      interestRate: 0,
+      termMonths: 60,
+      firstPaymentDate: '2023-05-01',
+    };
+
+    const summary = calculateLoanAmortizationSummary(details, {
+      asOfDate: '2026-09-08',
+      paymentHistory: [
+        { amount: 169000, date: '2023-06-01' },
+        { amount: 169000, date: '2023-07-01' },
+      ],
+    });
+
+    expect(summary.remainingPrincipal).toBeGreaterThan(0);
+    expect(summary.actualPayoffDate).toBeDefined();
+    // A loan that isn't paid off yet can't have a payoff date in the past.
+    expect(summary.actualPayoffDate! >= '2026-09-08').toBe(true);
+  });
+
   it('tracks 0% loans by reducing principal with recorded payment totals', () => {
     const details: LoanAccountDetails = {
       type: 'loan',

@@ -217,12 +217,14 @@ export function calculateLoanAmortizationSummary(
   let remainingPrincipal = details.principal;
   let totalInterestPaid = 0;
   let paymentsMade = 0;
+  let lastPaymentDate = details.firstPaymentDate;
 
   for (const payment of paymentHistory) {
     const step = applyPayment(remainingPrincipal, monthlyRate, payment.amount);
     remainingPrincipal = step.remainingPrincipal;
     totalInterestPaid += step.totalInterestPaid;
     paymentsMade += 1;
+    lastPaymentDate = payment.date;
     if (remainingPrincipal <= 0) break;
   }
 
@@ -238,6 +240,19 @@ export function calculateLoanAmortizationSummary(
 
   const expectedTotalInterestHybrid = totalInterestPaid + projection.totalInterestRemaining;
 
+  // Anchor the projected payoff on today (asOfDate), not on firstPaymentDate + paymentsMade:
+  // real payments don't necessarily land one per elapsed month (a loan can fall behind schedule
+  // or catch up in bursts), so "paymentsMade months after firstPaymentDate" can drift arbitrarily
+  // far from reality — including into the past — while remainingPrincipal is still > 0. Projecting
+  // the remaining payments forward from asOfDate keeps the payoff date consistent with
+  // paymentsRemaining (a loan that isn't paid off yet can't have a payoff date before today).
+  // When the payment history already zeroed the balance, the payoff already happened on the date
+  // of the payment that did it.
+  const actualPayoffDate =
+    remainingPrincipal <= 0
+      ? lastPaymentDate
+      : toDateString(addMonths(new Date(asOfDate), projection.paymentsRemaining - 1));
+
   summary = {
     ...summary,
     paymentsMade,
@@ -245,9 +260,7 @@ export function calculateLoanAmortizationSummary(
     remainingPrincipal: roundToTwoDecimals(remainingPrincipal),
     totalInterestPaid: roundToTwoDecimals(totalInterestPaid),
     totalInterestRemaining: roundToTwoDecimals(projection.totalInterestRemaining),
-    actualPayoffDate: toDateString(
-      addMonths(new Date(details.firstPaymentDate), paymentsMade + projection.paymentsRemaining - 1),
-    ),
+    actualPayoffDate,
     interestSavedVsSchedule: roundToTwoDecimals(Math.max(0, scheduledTotalInterest - expectedTotalInterestHybrid)),
   };
 
