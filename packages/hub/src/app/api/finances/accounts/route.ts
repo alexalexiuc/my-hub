@@ -107,8 +107,6 @@ export const accountItemSchema = z
         totalInterestRemaining: z.number(),
         totalCost: z.number(),
         scheduledPayoffDate: z.string(),
-        actualPayoffDate: z.string().optional(),
-        interestSavedVsSchedule: z.number().optional(),
       })
       .optional(),
   })
@@ -200,8 +198,6 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
     getAvailabilityPreferences(user.id, budgetId),
   ]);
 
-  const accountCurrencyById = new Map(rawAccounts.map(account => [account.id, account.currency]));
-
   const cashflowAccountIds = rawAccounts
     .filter(account => !account.archived && CASHFLOW_ACCOUNT_TYPES.has(account.type))
     .map(account => account.id);
@@ -214,7 +210,7 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
     Promise.all(
       rawAccounts.map(async account => {
         const isLoan = account.type === AccountTypes.Loan;
-        const loanCard = isLoan ? await getLoanCardBalance(user.id, budgetId, account, { accountCurrencyById }) : null;
+        const loanCard = isLoan ? await getLoanCardBalance(user.id, budgetId, account) : null;
         const bal = loanCard ? loanCard.balance : account.balance;
         const isOtherLiability = !isLoan && LIABILITY_TYPES.has(account.type);
         const includedInAvailable = isIncludedInAvailable(account.type, prefs.get(account.id) ?? null);

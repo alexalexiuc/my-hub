@@ -36,14 +36,12 @@ export const listContextTool: ToolHandler<typeof ListContextSchema.shape> = asyn
 
   const groupMap = new Map(groups.map(g => [g.id, g.name]));
 
-  const accountCurrencyById = new Map(accounts.map(account => [account.id, account.currency]));
-
   const accountsOut = await Promise.all(
     accounts.map(async account => {
       const [loanSnapshot, loanSummary] =
         account.type === AccountTypes.Loan
           ? await Promise.all([
-              getLoanBalanceSnapshotForAccount(userId, budget.id, account, { accountCurrencyById }),
+              getLoanBalanceSnapshotForAccount(userId, budget.id, account),
               getLoanSummaryForAccount(userId, budget.id, account),
             ])
           : [null, null];

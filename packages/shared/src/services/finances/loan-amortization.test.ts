@@ -24,7 +24,7 @@ function makeLoanAccount(details: LoanAccountDetails, balance: number): FinanceA
 }
 
 describe('calculateLoanAmortizationSummary', () => {
-  it('uses the schedule formula when no payment history is provided', () => {
+  it('uses the schedule formula, ignoring any actual payment history', () => {
     const details: LoanAccountDetails = {
       type: 'loan',
       principal: 120000,
@@ -41,58 +41,11 @@ describe('calculateLoanAmortizationSummary', () => {
     expect(summary.paymentsRemaining).toBe(116);
     expect(summary.remainingPrincipal).toBeGreaterThan(0);
     expect(summary.remainingPrincipal).toBeLessThan(details.principal);
-    expect(summary.actualPayoffDate).toBeUndefined();
-    expect(summary.interestSavedVsSchedule).toBeUndefined();
   });
 
-  it('uses hybrid mode to reflect overpayments and project a faster payoff', () => {
-    const details: LoanAccountDetails = {
-      type: 'loan',
-      principal: 1000,
-      interestRate: 12,
-      termMonths: 12,
-      firstPaymentDate: '2020-01-01',
-    };
-
-    const summary = calculateLoanAmortizationSummary(details, {
-      asOfDate: '2020-06-15',
-      paymentHistory: [
-        { amount: 300, date: '2020-02-01' },
-        { amount: 300, date: '2020-03-01' },
-      ],
-    });
-
-    expect(summary.paymentsMade).toBe(2);
-    expect(summary.paymentsRemaining).toBeLessThan(10);
-    expect(summary.actualPayoffDate).toBeDefined();
-    expect(summary.interestSavedVsSchedule).toBeGreaterThan(0);
-  });
-
-  it('falls back to schedule-only values when payment history has currency mismatch', () => {
-    const details: LoanAccountDetails = {
-      type: 'loan',
-      principal: 1000,
-      interestRate: 12,
-      termMonths: 12,
-      firstPaymentDate: '2020-01-01',
-    };
-
-    const summary = calculateLoanAmortizationSummary(details, {
-      asOfDate: '2020-06-15',
-      paymentHistory: [{ amount: 300, date: '2020-02-01', currencyMismatch: true }],
-    });
-
-    // Payment #1 is due on firstPaymentDate (2020-01-01) itself, so by 2020-06-15 payments
-    // #1-#6 are due (Jan 1 through Jun 1).
-    expect(summary.paymentsMade).toBe(6);
-    expect(summary.actualPayoffDate).toBeUndefined();
-    expect(summary.interestSavedVsSchedule).toBeUndefined();
-  });
-
-  it('projects actualPayoffDate from today, not from firstPaymentDate + paymentsMade, when payments have fallen behind schedule', () => {
-    // 0% installment loan, far behind schedule: only 2 of the ~40 scheduled payments were
-    // actually recorded, so firstPaymentDate + paymentsMade would land in the past even though
-    // remainingPrincipal is still most of the principal.
+  it('is unaffected by how a loan is actually paid (quarterly cadence, or a payment split into several transactions)', () => {
+    // Only the contractual schedule (principal, rate, term, firstPaymentDate) drives the result —
+    // there is no paymentHistory input to feed in irregular cadences or multi-transaction payments.
     const details: LoanAccountDetails = {
       type: 'loan',
       principal: 520000,
@@ -101,52 +54,13 @@ describe('calculateLoanAmortizationSummary', () => {
       firstPaymentDate: '2023-05-01',
     };
 
-    const summary = calculateLoanAmortizationSummary(details, {
-      asOfDate: '2026-09-08',
-      paymentHistory: [
-        { amount: 169000, date: '2023-06-01' },
-        { amount: 169000, date: '2023-07-01' },
-      ],
-    });
+    const summary = calculateLoanAmortizationSummary(details, { asOfDate: '2026-09-08' });
 
+    expect(summary.scheduledPayoffDate).toBe('2028-04-01');
     expect(summary.remainingPrincipal).toBeGreaterThan(0);
-    expect(summary.actualPayoffDate).toBeDefined();
-    // A loan that isn't paid off yet can't have a payoff date in the past.
-    expect(summary.actualPayoffDate! >= '2026-09-08').toBe(true);
   });
 
-  it('groups same-date transactions into one payment, instead of splitting the interest calc across each line item', () => {
-    // A real mortgage installment is often recorded as separate principal/interest/fee
-    // transactions on the same date. If each line item were run through the interest/principal
-    // split independently, an interest-only or fee-only line would get its own bogus "interest on
-    // the interest line" calculation and never reduce principal, and paymentsMade would count line
-    // items instead of actual payments.
-    const details: LoanAccountDetails = {
-      type: 'loan',
-      principal: 100000,
-      interestRate: 12,
-      termMonths: 120,
-      firstPaymentDate: '2020-01-01',
-    };
-    // getMonthlyPayment(100000, 0.01, 120) ≈ 1434.71; split across 3 same-day transactions.
-    const summary = calculateLoanAmortizationSummary(details, {
-      asOfDate: '2020-01-01',
-      paymentHistory: [
-        { amount: 1000, date: '2020-01-01' },
-        { amount: 400, date: '2020-01-01' },
-        { amount: 34.71, date: '2020-01-01' },
-      ],
-    });
-
-    expect(summary.paymentsMade).toBe(1);
-    // Interest on the first payment is principal * monthlyRate = 100000 * 0.01 = 1000, so
-    // principalPaid = 1434.71 - 1000 = 434.71. The naive (un-grouped) calculation would instead
-    // apply the 1% interest charge to each of the three line items separately, consuming almost
-    // all of them as "interest" and leaving remainingPrincipal at ~100000 (unchanged).
-    expect(summary.remainingPrincipal).toBeCloseTo(100000 - 434.71, 1);
-  });
-
-  it('tracks 0% loans by reducing principal with recorded payment totals', () => {
+  it('tracks 0% loans with a straight linear principal reduction', () => {
     const details: LoanAccountDetails = {
       type: 'loan',
       principal: 1000,
@@ -155,15 +69,11 @@ describe('calculateLoanAmortizationSummary', () => {
       firstPaymentDate: '2020-01-01',
     };
 
-    const summary = calculateLoanAmortizationSummary(details, {
-      asOfDate: '2020-06-15',
-      paymentHistory: [
-        { amount: 100, date: '2020-02-01' },
-        { amount: 250, date: '2020-03-01' },
-      ],
-    });
+    const summary = calculateLoanAmortizationSummary(details, { asOfDate: '2020-06-01' });
 
-    expect(summary.remainingPrincipal).toBe(650);
+    // Payment #1 is due on firstPaymentDate itself, so by 2020-06-01 payments #1-#6 are due.
+    expect(summary.paymentsMade).toBe(6);
+    expect(summary.remainingPrincipal).toBe(400);
     expect(summary.totalInterestPaid).toBe(0);
     expect(summary.totalInterestRemaining).toBe(0);
   });

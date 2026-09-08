@@ -1,25 +1,30 @@
 /**
  * Loan amortization helpers
  * - getMonthlyPayment(principal, monthlyRate, termMonths) — standard amortization payment formula (unrounded)
- * - calculateLoanAmortizationSummary(details, opts?) — computes schedule-derived and hybrid payment summary for a loan
+ * - calculateLoanAmortizationSummary(details, opts?) — pure schedule-derived payment summary for a loan (contractual schedule only; see module note on why this ignores actual payment history)
  * - getLoanBalanceSnapshotForAccount(userId, budgetId, account, opts?) — computes remaining principal + amortization summary for a loan account
  * - getLoanDisplayBalance(account, loanSnapshot) — resolves the balance to display for an account, substituting the amortization-derived remaining principal for interest-bearing loans
  * - getLoanCardBalance(userId, budgetId, account, opts?) — fetches the loan snapshot and resolves it via getLoanDisplayBalance in one call; the single entry point loan card UIs should use
  * - buildLoanSummary(details, totalPaid, today) — pure closed-form loan summary; k derived from (firstPaymentDate, today), not transaction count
  * - getLoanSummaryForAccount(userId, budgetId, account, opts?) — fetches transactions then calls buildLoanSummary
- * Types: LoanPaymentHistoryEntry, LoanAmortizationSummary, LoanBalanceSnapshot, LoanSummary
+ * Types: LoanAmortizationSummary, LoanBalanceSnapshot, LoanSummary
+ *
+ * Note on why there's no "actual payment" projection here: an earlier version of
+ * calculateLoanAmortizationSummary took the account's real transaction history and replayed each
+ * payment through the interest/principal split to project an "actual" (vs scheduled) payoff date.
+ * That broke on real data in two ways that can't be fixed by better date math alone: (1) a single
+ * real payment is often multiple transactions (principal/interest/fees) that don't all count toward
+ * paying down principal, and free-text transaction notes aren't a reliable way to tell which is
+ * which; (2) a loan paid on a non-monthly cadence (e.g. quarterly) doesn't map cleanly onto a
+ * per-transaction monthly interest simulation. Both produced numbers that silently disagreed with
+ * the fixed contractual schedule by a large margin. Only the schedule (this file) and the
+ * totalPaid-based closed form (buildLoanSummary) are trustworthy without a reliable way to classify
+ * what each transaction represents.
  */
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
 import { currentDateString } from '../../utils';
 import { getAccountDetails, type FinanceAccount, type LoanAccountDetails } from '../../types';
-import { getAccounts } from './accounts';
 import { getTransactions } from './transactions';
-
-export interface LoanPaymentHistoryEntry {
-  amount: number;
-  date: string;
-  currencyMismatch?: boolean;
-}
 
 export interface LoanAmortizationSummary {
   monthlyPayment: number;
@@ -30,8 +35,6 @@ export interface LoanAmortizationSummary {
   totalInterestRemaining: number;
   totalCost: number;
   scheduledPayoffDate: string;
-  actualPayoffDate?: string;
-  interestSavedVsSchedule?: number;
 }
 
 export interface LoanBalanceSnapshot {
@@ -44,9 +47,6 @@ interface LoanScheduleState {
   totalInterestPaid: number;
   paymentsMade: number;
 }
-
-// Safety guard against runaway projections (for example, underpaying loans where principal never decreases).
-const MAX_PROJECTION_ITERATIONS = 1000;
 
 function roundToTwoDecimals(value: number): number {
   return Math.round(value * 100) / 100;
@@ -121,37 +121,6 @@ function walkPaymentSequence(
   };
 }
 
-function projectToPayoff(
-  remainingPrincipal: number,
-  monthlyRate: number,
-  monthlyPayment: number,
-): { paymentsRemaining: number; totalInterestRemaining: number; canProject: boolean } {
-  if (remainingPrincipal <= 0) {
-    return { paymentsRemaining: 0, totalInterestRemaining: 0, canProject: true };
-  }
-
-  let paymentsRemaining = 0;
-  let totalInterestRemaining = 0;
-  let balance = remainingPrincipal;
-
-  while (balance > 0 && paymentsRemaining < MAX_PROJECTION_ITERATIONS) {
-    const interest = monthlyRate === 0 ? 0 : balance * monthlyRate;
-    const principalPaid = monthlyPayment - interest;
-    if (principalPaid <= 0) {
-      return { paymentsRemaining, totalInterestRemaining, canProject: false };
-    }
-    balance = Math.max(0, balance - principalPaid);
-    totalInterestRemaining += interest;
-    paymentsRemaining += 1;
-  }
-
-  return {
-    paymentsRemaining,
-    totalInterestRemaining,
-    canProject: paymentsRemaining < MAX_PROJECTION_ITERATIONS,
-  };
-}
-
 function isLoanPaymentTransaction(
   accountId: number,
   txn: Awaited<ReturnType<typeof getTransactions>>[number],
@@ -162,20 +131,9 @@ function isLoanPaymentTransaction(
   return txn.accountId === accountId && txn.type === TransactionTypes.Income;
 }
 
-function compareTransactionsByDateAndId(
-  left: Awaited<ReturnType<typeof getTransactions>>[number],
-  right: Awaited<ReturnType<typeof getTransactions>>[number],
-): number {
-  if (left.date !== right.date) return left.date.localeCompare(right.date);
-  return left.id - right.id;
-}
-
 export function calculateLoanAmortizationSummary(
   details: LoanAccountDetails,
-  opts: {
-    asOfDate?: string;
-    paymentHistory?: LoanPaymentHistoryEntry[];
-  } = {},
+  opts: { asOfDate?: string } = {},
 ): LoanAmortizationSummary {
   // Evaluate "today" at call time so each invocation can reflect current-date changes.
   const asOfDate = opts.asOfDate ?? currentDateString();
@@ -193,7 +151,7 @@ export function calculateLoanAmortizationSummary(
   const scheduledTotalInterest = scheduledEnd.totalInterestPaid;
   const totalCost = details.principal + scheduledTotalInterest;
 
-  let summary: LoanAmortizationSummary = {
+  return {
     monthlyPayment: roundToTwoDecimals(monthlyPayment),
     paymentsMade: scheduledPaymentsMade,
     paymentsRemaining: Math.max(0, details.termMonths - scheduledPaymentsMade),
@@ -203,141 +161,20 @@ export function calculateLoanAmortizationSummary(
     totalCost: roundToTwoDecimals(totalCost),
     scheduledPayoffDate,
   };
-
-  const paymentHistory = (opts.paymentHistory ?? [])
-    // Dates are normalized as YYYY-MM-DD strings across finance transactions.
-    .filter(payment => payment.date <= asOfDate && payment.amount > 0)
-    .sort((left, right) => left.date.localeCompare(right.date));
-
-  const hasCurrencyMismatch = paymentHistory.some(payment => payment.currencyMismatch === true);
-  if (hasCurrencyMismatch || paymentHistory.length === 0) {
-    return summary;
-  }
-
-  // A single real-world payment is often recorded as multiple transactions on the same date
-  // (e.g. principal, interest, and insurance/fees posted as separate transfers for one mortgage
-  // installment). Group by date and sum first, so the interest/principal split below is applied
-  // once per actual payment event using the full amount paid that day — applying it per raw
-  // transaction would re-run the split on each line item independently (an interest-only line
-  // would get its own bogus "interest on the interest line" calculation) and inflate paymentsMade
-  // by the number of line items per payment instead of the number of payments actually made.
-  // paymentHistory is already sorted by date, so same-date entries are adjacent — merge into the
-  // last group instead of a map, since no attempt at grouping non-adjacent entries is needed.
-  const groupedPayments: LoanPaymentHistoryEntry[] = [];
-  for (const payment of paymentHistory) {
-    const lastGroup = groupedPayments[groupedPayments.length - 1];
-    if (lastGroup?.date === payment.date) {
-      lastGroup.amount += payment.amount;
-    } else {
-      groupedPayments.push({ date: payment.date, amount: payment.amount });
-    }
-  }
-
-  let remainingPrincipal = details.principal;
-  let totalInterestPaid = 0;
-  let paymentsMade = 0;
-
-  for (const payment of groupedPayments) {
-    const step = applyPayment(remainingPrincipal, monthlyRate, payment.amount);
-    remainingPrincipal = step.remainingPrincipal;
-    totalInterestPaid += step.totalInterestPaid;
-    paymentsMade += 1;
-    if (remainingPrincipal <= 0) break;
-  }
-
-  const projection = projectToPayoff(remainingPrincipal, monthlyRate, monthlyPayment);
-  if (!projection.canProject) {
-    return {
-      ...summary,
-      paymentsMade,
-      remainingPrincipal: roundToTwoDecimals(remainingPrincipal),
-      totalInterestPaid: roundToTwoDecimals(totalInterestPaid),
-    };
-  }
-
-  const expectedTotalInterestHybrid = totalInterestPaid + projection.totalInterestRemaining;
-
-  // Anchor the projected payoff on today (asOfDate), not on firstPaymentDate + paymentsMade:
-  // real payments don't necessarily land one per elapsed month (a loan can fall behind schedule
-  // or catch up in bursts), so "paymentsMade months after firstPaymentDate" can drift arbitrarily
-  // far from reality — including into the past — while remainingPrincipal is still > 0. Projecting
-  // the remaining payments forward from asOfDate keeps the payoff date consistent with
-  // paymentsRemaining (a loan that isn't paid off yet can't have a payoff date before today).
-  // When the payment history already zeroed the balance, the payoff already happened on the date
-  // of the payment that did it.
-  const actualPayoffDate =
-    remainingPrincipal <= 0
-      ? (groupedPayments[paymentsMade - 1]?.date ?? details.firstPaymentDate)
-      : toDateString(addMonths(new Date(asOfDate), projection.paymentsRemaining - 1));
-
-  summary = {
-    ...summary,
-    paymentsMade,
-    paymentsRemaining: projection.paymentsRemaining,
-    remainingPrincipal: roundToTwoDecimals(remainingPrincipal),
-    totalInterestPaid: roundToTwoDecimals(totalInterestPaid),
-    totalInterestRemaining: roundToTwoDecimals(projection.totalInterestRemaining),
-    actualPayoffDate,
-    interestSavedVsSchedule: roundToTwoDecimals(Math.max(0, scheduledTotalInterest - expectedTotalInterestHybrid)),
-  };
-
-  return summary;
 }
 
 export async function getLoanBalanceSnapshotForAccount(
   userId: string,
   budgetId: number,
   account: FinanceAccount,
-  opts: {
-    asOfDate?: string;
-    accountCurrencyById?: Map<number, string>;
-  } = {},
+  opts: { asOfDate?: string } = {},
 ): Promise<LoanBalanceSnapshot | null> {
   if (account.type !== AccountTypes.Loan) return null;
 
   const details = getAccountDetails('loan', account.details);
   if (!details) return null;
 
-  const accountCurrencyById =
-    opts.accountCurrencyById ??
-    new Map(
-      (await getAccounts(userId, budgetId, { includeArchived: true })).map(current => [current.id, current.currency]),
-    );
-
-  // No fromDate filter: real-world repayments can land a few days before the scheduled
-  // firstPaymentDate (e.g. paid early), and this account is dedicated to the loan (created via
-  // finances_add_loan) so every non-correction transaction on it is a legitimate payment.
-  const transactions = await getTransactions(userId, budgetId, {
-    accountId: account.id,
-    includeCorrections: false,
-  });
-
-  const paymentHistory: LoanPaymentHistoryEntry[] = transactions
-    .filter(txn => isLoanPaymentTransaction(account.id, txn))
-    .sort(compareTransactionsByDateAndId)
-    .map(txn => {
-      if (txn.type === TransactionTypes.Transfer && txn.toAccountId === account.id) {
-        const sourceCurrency = accountCurrencyById.get(txn.accountId);
-        const currencyMismatch = !sourceCurrency || sourceCurrency !== account.currency;
-        return {
-          // toExchangeRate is stored as source-account currency -> destination-account currency.
-          amount: txn.amount * (txn.toExchangeRate ?? 1),
-          date: txn.date,
-          currencyMismatch,
-        };
-      }
-
-      return {
-        amount: txn.amount,
-        date: txn.date,
-        currencyMismatch: false,
-      };
-    });
-
-  const amortizationSummary = calculateLoanAmortizationSummary(details, {
-    asOfDate: opts.asOfDate,
-    paymentHistory,
-  });
+  const amortizationSummary = calculateLoanAmortizationSummary(details, { asOfDate: opts.asOfDate });
 
   return {
     balance: amortizationSummary.remainingPrincipal,
@@ -373,10 +210,7 @@ export async function getLoanCardBalance(
   userId: string,
   budgetId: number,
   account: FinanceAccount,
-  opts: {
-    asOfDate?: string;
-    accountCurrencyById?: Map<number, string>;
-  } = {},
+  opts: { asOfDate?: string } = {},
 ): Promise<{ balance: number; amortizationSummary: LoanAmortizationSummary } | null> {
   const snapshot = await getLoanBalanceSnapshotForAccount(userId, budgetId, account, opts);
   if (!snapshot) return null;
