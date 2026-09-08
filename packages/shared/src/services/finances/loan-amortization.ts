@@ -214,12 +214,25 @@ export function calculateLoanAmortizationSummary(
     return summary;
   }
 
+  // A single real-world payment is often recorded as multiple transactions on the same date
+  // (e.g. principal, interest, and insurance/fees posted as separate transfers for one mortgage
+  // installment). Group by date and sum first, so the interest/principal split below is applied
+  // once per actual payment event using the full amount paid that day — applying it per raw
+  // transaction would re-run the split on each line item independently (an interest-only line
+  // would get its own bogus "interest on the interest line" calculation) and inflate paymentsMade
+  // by the number of line items per payment instead of the number of payments actually made.
+  const amountByDate = new Map<string, number>();
+  for (const payment of paymentHistory) {
+    amountByDate.set(payment.date, (amountByDate.get(payment.date) ?? 0) + payment.amount);
+  }
+  const groupedPayments = Array.from(amountByDate, ([date, amount]) => ({ date, amount }));
+
   let remainingPrincipal = details.principal;
   let totalInterestPaid = 0;
   let paymentsMade = 0;
   let lastPaymentDate = details.firstPaymentDate;
 
-  for (const payment of paymentHistory) {
+  for (const payment of groupedPayments) {
     const step = applyPayment(remainingPrincipal, monthlyRate, payment.amount);
     remainingPrincipal = step.remainingPrincipal;
     totalInterestPaid += step.totalInterestPaid;

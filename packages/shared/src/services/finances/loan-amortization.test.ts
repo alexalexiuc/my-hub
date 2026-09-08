@@ -115,6 +115,37 @@ describe('calculateLoanAmortizationSummary', () => {
     expect(summary.actualPayoffDate! >= '2026-09-08').toBe(true);
   });
 
+  it('groups same-date transactions into one payment, instead of splitting the interest calc across each line item', () => {
+    // A real mortgage installment is often recorded as separate principal/interest/fee
+    // transactions on the same date. If each line item were run through the interest/principal
+    // split independently, an interest-only or fee-only line would get its own bogus "interest on
+    // the interest line" calculation and never reduce principal, and paymentsMade would count line
+    // items instead of actual payments.
+    const details: LoanAccountDetails = {
+      type: 'loan',
+      principal: 100000,
+      interestRate: 12,
+      termMonths: 120,
+      firstPaymentDate: '2020-01-01',
+    };
+    // getMonthlyPayment(100000, 0.01, 120) ≈ 1434.71; split across 3 same-day transactions.
+    const summary = calculateLoanAmortizationSummary(details, {
+      asOfDate: '2020-01-01',
+      paymentHistory: [
+        { amount: 1000, date: '2020-01-01' },
+        { amount: 400, date: '2020-01-01' },
+        { amount: 34.71, date: '2020-01-01' },
+      ],
+    });
+
+    expect(summary.paymentsMade).toBe(1);
+    // Interest on the first payment is principal * monthlyRate = 100000 * 0.01 = 1000, so
+    // principalPaid = 1434.71 - 1000 = 434.71. The naive (un-grouped) calculation would instead
+    // apply the 1% interest charge to each of the three line items separately, consuming almost
+    // all of them as "interest" and leaving remainingPrincipal at ~100000 (unchanged).
+    expect(summary.remainingPrincipal).toBeCloseTo(100000 - 434.71, 1);
+  });
+
   it('tracks 0% loans by reducing principal with recorded payment totals', () => {
     const details: LoanAccountDetails = {
       type: 'loan',
