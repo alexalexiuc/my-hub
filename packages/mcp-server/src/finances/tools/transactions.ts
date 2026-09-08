@@ -62,7 +62,9 @@ function withItemsHint(
   extras: TransactionDetails | null | undefined,
   type: (typeof TransactionTypes)[keyof typeof TransactionTypes],
 ): { itemsCount: number; suggestion?: string } {
-  const itemsCount = extras?.kind === 'receipt' ? ((extras as ReceiptTransactionDetails).items?.length ?? 0) : 0;
+  const items = extras?.kind === 'receipt' ? (extras as ReceiptTransactionDetails).items : undefined;
+  const itemsCount = items?.length ?? 0;
+
   if (itemsCount === 0 && type === TransactionTypes.Expense) {
     return {
       itemsCount,
@@ -71,6 +73,18 @@ function withItemsHint(
         'with the line items to enable price checks, comparisons, and price-evolution tracking.',
     };
   }
+
+  const missingPriceCount = items?.filter(item => item.unitPrice == null && item.totalPrice == null).length ?? 0;
+  if (missingPriceCount > 0) {
+    return {
+      itemsCount,
+      suggestion:
+        `${missingPriceCount} of ${itemsCount} item(s) are missing price info. ` +
+        'If available on the receipt or source, provide unitPrice (or totalPrice) and quantity per item via ' +
+        'finances_itemize_transaction. If not available, ask the user whether they can provide it, or leave the items as-is.',
+    };
+  }
+
   return { itemsCount };
 }
 
