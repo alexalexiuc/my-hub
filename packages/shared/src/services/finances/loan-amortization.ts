@@ -214,11 +214,30 @@ export function calculateLoanAmortizationSummary(
     return summary;
   }
 
+  // A single real-world payment is often recorded as multiple transactions on the same date
+  // (e.g. principal, interest, and insurance/fees posted as separate transfers for one mortgage
+  // installment). Group by date and sum first, so the interest/principal split below is applied
+  // once per actual payment event using the full amount paid that day — applying it per raw
+  // transaction would re-run the split on each line item independently (an interest-only line
+  // would get its own bogus "interest on the interest line" calculation) and inflate paymentsMade
+  // by the number of line items per payment instead of the number of payments actually made.
+  // paymentHistory is already sorted by date, so same-date entries are adjacent — merge into the
+  // last group instead of a map, since no attempt at grouping non-adjacent entries is needed.
+  const groupedPayments: LoanPaymentHistoryEntry[] = [];
+  for (const payment of paymentHistory) {
+    const lastGroup = groupedPayments[groupedPayments.length - 1];
+    if (lastGroup?.date === payment.date) {
+      lastGroup.amount += payment.amount;
+    } else {
+      groupedPayments.push({ date: payment.date, amount: payment.amount });
+    }
+  }
+
   let remainingPrincipal = details.principal;
   let totalInterestPaid = 0;
   let paymentsMade = 0;
 
-  for (const payment of paymentHistory) {
+  for (const payment of groupedPayments) {
     const step = applyPayment(remainingPrincipal, monthlyRate, payment.amount);
     remainingPrincipal = step.remainingPrincipal;
     totalInterestPaid += step.totalInterestPaid;
@@ -238,6 +257,19 @@ export function calculateLoanAmortizationSummary(
 
   const expectedTotalInterestHybrid = totalInterestPaid + projection.totalInterestRemaining;
 
+  // Anchor the projected payoff on today (asOfDate), not on firstPaymentDate + paymentsMade:
+  // real payments don't necessarily land one per elapsed month (a loan can fall behind schedule
+  // or catch up in bursts), so "paymentsMade months after firstPaymentDate" can drift arbitrarily
+  // far from reality — including into the past — while remainingPrincipal is still > 0. Projecting
+  // the remaining payments forward from asOfDate keeps the payoff date consistent with
+  // paymentsRemaining (a loan that isn't paid off yet can't have a payoff date before today).
+  // When the payment history already zeroed the balance, the payoff already happened on the date
+  // of the payment that did it.
+  const actualPayoffDate =
+    remainingPrincipal <= 0
+      ? (groupedPayments[paymentsMade - 1]?.date ?? details.firstPaymentDate)
+      : toDateString(addMonths(new Date(asOfDate), projection.paymentsRemaining - 1));
+
   summary = {
     ...summary,
     paymentsMade,
@@ -245,9 +277,7 @@ export function calculateLoanAmortizationSummary(
     remainingPrincipal: roundToTwoDecimals(remainingPrincipal),
     totalInterestPaid: roundToTwoDecimals(totalInterestPaid),
     totalInterestRemaining: roundToTwoDecimals(projection.totalInterestRemaining),
-    actualPayoffDate: toDateString(
-      addMonths(new Date(details.firstPaymentDate), paymentsMade + projection.paymentsRemaining - 1),
-    ),
+    actualPayoffDate,
     interestSavedVsSchedule: roundToTwoDecimals(Math.max(0, scheduledTotalInterest - expectedTotalInterestHybrid)),
   };
 
