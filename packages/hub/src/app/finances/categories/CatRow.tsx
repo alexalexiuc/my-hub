@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { IncludeExcludeChip, ProgressBar, SubText, SwipeRow } from '@/components';
+import { ProgressBar, SubText, SwipeRow } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
 import { fmt, CategoryIcon } from '../ui';
 import type { CategoryRow } from '@/app/api/finances/categories/route';
@@ -15,20 +15,9 @@ type CatRowProps = {
   onEdit: (cat: CategoryRow) => void;
   onDelete: (cat: CategoryRow) => void;
   onOpen?: (cat: CategoryRow) => void;
-  onToggleBudgetInclusion: (cat: CategoryRow) => void;
 };
 
-function CatRowContent({
-  cat,
-  currency,
-  onClick,
-  onToggleBudgetInclusion,
-}: {
-  cat: CategoryRow;
-  currency: string;
-  onClick?: () => void;
-  onToggleBudgetInclusion: (cat: CategoryRow) => void;
-}) {
+function CatRowContent({ cat, currency, onClick }: { cat: CategoryRow; currency: string; onClick?: () => void }) {
   const pct = cat.monthlyTarget && cat.monthlyTarget > 0 ? Math.round((cat.spent / cat.monthlyTarget) * 100) : null;
   const barColor =
     pct === null
@@ -46,15 +35,7 @@ function CatRowContent({
         <div className="min-w-0 flex-1">
           <div className="text-[13px] font-medium text-[var(--text)]">{cat.name}</div>
           {cat.monthlyTarget ? (
-            <div className="mt-0.5 flex items-center gap-1.5">
-              <SubText>Target {fmt(cat.monthlyTarget, currency)}/mo</SubText>
-              <span onClick={e => e.stopPropagation()}>
-                <IncludeExcludeChip
-                  included={cat.includeInSpendingBudget}
-                  onToggle={() => onToggleBudgetInclusion(cat)}
-                />
-              </span>
-            </div>
+            <SubText className="mt-0.5 block">Target {fmt(cat.monthlyTarget, currency)}/mo</SubText>
           ) : null}
         </div>
         <div className="text-right">
@@ -89,7 +70,6 @@ export function CatRow({
   onEdit,
   onDelete,
   onOpen,
-  onToggleBudgetInclusion,
 }: CatRowProps) {
   return (
     <>
@@ -102,23 +82,13 @@ export function CatRow({
           onEdit={() => onEdit(cat)}
           onDelete={() => onDelete(cat)}
         >
-          <CatRowContent
-            cat={cat}
-            currency={currency}
-            onClick={onOpen ? () => onOpen(cat) : undefined}
-            onToggleBudgetInclusion={onToggleBudgetInclusion}
-          />
+          <CatRowContent cat={cat} currency={currency} onClick={onOpen ? () => onOpen(cat) : undefined} />
         </SwipeRow>
       </div>
 
       {/* Desktop: hover to reveal */}
       <div data-layout="desktop" className="group relative hidden md:block">
-        <CatRowContent
-          cat={cat}
-          currency={currency}
-          onClick={onOpen ? () => onOpen(cat) : undefined}
-          onToggleBudgetInclusion={onToggleBudgetInclusion}
-        />
+        <CatRowContent cat={cat} currency={currency} onClick={onOpen ? () => onOpen(cat) : undefined} />
         <div className="pointer-events-none absolute inset-y-0 right-[14px] flex items-center opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
           <div className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--card)] px-1.5 py-1 shadow-sm">
             <button

@@ -64,7 +64,7 @@ export function PersonalInfoSection() {
       variant="ghost"
       size="xs"
       onClick={openEdit}
-      className="rounded-md border border-zinc-700 px-2.5 text-zinc-300 hover:border-zinc-500 hover:bg-zinc-700/60 hover:text-white"
+      className="rounded-md border border-[var(--border,#3f3f46)] px-2.5 text-[var(--text,#d4d4d8)] hover:border-[var(--accent)] hover:bg-[var(--card3,#3f3f46)] hover:text-[var(--text,#ffffff)]"
     >
       Edit
     </Button>
@@ -75,26 +75,28 @@ export function PersonalInfoSection() {
       {!editing ? (
         <div className="space-y-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-zinc-400">Name</span>
-            <span className="font-medium">{saved?.name || <span className="text-zinc-500">—</span>}</span>
+            <span className="text-[var(--muted,#a1a1aa)]">Name</span>
+            <span className="font-medium">
+              {saved?.name || <span className="text-[var(--subtle,#71717a)]">—</span>}
+            </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-zinc-400">Country</span>
+            <span className="text-[var(--muted,#a1a1aa)]">Country</span>
             <span className="font-medium">
               {saved?.country ? (
                 (COUNTRY_LABELS[saved.country] ?? saved.country)
               ) : (
-                <span className="text-zinc-500">—</span>
+                <span className="text-[var(--subtle,#71717a)]">—</span>
               )}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-zinc-400">Timezone</span>
+            <span className="text-[var(--muted,#a1a1aa)]">Timezone</span>
             <span className="font-medium">
               {saved?.timezone ? (
                 (TIMEZONE_LABELS[saved.timezone] ?? saved.timezone)
               ) : (
-                <span className="text-zinc-500">—</span>
+                <span className="text-[var(--subtle,#71717a)]">—</span>
               )}
             </span>
           </div>

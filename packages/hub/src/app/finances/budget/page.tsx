@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, CategoryIcon } from '../ui';
-import type { CategoriesResponse } from '@/app/api/finances/categories/route';
-import { Card, SectionLabel } from '@/components';
+import type { CategoriesResponse, CategoryRow } from '@/app/api/finances/categories/route';
+import { Card, IconButton, SectionLabel } from '@/components';
+import { QuestionMarkIcon } from '@/components/icons';
+import { BudgetInclusionSheet } from '../BudgetInclusionSheet';
 
 function lastNMonths(n: number) {
   return Array.from({ length: n }, (_, i) => {
@@ -24,6 +26,7 @@ export default function BudgetPage() {
   const [selectedMonth, setSelectedMonth] = useState(months[0]!.value);
   const [data, setData] = useState<CategoriesResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showBudgetSheet, setShowBudgetSheet] = useState(false);
 
   const load = useCallback(async (month: string) => {
     setLoading(true);
@@ -40,6 +43,15 @@ export default function BudgetPage() {
   useEffect(() => {
     load(selectedMonth);
   }, [selectedMonth, load]);
+
+  async function handleToggleBudgetInclusion(cat: CategoryRow) {
+    await apiFetch(`/api/finances/categories/${cat.id}`, {
+      method: 'PATCH',
+      body: { includeInSpendingBudget: !cat.includeInSpendingBudget },
+      silentToast: true,
+    });
+    load(selectedMonth);
+  }
 
   const currency = data?.currency ?? 'EUR';
   const budgetCats =
@@ -92,26 +104,34 @@ export default function BudgetPage() {
           <>
             {/* Summary row */}
             <div className="grid gap-2 sm:grid-cols-3">
-              {[
-                { label: 'Budget', value: fmt(totalBudget, currency), color: 'var(--blue)' },
-                {
-                  label: 'Spent',
-                  value: fmt(totalSpent, currency),
-                  color: totalSpent > totalBudget ? 'var(--red)' : 'var(--text)',
-                },
-                {
-                  label: 'Left',
-                  value: fmt(Math.abs(left), currency),
-                  color: left < 0 ? 'var(--red)' : 'var(--green)',
-                },
-              ].map(s => (
-                <Card compact key={s.label} className="px-3 py-2.5 text-center">
-                  <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--subtle)]">{s.label}</div>
-                  <div className="text-base font-bold" style={{ color: s.color }}>
-                    {s.value}
-                  </div>
-                </Card>
-              ))}
+              <Card compact className="relative px-3 py-2.5 text-center">
+                <IconButton
+                  label="How is this calculated?"
+                  icon={<QuestionMarkIcon className="size-3.5" />}
+                  onClick={() => setShowBudgetSheet(true)}
+                  variant="ghost"
+                  className="absolute right-1 top-1 p-1 text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--accent)]"
+                />
+                <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--subtle)]">Budget</div>
+                <div className="text-base font-bold" style={{ color: 'var(--blue)' }}>
+                  {fmt(totalBudget, currency)}
+                </div>
+              </Card>
+              <Card compact className="px-3 py-2.5 text-center">
+                <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--subtle)]">Spent</div>
+                <div
+                  className="text-base font-bold"
+                  style={{ color: totalSpent > totalBudget ? 'var(--red)' : 'var(--text)' }}
+                >
+                  {fmt(totalSpent, currency)}
+                </div>
+              </Card>
+              <Card compact className="px-3 py-2.5 text-center">
+                <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--subtle)]">Left</div>
+                <div className="text-base font-bold" style={{ color: left < 0 ? 'var(--red)' : 'var(--green)' }}>
+                  {fmt(Math.abs(left), currency)}
+                </div>
+              </Card>
             </div>
 
             {/* Category bars */}
@@ -185,6 +205,17 @@ export default function BudgetPage() {
             )}
           </>
         )
+      )}
+
+      {showBudgetSheet && data && (
+        <BudgetInclusionSheet
+          categories={data.allCategories}
+          totalBudgeted={totalBudget}
+          totalSpent={totalSpent}
+          currency={currency}
+          onToggle={handleToggleBudgetInclusion}
+          onClose={() => setShowBudgetSheet(false)}
+        />
       )}
     </div>
   );

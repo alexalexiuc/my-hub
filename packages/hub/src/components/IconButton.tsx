@@ -16,8 +16,8 @@ interface Props {
 }
 
 const variantClassName = {
-  default: 'rounded-md bg-zinc-800 p-1.5 text-zinc-300 hover:bg-zinc-700',
-  ghost: 'text-zinc-400 hover:text-zinc-200 transition-colors',
+  default: 'rounded-md bg-[var(--card2,#27272a)] p-1.5 text-[var(--text,#d4d4d8)] hover:bg-[var(--card3,#3f3f46)]',
+  ghost: 'text-[var(--muted,#a1a1aa)] hover:text-[var(--text,#e4e4e7)] transition-colors',
 };
 
 export function IconButton({

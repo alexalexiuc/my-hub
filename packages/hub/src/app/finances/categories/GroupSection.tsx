@@ -16,7 +16,6 @@ type GroupSectionProps = {
   onEditCategory: (cat: CategoryRow) => void;
   onDeleteCategory: (cat: CategoryRow) => void;
   onOpenCategory?: (cat: CategoryRow) => void;
-  onToggleBudgetInclusion: (cat: CategoryRow) => void;
   onChanged: () => void;
 };
 
@@ -32,7 +31,6 @@ export function GroupSection({
   onEditCategory,
   onDeleteCategory,
   onOpenCategory,
-  onToggleBudgetInclusion,
   onChanged,
 }: GroupSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
@@ -107,7 +105,6 @@ export function GroupSection({
               onEdit={onEditCategory}
               onDelete={onDeleteCategory}
               onOpen={onOpenCategory}
-              onToggleBudgetInclusion={onToggleBudgetInclusion}
             />
           </div>
         ))}

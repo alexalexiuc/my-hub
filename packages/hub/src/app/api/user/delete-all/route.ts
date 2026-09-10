@@ -25,6 +25,7 @@ import {
   deleteAllUserAvailableOverrides,
   deleteAllUserWeeklyMenus,
   deleteAllUserShoppingListItems,
+  deleteAllUserThemePreferences,
 } from '@my-hub/shared/services';
 
 /**
@@ -63,6 +64,7 @@ export const POST = route(async ({ user }) => {
     finances,
     availableOverrides,
     weeklyMenus,
+    themePreferences,
   ] = await Promise.all([
     deleteAllUserMeals(user.id),
     deleteAllUserMeasurements(user.id),
@@ -88,6 +90,7 @@ export const POST = route(async ({ user }) => {
     deleteAllUserFinanceBudgets(user.id),
     deleteAllUserAvailableOverrides(user.id),
     deleteAllUserWeeklyMenus(user.id),
+    deleteAllUserThemePreferences(user.id),
   ]);
 
   return {
@@ -117,6 +120,7 @@ export const POST = route(async ({ user }) => {
       availableOverrides,
       weeklyMenus,
       shoppingListItems,
+      themePreferences,
     },
   };
 });

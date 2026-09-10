@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
-import { Button, Checkbox } from '@/components';
-import { apiFetch } from '@/lib/utils';
+import { Button, Card, Checkbox } from '@/components';
+import { apiFetch, cn } from '@/lib/utils';
 
 type Feature = 'meals' | 'measurements' | 'calories_profile' | 'my_travels' | 'todos' | 'finances';
 
@@ -67,29 +67,37 @@ export function DataDeletionSection() {
   return (
     <SectionCard title="Data deletion">
       <div className="space-y-4">
-        <p className="text-sm text-zinc-400">Permanently delete your data by feature. This action cannot be undone.</p>
+        <p className="text-sm text-[var(--muted,#a1a1aa)]">
+          Permanently delete your data by feature. This action cannot be undone.
+        </p>
 
         <div className="space-y-2">
-          {DATA_FEATURES.map(({ key, label, description }) => (
-            <label
-              key={key}
-              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${
-                selectedFeatures.has(key)
-                  ? 'border-red-700 bg-red-950/30'
-                  : 'border-zinc-700 bg-zinc-800 hover:border-zinc-600'
-              }`}
-            >
-              <Checkbox
-                checked={selectedFeatures.has(key)}
-                onChange={() => toggleFeature(key)}
-                className="mt-0.5 accent-red-600"
-              />
-              <div>
-                <p className="text-sm font-medium">{label}</p>
-                <p className="mt-0.5 text-xs text-zinc-400">{description}</p>
-              </div>
-            </label>
-          ))}
+          {DATA_FEATURES.map(({ key, label, description }) => {
+            const selected = selectedFeatures.has(key);
+            return (
+              <label key={key} className="block cursor-pointer">
+                <Card
+                  compact
+                  className={cn(
+                    'flex items-start gap-3',
+                    selected
+                      ? 'border-[var(--red,#f87171)]/60 bg-[var(--red-d,rgba(248,113,113,0.1))]'
+                      : 'hover:border-[var(--accent)]',
+                  )}
+                >
+                  <Checkbox
+                    checked={selected}
+                    onChange={() => toggleFeature(key)}
+                    className="mt-0.5 accent-[var(--red,#dc2626)]"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">{label}</p>
+                    <p className="mt-0.5 text-xs text-[var(--muted,#a1a1aa)]">{description}</p>
+                  </div>
+                </Card>
+              </label>
+            );
+          })}
         </div>
 
         {selectedFeatures.size > 0 && !deleteConfirm && (
@@ -99,9 +107,9 @@ export function DataDeletionSection() {
         )}
 
         {deleteConfirm && (
-          <div className="space-y-3 rounded-lg border border-red-800/50 bg-red-950/30 p-4">
-            <p className="text-sm font-medium text-red-400">Are you sure? This will permanently delete:</p>
-            <ul className="list-inside list-disc space-y-1 text-sm text-red-400">
+          <Card compact className="space-y-3 border-[var(--red,#f87171)]/40 bg-[var(--red-d,rgba(248,113,113,0.1))]">
+            <p className="text-sm font-medium text-[var(--red,#f87171)]">Are you sure? This will permanently delete:</p>
+            <ul className="list-inside list-disc space-y-1 text-sm text-[var(--red,#f87171)]">
               {Array.from(selectedFeatures).map(f => (
                 <li key={f}>{DATA_FEATURES.find(d => d.key === f)?.label}</li>
               ))}
@@ -114,13 +122,13 @@ export function DataDeletionSection() {
                 Cancel
               </Button>
             </div>
-          </div>
+          </Card>
         )}
 
         {deleteResults && (
-          <div className="rounded-lg border border-green-800/50 bg-green-950/30 p-4">
-            <p className="mb-2 text-sm font-medium text-green-400">Data deleted successfully:</p>
-            <ul className="space-y-1 text-sm text-green-400">
+          <Card compact className="border-[var(--green,#6ee7b7)]/40 bg-[var(--green-d,rgba(110,231,183,0.1))]">
+            <p className="mb-2 text-sm font-medium text-[var(--green,#6ee7b7)]">Data deleted successfully:</p>
+            <ul className="space-y-1 text-sm text-[var(--green,#6ee7b7)]">
               {Object.entries(deleteResults).map(([feature, result]) => {
                 const label = DATA_FEATURES.find(d => d.key === feature)?.label ?? feature;
                 const count = typeof result.deleted === 'number' ? result.deleted : result.deleted ? 1 : 0;
@@ -131,7 +139,7 @@ export function DataDeletionSection() {
                 );
               })}
             </ul>
-          </div>
+          </Card>
         )}
       </div>
     </SectionCard>

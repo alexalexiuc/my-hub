@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { SectionCard } from '@/components/SectionCard';
-import { Button } from '@/components';
+import { Button, Card } from '@/components';
 import { apiFetch } from '@/lib/utils';
 
 export function DangerZoneSection() {
@@ -22,7 +22,7 @@ export function DangerZoneSection() {
   return (
     <SectionCard title="Danger zone">
       <div className="space-y-3">
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-[var(--muted,#a1a1aa)]">
           Permanently delete all your data (meals, measurements, calorie profile, MCP connections). Your account is
           kept.
         </p>
@@ -31,8 +31,8 @@ export function DangerZoneSection() {
             Delete all my data…
           </Button>
         ) : (
-          <div className="space-y-3 rounded-lg border border-red-800/50 bg-red-950/30 p-4">
-            <p className="text-sm font-medium text-red-400">
+          <Card compact className="space-y-3 border-[var(--red,#f87171)]/40 bg-[var(--red-d,rgba(248,113,113,0.1))]">
+            <p className="text-sm font-medium text-[var(--red,#f87171)]">
               This will permanently wipe all your data. Your account will remain. Are you sure?
             </p>
             <div className="flex gap-2">
@@ -43,7 +43,7 @@ export function DangerZoneSection() {
                 Cancel
               </Button>
             </div>
-          </div>
+          </Card>
         )}
       </div>
     </SectionCard>

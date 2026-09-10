@@ -284,7 +284,9 @@ function MemberChip({
       title={title}
       className={cn(
         'rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors',
-        active ? 'bg-[var(--accent)] text-white' : 'bg-[var(--card2)] text-[var(--muted)] hover:text-[var(--text)]',
+        active
+          ? 'bg-[var(--accent)] text-[var(--on-accent)]'
+          : 'bg-[var(--card2)] text-[var(--muted)] hover:text-[var(--text)]',
       )}
     >
       {label}
