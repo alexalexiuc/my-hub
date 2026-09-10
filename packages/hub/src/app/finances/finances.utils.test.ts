@@ -6,9 +6,26 @@ import {
   currentMonthString,
   normalizeYearMonth,
   getCategoryFallbackLetter,
+  computePlannedExpenses,
 } from './finances.utils';
 import { CreateBudgetSchema } from './finances-form.schema';
 import type { BudgetInfo } from '@/app/api/finances/budget/budget.schema';
+import type { CategoryRow } from '@/app/api/finances/categories/route';
+
+function makeCategoryRow(overrides: Partial<CategoryRow> & { id: number }): CategoryRow {
+  return {
+    name: 'Category',
+    icon: null,
+    color: null,
+    notes: null,
+    monthlyTarget: null,
+    includeInSpendingBudget: true,
+    spent: 0,
+    groupId: null,
+    sortOrder: 0,
+    ...overrides,
+  };
+}
 
 function makeBudget(overrides: Partial<BudgetInfo> & { id: number; name: string }): BudgetInfo {
   return {
@@ -152,6 +169,31 @@ describe('normalizeYearMonth', () => {
 
   it('falls back when value is invalid', () => {
     expect(normalizeYearMonth('2026-1', '2026-01')).toBe('2026-01');
+  });
+});
+
+describe('computePlannedExpenses', () => {
+  it('sums target and spent only across included categories', () => {
+    const categories = [
+      makeCategoryRow({ id: 1, monthlyTarget: 500, spent: 300, includeInSpendingBudget: true }),
+      makeCategoryRow({ id: 2, monthlyTarget: 200, spent: 250, includeInSpendingBudget: true }),
+      makeCategoryRow({ id: 3, monthlyTarget: 1000, spent: 1000, includeInSpendingBudget: false }),
+    ];
+    expect(computePlannedExpenses(categories)).toEqual({ totalPlanned: 700, spentTowardPlan: 550 });
+  });
+
+  it('treats a null monthlyTarget as 0 for the planned total but still counts its spend', () => {
+    const categories = [makeCategoryRow({ id: 1, monthlyTarget: null, spent: 120, includeInSpendingBudget: true })];
+    expect(computePlannedExpenses(categories)).toEqual({ totalPlanned: 0, spentTowardPlan: 120 });
+  });
+
+  it('returns zero totals for an empty or fully excluded category list', () => {
+    expect(computePlannedExpenses([])).toEqual({ totalPlanned: 0, spentTowardPlan: 0 });
+    expect(
+      computePlannedExpenses([
+        makeCategoryRow({ id: 1, monthlyTarget: 500, spent: 100, includeInSpendingBudget: false }),
+      ]),
+    ).toEqual({ totalPlanned: 0, spentTowardPlan: 0 });
   });
 });
 

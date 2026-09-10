@@ -30,6 +30,11 @@ export function fmtSign(value: number, currency = 'EUR') {
   return (value < 0 ? '-' : '+') + fmt(Math.abs(value), currency);
 }
 
+/** Plain number formatting (no currency symbol), same thousands/decimal style as fmt(). */
+export function fmtNum(value: number): string {
+  return new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+}
+
 // ─── Percentage formatter ─────────────────────────────────────────────────────
 export function pct(value: number | null, signed = false): string {
   if (value === null) return '—';

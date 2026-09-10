@@ -16,7 +16,7 @@ import { GroupSection } from './GroupSection';
 import { CatRow } from './CatRow';
 import { BudgetInclusionSheet } from '../BudgetInclusionSheet';
 import { categoryToEditValues } from '../finances-form.schema';
-import { normalizeYearMonth } from '../finances.utils';
+import { computePlannedExpenses, normalizeYearMonth } from '../finances.utils';
 import { SmartDatePicker } from '../SmartDatePicker';
 
 const CURRENT_MONTH = dateToString(new Date(), 'YYYY-MM');
@@ -96,9 +96,9 @@ export default function CategoriesPage() {
 
   const groupOptions = data?.groups.map(g => ({ id: g.id, name: g.name })) ?? [];
   const spentCategories = data?.allCategories.filter(c => c.spent > 0) ?? [];
-  const budgetCategories = data?.allCategories.filter(c => c.includeInSpendingBudget) ?? [];
-  const totalBudgeted = budgetCategories.reduce((s, c) => s + (c.monthlyTarget ?? 0), 0);
-  const totalBudgetSpent = budgetCategories.reduce((s, c) => s + c.spent, 0);
+  const { totalPlanned: totalBudgeted, spentTowardPlan: totalBudgetSpent } = computePlannedExpenses(
+    data?.allCategories ?? [],
+  );
 
   return (
     <div className="flex flex-col gap-[14px]">

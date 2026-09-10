@@ -1,4 +1,5 @@
 import type { BudgetInfo } from '@/app/api/finances/budget/budget.schema';
+import type { CategoryRow } from '@/app/api/finances/categories/route';
 import { dateToString } from '@my-hub/shared/utils';
 import { TransactionTypes } from '@my-hub/shared/constants';
 import type { TransactionType } from '@my-hub/shared/constants';
@@ -18,6 +19,25 @@ export function sortBudgets(budgets: BudgetInfo[]): BudgetInfo[] {
  */
 export function sortBySpentDesc<T extends { spent: number }>(rows: T[]): T[] {
   return [...rows].sort((a, b) => b.spent - a.spent);
+}
+
+export type PlannedExpensesTotals = {
+  totalPlanned: number;
+  spentTowardPlan: number;
+};
+
+/**
+ * Aggregates the "Planned Expenses" totals (spend vs monthly target) across categories with
+ * `includeInSpendingBudget` set. This is the single source of the total shown on the Categories
+ * page's "Planned this month" card and the `BudgetInclusionSheet` ("Planned Expenses") — reuse it
+ * anywhere else that needs the same figure so the numbers never drift apart.
+ */
+export function computePlannedExpenses(categories: CategoryRow[]): PlannedExpensesTotals {
+  const included = categories.filter(c => c.includeInSpendingBudget);
+  return {
+    totalPlanned: included.reduce((sum, c) => sum + (c.monthlyTarget ?? 0), 0),
+    spentTowardPlan: included.reduce((sum, c) => sum + c.spent, 0),
+  };
 }
 
 /**
