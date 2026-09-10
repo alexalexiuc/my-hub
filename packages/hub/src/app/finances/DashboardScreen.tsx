@@ -3,6 +3,7 @@ import { formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
 import { fmt, SeeAllButton } from './ui';
 import { CategoryPieChart, SpendingTrendChart } from './DashboardCharts';
 import { TransactionList } from './transactions/TransactionList';
+import { AvailableCard } from './AvailableCard';
 import type { FinanceDashboardData } from '@/app/api/finances/dashboard/route';
 import { Card, SubText, Divider, SectionLabel, ProgressBar } from '@/components';
 import { SmartDatePicker } from './SmartDatePicker';
@@ -55,12 +56,7 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
 
       {/* Available balance + cashflow row */}
       <div className="grid gap-2.5 md:grid-cols-2">
-        <Card className="p-[14px]">
-          <SubText className="block mb-1.5 uppercase tracking-[0.08em]">Available</SubText>
-          <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">
-            {fmt(availableBalance, currency)}
-          </div>
-        </Card>
+        <AvailableCard availableBalance={availableBalance} currency={currency} month={selectedMonth} />
 
         <Card className="p-[14px]">
           <SubText className="block mb-1.5 uppercase tracking-[0.08em]">
