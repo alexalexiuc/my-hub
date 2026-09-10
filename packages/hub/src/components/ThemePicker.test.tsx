@@ -55,7 +55,8 @@ describe('ThemePicker', () => {
   it('groups options so a colour’s depths sit together', () => {
     render(<ThemePicker value="violet-soft" onChange={vi.fn()} />);
     const groups = Array.from(select().querySelectorAll('optgroup')).map(g => g.getAttribute('label'));
-    expect(groups[0]).toBe('Original');
+    expect(groups[0]).toBe('Neutral');
+    expect(groups[1]).toBe('Original');
     expect(groups).toContain('Violet');
   });
 

@@ -2,6 +2,7 @@
 
 import { signOut } from 'next-auth/react';
 import { SectionCard } from '@/components/SectionCard';
+import { Button } from '@/components';
 
 type SessionSectionProps = {
   email: string;
@@ -11,13 +12,10 @@ export function SessionSection({ email }: SessionSectionProps) {
   return (
     <SectionCard title="Session">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-400">Signed in as {email}</p>
-        <button
-          onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-          className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 transition hover:bg-zinc-800"
-        >
+        <p className="text-sm text-[var(--muted,#a1a1aa)]">Signed in as {email}</p>
+        <Button variant="secondary" size="sm" onClick={() => signOut({ callbackUrl: '/auth/signin' })}>
           Sign out
-        </button>
+        </Button>
       </div>
     </SectionCard>
   );

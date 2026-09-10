@@ -483,6 +483,7 @@ interface Swatch {
 /** Read directly from the hand-written Signature CSS files — not re-derived. */
 const SIGNATURE_SWATCHES: Record<string, Swatch> = {
   'graphite-signature': { accent: '#6366f1', bg: '#09090b', card: '#18181b' },
+  'light-signature': { accent: '#4f46e5', bg: '#fafafa', card: '#ffffff' },
   'travel-signature': { accent: '#10b981', bg: '#030f0a', card: '#0a1e16' },
   'finances-signature': { accent: '#a78bfa', bg: '#0b0a14', card: '#171422' },
   'calories-signature': { accent: '#f97316', bg: '#110c05', card: '#221609' },

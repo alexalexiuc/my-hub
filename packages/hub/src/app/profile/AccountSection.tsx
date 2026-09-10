@@ -32,16 +32,16 @@ export function AccountSection({ user }: AccountSectionProps) {
     <SectionCard title="Account">
       <div className="space-y-3 text-sm">
         <div className="flex items-start justify-between">
-          <span className="text-zinc-400">Email</span>
+          <span className="text-[var(--muted,#a1a1aa)]">Email</span>
           <div className="space-y-1 text-right">
             <div className="flex items-center justify-end gap-2">
               <span className="font-medium">{user.email}</span>
               {user.emailVerified ? (
-                <span className="rounded border border-emerald-800/50 bg-emerald-900/40 px-1.5 py-0.5 text-xs text-emerald-400">
+                <span className="rounded border border-[var(--green,#6ee7b7)]/40 bg-[var(--green-d,rgba(110,231,183,0.1))] px-1.5 py-0.5 text-xs text-[var(--green,#6ee7b7)]">
                   Verified
                 </span>
               ) : (
-                <span className="rounded border border-yellow-800/50 bg-yellow-900/40 px-1.5 py-0.5 text-xs text-yellow-400">
+                <span className="rounded border border-[var(--amber,#fcd34d)]/40 bg-[var(--amber-d,rgba(252,211,77,0.1))] px-1.5 py-0.5 text-xs text-[var(--amber,#fcd34d)]">
                   Unverified
                 </span>
               )}
@@ -49,14 +49,14 @@ export function AccountSection({ user }: AccountSectionProps) {
             {!user.emailVerified && (
               <div className="space-y-1">
                 {resendSuccess ? (
-                  <p className="text-xs text-emerald-400">Verification email sent.</p>
+                  <p className="text-xs text-[var(--green,#6ee7b7)]">Verification email sent.</p>
                 ) : (
                   <>
-                    {resendError && <p className="text-xs text-red-400">{resendError}</p>}
+                    {resendError && <p className="text-xs text-[var(--red,#f87171)]">{resendError}</p>}
                     <button
                       onClick={resendVerification}
                       disabled={resending}
-                      className="text-xs text-indigo-400 transition hover:text-indigo-300 disabled:opacity-50"
+                      className="text-xs text-[var(--accent)] transition hover:opacity-80 disabled:opacity-50"
                     >
                       {resending ? 'Sending…' : 'Resend verification email'}
                     </button>
@@ -67,7 +67,7 @@ export function AccountSection({ user }: AccountSectionProps) {
           </div>
         </div>
         <div className="flex justify-between">
-          <span className="text-zinc-400">Member since</span>
+          <span className="text-[var(--muted,#a1a1aa)]">Member since</span>
           <span className="font-medium">{new Date(user.createdAt).toLocaleDateString()}</span>
         </div>
       </div>

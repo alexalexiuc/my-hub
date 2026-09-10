@@ -157,6 +157,14 @@ Rules:
   is generated to guarantee 4.5:1 against its own accent.
 - Semantic tokens carry meaning (`--red` = danger, `--green` = success). Use them for status, not
   for decoration, and never substitute the accent for them.
+- `--on-solid` is unconditionally `#ffffff` and is only verified safe on `--red` `--green` `--blue`
+  `--violet` `--teal` — **not** `--amber`, which is a light pastel even in dark mode and fails
+  contrast badly under white text. A solid amber/warning CTA should use the normal
+  `Button variant="accent"` treatment instead of a solid amber fill.
+- Prefer `Button`, `IconButton`, `Card` and `SectionCard` over a raw `<button>` or a hand-styled
+  `<div>` when tokenizing a surface — they already carry the right tokens (with fallbacks) and
+  converge the app toward one consistent look. `Card compact` is the right base for a bordered
+  callout/row that shouldn't take Card's mobile full-bleed behaviour.
 - Data colours are not theme colours. Per-trip colours, finance category swatches and `MACRO_COLORS`
   are user/domain data and stay as they are.
 - Shared components in `src/components/` may be rendered outside a themed subtree, so they use a
@@ -168,9 +176,16 @@ Rules:
   target a feature regardless of the active theme.
 - Themes are chosen from one flat dropdown (`ThemePicker`); `THEME_OPTIONS` and `themeLabel` in
   `@my-hub/shared/constants` are the single source of the option list and its display names.
+  `groupThemeOptions()` buckets them for `<optgroup>`s and the `/appearance` gallery grid.
 - The 36 generated palettes are produced by `scripts/gen-palettes.mts`; edit the generator, never
   `src/styles/themes.generated.css`. Run `pnpm --filter @my-hub/hub gen:palettes` after changing it.
-  `gen:palettes:report` prints the contrast matrix. CI fails on drift.
+  `gen:palettes:report` prints the contrast matrix. CI fails on drift. The 5 hand-authored
+  signatures (`src/styles/*.css`) are NOT covered by the generator's assertions — verify a new or
+  edited signature's contrast by hand against the same thresholds.
+- `light-signature` is the one light-mode exception in an otherwise dark-only app. It scopes
+  `color-scheme: light` to its own class so native browser chrome (a `<select>` popup, a date
+  picker) doesn't render mismatched dark chrome; every other signature relies on the page-wide
+  dark default in `globals.css`.
 
 ## Input components
 

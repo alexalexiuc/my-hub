@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { SectionCard } from '@/components/SectionCard';
 import { NOTIFICATION_SUBSCRIPTIONS } from '@my-hub/shared/constants';
 import type { SubscriptionKey } from '@my-hub/shared/constants';
-import { Checkbox } from '@/components';
+import { Card, Checkbox } from '@/components';
 import { apiFetch } from '@/lib/utils';
 
 interface SubscriptionState {
@@ -45,30 +45,31 @@ export function NotificationsSection() {
   return (
     <SectionCard title="Notifications">
       {loading ? (
-        <p className="text-sm text-zinc-400">Loading…</p>
+        <p className="text-sm text-[var(--muted,#a1a1aa)]">Loading…</p>
       ) : (
         <div className="space-y-5">
           {sections.map(section => {
             const items = NOTIFICATION_SUBSCRIPTIONS.filter(s => s.section === section);
             return (
               <div key={section}>
-                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">{section}</p>
+                <p className="text-xs font-medium text-[var(--subtle,#71717a)] uppercase tracking-wider mb-2">
+                  {section}
+                </p>
                 <div className="space-y-2">
                   {items.map(({ key, label }) => {
                     const state = subscriptions.find(s => s.key === key);
                     const isSubscribed = state?.subscribed ?? true;
                     const isSaving = saving === key;
                     return (
-                      <label
-                        key={key}
-                        className="flex items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 cursor-pointer hover:border-zinc-600 transition"
-                      >
-                        <span className="text-sm">{label}</span>
-                        <Checkbox
-                          checked={isSubscribed}
-                          disabled={isSaving}
-                          onChange={e => toggle(key, e.target.checked)}
-                        />
+                      <label key={key} className="block cursor-pointer">
+                        <Card compact className="flex items-center justify-between hover:border-[var(--accent)]">
+                          <span className="text-sm">{label}</span>
+                          <Checkbox
+                            checked={isSubscribed}
+                            disabled={isSaving}
+                            onChange={e => toggle(key, e.target.checked)}
+                          />
+                        </Card>
                       </label>
                     );
                   })}
@@ -76,7 +77,7 @@ export function NotificationsSection() {
               </div>
             );
           })}
-          <p className="text-xs text-zinc-500">You receive reports by default. Uncheck to opt out.</p>
+          <p className="text-xs text-[var(--subtle,#71717a)]">You receive reports by default. Uncheck to opt out.</p>
         </div>
       )}
     </SectionCard>

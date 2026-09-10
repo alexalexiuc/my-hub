@@ -1,0 +1,48 @@
+/*
+ * Light is Graphite's opposite: a light neutral shell, hand-authored like the other 4
+ * signatures rather than run through the dark-only OKLCH generator. Its ladder direction is
+ * inverted (elevated surfaces get whiter, not darker) and every semantic hue is re-picked at a
+ * darker weight so it still clears WCAG 4.5:1 as text on a light background — the dark-mode
+ * pastel set (e.g. --red: #f87171) reads fine on near-black but fails badly on white.
+ *
+ * `color-scheme: light` is scoped to this class (rather than left at the page-wide dark default
+ * in globals.css) so native browser chrome that our CSS can't reach — a <select> dropdown's own
+ * popup, a date-input's calendar, default scrollbars — renders light instead of mismatched dark
+ * chrome floating over a light page. It composes correctly however deep `.light-theme` is
+ * applied, since `color-scheme` inherits and the nearest ancestor's value wins.
+ */
+.light-theme {
+  color-scheme: light;
+  --bg: #fafafa;
+  --overlay: rgba(0, 0, 0, 0.4);
+  --shell: #ffffff;
+  --card: #ffffff;
+  --card2: #f4f4f5;
+  --card3: #e4e4e7;
+  --border: #d4d4d8;
+  --text: #18181b;
+  --muted: #52525b;
+  --subtle: #71717a;
+  --accent: #4f46e5;
+  --accent-d: rgba(79, 70, 229, 0.12);
+  --accent-shadow: rgba(79, 70, 229, 0.4);
+  --accent-hover: rgba(79, 70, 229, 0.75);
+  --green: #15803d;
+  --green-d: rgba(21, 128, 61, 0.12);
+  --blue: #2563eb;
+  --blue-d: rgba(37, 99, 235, 0.1);
+  --amber: #b45309;
+  --amber-d: rgba(180, 83, 9, 0.12);
+  --red: #dc2626;
+  --red-d: rgba(220, 38, 38, 0.1);
+  --violet: #7c3aed;
+  --violet-d: rgba(124, 58, 237, 0.12);
+  --teal: #0f766e;
+  --teal-d: rgba(15, 118, 110, 0.1);
+  --orange: #c2410c;
+  --pink: #db2777;
+  --emerald: #047857;
+  --sky: #0369a1;
+  --on-accent: #ffffff;
+  --on-solid: #ffffff;
+}

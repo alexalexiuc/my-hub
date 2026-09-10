@@ -8,11 +8,13 @@ import type { CategoriesResponse, CategoryGroup, CategoryRow } from '@/app/api/f
 import type { CategoryDeleteResponse } from '@/app/api/finances/categories/[id]/route';
 import { fmt } from '../ui';
 import { dateToString } from '@my-hub/shared/utils';
-import { Button, Card, Divider, SectionLabel } from '@/components';
+import { Button, Card, Divider, IconButton, SectionLabel, SubText } from '@/components';
+import { QuestionMarkIcon } from '@/components/icons';
 import { CategoryModal } from './CategoryModal';
 import { GroupModal } from './GroupModal';
 import { GroupSection } from './GroupSection';
 import { CatRow } from './CatRow';
+import { BudgetInclusionSheet } from '../BudgetInclusionSheet';
 import { categoryToEditValues } from '../finances-form.schema';
 import { normalizeYearMonth } from '../finances.utils';
 import { SmartDatePicker } from '../SmartDatePicker';
@@ -32,6 +34,7 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null);
   const [editingGroup, setEditingGroup] = useState<CategoryGroup | null>(null);
   const [ungroupedOpenId, setUngroupedOpenId] = useState<number | null>(null);
+  const [showBudgetSheet, setShowBudgetSheet] = useState(false);
 
   const load = useCallback(async (month: string) => {
     setLoading(true);
@@ -93,6 +96,9 @@ export default function CategoriesPage() {
 
   const groupOptions = data?.groups.map(g => ({ id: g.id, name: g.name })) ?? [];
   const spentCategories = data?.allCategories.filter(c => c.spent > 0) ?? [];
+  const budgetCategories = data?.allCategories.filter(c => c.includeInSpendingBudget) ?? [];
+  const totalBudgeted = budgetCategories.reduce((s, c) => s + (c.monthlyTarget ?? 0), 0);
+  const totalBudgetSpent = budgetCategories.reduce((s, c) => s + c.spent, 0);
 
   return (
     <div className="flex flex-col gap-[14px]">
@@ -159,6 +165,23 @@ export default function CategoriesPage() {
               )}
             </Card>
 
+            {totalBudgeted > 0 && (
+              <Card compact className="relative p-[14px]">
+                <IconButton
+                  label="How is this calculated?"
+                  icon={<QuestionMarkIcon className="size-3.5" />}
+                  onClick={() => setShowBudgetSheet(true)}
+                  variant="ghost"
+                  className="absolute right-[10px] top-[10px] p-1 text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--accent)]"
+                />
+                <SubText className="block mb-1.5 uppercase tracking-[0.08em]">Planned this month</SubText>
+                <div className="text-[15px] font-bold tracking-[-0.02em] text-[var(--text)]">
+                  {fmt(totalBudgetSpent, data.currency)}
+                  <span className="ml-1 font-normal text-[var(--subtle)]">/ {fmt(totalBudgeted, data.currency)}</span>
+                </div>
+              </Card>
+            )}
+
             {data.groups.map(group => (
               <GroupSection
                 key={group.id}
@@ -169,7 +192,6 @@ export default function CategoriesPage() {
                 onEditCategory={setEditingCategory}
                 onDeleteCategory={handleDeleteCategory}
                 onOpenCategory={openCategory}
-                onToggleBudgetInclusion={handleToggleBudgetInclusion}
                 onChanged={() => load(selectedMonth)}
               />
             ))}
@@ -197,7 +219,6 @@ export default function CategoriesPage() {
                         onEdit={setEditingCategory}
                         onDelete={handleDeleteCategory}
                         onOpen={openCategory}
-                        onToggleBudgetInclusion={handleToggleBudgetInclusion}
                       />
                     </div>
                   ))}
@@ -247,6 +268,17 @@ export default function CategoriesPage() {
             setEditingCategory(null);
             load(selectedMonth);
           }}
+        />
+      )}
+
+      {showBudgetSheet && data && (
+        <BudgetInclusionSheet
+          categories={data.allCategories}
+          totalBudgeted={totalBudgeted}
+          totalSpent={totalBudgetSpent}
+          currency={data.currency}
+          onToggle={handleToggleBudgetInclusion}
+          onClose={() => setShowBudgetSheet(false)}
         />
       )}
     </div>

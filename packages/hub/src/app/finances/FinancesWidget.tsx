@@ -124,6 +124,11 @@ export function FinancesWidget() {
                 <div className="mt-1 text-sm font-semibold tabular-nums text-zinc-100">
                   {revealed ? fmt(data.availableBalance, data.currency) : HIDDEN}
                 </div>
+                {data.budgetTotal > data.budgetSpent && (
+                  <div className="text-[10px] text-zinc-500">
+                    {revealed ? `${fmt(data.budgetTotal - data.budgetSpent, data.currency)} still planned` : HIDDEN}
+                  </div>
+                )}
               </MetricLinkCard>
               <MetricLinkCard href="/finances/portfolio" color={PORTFOLIO_COLOR}>
                 <div className="flex items-center gap-1.5">

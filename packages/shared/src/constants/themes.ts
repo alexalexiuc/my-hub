@@ -6,9 +6,10 @@
  * Inventory:
  * - `THEME_HUES` — the 12 accent hues offered by the generated palette.
  * - `THEME_MOODS` — the 3 chroma/lightness "moods" applied to each hue.
- * - `THEME_SIGNATURES` — the 4 hand-preserved, non-generated presets.
+ * - `THEME_SIGNATURES` — the 5 hand-preserved, non-generated presets (2 neutral shells + 3
+ *   feature-original palettes), each carrying its own `group` for `THEME_OPTIONS`.
  * - `ThemeHue` / `ThemeMood` / `ThemeSignatureKey` / `ThemeKey` — string-union types.
- * - `THEME_KEYS` — every valid `ThemeKey` (4 signatures + 36 `hue-mood` combos), built
+ * - `THEME_KEYS` — every valid `ThemeKey` (5 signatures + 36 `hue-mood` combos), built
  *   programmatically from `THEME_HUES` / `THEME_MOODS` / `THEME_SIGNATURES` so it can never drift.
  * - `isThemeKey` — type guard for a `ThemeKey`, backed by a `Set` for O(1) lookup.
  * - `THEME_SCOPES` / `ThemeScope` / `THEME_SCOPE_KEYS` — the areas of the app a theme can be
@@ -17,6 +18,7 @@
  * - `themeClassName` — maps a `ThemeKey` to its CSS class name (always ending in `-theme`).
  * - `themeLabel` — human-readable name for a `ThemeKey`, e.g. 'Emerald Soft'.
  * - `THEME_OPTIONS` — every theme as a flat `{ value, label, group }` list, in picker order.
+ * - `groupThemeOptions` — buckets `THEME_OPTIONS` into `{ name, options }` groups for rendering.
  */
 
 /** The 12 accent hues offered by the generated palette, in picker display order. */
@@ -42,12 +44,17 @@ export const THEME_MOODS = [
   { key: 'deep', label: 'Deep', description: 'Saturated accent, richly tinted surfaces' },
 ] as const;
 
-/** The 4 hand-preserved, non-generated presets — byte-for-byte the app's original palettes plus a new neutral shell default. */
+/**
+ * The 5 hand-preserved, non-generated presets. Graphite and Light are the two neutral app-shell
+ * defaults (dark and light) and share the 'Neutral' group so a picker can list them on their own
+ * row; the other three are the app's original per-feature palettes, byte-for-byte.
+ */
 export const THEME_SIGNATURES = [
-  { key: 'graphite-signature', label: 'Graphite' },
-  { key: 'travel-signature', label: 'Travel Emerald' },
-  { key: 'finances-signature', label: 'Finances Violet' },
-  { key: 'calories-signature', label: 'Calories Orange' },
+  { key: 'graphite-signature', label: 'Graphite', group: 'Neutral' },
+  { key: 'light-signature', label: 'Light', group: 'Neutral' },
+  { key: 'travel-signature', label: 'Travel Emerald', group: 'Original' },
+  { key: 'finances-signature', label: 'Finances Violet', group: 'Original' },
+  { key: 'calories-signature', label: 'Calories Orange', group: 'Original' },
 ] as const;
 
 export type ThemeHue = (typeof THEME_HUES)[number]['key'];
@@ -126,7 +133,7 @@ export type ThemeOption = { value: ThemeKey; label: string; group: string };
  * three depths together so related shades sit next to each other.
  */
 export const THEME_OPTIONS: readonly ThemeOption[] = [
-  ...THEME_SIGNATURES.map(s => ({ value: s.key as ThemeKey, label: s.label, group: 'Original' })),
+  ...THEME_SIGNATURES.map(s => ({ value: s.key as ThemeKey, label: s.label, group: s.group })),
   ...THEME_HUES.flatMap(hue =>
     THEME_MOODS.map(mood => {
       const value = `${hue.key}-${mood.key}` as ThemeKey;
@@ -134,3 +141,19 @@ export const THEME_OPTIONS: readonly ThemeOption[] = [
     }),
   ),
 ];
+
+export type ThemeOptionGroup = { name: string; options: readonly ThemeOption[] };
+
+/**
+ * `THEME_OPTIONS` bucketed into consecutive `{ name, options }` groups, preserving order — used
+ * to render `<optgroup>`s in the dropdown and section headers in the theme gallery grid.
+ */
+export function groupThemeOptions(): readonly ThemeOptionGroup[] {
+  const groups: ThemeOptionGroup[] = [];
+  for (const option of THEME_OPTIONS) {
+    const last = groups[groups.length - 1];
+    if (last && last.name === option.group) last.options = [...last.options, option];
+    else groups.push({ name: option.group, options: [option] });
+  }
+  return groups;
+}

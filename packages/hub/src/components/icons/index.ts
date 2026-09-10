@@ -18,6 +18,7 @@ export { CalendarIcon } from './CalendarIcon';
 export { DocumentIcon } from './DocumentIcon';
 export { ClipboardIcon } from './ClipboardIcon';
 export { PinIcon } from './PinIcon';
+export { SwatchOutlineIcon } from './SwatchOutlineIcon';
 export { PhoneIcon } from './PhoneIcon';
 export { GoogleIcon } from './GoogleIcon';
 export { PlusOutlineIcon } from './PlusOutlineIcon';

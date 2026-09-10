@@ -10,25 +10,31 @@
 
 ## Summary
 
-The Hub ships a library of dark colour themes that the user picks from on the Profile page. One
-choice applies to the whole app; each themed feature (Travel, Finances, Calories) can optionally
-override it. Themes are picked from a single dropdown listing every preset by name — the four
-hand-preserved **signature** palettes first, then each accent colour's three depths grouped
-together. Until the user picks something, every surface looks exactly as
-it did before.
+The Hub ships a library of colour themes that the user picks from on the Profile page or a
+dedicated browse-and-preview gallery at `/appearance`. One choice applies to the whole app; each
+themed feature (Travel, Finances, Calories) can optionally override it. Themes are picked from a
+single dropdown listing every preset by name — the 5 hand-preserved **signature** palettes first
+(grouped as 2 neutral shells, then the 3 original feature palettes), then each accent colour's
+three depths grouped together. Until the user picks something, every surface looks exactly as it
+did before.
+
+The app is dark-only apart from one exception: the `Light` signature is a hand-authored light
+palette (the opposite of `Graphite`), verified to the same WCAG contrast bar as every generated
+theme, with `color-scheme: light` scoped to its class so native browser chrome (a `<select>`
+popup, a date picker, default scrollbars) renders correctly rather than mismatched dark-on-light.
 
 ---
 
 ## Theme model
 
-| Concept       | Values                                                                                             |
-| ------------- | -------------------------------------------------------------------------------------------------- |
-| Hue (12)      | Emerald, Lime, Amber, Orange, Rose, Fuchsia, Violet, Indigo, Ocean, Sky, Teal, Slate               |
-| Mood (3)      | `soft` (pastel accent, near-neutral surfaces), `classic`, `deep` (saturated accent, rich surfaces) |
-| Signature (4) | `graphite-signature`, `travel-signature`, `finances-signature`, `calories-signature`               |
-| Scope (4)     | `global`, `travel`, `finances`, `calories`                                                         |
+| Concept       | Values                                                                                                                     |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Hue (12)      | Emerald, Lime, Amber, Orange, Rose, Fuchsia, Violet, Indigo, Ocean, Sky, Teal, Slate                                       |
+| Mood (3)      | `soft` (pastel accent, near-neutral surfaces), `classic`, `deep` (saturated accent, rich surfaces)                         |
+| Signature (5) | Neutral: `graphite-signature`, `light-signature`. Original: `travel-signature`, `finances-signature`, `calories-signature` |
+| Scope (4)     | `global`, `travel`, `finances`, `calories`                                                                                 |
 
-A theme key is either a signature key or `<hue>-<mood>` — 40 in total.
+A theme key is either a signature key or `<hue>-<mood>` — 41 in total.
 
 ---
 
@@ -88,7 +94,7 @@ A theme key is either a signature key or `<hue>-<mood>` — 40 in total.
 
 ## Open Questions
 
-- [ ] Should a light mode be offered? Every palette is currently dark-only, matching the app.
+- [x] Should a light mode be offered? Yes — `light-signature`, hand-authored opposite Graphite.
 - [ ] Should `/apiary` be converted to tokens? It is deliberately out of scope and still uses
       hardcoded zinc.
 - [ ] Should the per-trip and finance-category colour palettes (data colours, not theme colours)
@@ -103,6 +109,10 @@ A theme key is either a signature key or `<hue>-<mood>` — 40 in total.
 - [x] Defaults reproduce the original palettes; nothing changes visually until a theme is picked.
 - [x] Selecting a theme repaints immediately.
 - [x] The first server render carries the right palette (no flash).
-- [x] All 40 presets pass the contrast assertions, enforced in CI.
+- [x] All 41 presets pass the contrast assertions (the 36 generated ones enforced in CI; the 5
+      hand-authored signatures, including Light, verified by hand against the same thresholds).
 - [x] Theme preferences are removed by the delete-all route.
+- [x] Dashboard header, Profile page, MCP Control page and the Appearance gallery itself are
+      fully tokenized and use shared components (`Button`, `IconButton`, `Card`) instead of
+      bespoke inline markup.
 - [ ] Verified end to end against a live Hub instance with the Playwright suite.

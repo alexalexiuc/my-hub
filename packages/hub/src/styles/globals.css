@@ -2,6 +2,7 @@
 @import './calories-orange.css';
 @import './travel-emerald.css';
 @import './graphite.css';
+@import './light.css';
 @import './themes.generated.css';
 
 @tailwind base;
