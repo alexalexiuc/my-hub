@@ -38,11 +38,11 @@ test.describe('MCP Service Page', () => {
     await expect(serversSection.getByText('Products', { exact: true })).toBeVisible();
 
     // ── 3. Inactive server shows Coming soon ──────────────────────────────────
-    const productsCard = page.locator('[class*="rounded-xl"]', { hasText: 'Products' });
+    const productsCard = page.locator('[data-card]', { hasText: 'Products' });
     await expect(productsCard.getByText('Coming soon')).toBeVisible();
 
     // ── 4. Toggle active server on/off and back ───────────────────────────────
-    const caloriesCard = page.locator('[class*="rounded-xl"]', { hasText: 'Meal logging' });
+    const caloriesCard = page.locator('[data-card]', { hasText: 'Meal logging' });
     const toggle = caloriesCard.getByRole('switch');
     const initialState = await toggle.getAttribute('aria-checked');
     const expectedFlipped = initialState === 'true' ? 'false' : 'true';
@@ -76,7 +76,7 @@ test.describe('MCP Service Page', () => {
     await expect(page.locator('code', { hasText: 'hub_' }).first()).toBeVisible();
 
     // ── 3. Toggle client disabled ─────────────────────────────────────────────
-    const clientCard = page.locator('[class*="rounded-xl"]', { hasText: 'My Test Client' });
+    const clientCard = page.locator('[data-card]', { hasText: 'My Test Client' });
     const clientToggle = clientCard.getByRole('switch');
     await expect(clientToggle).toHaveAttribute('aria-checked', 'true');
     await clientToggle.click();
