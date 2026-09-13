@@ -99,6 +99,30 @@ describe('fetchWeeklyReportCaloriesData', () => {
     expect(result).toBeNull();
   });
 
+  it('returns null when meals were logged but none carries a calorie count', async () => {
+    // Without calories there is no logged day, and a report built anyway reads "On track · Exactly
+    // on target" across zero logged days.
+    vi.mocked(getMealsForDateRange).mockResolvedValue([
+      { ...makeMeal('2026-03-30', 0), kcal: null },
+      { ...makeMeal('2026-03-31', 0), kcal: null },
+    ] as any);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
+    expect(result).toBeNull();
+  });
+
+  it('keeps the goal direction for a gain goal with no rate set', async () => {
+    // The rate is 0 for arithmetic, but the report must still judge the week as a gaining one.
+    vi.mocked(getCalorieProfile).mockResolvedValue({
+      ...mockProfile,
+      goalType: 'weight_gain',
+      goalWeeklyRateKg: null,
+    } as any);
+    vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-30', 1800)] as any);
+    const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);
+    expect(result!.goalWeeklyRateKg).toBe(0);
+    expect(result!.goalDirection).toBe(1);
+  });
+
   it('returns report with correct weekStart and weekEnd', async () => {
     vi.mocked(getMealsForDateRange).mockResolvedValue([makeMeal('2026-03-30', 1800)] as any);
     const result = await fetchWeeklyReportCaloriesData('u1', WEEK_START);

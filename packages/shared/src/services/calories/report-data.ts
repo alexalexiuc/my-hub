@@ -2,7 +2,16 @@ import { getMealsForDateRange } from './meals.js';
 import { getCalorieProfile } from './profile.js';
 import { getMeasurements } from '../measurements/measurements.js';
 import { findUserById } from '../users/users.js';
-import { calculateBMR, calculateCalorieTargets, toUTCDateStr, addDays, getISOWeek } from '../../utils/index.js';
+import {
+  calculateBMR,
+  calculateCalorieTargets,
+  dayCalorieTargets,
+  goalDirection,
+  signedWeeklyRateKg,
+  toUTCDateStr,
+  addDays,
+  getISOWeek,
+} from '../../utils/index.js';
 import type { WeeklyReportData, DayData, WeightPoint } from '../email/templates/weekly-report/types.js';
 import type {
   MonthlyReportData,
@@ -16,7 +25,7 @@ import { MeasurementTypes } from '../../constants/index.js';
 
 /**
  * Fetches all data needed to build a weekly calorie report.
- * Returns null if the user logged zero meals in the week.
+ * Returns null when no meal in the week carries a calorie count.
  */
 export async function fetchWeeklyReportCaloriesData(userId: string, weekStart: Date): Promise<WeeklyReportData | null> {
   const weekEnd = addDays(weekStart, 6);
@@ -65,46 +74,18 @@ export async function fetchWeeklyReportCaloriesData(userId: string, weekStart: D
     });
   }
 
-  const days: DayData[] = [];
-  for (let i = 0; i < 7; i++) {
-    const date = toUTCDateStr(addDays(weekStart, i));
-    const agg = dayMap.get(date);
-    days.push(
-      agg
-        ? {
-            date,
-            kcal: Math.round(agg.kcal),
-            protein: agg.protein,
-            carbs: agg.carbs,
-            fat: agg.fat,
-            hasData: true,
-          }
-        : { date, kcal: 0, protein: 0, carbs: 0, fat: 0, hasData: false },
-    );
-  }
-
-  // Weight points (sorted by date asc)
-  const weightPoints: WeightPoint[] = weightMeasurements
-    .slice()
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map(m => ({ date: m.date, value: m.value }));
-
-  // Latest measurements as a record keyed by typeKey
+  // Latest value per measurement type up to week end. Rows arrive newest first, so the first one
+  // seen for a type wins. Built before the day loop, because every day's target derives from the
+  // latest weight.
   const latestMeasurements: Record<string, number | null> = {};
   for (const m of measurementsUpToWeekEnd) {
     if (latestMeasurements[m.typeKey] === undefined) {
       latestMeasurements[m.typeKey] = m.value;
     }
   }
-
-  // Prior week latest weight
-  const priorWeekWeight =
-    priorWeightMeasurements.length > 0
-      ? priorWeightMeasurements.sort((a, b) => b.date.localeCompare(a.date))[0]!.value
-      : null;
+  const latestWeight = latestMeasurements[MeasurementTypes.Weight] ?? null;
 
   // BMR / TDEE — use latest weight measurement
-  const latestWeight = latestMeasurements[MeasurementTypes.Weight] ?? null;
   const bmr = calculateBMR(profile?.age ?? null, profile?.sex ?? null, profile?.heightCm ?? null, latestWeight);
   const targets = calculateCalorieTargets({
     age: profile?.age ?? null,
@@ -122,6 +103,47 @@ export async function fetchWeeklyReportCaloriesData(userId: string, weekStart: D
   const goalMinCalories = profile?.goalMinCalories ?? targets.minCalories ?? 1200;
   const tdee = targets.tdee ?? bmr ?? 2000;
 
+  const days: DayData[] = [];
+  for (let i = 0; i < 7; i++) {
+    const date = toUTCDateStr(addDays(weekStart, i));
+    const agg = dayMap.get(date);
+    // The same per-day rule every Hub screen uses, so a gym day is judged against its own
+    // raised ceiling here too rather than against a flat weekly figure.
+    const dayTarget = dayCalorieTargets(profile, latestWeight, date).target ?? goalMaxCalories;
+    days.push(
+      agg
+        ? {
+            date,
+            kcal: Math.round(agg.kcal),
+            protein: agg.protein,
+            carbs: agg.carbs,
+            fat: agg.fat,
+            // Meals with no calorie count are not a zero-calorie day. Treating them as logged
+            // dragged the week's average down, counted the day as "on target" for eating nothing,
+            // and produced a weekend-vs-weekday drift of thousands of kcal off a single blank entry.
+            hasData: Math.round(agg.kcal) > 0,
+            target: dayTarget,
+          }
+        : { date, kcal: 0, protein: 0, carbs: 0, fat: 0, hasData: false, target: dayTarget },
+    );
+  }
+
+  // Meals exist, but none carries a calorie count: there is no logged day to report on, and a
+  // report built anyway reads "On track · Exactly on target" across zero logged days.
+  if (!days.some(d => d.hasData)) return null;
+
+  // Weight points (sorted by date asc)
+  const weightPoints: WeightPoint[] = weightMeasurements
+    .slice()
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(m => ({ date: m.date, value: m.value }));
+
+  // Prior week latest weight
+  const priorWeekWeight =
+    priorWeightMeasurements.length > 0
+      ? priorWeightMeasurements.sort((a, b) => b.date.localeCompare(a.date))[0]!.value
+      : null;
+
   return {
     weekStart,
     weekEnd,
@@ -129,7 +151,11 @@ export async function fetchWeeklyReportCaloriesData(userId: string, weekStart: D
     year: weekStart.getUTCFullYear(),
     goalMaxCalories,
     goalMinCalories,
-    goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? 0.5,
+    // Signed for projection arithmetic only; direction is judged by goalDirection, which survives an unset rate.
+    // No fallback rate either: inventing 0.5 kg/week for a profile that never set one had the
+    // report projecting a weight change the user never asked for.
+    goalWeeklyRateKg: signedWeeklyRateKg(profile?.goalType ?? null, profile?.goalWeeklyRateKg ?? null),
+    goalDirection: goalDirection(profile?.goalType ?? null),
     bmr: Math.round(bmr ?? tdee),
     tdee: Math.round(tdee),
     days,
@@ -328,7 +354,11 @@ export async function fetchMonthlyReportCaloriesData(
     daysLogged,
     longestStreak: streak,
     goalMaxCalories,
-    goalWeeklyRateKg: profile?.goalWeeklyRateKg ?? 0.5,
+    // Signed for projection arithmetic only; direction is judged by goalDirection, which survives an unset rate.
+    // No fallback rate either: inventing 0.5 kg/week for a profile that never set one had the
+    // report projecting a weight change the user never asked for.
+    goalWeeklyRateKg: signedWeeklyRateKg(profile?.goalType ?? null, profile?.goalWeeklyRateKg ?? null),
+    goalDirection: goalDirection(profile?.goalType ?? null),
     bmr: Math.round(bmr ?? tdee),
     tdee: Math.round(tdee),
     avgDailyKcal,

@@ -1,14 +1,9 @@
+import { isTowardGoal } from '../../../../utils/calories';
+import { MINUS, energyGapSummary, fmt, fmtGoalRate, fmtWeight } from '../report-format';
 import type { BuildMonthlyReportHtmlData } from './types';
 
-const MINUS = '\u2212';
-
-function fmt(n: number): string {
-  return Math.round(n).toLocaleString('en-US');
-}
-
-function fmtWeight(n: number): string {
-  return n.toFixed(1);
-}
+/** How far a maintaining month's weight can move and still read as holding steady. */
+const MAINTAIN_TOLERANCE_KG = 0.5;
 
 function barColor(delta: number): string {
   if (delta <= 0) return '#1d4e3a';
@@ -355,9 +350,9 @@ function buildWeightTrendChart(data: BuildMonthlyReportHtmlData): string {
   const endWeight = values[values.length - 1]!;
   const totalDelta = endWeight - startWeight;
 
-  const goalEndWeight = startWeight - (data.totalDaysInMonth / 7) * data.goalWeeklyRateKg;
-
-  const deltaColor = totalDelta <= 0 ? '#3db87a' : '#e05a5a';
+  // `goalWeeklyRateKg` carries the goal's sign, so the goal line heads the way the goal does.
+  const goalEndWeight = startWeight + (data.totalDaysInMonth / 7) * data.goalWeeklyRateKg;
+  const deltaColor = isTowardGoal(totalDelta, data.goalDirection, MAINTAIN_TOLERANCE_KG) ? '#3db87a' : '#e05a5a';
   const deltaStr = totalDelta <= 0 ? `${MINUS}${Math.abs(totalDelta).toFixed(1)}` : `+${totalDelta.toFixed(1)}`;
 
   return `
@@ -473,13 +468,12 @@ function buildConsistency(data: BuildMonthlyReportHtmlData): string {
 }
 
 function buildOutlook(data: BuildMonthlyReportHtmlData): string {
-  const dailyDeficit = data.tdee - data.goalMaxCalories;
-  const projectedMonthlyKgChange = (dailyDeficit * 30) / 7700;
+  const energyGap = energyGapSummary(data.goalMaxCalories, data.tdee, data.goalDirection);
+  // `gap` is signed the way the scale moves, so a surplus projects a gain.
+  const projectedMonthlyKgChange = (energyGap.gap * 30) / 7700;
   const currentWeight = data.endMeasurements.weight;
-  const projNextMonthWeight = currentWeight != null ? currentWeight - projectedMonthlyKgChange : null;
+  const projNextMonthWeight = currentWeight != null ? currentWeight + projectedMonthlyKgChange : null;
   const activeKcal = data.tdee - data.bmr;
-  const deficitColor = dailyDeficit >= 0 ? '#3db87a' : '#e05a5a';
-  const deficitStr = dailyDeficit >= 0 ? `${MINUS}${fmt(dailyDeficit)}` : `+${fmt(Math.abs(dailyDeficit))}`;
 
   return `
   <div class="section-label">Monthly outlook</div>
@@ -494,8 +488,8 @@ function buildOutlook(data: BuildMonthlyReportHtmlData): string {
         <div style="font-family:'IBM Plex Mono','Courier New',monospace; font-size:16px; color:#e4eaf2;">${fmt(data.goalMaxCalories)} <span style="font-size:11px; color:#4b5a6b;">kcal/day</span></div>
       </div>
       <div>
-        <div style="font-size:11px; color:#4b5a6b; margin-bottom:4px;">Daily deficit</div>
-        <div style="font-family:'IBM Plex Mono','Courier New',monospace; font-size:16px; color:${deficitColor};">${deficitStr} <span style="font-size:11px;">kcal</span></div>
+        <div style="font-size:11px; color:#4b5a6b; margin-bottom:4px;">${energyGap.label}</div>
+        <div style="font-family:'IBM Plex Mono','Courier New',monospace; font-size:16px; color:${energyGap.color};">${energyGap.value} <span style="font-size:11px;">kcal</span></div>
       </div>
       <div>
         <div style="font-size:11px; color:#4b5a6b; margin-bottom:4px;">Projected next month</div>
@@ -503,7 +497,7 @@ function buildOutlook(data: BuildMonthlyReportHtmlData): string {
       </div>
     </div>
     <div style="margin-top:14px; padding-top:14px; border-top:1px solid #1a2230; font-size:12px; color:#4b5a6b; line-height:1.7;">
-      BMR ${fmt(data.bmr)} kcal &middot; Active ${fmt(activeKcal)} kcal &middot; Goal rate ${MINUS}${fmtWeight(data.goalWeeklyRateKg)} kg/week
+      BMR ${fmt(data.bmr)} kcal &middot; Active ${fmt(activeKcal)} kcal &middot; Goal rate ${fmtGoalRate(data.goalWeeklyRateKg, data.goalDirection, 'kg/week')}
     </div>
   </div>`;
 }

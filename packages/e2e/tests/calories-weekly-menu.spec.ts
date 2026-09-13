@@ -105,6 +105,10 @@ test.describe('Calories — Weekly Menu page', () => {
     await expect(submitBtn).toBeEnabled();
     if (today < 6) {
       await expect(modal.getByText(/No meals planned for .* — you can add them later/)).toBeVisible();
+    } else {
+      // On a Sunday, Sunday is the only day not yet past, so planning it leaves no empty day to
+      // report — the modal rightly says the week is covered.
+      await expect(modal.getByText('All days have at least one meal ✓')).toBeVisible();
     }
 
     // ── 5. Fill the remaining available days and create ────────────────────────

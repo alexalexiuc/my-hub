@@ -23,12 +23,14 @@ describe('MobileSelectSheet', () => {
       .mockImplementation(() => window.dispatchEvent(new PopStateEvent('popstate')));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // Unmount here, before restoring the spy: the global afterEach(cleanup) in vitest.setup.ts
     // runs in an outer scope and tears down *after* this one, so restoring first would let an
     // unmounting sheet's history.back() call hit the real (async) implementation and leak a
-    // stray back-navigation into a later test.
+    // stray back-navigation into a later test. The hook releases its entry on a microtask, so
+    // let that run before the spy goes.
     cleanup();
+    await Promise.resolve();
     historyBackSpy.mockRestore();
     vi.useRealTimers();
   });
