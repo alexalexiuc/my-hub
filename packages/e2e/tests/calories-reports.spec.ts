@@ -37,6 +37,44 @@ async function addMealForToday(page: Page) {
   await expect(page.locator('[data-layout="desktop"]').getByText('Report E2E Meal')).toBeVisible({ timeout: 5_000 });
 }
 
+/**
+ * A gaining profile that trains on Mondays, plus a Monday and a Tuesday of meals.
+ *
+ * The shape matters: the gym day makes the week carry two different calorie ceilings, and the
+ * gain goal makes the report's direction visible. A week of identical rest days against a loss
+ * goal would render the same whether the two bugs below were fixed or not.
+ */
+async function seedGymWeekProfile(page: Page) {
+  const monday = currentWeekMondayStr();
+  const tues = new Date(`${monday}T12:00:00`);
+  tues.setDate(tues.getDate() + 1);
+
+  await page.request.put('/api/calories/profile', {
+    data: {
+      age: 34,
+      sex: 'male',
+      heightCm: 178,
+      activityLevel: 'moderately_active',
+      goalType: 'weight_gain',
+      goalWeeklyRateKg: 0.25,
+      goalMinCalories: 2700,
+      goalMaxCalories: 3200,
+      gymDays: [0], // Monday
+      gymDayCalorieBonus: 1000, // Monday's ceiling becomes 4,200
+      gymTime: 'morning',
+    },
+  });
+  await page.request.post('/api/calories/measurements', {
+    data: { typeKey: 'weight', value: 78.7, date: monday },
+  });
+  await page.request.post('/api/calories/meals', {
+    data: { description: 'Gym day meal', mealType: 'lunch', kcal: 4100, date: monday },
+  });
+  await page.request.post('/api/calories/meals', {
+    data: { description: 'Rest day meal', mealType: 'lunch', kcal: 3050, date: dateStr(tues) },
+  });
+}
+
 test.describe('Calories Reports', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/calories');
@@ -133,5 +171,41 @@ test.describe('Calories Reports', () => {
     await nextButton.click();
     await expect(page.getByText('This month', { exact: true })).toBeVisible();
     await expect(nextButton).toBeDisabled();
+  });
+
+  /**
+   * The report's numbers, not just its existence.
+   *
+   * Every other assertion in this file checks that an iframe is visible, which it is regardless of
+   * what the report says. Two bugs lived comfortably behind that: the report judged every day
+   * against one flat ceiling, so a gym day eaten to plan was reported as hundreds over and named
+   * the week's worst day; and it treated the weekly rate as a loss whatever the goal, printing a
+   * gaining user's target as a negative number and projecting them lighter each week.
+   *
+   * Both are invisible unless something reads inside the frame.
+   */
+  test('weekly report judges gym days against their own ceiling and reports the goal direction', async ({ page }) => {
+    await deleteFeatures(page, ['calories_profile', 'measurements']);
+    await seedGymWeekProfile(page);
+
+    await page.goto(`/calories/reports/weekly?weekStart=${currentWeekMondayStr()}`);
+    const report = page.frameLocator('iframe');
+
+    // ── 1. Both ceilings are named — 3,200 on rest days, 4,200 on the gym day ─
+    await expect(report.getByText(/Goal:\s*3,200\s*\/\s*4,200 kcal\/day/)).toBeVisible({ timeout: 15_000 });
+
+    // ── 2. Monday ate 4,100 against a 4,200 ceiling: under, not 900 over ──────
+    const mondayRow = report.locator('tr').filter({ hasText: '4,100' });
+    await expect(mondayRow).toContainText('−100');
+    await expect(mondayRow).not.toContainText('+900');
+
+    // ── 3. The goal reads as a gain, at the rate actually set ────────────────
+    // Also guards the rounding: `toFixed(1)` printed a 0.25 kg/week goal back as "0.3".
+    await expect(report.getByText('Weekly target: +0.25 kg')).toBeVisible();
+    await expect(report.getByText(/Goal rate \+0\.25 kg\/week/)).toBeVisible();
+
+    // ── 4. A surplus is called a surplus ─────────────────────────────────────
+    await expect(report.getByText('Daily surplus')).toBeVisible();
+    await expect(report.getByText('Daily deficit')).toBeHidden();
   });
 });

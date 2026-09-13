@@ -52,15 +52,43 @@ function unsubscribe(onClose: () => void) {
  * navigating away from the page. Pushes a synthetic history entry on mount (same URL, so
  * Next.js's router sees no URL change and does nothing) and pops it on unmount. A back-press
  * fires `popstate`, which closes the topmost open overlay via the shared stack above.
+ *
+ * The entry is released on a microtask rather than straight from the effect cleanup. React
+ * StrictMode (development only) runs every effect as mount → cleanup → mount, synchronously.
+ * Releasing in that cleanup called `history.back()`, which resolves asynchronously — after the
+ * remount had already pushed a second entry — so history ended up one step out of line with the
+ * stack, and closing the overlay then walked the browser off the page entirely. Deferring the
+ * release lets the remount reclaim the entry it still holds; a real unmount releases it a
+ * microtask later.
  */
 export function useCloseOnBackButton(onClose: () => void): void {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  // The history entry this overlay holds, and whether its release is scheduled. Refs survive an
+  // effect re-run, which is what lets a StrictMode remount keep the entry instead of pushing another.
+  const heldRef = useRef<{ close: () => void; releasing: boolean } | null>(null);
 
   useEffect(() => {
-    const close = () => onCloseRef.current();
-    window.history.pushState({ ...window.history.state, hubOverlay: true }, '', window.location.href);
-    subscribe(close);
-    return () => unsubscribe(close);
+    const held = heldRef.current;
+    if (held) {
+      // Remounted before the scheduled release ran: keep the existing entry and subscription.
+      held.releasing = false;
+    } else {
+      const close = () => onCloseRef.current();
+      window.history.pushState({ ...window.history.state, hubOverlay: true }, '', window.location.href);
+      subscribe(close);
+      heldRef.current = { close, releasing: false };
+    }
+
+    return () => {
+      const { current } = heldRef;
+      if (!current) return;
+      current.releasing = true;
+      queueMicrotask(() => {
+        if (!current.releasing) return; // reclaimed by a remount
+        heldRef.current = null;
+        unsubscribe(current.close);
+      });
+    };
   }, []);
 }

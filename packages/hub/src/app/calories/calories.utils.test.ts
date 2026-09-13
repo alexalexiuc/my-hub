@@ -14,9 +14,11 @@ import {
   pctToGrams,
   gramsToPct,
   computeMacroSummary,
+  sortSuggestionsForMealType,
 } from './calories.utils';
 import type { MealLog } from '@my-hub/shared/types';
 import { dateToString } from '@my-hub/shared/utils';
+import { MealTypes } from '@my-hub/shared/constants';
 
 describe('shiftDate', () => {
   it('moves forward and back across a month boundary', () => {
@@ -604,5 +606,37 @@ describe('computeMacroSummary', () => {
 
   it('returns null for g mode without maxCalNum', () => {
     expect(computeMacroSummary('g', '150', '200', '44', null)).toBeNull();
+  });
+});
+
+describe('sortSuggestionsForMealType', () => {
+  const suggestions = [
+    { description: 'Oats', mealType: MealTypes.Breakfast },
+    { description: 'Chicken salad', mealType: MealTypes.Lunch },
+    { description: 'Protein shake', mealType: MealTypes.Snack },
+    { description: 'Eggs', mealType: MealTypes.Breakfast },
+  ];
+
+  it('leads with the entries matching the selected meal type', () => {
+    expect(sortSuggestionsForMealType(suggestions, MealTypes.Breakfast).map(s => s.description)).toEqual([
+      'Oats',
+      'Eggs',
+      'Chicken salad',
+      'Protein shake',
+    ]);
+  });
+
+  it('keeps every entry when nothing matches, in the original order', () => {
+    expect(sortSuggestionsForMealType(suggestions, MealTypes.Dinner).map(s => s.description)).toEqual([
+      'Oats',
+      'Chicken salad',
+      'Protein shake',
+      'Eggs',
+    ]);
+  });
+
+  it('preserves recency order within each group', () => {
+    const [first, second] = sortSuggestionsForMealType(suggestions, MealTypes.Breakfast);
+    expect([first?.description, second?.description]).toEqual(['Oats', 'Eggs']);
   });
 });

@@ -413,3 +413,18 @@ export function computeMacroSummary(
   }
   return null;
 }
+
+/**
+ * Recent-meal suggestions reordered so the ones last logged as `mealType` come first, with the
+ * rest following in their original (most-recent-first) order.
+ *
+ * Reordered rather than filtered: a dish you normally eat at lunch is still a legitimate snack,
+ * and hiding it the moment the meal-type selector changes would make the row's contents jump
+ * around while the user is looking at it. Leading with the likely ones is enough of a hint.
+ */
+export function sortSuggestionsForMealType<T extends { mealType: MealType }>(
+  suggestions: T[],
+  mealType: MealType,
+): T[] {
+  return [...suggestions.filter(s => s.mealType === mealType), ...suggestions.filter(s => s.mealType !== mealType)];
+}

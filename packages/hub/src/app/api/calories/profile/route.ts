@@ -8,8 +8,11 @@ const ProfileUpdateSchema = z.object({
   sex: z.enum(SexesValues as [string, ...string[]]).optional(),
   heightCm: z.number().positive().optional(),
   activityLevel: z.enum(ActivityLevelsValues as [string, ...string[]]).optional(),
-  goalType: z.enum(GoalTypesValues as [string, ...string[]]).optional(),
-  goalWeeklyRateKg: z.number().optional(),
+  goalType: z
+    .enum(GoalTypesValues as [string, ...string[]])
+    .nullable()
+    .optional(),
+  goalWeeklyRateKg: z.number().nullable().optional(),
   // The goal projection's fixed anchor. Normally stamped by `upsertCalorieProfile` when the goal
   // changes; accepted here so the Progress card's "restart from today" can move it deliberately.
   goalStartDate: z
@@ -30,7 +33,7 @@ const ProfileUpdateSchema = z.object({
     .enum(GymTimesValues as [string, ...string[]])
     .nullable()
     .optional(),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional(),
 });
 
 export const GET = route(async ({ user }) => {

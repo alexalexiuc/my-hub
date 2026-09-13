@@ -3,6 +3,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { MealLog } from '@my-hub/shared/types';
+import type { RecentMealSuggestion } from '@my-hub/shared/services';
 import { apiFetch } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { Modal, Input } from '@/components';
@@ -19,6 +20,7 @@ import {
   formToUpdateBody,
 } from './meals-form.schema';
 import { FieldCard } from './ui';
+import { RecentMealChips } from './RecentMealChips';
 
 type MealModalProps = {
   date: string;
@@ -46,6 +48,14 @@ export function MealModal({ date, meal, gymTime, onClose, onSaved }: MealModalPr
   // pre-workout in the same place everywhere rather than at the end of this one list.
   const mealTypes = mealOrder(useGymTime(gymTime));
 
+  // Replaces the whole form rather than patching fields: a suggestion is one complete dish, and
+  // a macro left behind from a half-typed entry would silently log the wrong numbers against it.
+  // Notes are the exception — they describe this occasion, not the dish, so what the user has
+  // already typed there survives.
+  function applySuggestion(suggestion: RecentMealSuggestion) {
+    form.reset({ ...mealToFormValues(suggestion), notes: form.getValues('notes') });
+  }
+
   async function handleSubmit(values: MealFormValues) {
     if (isEdit) {
       await apiFetch(`/api/calories/meals/${meal.mealId}`, {
@@ -71,6 +81,10 @@ export function MealModal({ date, meal, gymTime, onClose, onSaved }: MealModalPr
       className="md:max-w-[480px]"
     >
       <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-2.5">
+        {/* Repeats only. Editing an existing meal is a correction to that one entry, so a row of
+            other dishes to overwrite it with would be a trap rather than a shortcut. */}
+        {!isEdit && <RecentMealChips mealType={selectedType} onPick={applySuggestion} />}
+
         <FieldCard label="Description *" error={errors.description?.message}>
           <Input
             {...form.register('description')}
