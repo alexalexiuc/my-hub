@@ -8,9 +8,9 @@
  * - getAccountsCashflow(userId, budgetId, dateFrom, dateTo, accountIds?) — per-account income vs spending (expenses + categorized transfers into Loan accounts) for a date range
  * - getSavingsAndDebtFlows(userId, budgetId, dateFrom, dateTo) — net transfers (in minus out) into Goal/Tracking (savings), Investment, and Loan (debt repayment) accounts for a date range
  * - getAccountFlows(userId, budgetId, dateFrom, dateTo, accountId?) — per-account opening/closing balance + inflows/outflows/net delta for a date range, with a reconciliation flag
- * - getSavingsContributions(userId, budgetId, dateFrom, dateTo) — net transfers in/out of Goal/Tracking/Investment accounts, per account + combined total, plus the same metric for the immediately preceding period of equal length
+ * - getSavingsContributions(userId, budgetId, dateFrom, dateTo) — net transfers in/out of Goal/Tracking/Investment accounts, per account (as MoneyAmount pairs: original account currency + budget-default-currency converted) + combined total, plus the same metric for the immediately preceding period of equal length
  * - getNetWorthSummary(userId, budgetId) — current net worth with account breakdown and history
- * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, ComparisonResult, ComparisonGroup, AccountCashflowResult, SavingsAndDebtFlowsResult, AccountFlow, AccountFlowsResult, AccountContribution, SavingsContributionsResult, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
+ * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, ComparisonResult, ComparisonGroup, AccountCashflowResult, SavingsAndDebtFlowsResult, AccountFlow, AccountFlowsResult, MoneyAmount, AccountContribution, SavingsContributionsResult, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
  */
 import { and, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -525,24 +525,32 @@ export async function getAccountFlows(
 
 // ─── Savings Contributions ────────────────────────────────────────────────────
 
+/** An amount paired with the currency it's denominated in — never a bare number, so callers never have to guess which currency a figure is in. */
+export interface MoneyAmount {
+  amount: number;
+  currency: string;
+}
+
 export interface AccountContribution {
   accountId: number;
   accountName: string;
   accountType: AccountType;
-  currency: string;
-  /** In the budget's default currency. Transfers in minus transfers out for the period. */
-  netContribution: number;
+  /** Transfers in minus transfers out for the period, in the account's own currency. */
+  original: MoneyAmount;
+  /** Same amount converted to the budget's default currency — what makes accounts of different currencies addable. */
+  converted: MoneyAmount;
 }
 
 export interface SavingsContributionsResult {
   dateFrom: string;
   dateTo: string;
-  totalNetContribution: number;
+  /** Always in the budget's default currency — the sum of every account's `converted` amount. */
+  totalNetContribution: MoneyAmount;
   accounts: AccountContribution[];
   previousPeriod: {
     dateFrom: string;
     dateTo: string;
-    totalNetContribution: number;
+    totalNetContribution: MoneyAmount;
   };
 }
 
@@ -553,7 +561,8 @@ async function getSavingsContributionsForRange(
   budgetId: number,
   dateFrom: string,
   dateTo: string,
-): Promise<{ total: number; accounts: AccountContribution[] }> {
+  defaultCurrency: string,
+): Promise<{ total: MoneyAmount; accounts: AccountContribution[] }> {
   const baseConditions = [
     eq(financeTransactions.budgetId, budgetId),
     eq(financeTransactions.type, TransactionTypes.Transfer),
@@ -567,7 +576,10 @@ async function getSavingsContributionsForRange(
     name: financeAccounts.name,
     type: financeAccounts.type,
     currency: financeAccounts.currency,
-    total: sql<string>`sum(${financeTransactions.amount} * ${financeTransactions.exchangeRate})`,
+    // Raw, in the account's own currency.
+    totalOriginal: sql<string>`sum(${financeTransactions.amount})`,
+    // exchangeRate is "source currency -> budget default currency", so this is already converted.
+    totalConverted: sql<string>`sum(${financeTransactions.amount} * ${financeTransactions.exchangeRate})`,
   };
 
   const [inflowRows, outflowRows] = await Promise.all([
@@ -585,31 +597,51 @@ async function getSavingsContributionsForRange(
       .groupBy(financeAccounts.id, financeAccounts.name, financeAccounts.type, financeAccounts.currency),
   ]);
 
-  const byAccount = new Map<number, AccountContribution>();
+  interface RunningContribution {
+    accountId: number;
+    accountName: string;
+    accountType: AccountType;
+    currency: string;
+    original: number;
+    converted: number;
+  }
+
+  const byAccount = new Map<number, RunningContribution>();
   const apply = (row: (typeof inflowRows)[number], sign: 1 | -1) => {
-    const amount = parseFloat(row.total ?? '0') * sign;
+    const original = parseFloat(row.totalOriginal ?? '0') * sign;
+    const converted = parseFloat(row.totalConverted ?? '0') * sign;
     const existing = byAccount.get(row.accountId);
     if (existing) {
-      existing.netContribution += amount;
+      existing.original += original;
+      existing.converted += converted;
     } else {
       byAccount.set(row.accountId, {
         accountId: row.accountId,
         accountName: row.name,
         accountType: row.type,
         currency: row.currency,
-        netContribution: amount,
+        original,
+        converted,
       });
     }
   };
   for (const row of inflowRows) apply(row, 1);
   for (const row of outflowRows) apply(row, -1);
 
-  const accounts = Array.from(byAccount.values())
-    .map(a => ({ ...a, netContribution: Math.round(a.netContribution * 100) / 100 }))
-    .sort((a, b) => b.netContribution - a.netContribution);
+  const round = (n: number) => Math.round(n * 100) / 100;
+
+  const accounts: AccountContribution[] = Array.from(byAccount.values())
+    .map(a => ({
+      accountId: a.accountId,
+      accountName: a.accountName,
+      accountType: a.accountType,
+      original: { amount: round(a.original), currency: a.currency },
+      converted: { amount: round(a.converted), currency: defaultCurrency },
+    }))
+    .sort((a, b) => b.converted.amount - a.converted.amount);
 
   return {
-    total: Math.round(accounts.reduce((s, a) => s + a.netContribution, 0) * 100) / 100,
+    total: { amount: round(accounts.reduce((s, a) => s + a.converted.amount, 0)), currency: defaultCurrency },
     accounts,
   };
 }
@@ -617,7 +649,10 @@ async function getSavingsContributionsForRange(
 /**
  * Net amount transferred into Goal/Tracking/Investment accounts during a date range ("did I
  * actually save something this period?"), per account plus a combined total, alongside the same
- * metric for the immediately preceding period of equal length for a quick delta.
+ * metric for the immediately preceding period of equal length for a quick delta. Each account's
+ * contribution is reported both in its own currency and converted to the budget's default
+ * currency — never only the converted figure, so a caller can always see the real, unconverted
+ * amount too.
  */
 export async function getSavingsContributions(
   userId: string,
@@ -629,13 +664,16 @@ export async function getSavingsContributions(
     throw new Error('Budget not found');
   }
 
+  const budget = await getBudgetByIdSystem(budgetId);
+  if (!budget) throw new Error('Budget not found');
+
   const periodDays = Math.round((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000) + 1;
   const prevDateTo = shiftDateStr(dateFrom, -1);
   const prevDateFrom = shiftDateStr(dateFrom, -periodDays);
 
   const [current, previous] = await Promise.all([
-    getSavingsContributionsForRange(budgetId, dateFrom, dateTo),
-    getSavingsContributionsForRange(budgetId, prevDateFrom, prevDateTo),
+    getSavingsContributionsForRange(budgetId, dateFrom, dateTo, budget.defaultCurrency),
+    getSavingsContributionsForRange(budgetId, prevDateFrom, prevDateTo, budget.defaultCurrency),
   ]);
 
   return {

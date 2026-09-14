@@ -76,22 +76,27 @@ function buildAccountFlows(data: BuildFinanceMonthlyReportHtmlData): string {
 
 function buildSavings(data: BuildFinanceMonthlyReportHtmlData): string {
   const s = data.report.savingsContributions;
-  const delta = s.totalNetContribution - s.previousPeriod.totalNetContribution;
-  const totalClass = s.totalNetContribution >= 0 ? 'c-green' : 'c-red';
+  const delta = s.totalNetContribution.amount - s.previousPeriod.totalNetContribution.amount;
+  const totalClass = s.totalNetContribution.amount >= 0 ? 'c-green' : 'c-red';
 
   const rows = s.accounts
-    .map(
-      a =>
-        `<div class="list-item"><span>${a.accountName}</span><span class="mono">${fmtSigned(a.netContribution, a.currency)}</span></div>`,
-    )
+    .map(a => {
+      // Only show the original-currency amount when it actually differs from the converted one —
+      // no point doubling up identical numbers for budget-default-currency accounts.
+      const original =
+        a.original.currency !== a.converted.currency
+          ? ` <span style="color:#4b5a6b;">(${fmtSigned(a.original.amount, a.original.currency)})</span>`
+          : '';
+      return `<div class="list-item"><span>${a.accountName}</span><span class="mono">${fmtSigned(a.converted.amount, a.converted.currency)}${original}</span></div>`;
+    })
     .join('');
 
   return `
   <div class="section-label">Savings &amp; investment contribution</div>
   <div class="block">
     <div class="stat-label">Net contribution this month</div>
-    <div class="stat-value ${totalClass}" style="font-size:24px;margin-bottom:4px;">${fmtSigned(s.totalNetContribution, data.currency)}</div>
-    <div style="font-size:11px;color:#4b5a6b;margin-bottom:14px;">${fmtSigned(delta, data.currency)} vs prior month</div>
+    <div class="stat-value ${totalClass}" style="font-size:24px;margin-bottom:4px;">${fmtSigned(s.totalNetContribution.amount, s.totalNetContribution.currency)}</div>
+    <div style="font-size:11px;color:#4b5a6b;margin-bottom:14px;">${fmtSigned(delta, s.totalNetContribution.currency)} vs prior month</div>
     ${rows || '<div class="empty">No tracked savings/investment accounts.</div>'}
   </div>`;
 }

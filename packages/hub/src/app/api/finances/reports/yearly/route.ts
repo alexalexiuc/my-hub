@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getYearlyFinanceReport } from '@my-hub/shared/services';
 import { supportedCurrencySchema } from '../../currency.schema';
+import { moneyAmountSchema } from '../../money.schema';
 
 const monthCashflowSchema = z.object({ month: z.string(), income: z.number(), expenses: z.number(), net: z.number() });
 const cashflowSchema = z.object({
@@ -19,15 +20,15 @@ const accountContributionSchema = z.object({
   accountId: z.number(),
   accountName: z.string(),
   accountType: z.string(),
-  currency: z.string(),
-  netContribution: z.number(),
+  original: moneyAmountSchema,
+  converted: moneyAmountSchema,
 });
 const savingsContributionsSchema = z.object({
   dateFrom: z.string(),
   dateTo: z.string(),
-  totalNetContribution: z.number(),
+  totalNetContribution: moneyAmountSchema,
   accounts: z.array(accountContributionSchema),
-  previousPeriod: z.object({ dateFrom: z.string(), dateTo: z.string(), totalNetContribution: z.number() }),
+  previousPeriod: z.object({ dateFrom: z.string(), dateTo: z.string(), totalNetContribution: moneyAmountSchema }),
 });
 
 const ibkrDcaSchema = z.object({ actualContributed: z.number(), targetContribution: z.number(), currency: z.string() });

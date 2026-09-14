@@ -9,8 +9,9 @@ interface Props {
 
 export function SavingsAndBudget({ report, currency }: Props) {
   const { savingsContributions, budgetProgress } = report;
-  const delta = savingsContributions.totalNetContribution - savingsContributions.previousPeriod.totalNetContribution;
-  const totalColor = savingsContributions.totalNetContribution >= 0 ? 'var(--green)' : 'var(--red)';
+  const delta =
+    savingsContributions.totalNetContribution.amount - savingsContributions.previousPeriod.totalNetContribution.amount;
+  const totalColor = savingsContributions.totalNetContribution.amount >= 0 ? 'var(--green)' : 'var(--red)';
   const targetedCategories = budgetProgress.categories.filter(c => c.monthlyTarget != null);
 
   return (
@@ -20,15 +21,27 @@ export function SavingsAndBudget({ report, currency }: Props) {
         <Card compact className="p-4">
           <SubText>Net contribution this month</SubText>
           <div className="mt-1 text-[24px] font-bold" style={{ color: totalColor }}>
-            {fmtSign(savingsContributions.totalNetContribution, currency)}
+            {fmtSign(
+              savingsContributions.totalNetContribution.amount,
+              savingsContributions.totalNetContribution.currency,
+            )}
           </div>
-          <div className="mt-0.5 text-[11px] text-[var(--muted)]">{fmtSign(delta, currency)} vs prior month</div>
+          <div className="mt-0.5 text-[11px] text-[var(--muted)]">
+            {fmtSign(delta, savingsContributions.totalNetContribution.currency)} vs prior month
+          </div>
           {savingsContributions.accounts.length > 0 && (
             <div className="mt-3 flex flex-col gap-1.5 border-t border-[var(--border)] pt-3">
               {savingsContributions.accounts.map(a => (
                 <div key={a.accountId} className="flex justify-between text-[12px]">
                   <span className="text-[var(--text)]">{a.accountName}</span>
-                  <span className="font-medium text-[var(--text)]">{fmtSign(a.netContribution, a.currency)}</span>
+                  <span className="font-medium text-[var(--text)]">
+                    {fmtSign(a.converted.amount, a.converted.currency)}
+                    {a.original.currency !== a.converted.currency && (
+                      <span className="ml-1 font-normal text-[var(--muted)]">
+                        ({fmtSign(a.original.amount, a.original.currency)})
+                      </span>
+                    )}
+                  </span>
                 </div>
               ))}
             </div>

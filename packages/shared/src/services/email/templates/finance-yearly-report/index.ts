@@ -63,12 +63,15 @@ function buildNetWorth(data: BuildFinanceYearlyReportHtmlData): string {
 
 function buildSavingsAndIbkr(data: BuildFinanceYearlyReportHtmlData): string {
   const s = data.report.savingsContributions;
-  const totalClass = s.totalNetContribution >= 0 ? 'c-green' : 'c-red';
+  const totalClass = s.totalNetContribution.amount >= 0 ? 'c-green' : 'c-red';
   const accountRows = s.accounts
-    .map(
-      a =>
-        `<div class="list-item"><span>${a.accountName}</span><span class="mono">${fmtSigned(a.netContribution, a.currency)}</span></div>`,
-    )
+    .map(a => {
+      const original =
+        a.original.currency !== a.converted.currency
+          ? ` <span style="color:#4b5a6b;">(${fmtSigned(a.original.amount, a.original.currency)})</span>`
+          : '';
+      return `<div class="list-item"><span>${a.accountName}</span><span class="mono">${fmtSigned(a.converted.amount, a.converted.currency)}${original}</span></div>`;
+    })
     .join('');
 
   const ibkr = data.report.ibkrDca;
@@ -81,7 +84,7 @@ function buildSavingsAndIbkr(data: BuildFinanceYearlyReportHtmlData): string {
   <div class="section-label">Savings &amp; investment contribution</div>
   <div class="block">
     <div class="stat-label">Net contribution this year</div>
-    <div class="stat-value ${totalClass}" style="font-size:24px;margin-bottom:14px;">${fmtSigned(s.totalNetContribution, data.currency)}</div>
+    <div class="stat-value ${totalClass}" style="font-size:24px;margin-bottom:14px;">${fmtSigned(s.totalNetContribution.amount, s.totalNetContribution.currency)}</div>
     ${accountRows || '<div class="empty">No tracked savings/investment accounts.</div>'}
     ${ibkrBlock}
   </div>`;

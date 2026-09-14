@@ -10,7 +10,7 @@ interface Props {
 export function NetWorthAndSavings({ report, currency }: Props) {
   const { netWorthHistory, netWorthDelta, savingsContributions, ibkrDca } = report;
   const deltaColor = (netWorthDelta ?? 0) >= 0 ? 'var(--green)' : 'var(--red)';
-  const totalColor = savingsContributions.totalNetContribution >= 0 ? 'var(--green)' : 'var(--red)';
+  const totalColor = savingsContributions.totalNetContribution.amount >= 0 ? 'var(--green)' : 'var(--red)';
 
   return (
     <div className="flex flex-col gap-3">
@@ -49,14 +49,24 @@ export function NetWorthAndSavings({ report, currency }: Props) {
         <Card compact className="p-4">
           <SubText>Net contribution this year</SubText>
           <div className="mt-1 text-[24px] font-bold" style={{ color: totalColor }}>
-            {fmtSign(savingsContributions.totalNetContribution, currency)}
+            {fmtSign(
+              savingsContributions.totalNetContribution.amount,
+              savingsContributions.totalNetContribution.currency,
+            )}
           </div>
           {savingsContributions.accounts.length > 0 && (
             <div className="mt-3 flex flex-col gap-1.5 border-t border-[var(--border)] pt-3">
               {savingsContributions.accounts.map(a => (
                 <div key={a.accountId} className="flex justify-between text-[12px]">
                   <span className="text-[var(--text)]">{a.accountName}</span>
-                  <span className="font-medium text-[var(--text)]">{fmtSign(a.netContribution, a.currency)}</span>
+                  <span className="font-medium text-[var(--text)]">
+                    {fmtSign(a.converted.amount, a.converted.currency)}
+                    {a.original.currency !== a.converted.currency && (
+                      <span className="ml-1 font-normal text-[var(--muted)]">
+                        ({fmtSign(a.original.amount, a.original.currency)})
+                      </span>
+                    )}
+                  </span>
                 </div>
               ))}
             </div>

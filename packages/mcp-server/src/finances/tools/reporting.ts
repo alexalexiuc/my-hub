@@ -12,8 +12,6 @@ import {
   getNetWorthSummary,
   getAccountFlows,
   getSavingsContributions,
-  getMonthlyFinanceReport,
-  getYearlyFinanceReport,
 } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
 
@@ -198,39 +196,5 @@ export const getSavingsContributionsTool: ToolHandler<typeof GetSavingsContribut
   if (!budget) throw new HandledError('No active budget.');
 
   const result = await getSavingsContributions(userId, budget.id, input.dateFrom, input.dateTo);
-  return toolResponse(result);
-};
-
-// ─── get_monthly_report ──────────────────────────────────────────────────────────
-
-export const GetMonthlyReportSchema = z.object({
-  month: z
-    .string()
-    .regex(/^\d{4}-\d{2}$/)
-    .optional()
-    .describe('YYYY-MM. Defaults to the last completed month.'),
-});
-
-export const getMonthlyReportTool: ToolHandler<typeof GetMonthlyReportSchema.shape> = async (input, context) => {
-  const { userId } = context;
-  const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new HandledError('No active budget.');
-
-  const result = await getMonthlyFinanceReport(userId, budget.id, input.month);
-  return toolResponse(result);
-};
-
-// ─── get_yearly_report ────────────────────────────────────────────────────────────
-
-export const GetYearlyReportSchema = z.object({
-  year: z.number().int().min(2000).max(2100).optional().describe('Calendar year. Defaults to the last completed year.'),
-});
-
-export const getYearlyReportTool: ToolHandler<typeof GetYearlyReportSchema.shape> = async (input, context) => {
-  const { userId } = context;
-  const budget = await getUserActiveBudget(userId);
-  if (!budget) throw new HandledError('No active budget.');
-
-  const result = await getYearlyFinanceReport(userId, budget.id, input.year);
   return toolResponse(result);
 };

@@ -198,7 +198,9 @@ function computeGoalProgress(
   savingsContributions: SavingsContributionsResult,
 ): GoalProgress[] {
   const goals = accounts.filter(a => a.type === AccountTypes.Goal);
-  const contributionByAccount = new Map(savingsContributions.accounts.map(a => [a.accountId, a.netContribution]));
+  // GoalProgress reports balance/targetAmount in the account's own currency, so match that with
+  // the original (unconverted) contribution amount rather than the budget-currency-converted one.
+  const contributionByAccount = new Map(savingsContributions.accounts.map(a => [a.accountId, a.original.amount]));
 
   return goals.map(account => {
     const details = getAccountDetails('goal', account.details);
