@@ -1,6 +1,8 @@
 import '@/styles/globals.css';
 import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { Providers } from '@/components';
 import type { ThemeOverrides } from '@/components';
 import { getAuthUser } from '@/lib/auth-user';
@@ -50,10 +52,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const themeOverrides = await readThemeOverrides();
   const globalTheme = themeOverrides.global ?? DEFAULT_THEME_BY_SCOPE.global;
 
+  // Resolved server-side and seeded into SessionProvider so useSession() knows the real status on
+  // the very first client render, instead of starting at 'loading' on every page load.
+  const session = await getServerSession(authOptions);
+
   return (
     <html lang="en">
       <body className={`${themeClassName(globalTheme)} min-h-screen bg-[var(--bg)] text-[var(--text)]`}>
-        <Providers themeOverrides={themeOverrides}>{children}</Providers>
+        <Providers themeOverrides={themeOverrides} session={session}>
+          {children}
+        </Providers>
       </body>
     </html>
   );
