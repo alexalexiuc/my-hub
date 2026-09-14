@@ -9,6 +9,8 @@
 export const NOTIFICATION_SUBSCRIPTIONS = [
   { key: 'calories_weekly_report', label: 'Weekly Report', section: 'Calories' },
   { key: 'calories_monthly_report', label: 'Monthly Report', section: 'Calories' },
+  { key: 'finance_monthly_report', label: 'Monthly Report', section: 'Finances' },
+  { key: 'finance_yearly_report', label: 'Yearly Report', section: 'Finances' },
 ] as const;
 
 export type SubscriptionKey = (typeof NOTIFICATION_SUBSCRIPTIONS)[number]['key'];

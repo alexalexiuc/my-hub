@@ -13,6 +13,7 @@
  * - deleteAllUserFinanceBudgets(userId) — bulk delete owned budgets + remove from shared memberships; clears portfolio supply lines first (ON DELETE RESTRICT on finance_portfolio_supply_lines.position_id would otherwise block it)
  * - hasAccessToBudget(userId, budgetId) — returns true if user is a budget member
  * - enforceBudgetAccess(userId, budgetId) — throws if user is not a budget member
+ * - getAllBudgetsForSystem() — system maintenance: every budget's id + creator userId (the creator can never be removed as a member, so it's always a valid acting userId for service calls) — worker use only, no auth
  * Types: BudgetInsert, BudgetUpdate, UserBudget
  */
 import { and, eq, inArray, sql } from 'drizzle-orm';
@@ -271,4 +272,17 @@ export async function deleteAllUserFinanceBudgets(userId: string): Promise<numbe
     .forEach(key => budgetAccessCache.delete(key));
 
   return deletedBudgets.length;
+}
+
+/**
+ * System maintenance: returns every budget's id and creator userId, for jobs that must run
+ * against all budgets regardless of report subscriptions (e.g. the monthly net worth snapshot).
+ * The creator can never be removed as a member (see removeBudgetMember), so it's always a valid
+ * acting userId for service calls that enforce budget membership. No auth required — worker use only.
+ */
+export async function getAllBudgetsForSystem(): Promise<{ budgetId: number; ownerUserId: string }[]> {
+  const rows = await db
+    .select({ budgetId: financeBudgets.id, ownerUserId: financeBudgets.createdByUserId })
+    .from(financeBudgets);
+  return rows;
 }

@@ -19,12 +19,20 @@ import {
   GetSpendingAggregatesSchema,
   GetComparisonSchema,
   GetNetWorthSummarySchema,
+  GetAccountFlowsSchema,
+  GetSavingsContributionsSchema,
+  GetMonthlyReportSchema,
+  GetYearlyReportSchema,
   getBudgetProgressTool,
   getCashflowSummaryTool,
   getSpendingByPayeeTool,
   getSpendingAggregatesTool,
   getComparisonTool,
   getNetWorthSummaryTool,
+  getAccountFlowsTool,
+  getSavingsContributionsTool,
+  getMonthlyReportTool,
+  getYearlyReportTool,
 } from './reporting';
 import { ListContextSchema, listContextTool } from './context';
 import {
@@ -309,6 +317,55 @@ const financeTools = [
     inputSchema: GetNetWorthSummarySchema.shape,
     annotations: { readOnlyHint: true },
     callback: getNetWorthSummaryTool,
+  }),
+  defineTool({
+    name: 'finances_get_account_flows',
+    description:
+      'Per-account flow decomposition for a date range: opening balance, closing balance, inflows (income + transfers in), ' +
+      'outflows (expenses + transfers out), and net delta. Omit accountId to cover every non-archived account. ' +
+      "Each account's reconciles flag is false when a balance correction landed inside the period — " +
+      'a signal of a missing or misclassified transaction that had to be manually reconciled. ' +
+      'Use to answer "where did money move in/out of my accounts this month?" or to audit one account\'s balance movement.',
+    inputSchema: GetAccountFlowsSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getAccountFlowsTool,
+  }),
+  defineTool({
+    name: 'finances_get_savings_contributions',
+    description:
+      'Net amount transferred into savings/tracking/investment accounts for a date range — "did I actually save ' +
+      'something this period, net of any withdrawals?" Returns a combined total, a per-account breakdown, and the ' +
+      'same metric for the immediately preceding period of equal length for a quick delta. ' +
+      'Loan repayments are not included — use finances_get_account_flows or finances_get_net_worth_summary for debt paydown.',
+    inputSchema: GetSavingsContributionsSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getSavingsContributionsTool,
+  }),
+  defineTool({
+    name: 'finances_get_monthly_report',
+    description:
+      'Standing monthly report for a given YYYY-MM month (defaults to the last completed month): cashflow summary, ' +
+      'per-account flows, savings/investment net contribution, budget progress, plus insights — categories that moved ' +
+      '±40% or more vs their trailing 3-month average, payees new in the last 90 days, accounts with a data-quality ' +
+      'reconciliation flag, goal-account progress, and loan paydown this month. ' +
+      'Assembled entirely from other finance reporting tools/functions — use this instead of calling several reporting ' +
+      'tools separately when the user asks for "my monthly report" or "how did this month go?"',
+    inputSchema: GetMonthlyReportSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getMonthlyReportTool,
+  }),
+  defineTool({
+    name: 'finances_get_yearly_report',
+    description:
+      'Standing yearly report for a calendar year (defaults to the last completed year): cashflow summary, net worth ' +
+      'trajectory (from monthly snapshots), yearly savings/investment net contribution, investment portfolio DCA vs its ' +
+      'planned-monthly-contribution target, loan payoff progress, a 12-month per-category spend table, and a ' +
+      'year-over-year category comparison. ' +
+      'Assembled entirely from other finance reporting tools/functions — use this instead of calling several reporting ' +
+      'tools separately when the user asks for "my yearly report" or a year-end review.',
+    inputSchema: GetYearlyReportSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getYearlyReportTool,
   }),
   defineTool({
     name: 'finances_get_portfolio',
