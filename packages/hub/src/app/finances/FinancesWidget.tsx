@@ -6,8 +6,8 @@ import { EyeOffOutlineIcon, EyeOutlineIcon, SpinnerIcon } from '@/components/ico
 import { apiFetch } from '@/lib/utils';
 import { useCachedResource } from '@/hooks/useCachedResource';
 import { CategoryIcon, fmt, pct } from './ui';
-import { financeDashboardDataSchema } from '@/app/api/finances/dashboard/route';
-import type { DashboardResponse, FinanceDashboardData } from '@/app/api/finances/dashboard/route';
+import { financeDashboardDataSchema } from '@/app/api/finances/dashboard/schema';
+import type { DashboardResponse, FinanceDashboardData } from '@/app/api/finances/dashboard/schema';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -33,9 +33,11 @@ function MetricLinkCard({ href, color, children }: { href: string; color: string
 }
 
 export function FinancesWidget() {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const { data, setData, isRefreshing } = useCachedResource<FinanceDashboardData>({
-    cacheKey: `finances-dashboard:${session?.user?.email ?? 'anon'}`,
+    // null while the session is still resolving — the hook waits rather than fetching under a
+    // throwaway key first, since useSession() only knows the real user's email after that resolves.
+    cacheKey: sessionStatus === 'loading' ? null : `finances-dashboard:${session?.user?.email ?? 'anon'}`,
     fetcher: async () => {
       const result = await apiFetch<DashboardResponse>('/api/finances/dashboard', { silentToast: true });
       return result.hasBudget ? result : undefined;
