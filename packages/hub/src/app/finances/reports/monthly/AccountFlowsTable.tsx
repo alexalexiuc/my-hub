@@ -4,7 +4,6 @@ import type { MonthlyReportData } from '@/app/api/finances/reports/monthly/route
 
 interface Props {
   report: MonthlyReportData['report'];
-  currency: string;
 }
 
 export function AccountFlowsTable({ report }: Props) {

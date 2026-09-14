@@ -1,14 +1,14 @@
 import { Card, SubText } from '@/components';
-import { fmt, fmtSign } from '../../ui';
-import type { MonthlyReportData } from '@/app/api/finances/reports/monthly/route';
+import { fmt, fmtSign } from '../ui';
+import type { CashflowSummaryResult } from '@my-hub/shared/services';
 
 interface Props {
-  report: MonthlyReportData['report'];
+  cashflow: CashflowSummaryResult;
   currency: string;
 }
 
-export function MonthlySummary({ report, currency }: Props) {
-  const { cashflow } = report;
+/** Income / expenses / net cashflow stat-card row, shared by the monthly and yearly report pages. */
+export function CashflowSummaryCards({ cashflow, currency }: Props) {
   const netColor = cashflow.net >= 0 ? 'var(--green)' : 'var(--red)';
 
   return (

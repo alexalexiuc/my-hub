@@ -5,6 +5,7 @@
  * - getUserActiveBudget(userId) — returns the user's active budget (isActive: true), null if none
  * - setActiveBudget(userId, budgetId) — deactivates all user memberships, activates the specified one
  * - getBudgetById(userId, budgetId) — single budget with access check, null if not found or no access
+ * - getBudgetByIdSystem(budgetId) — system maintenance: single budget with no access check — worker use only, no auth
  * - getBudgetMembers(userId, budgetId) — lists members (id, email, name, joinedAt) with access check
  * - updateBudget(userId, budgetId, data) — partial update; requires budget membership
  * - deleteBudget(userId, budgetId) — hard delete; requires budget membership; clears portfolio supply lines first (see below)
@@ -134,6 +135,17 @@ export async function getBudgetById(userId: string, budgetId: number): Promise<F
     .innerJoin(financeBudgetMembers, eq(financeBudgetMembers.budgetId, financeBudgets.id))
     .where(and(eq(financeBudgets.id, budgetId), eq(financeBudgetMembers.userId, userId)));
 
+  return row ?? null;
+}
+
+/**
+ * System maintenance: fetches a single budget by id with no membership/access check.
+ * No auth required — intended for use by system-level jobs that have already established a
+ * legitimate acting userId some other way (e.g. via getAllBudgetsForSystem) and don't need to
+ * re-verify it against this budget on every nested call.
+ */
+export async function getBudgetByIdSystem(budgetId: number): Promise<FinanceBudget | null> {
+  const [row] = await db.select().from(financeBudgets).where(eq(financeBudgets.id, budgetId));
   return row ?? null;
 }
 

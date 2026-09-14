@@ -24,10 +24,11 @@ import {
 } from '../../db/schema/finances';
 import type { AccountType, TransactionType } from '../../constants/finances';
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
-import { hasAccessToBudget, getBudgetById } from './budgets';
+import { hasAccessToBudget, getBudgetByIdSystem } from './budgets';
+import { getLedgerBalances } from './accounts';
 import { getExchangeRate } from './exchangeRates';
 import { getLoanBalanceSnapshotForAccount, getLoanSummaryForAccount, type LoanSummary } from './loan-amortization';
-import { addDays, currentDateString, dateToString } from '../../utils';
+import { currentDateString, dateToString, shiftDateStr } from '../../utils';
 
 // ─── Budget Progress ──────────────────────────────────────────────────────────
 
@@ -413,60 +414,6 @@ export interface AccountFlowsResult {
 }
 
 /**
- * Returns each account's cumulative ledger balance as of a given date (inclusive), or the
- * full-history balance when asOfDate is omitted. Mirrors the balance formula used by
- * recalculateAccountBalance (accounts.ts), just grouped across accounts and date-bounded.
- */
-async function getLedgerBalancesAsOf(
-  budgetId: number,
-  accountIds: number[],
-  asOfDate?: string,
-): Promise<Map<number, number>> {
-  const fromConditions = [
-    eq(financeTransactions.budgetId, budgetId),
-    inArray(financeTransactions.accountId, accountIds),
-  ];
-  const toConditions = [
-    eq(financeTransactions.budgetId, budgetId),
-    eq(financeTransactions.type, TransactionTypes.Transfer),
-    inArray(financeTransactions.toAccountId, accountIds),
-  ];
-  if (asOfDate) {
-    fromConditions.push(lte(financeTransactions.date, asOfDate));
-    toConditions.push(lte(financeTransactions.date, asOfDate));
-  }
-
-  const [fromRows, toRows] = await Promise.all([
-    db
-      .select({
-        accountId: financeTransactions.accountId,
-        net: sql<number>`COALESCE(SUM(CASE WHEN ${financeTransactions.type} = ${TransactionTypes.Income} THEN ${financeTransactions.amount} ELSE -${financeTransactions.amount} END), 0)::float8`,
-      })
-      .from(financeTransactions)
-      .where(and(...fromConditions))
-      .groupBy(financeTransactions.accountId),
-    db
-      .select({
-        accountId: financeTransactions.toAccountId,
-        net: sql<number>`COALESCE(SUM(${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1)), 0)::float8`,
-      })
-      .from(financeTransactions)
-      .where(and(...toConditions))
-      .groupBy(financeTransactions.toAccountId),
-  ]);
-
-  const balances = new Map<number, number>();
-  for (const row of fromRows) {
-    balances.set(row.accountId, (balances.get(row.accountId) ?? 0) + row.net);
-  }
-  for (const row of toRows) {
-    if (row.accountId == null) continue;
-    balances.set(row.accountId, (balances.get(row.accountId) ?? 0) + row.net);
-  }
-  return balances;
-}
-
-/**
  * Per-account flow decomposition for a date range: opening balance, closing balance,
  * inflows (income + transfers in), outflows (expenses + transfers out), and net delta —
  * with a reconciliation flag that catches balance corrections made during the period.
@@ -496,12 +443,7 @@ export async function getAccountFlows(
   if (accounts.length === 0) return { dateFrom, dateTo, accounts: [] };
 
   const accountIds = accounts.map(a => a.id);
-  const dayBeforeFrom = dateToString(addDays(new Date(dateFrom), -1), 'YYYY-MM-DD');
-
-  const [openingBalances, closingBalances] = await Promise.all([
-    getLedgerBalancesAsOf(budgetId, accountIds, dayBeforeFrom),
-    getLedgerBalancesAsOf(budgetId, accountIds, dateTo),
-  ]);
+  const dayBeforeFrom = shiftDateStr(dateFrom, -1);
 
   const periodBase = [
     eq(financeTransactions.budgetId, budgetId),
@@ -510,7 +452,11 @@ export async function getAccountFlows(
     lte(financeTransactions.date, dateTo),
   ];
 
-  const [fromRows, toRows] = await Promise.all([
+  // All four queries are mutually independent — none depends on another's result — so they run
+  // as one batch rather than two sequential Promise.all groups.
+  const [openingBalances, closingBalances, fromRows, toRows] = await Promise.all([
+    getLedgerBalances(accountIds, { asOfDate: dayBeforeFrom }),
+    getLedgerBalances(accountIds, { asOfDate: dateTo }),
     db
       .select({
         accountId: financeTransactions.accountId,
@@ -684,8 +630,8 @@ export async function getSavingsContributions(
   }
 
   const periodDays = Math.round((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000) + 1;
-  const prevDateTo = dateToString(addDays(new Date(dateFrom), -1), 'YYYY-MM-DD');
-  const prevDateFrom = dateToString(addDays(new Date(dateFrom), -periodDays), 'YYYY-MM-DD');
+  const prevDateTo = shiftDateStr(dateFrom, -1);
+  const prevDateFrom = shiftDateStr(dateFrom, -periodDays);
 
   const [current, previous] = await Promise.all([
     getSavingsContributionsForRange(budgetId, dateFrom, dateTo),
@@ -1092,7 +1038,16 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
     throw new Error('Budget not found');
   }
 
-  const budget = await getBudgetById(userId, budgetId);
+  return computeNetWorthSummary(userId, budgetId);
+}
+
+/**
+ * Does the actual net worth computation with no membership check of its own — callers that have
+ * already established access (getNetWorthSummary) or a legitimate system-level acting userId
+ * (snapshotNetWorth) call this directly instead of re-verifying access on every nested call.
+ */
+async function computeNetWorthSummary(userId: string, budgetId: number): Promise<NetWorthSummaryResult> {
+  const budget = await getBudgetByIdSystem(budgetId);
   if (!budget) throw new Error('Budget not found');
 
   const accounts = await db
@@ -1182,11 +1137,15 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
 /**
  * Computes the current net worth summary and persists it as that month's snapshot row
  * (upsert on the (budgetId, month) unique index — safe to re-run within the same month).
- * No user auth required — intended for use by the worker's monthly snapshot job only.
+ * userId must be a valid member of budgetId (e.g. from getAllBudgetsForSystem's ownerUserId) —
+ * still required because the underlying loan calculations query transactions on the user's
+ * behalf, but this skips the redundant membership re-check getNetWorthSummary would otherwise
+ * perform, since the worker has already established a legitimate acting userId for this budget.
+ * No further auth required — intended for use by the worker's monthly snapshot job only.
  * month defaults to the current YYYY-MM.
  */
 export async function snapshotNetWorth(userId: string, budgetId: number, month?: string): Promise<void> {
-  const summary = await getNetWorthSummary(userId, budgetId);
+  const summary = await computeNetWorthSummary(userId, budgetId);
   const targetMonth = month ?? dateToString(new Date(), 'YYYY-MM');
 
   await db

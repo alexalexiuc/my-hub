@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import { IconButton } from '@/components';
 import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon } from '@/components/icons';
 import type { YearlyReportData } from '@/app/api/finances/reports/yearly/route';
-import { YearlySummary } from './YearlySummary';
+import { CashflowSummaryCards } from '../CashflowSummaryCards';
 import { NetWorthAndSavings } from './NetWorthAndSavings';
 import { LoansAndCategories } from './LoansAndCategories';
 
@@ -51,7 +51,7 @@ export default function YearlyReportPage() {
 
       {!loading && data && (
         <>
-          <YearlySummary report={data.report} currency={data.currency} />
+          <CashflowSummaryCards cashflow={data.report.cashflow} currency={data.currency} />
           <NetWorthAndSavings report={data.report} currency={data.currency} />
           <LoansAndCategories report={data.report} currency={data.currency} />
         </>

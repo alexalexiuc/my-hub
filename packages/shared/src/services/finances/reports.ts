@@ -9,8 +9,8 @@
  * Types: CategorySpike, LoanProgress, GoalProgress, MonthlyFinanceReport, LoanPayoffProgress, IbkrDcaProgress, YearlyFinanceReport
  */
 import { AccountTypes } from '../../constants/finances';
-import { getAccountDetails } from '../../types';
-import { addDays, currentDateString, dateToString, getLastMonthStart, monthToDateRange } from '../../utils';
+import { getAccountDetails, type FinanceAccount } from '../../types';
+import { currentDateString, dateToString, getLastMonthStart, monthToDateRange, shiftDateStr } from '../../utils';
 import { hasAccessToBudget, getBudgetById } from './budgets';
 import { getAccounts } from './accounts';
 import {
@@ -33,10 +33,7 @@ import { calculateLoanAmortizationSummary } from './loan-amortization';
 import { getPortfolio, getSupplies } from './portfolio';
 
 const SPIKE_THRESHOLD_PCT = 40;
-
-function dayBefore(dateStr: string): string {
-  return dateToString(addDays(new Date(dateStr), -1), 'YYYY-MM-DD');
-}
+const TRAILING_WINDOW_DAYS = 90;
 
 // ─── Monthly Report ────────────────────────────────────────────────────────────
 
@@ -92,8 +89,8 @@ async function computeCategorySpikes(
   dateFrom: string,
   dateTo: string,
 ): Promise<CategorySpike[]> {
-  const trailingTo = dayBefore(dateFrom);
-  const trailingFrom = dateToString(addDays(new Date(dateFrom), -90), 'YYYY-MM-DD');
+  const trailingTo = shiftDateStr(dateFrom, -1);
+  const trailingFrom = shiftDateStr(dateFrom, -TRAILING_WINDOW_DAYS);
 
   const [current, trailing] = await Promise.all([
     getSpendingAggregates(userId, budgetId, { dateFrom, dateTo, groupBy: 'category', type: 'expense' }),
@@ -132,8 +129,8 @@ async function computeNewPayees(
   dateFrom: string,
   dateTo: string,
 ): Promise<{ payeeId: number; name: string; totalSpent: number }[]> {
-  const trailingTo = dayBefore(dateFrom);
-  const trailingFrom = dateToString(addDays(new Date(dateFrom), -90), 'YYYY-MM-DD');
+  const trailingTo = shiftDateStr(dateFrom, -1);
+  const trailingFrom = shiftDateStr(dateFrom, -TRAILING_WINDOW_DAYS);
 
   const [current, trailing] = await Promise.all([
     getSpendingByPayee(userId, budgetId, dateFrom, dateTo, 500),
@@ -146,28 +143,40 @@ async function computeNewPayees(
     .map(p => ({ payeeId: p.payeeId, name: p.name, totalSpent: p.totalSpent }));
 }
 
-async function computeLoanProgress(
-  userId: string,
-  budgetId: number,
+interface LoanPayoffFigures {
+  accountId: number;
+  accountName: string;
+  currency: string;
+  remainingBalance: number;
+  paidDown: number;
+}
+
+/**
+ * Loan payoff progress for a date range — shared by the monthly and yearly reports, which only
+ * differ in what they call the "paid down" field. Interest-bearing loans use the pure
+ * schedule-derived calculateLoanAmortizationSummary (loan-amortization.ts's documented single
+ * source of truth); zero-interest loans reuse the already-computed getAccountFlows ledger
+ * balance, since every payment there is pure principal.
+ */
+function computeLoanPayoffFigures(
+  loans: FinanceAccount[],
   accountFlows: AccountFlowsResult,
   dateFrom: string,
   dateTo: string,
-): Promise<LoanProgress[]> {
-  const accounts = await getAccounts(userId, budgetId);
-  const loans = accounts.filter(a => a.type === AccountTypes.Loan);
+): LoanPayoffFigures[] {
   const flowByAccount = new Map(accountFlows.accounts.map(f => [f.accountId, f]));
 
   return loans.map(account => {
     const details = getAccountDetails('loan', account.details);
     if (details && details.interestRate > 0) {
-      const start = calculateLoanAmortizationSummary(details, { asOfDate: dayBefore(dateFrom) });
+      const start = calculateLoanAmortizationSummary(details, { asOfDate: shiftDateStr(dateFrom, -1) });
       const end = calculateLoanAmortizationSummary(details, { asOfDate: dateTo });
       return {
         accountId: account.id,
         accountName: account.name,
         currency: account.currency,
         remainingBalance: end.remainingPrincipal,
-        paidDownThisPeriod: Math.max(0, start.remainingPrincipal - end.remainingPrincipal),
+        paidDown: Math.max(0, start.remainingPrincipal - end.remainingPrincipal),
       };
     }
 
@@ -179,17 +188,15 @@ async function computeLoanProgress(
       accountName: account.name,
       currency: account.currency,
       remainingBalance: flow ? -flow.closingBalance : -account.balance,
-      paidDownThisPeriod: flow ? Math.max(0, flow.closingBalance - flow.openingBalance) : 0,
+      paidDown: flow ? Math.max(0, flow.closingBalance - flow.openingBalance) : 0,
     };
   });
 }
 
-async function computeGoalProgress(
-  userId: string,
-  budgetId: number,
+function computeGoalProgress(
+  accounts: FinanceAccount[],
   savingsContributions: SavingsContributionsResult,
-): Promise<GoalProgress[]> {
-  const accounts = await getAccounts(userId, budgetId);
+): GoalProgress[] {
   const goals = accounts.filter(a => a.type === AccountTypes.Goal);
   const contributionByAccount = new Map(savingsContributions.accounts.map(a => [a.accountId, a.netContribution]));
 
@@ -221,19 +228,24 @@ export async function getMonthlyFinanceReport(
   const targetMonth = month ?? dateToString(getLastMonthStart(), 'YYYY-MM');
   const { fromDate: dateFrom, toDate: dateTo } = monthToDateRange(targetMonth);
 
-  const [cashflow, accountFlows, savingsContributions, budgetProgress, categorySpikes, newPayees] = await Promise.all([
-    getCashflowSummary(userId, budgetId, dateFrom, dateTo),
-    getAccountFlows(userId, budgetId, dateFrom, dateTo),
-    getSavingsContributions(userId, budgetId, dateFrom, dateTo),
-    getBudgetProgress(userId, budgetId, targetMonth),
-    computeCategorySpikes(userId, budgetId, dateFrom, dateTo),
-    computeNewPayees(userId, budgetId, dateFrom, dateTo),
-  ]);
+  const [accounts, cashflow, accountFlows, savingsContributions, budgetProgress, categorySpikes, newPayees] =
+    await Promise.all([
+      getAccounts(userId, budgetId),
+      getCashflowSummary(userId, budgetId, dateFrom, dateTo),
+      getAccountFlows(userId, budgetId, dateFrom, dateTo),
+      getSavingsContributions(userId, budgetId, dateFrom, dateTo),
+      getBudgetProgress(userId, budgetId, targetMonth),
+      computeCategorySpikes(userId, budgetId, dateFrom, dateTo),
+      computeNewPayees(userId, budgetId, dateFrom, dateTo),
+    ]);
 
-  const [goals, loans] = await Promise.all([
-    computeGoalProgress(userId, budgetId, savingsContributions),
-    computeLoanProgress(userId, budgetId, accountFlows, dateFrom, dateTo),
-  ]);
+  const goals = computeGoalProgress(accounts, savingsContributions);
+  const loans = computeLoanPayoffFigures(
+    accounts.filter(a => a.type === AccountTypes.Loan),
+    accountFlows,
+    dateFrom,
+    dateTo,
+  ).map(({ paidDown, ...rest }) => ({ ...rest, paidDownThisPeriod: paidDown }));
 
   const dataQualityFlags = accountFlows.accounts
     .filter(a => !a.reconciles)
@@ -285,41 +297,6 @@ export interface YearlyFinanceReport {
   yearOverYear: ComparisonResult;
 }
 
-async function computeYearlyLoanProgress(
-  userId: string,
-  budgetId: number,
-  dateFrom: string,
-  dateTo: string,
-): Promise<LoanPayoffProgress[]> {
-  const accounts = await getAccounts(userId, budgetId);
-  const loans = accounts.filter(a => a.type === AccountTypes.Loan);
-  const flows = await getAccountFlows(userId, budgetId, dateFrom, dateTo);
-  const flowByAccount = new Map(flows.accounts.map(f => [f.accountId, f]));
-
-  return loans.map(account => {
-    const details = getAccountDetails('loan', account.details);
-    if (details && details.interestRate > 0) {
-      const start = calculateLoanAmortizationSummary(details, { asOfDate: dayBefore(dateFrom) });
-      const end = calculateLoanAmortizationSummary(details, { asOfDate: dateTo });
-      return {
-        accountId: account.id,
-        accountName: account.name,
-        currency: account.currency,
-        remainingBalance: end.remainingPrincipal,
-        paidDownThisYear: Math.max(0, start.remainingPrincipal - end.remainingPrincipal),
-      };
-    }
-    const flow = flowByAccount.get(account.id);
-    return {
-      accountId: account.id,
-      accountName: account.name,
-      currency: account.currency,
-      remainingBalance: flow ? -flow.closingBalance : -account.balance,
-      paidDownThisYear: flow ? Math.max(0, flow.closingBalance - flow.openingBalance) : 0,
-    };
-  });
-}
-
 async function computeIbkrDca(userId: string, budgetId: number, year: number): Promise<IbkrDcaProgress | null> {
   const portfolio = await getPortfolio(userId, budgetId);
   if (!portfolio) return null;
@@ -341,27 +318,34 @@ async function computeCategoryByMonth(
   budgetId: number,
   year: number,
 ): Promise<{ categoryId: number | undefined; categoryName: string; months: Record<string, number> }[]> {
+  const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
+
+  // Each month's aggregate is independent — fetch all 12 concurrently rather than one at a time.
+  const results = await Promise.all(
+    months.map(month => {
+      const { fromDate, toDate } = monthToDateRange(month);
+      return getSpendingAggregates(userId, budgetId, {
+        dateFrom: fromDate,
+        dateTo: toDate,
+        groupBy: 'category',
+        type: 'expense',
+      });
+    }),
+  );
+
   const rows = new Map<
     string,
     { categoryId: number | undefined; categoryName: string; months: Record<string, number> }
   >();
-
-  for (let m = 1; m <= 12; m++) {
-    const month = `${year}-${String(m).padStart(2, '0')}`;
-    const { fromDate, toDate } = monthToDateRange(month);
-    const result = await getSpendingAggregates(userId, budgetId, {
-      dateFrom: fromDate,
-      dateTo: toDate,
-      groupBy: 'category',
-      type: 'expense',
-    });
+  results.forEach((result, i) => {
+    const month = months[i]!;
     for (const group of result.groups) {
       const key = group.id !== undefined ? String(group.id) : group.key;
       const existing = rows.get(key) ?? { categoryId: group.id, categoryName: group.key, months: {} };
       existing.months[month] = group.total;
       rows.set(key, existing);
     }
-  }
+  });
 
   return Array.from(rows.values());
 }
@@ -384,21 +368,37 @@ export async function getYearlyFinanceReport(
   const dateFrom = `${targetYear}-01-01`;
   const dateTo = `${targetYear}-12-31`;
 
-  const [cashflow, netWorthSummary, savingsContributions, ibkrDca, loans, categoryByMonth, yearOverYear] =
-    await Promise.all([
-      getCashflowSummary(userId, budgetId, dateFrom, dateTo),
-      getNetWorthSummary(userId, budgetId),
-      getSavingsContributions(userId, budgetId, dateFrom, dateTo),
-      computeIbkrDca(userId, budgetId, targetYear),
-      computeYearlyLoanProgress(userId, budgetId, dateFrom, dateTo),
-      computeCategoryByMonth(userId, budgetId, targetYear),
-      getComparison(userId, budgetId, {
-        period1: { dateFrom: `${targetYear - 1}-01-01`, dateTo: `${targetYear - 1}-12-31` },
-        period2: { dateFrom, dateTo },
-        groupBy: 'category',
-        type: 'expense',
-      }),
-    ]);
+  const [
+    accounts,
+    cashflow,
+    accountFlows,
+    netWorthSummary,
+    savingsContributions,
+    ibkrDca,
+    categoryByMonth,
+    yearOverYear,
+  ] = await Promise.all([
+    getAccounts(userId, budgetId),
+    getCashflowSummary(userId, budgetId, dateFrom, dateTo),
+    getAccountFlows(userId, budgetId, dateFrom, dateTo),
+    getNetWorthSummary(userId, budgetId),
+    getSavingsContributions(userId, budgetId, dateFrom, dateTo),
+    computeIbkrDca(userId, budgetId, targetYear),
+    computeCategoryByMonth(userId, budgetId, targetYear),
+    getComparison(userId, budgetId, {
+      period1: { dateFrom: `${targetYear - 1}-01-01`, dateTo: `${targetYear - 1}-12-31` },
+      period2: { dateFrom, dateTo },
+      groupBy: 'category',
+      type: 'expense',
+    }),
+  ]);
+
+  const loans = computeLoanPayoffFigures(
+    accounts.filter(a => a.type === AccountTypes.Loan),
+    accountFlows,
+    dateFrom,
+    dateTo,
+  ).map(({ paidDown, ...rest }) => ({ ...rest, paidDownThisYear: paidDown }));
 
   const netWorthHistory = netWorthSummary.history.filter(h => h.month.startsWith(String(targetYear)));
   const netWorthDelta =

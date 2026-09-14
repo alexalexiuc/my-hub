@@ -8,7 +8,7 @@ import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon } from '@/components/ic
 import { formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
 import { currentMonthString } from '../../finances.utils';
 import type { MonthlyReportData } from '@/app/api/finances/reports/monthly/route';
-import { MonthlySummary } from './MonthlySummary';
+import { CashflowSummaryCards } from '../CashflowSummaryCards';
 import { AccountFlowsTable } from './AccountFlowsTable';
 import { SavingsAndBudget } from './SavingsAndBudget';
 import { InsightsSection } from './InsightsSection';
@@ -61,8 +61,8 @@ export default function MonthlyReportPage() {
 
       {!loading && data && (
         <>
-          <MonthlySummary report={data.report} currency={data.currency} />
-          <AccountFlowsTable report={data.report} currency={data.currency} />
+          <CashflowSummaryCards cashflow={data.report.cashflow} currency={data.currency} />
+          <AccountFlowsTable report={data.report} />
           <SavingsAndBudget report={data.report} currency={data.currency} />
           <InsightsSection report={data.report} currency={data.currency} />
         </>
