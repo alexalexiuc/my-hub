@@ -1,12 +1,14 @@
 'use client';
 
 import { FeatureTheme, IconButton } from '@/components';
-import { useState, useEffect, useCallback } from 'react';
 import { SectionCard, ProgressBar } from '@/components';
-import { EyeOffOutlineIcon, EyeOutlineIcon } from '@/components/icons';
+import { EyeOffOutlineIcon, EyeOutlineIcon, SpinnerIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
+import { useCachedResource } from '@/hooks/useCachedResource';
 import { CategoryIcon, fmt, pct } from './ui';
-import type { DashboardResponse, FinanceDashboardData } from '@/app/api/finances/dashboard/route';
+import { financeDashboardDataSchema } from '@/app/api/finances/dashboard/schema';
+import type { DashboardResponse, FinanceDashboardData } from '@/app/api/finances/dashboard/schema';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 const HIDDEN = '*** **';
@@ -31,25 +33,18 @@ function MetricLinkCard({ href, color, children }: { href: string; color: string
 }
 
 export function FinancesWidget() {
-  const [data, setData] = useState<FinanceDashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const revealed = data ? !data.amountsHidden : false;
-
-  const load = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    try {
+  const { data: session, status: sessionStatus } = useSession();
+  const { data, setData, isRefreshing } = useCachedResource<FinanceDashboardData>({
+    // null while the session is still resolving — the hook waits rather than fetching under a
+    // throwaway key first, since useSession() only knows the real user's email after that resolves.
+    cacheKey: sessionStatus === 'loading' ? null : `finances-dashboard:${session?.user?.email ?? 'anon'}`,
+    fetcher: async () => {
       const result = await apiFetch<DashboardResponse>('/api/finances/dashboard', { silentToast: true });
-      if (result.hasBudget) setData(result);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+      return result.hasBudget ? result : undefined;
+    },
+    isValid: (v): v is FinanceDashboardData => financeDashboardDataSchema.safeParse(v).success,
+  });
+  const revealed = data ? !data.amountsHidden : false;
 
   async function toggleRevealed() {
     if (!data) return;
@@ -67,16 +62,24 @@ export function FinancesWidget() {
         className="border-[var(--border)] bg-gradient-to-br from-[var(--card2)] to-[var(--card)]"
         action={
           data && (
-            <IconButton
-              variant="ghost"
-              onClick={toggleRevealed}
-              label={revealed ? 'Hide amounts' : 'Show amounts'}
-              icon={revealed ? <EyeOutlineIcon className="size-3.5" /> : <EyeOffOutlineIcon className="size-3.5" />}
-            />
+            <div className="flex items-center gap-1.5">
+              {isRefreshing && (
+                <span className="inline-flex items-center" role="status">
+                  <SpinnerIcon className="size-3 text-zinc-500" />
+                  <span className="sr-only">Refreshing</span>
+                </span>
+              )}
+              <IconButton
+                variant="ghost"
+                onClick={toggleRevealed}
+                label={revealed ? 'Hide amounts' : 'Show amounts'}
+                icon={revealed ? <EyeOutlineIcon className="size-3.5" /> : <EyeOffOutlineIcon className="size-3.5" />}
+              />
+            </div>
           )
         }
       >
-        {loading ? (
+        {!data && isRefreshing ? (
           <div className="grid grid-cols-2 gap-2 mt-2 animate-pulse">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-14 rounded-lg bg-zinc-800" />
