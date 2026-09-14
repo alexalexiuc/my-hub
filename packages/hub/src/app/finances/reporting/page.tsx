@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { apiFetch } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { Card, SectionLabel, IconButton, DateMode } from '@/components';
@@ -146,7 +147,23 @@ export default function ReportingPage() {
   return (
     <div className="flex flex-col gap-[14px]">
       {/* Header */}
-      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Reporting</div>
+      <div className="flex items-center justify-between">
+        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Reporting</div>
+        <div className="flex gap-2">
+          <Link
+            href="/finances/reports/monthly"
+            className="text-[12px] font-medium text-[var(--accent)] hover:underline"
+          >
+            Monthly report
+          </Link>
+          <Link
+            href="/finances/reports/yearly"
+            className="text-[12px] font-medium text-[var(--accent)] hover:underline"
+          >
+            Yearly report
+          </Link>
+        </div>
+      </div>
 
       {/* Date + filter controls */}
       <SmartDatePicker

@@ -16,11 +16,19 @@ import { db } from '../../db/client.js';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
+ * A query-builder stub that resolves whether awaited directly at `.where()` (the account-row
+ * lookup) or chained one step further to `.groupBy()` (getLedgerBalances' batched queries).
+ */
+function chainable(rows: unknown[]) {
+  return Object.assign(Promise.resolve(rows), { groupBy: vi.fn().mockResolvedValue(rows) });
+}
+
+/**
  * Mock db.select() to return successive row arrays on each call.
  * recalculateAccountBalance calls select() three times:
- *   1. fetch account row  (resolves at .where())
- *   2. fetch fromEffect   (resolves at .where())
- *   3. fetch toEffect     (resolves at .where())
+ *   1. fetch account row           (resolves at .where())
+ *   2. getLedgerBalances fromRows  (resolves at .where().groupBy())
+ *   3. getLedgerBalances toRows    (resolves at .where().groupBy())
  */
 function mockSelectSequence(results: unknown[][]) {
   let callIndex = 0;
@@ -28,7 +36,7 @@ function mockSelectSequence(results: unknown[][]) {
     const rows = results[callIndex++] ?? [];
     return {
       from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockResolvedValue(rows),
+      where: vi.fn().mockReturnValue(chainable(rows)),
     } as any;
   });
 }
@@ -84,9 +92,9 @@ describe('recalculateAccountBalance — loan account', () => {
       // call 1 — account row
       [{ name: 'SENA', balance: -7500 }],
       // call 2 — fromEffect: initial correction expense of 7500
-      [{ net: -7500 }],
+      [{ accountId: 24, net: -7500 }],
       // call 3 — toEffect: one repayment transfer of 1250
-      [{ net: 1250 }],
+      [{ accountId: 24, net: 1250 }],
     ]);
     const setCalls = mockUpdate();
 
@@ -109,8 +117,8 @@ describe('recalculateAccountBalance — loan account', () => {
   it('reaches zero balance when fully repaid', async () => {
     mockSelectSequence([
       [{ name: 'SENA', balance: -1250 }],
-      [{ net: -7500 }], // initial correction expense
-      [{ net: 7500 }], // six payments of 1250 (6 × 1250 = 7500)
+      [{ accountId: 24, net: -7500 }], // initial correction expense
+      [{ accountId: 24, net: 7500 }], // six payments of 1250 (6 × 1250 = 7500)
     ]);
     const setCalls = mockUpdate();
 
@@ -123,8 +131,8 @@ describe('recalculateAccountBalance — loan account', () => {
   it('accumulates multiple repayment transfers correctly', async () => {
     mockSelectSequence([
       [{ name: 'SENA', balance: -7500 }],
-      [{ net: -7500 }], // initial correction expense
-      [{ net: 2500 }], // two payments of 1250
+      [{ accountId: 24, net: -7500 }], // initial correction expense
+      [{ accountId: 24, net: 2500 }], // two payments of 1250
     ]);
     const setCalls = mockUpdate();
 
@@ -138,8 +146,8 @@ describe('recalculateAccountBalance — loan account', () => {
     // A USD payment of 1250 converted at 0.056 USD/MDL → 70 MDL credited to the loan
     mockSelectSequence([
       [{ name: 'SENA', balance: -7500 }],
-      [{ net: -7500 }], // initial correction expense
-      [{ net: 70 }], // 1250 * 0.056, already computed by the SQL SUM expression
+      [{ accountId: 24, net: -7500 }], // initial correction expense
+      [{ accountId: 24, net: 70 }], // 1250 * 0.056, already computed by the SQL SUM expression
     ]);
     const setCalls = mockUpdate();
 
@@ -150,7 +158,11 @@ describe('recalculateAccountBalance — loan account', () => {
   });
 
   it('reports no change when the stored balance is already correct', async () => {
-    mockSelectSequence([[{ name: 'SENA', balance: -6250 }], [{ net: -7500 }], [{ net: 1250 }]]);
+    mockSelectSequence([
+      [{ name: 'SENA', balance: -6250 }],
+      [{ accountId: 24, net: -7500 }],
+      [{ accountId: 24, net: 1250 }],
+    ]);
     mockUpdate();
 
     const result = await recalculateAccountBalance(24);
@@ -162,8 +174,8 @@ describe('recalculateAccountBalance — loan account', () => {
     // User added a correction income of 200 directly on the loan account (on top of the initial -7500)
     mockSelectSequence([
       [{ name: 'SENA', balance: -7500 }],
-      [{ net: -7300 }], // initial correction expense (-7500) + correction income (+200)
-      [{ net: 1250 }], // repayment transfer
+      [{ accountId: 24, net: -7300 }], // initial correction expense (-7500) + correction income (+200)
+      [{ accountId: 24, net: 1250 }], // repayment transfer
     ]);
     const setCalls = mockUpdate();
 

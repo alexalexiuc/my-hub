@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Input, Pill, IconButton, Button, ProgressBar, Card, SectionLabel, SubText } from '@/components';
-import { ScaleIcon, PencilIcon, ArchiveBoxIcon } from '@/components/icons';
+import { ScaleIcon, PencilIcon, ArchiveBoxIcon, TrendingUpOutlineIcon } from '@/components/icons';
 import { cn, apiFetch } from '@/lib/utils';
 import { fmt, TYPE_META } from '../ui';
 import { FinModalShell } from '../FinModalShell';
@@ -184,7 +184,35 @@ function TypeBadge({ type }: { type: string }) {
   return <Pill label={meta.label} color={meta.color} />;
 }
 
-function AccountHeader({ acc }: { acc: AccountItem }) {
+/** Forex-style in/out indicator: money in and out of this account since the 1st of the month, any transaction type. */
+function MonthToDateFlow({ flow, currency }: { flow: { inflows: number; outflows: number }; currency: string }) {
+  return (
+    <div className="mb-2 flex gap-5">
+      <div>
+        <SubText className="block">In this month</SubText>
+        <div className="flex items-center gap-1 text-[var(--green)]">
+          <TrendingUpOutlineIcon className="size-3.5" />
+          {fmt(flow.inflows, currency)}
+        </div>
+      </div>
+      <div>
+        <SubText className="block">Out this month</SubText>
+        <div className="flex items-center gap-1 text-[var(--red)]">
+          <TrendingUpOutlineIcon className="size-3.5 scale-y-[-1]" />
+          {fmt(flow.outflows, currency)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AccountHeader({
+  acc,
+  monthToDateFlow,
+}: {
+  acc: AccountItem;
+  monthToDateFlow: { inflows: number; outflows: number };
+}) {
   const meta = TYPE_META[acc.type] ?? { color: 'var(--muted)' };
   const isLiability = acc.type === 'loan' || acc.type === 'credit_card';
 
@@ -205,6 +233,8 @@ function AccountHeader({ acc }: { acc: AccountItem }) {
       >
         {fmt(acc.balance, acc.currency)}
       </div>
+
+      <MonthToDateFlow flow={monthToDateFlow} currency={acc.currency} />
 
       {acc.type === 'credit_card' && acc.creditLimit != null && (
         <div>
@@ -427,7 +457,7 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
         </div>
       </div>
 
-      <AccountHeader acc={acc} />
+      <AccountHeader acc={acc} monthToDateFlow={data.monthToDateFlow} />
 
       {acc.type === 'loan' && (
         <button

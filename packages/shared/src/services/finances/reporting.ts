@@ -7,8 +7,10 @@
  * - getComparison(userId, budgetId, opts) — side-by-side period comparison with absolute and percentage delta
  * - getAccountsCashflow(userId, budgetId, dateFrom, dateTo, accountIds?) — per-account income vs spending (expenses + categorized transfers into Loan accounts) for a date range
  * - getSavingsAndDebtFlows(userId, budgetId, dateFrom, dateTo) — net transfers (in minus out) into Goal/Tracking (savings), Investment, and Loan (debt repayment) accounts for a date range
+ * - getAccountFlows(userId, budgetId, dateFrom, dateTo, accountId?) — per-account opening/closing balance + inflows/outflows/net delta for a date range, with a reconciliation flag
+ * - getSavingsContributions(userId, budgetId, dateFrom, dateTo) — net transfers in/out of Goal/Tracking/Investment accounts, per account (as MoneyAmount pairs: original account currency + budget-default-currency converted) + combined total, plus the same metric for the immediately preceding period of equal length
  * - getNetWorthSummary(userId, budgetId) — current net worth with account breakdown and history
- * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, ComparisonResult, ComparisonGroup, AccountCashflowResult, SavingsAndDebtFlowsResult, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
+ * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, ComparisonResult, ComparisonGroup, AccountCashflowResult, SavingsAndDebtFlowsResult, AccountFlow, AccountFlowsResult, MoneyAmount, AccountContribution, SavingsContributionsResult, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
  */
 import { and, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -22,10 +24,11 @@ import {
 } from '../../db/schema/finances';
 import type { AccountType, TransactionType } from '../../constants/finances';
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
-import { hasAccessToBudget, getBudgetById } from './budgets';
+import { hasAccessToBudget, getBudgetByIdSystem } from './budgets';
+import { getLedgerBalances } from './accounts';
 import { getExchangeRate } from './exchangeRates';
 import { getLoanBalanceSnapshotForAccount, getLoanSummaryForAccount, type LoanSummary } from './loan-amortization';
-import { currentDateString, dateToString } from '../../utils';
+import { currentDateString, dateToString, shiftDateStr } from '../../utils';
 
 // ─── Budget Progress ──────────────────────────────────────────────────────────
 
@@ -379,6 +382,306 @@ export async function getSavingsAndDebtFlows(
     savings: Math.round(savings * 100) / 100,
     investments: Math.round(investments * 100) / 100,
     debtRepayment: Math.round(debtRepayment * 100) / 100,
+  };
+}
+
+// ─── Account Flows (per-account opening/closing balance + inflows/outflows) ──
+
+export interface AccountFlow {
+  accountId: number;
+  accountName: string;
+  accountType: AccountType;
+  currency: string;
+  openingBalance: number;
+  closingBalance: number;
+  inflows: number;
+  outflows: number;
+  /** closingBalance - openingBalance */
+  netDelta: number;
+  /**
+   * True when netDelta matches (inflows - outflows) within rounding. Inflows/outflows exclude
+   * correction transactions while opening/closing balances include them (balances must reflect
+   * the true ledger), so a mismatch here flags a correction that occurred during the period —
+   * a signal of a missing or misclassified transaction that had to be manually reconciled.
+   */
+  reconciles: boolean;
+}
+
+export interface AccountFlowsResult {
+  dateFrom: string;
+  dateTo: string;
+  accounts: AccountFlow[];
+}
+
+/**
+ * Per-account flow decomposition for a date range: opening balance, closing balance,
+ * inflows (income + transfers in), outflows (expenses + transfers out), and net delta —
+ * with a reconciliation flag that catches balance corrections made during the period.
+ * When accountId is omitted, every non-archived account in the budget is included.
+ */
+export async function getAccountFlows(
+  userId: string,
+  budgetId: number,
+  dateFrom: string,
+  dateTo: string,
+  accountId?: number,
+): Promise<AccountFlowsResult> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const accounts = await db
+    .select()
+    .from(financeAccounts)
+    .where(
+      and(
+        eq(financeAccounts.budgetId, budgetId),
+        eq(financeAccounts.archived, false),
+        ...(accountId !== undefined ? [eq(financeAccounts.id, accountId)] : []),
+      ),
+    );
+  if (accounts.length === 0) return { dateFrom, dateTo, accounts: [] };
+
+  const accountIds = accounts.map(a => a.id);
+  const dayBeforeFrom = shiftDateStr(dateFrom, -1);
+
+  const periodBase = [
+    eq(financeTransactions.budgetId, budgetId),
+    eq(financeTransactions.isCorrection, false),
+    gte(financeTransactions.date, dateFrom),
+    lte(financeTransactions.date, dateTo),
+  ];
+
+  // All four queries are mutually independent — none depends on another's result — so they run
+  // as one batch rather than two sequential Promise.all groups.
+  const [openingBalances, closingBalances, fromRows, toRows] = await Promise.all([
+    getLedgerBalances(accountIds, { asOfDate: dayBeforeFrom }),
+    getLedgerBalances(accountIds, { asOfDate: dateTo }),
+    db
+      .select({
+        accountId: financeTransactions.accountId,
+        type: financeTransactions.type,
+        total: sql<string>`sum(${financeTransactions.amount})`,
+      })
+      .from(financeTransactions)
+      .where(and(...periodBase, inArray(financeTransactions.accountId, accountIds)))
+      .groupBy(financeTransactions.accountId, financeTransactions.type),
+    db
+      .select({
+        accountId: financeTransactions.toAccountId,
+        total: sql<string>`sum(${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1))`,
+      })
+      .from(financeTransactions)
+      .where(
+        and(
+          ...periodBase,
+          eq(financeTransactions.type, TransactionTypes.Transfer),
+          inArray(financeTransactions.toAccountId, accountIds),
+        ),
+      )
+      .groupBy(financeTransactions.toAccountId),
+  ]);
+
+  const flows = new Map<number, { inflows: number; outflows: number }>();
+  for (const row of fromRows) {
+    const entry = flows.get(row.accountId) ?? { inflows: 0, outflows: 0 };
+    const amount = parseFloat(row.total ?? '0');
+    if (row.type === TransactionTypes.Income) entry.inflows += amount;
+    else entry.outflows += amount; // expense or transfer-out
+    flows.set(row.accountId, entry);
+  }
+  for (const row of toRows) {
+    if (row.accountId == null) continue;
+    const entry = flows.get(row.accountId) ?? { inflows: 0, outflows: 0 };
+    entry.inflows += parseFloat(row.total ?? '0');
+    flows.set(row.accountId, entry);
+  }
+
+  const round = (n: number) => Math.round(n * 100) / 100;
+
+  const result: AccountFlow[] = accounts.map(account => {
+    const openingBalance = round(openingBalances.get(account.id) ?? 0);
+    const closingBalance = round(closingBalances.get(account.id) ?? 0);
+    const { inflows, outflows } = flows.get(account.id) ?? { inflows: 0, outflows: 0 };
+    const netDelta = round(closingBalance - openingBalance);
+    const reconciles = Math.abs(netDelta - round(inflows - outflows)) < 0.01;
+
+    return {
+      accountId: account.id,
+      accountName: account.name,
+      accountType: account.type,
+      currency: account.currency,
+      openingBalance,
+      closingBalance,
+      inflows: round(inflows),
+      outflows: round(outflows),
+      netDelta,
+      reconciles,
+    };
+  });
+
+  return { dateFrom, dateTo, accounts: result };
+}
+
+// ─── Savings Contributions ────────────────────────────────────────────────────
+
+/** An amount paired with the currency it's denominated in — never a bare number, so callers never have to guess which currency a figure is in. */
+export interface MoneyAmount {
+  amount: number;
+  currency: string;
+}
+
+export interface AccountContribution {
+  accountId: number;
+  accountName: string;
+  accountType: AccountType;
+  /** Transfers in minus transfers out for the period, in the account's own currency. */
+  original: MoneyAmount;
+  /** Same amount converted to the budget's default currency — what makes accounts of different currencies addable. */
+  converted: MoneyAmount;
+}
+
+export interface SavingsContributionsResult {
+  dateFrom: string;
+  dateTo: string;
+  /** Always in the budget's default currency — the sum of every account's `converted` amount. */
+  totalNetContribution: MoneyAmount;
+  accounts: AccountContribution[];
+  previousPeriod: {
+    dateFrom: string;
+    dateTo: string;
+    totalNetContribution: MoneyAmount;
+  };
+}
+
+/** Account types tracked as "savings/investment" for the net-contribution headline. Loan repayments are a separate concern (debt paydown), not savings. */
+const SAVINGS_TRACKED_TYPES: AccountType[] = [AccountTypes.Goal, AccountTypes.Tracking, AccountTypes.Investment];
+
+async function getSavingsContributionsForRange(
+  budgetId: number,
+  dateFrom: string,
+  dateTo: string,
+  defaultCurrency: string,
+): Promise<{ total: MoneyAmount; accounts: AccountContribution[] }> {
+  const baseConditions = [
+    eq(financeTransactions.budgetId, budgetId),
+    eq(financeTransactions.type, TransactionTypes.Transfer),
+    eq(financeTransactions.isCorrection, false),
+    gte(financeTransactions.date, dateFrom),
+    lte(financeTransactions.date, dateTo),
+  ];
+
+  const selectCols = {
+    accountId: financeAccounts.id,
+    name: financeAccounts.name,
+    type: financeAccounts.type,
+    currency: financeAccounts.currency,
+    // Raw, in the account's own currency.
+    totalOriginal: sql<string>`sum(${financeTransactions.amount})`,
+    // exchangeRate is "source currency -> budget default currency", so this is already converted.
+    totalConverted: sql<string>`sum(${financeTransactions.amount} * ${financeTransactions.exchangeRate})`,
+  };
+
+  const [inflowRows, outflowRows] = await Promise.all([
+    db
+      .select(selectCols)
+      .from(financeTransactions)
+      .innerJoin(financeAccounts, eq(financeAccounts.id, financeTransactions.toAccountId))
+      .where(and(...baseConditions, inArray(financeAccounts.type, SAVINGS_TRACKED_TYPES)))
+      .groupBy(financeAccounts.id, financeAccounts.name, financeAccounts.type, financeAccounts.currency),
+    db
+      .select(selectCols)
+      .from(financeTransactions)
+      .innerJoin(financeAccounts, eq(financeAccounts.id, financeTransactions.accountId))
+      .where(and(...baseConditions, inArray(financeAccounts.type, SAVINGS_TRACKED_TYPES)))
+      .groupBy(financeAccounts.id, financeAccounts.name, financeAccounts.type, financeAccounts.currency),
+  ]);
+
+  interface RunningContribution {
+    accountId: number;
+    accountName: string;
+    accountType: AccountType;
+    currency: string;
+    original: number;
+    converted: number;
+  }
+
+  const byAccount = new Map<number, RunningContribution>();
+  const apply = (row: (typeof inflowRows)[number], sign: 1 | -1) => {
+    const original = parseFloat(row.totalOriginal ?? '0') * sign;
+    const converted = parseFloat(row.totalConverted ?? '0') * sign;
+    const existing = byAccount.get(row.accountId);
+    if (existing) {
+      existing.original += original;
+      existing.converted += converted;
+    } else {
+      byAccount.set(row.accountId, {
+        accountId: row.accountId,
+        accountName: row.name,
+        accountType: row.type,
+        currency: row.currency,
+        original,
+        converted,
+      });
+    }
+  };
+  for (const row of inflowRows) apply(row, 1);
+  for (const row of outflowRows) apply(row, -1);
+
+  const round = (n: number) => Math.round(n * 100) / 100;
+
+  const accounts: AccountContribution[] = Array.from(byAccount.values())
+    .map(a => ({
+      accountId: a.accountId,
+      accountName: a.accountName,
+      accountType: a.accountType,
+      original: { amount: round(a.original), currency: a.currency },
+      converted: { amount: round(a.converted), currency: defaultCurrency },
+    }))
+    .sort((a, b) => b.converted.amount - a.converted.amount);
+
+  return {
+    total: { amount: round(accounts.reduce((s, a) => s + a.converted.amount, 0)), currency: defaultCurrency },
+    accounts,
+  };
+}
+
+/**
+ * Net amount transferred into Goal/Tracking/Investment accounts during a date range ("did I
+ * actually save something this period?"), per account plus a combined total, alongside the same
+ * metric for the immediately preceding period of equal length for a quick delta. Each account's
+ * contribution is reported both in its own currency and converted to the budget's default
+ * currency — never only the converted figure, so a caller can always see the real, unconverted
+ * amount too.
+ */
+export async function getSavingsContributions(
+  userId: string,
+  budgetId: number,
+  dateFrom: string,
+  dateTo: string,
+): Promise<SavingsContributionsResult> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const budget = await getBudgetByIdSystem(budgetId);
+  if (!budget) throw new Error('Budget not found');
+
+  const periodDays = Math.round((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000) + 1;
+  const prevDateTo = shiftDateStr(dateFrom, -1);
+  const prevDateFrom = shiftDateStr(dateFrom, -periodDays);
+
+  const [current, previous] = await Promise.all([
+    getSavingsContributionsForRange(budgetId, dateFrom, dateTo, budget.defaultCurrency),
+    getSavingsContributionsForRange(budgetId, prevDateFrom, prevDateTo, budget.defaultCurrency),
+  ]);
+
+  return {
+    dateFrom,
+    dateTo,
+    totalNetContribution: current.total,
+    accounts: current.accounts,
+    previousPeriod: { dateFrom: prevDateFrom, dateTo: prevDateTo, totalNetContribution: previous.total },
   };
 }
 
@@ -773,7 +1076,16 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
     throw new Error('Budget not found');
   }
 
-  const budget = await getBudgetById(userId, budgetId);
+  return computeNetWorthSummary(userId, budgetId);
+}
+
+/**
+ * Does the actual net worth computation with no membership check of its own — callers that have
+ * already established access (getNetWorthSummary) or a legitimate system-level acting userId
+ * (snapshotNetWorth) call this directly instead of re-verifying access on every nested call.
+ */
+async function computeNetWorthSummary(userId: string, budgetId: number): Promise<NetWorthSummaryResult> {
+  const budget = await getBudgetByIdSystem(budgetId);
   if (!budget) throw new Error('Budget not found');
 
   const accounts = await db
@@ -856,4 +1168,41 @@ export async function getNetWorthSummary(userId: string, budgetId: number): Prom
     byType,
     history,
   };
+}
+
+// ─── Net Worth Snapshot (writer) ──────────────────────────────────────────────
+
+/**
+ * Computes the current net worth summary and persists it as that month's snapshot row
+ * (upsert on the (budgetId, month) unique index — safe to re-run within the same month).
+ * userId must be a valid member of budgetId (e.g. from getAllBudgetsForSystem's ownerUserId) —
+ * still required because the underlying loan calculations query transactions on the user's
+ * behalf, but this skips the redundant membership re-check getNetWorthSummary would otherwise
+ * perform, since the worker has already established a legitimate acting userId for this budget.
+ * No further auth required — intended for use by the worker's monthly snapshot job only.
+ * month defaults to the current YYYY-MM.
+ */
+export async function snapshotNetWorth(userId: string, budgetId: number, month?: string): Promise<void> {
+  const summary = await computeNetWorthSummary(userId, budgetId);
+  const targetMonth = month ?? dateToString(new Date(), 'YYYY-MM');
+
+  await db
+    .insert(financeNetWorthSnapshots)
+    .values({
+      budgetId,
+      month: targetMonth,
+      totalAssets: summary.totalAssets,
+      totalLiabilities: summary.totalLiabilities,
+      netWorth: summary.netWorth,
+      breakdown: summary.byType,
+    })
+    .onConflictDoUpdate({
+      target: [financeNetWorthSnapshots.budgetId, financeNetWorthSnapshots.month],
+      set: {
+        totalAssets: summary.totalAssets,
+        totalLiabilities: summary.totalLiabilities,
+        netWorth: summary.netWorth,
+        breakdown: summary.byType,
+      },
+    });
 }

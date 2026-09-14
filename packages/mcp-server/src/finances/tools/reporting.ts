@@ -10,6 +10,8 @@ import {
   getSpendingAggregates,
   getComparison,
   getNetWorthSummary,
+  getAccountFlows,
+  getSavingsContributions,
 } from '@my-hub/shared/services';
 import { TransactionTypes } from '@my-hub/shared/constants';
 
@@ -151,5 +153,48 @@ export const getNetWorthSummaryTool: ToolHandler<typeof GetNetWorthSummarySchema
   if (!budget) throw new HandledError('No active budget.');
 
   const result = await getNetWorthSummary(userId, budget.id);
+  return toolResponse(result);
+};
+
+// ─── get_account_flows ─────────────────────────────────────────────────────────
+
+export const GetAccountFlowsSchema = z.object({
+  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  accountId: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      'When provided, only include this account. Otherwise every non-archived account in the budget is included.',
+    ),
+});
+
+export const getAccountFlowsTool: ToolHandler<typeof GetAccountFlowsSchema.shape> = async (input, context) => {
+  const { userId } = context;
+  const budget = await getUserActiveBudget(userId);
+  if (!budget) throw new HandledError('No active budget.');
+
+  const result = await getAccountFlows(userId, budget.id, input.dateFrom, input.dateTo, input.accountId);
+  return toolResponse(result);
+};
+
+// ─── get_savings_contributions ──────────────────────────────────────────────────
+
+export const GetSavingsContributionsSchema = z.object({
+  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+export const getSavingsContributionsTool: ToolHandler<typeof GetSavingsContributionsSchema.shape> = async (
+  input,
+  context,
+) => {
+  const { userId } = context;
+  const budget = await getUserActiveBudget(userId);
+  if (!budget) throw new HandledError('No active budget.');
+
+  const result = await getSavingsContributions(userId, budget.id, input.dateFrom, input.dateTo);
   return toolResponse(result);
 };

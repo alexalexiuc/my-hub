@@ -19,12 +19,16 @@ import {
   GetSpendingAggregatesSchema,
   GetComparisonSchema,
   GetNetWorthSummarySchema,
+  GetAccountFlowsSchema,
+  GetSavingsContributionsSchema,
   getBudgetProgressTool,
   getCashflowSummaryTool,
   getSpendingByPayeeTool,
   getSpendingAggregatesTool,
   getComparisonTool,
   getNetWorthSummaryTool,
+  getAccountFlowsTool,
+  getSavingsContributionsTool,
 } from './reporting';
 import { ListContextSchema, listContextTool } from './context';
 import {
@@ -309,6 +313,31 @@ const financeTools = [
     inputSchema: GetNetWorthSummarySchema.shape,
     annotations: { readOnlyHint: true },
     callback: getNetWorthSummaryTool,
+  }),
+  defineTool({
+    name: 'finances_get_account_flows',
+    description:
+      'Per-account flow decomposition for a date range: opening balance, closing balance, inflows (income + transfers in), ' +
+      'outflows (expenses + transfers out), and net delta. Omit accountId to cover every non-archived account. ' +
+      "Each account's reconciles flag is false when a balance correction landed inside the period — " +
+      'a signal of a missing or misclassified transaction that had to be manually reconciled. ' +
+      'Use to answer "where did money move in/out of my accounts this month?" or to audit one account\'s balance movement.',
+    inputSchema: GetAccountFlowsSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getAccountFlowsTool,
+  }),
+  defineTool({
+    name: 'finances_get_savings_contributions',
+    description:
+      'Net amount transferred into savings/tracking/investment accounts for a date range — "did I actually save ' +
+      'something this period, net of any withdrawals?" Returns a combined total, a per-account breakdown, and the ' +
+      'same metric for the immediately preceding period of equal length for a quick delta. Each account amount is ' +
+      "given both in its own currency and converted to the budget's default currency ({ original, converted }, " +
+      "each { amount, currency }) — the combined total is always in the budget's default currency. " +
+      'Loan repayments are not included — use finances_get_account_flows or finances_get_net_worth_summary for debt paydown.',
+    inputSchema: GetSavingsContributionsSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getSavingsContributionsTool,
   }),
   defineTool({
     name: 'finances_get_portfolio',

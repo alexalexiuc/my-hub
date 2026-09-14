@@ -5,6 +5,7 @@
  * - getUserActiveBudget(userId) — returns the user's active budget (isActive: true), null if none
  * - setActiveBudget(userId, budgetId) — deactivates all user memberships, activates the specified one
  * - getBudgetById(userId, budgetId) — single budget with access check, null if not found or no access
+ * - getBudgetByIdSystem(budgetId) — system maintenance: single budget with no access check — worker use only, no auth
  * - getBudgetMembers(userId, budgetId) — lists members (id, email, name, joinedAt) with access check
  * - updateBudget(userId, budgetId, data) — partial update; requires budget membership
  * - deleteBudget(userId, budgetId) — hard delete; requires budget membership; clears portfolio supply lines first (see below)
@@ -13,6 +14,7 @@
  * - deleteAllUserFinanceBudgets(userId) — bulk delete owned budgets + remove from shared memberships; clears portfolio supply lines first (ON DELETE RESTRICT on finance_portfolio_supply_lines.position_id would otherwise block it)
  * - hasAccessToBudget(userId, budgetId) — returns true if user is a budget member
  * - enforceBudgetAccess(userId, budgetId) — throws if user is not a budget member
+ * - getAllBudgetsForSystem() — system maintenance: every budget's id + creator userId (the creator can never be removed as a member, so it's always a valid acting userId for service calls) — worker use only, no auth
  * Types: BudgetInsert, BudgetUpdate, UserBudget
  */
 import { and, eq, inArray, sql } from 'drizzle-orm';
@@ -133,6 +135,17 @@ export async function getBudgetById(userId: string, budgetId: number): Promise<F
     .innerJoin(financeBudgetMembers, eq(financeBudgetMembers.budgetId, financeBudgets.id))
     .where(and(eq(financeBudgets.id, budgetId), eq(financeBudgetMembers.userId, userId)));
 
+  return row ?? null;
+}
+
+/**
+ * System maintenance: fetches a single budget by id with no membership/access check.
+ * No auth required — intended for use by system-level jobs that have already established a
+ * legitimate acting userId some other way (e.g. via getAllBudgetsForSystem) and don't need to
+ * re-verify it against this budget on every nested call.
+ */
+export async function getBudgetByIdSystem(budgetId: number): Promise<FinanceBudget | null> {
+  const [row] = await db.select().from(financeBudgets).where(eq(financeBudgets.id, budgetId));
   return row ?? null;
 }
 
@@ -271,4 +284,17 @@ export async function deleteAllUserFinanceBudgets(userId: string): Promise<numbe
     .forEach(key => budgetAccessCache.delete(key));
 
   return deletedBudgets.length;
+}
+
+/**
+ * System maintenance: returns every budget's id and creator userId, for jobs that must run
+ * against all budgets regardless of report subscriptions (e.g. the monthly net worth snapshot).
+ * The creator can never be removed as a member (see removeBudgetMember), so it's always a valid
+ * acting userId for service calls that enforce budget membership. No auth required — worker use only.
+ */
+export async function getAllBudgetsForSystem(): Promise<{ budgetId: number; ownerUserId: string }[]> {
+  const rows = await db
+    .select({ budgetId: financeBudgets.id, ownerUserId: financeBudgets.createdByUserId })
+    .from(financeBudgets);
+  return rows;
 }

@@ -12,7 +12,9 @@ import {
   isIncludedInAvailable,
   getUserActiveBudget,
   getLoanCardBalance,
+  getAccountFlows,
 } from '@my-hub/shared/services';
+import { currentDateString } from '@my-hub/shared/utils';
 import { AccountTypes, TransactionTypes, type BorrowedLentAccountDetails } from '@my-hub/shared/constants';
 import type { LoanAccountDetails } from '@my-hub/shared/types';
 import type { AccountUpdate } from '@my-hub/shared/services';
@@ -38,10 +40,14 @@ export const accountTransactionSchema = z.object({
   addedByInitials: z.string().nullable(),
 });
 
+export const monthToDateFlowSchema = z.object({ inflows: z.number(), outflows: z.number() });
+
 export const accountDetailResponseSchema = z.object({
   account: accountItemSchema,
   transactions: z.array(accountTransactionSchema),
   hasInitialBalanceTx: z.boolean().optional(),
+  /** Inbound/outbound totals from the 1st of the current month to today, any transaction type. */
+  monthToDateFlow: monthToDateFlowSchema,
 });
 
 export type AccountTransaction = z.infer<typeof accountTransactionSchema>;
@@ -90,13 +96,21 @@ export const GET = route({
 
   const budgetId = budget.id;
 
-  const [rawAccount, txns, prefs] = await Promise.all([
+  const todayStr = currentDateString();
+  const monthStart = `${todayStr.slice(0, 7)}-01`;
+
+  const [rawAccount, txns, prefs, accountFlows] = await Promise.all([
     getAccountById(user.id, budgetId, accountId),
     getTransactionListItems(user.id, budgetId, { accountId, limit: 50, includeCorrections: true }),
     getAvailabilityPreferences(user.id, budgetId),
+    getAccountFlows(user.id, budgetId, monthStart, todayStr, accountId),
   ]);
 
   if (!rawAccount) routeHttpError(404, { error: 'Account not found' });
+
+  const monthToDateFlow = accountFlows.accounts[0]
+    ? { inflows: accountFlows.accounts[0].inflows, outflows: accountFlows.accounts[0].outflows }
+    : { inflows: 0, outflows: 0 };
 
   let account = flattenAccount(rawAccount, isIncludedInAvailable(rawAccount.type, prefs.get(accountId) ?? null));
   let hasInitialBalanceTx: boolean | undefined;
@@ -129,7 +143,7 @@ export const GET = route({
     addedByInitials: t.addedByInitials,
   }));
 
-  return { account, transactions, hasInitialBalanceTx };
+  return { account, transactions, hasInitialBalanceTx, monthToDateFlow };
 });
 
 export const PATCH = route({

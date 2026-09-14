@@ -11,10 +11,11 @@
  * - setAccountAvailableInclusion(userId, budgetId, accountId, include) — stores or removes a preference row; no-op if the value matches the default
  * - deleteAllUserAvailableOverrides(userId) — removes all availability preferences for a user (used by delete-all-data flow)
  * - getAllAccountIds() — system maintenance: returns all account IDs across all budgets (worker use only)
- * - recalculateAccountBalance(accountId) — system maintenance: recomputes balance from full transaction history (corrections included); returns the new balance
+ * - getLedgerBalances(accountIds, opts?) — single source of truth for "balance computed from the ledger": batched across accounts, optionally date-bounded (opts.asOfDate); no auth, used by recalculateAccountBalance and reporting.ts's getAccountFlows
+ * - recalculateAccountBalance(accountId) — system maintenance: recomputes balance from full transaction history via getLedgerBalances (corrections included); returns the new balance
  * Types: AccountInsert, AccountUpdate, GetAccountsOpts, NetWorthSnapshot
  */
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, lte, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import {
   financeAccounts,
@@ -269,17 +270,70 @@ export async function getAllAccountIds(): Promise<number[]> {
 }
 
 /**
- * System maintenance: recomputes a single account's balance from scratch using
- * the full transaction history (including user corrections). No user auth
- * required — intended for use by the worker only.
+ * Single source of truth for "an account's balance, computed from the ledger": batches the
+ * income/expense/transfer sign logic across any number of accounts, optionally bounded to
+ * transactions on or before asOfDate (full history when omitted). Correction transactions are
+ * always included — they represent intentional balance adjustments and must be part of the
+ * running total.
  *
- * Balance formula:
+ * Balance formula per account:
  *   SUM(income transactions where accountId = account.id: amount)
  *   - SUM(expense/transfer transactions where accountId = account.id: amount)
  *   + SUM(transfer transactions where toAccountId = account.id: amount * toExchangeRate)
  *
- * Correction transactions are included — they represent intentional balance adjustments
- * (e.g. opening balance, reconciliation) and must be part of the running total.
+ * No user auth required — callers (recalculateAccountBalance, reporting.ts's getAccountFlows)
+ * are expected to have already scoped accountIds to a budget the caller can access.
+ */
+export async function getLedgerBalances(
+  accountIds: number[],
+  opts: { asOfDate?: string } = {},
+): Promise<Map<number, number>> {
+  if (accountIds.length === 0) return new Map();
+
+  const fromConditions = [inArray(financeTransactions.accountId, accountIds)];
+  const toConditions = [
+    eq(financeTransactions.type, TransactionTypes.Transfer),
+    inArray(financeTransactions.toAccountId, accountIds),
+  ];
+  if (opts.asOfDate) {
+    fromConditions.push(lte(financeTransactions.date, opts.asOfDate));
+    toConditions.push(lte(financeTransactions.date, opts.asOfDate));
+  }
+
+  const [fromRows, toRows] = await Promise.all([
+    db
+      .select({
+        accountId: financeTransactions.accountId,
+        net: sql<number>`COALESCE(SUM(CASE WHEN ${financeTransactions.type} = ${TransactionTypes.Income} THEN ${financeTransactions.amount} ELSE -${financeTransactions.amount} END), 0)::float8`,
+      })
+      .from(financeTransactions)
+      .where(and(...fromConditions))
+      .groupBy(financeTransactions.accountId),
+    db
+      .select({
+        accountId: financeTransactions.toAccountId,
+        net: sql<number>`COALESCE(SUM(${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1)), 0)::float8`,
+      })
+      .from(financeTransactions)
+      .where(and(...toConditions))
+      .groupBy(financeTransactions.toAccountId),
+  ]);
+
+  const balances = new Map<number, number>();
+  for (const row of fromRows) {
+    balances.set(row.accountId, (balances.get(row.accountId) ?? 0) + row.net);
+  }
+  for (const row of toRows) {
+    if (row.accountId == null) continue;
+    balances.set(row.accountId, (balances.get(row.accountId) ?? 0) + row.net);
+  }
+  return balances;
+}
+
+/**
+ * System maintenance: recomputes a single account's balance from scratch using the full
+ * transaction history (including user corrections), via getLedgerBalances. No user auth
+ * required — intended for use by the worker only.
  *
  * Returns the new balance, or null if the account does not exist.
  */
@@ -296,23 +350,8 @@ export async function recalculateAccountBalance(
 
   if (!account) return null;
 
-  const [fromEffect] = await db
-    .select({
-      net: sql<number>`COALESCE(SUM(CASE WHEN ${financeTransactions.type} = ${TransactionTypes.Income} THEN ${financeTransactions.amount} ELSE -${financeTransactions.amount} END), 0)::float8`,
-    })
-    .from(financeTransactions)
-    .where(eq(financeTransactions.accountId, accountId));
-
-  const [toEffect] = await db
-    .select({
-      net: sql<number>`COALESCE(SUM(${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1)), 0)::float8`,
-    })
-    .from(financeTransactions)
-    .where(
-      and(eq(financeTransactions.toAccountId, accountId), eq(financeTransactions.type, TransactionTypes.Transfer)),
-    );
-
-  const newBalance = Math.round(((fromEffect?.net ?? 0) + (toEffect?.net ?? 0)) * 10000) / 10000;
+  const balances = await getLedgerBalances([accountId]);
+  const newBalance = Math.round((balances.get(accountId) ?? 0) * 10000) / 10000;
 
   await db
     .update(financeAccounts)

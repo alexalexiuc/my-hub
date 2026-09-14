@@ -8,6 +8,7 @@
  * - localHour(timezone?) — current hour (0-23) in the resolved timezone
  * - toUTCDateStr(d) — format Date as YYYY-MM-DD using UTC components
  * - addDays(d, n) — new Date shifted by n calendar days (UTC arithmetic)
+ * - shiftDateStr(dateStr, n) — shift a YYYY-MM-DD string by n calendar days, all-UTC, returns YYYY-MM-DD
  * - addMinutes(date, minutes) — new Date shifted by n minutes
  * - addHours(date, hours) — new Date shifted by n hours
  * - addMonths(d, n) — shift a UTC month-start date by n months (always 1st of month)
@@ -170,6 +171,11 @@ export function addDays(d: Date, n: number): Date {
   const out = new Date(d);
   out.setUTCDate(out.getUTCDate() + n);
   return out;
+}
+
+/** Shifts a YYYY-MM-DD date string by n calendar days, all-UTC (parse, add, format). */
+export function shiftDateStr(dateStr: string, n: number): string {
+  return toUTCDateStr(addDays(new Date(dateStr), n));
 }
 
 /**
