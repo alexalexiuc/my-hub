@@ -55,6 +55,8 @@ Shared helpers live at the top of each spec file (not in a separate utils module
 
 Hub E2E seed files live in `packages/e2e/seeds/` and are orchestrated by `packages/e2e/scripts/setup-e2e-db.ts`. Do not move Hub E2E fixtures into MCP setup scripts or DB migrations.
 
+`seeds/sandbox.seed.ts` is the one file here that is **not** a test fixture. It backs the UI sandbox (`pnpm ui:sandbox`, orchestrated by `scripts/setup-sandbox-db.ts`) and exists so a developer or agent can look at a populated UI. No spec may assert against it — its data is free to change — and it seeds its own user and budget (`SANDBOX_USER`, `SANDBOX_BUDGET_NAME`), never `TEST_USER`'s. See `docs/ui-sandbox.md`.
+
 ## Running tests
 
 ```sh

@@ -57,3 +57,5 @@ export { Sparkline } from './Sparkline';
 export { SwipeRow } from './SwipeRow';
 export { Textarea } from './Textarea';
 export { Toggle } from './Toggle';
+export { YearNav } from './YearNav';
+export type { YearNavProps } from './YearNav';

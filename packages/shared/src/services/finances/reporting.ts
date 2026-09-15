@@ -8,9 +8,11 @@
  * - getAccountsCashflow(userId, budgetId, dateFrom, dateTo, accountIds?) — per-account income vs spending (expenses + categorized transfers into Loan accounts) for a date range
  * - getSavingsAndDebtFlows(userId, budgetId, dateFrom, dateTo) — net transfers (in minus out) into Goal/Tracking (savings), Investment, and Loan (debt repayment) accounts for a date range
  * - getAccountFlows(userId, budgetId, dateFrom, dateTo, accountId?) — per-account opening/closing balance + inflows/outflows/net delta for a date range, with a reconciliation flag
+ * - getMonthlyAccountFlows(userId, budgetId, monthFrom, monthTo) — per-account inflows/outflows/net for every calendar month in a window, zero-filled, in each account's own currency
+ * - getCategorySpending(userId, budgetId, dateFrom, dateTo) — expense totals per category for a date range, with each category's icon/colour, highest spend first
  * - getSavingsContributions(userId, budgetId, dateFrom, dateTo) — net transfers in/out of Goal/Tracking/Investment accounts, per account (as MoneyAmount pairs: original account currency + budget-default-currency converted) + combined total, plus the same metric for the immediately preceding period of equal length
  * - getNetWorthSummary(userId, budgetId) — current net worth with account breakdown and history
- * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, ComparisonResult, ComparisonGroup, AccountCashflowResult, SavingsAndDebtFlowsResult, AccountFlow, AccountFlowsResult, MoneyAmount, AccountContribution, SavingsContributionsResult, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
+ * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, ComparisonResult, ComparisonGroup, AccountCashflowResult, SavingsAndDebtFlowsResult, AccountFlow, AccountFlowsResult, AccountMonthFlow, MonthlyAccountFlow, MonthlyAccountFlowsResult, MoneyAmount, AccountContribution, SavingsContributionsResult, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
  */
 import { and, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -22,13 +24,20 @@ import {
   financePayees,
   financeTransactions,
 } from '../../db/schema/finances';
-import type { AccountType, TransactionType } from '../../constants/finances';
+import type { AccountType, CategoryIcon, TransactionType } from '../../constants/finances';
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
 import { hasAccessToBudget, getBudgetByIdSystem } from './budgets';
 import { getLedgerBalances } from './accounts';
 import { getExchangeRate } from './exchangeRates';
 import { getLoanBalanceSnapshotForAccount, getLoanSummaryForAccount, type LoanSummary } from './loan-amortization';
-import { currentDateString, dateToString, shiftDateStr } from '../../utils';
+import {
+  currentDateString,
+  dateToString,
+  monthToDateRange,
+  monthsBetweenStr,
+  shiftDateStr,
+  shiftMonthStr,
+} from '../../utils';
 
 // ─── Budget Progress ──────────────────────────────────────────────────────────
 
@@ -521,6 +530,241 @@ export async function getAccountFlows(
   });
 
   return { dateFrom, dateTo, accounts: result };
+}
+
+// ─── Monthly Account Flows (per-account in/out, broken down by month) ────────
+
+/** One account's inbound/outbound totals for a single calendar month, in that account's own currency. */
+export interface AccountMonthFlow {
+  /** YYYY-MM */
+  month: string;
+  inflows: number;
+  outflows: number;
+  /** inflows - outflows */
+  net: number;
+}
+
+export interface MonthlyAccountFlow {
+  accountId: number;
+  accountName: string;
+  accountType: AccountType;
+  currency: string;
+  /** One entry per month in the requested window, zero-filled and oldest-first. */
+  months: AccountMonthFlow[];
+  totalInflows: number;
+  totalOutflows: number;
+  /** totalInflows - totalOutflows across the whole window. */
+  net: number;
+}
+
+export interface MonthlyAccountFlowsResult {
+  monthFrom: string;
+  monthTo: string;
+  /** Every YYYY-MM in the window, oldest first — the row order of each account's `months`. */
+  months: string[];
+  accounts: MonthlyAccountFlow[];
+}
+
+/**
+ * Per-account money in/out for every calendar month in a window — the same inflow/outflow
+ * definition the account detail page shows for the current month (`getAccountFlows`), repeated
+ * per month so a trend is visible: inflows are income plus transfers in, outflows are expenses
+ * plus transfers out, corrections excluded. Transfers in are converted with the transaction's
+ * stored `toExchangeRate`, so every figure is in the account's own currency.
+ *
+ * Archived accounts are excluded, matching `getAccountFlows`. Months with no activity are
+ * returned as zero rows so callers can render a fixed set of columns without gap-filling.
+ *
+ * @param monthFrom First month of the window, YYYY-MM (inclusive).
+ * @param monthTo Last month of the window, YYYY-MM (inclusive).
+ */
+export async function getMonthlyAccountFlows(
+  userId: string,
+  budgetId: number,
+  monthFrom: string,
+  monthTo: string,
+): Promise<MonthlyAccountFlowsResult> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const span = monthsBetweenStr(monthFrom, monthTo);
+  if (span < 0) return { monthFrom, monthTo, months: [], accounts: [] };
+  const months = Array.from({ length: span + 1 }, (_, i) => shiftMonthStr(monthFrom, i));
+
+  // Ordered by name so the rendered list is stable between requests.
+  const accounts = await db
+    .select()
+    .from(financeAccounts)
+    .where(and(eq(financeAccounts.budgetId, budgetId), eq(financeAccounts.archived, false)))
+    .orderBy(financeAccounts.name);
+  if (accounts.length === 0) return { monthFrom, monthTo, months, accounts: [] };
+
+  const accountIds = accounts.map(a => a.id);
+  const dateFrom = `${monthFrom}-01`;
+  const dateTo = monthToDateRange(monthTo).toDate;
+  const monthExpr = sql<string>`to_char(${financeTransactions.date}::date, 'YYYY-MM')`;
+
+  const periodBase = [
+    eq(financeTransactions.budgetId, budgetId),
+    eq(financeTransactions.isCorrection, false),
+    gte(financeTransactions.date, dateFrom),
+    lte(financeTransactions.date, dateTo),
+  ];
+
+  // Outbound legs (and income) are keyed on accountId; inbound transfer legs on toAccountId.
+  // The two are independent aggregations, so they run as one batch.
+  const [fromRows, toRows] = await Promise.all([
+    db
+      .select({
+        accountId: financeTransactions.accountId,
+        month: monthExpr,
+        type: financeTransactions.type,
+        total: sql<string>`sum(${financeTransactions.amount})`,
+      })
+      .from(financeTransactions)
+      .where(and(...periodBase, inArray(financeTransactions.accountId, accountIds)))
+      .groupBy(financeTransactions.accountId, monthExpr, financeTransactions.type),
+    db
+      .select({
+        accountId: financeTransactions.toAccountId,
+        month: monthExpr,
+        total: sql<string>`sum(${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1))`,
+      })
+      .from(financeTransactions)
+      .where(
+        and(
+          ...periodBase,
+          eq(financeTransactions.type, TransactionTypes.Transfer),
+          inArray(financeTransactions.toAccountId, accountIds),
+        ),
+      )
+      .groupBy(financeTransactions.toAccountId, monthExpr),
+  ]);
+
+  // accountId → month → running totals
+  const flows = new Map<number, Map<string, { inflows: number; outflows: number }>>();
+  const entryFor = (accountId: number, month: string) => {
+    const byMonth = flows.get(accountId) ?? new Map<string, { inflows: number; outflows: number }>();
+    flows.set(accountId, byMonth);
+    const entry = byMonth.get(month) ?? { inflows: 0, outflows: 0 };
+    byMonth.set(month, entry);
+    return entry;
+  };
+
+  for (const row of fromRows) {
+    const entry = entryFor(row.accountId, row.month);
+    const amount = parseFloat(row.total ?? '0');
+    if (row.type === TransactionTypes.Income) entry.inflows += amount;
+    else entry.outflows += amount; // expense or transfer-out
+  }
+  for (const row of toRows) {
+    if (row.accountId == null) continue;
+    entryFor(row.accountId, row.month).inflows += parseFloat(row.total ?? '0');
+  }
+
+  const round = (n: number) => Math.round(n * 100) / 100;
+
+  const result: MonthlyAccountFlow[] = accounts.map(account => {
+    const byMonth = flows.get(account.id);
+    let totalInflows = 0;
+    let totalOutflows = 0;
+
+    const monthRows: AccountMonthFlow[] = months.map(month => {
+      const { inflows, outflows } = byMonth?.get(month) ?? { inflows: 0, outflows: 0 };
+      totalInflows += inflows;
+      totalOutflows += outflows;
+      return { month, inflows: round(inflows), outflows: round(outflows), net: round(inflows - outflows) };
+    });
+
+    return {
+      accountId: account.id,
+      accountName: account.name,
+      accountType: account.type,
+      currency: account.currency,
+      months: monthRows,
+      totalInflows: round(totalInflows),
+      totalOutflows: round(totalOutflows),
+      net: round(totalInflows - totalOutflows),
+    };
+  });
+
+  return { monthFrom, monthTo, months, accounts: result };
+}
+
+// ─── Category Spending (expense totals per category for a date range) ────────
+
+export interface CategorySpending {
+  /** null for expenses recorded without a category. */
+  categoryId: number | null;
+  name: string;
+  color: string | null;
+  icon: CategoryIcon | null;
+  spent: number;
+  transactionCount: number;
+}
+
+export interface CategorySpendingResult {
+  dateFrom: string;
+  dateTo: string;
+  totalSpent: number;
+  /** Highest spend first. */
+  categories: CategorySpending[];
+}
+
+/**
+ * Expense totals per category for a date range, carrying each category's display icon and colour
+ * so callers can render a breakdown without a second lookup. Corrections are excluded; expenses
+ * with no category are folded into a single "Uncategorised" row.
+ */
+export async function getCategorySpending(
+  userId: string,
+  budgetId: number,
+  dateFrom: string,
+  dateTo: string,
+): Promise<CategorySpendingResult> {
+  if (!(await hasAccessToBudget(userId, budgetId))) {
+    throw new Error('Budget not found');
+  }
+
+  const rows = await db
+    .select({
+      categoryId: financeTransactions.categoryId,
+      name: financeCategories.name,
+      color: financeCategories.color,
+      icon: financeCategories.icon,
+      total: sql<string>`sum(${financeTransactions.amount})`,
+      transactionCount: sql<number>`count(*)::int`,
+    })
+    .from(financeTransactions)
+    .leftJoin(financeCategories, eq(financeCategories.id, financeTransactions.categoryId))
+    .where(
+      and(
+        eq(financeTransactions.budgetId, budgetId),
+        eq(financeTransactions.type, TransactionTypes.Expense),
+        eq(financeTransactions.isCorrection, false),
+        gte(financeTransactions.date, dateFrom),
+        lte(financeTransactions.date, dateTo),
+      ),
+    )
+    .groupBy(financeTransactions.categoryId, financeCategories.name, financeCategories.color, financeCategories.icon);
+
+  const round = (n: number) => Math.round(n * 100) / 100;
+
+  const categories: CategorySpending[] = rows
+    .map(row => ({
+      categoryId: row.categoryId,
+      name: row.name ?? 'Uncategorised',
+      color: row.color ?? null,
+      icon: row.icon ?? null,
+      spent: round(parseFloat(row.total ?? '0')),
+      transactionCount: row.transactionCount,
+    }))
+    .sort((a, b) => b.spent - a.spent);
+
+  const totalSpent = round(categories.reduce((sum, c) => sum + c.spent, 0));
+
+  return { dateFrom, dateTo, totalSpent, categories };
 }
 
 // ─── Savings Contributions ────────────────────────────────────────────────────

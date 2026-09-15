@@ -3,10 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
-import { IconButton } from '@/components';
-import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon } from '@/components/icons';
+import { YearNav } from '@/components';
 import type { YearlyReportData } from '@/app/api/finances/reports/yearly/route';
-import { CashflowSummaryCards } from '../CashflowSummaryCards';
+import { CashflowSummaryCards } from '../../CashflowSummaryCards';
 import { NetWorthAndSavings } from './NetWorthAndSavings';
 import { LoansAndCategories } from './LoansAndCategories';
 
@@ -30,11 +29,7 @@ export default function YearlyReportPage() {
     <div className="flex flex-col gap-[14px]">
       <div className="flex items-center justify-between">
         <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Yearly Report</div>
-        <div className="flex items-center gap-2">
-          <IconButton label="Previous year" icon={<ChevronLeftOutlineIcon />} onClick={() => setYear(y => y - 1)} />
-          <div className="min-w-[60px] text-center text-[13px] font-semibold text-[var(--text)]">{year}</div>
-          <IconButton label="Next year" icon={<ChevronRightOutlineIcon />} onClick={() => setYear(y => y + 1)} />
-        </div>
+        <YearNav year={year} onChange={setYear} />
       </div>
 
       {loading && (
@@ -51,7 +46,12 @@ export default function YearlyReportPage() {
 
       {!loading && data && (
         <>
-          <CashflowSummaryCards cashflow={data.report.cashflow} currency={data.currency} />
+          <CashflowSummaryCards
+            totalIncome={data.report.cashflow.totalIncome}
+            totalExpenses={data.report.cashflow.totalExpenses}
+            net={data.report.cashflow.net}
+            currency={data.currency}
+          />
           <NetWorthAndSavings report={data.report} currency={data.currency} />
           <LoansAndCategories report={data.report} currency={data.currency} />
         </>
