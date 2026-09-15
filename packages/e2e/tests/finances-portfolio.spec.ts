@@ -80,6 +80,23 @@ test.describe('Finances – Portfolio', () => {
     await expect(page.getByText('700,00 €')).toBeVisible();
   });
 
+  test('contribution cadence card shows when the next contribution is due', async ({ page }) => {
+    // The 700 already supplied is exactly two months of a 350/month plan, so
+    // this month and the next are funded and the next buy falls due after them.
+    // The anchor is pinned so the assertion does not depend on when the supply
+    // above happened to be recorded.
+    const res = await page.request.put('/api/finances/portfolio', {
+      data: { settings: { plannedMonthlyContribution: 350, cadenceAnchorMonth: '2099-01' } },
+    });
+    expect(res.ok()).toBe(true);
+
+    await page.reload();
+    await expect(page.getByText('Contribution cadence')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Ahead of schedule')).toBeVisible();
+    await expect(page.getByText('March 2099')).toBeVisible();
+    await expect(page.getByText('February 2099')).toBeVisible(); // covered through
+  });
+
   test('settings modal rejects allocations that do not sum to 100', async ({ page }) => {
     // exact: true — the sidebar nav also has a "⚙ Settings" link that substring-matches.
     await page.getByRole('button', { name: 'Settings', exact: true }).click();

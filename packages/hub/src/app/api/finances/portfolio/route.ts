@@ -26,6 +26,11 @@ export const settingsSchema = z.object({
   optimisticAnnualReturnPct: z.number().min(-50).max(100),
   plannedMonthlyContribution: z.number().min(0),
   targetAmount: z.number().min(0).nullish(),
+  cadenceAnchorMonth: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/)
+    .nullish(),
+  cadenceTolerancePct: z.number().min(0).max(100).optional(),
 });
 
 export const positionSchema = z.object({

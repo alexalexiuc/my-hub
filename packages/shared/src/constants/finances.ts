@@ -26,6 +26,23 @@ export const LentDirections = {
 } as const;
 export type LentDirection = (typeof LentDirections)[keyof typeof LentDirections];
 
+/**
+ * Where the portfolio's cash contributions stand against the planned monthly
+ * schedule (dollar-cost-averaging cadence). Derived, never persisted.
+ */
+export const ContributionCadenceStatuses = {
+  /** Contributed more than the plan requires, beyond the tolerance band. */
+  Ahead: 'ahead',
+  /** Within the tolerance band of the plan — a slightly-off contribution still counts. */
+  OnTrack: 'on_track',
+  /** Contributed less than the plan requires, beyond the tolerance band. */
+  Behind: 'behind',
+} as const;
+export type ContributionCadenceStatus = (typeof ContributionCadenceStatuses)[keyof typeof ContributionCadenceStatuses];
+
+/** Default tolerance band, as a percentage of one monthly contribution. */
+export const DEFAULT_CADENCE_TOLERANCE_PCT = 10;
+
 // Category icons — mapped to UI components (e.g. Lucide icons) by the frontend.
 // Add new values here first; the frontend mapping lives in the Hub package.
 export const CategoryIcons = {

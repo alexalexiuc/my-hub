@@ -345,7 +345,10 @@ const financeTools = [
       'Investment portfolio snapshot: settings, per-ETF holdings with current EOD value, profit (with and without fees), ' +
       'actual vs target allocation with deviations, totals, plus the most recent supply events. ' +
       'Use to answer "how is my portfolio doing?" or before recording a new supply. ' +
-      'pricesAsOf indicates how fresh the cached EOD prices are.',
+      'pricesAsOf indicates how fresh the cached EOD prices are. ' +
+      'cadence measures contributed cash against the planned monthly contribution — use it to answer ' +
+      '"am I ahead of schedule?" (status, difference, monthsAhead) and "when is my next buy due?" ' +
+      '(coveredThroughMonth, nextContributionMonth, dueNow, amountDueNow); it is null when no monthly plan is set.',
     inputSchema: GetPortfolioSchema.shape,
     annotations: { readOnlyHint: true },
     callback: getPortfolioTool,
@@ -367,6 +370,8 @@ const financeTools = [
       'Create the investment portfolio or update its settings and positions. ' +
       'Settings: name, base currency, projection assumptions (pessimistic/expected/optimistic annual return %, planned monthly contribution), ' +
       'and an optional target amount goal shown on graphs (pass null to clear it). ' +
+      'Contribution cadence: cadenceAnchorMonth (YYYY-MM the plan accrues from; null falls back to the first supply month) ' +
+      'and cadenceTolerancePct (how far a contribution may drift and still count as on schedule). ' +
       'Positions are upserted by symbol; yahooSymbol (e.g. SPYL.DE) is required when adding a new position. ' +
       'Target allocations across all positions must sum to 100%.',
     inputSchema: UpdatePortfolioSchema.shape,

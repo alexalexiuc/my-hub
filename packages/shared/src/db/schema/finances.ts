@@ -15,6 +15,7 @@ import {
 import { sql } from 'drizzle-orm';
 import { users } from './users';
 import { numericCasted } from './numeric-casted';
+import { DEFAULT_CADENCE_TOLERANCE_PCT } from '../../constants/finances';
 import type {
   AccountType,
   TransactionType,
@@ -459,6 +460,14 @@ export const financePortfolios = pgTable(
       .default(0),
     // Optional goal amount, in the portfolio base currency. Null = no target set.
     targetAmount: numericCasted('target_amount', { precision: 18, scale: 4 }),
+    // Contribution cadence — first month (YYYY-MM) the monthly plan accrues from.
+    // Null = derive from the earliest supply's month.
+    cadenceAnchorMonth: text('cadence_anchor_month'),
+    // How far a contribution may drift from the planned amount and still count
+    // as on schedule, as a percentage of one monthly contribution.
+    cadenceTolerancePct: numericCasted('cadence_tolerance_pct', { precision: 8, scale: 4 })
+      .notNull()
+      .default(DEFAULT_CADENCE_TOLERANCE_PCT),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },

@@ -9,6 +9,7 @@ import { FinFieldCard } from '../ui';
 import { finGhostInputClass } from '../finances.utils';
 import type { PortfolioOverview } from '@my-hub/shared/services';
 import { allocationsSumTo100, sumAllocations } from '@my-hub/shared/utils';
+import { DEFAULT_CADENCE_TOLERANCE_PCT } from '@my-hub/shared/constants';
 
 type PositionDraft = {
   id?: number;
@@ -58,6 +59,10 @@ export function PortfolioSettingsModal({ overview, onClose, onSaved }: Portfolio
   const [contribution, setContribution] = useState(String(portfolio?.plannedMonthlyContribution ?? 0));
   const [targetAmount, setTargetAmount] = useState(
     portfolio?.targetAmount != null ? String(portfolio.targetAmount) : '',
+  );
+  const [cadenceAnchorMonth, setCadenceAnchorMonth] = useState(portfolio?.cadenceAnchorMonth ?? '');
+  const [cadenceTolerance, setCadenceTolerance] = useState(
+    String(portfolio?.cadenceTolerancePct ?? DEFAULT_CADENCE_TOLERANCE_PCT),
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -109,12 +114,23 @@ export function PortfolioSettingsModal({ overview, onClose, onSaved }: Portfolio
       return setError('Target amount must be ≥ 0.');
     }
 
+    const trimmedAnchor = cadenceAnchorMonth.trim();
+    if (trimmedAnchor !== '' && !/^\d{4}-\d{2}$/.test(trimmedAnchor)) {
+      return setError('Plan start must be a month, e.g. 2026-01.');
+    }
+    const tolerance = Number(cadenceTolerance);
+    if (!Number.isFinite(tolerance) || tolerance < 0 || tolerance > 100) {
+      return setError('Cadence tolerance must be between 0 and 100%.');
+    }
+
     const settings = {
       pessimisticAnnualReturnPct: p,
       expectedAnnualReturnPct: e,
       optimisticAnnualReturnPct: o,
       plannedMonthlyContribution: c,
       targetAmount: trimmedTarget === '' ? null : Number(trimmedTarget),
+      cadenceAnchorMonth: trimmedAnchor === '' ? null : trimmedAnchor,
+      cadenceTolerancePct: tolerance,
     };
     setSaving(true);
     try {
@@ -271,6 +287,38 @@ export function PortfolioSettingsModal({ overview, onClose, onSaved }: Portfolio
                 placeholder="No target set"
                 value={targetAmount}
                 onChange={e => setTargetAmount(e.target.value)}
+              />
+            </FinFieldCard>
+          </div>
+        </div>
+
+        <div>
+          <SectionLabel>Contribution cadence</SectionLabel>
+          <p className="mb-2 text-[11px] text-[var(--muted)]">
+            The monthly contribution accrues from the plan start month onwards. Contributing more than planned funds
+            later months, so the portfolio can tell you when the next round of buying is due.
+          </p>
+          <div className="grid grid-cols-2 gap-2.5">
+            <FinFieldCard label="Plan starts">
+              <Input
+                variant="ghost"
+                className={finGhostInputClass}
+                type="month"
+                placeholder="First supply month"
+                value={cadenceAnchorMonth}
+                onChange={e => setCadenceAnchorMonth(e.target.value)}
+              />
+            </FinFieldCard>
+            <FinFieldCard label="Tolerance % of a contribution">
+              <Input
+                variant="ghost"
+                className={finGhostInputClass}
+                type="number"
+                step="any"
+                min="0"
+                max="100"
+                value={cadenceTolerance}
+                onChange={e => setCadenceTolerance(e.target.value)}
               />
             </FinFieldCard>
           </div>

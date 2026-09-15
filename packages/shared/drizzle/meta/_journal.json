@@ -134,6 +134,13 @@
       "when": 1788683773137,
       "tag": "0018_freezing_stick",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789459017128,
+      "tag": "0019_orange_ghost_rider",
+      "breakpoints": true
     }
   ]
 }

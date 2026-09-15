@@ -60,12 +60,16 @@ export const getPortfolioTool: ToolHandler<typeof GetPortfolioSchema.shape> = as
       optimisticAnnualReturnPct: overview.portfolio.optimisticAnnualReturnPct,
       plannedMonthlyContribution: overview.portfolio.plannedMonthlyContribution,
       targetAmount: overview.portfolio.targetAmount,
+      cadenceAnchorMonth: overview.portfolio.cadenceAnchorMonth,
+      cadenceTolerancePct: overview.portfolio.cadenceTolerancePct,
     },
     positions: overview.positions,
     totals: overview.totals,
     supplyCount: overview.supplyCount,
     firstSupplyDate: overview.firstSupplyDate,
     pricesAsOf: overview.pricesAsOf,
+    // Contribution schedule adherence — answers "am I ahead, and when is the next buy due?"
+    cadence: overview.cadence,
     recentSupplies: supplies.map(s => ({
       id: s.id,
       date: s.date,
@@ -168,6 +172,22 @@ const PortfolioSettingsSchema = z.object({
     .nullable()
     .optional()
     .describe('Optional goal amount in the portfolio base currency, shown on graphs. Pass null to clear it.'),
+  cadenceAnchorMonth: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/)
+    .nullable()
+    .optional()
+    .describe(
+      'First month (YYYY-MM) the monthly contribution plan accrues from, used to judge whether contributions are ahead or behind schedule. Pass null to fall back to the earliest supply month.',
+    ),
+  cadenceTolerancePct: z
+    .number()
+    .min(0)
+    .max(100)
+    .optional()
+    .describe(
+      'How far a contribution may drift from the planned monthly amount and still count as on schedule, as a percentage of one contribution. Defaults to 10.',
+    ),
 });
 
 export const UpdatePortfolioSchema = z.object({
@@ -248,6 +268,8 @@ export const updatePortfolioTool: ToolHandler<typeof UpdatePortfolioSchema.shape
       optimisticAnnualReturnPct: portfolio.optimisticAnnualReturnPct,
       plannedMonthlyContribution: portfolio.plannedMonthlyContribution,
       targetAmount: portfolio.targetAmount,
+      cadenceAnchorMonth: portfolio.cadenceAnchorMonth,
+      cadenceTolerancePct: portfolio.cadenceTolerancePct,
     },
     positions: positions.map(p => ({
       symbol: p.symbol,
