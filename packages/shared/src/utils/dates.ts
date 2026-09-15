@@ -19,7 +19,9 @@
  * - monthLabel(monthStart) — "Month YYYY" string from a UTC month-start date
  * - shiftMonthStr(month, delta) — shift a YYYY-MM string by delta months, returns YYYY-MM
  * - formatMonthStr(month) — format a YYYY-MM string as "Month YYYY"
+ * - formatMonthShortStr(month, withYear?) — format a YYYY-MM string as "Mon" (or "Mon YY")
  * - monthsBetweenStr(from, to) — whole calendar months between two YYYY-MM strings (signed)
+ * - yearMonthRange(year, reference?) — { monthFrom, monthTo } for a calendar year, capped at the current month for the ongoing year
  * - shiftWeekStr(monday, delta) — shift a YYYY-MM-DD Monday by delta weeks, returns YYYY-MM-DD (UTC-safe)
  * - formatWeekRangeStr(weekStart, includeYear?) — format a YYYY-MM-DD Monday as "Mon D – Mon D[, YYYY]"
  * - weekLabel(weekStart) — "Week W, YYYY" string from an ISO week-start date
@@ -223,6 +225,28 @@ export function shiftMonthStr(month: string, delta: number): string {
 /** Formats a YYYY-MM string as "Month YYYY", e.g. '2026-05' → 'May 2026'. */
 export function formatMonthStr(month: string): string {
   return monthLabel(parseMonthStr(month));
+}
+
+/**
+ * Formats a YYYY-MM string as a short month label, e.g. '2026-05' → 'May'. Pass `withYear` for
+ * a two-digit year suffix ('May 26') when the range can span more than one year.
+ */
+export function formatMonthShortStr(month: string, withYear = false): string {
+  return parseMonthStr(month).toLocaleDateString('en-US', {
+    month: 'short',
+    timeZone: 'UTC',
+    ...(withYear ? { year: '2-digit' as const } : {}),
+  });
+}
+
+/**
+ * First and last YYYY-MM of a calendar year. For the ongoing year the range stops at the current
+ * month, so a year-to-date view does not trail empty future months; past and future years return
+ * the full January–December span.
+ */
+export function yearMonthRange(year: number, reference: Date = new Date()): { monthFrom: string; monthTo: string } {
+  const lastMonth = year === reference.getUTCFullYear() ? reference.getUTCMonth() + 1 : 12;
+  return { monthFrom: `${year}-01`, monthTo: `${year}-${String(lastMonth).padStart(2, '0')}` };
 }
 
 /**

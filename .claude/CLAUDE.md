@@ -5,4 +5,5 @@
 **Use skills before implementing manually.** Key skills for this repo:
 
 - Adding an MCP tool → use `/mcp-add-tool` skill (see also root `CLAUDE.md` §MCP tool design rules)
+- Looking at the Hub UI (running the app, screenshots, verifying a page renders) → use `/ui-sandbox` skill
 - Package-level facts (build order, extension points, display paths) → read the `CLAUDE.md` in the relevant package directory

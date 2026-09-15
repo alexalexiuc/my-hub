@@ -16,6 +16,8 @@ import {
   weekLabel,
   calendarDays,
   dateToString,
+  formatMonthShortStr,
+  yearMonthRange,
 } from './dates';
 
 beforeEach(() => {
@@ -274,5 +276,44 @@ describe('dateToString', () => {
 
   it('formats date as YYYY-MM', () => {
     expect(dateToString(new Date('2026-03-23T00:00:00.000Z'), 'YYYY-MM')).toBe('2026-03');
+  });
+});
+
+describe('formatMonthShortStr', () => {
+  it('formats a YYYY-MM string as a short month name', () => {
+    expect(formatMonthShortStr('2026-05')).toBe('May');
+    expect(formatMonthShortStr('2026-01')).toBe('Jan');
+    expect(formatMonthShortStr('2025-12')).toBe('Dec');
+  });
+
+  it('appends a two-digit year when asked', () => {
+    expect(formatMonthShortStr('2026-05', true)).toBe('May 26');
+    expect(formatMonthShortStr('2025-12', true)).toBe('Dec 25');
+  });
+
+  it('does not drift across the UTC month boundary', () => {
+    expect(formatMonthShortStr('2026-03')).toBe('Mar');
+  });
+});
+
+describe('yearMonthRange', () => {
+  it('caps the ongoing year at the current month', () => {
+    // System time is fixed to 2026-03-23 by the suite-level beforeEach.
+    expect(yearMonthRange(2026)).toEqual({ monthFrom: '2026-01', monthTo: '2026-03' });
+  });
+
+  it('returns the full span for a past year', () => {
+    expect(yearMonthRange(2024)).toEqual({ monthFrom: '2024-01', monthTo: '2024-12' });
+  });
+
+  it('returns the full span for a future year', () => {
+    expect(yearMonthRange(2030)).toEqual({ monthFrom: '2030-01', monthTo: '2030-12' });
+  });
+
+  it('honours an explicit reference date', () => {
+    expect(yearMonthRange(2025, new Date('2025-11-05T00:00:00.000Z'))).toEqual({
+      monthFrom: '2025-01',
+      monthTo: '2025-11',
+    });
   });
 });

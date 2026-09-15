@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { categoryIconEmoji } from './categoryIcons';
 import { Button, SubText } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons/PlusOutlineIcon';
+import { TrendingUpOutlineIcon } from '@/components/icons/TrendingUpOutlineIcon';
 import type { DropdownOption } from './financialDropdown.utils';
 
 // ─── Shared chart styles ─────────────────────────────────────────────────────
@@ -135,40 +136,46 @@ export const TYPE_META: Record<string, { label: string; color: string; icon: str
   borrowed_lent: { label: 'Borrowed/Lent', color: 'var(--teal)', icon: '🤝' },
 };
 
-// ─── Cashflow bar chart (SVG) ─────────────────────────────────────────────────
-export function CashflowChart({
-  data,
-  width = 320,
-  height = 100,
-}: {
-  data: { month: string; income: number; expense: number }[];
-  width?: number;
-  height?: number;
-}) {
-  if (!data.length) return <div style={{ width, height }} />;
-  const max = Math.max(...data.flatMap(d => [d.income, d.expense]), 1);
-  const cols = data.length;
-  const colW = width / cols;
-  const bw = Math.max(8, Math.floor(colW * 0.3));
-  const gap = 2;
+// ─── In/out flow indicator ────────────────────────────────────────────────────
 
+type FlowInOutProps = {
+  inflows: number;
+  outflows: number;
+  currency: string;
+  inLabel?: string;
+  outLabel?: string;
+  className?: string;
+};
+
+/**
+ * Forex-style in/out indicator: money into and out of an account over a period, any transaction
+ * type. Shared by the account detail header ("this month") and the Cashflow page's By Account view.
+ */
+export function FlowInOut({
+  inflows,
+  outflows,
+  currency,
+  inLabel = 'In',
+  outLabel = 'Out',
+  className,
+}: FlowInOutProps) {
   return (
-    <svg width={width} height={height + 20} className="block overflow-visible">
-      {data.map((d, i) => {
-        const x = i * colW + (colW - bw * 2 - gap) / 2;
-        const iH = Math.max(2, (d.income / max) * height);
-        const eH = Math.max(2, (d.expense / max) * height);
-        return (
-          <g key={i}>
-            <rect x={x} y={height - iH} width={bw} height={iH} fill="var(--green)" fillOpacity={0.7} rx={3} />
-            <rect x={x + bw + gap} y={height - eH} width={bw} height={eH} fill="var(--red)" fillOpacity={0.7} rx={3} />
-            <text x={x + bw} y={height + 14} textAnchor="middle" fontSize={9} fill="var(--subtle)">
-              {d.month}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
+    <div className={cn('flex gap-5', className)}>
+      <div>
+        <SubText className="block">{inLabel}</SubText>
+        <div className="flex items-center gap-1 text-[var(--green)]">
+          <TrendingUpOutlineIcon className="size-3.5" />
+          {fmt(inflows, currency)}
+        </div>
+      </div>
+      <div>
+        <SubText className="block">{outLabel}</SubText>
+        <div className="flex items-center gap-1 text-[var(--red)]">
+          <TrendingUpOutlineIcon className="size-3.5 scale-y-[-1]" />
+          {fmt(outflows, currency)}
+        </div>
+      </div>
+    </div>
   );
 }
 
