@@ -6,6 +6,7 @@ import type { FinancePortfolio, FinancePortfolioPosition } from '../../types';
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 const now = new Date('2026-01-16T00:00:00Z');
+const TODAY = '2026-01-16';
 
 const portfolio: FinancePortfolio = {
   id: 1,
@@ -17,6 +18,8 @@ const portfolio: FinancePortfolio = {
   optimisticAnnualReturnPct: 10,
   plannedMonthlyContribution: 1000,
   targetAmount: null,
+  cadenceAnchorMonth: null,
+  cadenceTolerancePct: 10,
   createdAt: now,
   updatedAt: now,
 };
@@ -86,7 +89,14 @@ describe('buildPortfolioOverview', () => {
   ]);
 
   it('computes per-position units, cost basis, fees, value and profit (with and without fees)', () => {
-    const overview = buildPortfolioOverview(portfolio, [positionA, positionB], supplies, latestPrices, new Map());
+    const overview = buildPortfolioOverview(
+      portfolio,
+      [positionA, positionB],
+      supplies,
+      latestPrices,
+      new Map(),
+      TODAY,
+    );
     const a = overview.positions[0]!;
     expect(a.units).toBe(15);
     expect(a.costBasis).toBe(760); // 10×50 + 5×52
@@ -104,7 +114,14 @@ describe('buildPortfolioOverview', () => {
   });
 
   it('computes allocations and deviations against targets', () => {
-    const overview = buildPortfolioOverview(portfolio, [positionA, positionB], supplies, latestPrices, new Map());
+    const overview = buildPortfolioOverview(
+      portfolio,
+      [positionA, positionB],
+      supplies,
+      latestPrices,
+      new Map(),
+      TODAY,
+    );
     const a = overview.positions[0]!;
     expect(a.actualAllocationPct).toBeCloseTo(74.07, 2); // 900 / 1215
     expect(a.allocationDeviationPct).toBeCloseTo(4.07, 2);
@@ -115,7 +132,14 @@ describe('buildPortfolioOverview', () => {
   });
 
   it('computes totals, supply metadata and price staleness', () => {
-    const overview = buildPortfolioOverview(portfolio, [positionA, positionB], supplies, latestPrices, new Map());
+    const overview = buildPortfolioOverview(
+      portfolio,
+      [positionA, positionB],
+      supplies,
+      latestPrices,
+      new Map(),
+      TODAY,
+    );
     expect(overview.totals.contributed).toBe(1500);
     expect(overview.totals.costBasis).toBe(1042);
     expect(overview.totals.fees).toBe(8);
@@ -129,7 +153,7 @@ describe('buildPortfolioOverview', () => {
 
   it('null-propagates value fields for unpriced positions but keeps cost math', () => {
     const onlyA = new Map([['AAA.DE', price('AAA.DE', '2026-01-16', 60)]]);
-    const overview = buildPortfolioOverview(portfolio, [positionA, positionB], supplies, onlyA, new Map());
+    const overview = buildPortfolioOverview(portfolio, [positionA, positionB], supplies, onlyA, new Map(), TODAY);
     const b = overview.positions[1]!;
     expect(b.costBasis).toBe(282);
     expect(b.currentValue).toBeNull();
@@ -140,7 +164,7 @@ describe('buildPortfolioOverview', () => {
   });
 
   it('returns null totals.currentValue when no position has a price', () => {
-    const overview = buildPortfolioOverview(portfolio, [positionA, positionB], supplies, new Map(), new Map());
+    const overview = buildPortfolioOverview(portfolio, [positionA, positionB], supplies, new Map(), new Map(), TODAY);
     expect(overview.totals.currentValue).toBeNull();
     expect(overview.totals.profit).toBeNull();
     expect(overview.pricesAsOf).toBeNull();
@@ -148,8 +172,49 @@ describe('buildPortfolioOverview', () => {
 
   it('applies FX rates for non-base price currencies', () => {
     const usdPrice = new Map([['AAA.DE', { ...price('AAA.DE', '2026-01-16', 60), currency: 'USD' as const }]]);
-    const overview = buildPortfolioOverview(portfolio, [positionA], supplies, usdPrice, new Map([['USD', 0.9]]));
+    const overview = buildPortfolioOverview(portfolio, [positionA], supplies, usdPrice, new Map([['USD', 0.9]]), TODAY);
     expect(overview.positions[0]!.currentValue).toBe(810); // 15 × 60 × 0.9
+  });
+
+  it('anchors the contribution cadence on the first supply month by default', () => {
+    // Supplies total 1500 in January 2026 against a 1000/month plan, and
+    // TODAY is still January — one month accrued, half a month funded ahead.
+    const overview = buildPortfolioOverview(
+      portfolio,
+      [positionA, positionB],
+      supplies,
+      latestPrices,
+      new Map(),
+      TODAY,
+    );
+    const cadence = overview.cadence!;
+    expect(cadence.anchorMonth).toBe('2026-01');
+    expect(cadence.currentMonth).toBe('2026-01');
+    expect(cadence.expectedToDate).toBe(1000);
+    expect(cadence.contributedToDate).toBe(1500);
+    expect(cadence.status).toBe('ahead');
+    expect(cadence.coveredThroughMonth).toBe('2026-01');
+    expect(cadence.nextContributionMonth).toBe('2026-02');
+    expect(cadence.dueNow).toBe(false);
+  });
+
+  it('prefers an explicit cadence anchor month over the first supply', () => {
+    const anchored = { ...portfolio, cadenceAnchorMonth: '2025-11' };
+    const overview = buildPortfolioOverview(anchored, [positionA, positionB], supplies, latestPrices, new Map(), TODAY);
+    const cadence = overview.cadence!;
+    expect(cadence.anchorMonth).toBe('2025-11');
+    expect(cadence.monthsElapsed).toBe(3); // Nov, Dec, Jan
+    expect(cadence.expectedToDate).toBe(3000);
+    expect(cadence.status).toBe('behind');
+    expect(cadence.amountDueNow).toBe(1500);
+  });
+
+  it('omits the cadence when there is no plan or nothing to anchor it to', () => {
+    const noPlan = { ...portfolio, plannedMonthlyContribution: 0 };
+    expect(
+      buildPortfolioOverview(noPlan, [positionA, positionB], supplies, latestPrices, new Map(), TODAY).cadence,
+    ).toBeNull();
+    expect(buildPortfolioOverview(portfolio, [positionA], [], latestPrices, new Map(), TODAY).cadence).toBeNull();
   });
 });
 

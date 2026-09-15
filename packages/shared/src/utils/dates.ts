@@ -19,6 +19,7 @@
  * - monthLabel(monthStart) — "Month YYYY" string from a UTC month-start date
  * - shiftMonthStr(month, delta) — shift a YYYY-MM string by delta months, returns YYYY-MM
  * - formatMonthStr(month) — format a YYYY-MM string as "Month YYYY"
+ * - monthsBetweenStr(from, to) — whole calendar months between two YYYY-MM strings (signed)
  * - shiftWeekStr(monday, delta) — shift a YYYY-MM-DD Monday by delta weeks, returns YYYY-MM-DD (UTC-safe)
  * - formatWeekRangeStr(weekStart, includeYear?) — format a YYYY-MM-DD Monday as "Mon D – Mon D[, YYYY]"
  * - weekLabel(weekStart) — "Week W, YYYY" string from an ISO week-start date
@@ -222,6 +223,17 @@ export function shiftMonthStr(month: string, delta: number): string {
 /** Formats a YYYY-MM string as "Month YYYY", e.g. '2026-05' → 'May 2026'. */
 export function formatMonthStr(month: string): string {
   return monthLabel(parseMonthStr(month));
+}
+
+/**
+ * Whole calendar months from `from` to `to`, both YYYY-MM strings.
+ * Negative when `to` precedes `from`.
+ * e.g. monthsBetweenStr('2026-01', '2026-09') → 8
+ */
+export function monthsBetweenStr(from: string, to: string): number {
+  const a = parseMonthStr(from);
+  const b = parseMonthStr(to);
+  return (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth());
 }
 
 /**

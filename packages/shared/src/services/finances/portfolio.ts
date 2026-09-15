@@ -10,7 +10,7 @@
  * - updateSupply(userId, budgetId, supplyId, data) — update header, replace lines atomically
  * - deleteSupply(userId, budgetId, supplyId) — delete supply event (lines cascade)
  * - getSupplies(userId, budgetId, portfolioId) — supply events with lines, date descending
- * - getPortfolioOverview(userId, budgetId) — per-position + total analytics (value, profit, allocations)
+ * - getPortfolioOverview(userId, budgetId) — per-position + total analytics (value, profit, allocations, cadence)
  * - getPortfolioValueHistory(userId, budgetId, portfolioId) — daily {date, value, invested} series
  * - buildPortfolioOverview(...) / buildValueHistory(...) — pure builders, exported for unit tests
  * Types: PortfolioSettingsUpdate, PositionUpsert, SupplyLineInput, SupplyInput, SupplyWithLines,
@@ -31,7 +31,15 @@ import type {
   FinancePortfolioSupply,
   FinancePortfolioSupplyLine,
 } from '../../types';
-import { addDays, currentDateString, logger, omitUndefined, toUTCDateStr } from '../../utils';
+import {
+  addDays,
+  computeContributionCadence,
+  currentDateString,
+  logger,
+  omitUndefined,
+  toUTCDateStr,
+  type ContributionCadence,
+} from '../../utils';
 import { enforceBudgetAccess } from './budgets';
 import { getExchangeRate } from './exchangeRates';
 import {
@@ -51,6 +59,8 @@ export type PortfolioSettingsUpdate = Partial<
     | 'optimisticAnnualReturnPct'
     | 'plannedMonthlyContribution'
     | 'targetAmount'
+    | 'cadenceAnchorMonth'
+    | 'cadenceTolerancePct'
   >
 >;
 
@@ -138,6 +148,12 @@ export interface PortfolioOverview {
   firstSupplyDate: string | null;
   /** Oldest priceDate among priced positions — staleness indicator for the UI. */
   pricesAsOf: string | null;
+  /**
+   * Contributions measured against the planned monthly schedule. Null when
+   * there is no plan (contribution ≤ 0) or nothing to anchor it to (no
+   * supplies and no explicit anchor month).
+   */
+  cadence: ContributionCadence | null;
 }
 
 export interface PortfolioHistoryPoint {
@@ -486,6 +502,9 @@ async function ensureSupplyPriceHistory(
  * and maps to the portfolio base currency (identity entries may be omitted).
  * Profit semantics: profit = value − cost − fees (fee-inclusive, the lower
  * number); profitExclFees = value − cost.
+ *
+ * `today` (YYYY-MM-DD) fixes the month the contribution cadence is measured
+ * against.
  */
 export function buildPortfolioOverview(
   portfolio: FinancePortfolio,
@@ -493,6 +512,7 @@ export function buildPortfolioOverview(
   supplies: SupplyWithLines[],
   latestPrices: Map<string, TickerPriceRow>,
   fxRates: Map<string, number>,
+  today: string,
 ): PortfolioOverview {
   const byPosition = new Map<number, { units: number; costBasis: number; fees: number }>();
   let contributed = 0;
@@ -564,6 +584,19 @@ export function buildPortfolioOverview(
   const totalProfitExclFees = totalValue === null ? null : totalValue - totalCostBasis;
   const pricedDates = positionOverviews.map(p => p.priceDate).filter((d): d is string => d !== null);
 
+  // The plan accrues from the explicit anchor month, else from the month the
+  // first supply landed in — without either there is nothing to measure.
+  const anchorMonth = portfolio.cadenceAnchorMonth ?? firstSupplyDate?.slice(0, 7) ?? null;
+  const cadence = anchorMonth
+    ? computeContributionCadence({
+        plannedMonthlyContribution: portfolio.plannedMonthlyContribution,
+        contributedToDate: contributed,
+        anchorMonth,
+        currentMonth: today.slice(0, 7),
+        tolerancePct: portfolio.cadenceTolerancePct,
+      })
+    : null;
+
   return {
     portfolio,
     positions: positionOverviews,
@@ -584,6 +617,7 @@ export function buildPortfolioOverview(
     supplyCount: supplies.length,
     firstSupplyDate,
     pricesAsOf: pricedDates.length > 0 ? pricedDates.reduce((a, b) => (a < b ? a : b)) : null,
+    cadence,
   };
 }
 
@@ -712,7 +746,7 @@ export async function getPortfolioOverview(userId: string, budgetId: number): Pr
     }
   }
 
-  return buildPortfolioOverview(portfolio, positions, supplies, latestPrices, fxRates);
+  return buildPortfolioOverview(portfolio, positions, supplies, latestPrices, fxRates, currentDateString());
 }
 
 /**

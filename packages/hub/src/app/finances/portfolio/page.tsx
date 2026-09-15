@@ -6,6 +6,7 @@ import { Button, Card, IconButton } from '@/components';
 import { ClockOutlineIcon, BarChartIcon, GearOutlineIcon, TrendingUpOutlineIcon } from '@/components/icons';
 import { AddButton } from '../ui';
 import { PortfolioSummaryCards } from './PortfolioSummaryCards';
+import { ContributionCadenceCard } from './ContributionCadenceCard';
 import { PositionsTable } from './PositionsTable';
 import { SuppliesSection } from './SuppliesSection';
 import { SupplyModal } from './SupplyModal';
@@ -106,6 +107,9 @@ export default function PortfolioPage() {
       {overview && (
         <>
           <PortfolioSummaryCards overview={overview} />
+          {overview.cadence && (
+            <ContributionCadenceCard cadence={overview.cadence} currency={overview.portfolio.baseCurrency} />
+          )}
           <PositionsTable overview={overview} />
           <SuppliesSection overview={overview} refreshKey={suppliesRefreshKey} onChanged={fetchOverview} />
         </>

@@ -11,11 +11,23 @@ interface PositionOverview {
   currentValue: number | null;
 }
 
+interface ContributionCadence {
+  anchorMonth: string;
+  expectedToDate: number;
+  contributedToDate: number;
+  difference: number;
+  status: string;
+  coveredThroughMonth: string | null;
+  nextContributionMonth: string;
+  dueNow: boolean;
+}
+
 interface GetPortfolioResult {
   exists: boolean;
   positions?: PositionOverview[];
   totals?: { contributed: number; costBasis: number; fees: number };
   recentSupplies?: { id: number; date: string }[];
+  cadence?: ContributionCadence | null;
 }
 
 interface UpdatePortfolioResult {
@@ -72,7 +84,13 @@ describe.sequential('finances — portfolio tools', () => {
     const result = await client.callTool({
       name: 'finances_update_portfolio',
       arguments: {
-        settings: { expectedAnnualReturnPct: 7, plannedMonthlyContribution: 1000 },
+        settings: {
+          expectedAnnualReturnPct: 7,
+          plannedMonthlyContribution: 352,
+          // Pinned so cadence assertions do not depend on the wall clock: the
+          // single 704 supply below is exactly two months of contribution.
+          cadenceAnchorMonth: '2099-01',
+        },
         positions: [
           ...staleSymbols.map(symbol => ({ symbol, targetAllocationPct: 0 })),
           { symbol: symA, yahooSymbol: `${symA}.DE`, targetAllocationPct: 60 },
@@ -140,6 +158,22 @@ describe.sequential('finances — portfolio tools', () => {
     expect(a.currentValue).toBeNull();
 
     expect(data.recentSupplies!.some(s => s.id === supplyId)).toBe(true);
+  });
+
+  it('reports contribution cadence — a 2x contribution funds the following month', async () => {
+    // Anchored at 2099-01 with a 352/month plan; the single 704 supply funds
+    // January and February, so the next contribution is due in March.
+    const result = await client.callTool({ name: 'finances_get_portfolio', arguments: { recentSuppliesLimit: 0 } });
+    const cadence = parseToolResult<GetPortfolioResult>(result).cadence!;
+
+    expect(cadence.anchorMonth).toBe('2099-01');
+    expect(cadence.contributedToDate).toBeCloseTo(704, 2);
+    // The anchor is in the future, so nothing has accrued yet.
+    expect(cadence.expectedToDate).toBeCloseTo(0, 2);
+    expect(cadence.status).toBe('ahead');
+    expect(cadence.coveredThroughMonth).toBe('2099-02');
+    expect(cadence.nextContributionMonth).toBe('2099-03');
+    expect(cadence.dueNow).toBe(false);
   });
 
   it('deletes the supply event', async () => {
