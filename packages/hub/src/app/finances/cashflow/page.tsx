@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button, YearNav } from '@/components';
+import { Button, IconButton, YearNav } from '@/components';
+import { QuestionMarkIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
 import { CashflowSummaryCards } from '../CashflowSummaryCards';
+import { CashflowHelpSheet } from './CashflowHelpSheet';
 import { CashflowPageSkeleton } from './CashflowPageSkeleton';
 import { MonthlyCashflowSection } from './MonthlyCashflowSection';
 import { CategoryCashflowSection } from './CategoryCashflowSection';
@@ -26,6 +28,7 @@ export default function CashflowPage() {
   const [view, setView] = useState<View>('monthly');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showHelpSheet, setShowHelpSheet] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,7 +60,16 @@ export default function CashflowPage() {
 
   return (
     <div className="flex flex-col gap-[14px]">
-      <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Cashflow</div>
+      <div className="flex items-center gap-1.5">
+        <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">Cashflow</div>
+        <IconButton
+          label="How is this calculated?"
+          icon={<QuestionMarkIcon className="size-3.5" />}
+          onClick={() => setShowHelpSheet(true)}
+          variant="ghost"
+          className="p-1 text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--accent)]"
+        />
+      </div>
 
       <YearNav year={year} onChange={setYear} maxYear={currentYear} currentYear={currentYear} />
 
@@ -87,6 +99,8 @@ export default function CashflowPage() {
           {view === 'breakdown' && <CategoryCashflowSection year={year} />}
         </>
       )}
+
+      {showHelpSheet && <CashflowHelpSheet year={year} currency={currency} onClose={() => setShowHelpSheet(false)} />}
     </div>
   );
 }
