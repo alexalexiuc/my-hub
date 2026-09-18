@@ -34,6 +34,11 @@ export const calorieProfiles = pgTable('calorie_profiles', {
   activityLevel: text('activity_level').$type<ActivityLevel>(), // 'sedentary' | 'lightly_active' | ...
   goalType: text('goal_type').$type<GoalType>(), // 'weight_loss' | 'weight_gain' | 'maintain'
   goalWeeklyRateKg: real('goal_weekly_rate_kg'), // kg/week for loss or gain
+  // The fixed point the goal projection runs from. Without it the projection had to re-anchor to
+  // each Monday's weigh-in, which silently forgave every missed week: a week that ended 1 kg high
+  // became the next week's starting point, so a month of misses still showed "on track".
+  goalStartDate: date('goal_start_date'), // YYYY-MM-DD the current goal run began
+  goalStartWeightKg: real('goal_start_weight_kg'), // weight at goalStartDate, in kg
   goalMinCalories: integer('goal_min_calories'), // explicit daily minimum floor
   goalMaxCalories: integer('goal_max_calories'), // explicit daily maximum ceiling
   goalProtein: real('goal_protein'), // optional daily protein target in grams

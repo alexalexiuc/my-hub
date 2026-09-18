@@ -1,4 +1,5 @@
 import { ToolHandler } from '../../shared/types';
+import { HandledError } from '../../shared/errors';
 import { upsertCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shared/services';
 import { omitUndefined } from '@my-hub/shared/utils';
 import { z } from 'zod';
@@ -35,6 +36,21 @@ export const UpdateProfileSchema = z.object({
     .describe(
       'Weekly loss or gain rate in kg (e.g. 0.5 for half a kg/week). Required when goalType is weight_loss or weight_gain.',
     ),
+  goalStartDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .describe(
+      'YYYY-MM-DD the current goal run started from. This is the fixed point progress is measured against, so a ' +
+        'missed week carries forward instead of being forgiven — it is stamped automatically when the goal is set ' +
+        'or its rate changes. Only pass it when the user explicitly wants to restart their goal from a given date, ' +
+        'and pass goalStartWeightKg with it.',
+    ),
+  goalStartWeightKg: z
+    .number()
+    .positive()
+    .optional()
+    .describe('Weight in kg at goalStartDate. Pass together with goalStartDate when restarting a goal run.'),
   goalMinCalories: z
     .number()
     .int()
@@ -102,6 +118,12 @@ export const UpdateProfileSchema = z.object({
 export const updateProfileTool: ToolHandler<typeof UpdateProfileSchema.shape> = async (input, context) => {
   const { userId } = context;
 
+  // The anchor is a date and a weight together; half of one describes no point on the chart, and
+  // would quietly drop the goal back to an inferred baseline.
+  if ((input.goalStartDate === undefined) !== (input.goalStartWeightKg === undefined)) {
+    throw new HandledError('goalStartDate and goalStartWeightKg must be set together.');
+  }
+
   const updates: Record<string, unknown> = omitUndefined({
     age: input.age,
     sex: input.sex,
@@ -109,6 +131,8 @@ export const updateProfileTool: ToolHandler<typeof UpdateProfileSchema.shape> = 
     activityLevel: input.activityLevel,
     goalType: input.goalType,
     goalWeeklyRateKg: input.goalWeeklyRateKg,
+    goalStartDate: input.goalStartDate,
+    goalStartWeightKg: input.goalStartWeightKg,
     notes: input.notes,
   });
 

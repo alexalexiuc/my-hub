@@ -5,7 +5,14 @@ import { apiFetch, ApiError } from '@/lib/utils';
 import Link from 'next/link';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { dayCalorieTargets, latestWeightKg, getCurrentWeekDays, shiftWeekStr, weekLabel } from '@my-hub/shared/utils';
+import {
+  dateToString,
+  dayCalorieTargets,
+  latestWeightKg,
+  getCurrentWeekDays,
+  shiftWeekStr,
+  weekLabel,
+} from '@my-hub/shared/utils';
 import { measurementTypeDefinitions } from '@my-hub/shared/constants';
 import { currentWeekMonday } from '../menu/menu.utils';
 import { GoalProgressCard } from '../GoalProgressCard';
@@ -14,6 +21,7 @@ import { WeightChart } from '../WeightChart';
 import { MeasurementsSection } from '../MeasurementsSection';
 import { PeriodNav } from '../ui';
 import { shiftDate } from '../calories.utils';
+import { DEFAULT_TREND_RANGE, WEIGHT_RANGE_OPTIONS, type WeightRangeKey } from '../constants';
 import { mealEvents } from '../mealEvents';
 
 export default function ProgressPage() {
@@ -23,6 +31,10 @@ export default function ProgressPage() {
   const [weeklyMeals, setWeeklyMeals] = useState<MealLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Both weight charts read from one history fetch, so the range has to cover the wider of the
+  // two. The goal card tops out at 12 weeks; the trend chart is what can ask for a year.
+  const [trendRange, setTrendRange] = useState<WeightRangeKey>(DEFAULT_TREND_RANGE);
 
   const thisWeekStart = currentWeekMonday();
   // The week on screen. Previously pinned to the current week with no way to look back, so a
@@ -40,13 +52,18 @@ export default function ProgressPage() {
   /**
    * Profile and weight history, which describe the user rather than the week on screen. Kept out
    * of the week-dependent loader so paging back through months doesn't refetch them per arrow.
+   *
+   * The whole history is fetched once and windowed client-side rather than re-fetched per range.
+   * Smoothing needs the readings *before* a window to enter it warm — a range-scoped fetch would
+   * restart the trend at whatever the first day in view happened to read — and weigh-in rows are
+   * small enough that one row per day for years is a cheaper payload than a refetch per chip.
    */
   const loadProfile = useCallback(async () => {
     try {
       const [profileData, weightData] = await Promise.all([
         apiFetch<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>('/api/calories/profile'),
         apiFetch<{ measurements: MeasurementWithType[] }>('/api/calories/measurements', {
-          query: { type: 'weight', limit: 30 },
+          query: { type: 'weight', limit: 2000 },
         }),
       ]);
       setProfile(profileData.profile);
@@ -105,6 +122,7 @@ export default function ProgressPage() {
   }
 
   const weightKg = latestWeightKg(latestMeasurements);
+  const today = dateToString(new Date());
 
   // Targets are resolved per day so training days carry their bonus, matching the weekly menu
   // and the Today page rather than judging every day against one flat number.
@@ -119,12 +137,25 @@ export default function ProgressPage() {
     };
   });
 
-  // Copied before sorting: `sort` is in-place, and this array is React state that the API hands
-  // over newest-first — reordering it here would silently flip the order every other reader sees.
-  const weightChartData = [...weightHistory]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-20)
-    .map(m => ({ date: m.date, label: m.date.slice(5), value: m.value }));
+  const weightSamples = weightHistory.map(m => ({ date: m.date, value: m.value }));
+
+  const trendDays = WEIGHT_RANGE_OPTIONS.find(o => o.key === trendRange)?.days ?? null;
+  const trendFrom = trendDays === null ? null : shiftDate(today, -trendDays);
+  const trendSamples = trendFrom === null ? weightSamples : weightSamples.filter(s => s.date >= trendFrom);
+
+  /**
+   * Moves the goal baseline to today at the latest weigh-in, which is how a stalled or abandoned
+   * run gets forgiven — deliberately, by the user, rather than silently every Monday.
+   */
+  const resetGoalBaseline = async () => {
+    const latest = [...weightSamples].sort((a, b) => b.date.localeCompare(a.date))[0];
+    if (!latest) return;
+    await apiFetch('/api/calories/profile', {
+      method: 'PUT',
+      body: { goalStartDate: today, goalStartWeightKg: latest.value },
+    });
+    await loadProfile();
+  };
 
   return (
     <main className="mx-auto max-w-2xl space-y-4">
@@ -139,13 +170,16 @@ export default function ProgressPage() {
       <WeeklyChart data={weeklyData} />
 
       <GoalProgressCard
-        days={weekDays}
-        weightHistory={weightHistory}
+        weightHistory={weightSamples}
         goalType={profile?.goalType ?? null}
         goalWeeklyRateKg={profile?.goalWeeklyRateKg ?? null}
+        goalStartDate={profile?.goalStartDate ?? null}
+        goalStartWeightKg={profile?.goalStartWeightKg ?? null}
+        onResetBaseline={resetGoalBaseline}
+        canReset={weightSamples.length > 0}
       />
 
-      <WeightChart data={weightChartData} />
+      <WeightChart data={trendSamples} range={trendRange} onRangeChange={setTrendRange} />
 
       <MeasurementsSection
         latestMeasurements={latestMeasurements}

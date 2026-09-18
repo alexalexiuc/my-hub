@@ -1,54 +1,142 @@
 import type { MealLog } from '@my-hub/shared/types';
 import type { MealType } from '@my-hub/shared/constants';
-import { GoalTypes } from '@my-hub/shared/constants';
-import { dateToString } from '@my-hub/shared/utils';
+import {
+  buildWeightTrend,
+  dailyGoalDeltaKg,
+  dateToString,
+  daysBetweenDateStr,
+  projectedWeightOn,
+  resolveGoalAnchor,
+  trendRateKgPerWeek,
+  type GoalAnchor,
+  type WeightSample,
+} from '@my-hub/shared/utils';
 
 /** A weight entry, reduced to what the goal-progress maths needs. */
-export interface WeightPoint {
+export type WeightPoint = WeightSample;
+
+/** One plotted day on the goal-progress chart. */
+export interface GoalProgressPoint {
   date: string;
-  value: number;
+  label: string;
+  /** What the scale said, plotted faintly so the reading is still visible. */
+  actual: number;
+  /** The smoothed weight — what the goal is actually judged on. */
+  trend: number;
+  /** The cumulative goal line on this date. */
+  projected: number;
+}
+
+/** Everything the goal-progress card renders, derived in one pass. */
+export interface GoalProgressView {
+  points: GoalProgressPoint[];
+  anchor: GoalAnchor;
+  /** Smoothed weight at the most recent weigh-in — the figure to compare against the goal. */
+  currentTrendKg: number;
+  /** The most recent raw weigh-in, shown alongside so the card matches the scale. */
+  currentActualKg: number;
+  /** Where the goal line sits today, however long ago the last weigh-in was. */
+  projectedTodayKg: number;
+  /** Trend minus projection: negative is below the line. */
+  deltaKg: number;
+  /** Total change since the anchor, on the trend. */
+  totalChangeKg: number;
+  /** The rate actually being achieved, or null before there are two weigh-ins to fit. */
+  actualRateKgPerWeek: number | null;
+  /** The goal's own rate, signed to match `actualRateKgPerWeek`. */
+  goalRateKgPerWeek: number;
+}
+
+export interface GoalProgressInput {
+  /** The user's full weight history, any order. Smoothing needs all of it, not just the window. */
+  weightHistory: WeightPoint[];
+  profile: { goalStartDate?: string | null; goalStartWeightKg?: number | null } | null | undefined;
+  goalType: string | null;
+  goalWeeklyRateKg: number | null;
+  /** Earliest date to plot. Anything before it still feeds the trend, it just isn't drawn. */
+  windowStart: string;
+  /** Today as YYYY-MM-DD, passed in so the maths stays pure and testable. */
+  today: string;
 }
 
 /**
- * The daily weight change implied by a weekly goal: negative for loss, positive for gain, zero
- * for maintain. Returns null when the goal cannot imply one — no rate given, or a rate that is
- * zero or negative, which would describe a goal moving the wrong way.
- */
-export function getDailyGoalDelta(goalType: string | null, goalWeeklyRateKg: number | null): number | null {
-  if (goalType === GoalTypes.Maintain) return 0;
-  if (!goalWeeklyRateKg || goalWeeklyRateKg <= 0) return null;
-  if (goalType === GoalTypes.WeightLoss) return -(goalWeeklyRateKg / 7);
-  if (goalType === GoalTypes.WeightGain) return goalWeeklyRateKg / 7;
-  return null;
-}
-
-/**
- * The weight a week's projection starts from: the weigh-in on the Monday itself, or the most
- * recent one before it. Falls back to the newest entry of all when the whole history postdates
- * the week, so a user who only started weighing mid-week still gets a line to compare against.
+ * Builds the goal-progress chart and its headline figures.
  *
- * Expects `weightRows` sorted newest first.
+ * Two things make this differ from a plain week view, and both are deliberate:
+ *
+ * 1. The projection runs from a fixed anchor (see `resolveGoalAnchor`), not from the current
+ *    week's first weigh-in. A week that ends over target stays over target — it does not become
+ *    the next week's baseline, which is what used to let a month of misses still read "on track".
+ * 2. The goal is judged on the smoothed trend, not the raw reading. Daily scale noise is larger
+ *    than a week of goal progress, so comparing single readings mostly compares water.
+ *
+ * Smoothing runs over the whole history before the window is applied, so the line entering the
+ * window on the left is already warm rather than restarting at whatever that day's reading was.
+ *
+ * @returns null when there is no goal rate, no anchor, or no weigh-in inside the window.
  */
-export function getBaselineWeightForWeek(weightRows: WeightPoint[], weekStartDate: string): number | null {
-  const mondayWeightOrLast =
-    weightRows.find(row => row.date === weekStartDate || row.date < weekStartDate)?.value ?? null;
-  if (mondayWeightOrLast !== null) return mondayWeightOrLast;
-  return weightRows[0]?.value ?? null;
+export function buildGoalProgressView(input: GoalProgressInput): GoalProgressView | null {
+  const { weightHistory, profile, goalType, goalWeeklyRateKg, windowStart, today } = input;
+
+  const dailyDelta = dailyGoalDeltaKg(goalType, goalWeeklyRateKg);
+  if (dailyDelta === null) return null;
+
+  const anchor = resolveGoalAnchor(profile, weightHistory);
+  if (!anchor) return null;
+
+  const trend = buildWeightTrend(weightHistory);
+  const windowed = trend.filter(p => p.date >= windowStart && p.date <= today);
+  const latest = windowed.at(-1) ?? trend.at(-1);
+  if (!latest) return null;
+
+  const points: GoalProgressPoint[] = windowed.map(p => ({
+    date: p.date,
+    label: p.date.slice(5),
+    actual: p.value,
+    trend: p.trend,
+    projected: projectedWeightOn(anchor, dailyDelta, p.date),
+  }));
+
+  const projectedTodayKg = projectedWeightOn(anchor, dailyDelta, today);
+
+  return {
+    points,
+    anchor,
+    currentTrendKg: latest.trend,
+    currentActualKg: latest.value,
+    projectedTodayKg,
+    deltaKg: latest.trend - projectedTodayKg,
+    totalChangeKg: latest.trend - anchor.weightKg,
+    actualRateKgPerWeek: trendRateKgPerWeek(windowed),
+    goalRateKgPerWeek: dailyDelta * 7,
+  };
 }
 
 /**
- * The weight recorded on `date`. With `nearestIfNone`, an absent entry falls back to the most
- * recent earlier one instead of leaving a gap — used for the first day of a week, where the line
- * has to start somewhere, while later days stay null so the chart shows the gap honestly.
+ * Weekly averages of a weigh-in series, oldest first, labelled by the week's first date.
  *
- * Expects `weightRows` sorted newest first.
+ * A year of daily weigh-ins drawn point-per-day is an unreadable smear on a phone; one point per
+ * week keeps the shape of the trend while staying legible. Only used above a threshold — short
+ * ranges are plotted as recorded.
  */
-export function findPastWeight(weightRows: WeightPoint[], date: string, nearestIfNone = false): number | null {
-  for (const row of weightRows) {
-    if (nearestIfNone && row.date <= date) return row.value;
-    if (row.date === date) return row.value;
+export function averageWeeklyWeights(samples: WeightPoint[]): WeightPoint[] {
+  const ordered = [...samples].sort((a, b) => a.date.localeCompare(b.date));
+  const first = ordered[0];
+  if (!first) return [];
+
+  const buckets = new Map<number, { date: string; sum: number; count: number }>();
+  for (const sample of ordered) {
+    const week = Math.floor(daysBetweenDateStr(first.date, sample.date) / 7);
+    const bucket = buckets.get(week);
+    if (bucket) {
+      bucket.sum += sample.value;
+      bucket.count += 1;
+    } else {
+      buckets.set(week, { date: sample.date, sum: sample.value, count: 1 });
+    }
   }
-  return null;
+
+  return [...buckets.values()].map(b => ({ date: b.date, value: b.sum / b.count }));
 }
 
 /**

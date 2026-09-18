@@ -1,142 +1,173 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { ComposedChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
-import { Card } from '@/components';
 import type { TooltipContentProps, TooltipPayloadEntry } from 'recharts';
+import { Card } from '@/components';
 import { GoalTypes } from '@my-hub/shared/constants';
-import { findPastWeight, getBaselineWeightForWeek, getDailyGoalDelta, type WeightPoint } from './calories.utils';
-
-interface DayData {
-  date: string;
-  label: string;
-}
+import { isAheadOfGoal } from '@my-hub/shared/utils';
+import { buildGoalProgressView, type GoalProgressView, type WeightPoint } from './calories.utils';
+import { DEFAULT_GOAL_RANGE, GOAL_RANGE_KEYS, WEIGHT_RANGE_OPTIONS, type WeightRangeKey } from './constants';
+import { RangeChips } from './ui';
 
 type GoalProgressCardProps = {
-  days: DayData[];
   weightHistory: WeightPoint[];
   goalType: string | null;
   goalWeeklyRateKg: number | null;
+  /** The stored goal baseline. Absent fields fall back to an inferred anchor, flagged in the UI. */
+  goalStartDate: string | null;
+  goalStartWeightKg: number | null;
+  /** Stamps a fresh baseline at today's trend weight. */
+  onResetBaseline: () => void;
+  canReset: boolean;
 };
+
+const SERIES_LABELS: Record<string, string> = {
+  trend: 'Trend',
+  actual: 'Weigh-in',
+  projected: 'Goal',
+};
+
+const fmtKg = (value: number) => `${value.toFixed(1)} kg`;
+const fmtRate = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(2)} kg/wk`;
 
 function CustomTooltip({ active, payload, label }: TooltipContentProps<number, string>) {
   if (!active || !payload?.length) return null;
   const date = (payload[0] as { payload?: { date?: string } })?.payload?.date ?? label;
 
   return (
-    <div
-      style={{
-        background: 'var(--card2)',
-        border: '1px solid var(--border)',
-        borderRadius: 8,
-        padding: '8px 12px',
-        fontSize: 13,
-        color: 'var(--text)',
-      }}
-    >
-      <p style={{ color: 'var(--muted)', marginBottom: 4 }}>{String(date)}</p>
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--card2)] px-3 py-2 text-[13px] text-[var(--text)]">
+      <p className="mb-1 text-[var(--muted)]">{String(date)}</p>
       {payload.map((entry: TooltipPayloadEntry) => (
-        <p
-          key={entry.name as string}
-          style={{ color: (entry.color as string | undefined) ?? 'var(--text)', marginBottom: 2 }}
-        >
-          {entry.name === 'actual' ? 'Actual' : 'Projected'}:{' '}
-          <strong>{entry.value != null ? `${(entry.value as number).toFixed(1)} kg` : '—'}</strong>
+        <p key={entry.name as string} className="mb-0.5" style={{ color: (entry.color as string) ?? 'var(--text)' }}>
+          {SERIES_LABELS[entry.name as string] ?? (entry.name as string)}:{' '}
+          <strong>{entry.value != null ? fmtKg(entry.value as number) : '—'}</strong>
         </p>
       ))}
     </div>
   );
 }
 
-export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRateKg }: GoalProgressCardProps) {
-  if (days.length === 0 || !goalType) return null;
+/**
+ * How the current position reads against the goal line, as text plus the colour to say it in.
+ * Kept separate from the chart maths because it is purely how the number is phrased.
+ */
+function summariseDelta(goalType: string | null, deltaKg: number): { text: string; color: string } {
+  if (Math.abs(deltaKg) < 0.1) return { text: 'On track', color: 'text-[var(--muted)]' };
 
-  const dailyDelta = getDailyGoalDelta(goalType, goalWeeklyRateKg);
-  if (dailyDelta === null) return null;
-
-  const orderedWeights = [...weightHistory].sort((a, b) => b.date.localeCompare(a.date));
-  const weekStart = days[0]!.date;
-  const baselineWeight = getBaselineWeightForWeek(orderedWeights, weekStart);
-  if (baselineWeight === null) {
-    return <p className="px-1 text-xs text-[var(--subtle)]">Weekly goal progress — no recent weight data available.</p>;
+  const ahead = isAheadOfGoal(goalType, deltaKg);
+  if (ahead === null) {
+    return {
+      text: deltaKg > 0 ? `${fmtKg(deltaKg)} above target` : `${fmtKg(Math.abs(deltaKg))} below target`,
+      color: 'text-[var(--amber)]',
+    };
   }
 
-  const today = new Date().toISOString().split('T')[0] ?? '';
+  const noun = goalType === GoalTypes.WeightLoss ? 'loss' : 'gain';
+  return {
+    text: `${fmtKg(Math.abs(deltaKg))} ${ahead ? 'ahead of' : 'behind'} ${noun} goal`,
+    color: ahead ? 'text-[var(--green)]' : 'text-[var(--red)]',
+  };
+}
 
-  const chartData = days.map(({ date, label }, index) => {
-    const projected = baselineWeight + dailyDelta * index;
-    const isFirstDay = index === 0;
-    const actual = date <= today ? findPastWeight(orderedWeights, date, isFirstDay) : null;
-    return { date, label, actual, projected };
-  });
+/** The y-domain, padded so the lines never touch the frame. */
+function chartDomain(view: GoalProgressView): [number, number] {
+  const values = view.points.flatMap(p => [p.actual, p.trend, p.projected]);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = Math.max(max - min, 0.4);
+  return [Math.floor((min - range * 0.15) * 10) / 10, Math.ceil((max + range * 0.15) * 10) / 10];
+}
 
-  const lastPastIndex = days.reduce((idx, d, i) => (d.date <= today ? i : idx), -1);
-  const lastPastPoint = lastPastIndex >= 0 ? chartData[lastPastIndex] : null;
-  const delta =
-    lastPastPoint && lastPastPoint.actual !== null ? (lastPastPoint.actual as number) - lastPastPoint.projected : null;
+export function GoalProgressCard({
+  weightHistory,
+  goalType,
+  goalWeeklyRateKg,
+  goalStartDate,
+  goalStartWeightKg,
+  onResetBaseline,
+  canReset,
+}: GoalProgressCardProps) {
+  const [range, setRange] = useState<WeightRangeKey>(DEFAULT_GOAL_RANGE);
 
-  const values = chartData.flatMap(d => [d.projected, d.actual ?? d.projected]);
-  const minVal = Math.min(...values);
-  const maxVal = Math.max(...values);
-  const range = Math.max(maxVal - minVal, 0.4);
-  const minDisplayValue = Math.floor((minVal - range * 0.2) * 10) / 10;
-  const maxDisplayValue = Math.ceil((maxVal + range * 0.2) * 10) / 10;
-  const numDigits = String(maxDisplayValue).length;
-  const yAxisWidth = numDigits >= 5 ? 56 : 46;
-  const leftMargin = numDigits >= 5 ? -6 : -16;
+  const rangeOptions = useMemo(() => WEIGHT_RANGE_OPTIONS.filter(option => GOAL_RANGE_KEYS.includes(option.key)), []);
 
-  let summaryColor = 'text-[var(--muted)]';
-  let summaryText = 'No weight data yet';
-  if (delta !== null) {
-    if (Math.abs(delta) < 0.1) {
-      summaryText = 'On track';
-    } else if (goalType === GoalTypes.WeightLoss) {
-      const ahead = delta < 0;
-      summaryColor = ahead ? 'text-[var(--green)]' : 'text-[var(--red)]';
-      summaryText = ahead
-        ? `${Math.abs(delta).toFixed(1)} kg ahead of loss goal`
-        : `${delta.toFixed(1)} kg behind loss goal`;
-    } else if (goalType === GoalTypes.WeightGain) {
-      const ahead = delta > 0;
-      summaryColor = ahead ? 'text-[var(--green)]' : 'text-[var(--red)]';
-      summaryText = ahead
-        ? `${delta.toFixed(1)} kg ahead of gain goal`
-        : `${Math.abs(delta).toFixed(1)} kg behind gain goal`;
-    } else {
-      summaryColor = 'text-[var(--amber)]';
-      summaryText =
-        delta > 0
-          ? `${delta.toFixed(1)} kg above maintain target`
-          : `${Math.abs(delta).toFixed(1)} kg below maintain target`;
-    }
+  const view = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const days = WEIGHT_RANGE_OPTIONS.find(o => o.key === range)?.days ?? null;
+    const windowStart =
+      days === null
+        ? (goalStartDate ?? '0000-01-01')
+        : new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+
+    return buildGoalProgressView({
+      weightHistory,
+      profile: { goalStartDate, goalStartWeightKg },
+      goalType,
+      goalWeeklyRateKg,
+      windowStart,
+      today,
+    });
+  }, [weightHistory, goalType, goalWeeklyRateKg, goalStartDate, goalStartWeightKg, range]);
+
+  if (!goalType) return null;
+
+  const header = (
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Goal progress</h2>
+      <RangeChips options={rangeOptions} value={range} onChange={setRange} ariaLabel="Goal progress range" />
+    </div>
+  );
+
+  if (!view) {
+    return (
+      <Card className="p-5">
+        {header}
+        <p className="text-xs text-[var(--subtle)]">
+          {goalWeeklyRateKg ? 'No weigh-ins in this range yet.' : 'Set a weekly goal rate to track progress.'}
+        </p>
+      </Card>
+    );
   }
 
-  const actualNow = lastPastPoint?.actual ?? null;
-  const projectedNow = lastPastPoint?.projected ?? null;
+  const summary = summariseDelta(goalType, view.deltaKg);
+  const domain = chartDomain(view);
+  const showDots = view.points.length <= 40;
+  // Sized from the formatted tick, decimal included: the domain is rounded to 0.1, so ticks read
+  // "91.9", not "92", and measuring the integer part alone clipped the leading digit off every one.
+  const axisWidth = Math.max(40, domain[1].toFixed(1).length * 8 + 14);
 
   return (
     <Card className="p-5">
-      <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">
-        Weekly goal progress
-      </h2>
-      <div className="mb-3 flex items-baseline gap-2">
+      {header}
+
+      <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="text-sm text-[var(--muted)]">
-          <span className="font-semibold text-[var(--text)]">
-            {actualNow !== null ? `${(actualNow as number).toFixed(1)} kg` : '—'}
-          </span>{' '}
-          / {projectedNow !== null ? `${(projectedNow as number).toFixed(1)} kg` : '—'} projected
+          <span className="font-semibold text-[var(--text)]">{fmtKg(view.currentTrendKg)}</span> trend /{' '}
+          {fmtKg(view.projectedTodayKg)} target
         </span>
-        {lastPastIndex >= 0 && <span className={`text-xs font-medium ${summaryColor}`}>{summaryText}</span>}
+        <span className={`text-xs font-medium ${summary.color}`}>{summary.text}</span>
       </div>
+
+      <p className="mb-3 text-[11px] text-[var(--subtle)]">
+        {fmtKg(view.currentActualKg)} last weigh-in ·{' '}
+        {view.actualRateKgPerWeek !== null
+          ? `${fmtRate(view.actualRateKgPerWeek)} actual vs ${fmtRate(view.goalRateKgPerWeek)} goal`
+          : `goal ${fmtRate(view.goalRateKgPerWeek)}`}{' '}
+        · {view.totalChangeKg <= 0 ? '' : '+'}
+        {view.totalChangeKg.toFixed(1)} kg since {view.anchor.date}
+      </p>
+
       <div className="h-52">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 8, right: 4, bottom: 0, left: leftMargin }}>
-            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--subtle)', fontSize: 12 }} />
+          <ComposedChart data={view.points} margin={{ top: 8, right: 4, bottom: 0, left: -8 }}>
+            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--subtle)', fontSize: 11 }} />
             <YAxis
               axisLine={false}
               tickLine={false}
               tick={{ fill: 'var(--subtle)', fontSize: 11 }}
-              domain={[minDisplayValue, maxDisplayValue]}
-              width={yAxisWidth}
+              domain={domain}
+              width={axisWidth}
             />
             <RechartsTooltip
               cursor={{ fill: 'rgba(255,255,255,0.04)' }}
@@ -153,15 +184,27 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
             />
             <Legend
               wrapperStyle={{ fontSize: 11, color: 'var(--muted)', paddingTop: 4 }}
-              formatter={value => (value === 'actual' ? 'Actual' : 'Projected')}
+              formatter={value => SERIES_LABELS[value as string] ?? value}
             />
+            {/* Raw weigh-ins, deliberately faint: they are context for the trend, not the verdict. */}
             <Line
               dataKey="actual"
               name="actual"
               type="monotone"
+              stroke="var(--subtle)"
+              strokeWidth={1}
+              strokeOpacity={0.55}
+              dot={showDots ? { fill: 'var(--subtle)', r: 2, strokeWidth: 0 } : false}
+              activeDot={{ r: 4, fill: 'var(--subtle)' }}
+              connectNulls
+            />
+            <Line
+              dataKey="trend"
+              name="trend"
+              type="monotone"
               stroke="var(--accent)"
-              strokeWidth={2}
-              dot={{ fill: 'var(--accent)', r: 3, strokeWidth: 0 }}
+              strokeWidth={2.5}
+              dot={false}
               activeDot={{ r: 5, fill: 'var(--accent)' }}
               connectNulls
             />
@@ -177,6 +220,23 @@ export function GoalProgressCard({ days, weightHistory, goalType, goalWeeklyRate
             />
           </ComposedChart>
         </ResponsiveContainer>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--subtle)]">
+        <span>
+          {view.anchor.source === 'inferred'
+            ? `Baseline estimated from your earliest weigh-in (${view.anchor.date}).`
+            : `Goal started ${view.anchor.date} at ${fmtKg(view.anchor.weightKg)}.`}
+        </span>
+        {canReset && (
+          <button
+            type="button"
+            onClick={onResetBaseline}
+            className="rounded-md border border-[var(--border)] px-2 py-1 text-[11px] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          >
+            Restart from today
+          </button>
+        )}
       </div>
     </Card>
   );

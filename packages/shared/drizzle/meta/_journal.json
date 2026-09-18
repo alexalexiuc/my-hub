@@ -141,6 +141,20 @@
       "when": 1789459017128,
       "tag": "0019_orange_ghost_rider",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789711501897,
+      "tag": "0020_tired_blink",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789711513481,
+      "tag": "0021_backfill_calorie_goal_baseline",
+      "breakpoints": true
     }
   ]
 }

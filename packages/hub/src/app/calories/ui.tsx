@@ -38,6 +38,47 @@ export function PeriodNav({
   );
 }
 
+/**
+ * Segmented range picker for the weight charts ("4W / 8W / 12W / All"). A row of chips rather
+ * than the prev/next stepper above: these are window widths, not successive periods, so stepping
+ * through them one at a time would be the wrong gesture.
+ */
+export function RangeChips<T extends string>({
+  options,
+  value,
+  onChange,
+  ariaLabel,
+}: {
+  options: readonly { key: T; label: string }[];
+  value: T;
+  onChange: (key: T) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <div role="group" aria-label={ariaLabel} className="flex items-center gap-1">
+      {options.map(option => {
+        const selected = option.key === value;
+        return (
+          <button
+            key={option.key}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onChange(option.key)}
+            className={cn(
+              'rounded-md px-2 py-1 text-[11px] font-medium transition-colors',
+              selected
+                ? 'bg-[var(--accent)] text-[var(--on-accent)]'
+                : 'text-[var(--subtle)] hover:bg-[var(--card2)] hover:text-[var(--text)]',
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function FieldCard({
   label,
   error,
