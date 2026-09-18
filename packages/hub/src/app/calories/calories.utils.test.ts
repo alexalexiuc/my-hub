@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  averageWeeklyWeights,
+  buildGoalProgressView,
   calcCalorieDonutState,
-  findPastWeight,
   formatDateLabel,
-  getBaselineWeightForWeek,
-  getDailyGoalDelta,
   groupByMealType,
   intakeBarColor,
   shiftDate,
@@ -95,79 +94,193 @@ describe('calcCalorieDonutState', () => {
   });
 });
 
-describe('getDailyGoalDelta', () => {
-  it('spreads a weekly loss rate over seven days, as a negative', () => {
-    expect(getDailyGoalDelta('weight_loss', 0.7)).toBeCloseTo(-0.1);
+describe('buildGoalProgressView', () => {
+  const anchor = { goalStartDate: '2026-09-07', goalStartWeightKg: 90 };
+
+  /** A daily weigh-in series starting at `from`, each day `step` kg off the last. */
+  const series = (from: string, start: number, step: number, days: number) =>
+    Array.from({ length: days }, (_, i) => ({
+      date: shiftDate(from, i),
+      value: parseFloat((start + step * i).toFixed(3)),
+    }));
+
+  it('projects cumulatively, so a missed week is carried rather than forgiven', () => {
+    // Two weeks of a 1 kg/week loss goal from 90 kg. Week one ended heavy at 91 (a hard weekend),
+    // week two drifted back to 90.8. The old week-rebased card reset to 91 and called the second
+    // week's target 90; anchored to the goal, the target after 14 days is 88.
+    const view = buildGoalProgressView({
+      weightHistory: [
+        { date: '2026-09-07', value: 90 },
+        { date: '2026-09-14', value: 91 },
+        { date: '2026-09-21', value: 90.8 },
+      ],
+      profile: anchor,
+      goalType: 'weight_loss',
+      goalWeeklyRateKg: 1,
+      windowStart: '2026-09-07',
+      today: '2026-09-21',
+    });
+
+    expect(view!.projectedTodayKg).toBeCloseTo(88);
+    expect(view!.deltaKg).toBeGreaterThan(0); // behind, and honest about it
+    expect(view!.anchor).toEqual({ date: '2026-09-07', weightKg: 90, source: 'profile' });
   });
 
-  it('spreads a weekly gain rate as a positive', () => {
-    expect(getDailyGoalDelta('weight_gain', 0.7)).toBeCloseTo(0.1);
+  it('judges the goal on the smoothed trend, not the latest reading', () => {
+    // Three flat weeks at 90, then one water-weight day at 92.
+    const flat = series('2026-09-07', 90, 0, 21);
+    const view = buildGoalProgressView({
+      weightHistory: [...flat, { date: shiftDate('2026-09-07', 21), value: 92 }],
+      profile: { goalStartDate: '2026-09-07', goalStartWeightKg: 90 },
+      goalType: 'maintain',
+      goalWeeklyRateKg: null,
+      windowStart: '2026-09-07',
+      today: shiftDate('2026-09-07', 21),
+    });
+
+    expect(view!.currentActualKg).toBe(92);
+    // 2 kg on the scale moves the verdict by 0.2 kg, not 2.
+    expect(view!.currentTrendKg).toBeCloseTo(90.2, 1);
+    expect(Math.abs(view!.deltaKg)).toBeLessThan(0.3);
   });
 
-  it('is flat for a maintain goal, with or without a rate', () => {
-    expect(getDailyGoalDelta('maintain', null)).toBe(0);
-    expect(getDailyGoalDelta('maintain', 0.5)).toBe(0);
+  it('enters the window with a warm trend rather than restarting at the first day in view', () => {
+    // A month at 96 then a week at 94: a window opening at the drop must not treat 94 as the
+    // trend, or every range change would re-baseline the smoothing.
+    const history = [...series('2026-08-01', 96, 0, 30), ...series('2026-08-31', 94, 0, 7)];
+    const view = buildGoalProgressView({
+      weightHistory: history,
+      profile: { goalStartDate: '2026-08-01', goalStartWeightKg: 96 },
+      goalType: 'weight_loss',
+      goalWeeklyRateKg: 0.5,
+      windowStart: '2026-08-31',
+      today: '2026-09-06',
+    });
+
+    expect(view!.points[0]!.date).toBe('2026-08-31');
+    // Still on its way down from 96, not sitting at 94.
+    expect(view!.points[0]!.trend).toBeGreaterThan(95);
+    expect(view!.points[0]!.actual).toBe(94);
   });
 
-  it('has no answer when the rate is missing, zero or negative', () => {
-    expect(getDailyGoalDelta('weight_loss', null)).toBeNull();
-    expect(getDailyGoalDelta('weight_loss', 0)).toBeNull();
-    // A negative rate would describe a loss goal that gains — refuse rather than invert it.
-    expect(getDailyGoalDelta('weight_loss', -0.5)).toBeNull();
+  it('reports the achieved rate alongside the goal rate, both signed', () => {
+    const view = buildGoalProgressView({
+      weightHistory: series('2026-09-07', 90, -0.1, 28),
+      profile: { goalStartDate: '2026-09-07', goalStartWeightKg: 90 },
+      goalType: 'weight_loss',
+      goalWeeklyRateKg: 1,
+      windowStart: '2026-09-07',
+      today: shiftDate('2026-09-07', 27),
+    });
+
+    expect(view!.goalRateKgPerWeek).toBeCloseTo(-1);
+    // Losing 0.1 kg/day is 0.7 kg/week; the EMA lags, so allow a loose band.
+    expect(view!.actualRateKgPerWeek!).toBeGreaterThan(-0.75);
+    expect(view!.actualRateKgPerWeek!).toBeLessThan(-0.5);
   });
 
-  it('has no answer for an unset or unknown goal', () => {
-    expect(getDailyGoalDelta(null, 0.5)).toBeNull();
-    expect(getDailyGoalDelta('bulk', 0.5)).toBeNull();
+  it('measures total change against the anchor, not the window', () => {
+    const view = buildGoalProgressView({
+      weightHistory: series('2026-09-07', 90, -0.1, 28),
+      profile: { goalStartDate: '2026-09-07', goalStartWeightKg: 90 },
+      goalType: 'weight_loss',
+      goalWeeklyRateKg: 1,
+      windowStart: shiftDate('2026-09-07', 21), // last week only
+      today: shiftDate('2026-09-07', 27),
+    });
+
+    expect(view!.points).toHaveLength(7);
+    // The trend is ~1.85 kg below the anchor after four weeks (it lags the raw 2.7 kg drop).
+    // Window-scoped it would read about 0.5 kg — the week on screen — so this distinguishes them.
+    expect(view!.totalChangeKg).toBeLessThan(-1.5);
+  });
+
+  it('falls back to an inferred anchor when the profile has no baseline, and says so', () => {
+    const view = buildGoalProgressView({
+      weightHistory: [
+        { date: '2026-09-01', value: 97 },
+        { date: '2026-09-08', value: 96 },
+      ],
+      profile: null,
+      goalType: 'weight_loss',
+      goalWeeklyRateKg: 1,
+      windowStart: '2026-09-01',
+      today: '2026-09-08',
+    });
+
+    expect(view!.anchor).toEqual({ date: '2026-09-01', weightKg: 97, source: 'inferred' });
+  });
+
+  it('has nothing to draw without a usable goal, anchor or weigh-in', () => {
+    const base = {
+      weightHistory: [{ date: '2026-09-08', value: 96 }],
+      profile: anchor,
+      goalType: 'weight_loss',
+      goalWeeklyRateKg: 1,
+      windowStart: '2026-09-01',
+      today: '2026-09-08',
+    };
+
+    expect(buildGoalProgressView({ ...base, goalWeeklyRateKg: null })).toBeNull();
+    expect(buildGoalProgressView({ ...base, goalType: null })).toBeNull();
+    expect(buildGoalProgressView({ ...base, weightHistory: [], profile: null })).toBeNull();
+  });
+
+  it('ignores weigh-ins dated after today', () => {
+    const view = buildGoalProgressView({
+      weightHistory: [
+        { date: '2026-09-08', value: 96 },
+        { date: '2026-09-30', value: 95 },
+      ],
+      profile: anchor,
+      goalType: 'weight_loss',
+      goalWeeklyRateKg: 1,
+      windowStart: '2026-09-01',
+      today: '2026-09-08',
+    });
+
+    expect(view!.points.map(p => p.date)).toEqual(['2026-09-08']);
   });
 });
 
-describe('getBaselineWeightForWeek', () => {
-  // Sorted newest first, as the component sorts them.
-  const rows = [
-    { date: '2026-08-05', value: 76 },
-    { date: '2026-08-03', value: 77 },
-    { date: '2026-07-28', value: 78 },
-  ];
+describe('averageWeeklyWeights', () => {
+  it('collapses each seven-day block to its mean, labelled by that block’s first date', () => {
+    const samples = Array.from({ length: 14 }, (_, i) => ({
+      date: shiftDate('2026-09-07', i),
+      value: i < 7 ? 96 : 94,
+    }));
 
-  it('prefers the weigh-in on the week start itself', () => {
-    expect(getBaselineWeightForWeek(rows, '2026-08-03')).toBe(77);
+    expect(averageWeeklyWeights(samples)).toEqual([
+      { date: '2026-09-07', value: 96 },
+      { date: '2026-09-14', value: 94 },
+    ]);
   });
 
-  it('falls back to the most recent weigh-in before the week', () => {
-    expect(getBaselineWeightForWeek(rows, '2026-08-04')).toBe(77);
+  it('buckets by date, so a gap week does not shift later blocks', () => {
+    const result = averageWeeklyWeights([
+      { date: '2026-09-07', value: 96 },
+      // nothing at all in the second week
+      { date: '2026-09-21', value: 94 },
+    ]);
+
+    expect(result).toEqual([
+      { date: '2026-09-07', value: 96 },
+      { date: '2026-09-21', value: 94 },
+    ]);
   });
 
-  it('uses the newest entry when the whole history postdates the week', () => {
-    // Someone who only started weighing mid-week still gets a line to compare against.
-    expect(getBaselineWeightForWeek(rows, '2026-07-01')).toBe(76);
+  it('sorts before bucketing and leaves the input alone', () => {
+    const samples = [
+      { date: '2026-09-14', value: 94 },
+      { date: '2026-09-07', value: 96 },
+    ];
+
+    expect(averageWeeklyWeights(samples)[0]).toEqual({ date: '2026-09-07', value: 96 });
+    expect(samples[0]!.date).toBe('2026-09-14');
   });
 
-  it('returns null when there is no weight history at all', () => {
-    expect(getBaselineWeightForWeek([], '2026-08-03')).toBeNull();
-  });
-});
-
-describe('findPastWeight', () => {
-  const rows = [
-    { date: '2026-08-05', value: 76 },
-    { date: '2026-08-03', value: 77 },
-  ];
-
-  it('returns the exact day’s weight', () => {
-    expect(findPastWeight(rows, '2026-08-03')).toBe(77);
-  });
-
-  it('leaves a gap for a day with no weigh-in', () => {
-    expect(findPastWeight(rows, '2026-08-04')).toBeNull();
-  });
-
-  it('falls back to the most recent earlier weigh-in only when asked', () => {
-    expect(findPastWeight(rows, '2026-08-04', true)).toBe(77);
-  });
-
-  it('has nothing to fall back to before the first entry', () => {
-    expect(findPastWeight(rows, '2026-08-01', true)).toBeNull();
+  it('has nothing to average for an empty series', () => {
+    expect(averageWeeklyWeights([])).toEqual([]);
   });
 });
 

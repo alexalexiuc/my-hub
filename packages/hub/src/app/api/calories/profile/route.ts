@@ -10,6 +10,14 @@ const ProfileUpdateSchema = z.object({
   activityLevel: z.enum(ActivityLevelsValues as [string, ...string[]]).optional(),
   goalType: z.enum(GoalTypesValues as [string, ...string[]]).optional(),
   goalWeeklyRateKg: z.number().optional(),
+  // The goal projection's fixed anchor. Normally stamped by `upsertCalorieProfile` when the goal
+  // changes; accepted here so the Progress card's "restart from today" can move it deliberately.
+  goalStartDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
+  goalStartWeightKg: z.number().positive().nullable().optional(),
   goalMinCalories: z.number().int().nonnegative().nullable().optional(),
   goalMaxCalories: z.number().int().nonnegative().nullable().optional(),
   goalProtein: z.number().nonnegative().nullable().optional(),

@@ -19,6 +19,8 @@ export function rowToProfile(row: CalorieProfile): BodyProfile {
       activityLevel: row.activityLevel,
       goalType: row.goalType,
       goalWeeklyRateKg: row.goalWeeklyRateKg,
+      goalStartDate: row.goalStartDate,
+      goalStartWeightKg: row.goalStartWeightKg,
       goalMinCalories: row.goalMinCalories,
       goalMaxCalories: row.goalMaxCalories,
       goalProtein: row.goalProtein,

@@ -10,6 +10,8 @@ export interface BodyProfile {
   activityLevel?: ActivityLevel;
   goalType?: GoalType;
   goalWeeklyRateKg?: number; // kg/week for loss or gain
+  goalStartDate?: string; // YYYY-MM-DD the current goal run began — the projection's fixed anchor
+  goalStartWeightKg?: number; // weight at goalStartDate, in kg
   goalMinCalories?: number; // explicit daily minimum floor
   goalMaxCalories?: number; // explicit daily maximum ceiling
   goalProtein?: number; // daily protein target in grams

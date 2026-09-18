@@ -7,4 +7,5 @@ export * from './logger';
 export * from './objects';
 export * from './portfolio';
 export * from './travel';
+export * from './weight-goal';
 export * from './withBackoffRetry';
