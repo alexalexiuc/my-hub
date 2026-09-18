@@ -175,6 +175,7 @@ export default function ProgressPage() {
         goalWeeklyRateKg={profile?.goalWeeklyRateKg ?? null}
         goalStartDate={profile?.goalStartDate ?? null}
         goalStartWeightKg={profile?.goalStartWeightKg ?? null}
+        goalTargetWeightKg={profile?.goalTargetWeightKg ?? null}
         onResetBaseline={resetGoalBaseline}
         canReset={weightSamples.length > 0}
       />

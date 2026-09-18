@@ -3,10 +3,10 @@
 import { useMemo, useState } from 'react';
 import { ComposedChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import type { TooltipContentProps, TooltipPayloadEntry } from 'recharts';
-import { Card } from '@/components';
+import { Card, ProgressBar } from '@/components';
 import { GoalTypes } from '@my-hub/shared/constants';
 import { isAheadOfGoal } from '@my-hub/shared/utils';
-import { buildGoalProgressView, type GoalProgressView, type WeightPoint } from './calories.utils';
+import { buildGoalProgressView, formatEtaDate, type GoalProgressView, type WeightPoint } from './calories.utils';
 import { DEFAULT_GOAL_RANGE, GOAL_RANGE_KEYS, WEIGHT_RANGE_OPTIONS, type WeightRangeKey } from './constants';
 import { RangeChips } from './ui';
 
@@ -17,6 +17,8 @@ type GoalProgressCardProps = {
   /** The stored goal baseline. Absent fields fall back to an inferred anchor, flagged in the UI. */
   goalStartDate: string | null;
   goalStartWeightKg: number | null;
+  /** Optional finish line. Without it the card shows the rate only, with no journey bar or ETA. */
+  goalTargetWeightKg: number | null;
   /** Stamps a fresh baseline at today's trend weight. */
   onResetBaseline: () => void;
   canReset: boolean;
@@ -30,6 +32,7 @@ const SERIES_LABELS: Record<string, string> = {
 
 const fmtKg = (value: number) => `${value.toFixed(1)} kg`;
 const fmtRate = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(2)} kg/wk`;
+const fmtSignedKg = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)} kg`;
 
 function CustomTooltip({ active, payload, label }: TooltipContentProps<number, string>) {
   if (!active || !payload?.length) return null;
@@ -85,6 +88,7 @@ export function GoalProgressCard({
   goalWeeklyRateKg,
   goalStartDate,
   goalStartWeightKg,
+  goalTargetWeightKg,
   onResetBaseline,
   canReset,
 }: GoalProgressCardProps) {
@@ -105,10 +109,11 @@ export function GoalProgressCard({
       profile: { goalStartDate, goalStartWeightKg },
       goalType,
       goalWeeklyRateKg,
+      goalTargetWeightKg,
       windowStart,
       today,
     });
-  }, [weightHistory, goalType, goalWeeklyRateKg, goalStartDate, goalStartWeightKg, range]);
+  }, [weightHistory, goalType, goalWeeklyRateKg, goalTargetWeightKg, goalStartDate, goalStartWeightKg, range]);
 
   if (!goalType) return null;
 
@@ -143,19 +148,37 @@ export function GoalProgressCard({
 
       <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="text-sm text-[var(--muted)]">
+          {/* "on plan" rather than "target": with a goal weight set, "target" would be ambiguous
+              between where the line sits today and the finish line itself. */}
           <span className="font-semibold text-[var(--text)]">{fmtKg(view.currentTrendKg)}</span> trend /{' '}
-          {fmtKg(view.projectedTodayKg)} target
+          {fmtKg(view.projectedTodayKg)} on plan
         </span>
         <span className={`text-xs font-medium ${summary.color}`}>{summary.text}</span>
       </div>
+
+      {view.journey && (
+        <div className="mb-2 mt-2">
+          <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-2 text-[11px]">
+            <span className="text-[var(--muted)]">
+              {fmtKg(Math.abs(view.journey.changedKg))} of {fmtKg(Math.abs(view.journey.totalKg))} to goal
+            </span>
+            <span className="text-[var(--subtle)]">
+              {fmtKg(Math.abs(view.journey.remainingKg))} to go · {Math.round(view.journey.pct)}%
+            </span>
+          </div>
+          {/* Thresholds off: they turn a bar amber at 80% and red at 100%, which is the opposite of
+              what nearly reaching a goal weight means. */}
+          <ProgressBar value={view.journey.pct} max={100} thresholds={false} color="var(--accent)" height={5} />
+        </div>
+      )}
 
       <p className="mb-3 text-[11px] text-[var(--subtle)]">
         {fmtKg(view.currentActualKg)} last weigh-in ·{' '}
         {view.actualRateKgPerWeek !== null
           ? `${fmtRate(view.actualRateKgPerWeek)} actual vs ${fmtRate(view.goalRateKgPerWeek)} goal`
-          : `goal ${fmtRate(view.goalRateKgPerWeek)}`}{' '}
-        · {view.totalChangeKg <= 0 ? '' : '+'}
-        {view.totalChangeKg.toFixed(1)} kg since {view.anchor.date}
+          : `goal ${fmtRate(view.goalRateKgPerWeek)}`}
+        {view.weeklyChangeKg !== null && ` · ${fmtSignedKg(view.weeklyChangeKg)} this week`} ·{' '}
+        {fmtSignedKg(view.totalChangeKg)} since {view.anchor.date}
       </p>
 
       <div className="h-52">
@@ -227,6 +250,12 @@ export function GoalProgressCard({
           {view.anchor.source === 'inferred'
             ? `Baseline estimated from your earliest weigh-in (${view.anchor.date}).`
             : `Goal started ${view.anchor.date} at ${fmtKg(view.anchor.weightKg)}.`}
+          {/* The plan's own date is shown alongside, because the gap between the two is the point:
+              it says how much the achieved rate is costing in time. */}
+          {view.etaAtActualRate && ` At this rate you reach it ${formatEtaDate(view.etaAtActualRate)}`}
+          {view.etaAtActualRate && view.etaAtGoalRate && ` (plan: ${formatEtaDate(view.etaAtGoalRate)})`}
+          {view.etaAtActualRate && '.'}
+          {!view.etaAtActualRate && view.journey && ' Not currently moving towards the goal weight.'}
         </span>
         {canReset && (
           <button

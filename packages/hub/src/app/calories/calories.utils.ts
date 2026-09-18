@@ -5,10 +5,15 @@ import {
   dailyGoalDeltaKg,
   dateToString,
   daysBetweenDateStr,
+  goalJourney,
+  projectGoalDate,
   projectedWeightOn,
   resolveGoalAnchor,
+  shiftDateStr,
+  trendOn,
   trendRateKgPerWeek,
   type GoalAnchor,
+  type GoalJourney,
   type WeightSample,
 } from '@my-hub/shared/utils';
 
@@ -45,6 +50,14 @@ export interface GoalProgressView {
   actualRateKgPerWeek: number | null;
   /** The goal's own rate, signed to match `actualRateKgPerWeek`. */
   goalRateKgPerWeek: number;
+  /** Trend movement over the last seven days — the week in isolation, as secondary context. */
+  weeklyChangeKg: number | null;
+  /** Distance covered towards a target weight, or null when no usable target is set. */
+  journey: GoalJourney | null;
+  /** When the target is reached at the rate actually being achieved. */
+  etaAtActualRate: string | null;
+  /** When the plan said the target would be reached. */
+  etaAtGoalRate: string | null;
 }
 
 export interface GoalProgressInput {
@@ -53,6 +66,8 @@ export interface GoalProgressInput {
   profile: { goalStartDate?: string | null; goalStartWeightKg?: number | null } | null | undefined;
   goalType: string | null;
   goalWeeklyRateKg: number | null;
+  /** Optional finish line. Absent leaves the goal an open-ended rate, as before. */
+  goalTargetWeightKg?: number | null;
   /** Earliest date to plot. Anything before it still feeds the trend, it just isn't drawn. */
   windowStart: string;
   /** Today as YYYY-MM-DD, passed in so the maths stays pure and testable. */
@@ -76,7 +91,7 @@ export interface GoalProgressInput {
  * @returns null when there is no goal rate, no anchor, or no weigh-in inside the window.
  */
 export function buildGoalProgressView(input: GoalProgressInput): GoalProgressView | null {
-  const { weightHistory, profile, goalType, goalWeeklyRateKg, windowStart, today } = input;
+  const { weightHistory, profile, goalType, goalWeeklyRateKg, goalTargetWeightKg, windowStart, today } = input;
 
   const dailyDelta = dailyGoalDeltaKg(goalType, goalWeeklyRateKg);
   if (dailyDelta === null) return null;
@@ -98,6 +113,16 @@ export function buildGoalProgressView(input: GoalProgressInput): GoalProgressVie
   }));
 
   const projectedTodayKg = projectedWeightOn(anchor, dailyDelta, today);
+  const actualRateKgPerWeek = trendRateKgPerWeek(windowed);
+  const goalRateKgPerWeek = dailyDelta * 7;
+
+  // Taken from the full trend rather than the window: a 4-week view still has seven days behind
+  // its left edge, and reading the week from the window would lose them at the boundary.
+  const weekAgoTrend = trendOn(trend, shiftDateStr(latest.date, -7));
+  const weeklyChangeKg = weekAgoTrend === null ? null : latest.trend - weekAgoTrend;
+
+  const journey =
+    goalTargetWeightKg == null ? null : goalJourney(anchor, goalTargetWeightKg, latest.trend, Math.sign(dailyDelta));
 
   return {
     points,
@@ -107,9 +132,32 @@ export function buildGoalProgressView(input: GoalProgressInput): GoalProgressVie
     projectedTodayKg,
     deltaKg: latest.trend - projectedTodayKg,
     totalChangeKg: latest.trend - anchor.weightKg,
-    actualRateKgPerWeek: trendRateKgPerWeek(windowed),
-    goalRateKgPerWeek: dailyDelta * 7,
+    actualRateKgPerWeek,
+    goalRateKgPerWeek,
+    weeklyChangeKg,
+    journey,
+    // Only meaningful once a target exists; without one there is no finish line to reach.
+    etaAtActualRate: journey ? projectGoalDate(latest.trend, goalTargetWeightKg!, actualRateKgPerWeek, today) : null,
+    etaAtGoalRate: journey ? projectGoalDate(latest.trend, goalTargetWeightKg!, goalRateKgPerWeek, today) : null,
   };
+}
+
+/**
+ * A goal-completion estimate as a month and year ("around Dec 2026"), or a month and day when it
+ * is close enough that the day means something.
+ *
+ * Deliberately coarser than the underlying date: the estimate divides a noisy achieved rate into a
+ * remaining distance, so printing "2026-12-02" would claim a precision the arithmetic does not
+ * have. Inside a month, the day is still useful and the error is small enough to survive it.
+ */
+export function formatEtaDate(date: string, today: string = dateToString(new Date())): string {
+  const parsed = new Date(`${date}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date;
+
+  const within60Days = daysBetweenDateStr(today, date) <= 60;
+  return within60Days
+    ? `around ${parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+    : `around ${parsed.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
 }
 
 /**

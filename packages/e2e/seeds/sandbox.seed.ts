@@ -97,6 +97,9 @@ async function seedCaloriesFixtures(userId: string): Promise<void> {
     goalWeeklyRateKg: 0.75,
     goalStartDate: weighIns[0]!.date,
     goalStartWeightKg: weighIns[0]!.value,
+    // Roughly two thirds of the way in, so the journey bar and the finish-date estimate both have
+    // something to show without the goal being nearly done.
+    goalTargetWeightKg: Math.round((weighIns[0]!.value - 9.5) * 10) / 10,
     gymDays: [0, 2, 4],
     gymTime: 'evening',
   });

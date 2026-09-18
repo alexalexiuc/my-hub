@@ -1,0 +1,1 @@
+ALTER TABLE "calorie_profiles" ADD COLUMN "goal_target_weight_kg" real;

@@ -70,6 +70,8 @@ const ProfileFormSchema = z.object({
   activityLevel: z.string(),
   goalType: z.string(),
   goalWeeklyRateKg: z.string(),
+  /** Optional finish line. Blank leaves the goal an open-ended rate with no progress bar or ETA. */
+  goalTargetWeightKg: z.string(),
   goalMinCalories: z.string(),
   goalMaxCalories: z.string(),
   goalProtein: z.string(),
@@ -92,6 +94,7 @@ function buildFormValues(profile: Props['profile'], weightKg: number | undefined
     activityLevel: profile?.activityLevel ?? '',
     goalType: profile?.goalType ?? '',
     goalWeeklyRateKg: profile?.goalWeeklyRateKg?.toString() ?? '',
+    goalTargetWeightKg: profile?.goalTargetWeightKg?.toString() ?? '',
     goalMinCalories: profile?.goalMinCalories?.toString() ?? '',
     goalMaxCalories: profile?.goalMaxCalories?.toString() ?? '',
     goalProtein: profile?.goalProtein?.toString() ?? '',
@@ -185,6 +188,8 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
         activityLevel: values.activityLevel || undefined,
         goalType: values.goalType || undefined,
         goalWeeklyRateKg: values.goalWeeklyRateKg ? Number(values.goalWeeklyRateKg) : undefined,
+        // Null rather than undefined, so clearing the field actually removes the finish line.
+        goalTargetWeightKg: values.goalTargetWeightKg ? Number(values.goalTargetWeightKg) : null,
         goalMinCalories: values.goalMinCalories ? Math.round(Number(values.goalMinCalories)) : null,
         goalMaxCalories: values.goalMaxCalories ? Math.round(Number(values.goalMaxCalories)) : null,
         goalProtein: values.goalProtein
@@ -310,10 +315,10 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
               </Select>
             </Field>
             <Field label="Height (cm)">
-              <Input type="number" placeholder="e.g. 175" {...register('heightCm')} />
+              <Input type="number" step="any" placeholder="e.g. 175" {...register('heightCm')} />
             </Field>
             <Field label="Weight (kg)">
-              <Input type="number" step="0.1" min="0" placeholder="e.g. 78" {...register('weightKg')} />
+              <Input type="number" step="any" min="0" placeholder="e.g. 78" {...register('weightKg')} />
               <span className="mt-1 block text-[11px] text-[var(--subtle)]">
                 Saved as today&apos;s weigh-in — calorie targets need it.
               </span>
@@ -365,7 +370,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
             />
             <div className="mt-2 flex flex-wrap gap-3">
               <Field label="Gym day calorie bonus" className="max-w-[160px]">
-                <Input type="number" step="1" min="0" placeholder="e.g. 300" {...register('gymDayCalorieBonus')} />
+                <Input type="number" step="any" min="0" placeholder="e.g. 300" {...register('gymDayCalorieBonus')} />
               </Field>
               {/* A band, not a clock time — it only decides which meals fall either side of the session */}
               <Field label="Training time" className="max-w-[160px]">
@@ -402,13 +407,32 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
             </Field>
             {showRate && (
               <Field label="Rate (kg/week)">
+                {/*
+                 * `step="any"` on every decimal field here is load-bearing, not cosmetic. A step of
+                 * 0.1 made a stored rate of 0.75 — which `calories_update_profile` accepts, and
+                 * which is a common choice — fail native constraint validation, and the browser
+                 * then blocks submit before React sees it: no error, no request, the whole profile
+                 * form silently unsaveable. The form must be able to save back whatever the rest of
+                 * the system stored, so it constrains range but never granularity.
+                 */}
                 <Input
                   type="number"
-                  step="0.1"
+                  step="any"
                   min="0.1"
                   max="2"
                   placeholder="e.g. 0.5"
                   {...register('goalWeeklyRateKg')}
+                />
+              </Field>
+            )}
+            {showRate && (
+              <Field label="Goal weight (kg)" className="col-span-2">
+                <Input
+                  type="number"
+                  step="any"
+                  min="0"
+                  placeholder="Optional \u2014 unlocks progress and an estimated finish date"
+                  {...register('goalTargetWeightKg')}
                 />
               </Field>
             )}

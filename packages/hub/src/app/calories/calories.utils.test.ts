@@ -4,6 +4,7 @@ import {
   buildGoalProgressView,
   calcCalorieDonutState,
   formatDateLabel,
+  formatEtaDate,
   groupByMealType,
   intakeBarColor,
   shiftDate,
@@ -240,6 +241,118 @@ describe('buildGoalProgressView', () => {
     });
 
     expect(view!.points.map(p => p.date)).toEqual(['2026-09-08']);
+  });
+});
+
+describe('buildGoalProgressView — goal weight', () => {
+  const daily = (from: string, start: number, step: number, days: number) =>
+    Array.from({ length: days }, (_, i) => ({
+      date: shiftDate(from, i),
+      value: parseFloat((start + step * i).toFixed(3)),
+    }));
+
+  const base = {
+    profile: { goalStartDate: '2026-09-07', goalStartWeightKg: 98 },
+    goalType: 'weight_loss',
+    goalWeeklyRateKg: 1,
+    windowStart: '2026-09-07',
+    today: shiftDate('2026-09-07', 27),
+  };
+
+  it('reports the journey and a finish date once a target is set', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-07', 98, -0.1, 28),
+      goalTargetWeightKg: 88,
+    })!;
+
+    expect(view.journey).not.toBeNull();
+    expect(view.journey!.totalKg).toBeCloseTo(-10);
+    // The trend lags the raw 2.7 kg drop, so roughly a fifth of a 10 kg journey.
+    expect(view.journey!.pct).toBeGreaterThan(10);
+    expect(view.journey!.pct).toBeLessThan(30);
+    expect(view.etaAtActualRate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(view.etaAtGoalRate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('arrives later than the plan when the achieved rate is slower than the goal', () => {
+    // Losing 0.1 kg/day is 0.7 kg/week against a 1 kg/week goal.
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-07', 98, -0.1, 28),
+      goalTargetWeightKg: 88,
+    })!;
+
+    expect(view.etaAtActualRate! > view.etaAtGoalRate!).toBe(true);
+  });
+
+  it('leaves the journey and both dates unset when no target is given', () => {
+    const view = buildGoalProgressView({ ...base, weightHistory: daily('2026-09-07', 98, -0.1, 28) })!;
+
+    expect(view.journey).toBeNull();
+    expect(view.etaAtActualRate).toBeNull();
+    expect(view.etaAtGoalRate).toBeNull();
+  });
+
+  it('ignores a target on the wrong side of the baseline for the goal direction', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-07', 98, -0.1, 28),
+      goalTargetWeightKg: 110, // a loss goal cannot finish above where it started
+    })!;
+
+    expect(view.journey).toBeNull();
+    expect(view.etaAtActualRate).toBeNull();
+  });
+
+  it('gives no finish date while the weight is moving away from the target', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-07', 98, 0.1, 28), // gaining, on a loss goal
+      goalTargetWeightKg: 88,
+    })!;
+
+    expect(view.journey!.pct).toBe(0);
+    expect(view.etaAtActualRate).toBeNull();
+  });
+
+  it('reports the last seven days separately from the run as a whole', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-07', 98, -0.1, 28),
+      goalTargetWeightKg: 88,
+    })!;
+
+    expect(view.weeklyChangeKg).toBeLessThan(0);
+    // One week of movement, not four — the two must not be the same number.
+    expect(Math.abs(view.weeklyChangeKg!)).toBeLessThan(Math.abs(view.totalChangeKg));
+  });
+
+  it('has no weekly figure when the history is shorter than a week', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-07', 98, -0.1, 3),
+      today: shiftDate('2026-09-07', 2),
+      goalTargetWeightKg: 88,
+    })!;
+
+    expect(view.weeklyChangeKg).toBeNull();
+  });
+});
+
+describe('formatEtaDate', () => {
+  it('names the day for a date inside the next two months', () => {
+    expect(formatEtaDate('2026-11-06', '2026-09-18')).toBe('around Nov 6');
+  });
+
+  // Past 60 days the estimate divides a noisy rate into a distance; naming a day would claim a
+  // precision the arithmetic does not have.
+  it('drops to month and year for anything further out', () => {
+    expect(formatEtaDate('2027-06-02', '2026-09-18')).toBe('around Jun 2027');
+  });
+
+  it('returns the input unchanged when it is not a date', () => {
+    expect(formatEtaDate('not-a-date', '2026-09-18')).toBe('not-a-date');
   });
 });
 

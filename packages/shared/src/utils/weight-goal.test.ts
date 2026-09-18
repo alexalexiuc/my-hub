@@ -3,9 +3,12 @@ import {
   buildWeightTrend,
   dailyGoalDeltaKg,
   daysBetweenDateStr,
+  goalJourney,
   isAheadOfGoal,
+  projectGoalDate,
   projectedWeightOn,
   resolveGoalAnchor,
+  trendOn,
   trendRateKgPerWeek,
   type GoalAnchor,
 } from './weight-goal';
@@ -223,6 +226,107 @@ describe('trendRateKgPerWeek', () => {
         { date: '2026-09-01', value: 97, trend: 97 },
       ]),
     ).toBeNull();
+  });
+});
+
+describe('trendOn', () => {
+  const points = buildWeightTrend(
+    [
+      { date: '2026-09-01', value: 98 },
+      { date: '2026-09-08', value: 96 },
+      { date: '2026-09-15', value: 95 },
+    ],
+    1,
+  );
+
+  it('returns the value on an exact date', () => {
+    expect(trendOn(points, '2026-09-08')).toBe(96);
+  });
+
+  it('falls back to the most recent earlier point, so a day with no weigh-in still answers', () => {
+    expect(trendOn(points, '2026-09-11')).toBe(96);
+  });
+
+  it('has nothing before the first point', () => {
+    expect(trendOn(points, '2026-08-31')).toBeNull();
+    expect(trendOn([], '2026-09-08')).toBeNull();
+  });
+
+  it('does not run past the end', () => {
+    expect(trendOn(points, '2027-01-01')).toBe(95);
+  });
+});
+
+describe('goalJourney', () => {
+  const anchor: GoalAnchor = { date: '2026-07-01', weightKg: 98, source: 'profile' };
+
+  it('measures the distance covered towards a loss target', () => {
+    // 98 → 88 is a 10 kg journey; at 93 the halfway point.
+    expect(goalJourney(anchor, 88, 93, -1)).toEqual({
+      changedKg: -5,
+      totalKg: -10,
+      remainingKg: -5,
+      pct: 50,
+    });
+  });
+
+  it('works the same way for a gain target', () => {
+    const start: GoalAnchor = { date: '2026-07-01', weightKg: 60, source: 'profile' };
+    const journey = goalJourney(start, 70, 62.5, 1)!;
+    expect(journey.pct).toBeCloseTo(25);
+    expect(journey.remainingKg).toBeCloseTo(7.5);
+  });
+
+  it('clamps rather than reporting negative progress when the weight moved the wrong way', () => {
+    expect(goalJourney(anchor, 88, 99, -1)!.pct).toBe(0);
+  });
+
+  it('clamps at 100 once the target is passed, instead of reporting more than the whole journey', () => {
+    expect(goalJourney(anchor, 88, 86, -1)!.pct).toBe(100);
+    // The remaining figure is still signed and honest about the overshoot.
+    expect(goalJourney(anchor, 88, 86, -1)!.remainingKg).toBeCloseTo(2);
+  });
+
+  it('refuses a target on the wrong side of the baseline for the goal direction', () => {
+    // A loss goal aiming above the starting weight is a typo, not a journey.
+    expect(goalJourney(anchor, 105, 97, -1)).toBeNull();
+    expect(goalJourney(anchor, 88, 93, 1)).toBeNull();
+  });
+
+  it('accepts either direction when no direction is given', () => {
+    expect(goalJourney(anchor, 105, 100)).not.toBeNull();
+    expect(goalJourney(anchor, 88, 93)).not.toBeNull();
+  });
+
+  it('has no journey when the target is the baseline', () => {
+    expect(goalJourney(anchor, 98, 97, -1)).toBeNull();
+  });
+});
+
+describe('projectGoalDate', () => {
+  it('divides the remaining distance by the rate', () => {
+    // 3.5 kg to go at 0.5 kg/week is 7 weeks — 49 days.
+    expect(projectGoalDate(91.5, 88, -0.5, '2026-09-18')).toBe('2026-11-06');
+  });
+
+  it('reads the same for a gain goal', () => {
+    expect(projectGoalDate(60, 62, 0.5, '2026-09-18')).toBe('2026-10-16');
+  });
+
+  it('returns today when the target is already reached', () => {
+    expect(projectGoalDate(88, 88, -0.5, '2026-09-18')).toBe('2026-09-18');
+  });
+
+  it('has no answer when the rate is missing, zero, or points away from the target', () => {
+    expect(projectGoalDate(91.5, 88, null, '2026-09-18')).toBeNull();
+    expect(projectGoalDate(91.5, 88, 0, '2026-09-18')).toBeNull();
+    // Gaining while trying to lose never arrives.
+    expect(projectGoalDate(91.5, 88, 0.3, '2026-09-18')).toBeNull();
+  });
+
+  it('declines to forecast more than ten years out', () => {
+    // 3.5 kg at 0.005 kg/week is 700 weeks — arithmetic, not a prediction.
+    expect(projectGoalDate(91.5, 88, -0.005, '2026-09-18')).toBeNull();
   });
 });
 
