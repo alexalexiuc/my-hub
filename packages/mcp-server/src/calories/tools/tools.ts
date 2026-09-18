@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { measurementTypeDefinitions } from '@my-hub/shared/constants';
 import { DeleteMealSchema, deleteMealTool, GetMealsSchema, getMealsTool, LogMealSchema, logMealTool } from './meals';
 import { defineTool, toolResponse, wrapToolHandler } from '../../shared/toolsUtils';
-import { UpdateProfileSchema, updateProfileTool } from './profile';
+import { getProfileTool, UpdateProfileSchema, updateProfileTool } from './profile';
 import { GetDailySummarySchema, getDailySummaryTool } from './summary';
 import { GetHistorySchema, getHistoryTool } from './history';
 import {
@@ -57,6 +57,25 @@ const caloriesTools = [
   }),
   // ---- Profile tools ----
   defineTool({
+    name: 'calories_get_profile',
+    description:
+      "Read the user's health profile and daily targets: age, sex, height, activity level, goal " +
+      '(type, weekly rate, baseline and goal weight), calorie bounds, macro targets, gym days, ' +
+      'gym-day calorie bonus and training time band, plus the calculated BMR/TDEE-derived targets ' +
+      '(tdee, goalCalories, minCalories, maxCalories) and the latest reading of every body measurement ' +
+      '(weight, height, waist, …). ' +
+      "Call this before anything that depends on the user's calorie budget, body stats or goal settings — " +
+      'planning meals, judging whether a day is on target, or answering "how much should I eat". ' +
+      'Same payload as the calories://profile resource; use this tool instead when resources are not ' +
+      'supported or not loaded. ' +
+      'Returns an empty profile object if the user has not set one up yet — say so and point them at ' +
+      'Calories → Settings rather than inventing targets. ' +
+      'To change any of these values use calories_update_profile; for measurement history over time use ' +
+      'calories_get_measurements.',
+    annotations: { readOnlyHint: true },
+    callback: getProfileTool,
+  }),
+  defineTool({
     name: 'calories_update_profile',
     description:
       'Save or update health profile (age, sex, height, activity level, goal) and daily targets (calorie bounds, macro targets). ' +
@@ -65,7 +84,9 @@ const caloriesTools = [
       'For weight_loss or weight_gain, also ask for the weekly rate in kg. ' +
       'Height (heightCm) is stored on the profile and only needs to be set once. ' +
       'If the user specifies macros as percentages, convert them to grams using goalMaxCalories as the reference (protein & carbs = 4 kcal/g, fat = 9 kcal/g). ' +
-      'Weight and other changing body measurements are logged separately via calories_log_measurement.',
+      'Weight and other changing body measurements are logged separately via calories_log_measurement. ' +
+      'To read the current profile without changing it, use calories_get_profile — every field is optional here, ' +
+      'so only pass what the user actually wants to change.',
     inputSchema: UpdateProfileSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: updateProfileTool,
@@ -141,7 +162,7 @@ const caloriesTools = [
       'on 2-3 days (e.g. roast 1 kg chicken on Sunday for Mon/Thu/Sun), and say so in prepNotes. Repeating a dish that ' +
       'needs no real prep (cereal, yoghurt, toast) saves nothing and only makes the week monotonous. ' +
       'Do not swing the other way either — 28 entirely different dishes is unrealistic to shop for and cook. ' +
-      '2. Read the calories://profile resource (or call calories_get_daily_summary) ' +
+      '2. Call calories_get_profile (or read the calories://profile resource) ' +
       "to know the user's daily calorie target (min/max), macro goals (protein, carbs, fat), goal type (weight_loss, weight_gain, maintain), " +
       "and any dietary notes. Plan every day's meals to hit those targets. " +
       'If no profile is set, proceed with creating a balanced default menu anyway, ' +

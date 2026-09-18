@@ -4,9 +4,13 @@ import { upsertCalorieProfile, getLatestMeasurementsPerType } from '@my-hub/shar
 import { omitUndefined } from '@my-hub/shared/utils';
 import { z } from 'zod';
 import { toolResponse } from '../../shared/toolsUtils';
-import { rowToProfile, profileToTargets } from '../models/profile';
+import { rowToProfile, profileToTargets, buildProfileSnapshot } from '../models/profile';
 import { ActivityLevels, GoalTypes, GymTimesValues, MeasurementTypes, Sexes } from '@my-hub/shared/constants';
 import type { GymTime } from '@my-hub/shared/constants';
+
+export const getProfileTool: ToolHandler = async (_input, context) => {
+  return toolResponse(await buildProfileSnapshot(context.userId));
+};
 
 export const UpdateProfileSchema = z.object({
   age: z.number().int().positive().optional().describe('Age in years'),
