@@ -51,6 +51,17 @@ export const UpdateProfileSchema = z.object({
     .positive()
     .optional()
     .describe('Weight in kg at goalStartDate. Pass together with goalStartDate when restarting a goal run.'),
+  goalTargetWeightKg: z
+    .number()
+    .positive()
+    .optional()
+    .nullable()
+    .describe(
+      'Optional goal weight in kg — the finish line the goal is working towards. Setting it lets progress be ' +
+        'reported as a share of the whole journey and a finish date estimated from the rate actually being ' +
+        'achieved. Must sit on the goal side of the starting weight (below it for weight_loss, above for ' +
+        'weight_gain). Pass null to clear and leave the goal an open-ended rate.',
+    ),
   goalMinCalories: z
     .number()
     .int()
@@ -137,6 +148,7 @@ export const updateProfileTool: ToolHandler<typeof UpdateProfileSchema.shape> = 
   });
 
   // Nullable fields: pass null explicitly to allow clearing stored values
+  if (input.goalTargetWeightKg !== undefined) updates.goalTargetWeightKg = input.goalTargetWeightKg;
   if (input.goalMinCalories !== undefined) updates.goalMinCalories = input.goalMinCalories;
   if (input.goalMaxCalories !== undefined) updates.goalMaxCalories = input.goalMaxCalories;
   if (input.goalProteinG !== undefined) updates.goalProtein = input.goalProteinG;

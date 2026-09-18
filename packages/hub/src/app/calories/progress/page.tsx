@@ -175,11 +175,18 @@ export default function ProgressPage() {
         goalWeeklyRateKg={profile?.goalWeeklyRateKg ?? null}
         goalStartDate={profile?.goalStartDate ?? null}
         goalStartWeightKg={profile?.goalStartWeightKg ?? null}
+        goalTargetWeightKg={profile?.goalTargetWeightKg ?? null}
         onResetBaseline={resetGoalBaseline}
         canReset={weightSamples.length > 0}
       />
 
-      <WeightChart data={trendSamples} range={trendRange} onRangeChange={setTrendRange} />
+      <WeightChart
+        data={trendSamples}
+        from={trendFrom ?? weightSamples[weightSamples.length - 1]?.date ?? today}
+        to={today}
+        range={trendRange}
+        onRangeChange={setTrendRange}
+      />
 
       <MeasurementsSection
         latestMeasurements={latestMeasurements}

@@ -18,6 +18,7 @@ const ProfileUpdateSchema = z.object({
     .nullable()
     .optional(),
   goalStartWeightKg: z.number().positive().nullable().optional(),
+  goalTargetWeightKg: z.number().positive().nullable().optional(),
   goalMinCalories: z.number().int().nonnegative().nullable().optional(),
   goalMaxCalories: z.number().int().nonnegative().nullable().optional(),
   goalProtein: z.number().nonnegative().nullable().optional(),

@@ -3,7 +3,11 @@ import {
   averageWeeklyWeights,
   buildGoalProgressView,
   calcCalorieDonutState,
+  dateToTs,
+  formatAxisDate,
   formatDateLabel,
+  formatEtaDate,
+  timeAxisTicks,
   groupByMealType,
   intakeBarColor,
   shiftDate,
@@ -240,6 +244,225 @@ describe('buildGoalProgressView', () => {
     });
 
     expect(view!.points.map(p => p.date)).toEqual(['2026-09-08']);
+  });
+});
+
+describe('buildGoalProgressView — goal weight', () => {
+  const daily = (from: string, start: number, step: number, days: number) =>
+    Array.from({ length: days }, (_, i) => ({
+      date: shiftDate(from, i),
+      value: parseFloat((start + step * i).toFixed(3)),
+    }));
+
+  const base = {
+    profile: { goalStartDate: '2026-09-07', goalStartWeightKg: 98 },
+    goalType: 'weight_loss',
+    goalWeeklyRateKg: 1,
+    windowStart: '2026-09-07',
+    today: shiftDate('2026-09-07', 27),
+  };
+
+  it('reports the journey and a finish date once a target is set', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-07', 98, -0.1, 28),
+      goalTargetWeightKg: 88,
+    })!;
+
+    expect(view.journey).not.toBeNull();
+    expect(view.journey!.totalKg).toBeCloseTo(-10);
+    // The trend lags the raw 2.7 kg drop, so roughly a fifth of a 10 kg journey.
+    expect(view.journey!.pct).toBeGreaterThan(10);
+    expect(view.journey!.pct).toBeLessThan(30);
+    expect(view.etaAtActualRate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(view.etaAtGoalRate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('arrives later than the plan when the achieved rate is slower than the goal', () => {
+    // Losing 0.1 kg/day is 0.7 kg/week against a 1 kg/week goal.
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-07', 98, -0.1, 28),
+      goalTargetWeightKg: 88,
+    })!;
+
+    expect(view.etaAtActualRate! > view.etaAtGoalRate!).toBe(true);
+  });
+
+  it('leaves the journey and both dates unset when no target is given', () => {
+    const view = buildGoalProgressView({ ...base, weightHistory: daily('2026-09-07', 98, -0.1, 28) })!;
+
+    expect(view.journey).toBeNull();
+    expect(view.etaAtActualRate).toBeNull();
+    expect(view.etaAtGoalRate).toBeNull();
+  });
+
+  it('ignores a target on the wrong side of the baseline for the goal direction', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-07', 98, -0.1, 28),
+      goalTargetWeightKg: 110, // a loss goal cannot finish above where it started
+    })!;
+
+    expect(view.journey).toBeNull();
+    expect(view.etaAtActualRate).toBeNull();
+  });
+
+  it('gives no finish date while the weight is moving away from the target', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-07', 98, 0.1, 28), // gaining, on a loss goal
+      goalTargetWeightKg: 88,
+    })!;
+
+    expect(view.journey!.pct).toBe(0);
+    expect(view.etaAtActualRate).toBeNull();
+  });
+
+  it('reports the last seven days separately from the run as a whole', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-07', 98, -0.1, 28),
+      goalTargetWeightKg: 88,
+    })!;
+
+    expect(view.weeklyChangeKg).toBeLessThan(0);
+    // One week of movement, not four — the two must not be the same number.
+    expect(Math.abs(view.weeklyChangeKg!)).toBeLessThan(Math.abs(view.totalChangeKg));
+  });
+
+  it('has no weekly figure when the history is shorter than a week', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-07', 98, -0.1, 3),
+      today: shiftDate('2026-09-07', 2),
+      goalTargetWeightKg: 88,
+    })!;
+
+    expect(view.weeklyChangeKg).toBeNull();
+  });
+});
+
+describe('buildGoalProgressView — time axis and empty ranges', () => {
+  const daily = (from: string, start: number, step: number, days: number) =>
+    Array.from({ length: days }, (_, i) => ({
+      date: shiftDate(from, i),
+      value: parseFloat((start + step * i).toFixed(3)),
+    }));
+
+  const base = {
+    profile: { goalStartDate: '2026-06-01', goalStartWeightKg: 98 },
+    goalType: 'weight_loss',
+    goalWeeklyRateKg: 0.5,
+    today: '2026-09-18',
+  };
+
+  it('reports the window as the x-domain, not the extent of the data', () => {
+    // Weigh-ins only in the last fortnight, but an 8-week window was asked for.
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-05', 96, -0.05, 14),
+      windowStart: '2026-07-24',
+    })!;
+
+    expect(view.windowStartTs).toBe(Date.parse('2026-07-24T00:00:00Z'));
+    expect(view.windowEndTs).toBe(Date.parse('2026-09-18T00:00:00Z'));
+    // The first weigh-in sits well inside the window rather than at its left edge.
+    expect(view.points[0]!.ts).toBeGreaterThan(view.windowStartTs);
+  });
+
+  /**
+   * The reported symptom: with a month-long gap in the history, widening 4W to 8W added almost
+   * nothing. On a categorical axis that was invisible — the gap drew as one step and the axis
+   * shrank to the data. The window bounds and the empty-lead count are what make it legible.
+   */
+  it('counts how much of the window has no weigh-ins at all', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-05', 96, -0.05, 14),
+      windowStart: '2026-07-24',
+    })!;
+
+    expect(view.emptyLeadingDays).toBe(43);
+    expect(view.pointCount).toBe(14);
+  });
+
+  it('reports no empty lead when the window opens on a weigh-in', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-05', 96, -0.05, 14),
+      windowStart: '2026-09-05',
+    })!;
+
+    expect(view.emptyLeadingDays).toBe(0);
+  });
+
+  it('spaces points by date, so a gap is a gap rather than one even step', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: [
+        { date: '2026-07-20', value: 97 },
+        { date: '2026-07-21', value: 97.1 },
+        // a month with nothing logged
+        { date: '2026-08-20', value: 96.5 },
+      ],
+      windowStart: '2026-07-01',
+    })!;
+
+    const [a, b, c] = view.points;
+    const oneDay = b!.ts - a!.ts;
+    const theGap = c!.ts - b!.ts;
+    expect(oneDay).toBe(86_400_000);
+    expect(theGap).toBe(30 * 86_400_000);
+  });
+});
+
+describe('timeAxisTicks', () => {
+  const day = 86_400_000;
+
+  it('spans the whole domain, inclusive of both ends', () => {
+    const ticks = timeAxisTicks(0, 10 * day, 6);
+    expect(ticks[0]).toBe(0);
+    expect(ticks.at(-1)).toBe(10 * day);
+    expect(ticks).toHaveLength(6);
+  });
+
+  it('spaces ticks evenly', () => {
+    const ticks = timeAxisTicks(0, 10 * day, 6);
+    const steps = ticks.slice(1).map((t, i) => t - ticks[i]!);
+    expect(new Set(steps).size).toBe(1);
+  });
+
+  it('degrades to a single tick for an empty or inverted domain', () => {
+    expect(timeAxisTicks(500, 500)).toEqual([500]);
+    expect(timeAxisTicks(500, 100)).toEqual([500]);
+  });
+});
+
+describe('dateToTs / formatAxisDate', () => {
+  it('round-trips a date through UTC midnight', () => {
+    expect(formatAxisDate(dateToTs('2026-09-18'))).toBe('09-18');
+  });
+
+  it('does not drift a day in either direction across a month boundary', () => {
+    expect(formatAxisDate(dateToTs('2026-08-31'))).toBe('08-31');
+    expect(formatAxisDate(dateToTs('2026-09-01'))).toBe('09-01');
+  });
+});
+
+describe('formatEtaDate', () => {
+  it('names the day for a date inside the next two months', () => {
+    expect(formatEtaDate('2026-11-06', '2026-09-18')).toBe('around Nov 6');
+  });
+
+  // Past 60 days the estimate divides a noisy rate into a distance; naming a day would claim a
+  // precision the arithmetic does not have.
+  it('drops to month and year for anything further out', () => {
+    expect(formatEtaDate('2027-06-02', '2026-09-18')).toBe('around Jun 2027');
+  });
+
+  it('returns the input unchanged when it is not a date', () => {
+    expect(formatEtaDate('not-a-date', '2026-09-18')).toBe('not-a-date');
   });
 });
 

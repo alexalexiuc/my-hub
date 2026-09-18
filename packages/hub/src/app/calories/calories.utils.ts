@@ -5,19 +5,49 @@ import {
   dailyGoalDeltaKg,
   dateToString,
   daysBetweenDateStr,
+  goalJourney,
+  projectGoalDate,
   projectedWeightOn,
   resolveGoalAnchor,
+  shiftDateStr,
+  trendOn,
   trendRateKgPerWeek,
   type GoalAnchor,
+  type GoalJourney,
   type WeightSample,
 } from '@my-hub/shared/utils';
 
 /** A weight entry, reduced to what the goal-progress maths needs. */
 export type WeightPoint = WeightSample;
 
+/** A YYYY-MM-DD date as epoch milliseconds at UTC midnight, for plotting on a numeric time axis. */
+export function dateToTs(date: string): number {
+  return Date.parse(`${date}T00:00:00Z`);
+}
+
+/**
+ * Evenly spaced tick positions across a time axis, inclusive of both ends.
+ *
+ * The axis domain is the selected window rather than the data, so ticks have to be generated from
+ * the domain too — deriving them from the points would put the last tick at the last weigh-in and
+ * hide the fact that the rest of the window is empty.
+ */
+export function timeAxisTicks(startTs: number, endTs: number, count = 6): number[] {
+  if (!(endTs > startTs) || count < 2) return [startTs];
+  const step = (endTs - startTs) / (count - 1);
+  return Array.from({ length: count }, (_, i) => Math.round(startTs + step * i));
+}
+
+/** A tick's label: month and day, in UTC to match how the timestamps were built. */
+export function formatAxisDate(ts: number): string {
+  return new Date(ts).toISOString().slice(5, 10);
+}
+
 /** One plotted day on the goal-progress chart. */
 export interface GoalProgressPoint {
   date: string;
+  /** Epoch ms — the x position, so gaps between weigh-ins render to scale. */
+  ts: number;
   label: string;
   /** What the scale said, plotted faintly so the reading is still visible. */
   actual: number;
@@ -45,6 +75,25 @@ export interface GoalProgressView {
   actualRateKgPerWeek: number | null;
   /** The goal's own rate, signed to match `actualRateKgPerWeek`. */
   goalRateKgPerWeek: number;
+  /** Trend movement over the last seven days — the week in isolation, as secondary context. */
+  weeklyChangeKg: number | null;
+  /** Distance covered towards a target weight, or null when no usable target is set. */
+  journey: GoalJourney | null;
+  /** When the target is reached at the rate actually being achieved. */
+  etaAtActualRate: string | null;
+  /** When the plan said the target would be reached. */
+  etaAtGoalRate: string | null;
+  /**
+   * The selected window's bounds as epoch ms. The chart's x-domain, not the data's extent: a
+   * window whose earlier half holds no weigh-ins must read as empty rather than silently
+   * shrinking to fit what there is.
+   */
+  windowStartTs: number;
+  windowEndTs: number;
+  /** Weigh-ins in the window. Below two, a slope and a trend line say nothing. */
+  pointCount: number;
+  /** Days between the window's start and its first weigh-in — how much of it is empty. */
+  emptyLeadingDays: number;
 }
 
 export interface GoalProgressInput {
@@ -53,6 +102,8 @@ export interface GoalProgressInput {
   profile: { goalStartDate?: string | null; goalStartWeightKg?: number | null } | null | undefined;
   goalType: string | null;
   goalWeeklyRateKg: number | null;
+  /** Optional finish line. Absent leaves the goal an open-ended rate, as before. */
+  goalTargetWeightKg?: number | null;
   /** Earliest date to plot. Anything before it still feeds the trend, it just isn't drawn. */
   windowStart: string;
   /** Today as YYYY-MM-DD, passed in so the maths stays pure and testable. */
@@ -76,7 +127,7 @@ export interface GoalProgressInput {
  * @returns null when there is no goal rate, no anchor, or no weigh-in inside the window.
  */
 export function buildGoalProgressView(input: GoalProgressInput): GoalProgressView | null {
-  const { weightHistory, profile, goalType, goalWeeklyRateKg, windowStart, today } = input;
+  const { weightHistory, profile, goalType, goalWeeklyRateKg, goalTargetWeightKg, windowStart, today } = input;
 
   const dailyDelta = dailyGoalDeltaKg(goalType, goalWeeklyRateKg);
   if (dailyDelta === null) return null;
@@ -91,6 +142,7 @@ export function buildGoalProgressView(input: GoalProgressInput): GoalProgressVie
 
   const points: GoalProgressPoint[] = windowed.map(p => ({
     date: p.date,
+    ts: dateToTs(p.date),
     label: p.date.slice(5),
     actual: p.value,
     trend: p.trend,
@@ -98,6 +150,16 @@ export function buildGoalProgressView(input: GoalProgressInput): GoalProgressVie
   }));
 
   const projectedTodayKg = projectedWeightOn(anchor, dailyDelta, today);
+  const actualRateKgPerWeek = trendRateKgPerWeek(windowed);
+  const goalRateKgPerWeek = dailyDelta * 7;
+
+  // Taken from the full trend rather than the window: a 4-week view still has seven days behind
+  // its left edge, and reading the week from the window would lose them at the boundary.
+  const weekAgoTrend = trendOn(trend, shiftDateStr(latest.date, -7));
+  const weeklyChangeKg = weekAgoTrend === null ? null : latest.trend - weekAgoTrend;
+
+  const journey =
+    goalTargetWeightKg == null ? null : goalJourney(anchor, goalTargetWeightKg, latest.trend, Math.sign(dailyDelta));
 
   return {
     points,
@@ -107,9 +169,38 @@ export function buildGoalProgressView(input: GoalProgressInput): GoalProgressVie
     projectedTodayKg,
     deltaKg: latest.trend - projectedTodayKg,
     totalChangeKg: latest.trend - anchor.weightKg,
-    actualRateKgPerWeek: trendRateKgPerWeek(windowed),
-    goalRateKgPerWeek: dailyDelta * 7,
+    actualRateKgPerWeek,
+    goalRateKgPerWeek,
+    weeklyChangeKg,
+    journey,
+    // Only meaningful once a target exists; without one there is no finish line to reach.
+    etaAtActualRate: journey ? projectGoalDate(latest.trend, goalTargetWeightKg!, actualRateKgPerWeek, today) : null,
+    etaAtGoalRate: journey ? projectGoalDate(latest.trend, goalTargetWeightKg!, goalRateKgPerWeek, today) : null,
+    windowStartTs: dateToTs(windowStart),
+    windowEndTs: dateToTs(today),
+    pointCount: points.length,
+    emptyLeadingDays: points[0]
+      ? daysBetweenDateStr(windowStart, points[0].date)
+      : daysBetweenDateStr(windowStart, today),
   };
+}
+
+/**
+ * A goal-completion estimate as a month and year ("around Dec 2026"), or a month and day when it
+ * is close enough that the day means something.
+ *
+ * Deliberately coarser than the underlying date: the estimate divides a noisy achieved rate into a
+ * remaining distance, so printing "2026-12-02" would claim a precision the arithmetic does not
+ * have. Inside a month, the day is still useful and the error is small enough to survive it.
+ */
+export function formatEtaDate(date: string, today: string = dateToString(new Date())): string {
+  const parsed = new Date(`${date}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date;
+
+  const within60Days = daysBetweenDateStr(today, date) <= 60;
+  return within60Days
+    ? `around ${parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+    : `around ${parsed.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
 }
 
 /**

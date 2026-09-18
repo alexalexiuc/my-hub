@@ -70,8 +70,17 @@ async function seedCaloriesFixtures(userId: string): Promise<void> {
       typeKey: 'weight' as const,
       date: shiftDateStr(startDate, i),
       value: parseFloat((underlying + dayJitter(i) * 1.2 + badWeekend).toFixed(1)),
+      daysAgo,
     };
-  });
+  })
+    // A four-week stretch with nothing logged — a holiday, or just falling off the scale. Real
+    // histories have these, and they are what the charts have to render honestly: on a time axis
+    // the gap is visibly a gap, and widening the range into it says so rather than looking broken.
+    //
+    // Placed to straddle the 4W/8W boundary on purpose: 4W lands entirely after it, 8W opens
+    // inside it, so switching between them is the case that used to look like a dead control.
+    .filter(w => w.daysAgo < 29 || w.daysAgo > 56)
+    .map(({ daysAgo: _daysAgo, ...w }) => w);
 
   await logMeasurementsBatch(userId, weighIns, 'hub');
   await logMeasurementsBatch(
@@ -97,6 +106,9 @@ async function seedCaloriesFixtures(userId: string): Promise<void> {
     goalWeeklyRateKg: 0.75,
     goalStartDate: weighIns[0]!.date,
     goalStartWeightKg: weighIns[0]!.value,
+    // Roughly two thirds of the way in, so the journey bar and the finish-date estimate both have
+    // something to show without the goal being nearly done.
+    goalTargetWeightKg: Math.round((weighIns[0]!.value - 9.5) * 10) / 10,
     gymDays: [0, 2, 4],
     gymTime: 'evening',
   });

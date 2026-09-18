@@ -39,6 +39,9 @@ export const calorieProfiles = pgTable('calorie_profiles', {
   // became the next week's starting point, so a month of misses still showed "on track".
   goalStartDate: date('goal_start_date'), // YYYY-MM-DD the current goal run began
   goalStartWeightKg: real('goal_start_weight_kg'), // weight at goalStartDate, in kg
+  // Optional finish line. Without it the goal is an open-ended rate; with it the run has a length,
+  // so progress can be shown as a share of the whole journey and a finish date estimated.
+  goalTargetWeightKg: real('goal_target_weight_kg'), // goal weight in kg
   goalMinCalories: integer('goal_min_calories'), // explicit daily minimum floor
   goalMaxCalories: integer('goal_max_calories'), // explicit daily maximum ceiling
   goalProtein: real('goal_protein'), // optional daily protein target in grams
