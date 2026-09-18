@@ -56,6 +56,29 @@ const GOAL_LABELS: Record<GoalType, string> = {
   [GoalTypes.WeightGain]: 'Gain weight',
 };
 
+/**
+ * Field explanations shown behind the info icon on each `Field`.
+ *
+ * These used to be placeholders, which does not work: a placeholder disappears the moment the user
+ * types, is clipped by the width of the input, and reads like a value rather than guidance. Goal
+ * weight was the clearest case — its explanation was far wider than the field could ever show.
+ */
+const FIELD_INFO = {
+  weight:
+    "Saved as today's weigh-in rather than a profile field, so it feeds the weight history and trend. Every calorie target needs it — without a weigh-in the feature reports no goal set. Re-saving the form only writes a new entry when the number actually changed.",
+  gymDayCalorieBonus: 'Extra calories allowed on the days marked above, on top of your normal target.',
+  gymTime:
+    'A rough band, not a clock time. It only decides which meals count as before or after the session when planning a day.',
+  goalWeeklyRate:
+    'How fast you intend to move, in kg per week. This is what sets the size of the daily deficit or surplus.',
+  goalTargetWeight:
+    'Optional finish line. With one, the Progress card shows how far through the run you are and estimates a finish date from the rate you are actually achieving. Leave it blank to track the rate alone, with no progress bar or estimate.',
+  goalMinCalories:
+    'A floor the calculated target will not drop below, however aggressive the goal rate is. Leave blank for no floor.',
+  goalMaxCalories:
+    'A ceiling for the daily target. It is also the total that macro percentages are worked out against, so % mode needs it.',
+} as const;
+
 const ProfileFormSchema = z.object({
   age: z.string(),
   sex: z.string(),
@@ -317,11 +340,8 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
             <Field label="Height (cm)">
               <Input type="number" step="any" placeholder="e.g. 175" {...register('heightCm')} />
             </Field>
-            <Field label="Weight (kg)">
+            <Field label="Weight (kg)" info={FIELD_INFO.weight}>
               <Input type="number" step="any" min="0" placeholder="e.g. 78" {...register('weightKg')} />
-              <span className="mt-1 block text-[11px] text-[var(--subtle)]">
-                Saved as today&apos;s weigh-in — calorie targets need it.
-              </span>
             </Field>
             <Field label="Activity level">
               <Select
@@ -369,11 +389,10 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
               )}
             />
             <div className="mt-2 flex flex-wrap gap-3">
-              <Field label="Gym day calorie bonus" className="max-w-[160px]">
+              <Field label="Gym day calorie bonus" className="max-w-[160px]" info={FIELD_INFO.gymDayCalorieBonus}>
                 <Input type="number" step="any" min="0" placeholder="e.g. 300" {...register('gymDayCalorieBonus')} />
               </Field>
-              {/* A band, not a clock time — it only decides which meals fall either side of the session */}
-              <Field label="Training time" className="max-w-[160px]">
+              <Field label="Training time" className="max-w-[160px]" info={FIELD_INFO.gymTime}>
                 <Select {...register('gymTime')} options={GYM_TIME_OPTIONS}>
                   <option value="">Not set</option>
                 </Select>
@@ -406,7 +425,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
               />
             </Field>
             {showRate && (
-              <Field label="Rate (kg/week)">
+              <Field label="Rate (kg/week)" info={FIELD_INFO.goalWeeklyRate}>
                 {/*
                  * `step="any"` on every decimal field here is load-bearing, not cosmetic. A step of
                  * 0.1 made a stored rate of 0.75 — which `calories_update_profile` accepts, and
@@ -426,20 +445,14 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
               </Field>
             )}
             {showRate && (
-              <Field label="Goal weight (kg)" className="col-span-2">
-                <Input
-                  type="number"
-                  step="any"
-                  min="0"
-                  placeholder="Optional \u2014 unlocks progress and an estimated finish date"
-                  {...register('goalTargetWeightKg')}
-                />
+              <Field label="Goal weight (kg)" className="col-span-2" info={FIELD_INFO.goalTargetWeight}>
+                <Input type="number" step="any" min="0" placeholder="Optional" {...register('goalTargetWeightKg')} />
               </Field>
             )}
-            <Field label="Min calories/day">
-              <Input type="number" step="1" min="0" placeholder="Optional floor" {...register('goalMinCalories')} />
+            <Field label="Min calories/day" info={FIELD_INFO.goalMinCalories}>
+              <Input type="number" step="1" min="0" placeholder="Optional" {...register('goalMinCalories')} />
             </Field>
-            <Field label="Max calories/day">
+            <Field label="Max calories/day" info={FIELD_INFO.goalMaxCalories}>
               <Controller
                 control={control}
                 name="goalMaxCalories"
@@ -448,7 +461,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
                     type="number"
                     step="1"
                     min="0"
-                    placeholder="Optional ceiling"
+                    placeholder="Optional"
                     value={field.value}
                     onChange={e => {
                       const val = e.target.value;
