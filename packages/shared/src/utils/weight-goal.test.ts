@@ -12,6 +12,7 @@ import {
   trendRateKgPerWeek,
   type GoalAnchor,
 } from './weight-goal';
+import { shiftDateStr } from './dates';
 
 describe('dailyGoalDeltaKg', () => {
   it('spreads a weekly loss rate over seven days, as a negative', () => {
@@ -164,6 +165,86 @@ describe('buildWeightTrend', () => {
     expect(last.value).toBe(97.5);
     // 1.5 kg on the scale moves the trend by 0.15 kg.
     expect(last.trend).toBeCloseTo(96.15, 2);
+  });
+
+  /**
+   * The decay is per day, not per reading. Stepping once per reading made the smoothing depend on
+   * how often someone weighed themselves: a month with nothing logged advanced the average by a
+   * single step, so the line coming out of a gap still mostly described the weight going into it.
+   */
+  it('decays a stale trend across a gap instead of carrying it', () => {
+    const trend = buildWeightTrend(
+      [
+        { date: '2026-07-01', value: 98 },
+        // four weeks with nothing logged, then a much lower reading
+        { date: '2026-07-29', value: 92 },
+      ],
+      0.1,
+    );
+
+    // 0.1 per day over 28 days is an effective 0.95, so the new reading nearly resets the trend.
+    expect(trend[1]!.trend).toBeCloseTo(92.3, 1);
+  });
+
+  it('weights a one-day step exactly as the per-reading version did', () => {
+    const oneDay = buildWeightTrend(
+      [
+        { date: '2026-07-01', value: 98 },
+        { date: '2026-07-02', value: 92 },
+      ],
+      0.1,
+    );
+
+    expect(oneDay[1]!.trend).toBeCloseTo(97.4);
+  });
+
+  it('moves further the longer the wait, monotonically', () => {
+    const after = (gapDays: number) =>
+      buildWeightTrend(
+        [
+          { date: '2026-07-01', value: 98 },
+          { date: shiftDateStr('2026-07-01', gapDays), value: 92 },
+        ],
+        0.1,
+      )[1]!.trend;
+
+    const [d1, d7, d28] = [after(1), after(7), after(28)];
+    expect(d1).toBeGreaterThan(d7);
+    expect(d7).toBeGreaterThan(d28);
+    // Never past the reading itself, however long the gap.
+    expect(after(400)).toBeGreaterThanOrEqual(92);
+  });
+
+  it('averages readings sharing a date and gives both the same trend', () => {
+    const trend = buildWeightTrend(
+      [
+        { date: '2026-07-01', value: 98 },
+        { date: '2026-07-02', value: 90 },
+        { date: '2026-07-02', value: 94 },
+      ],
+      0.1,
+    );
+
+    expect(trend).toHaveLength(3);
+    // The day counts once, at its mean of 92 — not as two zero-length steps, which would have
+    // given the second reading no weight at all under a time-aware decay.
+    expect(trend[1]!.trend).toBeCloseTo(97.4);
+    expect(trend[2]!.trend).toBeCloseTo(97.4);
+    // Raw values survive for plotting.
+    expect(trend.map(p => p.value)).toEqual([98, 90, 94]);
+  });
+
+  it('treats weekly-spaced samples as weekly, so an averaged long range is not over-smoothed', () => {
+    const weekly = buildWeightTrend(
+      [
+        { date: '2026-07-01', value: 98 },
+        { date: '2026-07-08', value: 92 },
+      ],
+      0.1,
+    )[1]!.trend;
+
+    // 1 - 0.9^7 ≈ 0.52, so a weekly point moves the line about half way rather than a tenth.
+    expect(weekly).toBeCloseTo(94.9, 1);
   });
 
   it('returns nothing for no samples and a bare point for one', () => {

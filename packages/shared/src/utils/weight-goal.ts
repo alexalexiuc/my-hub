@@ -47,10 +47,10 @@ export interface GoalAnchor {
 }
 
 /**
- * The default smoothing factor for {@link buildWeightTrend}. 0.1 gives a half-life of about
- * 6.6 daily weigh-ins, which is the long-standing "trend weight" setting: slow enough that a
- * salty weekend moves the line by ~0.15 kg rather than the 1–1.5 kg the scale actually shows,
- * fast enough to turn within a fortnight when the real trajectory changes.
+ * The default smoothing factor for {@link buildWeightTrend}, **per day elapsed** rather than per
+ * reading. 0.1 gives a half-life of about 6.6 days, which is the long-standing "trend weight"
+ * setting: slow enough that a salty weekend moves the line by ~0.15 kg rather than the 1–1.5 kg
+ * the scale actually shows, fast enough to turn within a fortnight when the trajectory changes.
  */
 export const WEIGHT_TREND_ALPHA = 0.1;
 
@@ -120,24 +120,57 @@ export function projectedWeightOn(anchor: GoalAnchor, dailyDelta: number, date: 
  * trend value is what should be compared against a projection; the raw value is kept alongside it
  * so a chart can still plot what the scale actually said.
  *
- * Gaps are not interpolated: each reading advances the average by one step regardless of how long
- * since the last one, which is the conventional behaviour and avoids inventing weigh-ins.
+ * The decay is **time-aware**: `alpha` is per day elapsed, not per reading, so the weight carried
+ * over from the previous trend is `(1 - alpha) ^ daysElapsed`. Stepping once per reading instead
+ * would make the smoothing depend on how often someone happened to stand on the scale — a month
+ * with nothing logged would advance the average by a single step, so the line coming out of the
+ * gap still mostly described the weight going into it. Elapsed time is what should decay
+ * confidence in a stale reading, and after a four-week gap the next weigh-in nearly resets the
+ * trend to itself (alpha 0.1 over 28 days is an effective 0.95).
+ *
+ * Gaps are still not interpolated — no weigh-ins are invented for the missing days.
+ *
+ * Readings sharing a date are averaged into one value first: two measurements of the same morning
+ * measure the same quantity, and a time-aware step would otherwise give the second a zero-length
+ * interval and therefore no weight at all. Both are still returned, carrying that day's trend.
  *
  * @param samples  Weigh-ins in any order; sorted oldest-first internally.
- * @param alpha    Smoothing factor in (0, 1]. Higher follows the scale more closely.
+ * @param alpha    Per-day smoothing factor in (0, 1]. Higher follows the scale more closely.
  * @returns        Oldest-first points, each carrying its raw value and the trend at that date.
  */
 export function buildWeightTrend(samples: WeightSample[], alpha: number = WEIGHT_TREND_ALPHA): WeightTrendPoint[] {
   const ordered = [...samples].sort((a, b) => a.date.localeCompare(b.date));
-  const points: WeightTrendPoint[] = [];
+  if (ordered.length === 0) return [];
 
-  let trend: number | null = null;
+  const totals = new Map<string, { sum: number; count: number }>();
   for (const sample of ordered) {
-    trend = trend === null ? sample.value : trend + alpha * (sample.value - trend);
-    points.push({ date: sample.date, value: sample.value, trend });
+    const bucket = totals.get(sample.date);
+    if (bucket) {
+      bucket.sum += sample.value;
+      bucket.count += 1;
+    } else {
+      totals.set(sample.date, { sum: sample.value, count: 1 });
+    }
   }
 
-  return points;
+  // `totals` was filled in date order, and Map iterates by insertion, so this walks chronologically.
+  const trendByDate = new Map<string, number>();
+  let trend: number | null = null;
+  let previousDate: string | null = null;
+  for (const [date, { sum, count }] of totals) {
+    const value = sum / count;
+    if (trend === null || previousDate === null) {
+      trend = value;
+    } else {
+      const elapsedDays = Math.max(1, daysBetweenDateStr(previousDate, date));
+      const effectiveAlpha = 1 - Math.pow(1 - alpha, elapsedDays);
+      trend += effectiveAlpha * (value - trend);
+    }
+    trendByDate.set(date, trend);
+    previousDate = date;
+  }
+
+  return ordered.map(sample => ({ date: sample.date, value: sample.value, trend: trendByDate.get(sample.date)! }));
 }
 
 /**
