@@ -6,7 +6,14 @@ import type { TooltipContentProps, TooltipPayloadEntry } from 'recharts';
 import { Card, ProgressBar } from '@/components';
 import { GoalTypes } from '@my-hub/shared/constants';
 import { isAheadOfGoal } from '@my-hub/shared/utils';
-import { buildGoalProgressView, formatEtaDate, type GoalProgressView, type WeightPoint } from './calories.utils';
+import {
+  buildGoalProgressView,
+  formatAxisDate,
+  formatEtaDate,
+  timeAxisTicks,
+  type GoalProgressView,
+  type WeightPoint,
+} from './calories.utils';
 import { DEFAULT_GOAL_RANGE, GOAL_RANGE_KEYS, WEIGHT_RANGE_OPTIONS, type WeightRangeKey } from './constants';
 import { RangeChips } from './ui';
 
@@ -184,7 +191,24 @@ export function GoalProgressCard({
       <div className="h-52">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={view.points} margin={{ top: 8, right: 4, bottom: 0, left: -8 }}>
-            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--subtle)', fontSize: 11 }} />
+            {/*
+             * A real time axis, domain pinned to the selected window rather than to the data. A
+             * categorical axis spaced weigh-ins evenly, so a month with no entries drew the same
+             * width as a single day — the trend's slope was visually meaningless — and a window
+             * whose earlier half was empty silently shrank to fit, which made widening the range
+             * look like it had done nothing.
+             */}
+            <XAxis
+              dataKey="ts"
+              type="number"
+              domain={[view.windowStartTs, view.windowEndTs]}
+              ticks={timeAxisTicks(view.windowStartTs, view.windowEndTs)}
+              tickFormatter={formatAxisDate}
+              allowDataOverflow
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: 'var(--subtle)', fontSize: 11 }}
+            />
             <YAxis
               axisLine={false}
               tickLine={false}
@@ -256,6 +280,16 @@ export function GoalProgressCard({
           {view.etaAtActualRate && view.etaAtGoalRate && ` (plan: ${formatEtaDate(view.etaAtGoalRate)})`}
           {view.etaAtActualRate && '.'}
           {!view.etaAtActualRate && view.journey && ' Not currently moving towards the goal weight.'}
+          {/*
+           * Widening the range when the extra weeks hold no weigh-ins otherwise looks like a
+           * broken control: the chart barely moves and nothing says why.
+           */}
+          {view.emptyLeadingDays >= 7 && (
+            <span className="text-[var(--amber)]">
+              {' '}
+              No weigh-ins in the first {view.emptyLeadingDays} days of this range.
+            </span>
+          )}
         </span>
         {canReset && (
           <button

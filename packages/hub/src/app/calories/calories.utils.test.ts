@@ -3,8 +3,11 @@ import {
   averageWeeklyWeights,
   buildGoalProgressView,
   calcCalorieDonutState,
+  dateToTs,
+  formatAxisDate,
   formatDateLabel,
   formatEtaDate,
+  timeAxisTicks,
   groupByMealType,
   intakeBarColor,
   shiftDate,
@@ -337,6 +340,113 @@ describe('buildGoalProgressView — goal weight', () => {
     })!;
 
     expect(view.weeklyChangeKg).toBeNull();
+  });
+});
+
+describe('buildGoalProgressView — time axis and empty ranges', () => {
+  const daily = (from: string, start: number, step: number, days: number) =>
+    Array.from({ length: days }, (_, i) => ({
+      date: shiftDate(from, i),
+      value: parseFloat((start + step * i).toFixed(3)),
+    }));
+
+  const base = {
+    profile: { goalStartDate: '2026-06-01', goalStartWeightKg: 98 },
+    goalType: 'weight_loss',
+    goalWeeklyRateKg: 0.5,
+    today: '2026-09-18',
+  };
+
+  it('reports the window as the x-domain, not the extent of the data', () => {
+    // Weigh-ins only in the last fortnight, but an 8-week window was asked for.
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-05', 96, -0.05, 14),
+      windowStart: '2026-07-24',
+    })!;
+
+    expect(view.windowStartTs).toBe(Date.parse('2026-07-24T00:00:00Z'));
+    expect(view.windowEndTs).toBe(Date.parse('2026-09-18T00:00:00Z'));
+    // The first weigh-in sits well inside the window rather than at its left edge.
+    expect(view.points[0]!.ts).toBeGreaterThan(view.windowStartTs);
+  });
+
+  /**
+   * The reported symptom: with a month-long gap in the history, widening 4W to 8W added almost
+   * nothing. On a categorical axis that was invisible — the gap drew as one step and the axis
+   * shrank to the data. The window bounds and the empty-lead count are what make it legible.
+   */
+  it('counts how much of the window has no weigh-ins at all', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-05', 96, -0.05, 14),
+      windowStart: '2026-07-24',
+    })!;
+
+    expect(view.emptyLeadingDays).toBe(43);
+    expect(view.pointCount).toBe(14);
+  });
+
+  it('reports no empty lead when the window opens on a weigh-in', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: daily('2026-09-05', 96, -0.05, 14),
+      windowStart: '2026-09-05',
+    })!;
+
+    expect(view.emptyLeadingDays).toBe(0);
+  });
+
+  it('spaces points by date, so a gap is a gap rather than one even step', () => {
+    const view = buildGoalProgressView({
+      ...base,
+      weightHistory: [
+        { date: '2026-07-20', value: 97 },
+        { date: '2026-07-21', value: 97.1 },
+        // a month with nothing logged
+        { date: '2026-08-20', value: 96.5 },
+      ],
+      windowStart: '2026-07-01',
+    })!;
+
+    const [a, b, c] = view.points;
+    const oneDay = b!.ts - a!.ts;
+    const theGap = c!.ts - b!.ts;
+    expect(oneDay).toBe(86_400_000);
+    expect(theGap).toBe(30 * 86_400_000);
+  });
+});
+
+describe('timeAxisTicks', () => {
+  const day = 86_400_000;
+
+  it('spans the whole domain, inclusive of both ends', () => {
+    const ticks = timeAxisTicks(0, 10 * day, 6);
+    expect(ticks[0]).toBe(0);
+    expect(ticks.at(-1)).toBe(10 * day);
+    expect(ticks).toHaveLength(6);
+  });
+
+  it('spaces ticks evenly', () => {
+    const ticks = timeAxisTicks(0, 10 * day, 6);
+    const steps = ticks.slice(1).map((t, i) => t - ticks[i]!);
+    expect(new Set(steps).size).toBe(1);
+  });
+
+  it('degrades to a single tick for an empty or inverted domain', () => {
+    expect(timeAxisTicks(500, 500)).toEqual([500]);
+    expect(timeAxisTicks(500, 100)).toEqual([500]);
+  });
+});
+
+describe('dateToTs / formatAxisDate', () => {
+  it('round-trips a date through UTC midnight', () => {
+    expect(formatAxisDate(dateToTs('2026-09-18'))).toBe('09-18');
+  });
+
+  it('does not drift a day in either direction across a month boundary', () => {
+    expect(formatAxisDate(dateToTs('2026-08-31'))).toBe('08-31');
+    expect(formatAxisDate(dateToTs('2026-09-01'))).toBe('09-01');
   });
 });
 

@@ -4,20 +4,23 @@ import { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Card } from '@/components';
 import { buildWeightTrend } from '@my-hub/shared/utils';
-import { averageWeeklyWeights, type WeightPoint } from './calories.utils';
+import { averageWeeklyWeights, dateToTs, formatAxisDate, timeAxisTicks, type WeightPoint } from './calories.utils';
 import { WEIGHT_CHART_WEEKLY_AVERAGE_THRESHOLD, WEIGHT_RANGE_OPTIONS, type WeightRangeKey } from './constants';
 import { RangeChips } from './ui';
 
 type WeightChartProps = {
   /** Weigh-ins for the selected range, any order. */
   data: WeightPoint[];
+  /** The range's own bounds as YYYY-MM-DD. The x-domain follows these, not the data's extent. */
+  from: string;
+  to: string;
   range: WeightRangeKey;
   onRangeChange: (range: WeightRangeKey) => void;
 };
 
 const SERIES_LABELS: Record<string, string> = { value: 'Weigh-in', trend: 'Trend' };
 
-export function WeightChart({ data, range, onRangeChange }: WeightChartProps) {
+export function WeightChart({ data, from, to, range, onRangeChange }: WeightChartProps) {
   const { points, averaged } = useMemo(() => {
     // Long ranges are averaged by week first: a year of daily readings is an unreadable smear on
     // a phone, and the weekly mean keeps the shape of the trend that matters at that zoom.
@@ -25,9 +28,14 @@ export function WeightChart({ data, range, onRangeChange }: WeightChartProps) {
     const samples = averaged ? averageWeeklyWeights(data) : data;
     return {
       averaged,
-      points: buildWeightTrend(samples).map(p => ({ ...p, label: p.date.slice(5) })),
+      points: buildWeightTrend(samples).map(p => ({ ...p, ts: dateToTs(p.date), label: p.date.slice(5) })),
     };
   }, [data]);
+
+  const domainTs: [number, number] = [dateToTs(from), dateToTs(to)];
+  // How much of the requested range holds nothing. Without saying so, a range whose earlier half
+  // is empty just looks like the control did nothing.
+  const emptyLeadingDays = points[0] ? Math.round((points[0].ts - domainTs[0]) / 86_400_000) : 0;
 
   const header = (
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -61,7 +69,18 @@ export function WeightChart({ data, range, onRangeChange }: WeightChartProps) {
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={points} margin={{ top: 8, right: 4, bottom: 0, left: -20 }}>
-            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--subtle)', fontSize: 11 }} />
+            {/* Time-scaled, domain pinned to the selected range — see GoalProgressCard for why. */}
+            <XAxis
+              dataKey="ts"
+              type="number"
+              domain={domainTs}
+              ticks={timeAxisTicks(domainTs[0], domainTs[1])}
+              tickFormatter={formatAxisDate}
+              allowDataOverflow
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: 'var(--subtle)', fontSize: 11 }}
+            />
             <YAxis
               axisLine={false}
               tickLine={false}
@@ -77,7 +96,7 @@ export function WeightChart({ data, range, onRangeChange }: WeightChartProps) {
                 fontSize: 13,
                 color: 'var(--text)',
               }}
-              labelFormatter={label => points.find(p => p.label === label)?.date ?? label}
+              labelFormatter={label => points.find(p => p.ts === label)?.date ?? formatAxisDate(label as number)}
               formatter={(value, name) => [
                 `${(value as number).toFixed(1)} kg`,
                 SERIES_LABELS[name as string] ?? (name as string),
@@ -109,7 +128,15 @@ export function WeightChart({ data, range, onRangeChange }: WeightChartProps) {
           </LineChart>
         </ResponsiveContainer>
       </div>
-      {averaged && <p className="mt-2 text-[11px] text-[var(--subtle)]">Averaged by week at this range.</p>}
+      <p className="mt-2 text-[11px] text-[var(--subtle)]">
+        {averaged && 'Averaged by week at this range.'}
+        {emptyLeadingDays >= 7 && (
+          <span className="text-[var(--amber)]">
+            {averaged ? ' ' : ''}
+            No weigh-ins in the first {emptyLeadingDays} days of this range.
+          </span>
+        )}
+      </p>
     </Card>
   );
 }

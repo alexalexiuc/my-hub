@@ -20,9 +20,34 @@ import {
 /** A weight entry, reduced to what the goal-progress maths needs. */
 export type WeightPoint = WeightSample;
 
+/** A YYYY-MM-DD date as epoch milliseconds at UTC midnight, for plotting on a numeric time axis. */
+export function dateToTs(date: string): number {
+  return Date.parse(`${date}T00:00:00Z`);
+}
+
+/**
+ * Evenly spaced tick positions across a time axis, inclusive of both ends.
+ *
+ * The axis domain is the selected window rather than the data, so ticks have to be generated from
+ * the domain too — deriving them from the points would put the last tick at the last weigh-in and
+ * hide the fact that the rest of the window is empty.
+ */
+export function timeAxisTicks(startTs: number, endTs: number, count = 6): number[] {
+  if (!(endTs > startTs) || count < 2) return [startTs];
+  const step = (endTs - startTs) / (count - 1);
+  return Array.from({ length: count }, (_, i) => Math.round(startTs + step * i));
+}
+
+/** A tick's label: month and day, in UTC to match how the timestamps were built. */
+export function formatAxisDate(ts: number): string {
+  return new Date(ts).toISOString().slice(5, 10);
+}
+
 /** One plotted day on the goal-progress chart. */
 export interface GoalProgressPoint {
   date: string;
+  /** Epoch ms — the x position, so gaps between weigh-ins render to scale. */
+  ts: number;
   label: string;
   /** What the scale said, plotted faintly so the reading is still visible. */
   actual: number;
@@ -58,6 +83,17 @@ export interface GoalProgressView {
   etaAtActualRate: string | null;
   /** When the plan said the target would be reached. */
   etaAtGoalRate: string | null;
+  /**
+   * The selected window's bounds as epoch ms. The chart's x-domain, not the data's extent: a
+   * window whose earlier half holds no weigh-ins must read as empty rather than silently
+   * shrinking to fit what there is.
+   */
+  windowStartTs: number;
+  windowEndTs: number;
+  /** Weigh-ins in the window. Below two, a slope and a trend line say nothing. */
+  pointCount: number;
+  /** Days between the window's start and its first weigh-in — how much of it is empty. */
+  emptyLeadingDays: number;
 }
 
 export interface GoalProgressInput {
@@ -106,6 +142,7 @@ export function buildGoalProgressView(input: GoalProgressInput): GoalProgressVie
 
   const points: GoalProgressPoint[] = windowed.map(p => ({
     date: p.date,
+    ts: dateToTs(p.date),
     label: p.date.slice(5),
     actual: p.value,
     trend: p.trend,
@@ -139,6 +176,12 @@ export function buildGoalProgressView(input: GoalProgressInput): GoalProgressVie
     // Only meaningful once a target exists; without one there is no finish line to reach.
     etaAtActualRate: journey ? projectGoalDate(latest.trend, goalTargetWeightKg!, actualRateKgPerWeek, today) : null,
     etaAtGoalRate: journey ? projectGoalDate(latest.trend, goalTargetWeightKg!, goalRateKgPerWeek, today) : null,
+    windowStartTs: dateToTs(windowStart),
+    windowEndTs: dateToTs(today),
+    pointCount: points.length,
+    emptyLeadingDays: points[0]
+      ? daysBetweenDateStr(windowStart, points[0].date)
+      : daysBetweenDateStr(windowStart, today),
   };
 }
 

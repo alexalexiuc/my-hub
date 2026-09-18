@@ -180,7 +180,13 @@ export default function ProgressPage() {
         canReset={weightSamples.length > 0}
       />
 
-      <WeightChart data={trendSamples} range={trendRange} onRangeChange={setTrendRange} />
+      <WeightChart
+        data={trendSamples}
+        from={trendFrom ?? weightSamples[weightSamples.length - 1]?.date ?? today}
+        to={today}
+        range={trendRange}
+        onRangeChange={setTrendRange}
+      />
 
       <MeasurementsSection
         latestMeasurements={latestMeasurements}
