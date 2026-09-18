@@ -16,6 +16,8 @@ export type { DatePickerProps, DateMode } from './DatePicker';
 export { DisclosureToggle } from './DisclosureToggle';
 export { Divider, SectionLabel, SubText } from './typography';
 export { Field } from './Field';
+export { FieldInfo } from './FieldInfo';
+export type { FieldInfoProps } from './FieldInfo';
 export { FeatureTheme } from './FeatureTheme';
 export type { FeatureThemeProps } from './FeatureTheme';
 export { FilePicker } from './FilePicker';
