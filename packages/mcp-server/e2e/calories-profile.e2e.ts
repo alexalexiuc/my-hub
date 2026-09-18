@@ -27,6 +27,16 @@ interface UpdateProfileResult {
   calculated: CalculatedTargets;
 }
 
+interface GetProfileResult extends UpdateProfileResult {
+  latestMeasurements: {
+    type: string;
+    label: string;
+    value: number;
+    unit: string;
+    date: string;
+  }[];
+}
+
 interface LogMeasurementResult {
   id: number;
 }
@@ -172,5 +182,39 @@ describe.sequential('calories — profile update', () => {
 
     const data = parseToolResult<UpdateProfileResult>(result);
     expect(data.profile.notes).toBe(notes);
+  });
+
+  it('reads back the saved profile, its calculated targets and the latest measurements', async () => {
+    await client.callTool({
+      name: 'calories_update_profile',
+      arguments: {
+        age: 41,
+        sex: 'female',
+        heightCm: 165,
+        activityLevel: 'lightly_active',
+        goalType: 'maintain',
+      },
+    });
+
+    const result = await client.callTool({ name: 'calories_get_profile', arguments: {} });
+    const data = parseToolResult<GetProfileResult>(result);
+
+    expect(data.profile.age).toBe(41);
+    expect(data.profile.sex).toBe('female');
+    expect(data.profile.heightCm).toBe(165);
+    expect(data.profile.activityLevel).toBe('lightly_active');
+
+    expect(data.calculated.tdee).not.toBeNull();
+    expect(data.calculated.tdee).toBeGreaterThan(0);
+
+    // The weight seeded in beforeAll is what makes TDEE computable, so it must come back here too.
+    const weight = data.latestMeasurements.find(m => m.type === 'weight');
+    expect(weight?.value).toBe(80);
+    expect(weight?.unit).toBe('kg');
+  });
+
+  it('never exposes the automation API key', async () => {
+    const result = await client.callTool({ name: 'calories_get_profile', arguments: {} });
+    expect(parseToolResult<GetProfileResult>(result).profile).not.toHaveProperty('automationApiKey');
   });
 });

@@ -10,7 +10,7 @@ const caloriesResources = [
     name: 'calories-profile',
     uri: 'calories://profile',
     description:
-      "User's health profile: TDEE, calorie targets (goal, min, max), and latest body measurements. Read when you need the user's calorie budget, body stats, or goal settings.",
+      "User's health profile: TDEE, calorie targets (goal, min, max), and latest body measurements. Read when you need the user's calorie budget, body stats, or goal settings. Use the calories_get_profile tool instead when resources are not supported — it returns the same payload.",
     mimeType: 'application/json',
     callback: getProfileResource,
   }),

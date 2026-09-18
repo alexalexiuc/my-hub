@@ -87,12 +87,12 @@ This starts both the MCP server (`:3001`) and the hub dashboard (`:3000`) in wat
 
 #### Resources
 
-| URI                         | Description                                                                     |
-| --------------------------- | ------------------------------------------------------------------------------- |
-| `calories://profile`        | TDEE, calorie targets (goal/min/max), and latest body measurements              |
-| `calories://today`          | All meals logged today with macro totals and progress vs target                 |
-| `calories://history-7days`  | Rolling 7-day summary — per-day calories & macros, weight logs, period averages |
-| `calories://history-30days` | Same structure as `history-7days` but covering the last 30 days                 |
+| URI                         | Description                                                                                                                                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `calories://profile`        | TDEE, calorie targets (goal/min/max), and latest body measurements — same payload as `calories_get_profile`, for clients that support resources |
+| `calories://today`          | All meals logged today with macro totals and progress vs target                                                                                 |
+| `calories://history-7days`  | Rolling 7-day summary — per-day calories & macros, weight logs, period averages                                                                 |
+| `calories://history-30days` | Same structure as `history-7days` but covering the last 30 days                                                                                 |
 
 #### Tools
 
@@ -101,6 +101,7 @@ This starts both the MCP server (`:3001`) and the hub dashboard (`:3000`) in wat
 | `calories_log_meal`              | Log a meal; supports multi-item entries in one call             |
 | `calories_get_meals`             | Retrieve individual meal entries (with `meal_id`s for deletion) |
 | `calories_delete_meal`           | Delete a meal by `meal_id`                                      |
+| `calories_get_profile`           | Read the profile, calculated targets, and latest measurements   |
 | `calories_update_profile`        | Set demographics, activity level, and weight goal               |
 | `calories_get_daily_summary`     | Full calorie/macro breakdown for a specific date                |
 | `calories_get_history`           | Calorie and weight history for a custom date range              |
