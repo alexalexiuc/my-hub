@@ -12,7 +12,10 @@ test.describe('Main Dashboard', () => {
     await expect(page.getByRole('link', { name: /calories/i }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /finances/i }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /mcp control/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /profile/i })).toBeVisible();
+    // Exact name, not a /profile/i regex: the Calories widget's "Complete your profile" link
+    // (shown whenever the account has no calorie profile yet, as this fresh test user doesn't at
+    // this point) also matches a loose "profile" pattern and made this a strict-mode violation.
+    await expect(page.getByRole('link', { name: 'Profile & Settings', exact: true })).toBeVisible();
 
     // ── 2. Navigation ─────────────────────────────────────────────────────────
     await page
