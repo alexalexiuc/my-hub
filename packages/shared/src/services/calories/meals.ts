@@ -1,4 +1,4 @@
-import { and, between, eq, isNotNull } from 'drizzle-orm';
+import { and, between, desc, eq, isNotNull, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { mealLogs } from '../../db/schema/calories';
 import type { MealLog, NewMealLog } from '../../types';
@@ -90,4 +90,65 @@ export async function deleteMeal(userId: string, mealId: string): Promise<MealLo
     .where(and(eq(mealLogs.userId, userId), eq(mealLogs.mealId, mealId)))
     .returning();
   return row ?? null;
+}
+
+/**
+ * One previously logged meal, offered as a one-tap starting point for a new log.
+ * `description` carries the casing of the most recent entry; the macros are that same entry's.
+ */
+export interface RecentMealSuggestion {
+  description: string;
+  mealType: MealType;
+  kcal: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+}
+
+/**
+ * The user's most recently logged meals, one row per distinct description (compared
+ * case-insensitively, so "Greek yogurt" and "greek yogurt" are the same dish), newest first.
+ *
+ * Exists so logging a meal you eat regularly is a tap rather than re-typing a description and
+ * four numbers. Each row carries the macros from the latest time that dish was logged, which is
+ * the best guess at what it will be this time — the user can still adjust before saving.
+ *
+ * @param userId  Owner of the meal logs.
+ * @param limit   Maximum suggestions to return. Defaults to 12.
+ */
+export async function getRecentMealSuggestions(userId: string, limit = 12): Promise<RecentMealSuggestion[]> {
+  const normalizedDescription = sql`lower(${mealLogs.description})`;
+
+  // DISTINCT ON keeps the newest row per description, but Postgres requires its ORDER BY to
+  // lead with the distinct expression — which is not the order the caller wants. Hence the
+  // subquery: dedupe inside, order by recency outside.
+  const newestPerDescription = db
+    .selectDistinctOn([normalizedDescription], {
+      description: mealLogs.description,
+      mealType: mealLogs.mealType,
+      kcal: mealLogs.kcal,
+      protein: mealLogs.protein,
+      carbs: mealLogs.carbs,
+      fat: mealLogs.fat,
+      loggedAt: mealLogs.loggedAt,
+    })
+    .from(mealLogs)
+    .where(and(eq(mealLogs.userId, userId), isNotNull(mealLogs.mealId)))
+    .orderBy(normalizedDescription, desc(mealLogs.loggedAt))
+    .as('newest_per_description');
+
+  const rows = await db
+    .select({
+      description: newestPerDescription.description,
+      mealType: newestPerDescription.mealType,
+      kcal: newestPerDescription.kcal,
+      protein: newestPerDescription.protein,
+      carbs: newestPerDescription.carbs,
+      fat: newestPerDescription.fat,
+    })
+    .from(newestPerDescription)
+    .orderBy(desc(newestPerDescription.loggedAt))
+    .limit(limit);
+
+  return rows;
 }
