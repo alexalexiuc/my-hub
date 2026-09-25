@@ -43,7 +43,7 @@ interface RecordSupplyResult {
  * E2e tests for the portfolio MCP tools. Uses fake Yahoo symbols so no real
  * price fetch succeeds — assertions cover only price-independent math.
  */
-describe.sequential('finances — portfolio tools', () => {
+describe('finances — portfolio tools', () => {
   let client: McpClient;
   const runId = Date.now().toString(36);
   const symA = `E2EA${runId}`.slice(0, 12);

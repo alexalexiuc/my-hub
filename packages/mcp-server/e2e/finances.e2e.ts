@@ -109,7 +109,7 @@ interface PayeeNotFoundResult {
  * A unique run ID is used so test artefacts can be identified and cleaned up
  * without relying on a test-only database.
  */
-describe.sequential('finances — list_context', () => {
+describe('finances — list_context', () => {
   let client: McpClient;
 
   beforeAll(async () => {
@@ -190,7 +190,7 @@ describe.sequential('finances — list_context', () => {
   });
 });
 
-describe.sequential('finances — upsert_account lifecycle', () => {
+describe('finances — upsert_account lifecycle', () => {
   let client: McpClient;
   let createdAccountId: number | undefined;
   const runId = Date.now().toString(36);
@@ -312,7 +312,7 @@ describe.sequential('finances — upsert_account lifecycle', () => {
   });
 });
 
-describe.sequential('finances — upsert_category lifecycle', () => {
+describe('finances — upsert_category lifecycle', () => {
   let client: McpClient;
   let createdCategoryId: number | undefined;
   let testGroupName: string | undefined;
@@ -445,7 +445,7 @@ describe.sequential('finances — upsert_category lifecycle', () => {
   });
 });
 
-describe.sequential('finances — merge_payees', () => {
+describe('finances — merge_payees', () => {
   let client: McpClient;
 
   beforeAll(async () => {
@@ -526,7 +526,7 @@ describe.sequential('finances — merge_payees', () => {
   });
 });
 
-describe.sequential('finances — upsert_payee lifecycle', () => {
+describe('finances — upsert_payee lifecycle', () => {
   let client: McpClient;
   const runId = Date.now().toString(36);
   const testPayeeName = `[e2e:${runId}] Test Payee`;
@@ -614,7 +614,7 @@ describe.sequential('finances — upsert_payee lifecycle', () => {
   });
 });
 
-describe.sequential('finances — add_transactions with createPayee flag', () => {
+describe('finances — add_transactions with createPayee flag', () => {
   let client: McpClient;
   let testAccountId: number | undefined;
   let createdTransactionId: number | undefined;
@@ -746,7 +746,7 @@ interface QueryTransactionsResult {
   total: number;
 }
 
-describe.sequential('finances — itemize_transaction', () => {
+describe('finances — itemize_transaction', () => {
   let client: McpClient;
   let testAccountId: number | undefined;
   let createdTransactionId: number | undefined;
@@ -888,7 +888,7 @@ interface ComparisonResult {
   groups: ComparisonGroupEntry[];
 }
 
-describe.sequential('finances — get_comparison', () => {
+describe('finances — get_comparison', () => {
   let client: McpClient;
 
   beforeAll(async () => {

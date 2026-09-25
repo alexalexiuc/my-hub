@@ -20,7 +20,7 @@ interface TodoItem {
  * A unique run ID is embedded in the title so test items can be identified
  * among real data without relying on a test-only database.
  */
-describe.sequential('todo — lifecycle', () => {
+describe('todo — lifecycle', () => {
   let client: McpClient;
   let todoId: number | undefined;
 

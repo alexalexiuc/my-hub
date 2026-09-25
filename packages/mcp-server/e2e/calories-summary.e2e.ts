@@ -48,7 +48,7 @@ interface HistoryPeriod {
   periodRemaining: number | null;
 }
 
-describe.sequential('calories — get_daily_summary', () => {
+describe('calories — get_daily_summary', () => {
   let client: McpClient;
   const testDate = '2099-02-01';
   const mealIdsToCleanup: string[] = [];
@@ -148,7 +148,7 @@ describe.sequential('calories — get_daily_summary', () => {
   });
 });
 
-describe.sequential('calories — get_history', () => {
+describe('calories — get_history', () => {
   let client: McpClient;
 
   beforeAll(async () => {

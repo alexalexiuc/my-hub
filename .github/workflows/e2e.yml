@@ -57,7 +57,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push
     # There is one staging stack on the VPS: two PRs must not deploy/test/tear it down
-    # at the same time. Queue instead of cancelling another PR's run.
+    # at the same time. GitHub holds at most one waiting job per group, so with three
+    # PRs in flight the middle one's pending job is cancelled and needs a re-run —
+    # still better than two runs interleaving on the same stack.
     concurrency:
       group: staging-stack
       cancel-in-progress: false
@@ -183,12 +185,19 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: IMAGE_OWNER
+          envs: IMAGE_OWNER,IMAGE_TAG
           script: |
             set -e
             cd /opt/my-hub
             docker compose --project-name my-hub-staging --env-file .env.staging \
               -f infra/docker-compose.staging.yml down -v
+            # This run's sha-tagged images stay tagged after `down`, so `image prune`
+            # alone would never reclaim them. Untag them (no -f: an image still tagged
+            # elsewhere, e.g. by production, is kept), then prune dangling layers.
+            for name in migrate e2e-seeds worker mcp-server hub; do
+              docker image rm "ghcr.io/$IMAGE_OWNER/my-hub-$name:$IMAGE_TAG" 2>/dev/null || true
+            done
             docker image prune -f
         env:
           IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}

@@ -55,7 +55,7 @@ interface MutationResult {
  * Uses a far-future week (2099-01-05, a Monday) so nothing collides with real menus, and
  * deletes the menu afterwards even if an assertion fails part-way through.
  */
-describe.sequential('calories — weekly menu lifecycle', () => {
+describe('calories — weekly menu lifecycle', () => {
   let client: McpClient;
   /** Reassigned whenever plan_week replaces the week — the replacement gets a fresh menuId. */
   let menuId = '';

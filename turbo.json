@@ -1,5 +1,6 @@
 {
   "$schema": "https://v2-11-3.turborepo.dev/schema.json",
+  "globalDependencies": ["tsconfig.base.json", "eslint.config.mjs", "prettier.config.mjs"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

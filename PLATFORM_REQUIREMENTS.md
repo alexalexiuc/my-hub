@@ -164,8 +164,8 @@ npm workspaces (or pnpm workspaces) manage inter-package dependencies.
 - `ci.yml` (PRs and pushes to `main`/`staging`) → one parallel `turbo run typecheck lint test:unit`
   with the Turborepo cache persisted between runs, plus the palette drift check.
 - `e2e.yml` (PRs to `main`) → build and push `staging-latest` images, deploy the staging stack on
-  the VPS, run both E2E suites, tear the stack down. Runs that share the one staging stack are
-  queued, never interleaved.
+  the VPS, run both E2E suites, tear the stack down. E2E jobs never interleave on the one staging
+  stack; GitHub keeps only one waiting job, so a job superseded in the queue must be re-run.
 - `deploy.yml` (push to `main`) → build and push `latest` images, then `docker compose pull && up`
   on the production VPS. Deploys are serialised.
 

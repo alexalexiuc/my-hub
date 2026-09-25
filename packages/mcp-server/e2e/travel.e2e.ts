@@ -64,7 +64,7 @@ interface TripBriefResult {
  * A unique run ID is embedded in names so test data can be identified
  * among real data without relying on a test-only database.
  */
-describe.sequential('travel — trip and booking lifecycle', () => {
+describe('travel — trip and booking lifecycle', () => {
   let client: McpClient;
   let tripId: number | undefined;
   let bookingId: number | undefined;
@@ -201,7 +201,7 @@ describe.sequential('travel — trip and booking lifecycle', () => {
   });
 });
 
-describe.sequential('travel — day note lifecycle', () => {
+describe('travel — day note lifecycle', () => {
   let client: McpClient;
   let tripId: number | undefined;
   let dayNoteId: number | undefined;
