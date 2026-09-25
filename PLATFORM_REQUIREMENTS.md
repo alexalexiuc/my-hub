@@ -161,11 +161,19 @@ npm workspaces (or pnpm workspaces) manage inter-package dependencies.
 
 **GitHub Actions** for automated CI/CD:
 
-- `pull_request` → run unit tests, type-check, lint
-- `push to staging` → build images, push to GHCR, deploy to staging env
-- `push to main` → build images, push to GHCR, deploy to production
+- `ci.yml` (PRs and pushes to `main`/`staging`) → one parallel `turbo run typecheck lint test:unit`
+  with the Turborepo cache persisted between runs, plus the palette drift check.
+- `e2e.yml` (PRs to `main`) → build and push `staging-latest` images, deploy the staging stack on
+  the VPS, run both E2E suites, tear the stack down. Runs that share the one staging stack are
+  queued, never interleaved.
+- `deploy.yml` (push to `main`) → build and push `latest` images, then `docker compose pull && up`
+  on the production VPS. Deploys are serialised.
 
-Manual deploy script (`deploy.sh`) as fallback / emergency option.
+Images are built with `docker buildx bake` from `docker-bake.hcl`: all targets build in parallel
+in one BuildKit session, the identical install + shared-build prefix of the service Dockerfiles
+runs once, and each image has its own GitHub Actions cache scope.
+
+Manual fallback: run the same `docker compose` commands on the server (see `CLAUDE.md` → `infra`).
 
 **Image registry:** GitHub Container Registry (GHCR) — free for public repos.
 

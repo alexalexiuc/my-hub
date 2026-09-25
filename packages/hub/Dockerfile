@@ -16,6 +16,10 @@ COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
   pnpm install -r
 
+# Keep everything from the top through this shared build identical across the service
+# Dockerfiles: docker-bake.hcl builds them together and BuildKit runs it only once.
+RUN pnpm --filter @my-hub/shared build
+
 # Build-time placeholder values for required env vars.
 # Next.js static analysis loads route modules during `next build`, which triggers
 # lazy getters for secrets like GOOGLE_CLIENT_ID. These hard-coded placeholders
@@ -34,7 +38,6 @@ ENV SES_FROM_EMAIL=noreply@placeholder.dev
 ENV HUB_URL=http://localhost:3000
 ENV E2E_TEST_EMAILS=
 
-RUN pnpm --filter @my-hub/shared build
 RUN pnpm --filter @my-hub/hub build
 RUN mkdir -p /app/packages/hub/public
 
