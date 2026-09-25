@@ -24,9 +24,9 @@ route redirects to `/calories`.
 | ID    | Requirement                                                                                                                                    |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | FR-01 | The main dashboard must display the user's display name as a greeting in the header when a name is set.                                        |
-| FR-02 | The main dashboard must display an interactive **Todo widget** showing open todos with inline add and mark-done functionality.                 |
+| FR-02 | _Removed_ — the Todo widget was removed together with the Todo feature.                                                                        |
 | FR-03 | The main dashboard must display an interactive **Calories widget** with a circular progress ring, macros, and quick meal add.                  |
-| FR-04 | The main dashboard must display app tiles linking to each feature dashboard (Calories, Todo).                                                  |
+| FR-04 | The main dashboard must display app tiles linking to each feature dashboard (Calories, My Travels, Finances).                                  |
 | FR-05 | The main dashboard must display a Setup section with a link to MCP Control.                                                                    |
 | FR-06 | The main dashboard header must include a Profile icon link and a Sign-out button.                                                              |
 | FR-07 | The main dashboard must display a footer with links to Terms of Use, Privacy Policy, and Contact Us.                                           |
@@ -35,13 +35,13 @@ route redirects to `/calories`.
 
 ### Technical Requirements
 
-| ID    | Requirement                                                                                                                                     |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| TR-01 | The page is a client component (`"use client"`) at `packages/hub/src/app/page.tsx`.                                                             |
-| TR-02 | Data is fetched in parallel: `GET /api/calories/profile`, `GET /api/calories/meals?date=<today>`, `GET /api/todo`, and `GET /api/travel/trips`. |
-| TR-03 | TDEE calculation is done client-side using the same Mifflin-St Jeor formula as the server.                                                      |
-| TR-04 | Dashboard header, footer, todo widget, calories widget, and circular progress are in `packages/hub/src/components/dashboard/`.                  |
-| TR-05 | Travel widget selection logic prefers ongoing trips over upcoming trips, and displays minimal fields (name, destination, date range, status).   |
+| ID    | Requirement                                                                                                                                   |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| TR-01 | The page is a client component (`"use client"`) at `packages/hub/src/app/page.tsx`.                                                           |
+| TR-02 | Data is fetched in parallel: `GET /api/calories/profile`, `GET /api/calories/meals?date=<today>`, and `GET /api/travel/trips`.                |
+| TR-03 | TDEE calculation is done client-side using the same Mifflin-St Jeor formula as the server.                                                    |
+| TR-04 | Dashboard header, footer, calories widget, and circular progress are in `packages/hub/src/components/dashboard/`.                             |
+| TR-05 | Travel widget selection logic prefers ongoing trips over upcoming trips, and displays minimal fields (name, destination, date range, status). |
 
 ---
 
@@ -104,8 +104,8 @@ route redirects to `/calories`.
 ## Acceptance Criteria
 
 - [x] The main dashboard shows a header with user greeting, profile icon, and sign-out button.
-- [x] The main dashboard shows interactive Todo and Calories widgets with real-time add/complete actions.
-- [x] The main dashboard shows app tiles for Calories and Todo, and a Setup link to MCP Control.
+- [x] The main dashboard shows an interactive Calories widget with real-time add actions.
+- [x] The main dashboard shows app tiles for Calories, My Travels and Finances, and a Setup link to MCP Control.
 - [x] The main dashboard shows a footer with Terms, Privacy, and Contact links.
 - [x] A skeleton loading state is shown until data is fetched.
 - [x] A compact Travel widget appears when there is an ongoing or upcoming trip.

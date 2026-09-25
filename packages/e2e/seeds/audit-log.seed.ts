@@ -37,9 +37,9 @@ export async function seedAuditLogFixtures(userEmail: string): Promise<void> {
     },
     {
       service: 'mcp-service',
-      server: 'todo',
+      server: 'travel',
       method: 'GET',
-      path: `${SEED_PATH_PREFIX}todo-list`,
+      path: `${SEED_PATH_PREFIX}travel-trips`,
       statusCode: 200,
       durationMs: 15,
       userId: user.id,
@@ -49,9 +49,9 @@ export async function seedAuditLogFixtures(userEmail: string): Promise<void> {
     },
     {
       service: 'mcp-service',
-      server: 'apiary',
+      server: 'finances',
       method: 'PATCH',
-      path: `${SEED_PATH_PREFIX}apiary-sync`,
+      path: `${SEED_PATH_PREFIX}finances-sync`,
       statusCode: 500,
       durationMs: 121,
       userId: user.id,

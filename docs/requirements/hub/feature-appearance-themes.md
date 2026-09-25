@@ -95,8 +95,7 @@ A theme key is either a signature key or `<hue>-<mood>` — 41 in total.
 ## Open Questions
 
 - [x] Should a light mode be offered? Yes — `light-signature`, hand-authored opposite Graphite.
-- [ ] Should `/apiary` be converted to tokens? It is deliberately out of scope and still uses
-      hardcoded zinc.
+- [x] Should `/apiary` be converted to tokens? Moot — the Apiary page has been removed.
 - [ ] Should the per-trip and finance-category colour palettes (data colours, not theme colours)
       be re-derived from the active theme?
 

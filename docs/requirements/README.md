@@ -11,7 +11,7 @@ Requirements for individual MCP (Model Context Protocol) servers — the backend
 exposed to AI clients such as Claude. Each file describes one MCP sub-server: its
 purpose, the tools it provides, its data model, and any constraints.
 
-Examples: Apiary, Calorie Tracker, Products Manager.
+Examples: Calorie Tracker, Travel Management, Products Manager.
 
 ### `hub/`
 
@@ -37,7 +37,7 @@ feature-<name>.md
 
 Examples:
 
-- `mcps/feature-hive-manager.md`
+- `mcps/feature-travel-management.md`
 - `mcps/feature-calorie-tracker.md`
 - `hub/feature-oauth-clients.md`
 - `hub/feature-data-explorer.md`

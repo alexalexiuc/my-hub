@@ -47,4 +47,3 @@ export function createHubTokenVerifier(serverName: McpServerName) {
 
 /** Pre-built verifier instances for each sub-server. */
 export const caloriesVerifier = createHubTokenVerifier(McpServerNames.Calories);
-export const todoVerifier = createHubTokenVerifier(McpServerNames.Todo);

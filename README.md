@@ -1,13 +1,14 @@
 # my-hub
 
-A self-hosted personal MCP (Model Context Protocol) hub that gives Claude AI agents access to your personal data — calorie tracking, todos, and more — through a secure OAuth 2.1 layer.
+A self-hosted personal MCP (Model Context Protocol) hub that gives Claude AI agents access to your personal data — calorie tracking, travel plans, finances, and more — through a secure OAuth 2.1 layer.
 
 ## What it does
 
-**my-hub** runs two MCP servers behind a single authenticated endpoint:
+**my-hub** runs several MCP servers behind a single authenticated endpoint, including:
 
 - **Calories** — log meals, track macros, set weight goals, record body measurements, and get AI-driven progress analysis over rolling 7 or 30-day windows
-- **Todo** — manage a simple personal todo list
+- **Travel** — plan trips, bookings, places, checklists and companions
+- **Finances** — accounts, transactions, budgets, net worth and portfolios
 
 Claude (or any MCP-compatible client) connects to the hub, authenticates via OAuth 2.1 + PKCE, and can then call tools and read resources to answer questions like _"how are my calories this week?"_ or _"add milk to my shopping list"_.
 
@@ -110,18 +111,10 @@ This starts both the MCP server (`:3001`) and the hub dashboard (`:3000`) in wat
 | `calories_get_measurement_types` | List available measurement types with units                     |
 | `calories_delete_measurement`    | Delete a measurement entry by ID                                |
 
-### Todo (`/api/todo/mcp`)
-
-| Tool             | Description                         |
-| ---------------- | ----------------------------------- |
-| `todo_add`       | Add a new todo item                 |
-| `todo_mark_done` | Mark a todo as done by ID           |
-| `todo_list`      | List all todos (open and completed) |
-
 ## Connecting Claude to your hub
 
 1. In the dashboard, go to **OAuth Clients** and register a new client for Claude.ai
-2. In [Claude.ai settings](https://claude.ai), add an MCP server pointing to `https://your-domain/api/calories/mcp` (or `/api/todo/mcp`)
+2. In [Claude.ai settings](https://claude.ai), add an MCP server pointing to `https://your-domain/api/calories/mcp` (or `/api/travel/mcp`, `/api/finances/mcp`)
 3. Authorise via the OAuth flow — Claude will then have access to your tools and resources
 
 ## Deployment

@@ -5,8 +5,6 @@ import { DashboardFooter, DashboardHeader } from '@/components/dashboard';
 import { CaloriesWidget, FinancesWidget, TravelWidget } from '@/components/widgets';
 import {
   UtensilsOutlineIcon,
-  ListChecksOutlineIcon,
-  BeeOutlineIcon,
   PlaneOutlineIcon,
   ServerOutlineIcon,
   UserPlusOutlineIcon,
@@ -23,26 +21,6 @@ const appSections = [
     labelColor: 'text-orange-400',
     accentColor: 'bg-orange-500/20',
     icon: <UtensilsOutlineIcon className="size-5" />,
-  },
-  {
-    href: '/todo',
-    label: 'Todo',
-    description: 'Simple todo list with MCP integration',
-    color:
-      'bg-gradient-to-br from-blue-950/40 to-zinc-900 border-blue-800/50 hover:border-blue-500/70 hover:shadow-lg hover:shadow-blue-950/20 hover:-translate-y-0.5',
-    labelColor: 'text-blue-400',
-    accentColor: 'bg-blue-500/20',
-    icon: <ListChecksOutlineIcon className="size-5" />,
-  },
-  {
-    href: '/apiary',
-    label: 'Apiary',
-    description: 'Manage bee yards, hives, inspections & tasks',
-    color:
-      'bg-gradient-to-br from-yellow-950/50 to-zinc-900 border-yellow-800/40 hover:border-yellow-600/60 hover:shadow-lg hover:shadow-yellow-950/30 hover:-translate-y-0.5',
-    labelColor: 'text-yellow-400',
-    accentColor: 'bg-yellow-500/20',
-    icon: <BeeOutlineIcon className="size-5" />,
   },
   {
     href: '/travel',

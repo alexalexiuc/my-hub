@@ -21,10 +21,10 @@ beforeEach(() => {
 
 describe('apiFetch — success cases', () => {
   it('GETs and parses JSON', async () => {
-    global.fetch = makeFetch(200, { todos: [] });
-    const data = await apiFetch<{ todos: unknown[] }>('/api/todo');
-    expect(data).toEqual({ todos: [] });
-    expect(fetch).toHaveBeenCalledWith('/api/todo', expect.objectContaining({ method: 'GET' }));
+    global.fetch = makeFetch(200, { trips: [] });
+    const data = await apiFetch<{ trips: unknown[] }>('/api/travel/trips');
+    expect(data).toEqual({ trips: [] });
+    expect(fetch).toHaveBeenCalledWith('/api/travel/trips', expect.objectContaining({ method: 'GET' }));
   });
 
   it('appends query params, omitting null/undefined', async () => {
@@ -36,10 +36,10 @@ describe('apiFetch — success cases', () => {
 
   it('serialises plain-object body as JSON and sets Content-Type', async () => {
     global.fetch = makeFetch(201, { id: 1 });
-    await apiFetch('/api/todo', { method: 'POST', body: { title: 'test' } });
+    await apiFetch('/api/travel/trips', { method: 'POST', body: { name: 'test' } });
     const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
     expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json');
-    expect(init.body).toBe(JSON.stringify({ title: 'test' }));
+    expect(init.body).toBe(JSON.stringify({ name: 'test' }));
   });
 
   it('passes FormData body without setting Content-Type', async () => {
@@ -54,7 +54,7 @@ describe('apiFetch — success cases', () => {
 
   it('returns undefined for empty response body', async () => {
     global.fetch = makeFetch(204, '');
-    const result = await apiFetch('/api/todo/1', { method: 'DELETE' });
+    const result = await apiFetch('/api/travel/trips/1', { method: 'DELETE' });
     expect(result).toBeUndefined();
   });
 
@@ -95,38 +95,44 @@ describe('apiFetch — error cases', () => {
 });
 
 describe('apiFetch — schema-driven contracts', () => {
-  const TodoSchema = z.object({ id: z.number(), title: z.string() });
-  const ResponseSchema = z.object({ todos: z.array(TodoSchema) });
-  const BodySchema = z.object({ title: z.string().trim().min(1) });
+  const TripSchema = z.object({ id: z.number(), name: z.string() });
+  const ResponseSchema = z.object({ trips: z.array(TripSchema) });
+  const BodySchema = z.object({ name: z.string().trim().min(1) });
 
   it('parses and types the response via responseSchema', async () => {
-    global.fetch = makeFetch(200, { todos: [{ id: 1, title: 'Buy milk' }] });
-    const data = await apiFetch('/api/todo', { responseSchema: ResponseSchema });
-    expect(data).toEqual({ todos: [{ id: 1, title: 'Buy milk' }] });
+    global.fetch = makeFetch(200, { trips: [{ id: 1, name: 'Lisbon' }] });
+    const data = await apiFetch('/api/travel/trips', { responseSchema: ResponseSchema });
+    expect(data).toEqual({ trips: [{ id: 1, name: 'Lisbon' }] });
   });
 
   it('throws when the response does not match responseSchema', async () => {
-    global.fetch = makeFetch(200, { todos: [{ id: 'not-a-number', title: 'Buy milk' }] });
-    await expect(apiFetch('/api/todo', { responseSchema: ResponseSchema })).rejects.toThrow('Invalid response body');
+    global.fetch = makeFetch(200, { trips: [{ id: 'not-a-number', name: 'Lisbon' }] });
+    await expect(apiFetch('/api/travel/trips', { responseSchema: ResponseSchema })).rejects.toThrow(
+      'Invalid response body',
+    );
   });
 
   it('validates and transforms the outgoing body via bodySchema', async () => {
-    global.fetch = makeFetch(201, { todos: [] });
-    await apiFetch('/api/todo', { method: 'POST', body: { title: '  Buy milk  ' }, bodySchema: BodySchema });
+    global.fetch = makeFetch(201, { trips: [] });
+    await apiFetch('/api/travel/trips', { method: 'POST', body: { name: '  Lisbon  ' }, bodySchema: BodySchema });
     const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
-    expect(init.body).toBe(JSON.stringify({ title: 'Buy milk' }));
+    expect(init.body).toBe(JSON.stringify({ name: 'Lisbon' }));
   });
 
   it('throws when the outgoing body does not match bodySchema', async () => {
     global.fetch = makeFetch(201, {});
     await expect(
-      apiFetch('/api/todo', { method: 'POST', body: { title: '   ' }, bodySchema: BodySchema }),
+      apiFetch('/api/travel/trips', { method: 'POST', body: { name: '   ' }, bodySchema: BodySchema }),
     ).rejects.toThrow('Invalid request body');
   });
 
   it('resolves to undefined for an empty-body success even when responseSchema is set', async () => {
     global.fetch = makeFetch(204, '');
-    const data = await apiFetch('/api/todo', { method: 'DELETE', responseSchema: ResponseSchema, silentToast: true });
+    const data = await apiFetch('/api/travel/trips', {
+      method: 'DELETE',
+      responseSchema: ResponseSchema,
+      silentToast: true,
+    });
     expect(data).toBeUndefined();
   });
 });

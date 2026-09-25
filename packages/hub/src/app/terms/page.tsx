@@ -27,7 +27,7 @@ export default function TermsPage() {
         <section className="space-y-3">
           <h2 className="text-lg font-semibold text-zinc-100">3. Your data</h2>
           <p>
-            You own your data. We store only what is necessary for the features you use (meals, todos, measurements,
+            You own your data. We store only what is necessary for the features you use (meals, measurements, trips,
             etc.). You can request deletion of your data at any time by contacting us.
           </p>
         </section>

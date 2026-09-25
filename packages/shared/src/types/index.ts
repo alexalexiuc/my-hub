@@ -9,12 +9,7 @@ import type {
   mealLogs,
   bodyMeasurements,
   apiRequestLogs,
-  todos,
   inviteTokens,
-  apiaryYards,
-  apiaryHives,
-  apiaryLogs,
-  apiaryTasks,
   trips,
   tripBookings,
   tripPlaces,
@@ -62,23 +57,9 @@ export type { MeasurementTypeKey, MeasurementEntrySource };
 export type ApiRequestLog = InferSelectModel<typeof apiRequestLogs>;
 export type NewApiRequestLog = InferInsertModel<typeof apiRequestLogs>;
 
-// Todos
-export type Todo = InferSelectModel<typeof todos>;
-export type NewTodo = InferInsertModel<typeof todos>;
-
 // Invites
 export type InviteToken = InferSelectModel<typeof inviteTokens>;
 export type InviteTokenWithUsedByEmail = InviteToken & { usedByEmail: string | null };
-
-// Apiary
-export type ApiaryYard = InferSelectModel<typeof apiaryYards>;
-export type NewApiaryYard = InferInsertModel<typeof apiaryYards>;
-export type ApiaryHive = InferSelectModel<typeof apiaryHives>;
-export type NewApiaryHive = InferInsertModel<typeof apiaryHives>;
-export type ApiaryLog = InferSelectModel<typeof apiaryLogs>;
-export type NewApiaryLog = InferInsertModel<typeof apiaryLogs>;
-export type ApiaryTask = InferSelectModel<typeof apiaryTasks>;
-export type NewApiaryTask = InferInsertModel<typeof apiaryTasks>;
 
 // Travel — booking details discriminated union
 export type {

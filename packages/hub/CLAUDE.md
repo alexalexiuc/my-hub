@@ -87,7 +87,7 @@ Each section component should:
 import { apiFetch, ApiError } from '@/lib/utils';
 
 // GET with typed response
-const data = await apiFetch<{ todos: Todo[] }>('/api/todo');
+const data = await apiFetch<{ trips: Trip[] }>('/api/travel/trips');
 
 // GET with query params (null/undefined values are omitted automatically)
 const data = await apiFetch<{ meals: Meal[] }>('/api/calories/meals', {
@@ -95,10 +95,10 @@ const data = await apiFetch<{ meals: Meal[] }>('/api/calories/meals', {
 });
 
 // POST/PATCH — body auto-JSON-stringified, Content-Type set automatically
-await apiFetch('/api/todo', { method: 'POST', body: { title } });
+await apiFetch('/api/travel/trips', { method: 'POST', body: { name } });
 
 // DELETE — no body needed
-await apiFetch(`/api/todo/${id}`, { method: 'DELETE' });
+await apiFetch(`/api/travel/trips/${id}`, { method: 'DELETE' });
 
 // FormData — no Content-Type injected (browser sets multipart boundary)
 await apiFetch('/api/upload', { method: 'POST', body: formData });
@@ -193,7 +193,7 @@ Use these components from `@/components` instead of bare HTML elements:
 
 | Component     | Replaces                  | Notes                                                                                                             |
 | ------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `Input`       | `<input>`                 | Applies `.input` CSS class; supports `variant="ghost"` for transparent border-bottom style (todo rows)            |
+| `Input`       | `<input>`                 | Applies `.input` CSS class; supports `variant="ghost"` for transparent border-bottom style (inline modal fields)  |
 | `Select`      | `<select>`                | Applies `.input`; accepts `options` prop for data-driven option lists; blank/placeholder options go as `children` |
 | `Textarea`    | `<textarea>`              | Applies `.input`                                                                                                  |
 | `ColorPicker` | `<input type="color">`    | Circular swatch, `h-8 w-8`                                                                                        |
