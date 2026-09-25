@@ -5,7 +5,7 @@ import { SectionCard } from '@/components/SectionCard';
 import { Button, Card, Checkbox } from '@/components';
 import { apiFetch, cn } from '@/lib/utils';
 
-type Feature = 'meals' | 'measurements' | 'calories_profile' | 'my_travels' | 'todos' | 'finances';
+type Feature = 'meals' | 'measurements' | 'calories_profile' | 'my_travels' | 'finances';
 
 const DATA_FEATURES: { key: Feature; label: string; description: string }[] = [
   { key: 'finances', label: 'Finances', description: 'All budgets, accounts, categories, and transactions' },
@@ -25,7 +25,6 @@ const DATA_FEATURES: { key: Feature; label: string; description: string }[] = [
     label: 'My Travels data',
     description: 'All data related to My Travels feature (travel logs, travel meals, etc.)',
   },
-  { key: 'todos', label: 'Todos', description: 'All data related to Todos feature (tasks, reminders, etc.)' },
 ];
 
 export function DataDeletionSection() {

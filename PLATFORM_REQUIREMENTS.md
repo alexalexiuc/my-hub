@@ -8,11 +8,13 @@ The original Cloudflare Workers + Google Sheets MVP has been fully migrated to t
 MCP sub-servers currently available:
 
 - **Calorie Tracker** — meal logging, nutritional summaries, user profiles, body measurements
-- **Todo** — task management, reminders
-- **Apiary** — yard, hive, inspection log, and task management for beekeepers (12 tools, 3 resources)
 - **Travel** — trip planning, reservation capture, checklist preparation, companions, and document links
-- **Hive Manager** — _(superseded by Apiary)_
+- **Finances** — accounts, transactions, budgets, monthly plans, net worth, and portfolios
 - **Products Manager** _(planned)_ — home inventory, shopping lists, product catalog
+
+The former **Todo** and **Apiary** sub-servers were proofs of concept and have been removed, including their
+database tables. The Apiary requirements are kept in `docs/requirements/mcps/feature-apiary-management.md` for a
+possible future rewrite.
 
 **Platform repo:** https://github.com/alexalexiuc/my-hub
 
@@ -35,12 +37,12 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 
 ### Services (all Docker containers)
 
-| Service | Technology        | Role                                                   |
-| ------- | ----------------- | ------------------------------------------------------ |
-| `db`    | PostgreSQL 18     | Primary datastore replacing Google Sheets              |
-| `mcp`   | Node.js / Fastify | MCP server(s) — calories, todo, apiary, travel, future |
-| `hub`   | Next.js           | Admin panel / personal cabinet                         |
-| `proxy` | Traefik           | TLS termination, routing, static assets                |
+| Service | Technology        | Role                                               |
+| ------- | ----------------- | -------------------------------------------------- |
+| `db`    | PostgreSQL 18     | Primary datastore replacing Google Sheets          |
+| `mcp`   | Node.js / Fastify | MCP server(s) — calories, travel, finances, future |
+| `hub`   | Next.js           | Admin panel / personal cabinet                     |
+| `proxy` | Traefik           | TLS termination, routing, static assets            |
 
 ---
 
@@ -49,7 +51,7 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 **Choice: PostgreSQL 18**
 
 - Familiar, battle-tested, excellent TypeScript support
-- Relational model is a natural fit for structured hive/calorie data
+- Relational model is a natural fit for structured calorie/travel/finance data
 - Official Docker image, easy pg_dump backups
 - **ORM: Drizzle** — lightweight, type-safe, schema-as-code, great DX for TypeScript
 - Migration tooling: Drizzle Kit (generate + apply migrations)
@@ -64,9 +66,6 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 | `calorie_profiles`  | Dietary profile: age, sex, activity level, calorie goal override                                           |
 | `meal_logs`         | Time-stamped meal entries with kcal and macros                                                             |
 | `body_measurements` | Time-series body measurements (weight, height, waist, etc.) per user; metadata comes from shared constants |
-| `hive_logs`         | Beekeeping inspection/treatment/feeding events                                                             |
-| `hives`             | Hive registry                                                                                              |
-| `hive_todos`        | Task list scoped to a hive                                                                                 |
 | `trips` + `trip_*`  | Travel domain tables for reservations, places, checklist, companions, and documents                        |
 | `api_request_logs`  | HTTP request/response audit log (`service`=app, `server`=MCP sub-server) with trigram-indexed error field  |
 
@@ -76,9 +75,9 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 
 - Replace Cloudflare Worker HTTP layer with a Fastify app
 - Expose MCP over HTTP (SSE or Streamable HTTP — MCP SDK supports both)
-- Endpoint pattern: `/api/<domain>/mcp` (for example: `/api/calories/mcp`, `/api/todo/mcp`, `/api/apiary/mcp`, `/api/travel/mcp`)
+- Endpoint pattern: `/api/<domain>/mcp` (for example: `/api/calories/mcp`, `/api/travel/mcp`, `/api/finances/mcp`)
 - OAuth 2.0 stays — adapt existing implementation from `src/http/`
-- Each MCP sub-server remains its own module (calories, todo, apiary, travel, ...)
+- Each MCP sub-server remains its own module (calories, travel, finances, ...)
 - Future MCPs are added as new modules without touching infrastructure
 
 ---
@@ -92,9 +91,9 @@ Personal cabinet with the following sections:
 - **Profile** (`/profile`) — display name, account info, per-feature data deletion, sign out
 - **OAuth Clients** — create/revoke OAuth credentials for MCP clients
 - **MCP Control** — enable/disable individual MCP servers per user
-- **Data Explorer** — query and edit records (hive logs, meals, profiles, todos)
+- **Data Explorer** — query and edit records (meals, profiles, trips)
   - Initially: raw table views with basic CRUD
-  - Later: domain-specific views (apiary timeline, calorie charts, etc.)
+  - Later: domain-specific views (calorie charts, etc.)
 
 Auth: Google OAuth via NextAuth.js (single-user / small invite group). Users are automatically provisioned in the `users` table on first sign-in.
 Protected Hub API routes in `packages/hub/src/app/api/**` use a shared auth route-wrapper that resolves the DB user from NextAuth session context (short-lived in-process cache for lookup efficiency).
@@ -329,8 +328,8 @@ products_shopping_list (id, product_id FK, quantity, priority, notes, status, ad
 
 ## Future Considerations (Out of Scope for Now)
 
-- Nicer domain-specific views (apiary timeline, calorie charts/graphs)
+- Nicer domain-specific views (calorie charts/graphs)
 - Multiple user accounts (currently single user / small invite group)
 - Mobile-friendly admin panel
-- Notification system (e.g., hive inspection reminders, low stock alerts)
+- Notification system (e.g., low stock alerts)
 - Barcode scanning integration for inventory updates (mobile)

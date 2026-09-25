@@ -31,7 +31,6 @@ export { ClockOutlineIcon } from './ClockOutlineIcon';
 export { MailOutlineIcon } from './MailOutlineIcon';
 export { UtensilsOutlineIcon } from './UtensilsOutlineIcon';
 export { ListChecksOutlineIcon } from './ListChecksOutlineIcon';
-export { BeeOutlineIcon } from './BeeOutlineIcon';
 export { PlaneOutlineIcon } from './PlaneOutlineIcon';
 export { ServerOutlineIcon } from './ServerOutlineIcon';
 export { UserPlusOutlineIcon } from './UserPlusOutlineIcon';

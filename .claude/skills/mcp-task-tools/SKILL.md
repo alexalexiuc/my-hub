@@ -51,7 +51,7 @@ Follow root project rules while designing:
 - Use `domain_action_outcome` shape.
 - Names must reflect what the user wants to accomplish.
 - Include defaults so AI can call tools with minimal required fields.
-- Use consistent domain prefixes (`calories_`, `travel_`, `apiary_`).
+- Use consistent domain prefixes (`calories_`, `travel_`, `finances_`).
 
 Examples:
 

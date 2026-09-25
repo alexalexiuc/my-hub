@@ -4,7 +4,6 @@ import {
   deleteAllUserMeals,
   deleteAllUserMeasurements,
   deleteAllUserCalorieProfiles,
-  deleteAllUserTodos,
   deleteAllUserTripShares,
   deleteAllUserTripDocuments,
   deleteAllUserTripCompanions,
@@ -22,7 +21,6 @@ const SUPPORTED_FEATURES = [
   'meals',
   'measurements',
   'calories_profile',
-  'todos',
   'my_travels',
   'finances',
   'weekly_menus',
@@ -53,11 +51,6 @@ export const POST = route({ body: PostBodySchema })(async ({ user, body }) => {
       case 'calories_profile': {
         const deleted = await deleteAllUserCalorieProfiles(user.id);
         results.calories_profile = { deleted };
-        break;
-      }
-      case 'todos': {
-        const deleted = await deleteAllUserTodos(user.id);
-        results.todos = { deleted };
         break;
       }
       case 'finances': {

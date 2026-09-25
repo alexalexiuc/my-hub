@@ -33,8 +33,8 @@ test.describe('MCP Service Page', () => {
       has: page.getByRole('heading', { name: 'MCP Servers' }),
     });
     await expect(serversSection.getByText('Calories', { exact: true })).toBeVisible();
-    await expect(serversSection.getByText('Todo', { exact: true })).toBeVisible();
-    await expect(serversSection.getByText('Apiary', { exact: true })).toBeVisible();
+    await expect(serversSection.getByText('Travel', { exact: true })).toBeVisible();
+    await expect(serversSection.getByText('Finances', { exact: true })).toBeVisible();
     await expect(serversSection.getByText('Products', { exact: true })).toBeVisible();
 
     // ── 3. Inactive server shows Coming soon ──────────────────────────────────

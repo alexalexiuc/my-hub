@@ -109,7 +109,7 @@ test.describe('Appearance themes', () => {
       data: { scope: 'global', themeKey: 'fuchsia-deep' },
     });
 
-    const response = await page.goto('/todo');
+    const response = await page.goto('/mcp-control');
     const html = (await response?.text()) ?? '';
     expect(html).toContain('fuchsia-deep-theme');
     expect(html).not.toContain('graphite-theme');

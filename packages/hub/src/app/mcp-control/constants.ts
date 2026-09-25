@@ -17,18 +17,6 @@ export const SERVER_META: Record<McpServerName, { label: string; path: string; d
       description: 'Home inventory, shopping lists, product catalog',
       active: false,
     },
-    todo: {
-      label: 'Todo',
-      path: '/api/todo/mcp',
-      description: 'Task management, reminders, to-do lists',
-      active: true,
-    },
-    apiary: {
-      label: 'Apiary',
-      path: '/api/apiary/mcp',
-      description: 'Apiary management, hive tracking, beekeeping analytics',
-      active: true,
-    },
     travel: {
       label: 'Travel',
       path: '/api/travel/mcp',
@@ -46,7 +34,7 @@ export const SERVER_META: Record<McpServerName, { label: string; path: string; d
 export const SERVER_OPTIONS: { value: McpServerName | ''; label: string }[] = [
   { value: '', label: 'All servers' },
   { value: 'calories', label: 'Calories' },
-  { value: 'todo', label: 'Todo' },
+  { value: 'travel', label: 'Travel' },
+  { value: 'finances', label: 'Finances' },
   { value: 'products', label: 'Products' },
-  { value: 'apiary', label: 'Apiary' },
 ];

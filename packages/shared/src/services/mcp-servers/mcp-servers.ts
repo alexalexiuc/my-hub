@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { mcpServers } from '../../db/schema/mcp-servers';
 import type { McpServer } from '../../types';
@@ -14,11 +14,14 @@ export async function ensureAllMcpServers(userId: string): Promise<void> {
   }
 }
 
-/** Returns all MCP server rows for a user, ensuring all types exist first. */
+/**
+ * Returns the MCP server rows for a user, ensuring all types exist first.
+ * Rows for server names no longer in `McpServerNames` (removed servers) are excluded.
+ */
 export async function getMcpServers(userId: string): Promise<McpServer[]> {
   await ensureAllMcpServers(userId);
   return db.query.mcpServers.findMany({
-    where: eq(mcpServers.userId, userId),
+    where: and(eq(mcpServers.userId, userId), inArray(mcpServers.serverName, Object.values(McpServerNames))),
     orderBy: mcpServers.serverName,
   });
 }

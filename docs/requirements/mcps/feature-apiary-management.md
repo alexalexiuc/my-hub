@@ -1,10 +1,16 @@
 # Feature: Apiary Management
 
-| Field    | Value                               |
-| -------- | ----------------------------------- |
-| Status   | implemented                         |
-| Priority | high                                |
-| File     | `mcps/feature-apiary-management.md` |
+| Field    | Value                                            |
+| -------- | ------------------------------------------------ |
+| Status   | removed — requirements kept for a future rewrite |
+| Priority | high                                             |
+| File     | `mcps/feature-apiary-management.md`              |
+
+> **Implementation removed.** The Apiary proof of concept (MCP sub-server, Hub pages and API routes,
+> shared services, and the `apiary_yards` / `apiary_hives` / `apiary_logs` / `apiary_tasks` tables and
+> their data) was removed. This document is kept only as a starting point for a possible future rewrite;
+> nothing below describes current behaviour, and checked acceptance criteria refer to the removed
+> implementation.
 
 ---
 

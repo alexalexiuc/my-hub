@@ -174,7 +174,7 @@ export function renderConsentPage(params: URLSearchParams, email: string): strin
         <div class="user-dot"></div>
         Signed in as <span>${escapeHtml(email)}</span>
       </div>
-      <p class="scope-note">Access covers all Hub tools: travel, calories, todos, and more.</p>
+      <p class="scope-note">Access covers all Hub tools: travel, calories, finances, and more.</p>
     </div>
     <form method="POST" action="/api/authorize">
       ${hiddenFields}

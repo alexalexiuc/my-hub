@@ -14,8 +14,6 @@ import { McpServerNames } from '@my-hub/shared/constants';
 import { registerMcpSubServer } from './mcp/sub-server.js';
 import { mcpSubServers } from './mcp/registry.js';
 import { createCaloriesServer } from './calories/server.js';
-import { createTodoServer } from './todo/server.js';
-import { createApiaryServer } from './apiary/server.js';
 import { createTravelServer } from './travel/server.js';
 import { createFinancesServer } from './finances/server.js';
 import { envConfig } from './config/env.js';
@@ -83,12 +81,10 @@ export async function buildServer() {
   // Health check: /api/health
   await app.register(healthRoutes, { prefix: '/api' });
 
-  // MCP sub-servers: /api/calories/mcp  /api/todo/mcp
+  // MCP sub-servers: /api/calories/mcp  /api/travel/mcp  /api/finances/mcp
   // Registered directly on app (not via prefix plugin) because FastifyMcpServer
   // manages its own child scopes and fp()-based plugins bypass prefix inheritance.
   registerMcpSubServer(app, '/api/calories/mcp', McpServerNames.Calories, createCaloriesServer);
-  registerMcpSubServer(app, '/api/todo/mcp', McpServerNames.Todo, createTodoServer);
-  registerMcpSubServer(app, '/api/apiary/mcp', McpServerNames.Apiary, createApiaryServer);
   registerMcpSubServer(app, '/api/travel/mcp', McpServerNames.Travel, createTravelServer);
   registerMcpSubServer(app, '/api/finances/mcp', McpServerNames.Finances, createFinancesServer);
 

@@ -50,7 +50,7 @@ analytics while enforcing bounded retention.
 ## Notes
 
 - `service` identifies the parent app (`hub`, `mcp-service`).
-- `server` identifies the MCP sub-server (`calories`, `todo`, `apiary`, `products`) and is nullable for non-MCP routes.
+- `server` identifies the MCP sub-server (`calories`, `travel`, `finances`, `products`) and is nullable for non-MCP routes.
 
 ---
 

@@ -8,13 +8,13 @@ import { mcpSubServers } from './registry.js';
 /**
  * Registers an MCP sub-server in its own Fastify child scope.
  *
- * Each domain (calories, hive-manager, …) gets its own endpoint,
+ * Each domain (calories, travel, …) gets its own endpoint,
  * independent session manager, and bearer-auth verifier that also
  * checks the user exists and has the server enabled.
  *
  * Usage in server.ts:
  *   registerMcpSubServer(app, '/calories/mcp', 'calories', createCaloriesMcpServer);
- *   registerMcpSubServer(app, '/todo/mcp', 'todo', createTodoMcpServer);
+ *   registerMcpSubServer(app, '/travel/mcp', 'travel', createTravelMcpServer);
  *
  * Multiple registrations are safe because each one runs in an isolated
  * Fastify child scope.

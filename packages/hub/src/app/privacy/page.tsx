@@ -30,7 +30,7 @@ export default function PrivacyPage() {
           <p>We collect and store only what you actively provide:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Account information (name, email) for authentication</li>
-            <li>Data you enter in the apps (meals, todos, measurements, etc.)</li>
+            <li>Data you enter in the apps (meals, measurements, trips, finances, etc.)</li>
             <li>API request logs (method, path, timestamps) for debugging and auditing</li>
           </ul>
           <p>
