@@ -14,6 +14,9 @@ import { hubEnvConfig } from '@/config/env';
  *
  * `strict-dynamic` lets the nonce'd bootstrap script load page chunks
  * dynamically without extra entries in the allowlist.
+ *
+ * `'unsafe-eval'` is added in development only: React 19's dev build uses
+ * eval() to reconstruct server-component stack traces.
  */
 // MapLibre GL tile origins (CARTO Dark Matter basemap + fonts)
 const MAP_ORIGINS = [
@@ -24,15 +27,17 @@ const MAP_ORIGINS = [
 ].join(' ');
 
 function buildCsp(nonce: string): string {
+  const devEval = hubEnvConfig.NODE_ENV === 'development' ? ` 'unsafe-eval'` : '';
   return [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}'`,
+    `script-src 'self' 'nonce-${nonce}'${devEval}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' data: blob:`,
     `font-src 'self'`,
     `connect-src 'self' ${MAP_ORIGINS}`,
-    // MapLibre GL spawns WebWorkers from blob: URLs for tile decoding
-    `worker-src blob:`,
+    // MapLibre GL 6 loads its tile-decoding worker from a same-origin URL
+    // (bundled under /_next/static/media); blob: kept for other libraries.
+    `worker-src 'self' blob:`,
     `object-src 'none'`,
     `frame-ancestors 'none'`,
   ].join('; ');

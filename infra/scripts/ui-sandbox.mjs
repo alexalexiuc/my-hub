@@ -158,6 +158,7 @@ function migrateAndSeed() {
 
 async function startHub() {
   console.log(`▸ Starting the hub on http://localhost:${PORT}`);
+  run('pnpm', ['run', 'copy:maplibre-worker'], { cwd: path.join(REPO_ROOT, 'packages/hub') });
   const hub = spawn('pnpm', ['exec', 'next', 'dev', '-p', PORT], {
     cwd: path.join(REPO_ROOT, 'packages/hub'),
     env: { ...process.env, ...SANDBOX_ENV },

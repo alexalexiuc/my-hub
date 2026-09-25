@@ -7,7 +7,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
  * (--card, --overlay, etc.) that are scoped to the theme wrapper and otherwise absent
  * in document.body portals.
  */
-export function usePortalTheme(): [React.RefObject<HTMLSpanElement>, string] {
+export function usePortalTheme(): [React.RefObject<HTMLSpanElement | null>, string] {
   const anchorRef = useRef<HTMLSpanElement>(null);
   const [themeClassName, setThemeClassName] = useState('');
 
