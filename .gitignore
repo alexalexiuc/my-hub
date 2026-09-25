@@ -74,3 +74,6 @@ storybook-static/
 
 #vitest
 vitest.shims.d.ts
+
+# Copied from node_modules by packages/hub/scripts/copy-maplibre-worker.mjs
+packages/hub/public/maplibre/

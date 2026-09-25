@@ -58,8 +58,12 @@ export function TripMapInner({ mapData }: TripMapInnerProps) {
     let destroyed = false;
     const theme = readThemeTokens(containerRef.current);
 
-    import('maplibre-gl').then(({ default: maplibregl }) => {
+    import('maplibre-gl').then(maplibregl => {
       if (destroyed || !containerRef.current) return;
+
+      // Served from public/ by scripts/copy-maplibre-worker.mjs — MapLibre can't
+      // locate its own worker once Turbopack has bundled it.
+      maplibregl.setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
 
       const map = new maplibregl.Map({
         container: containerRef.current,
@@ -134,7 +138,7 @@ export function TripMapInner({ mapData }: TripMapInnerProps) {
       });
 
       // Cleanup on unmount
-      (containerRef.current as HTMLDivElement & { _mlMap?: maplibregl.Map })._mlMap = map;
+      (containerRef.current as HTMLDivElement & { _mlMap?: import('maplibre-gl').Map })._mlMap = map;
     });
 
     return () => {

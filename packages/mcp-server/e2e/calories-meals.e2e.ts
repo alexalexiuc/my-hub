@@ -76,7 +76,7 @@ interface DeleteMealResult {
  * Uses a far-future date (2099-01-01) so test data does not pollute real logs.
  * A unique runId identifies test artefacts across parallel runs.
  */
-describe.sequential('calories — meal lifecycle', () => {
+describe('calories — meal lifecycle', () => {
   let client: McpClient;
   let mealId: string | undefined;
   const itemMealIds: string[] = [];

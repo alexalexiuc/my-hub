@@ -60,7 +60,9 @@ function RegisterForm() {
       });
 
       if (result?.error) {
-        // Registration succeeded but auto sign-in failed — send to sign-in page
+        // Registration succeeded but auto sign-in failed — send to sign-in page.
+        // A full navigation (not router.push) matches the success branch below.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.href = '/auth/signin';
       } else if (result?.url) {
         window.location.href = result.url;

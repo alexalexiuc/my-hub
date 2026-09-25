@@ -7,7 +7,9 @@ services:
   # Usage: docker compose -f infra/docker-compose.traefik.yml up -d
   # ---------------------------------------------------------------------------
   proxy:
-    image: traefik:v3
+    # Pinned to a minor so `up -d` actually upgrades it: a floating `v3` tag is only
+    # pulled once and then never refreshed. Traefik < 3.6.1 can't talk to Docker Engine 29+.
+    image: traefik:v3.7
     restart: unless-stopped
     command:
       - '--configFile=/etc/traefik/traefik.yml'

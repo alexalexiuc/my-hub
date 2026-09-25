@@ -39,7 +39,7 @@ interface MeasurementTypeEntry {
   unit: string;
 }
 
-describe.sequential('calories — measurement types', () => {
+describe('calories — measurement types', () => {
   let client: McpClient;
 
   beforeAll(async () => {
@@ -87,7 +87,7 @@ describe.sequential('calories — measurement types', () => {
  * Full measurement lifecycle: log → get → delete → verify gone.
  * Uses weight measurements with a far-future date to avoid polluting real data.
  */
-describe.sequential('calories — measurement lifecycle', () => {
+describe('calories — measurement lifecycle', () => {
   let client: McpClient;
   let loggedId: number | undefined;
   let secondLoggedId: number | undefined;

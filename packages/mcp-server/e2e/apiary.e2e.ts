@@ -27,7 +27,7 @@ interface ApiaryTasksResource {
  * These are structure-only tests: they verify that each apiary:// resource
  * returns the expected shape without requiring any pre-existing apiary data.
  */
-describe.sequential('apiary — resources', () => {
+describe('apiary — resources', () => {
   let client: McpClient;
 
   beforeAll(async () => {

@@ -63,7 +63,7 @@ function parseResourceContent<T>(text: string): T {
   return JSON.parse(text) as T;
 }
 
-describe.sequential('calories — resources', () => {
+describe('calories — resources', () => {
   let client: McpClient;
 
   beforeAll(async () => {

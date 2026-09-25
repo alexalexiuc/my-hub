@@ -14,8 +14,10 @@ WORKDIR /app
 ENV CI=true
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-  pnpm install -r --prefer-offline
+  pnpm install -r
 
+# Keep everything from the top through this shared build identical across the service
+# Dockerfiles: docker-bake.hcl builds them together and BuildKit runs it only once.
 RUN pnpm --filter @my-hub/shared build
 RUN pnpm --filter @my-hub/e2e deploy --legacy /prod/e2e
 

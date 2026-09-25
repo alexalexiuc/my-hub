@@ -19,7 +19,7 @@ const testFiles = ['**/*.{test,spec}.{js,mjs,cjs,ts,tsx}'];
 export default [
   gitignore(),
   {
-    ignores: ['**/.next/**', '**/coverage/**', '**/dist/**', '**/node_modules/**'],
+    ignores: ['**/.next/**', '**/coverage/**', '**/dist/**', '**/node_modules/**', '**/public/maplibre/**'],
   },
   {
     ...js.configs.recommended,

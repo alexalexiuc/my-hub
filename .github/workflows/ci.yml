@@ -6,6 +6,14 @@ on:
   push:
     branches: [main, staging]
 
+# A new push to a PR supersedes the run in progress; pushes to main/staging always finish.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
 jobs:
   lint-typecheck-test:
     name: Lint / Type-check / Test
@@ -13,32 +21,37 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup pnpm
         # No explicit version: pnpm/action-setup reads the pinned version from the
         # "packageManager" field in package.json, matching what Docker's `corepack enable`
         # resolves in the deploy images. Keeping a hardcoded version here silently drifts
         # from package.json and breaks lockfile compatibility (see pnpm-lock.yaml history).
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Type-check
-        run: pnpm typecheck
+      # Turborepo's local cache: tasks whose inputs are unchanged since the last run
+      # (e.g. the shared build, or a package the PR doesn't touch) replay instead of re-running.
+      - name: Restore Turborepo cache
+        uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
+      # One turbo invocation so type-check, lint and tests run in parallel and share a
+      # single shared-package build, instead of three sequential runs.
+      - name: Type-check / Lint / Test
+        run: pnpm turbo run typecheck lint test:unit
 
       - name: Palette drift check
         run: pnpm --filter @my-hub/hub gen:palettes:check
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Test
-        run: pnpm test

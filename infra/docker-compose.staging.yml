@@ -2,6 +2,8 @@
 # Usage: IMAGE_OWNER=<owner> docker compose --env-file .env.staging \
 #          -f infra/docker-compose.staging.yml pull && up -d
 # Images are pre-built and pushed to GHCR by CI (e2e.yml build-and-push job).
+# CI sets IMAGE_TAG=sha-<commit> so a concurrent PR's push to `staging-latest`
+# can't swap images under a running E2E job; it defaults to staging-latest.
 # Prerequisite: Traefik running via docker-compose.traefik.yml (creates the proxy network)
 
 name: my-hub-staging
@@ -32,7 +34,7 @@ services:
   # DB Migrations (Drizzle) — runs once per deploy then exits
   # ---------------------------------------------------------------------------
   migrate:
-    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-migrate:staging-latest
+    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-migrate:${IMAGE_TAG:-staging-latest}
     restart: 'no'
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
@@ -46,7 +48,7 @@ services:
   # E2E Seeds (packages/e2e) — runs once per deploy then exits
   # ---------------------------------------------------------------------------
   e2e-seeds:
-    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-e2e-seeds:staging-latest
+    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-e2e-seeds:${IMAGE_TAG:-staging-latest}
     restart: 'no'
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
@@ -64,7 +66,7 @@ services:
   # Worker — long-running background poller
   # ---------------------------------------------------------------------------
   worker:
-    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-worker:staging-latest
+    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-worker:${IMAGE_TAG:-staging-latest}
     restart: unless-stopped
     user: root # required to read Docker json-file logs from the mounted host directory (root:root 600)
     cap_drop:
@@ -104,7 +106,7 @@ services:
   # MCP Server (Fastify) — pre-built image from GHCR
   # ---------------------------------------------------------------------------
   mcp:
-    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-mcp-server:staging-latest
+    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-mcp-server:${IMAGE_TAG:-staging-latest}
     restart: unless-stopped
     healthcheck:
       test: ['CMD-SHELL', 'node scripts/healthcheck.mjs']
@@ -138,7 +140,16 @@ services:
       migrate:
         condition: service_completed_successfully
     volumes:
-      - travel_docs_data:/app/data/travel-documents
+      # Hub is the only writer (uploads); MCP only reads. `nocopy` stops MCP from
+      # populating a fresh volume, so its ownership always comes from the hub image
+      # (uid 1001) regardless of which container starts first. Otherwise an MCP-first
+      # start leaves the directory owned by uid 1000 and hub uploads fail with EACCES.
+      - type: volume
+        source: travel_docs_data
+        target: /app/data/travel-documents
+        read_only: true
+        volume:
+          nocopy: true
     networks:
       - internal-staging
       - proxy
@@ -159,7 +170,7 @@ services:
   # Hub Panel (Next.js) — pre-built image from GHCR
   # ---------------------------------------------------------------------------
   hub:
-    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-hub:staging-latest
+    image: ghcr.io/${IMAGE_OWNER:?IMAGE_OWNER is required}/my-hub-hub:${IMAGE_TAG:-staging-latest}
     restart: unless-stopped
     healthcheck:
       test: ['CMD-SHELL', 'node packages/hub/scripts/healthcheck.mjs']

@@ -4,6 +4,12 @@ on:
   pull_request:
     branches: [main]
 
+# A new push to the PR supersedes the run in progress. The e2e job additionally
+# serialises on the shared staging stack (see its concurrency block).
+concurrency:
+  group: e2e-${{ github.head_ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
   IMAGE_OWNER: ${{ github.repository_owner }}
@@ -18,143 +24,61 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
-      # ---- migrate ----
-      - name: Docker meta — migrate
-        id: meta-migrate
-        uses: docker/metadata-action@v5
+      # All staging images in one bake run: parallel targets, a shared install/build
+      # prefix that runs once, and a per-image layer cache. See docker-bake.hcl.
+      - name: Build & push staging images
+        uses: docker/bake-action@v7
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub-migrate
-          tags: |
-            type=sha,prefix=sha-
-            type=raw,value=staging-latest
-
-      - name: Build & push — migrate
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: packages/shared/Dockerfile.migrate
+          source: .
+          files: docker-bake.hcl
+          targets: staging
           push: true
-          tags: ${{ steps.meta-migrate.outputs.tags }}
-          labels: ${{ steps.meta-migrate.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # ---- e2e-seeds ----
-      - name: Docker meta — e2e-seeds
-        id: meta-e2e-seeds
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub-e2e-seeds
-          tags: |
-            type=sha,prefix=sha-
-            type=raw,value=staging-latest
-
-      - name: Build & push — e2e-seeds
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: packages/e2e/Dockerfile
-          push: true
-          tags: ${{ steps.meta-e2e-seeds.outputs.tags }}
-          labels: ${{ steps.meta-e2e-seeds.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # ---- mcp-server ----
-      - name: Docker meta — mcp-server
-        id: meta-mcp
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub-mcp-server
-          tags: |
-            type=sha,prefix=sha-
-            type=raw,value=staging-latest
-
-      - name: Build & push — mcp-server
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: packages/mcp-server/Dockerfile
-          push: true
-          tags: ${{ steps.meta-mcp.outputs.tags }}
-          labels: ${{ steps.meta-mcp.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # ---- hub ----
-      - name: Docker meta — hub
-        id: meta-hub
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub-hub
-          tags: |
-            type=sha,prefix=sha-
-            type=raw,value=staging-latest
-
-      - name: Build & push — hub
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: packages/hub/Dockerfile
-          push: true
-          tags: ${{ steps.meta-hub.outputs.tags }}
-          labels: ${{ steps.meta-hub.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # ---- worker ----
-      - name: Docker meta — worker
-        id: meta-worker
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub-worker
-          tags: |
-            type=sha,prefix=sha-
-            type=raw,value=staging-latest
-
-      - name: Build & push — worker
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: packages/worker/Dockerfile
-          push: true
-          tags: ${{ steps.meta-worker.outputs.tags }}
-          labels: ${{ steps.meta-worker.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+        env:
+          IMAGE_PREFIX: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/my-hub
+          TAG: staging-latest
+          SHA: ${{ github.sha }}
+          SOURCE_URL: ${{ github.server_url }}/${{ github.repository }}
+          GHA_CACHE: '1'
 
   e2e:
     name: E2EExpected
     runs-on: ubuntu-latest
     needs: build-and-push
+    # There is one staging stack on the VPS: two PRs must not deploy/test/tear it down
+    # at the same time. GitHub holds at most one waiting job per group, so with three
+    # PRs in flight the middle one's pending job is cancelled and needs a re-run —
+    # still better than two runs interleaving on the same stack.
+    concurrency:
+      group: staging-stack
+      cancel-in-progress: false
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup pnpm
         # No explicit version: pnpm/action-setup reads the pinned version from the
         # "packageManager" field in package.json, matching what Docker's `corepack enable`
         # resolves in the deploy images. Keeping a hardcoded version here silently drifts
         # from package.json and breaks lockfile compatibility (see pnpm-lock.yaml history).
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Install dependencies
@@ -163,8 +87,16 @@ jobs:
       - name: Build shared package
         run: pnpm --filter @my-hub/shared build
 
+      # Browsers are cached per pinned Playwright version; only the OS packages are
+      # installed on a cache hit. Tests run headless, so the headless shell is enough.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('packages/e2e/package.json') }}
+
       - name: Install Playwright browsers
-        run: pnpm --filter @my-hub/e2e exec playwright install --with-deps chromium
+        run: pnpm --filter @my-hub/e2e exec playwright install --with-deps --only-shell chromium
 
       - name: Generate E2E credentials
         id: creds
@@ -176,14 +108,17 @@ jobs:
           echo "E2E_MCP_CLIENT_ID=$CLIENT_ID" > packages/mcp-server/e2e/.env.e2e
           echo "E2E_MCP_CLIENT_SECRET=$CLIENT_SECRET" >> packages/mcp-server/e2e/.env.e2e
 
+      - name: Resolve image tag
+        id: image
+        run: echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
       - name: Deploy staging stack
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: IMAGE_OWNER,DEPLOY_BRANCH
-          script_stop: true
+          envs: IMAGE_OWNER,IMAGE_TAG,DEPLOY_BRANCH
           script: |
             set -e
             cd /opt/my-hub
@@ -196,16 +131,19 @@ jobs:
               -f infra/docker-compose.staging.yml up -d --wait
         env:
           IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
+          # This run's own images (docker-bake.hcl's sha tag), not the shared staging-latest.
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
           DEPLOY_BRANCH: ${{ github.head_ref }}
 
       - name: Provision E2E user on server
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           envs: E2E_MCP_CLIENT_ID,E2E_MCP_CLIENT_SECRET,E2E_HUB_USER_EMAIL,IMAGE_OWNER
           script: |
+            set -e
             cd /opt/my-hub
             docker compose --project-name my-hub-staging \
               -f infra/docker-compose.staging.yml exec -T \
@@ -232,7 +170,7 @@ jobs:
 
       - name: Upload E2E test results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-results
           path: |
@@ -242,18 +180,24 @@ jobs:
 
       - name: Cleanup staging stack
         if: always()
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: IMAGE_OWNER
-          script_stop: true
+          envs: IMAGE_OWNER,IMAGE_TAG
           script: |
             set -e
             cd /opt/my-hub
             docker compose --project-name my-hub-staging --env-file .env.staging \
               -f infra/docker-compose.staging.yml down -v
+            # This run's sha-tagged images stay tagged after `down`, so `image prune`
+            # alone would never reclaim them. Untag them (no -f: an image still tagged
+            # elsewhere, e.g. by production, is kept), then prune dangling layers.
+            for name in migrate e2e-seeds worker mcp-server hub; do
+              docker image rm "ghcr.io/$IMAGE_OWNER/my-hub-$name:$IMAGE_TAG" 2>/dev/null || true
+            done
             docker image prune -f
         env:
           IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}

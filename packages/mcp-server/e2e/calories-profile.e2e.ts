@@ -41,7 +41,7 @@ interface LogMeasurementResult {
   id: number;
 }
 
-describe.sequential('calories — profile update', () => {
+describe('calories — profile update', () => {
   let client: McpClient;
   let seededWeightId: number | undefined;
 

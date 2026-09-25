@@ -1,23 +1,29 @@
-node_modules
-dist
-build
-coverage
+# Patterns without a leading **/ only match at the context root, so nested
+# package directories need the **/ form.
+**/node_modules
+**/dist
+**/build
+**/coverage
 logs
-*.log
-*.tsbuildinfo
-.DS_Store
+**/*.log
+**/*.tsbuildinfo
+**/.DS_Store
 .vscode
 .idea
-*.env
-*.local
+**/*.env
+**/*.local
 
 .claude
 .github
 
-.next
+**/.next
+**/.turbo
+**/storybook-static
+**/playwright-report
+**/test-results
+packages/e2e/.auth
+packages/hub/public/maplibre
 
 docs
 .pnpm-store
 .tmp
-
-.turbo
