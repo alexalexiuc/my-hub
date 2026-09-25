@@ -54,6 +54,7 @@ export default async function proxy(request: NextRequest) {
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/favicon') ||
+    pathname.startsWith('/maplibre/') || // MapLibre worker files copied into public/
     pathname.startsWith('/.well-known/');
 
   if (!isPublic) {
