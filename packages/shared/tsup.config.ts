@@ -11,7 +11,9 @@ export default defineConfig({
     'constants/index': 'src/constants/index.ts',
   },
   format: ['esm', 'cjs'],
-  dts: true,
+  // tsup's DTS build injects `baseUrl`, which TypeScript 6 deprecates. Our own
+  // tsconfigs don't use it, so silence the deprecation for the DTS pass only.
+  dts: { compilerOptions: { ignoreDeprecations: '6.0' } },
   clean: true,
   sourcemap: true,
 });
