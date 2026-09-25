@@ -110,7 +110,16 @@ services:
       migrate:
         condition: service_completed_successfully
     volumes:
-      - travel_docs_data:/app/data/travel-documents
+      # Hub is the only writer (uploads); MCP only reads. `nocopy` stops MCP from
+      # populating a fresh volume, so its ownership always comes from the hub image
+      # (uid 1001) regardless of which container starts first. Otherwise an MCP-first
+      # start leaves the directory owned by uid 1000 and hub uploads fail with EACCES.
+      - type: volume
+        source: travel_docs_data
+        target: /app/data/travel-documents
+        read_only: true
+        volume:
+          nocopy: true
     networks:
       - internal
       - proxy
