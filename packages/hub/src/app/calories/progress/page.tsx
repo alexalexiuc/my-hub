@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiFetch, ApiError } from '@/lib/utils';
 import Link from 'next/link';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
@@ -49,6 +49,14 @@ export default function ProgressPage() {
 
   const weekDays = useMemo(() => getCurrentWeekDays(weekStart), [weekStart]);
 
+  // The week on screen, for discarding responses to weeks the user has already paged past. Paging
+  // quickly leaves several requests in flight, and without this whichever resolves last wins —
+  // plotting one week's meals or weigh-ins under another week's label.
+  const shownWeekEndRef = useRef(weekEnd);
+  useEffect(() => {
+    shownWeekEndRef.current = weekEnd;
+  }, [weekEnd]);
+
   /**
    * Profile and weight history, which describe the user rather than the week on screen. Kept out
    * of the week-dependent loader so paging back through months doesn't refetch them per arrow.
@@ -77,11 +85,12 @@ export default function ProgressPage() {
   }, []);
 
   const loadWeeklyMeals = useCallback(async () => {
+    const requestedWeekEnd = weekEnd;
     try {
       const data = await apiFetch<{ meals: MealLog[] }>('/api/calories/meals', {
-        query: { dateFrom: weekStart, dateTo: weekEnd },
+        query: { dateFrom: weekStart, dateTo: requestedWeekEnd },
       });
-      setWeeklyMeals(data.meals);
+      if (shownWeekEndRef.current === requestedWeekEnd) setWeeklyMeals(data.meals);
     } catch {
       // ignore — stale weekly totals are acceptable on a silent refresh
     }

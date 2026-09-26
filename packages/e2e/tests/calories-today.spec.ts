@@ -55,6 +55,56 @@ test.describe('Calories — Today page', () => {
   });
 
   /**
+   * Re-logging something already eaten is one tap: the modal offers recent meals, and picking one
+   * fills the dish and the macros it carried last time.
+   *
+   * The history is seeded over the API rather than through the add-meal modal. What is under test
+   * is the suggestion row, and driving the UI to create its input would make this fail for
+   * reasons that have nothing to do with it.
+   */
+  test('a recent meal fills the form in one tap', async ({ page }) => {
+    const previous = uniqueMeal('Roast chicken');
+    await page.request.post('/api/calories/meals', {
+      data: { description: previous, mealType: 'lunch', kcal: 425, protein: 38, carbs: 22, fat: 19 },
+    });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    await openAddMealModal(page);
+
+    // The chip carries the dish and its calorie count, so match on the description alone.
+    const suggestion = page.getByRole('button', { name: new RegExp(previous) });
+    await expect(suggestion).toBeVisible();
+    await suggestion.click();
+
+    await expect(page.getByLabel(/description/i)).toHaveValue(previous);
+    await expect(page.getByLabel(/calories \(kcal\)/i)).toHaveValue('425');
+    await expect(page.getByLabel(/protein/i)).toHaveValue('38');
+    await expect(page.getByLabel(/carbs/i)).toHaveValue('22');
+    await expect(page.getByLabel(/fat/i)).toHaveValue('19');
+  });
+
+  /** Editing an existing meal must not offer a row of other dishes to overwrite it with. */
+  test('the suggestion row is offered when adding, never when editing', async ({ page }) => {
+    const existing = uniqueMeal('Steak');
+    await page.request.post('/api/calories/meals', {
+      data: { description: existing, mealType: 'dinner', kcal: 600 },
+    });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    await openAddMealModal(page);
+    await expect(page.getByText(/log again/i)).toBeVisible();
+    await page.getByRole('button', { name: /^cancel$/i }).click();
+
+    const row = page.locator('[data-layout="desktop"]').getByText(existing).locator('xpath=ancestor::div[1]');
+    await row.hover();
+    await page.locator('[data-layout="desktop"]').getByRole('button', { name: 'Edit meal' }).first().click();
+    await expect(page.getByLabel(/description/i)).toHaveValue(existing);
+    await expect(page.getByText(/log again/i)).toBeHidden();
+  });
+
+  /**
    * Full meal lifecycle: add → verify → edit → verify update → delete → verify gone.
    * Edit and delete buttons are hover-revealed on desktop rows.
    * Meals render in both mobile and desktop DOM — scope assertions to [data-layout="desktop"].

@@ -26,7 +26,14 @@ export const defaultMealFormValues: MealFormValues = {
   notes: '',
 };
 
-export function mealToFormValues(meal: MealLog): MealFormValues {
+/**
+ * A meal's fields as form values. Takes a logged meal when editing, or a recent-meal suggestion
+ * when re-logging one — suggestions carry no notes, since a note describes one occasion rather
+ * than the dish.
+ */
+export function mealToFormValues(
+  meal: Pick<MealLog, 'description' | 'mealType' | 'kcal' | 'protein' | 'carbs' | 'fat'> & { notes?: string | null },
+): MealFormValues {
   return {
     description: meal.description,
     mealType: meal.mealType as MealType,

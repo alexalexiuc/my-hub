@@ -6,6 +6,9 @@
  * - hasDuplicateMealSlot(meals) — true if any (dayOfWeek, mealType) slot appears more than once in a weekly-menu meal list
  * - dayTargetKcal(baseTarget, isGymDay, gymDayBonus) — one day's calorie target, including the gym-day bonus
  * - dayCalorieTargets(profile, weightKg, date) — the whole per-day rule: ceiling, floor, gym-day flag and bonus
+ * - signedWeeklyRateKg(goalType, rateKg) — the weekly weight-change target signed by the goal direction
+ * - goalDirection(goalType) — which way the goal wants the scale to move (-1, 0, 1), independent of the rate
+ * - isTowardGoal(delta, direction, maintainToleranceKg) — whether a weight change moves the way the goal wants
  * - latestWeightKg(measurements) — most recent weight value from a latest-per-type measurement list
  * - mealOrder(gymTime) — the order a day's meal slots are displayed in, with pre/post-workout placed around the training session
  * - ActivityLevelMultipliers — Record<ActivityLevel, number> mapping activity levels to TDEE multipliers
@@ -293,4 +296,50 @@ export function mealOrder(gymTime: GymTime | null): MealType[] {
   return BASE_ORDER.flatMap(mealType =>
     mealType === anchor ? [MealTypes.PreWorkout, MealTypes.PostWorkout, mealType] : [mealType],
   );
+}
+
+/**
+ * A goal's weekly weight-change target, signed by its direction: negative to lose, positive to
+ * gain, zero to maintain or when the goal cannot imply a rate.
+ *
+ * The profile stores the rate as a magnitude, which leaves the sign to be reapplied by whoever
+ * uses it — and every reader that forgot defaulted to losing. The weekly report projected a
+ * gaining user lighter each week and printed their goal as a negative number.
+ */
+export function signedWeeklyRateKg(goalType: GoalType | null | undefined, rateKg: number | null | undefined): number {
+  if (goalType === GoalTypes.Maintain) return 0;
+  if (!rateKg || rateKg <= 0) return 0;
+  if (goalType === GoalTypes.WeightLoss) return -rateKg;
+  if (goalType === GoalTypes.WeightGain) return rateKg;
+  return 0;
+}
+
+/**
+ * Whether a weight change moves the way a goal wants: at or above zero when gaining, at or below
+ * zero when losing, and within `maintainToleranceKg` of zero when maintaining. Which sign counts
+ * as progress depends entirely on the goal, so every "ahead / behind plan" judgement goes through
+ * here rather than assuming a loss.
+ *
+ * @param delta               Weight change in kg (positive = heavier), against a projection or across a period.
+ * @param direction           The goal's direction, as `goalDirection` returns it; only its sign is read.
+ * @param maintainToleranceKg How far from zero still counts as holding steady.
+ */
+export function isTowardGoal(delta: number, direction: number, maintainToleranceKg: number): boolean {
+  if (direction > 0) return delta >= 0;
+  if (direction < 0) return delta <= 0;
+  return Math.abs(delta) < maintainToleranceKg;
+}
+
+/** Which way a goal wants the scale to move: -1 to lose, 1 to gain, 0 to maintain or with no goal. */
+export type GoalDirection = -1 | 0 | 1;
+
+/**
+ * A goal's direction, read from its type alone. Kept apart from `signedWeeklyRateKg`, which is 0
+ * whenever no rate is set: a gain or loss goal without a rate still has a direction, and judging
+ * it by the rate's sign treated it as "maintain".
+ */
+export function goalDirection(goalType: GoalType | null | undefined): GoalDirection {
+  if (goalType === GoalTypes.WeightLoss) return -1;
+  if (goalType === GoalTypes.WeightGain) return 1;
+  return 0;
 }

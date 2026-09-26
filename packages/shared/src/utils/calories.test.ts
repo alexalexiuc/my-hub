@@ -5,10 +5,13 @@ import {
   calculateMacroKcal,
   dayCalorieTargets,
   dayTargetKcal,
+  goalDirection,
   hasDuplicateMealSlot,
+  isTowardGoal,
   latestWeightKg,
   mealOrder,
   profileToTargets,
+  signedWeeklyRateKg,
 } from './calories';
 import { MealTypesValues } from '../constants';
 
@@ -297,5 +300,55 @@ describe('mealOrder', () => {
       const order = mealOrder(gymTime);
       expect(order.indexOf('post_workout') - order.indexOf('pre_workout')).toBe(1);
     }
+  });
+});
+
+describe('signedWeeklyRateKg', () => {
+  it('is negative for a loss goal and positive for a gain goal', () => {
+    expect(signedWeeklyRateKg('weight_loss', 0.5)).toBe(-0.5);
+    expect(signedWeeklyRateKg('weight_gain', 0.25)).toBe(0.25);
+  });
+
+  it('is zero for maintain, whatever rate is stored alongside it', () => {
+    expect(signedWeeklyRateKg('maintain', 0.5)).toBe(0);
+  });
+
+  it('is zero when no goal or no usable rate is set, rather than inventing a direction', () => {
+    // The report used to fall back to 0.5 kg/week here and project a weight change against a
+    // goal the user never set.
+    expect(signedWeeklyRateKg(null, 0.5)).toBe(0);
+    expect(signedWeeklyRateKg('weight_loss', null)).toBe(0);
+    expect(signedWeeklyRateKg('weight_gain', 0)).toBe(0);
+    expect(signedWeeklyRateKg('weight_loss', -1)).toBe(0);
+  });
+});
+
+describe('isTowardGoal', () => {
+  it('counts a gain as progress on a gain goal and a setback on a loss goal', () => {
+    expect(isTowardGoal(0.3, 0.25, 0.1)).toBe(true);
+    expect(isTowardGoal(0.3, -0.5, 0.1)).toBe(false);
+  });
+
+  it('counts a loss as progress on a loss goal and a setback on a gain goal', () => {
+    expect(isTowardGoal(-0.4, -0.5, 0.1)).toBe(true);
+    expect(isTowardGoal(-0.4, 0.25, 0.1)).toBe(false);
+  });
+
+  it('judges a maintain goal by drift from zero, within the tolerance given', () => {
+    expect(isTowardGoal(0.05, 0, 0.1)).toBe(true);
+    expect(isTowardGoal(0.3, 0, 0.1)).toBe(false);
+    expect(isTowardGoal(0.3, 0, 0.5)).toBe(true);
+  });
+});
+
+describe('goalDirection', () => {
+  it('reads the direction from the goal type, whether or not a rate is set', () => {
+    expect(goalDirection('weight_gain')).toBe(1);
+    expect(goalDirection('weight_loss')).toBe(-1);
+  });
+
+  it('is zero for maintain and for no goal', () => {
+    expect(goalDirection('maintain')).toBe(0);
+    expect(goalDirection(null)).toBe(0);
   });
 });

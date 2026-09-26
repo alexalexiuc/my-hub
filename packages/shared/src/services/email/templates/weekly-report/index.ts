@@ -1,24 +1,15 @@
 import { MeasurementTypes } from '../../../../constants';
+import { isTowardGoal } from '../../../../utils/calories';
+import { MINUS, energyGapSummary, fmt, fmtGoalRate, fmtWeight, signedKcal } from '../report-format';
 import type { BuildWeeklyReportHtmlData, WeightPoint } from './types';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const MINUS = '\u2212'; // U+2212 proper minus sign
-
-function fmt(n: number): string {
-  return Math.round(n).toLocaleString('en-US');
-}
-
-function fmtWeight(n: number): string {
-  return n.toFixed(1);
-}
+/** How far from projection a maintaining week can finish and still read as on plan. */
+const MAINTAIN_TOLERANCE_KG = 0.1;
 
 function pct(n: number): string {
   return `${Math.round(n * 100)}%`;
-}
-
-function signedKcal(delta: number): string {
-  return delta <= 0 ? `${MINUS}${fmt(Math.abs(delta))}` : `+${fmt(delta)}`;
 }
 
 function barColor(delta: number): string {
@@ -66,8 +57,10 @@ function getWeekWeightSummary(data: BuildWeeklyReportHtmlData): {
   const firstLoggedThisWeek = dayValues.find(v => v !== null) ?? null;
   const weekStartWeight = dayValues[0] ?? data.priorWeekWeight ?? firstLoggedThisWeek;
   const actualEndWeight = dayValues.reduce<number | null>((last, v) => (v !== null ? v : last), null);
+  // `goalWeeklyRateKg` is signed by the goal, so this adds it — subtracting was what projected a
+  // gaining user lighter every week.
   const projectedEndWeight =
-    weekStartWeight !== null ? parseFloat((weekStartWeight - data.goalWeeklyRateKg).toFixed(2)) : null;
+    weekStartWeight !== null ? parseFloat((weekStartWeight + data.goalWeeklyRateKg).toFixed(2)) : null;
   const projectionDelta =
     actualEndWeight !== null && projectedEndWeight !== null ? actualEndWeight - projectedEndWeight : null;
 
@@ -85,15 +78,20 @@ function getWeeklyAdherenceStats(data: BuildWeeklyReportHtmlData): {
   daysOnTarget: number;
   onTargetRate: number;
   avgDailyKcal: number;
+  avgTarget: number;
   weekendDrift: number | null;
   biggestOverLabel: string | null;
   biggestOverDelta: number | null;
 } {
   const daysWithData = data.days.filter(d => d.hasData);
   const loggedDays = daysWithData.length;
-  const daysOnTarget = data.days.filter(d => d.hasData && d.kcal <= data.goalMaxCalories).length;
+  // Per day, against that day's own ceiling — a gym day is measured against its raised target.
+  const daysOnTarget = data.days.filter(d => d.hasData && d.kcal <= d.target).length;
   const onTargetRate = loggedDays > 0 ? daysOnTarget / loggedDays : 0;
   const avgDailyKcal = loggedDays > 0 ? daysWithData.reduce((s, d) => s + d.kcal, 0) / loggedDays : 0;
+  // Averaged over the logged days' own targets, so a week with training days isn't judged against
+  // the rest-day ceiling.
+  const avgTarget = loggedDays > 0 ? daysWithData.reduce((s, d) => s + d.target, 0) / loggedDays : data.goalMaxCalories;
 
   const weekdays = data.days.slice(0, 5).filter(d => d.hasData);
   const weekend = data.days.slice(5, 7).filter(d => d.hasData);
@@ -103,7 +101,7 @@ function getWeeklyAdherenceStats(data: BuildWeeklyReportHtmlData): {
 
   const overDays = data.days
     .filter(d => d.hasData)
-    .map(d => ({ day: getWeekDayLabel(d.date), delta: d.kcal - data.goalMaxCalories }))
+    .map(d => ({ day: getWeekDayLabel(d.date), delta: d.kcal - d.target }))
     .filter(d => d.delta > 0)
     .sort((a, b) => b.delta - a.delta);
   const biggestOver = overDays[0] ?? null;
@@ -113,10 +111,23 @@ function getWeeklyAdherenceStats(data: BuildWeeklyReportHtmlData): {
     daysOnTarget,
     onTargetRate,
     avgDailyKcal,
+    avgTarget,
     weekendDrift,
     biggestOverLabel: biggestOver?.day ?? null,
     biggestOverDelta: biggestOver?.delta ?? null,
   };
+}
+
+/**
+ * One line comparing the week's last weigh-in with its projection: which side it finished on, and
+ * whether that side is ahead of or behind the goal.
+ */
+function buildProjectionNote(projectionDelta: number | null, direction: number): string {
+  if (projectionDelta === null) return 'Need more weigh-ins to compare actual vs projection.';
+  const magnitude = Math.abs(projectionDelta).toFixed(2);
+  const side = projectionDelta <= 0 ? `${MINUS}${magnitude} kg below` : `+${magnitude} kg above`;
+  const verdict = isTowardGoal(projectionDelta, direction, MAINTAIN_TOLERANCE_KG) ? 'ahead of' : 'behind';
+  return `Scale finished ${side} projection — ${verdict} plan.`;
 }
 
 // ─── CSS ────────────────────────────────────────────────────────────────────
@@ -376,9 +387,8 @@ body {
 // ─── Section builders ────────────────────────────────────────────────────────
 
 function buildHeader(data: BuildWeeklyReportHtmlData): string {
-  const daysWithData = data.days.filter(d => d.hasData);
-  const avgDailyKcal = daysWithData.length > 0 ? daysWithData.reduce((s, d) => s + d.kcal, 0) / daysWithData.length : 0;
-  const onTrack = avgDailyKcal <= data.goalMaxCalories;
+  const { avgDailyKcal, avgTarget } = getWeeklyAdherenceStats(data);
+  const onTrack = avgDailyKcal <= avgTarget;
   const verdictClass = onTrack ? 'verdict-on-track' : 'verdict-over';
   const verdictLabel = onTrack ? 'On track' : 'Over';
 
@@ -401,8 +411,14 @@ function buildCoachingSummary(data: BuildWeeklyReportHtmlData): string {
   const weight = getWeekWeightSummary(data);
   const daysWithData = data.days.filter(d => d.hasData);
   const totalKcal = daysWithData.reduce((s, d) => s + d.kcal, 0);
-  const targetDelta = totalKcal - data.goalMaxCalories * daysWithData.length;
+  // Summed per day rather than one target × day count, so training days contribute their own
+  // raised ceiling to the week's total.
+  const totalTargetKcal = daysWithData.reduce((s, d) => s + d.target, 0);
+  const targetDelta = totalKcal - totalTargetKcal;
   const targetDeltaKg = targetDelta / 7700;
+  // Flagged as an average only when the week actually mixes targets — on a week of rest days it is
+  // simply the goal.
+  const mixedTargets = new Set(daysWithData.map(d => d.target)).size > 1;
 
   const momentumLabel =
     adherence.loggedDays >= 6 && adherence.onTargetRate >= 0.6
@@ -426,12 +442,7 @@ function buildCoachingSummary(data: BuildWeeklyReportHtmlData): string {
           : 'Weekend and weekday intake were stable.'
       : 'Not enough weekday/weekend logs to detect drift.';
 
-  const projectionNote =
-    weight.projectionDelta !== null
-      ? weight.projectionDelta <= 0
-        ? `Scale finished ${MINUS}${Math.abs(weight.projectionDelta).toFixed(2)} kg better than projection.`
-        : `Scale finished +${Math.abs(weight.projectionDelta).toFixed(2)} kg above projection.`
-      : 'Need more weigh-ins to compare actual vs projection.';
+  const projectionNote = buildProjectionNote(weight.projectionDelta, data.goalDirection);
 
   const CARD = 'background:#0d1219;border:1px solid #1a2230;border-radius:8px;padding:14px 16px;height:120px;';
   const targetDeltaLabel = fmt(Math.abs(targetDelta));
@@ -443,11 +454,14 @@ function buildCoachingSummary(data: BuildWeeklyReportHtmlData): string {
       : targetDelta < 0
         ? `Finished below goal across ${daysWithData.length} logged day${daysWithData.length === 1 ? '' : 's'}`
         : `Matched goal across ${daysWithData.length} logged day${daysWithData.length === 1 ? '' : 's'}`;
+  // "kg vs plan", not "kg fat". This delta is measured against the calorie *goal*, not against
+  // maintenance, so it says nothing about fat either way \u2014 and on a gaining goal, finishing under
+  // target is a surplus not taken, which the old wording reported as fat lost.
   const targetDeltaKgLabel =
     targetDelta > 0
-      ? `\u2248 +${Math.abs(targetDeltaKg).toFixed(2)} kg fat`
+      ? `\u2248 +${Math.abs(targetDeltaKg).toFixed(2)} kg vs plan`
       : targetDelta < 0
-        ? `\u2248 ${MINUS}${Math.abs(targetDeltaKg).toFixed(2)} kg fat`
+        ? `\u2248 ${MINUS}${Math.abs(targetDeltaKg).toFixed(2)} kg vs plan`
         : 'No net difference';
 
   return `
@@ -463,14 +477,14 @@ function buildCoachingSummary(data: BuildWeeklyReportHtmlData): string {
           <div style="${CARD}">
             <div class="stat-label">Avg daily intake</div>
             <div class="stat-value">${fmt(adherence.avgDailyKcal)}<span class="stat-unit">kcal</span></div>
-            <div class="stat-sub">Goal: ${fmt(data.goalMaxCalories)} kcal</div>
+            <div class="stat-sub">Goal: ${fmt(adherence.avgTarget)} kcal${mixedTargets ? ' avg' : ''}</div>
           </div>
         </td>
         <td style="width:33%;padding:0 3px;vertical-align:top;">
           <div style="${CARD}">
             <div class="stat-label">Days on target</div>
             <div class="stat-value">${adherence.daysOnTarget}<span class="stat-unit">/ ${adherence.loggedDays}</span></div>
-            <div class="stat-sub">${pct(adherence.loggedDays / 7)} adherence</div>
+            <div class="stat-sub">${pct(adherence.onTargetRate)} of logged days</div>
           </div>
         </td>
         <td style="width:33%;padding-left:6px;vertical-align:top;">
@@ -495,8 +509,13 @@ function buildCoachingSummary(data: BuildWeeklyReportHtmlData): string {
 }
 
 function buildBarChart(data: BuildWeeklyReportHtmlData): string {
-  const BAR_SCALE = 4500;
-  const goalLinePct = ((data.goalMaxCalories / BAR_SCALE) * 100).toFixed(1);
+  // Wide enough for the week's own numbers. A fixed 4,500 ceiling clipped both the bar and the
+  // goal marker on a training day with a large gym-day bonus.
+  const BAR_SCALE = Math.max(4500, ...data.days.map(d => Math.max(d.kcal, d.target) * 1.1));
+  // One marker per row, at that day's own target — a single line drawn at a flat weekly figure
+  // put every gym day's bar past it while the day was actually under its ceiling.
+  const goalLinePctFor = (target: number) => ((target / BAR_SCALE) * 100).toFixed(1);
+  const targets = [...new Set(data.days.map(d => d.target))].sort((a, b) => a - b);
 
   const DAY_TD = `font-family:'IBM Plex Mono','Courier New',monospace;font-size:11px;color:#4b5a6b;white-space:nowrap;width:30px;padding-right:10px;padding-bottom:8px;vertical-align:middle;`;
   const KCAL_TD = `font-family:'IBM Plex Mono','Courier New',monospace;font-size:11px;color:#4b5a6b;text-align:right;white-space:nowrap;width:50px;padding-right:10px;padding-bottom:8px;vertical-align:middle;`;
@@ -512,7 +531,7 @@ function buildBarChart(data: BuildWeeklyReportHtmlData): string {
       <td style="${DAY_TD}">${dayLabel}</td>
       <td style="padding-right:10px;padding-bottom:8px;vertical-align:middle;">
         <div style="${TRACK}">
-          <div style="position:absolute;top:-4px;bottom:-4px;width:1px;background:#2e4a62;left:${goalLinePct}%;"></div>
+          <div style="position:absolute;top:-4px;bottom:-4px;width:1px;background:#2e4a62;left:${goalLinePctFor(day.target)}%;"></div>
         </div>
       </td>
       <td style="${KCAL_TD}">&mdash;</td>
@@ -520,7 +539,7 @@ function buildBarChart(data: BuildWeeklyReportHtmlData): string {
     </tr>`;
       }
 
-      const delta = day.kcal - data.goalMaxCalories;
+      const delta = day.kcal - day.target;
       const widthPct = Math.min((day.kcal / BAR_SCALE) * 100, 100).toFixed(1);
       const deltaStr = signedKcal(delta);
 
@@ -530,7 +549,7 @@ function buildBarChart(data: BuildWeeklyReportHtmlData): string {
       <td style="padding-right:10px;padding-bottom:8px;vertical-align:middle;">
         <div style="${TRACK}">
           <div style="width:${widthPct}%;height:22px;background:${barColor(delta)};border-radius:3px;"></div>
-          <div style="position:absolute;top:-4px;bottom:-4px;width:1px;background:#2e4a62;left:${goalLinePct}%;"></div>
+          <div style="position:absolute;top:-4px;bottom:-4px;width:1px;background:#2e4a62;left:${goalLinePctFor(day.target)}%;"></div>
         </div>
       </td>
       <td style="${KCAL_TD}">${fmt(day.kcal)}</td>
@@ -544,7 +563,7 @@ function buildBarChart(data: BuildWeeklyReportHtmlData): string {
   <div class="chart-block">
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
       <tr>
-        <td style="font-size:12px;color:#4b5a6b;">Goal: ${fmt(data.goalMaxCalories)} kcal/day</td>
+        <td style="font-size:12px;color:#4b5a6b;">Goal: ${targets.map(fmt).join(' / ')} kcal/day${targets.length > 1 ? ' (gym days higher)' : ''}</td>
         <td style="text-align:right;font-size:11px;color:#2e4a62;">&verbar;&nbsp;=&nbsp;goal</td>
       </tr>
     </table>
@@ -612,9 +631,10 @@ function buildWeightSparkline(data: BuildWeeklyReportHtmlData): string {
   const points = data.weightPoints;
   const { weekStartWeight, projectedEndWeight, actualEndWeight, projectionDelta } = getWeekWeightSummary(data);
 
+  const ahead = projectionDelta !== null && isTowardGoal(projectionDelta, data.goalDirection, MAINTAIN_TOLERANCE_KG);
   const projectionTagHtml =
     projectionDelta !== null
-      ? `<span class="weight-delta-tag" style="background:${projectionDelta <= 0 ? '#0e2a1f' : '#2a1010'}; color:${projectionDelta <= 0 ? '#3db87a' : '#e05a5a'}; border:1px solid ${projectionDelta <= 0 ? '#1a4a33' : '#4a1a1a'};">
+      ? `<span class="weight-delta-tag" style="background:${ahead ? '#0e2a1f' : '#2a1010'}; color:${ahead ? '#3db87a' : '#e05a5a'}; border:1px solid ${ahead ? '#1a4a33' : '#4a1a1a'};">
           ${projectionDelta <= 0 ? MINUS : '+'}${Math.abs(projectionDelta).toFixed(2)} kg vs projection
         </span>`
       : '';
@@ -638,7 +658,7 @@ function buildWeightSparkline(data: BuildWeeklyReportHtmlData): string {
           ${projectionTagHtml}
         </td>
         <td style="text-align:right;vertical-align:top;padding-left:8px;padding-top:10px;">
-          <div style="font-size:11px;color:#4b5a6b;margin-top:20px;">Weekly target: ${MINUS}${fmtWeight(data.goalWeeklyRateKg)} kg</div>
+          <div style="font-size:11px;color:#4b5a6b;margin-top:20px;">Weekly target: ${fmtGoalRate(data.goalWeeklyRateKg, data.goalDirection, 'kg')}</div>
         </td>
       </tr>
     </table>`;
@@ -646,7 +666,14 @@ function buildWeightSparkline(data: BuildWeeklyReportHtmlData): string {
   // Weight chart (only if ≥ 2 measurements)
   let chartHtml: string;
   if (points.length < 2) {
-    chartHtml = `<p style="font-size:12px; color:#4b5a6b;">No weight measurements logged this week.</p>`;
+    // Two different situations, and they were sharing one message. A single weigh-in is not
+    // enough to draw a line, but it is very much a measurement — and the card directly above
+    // was already quoting it as the week's actual weight while this line denied it existed.
+    const note =
+      points.length === 1
+        ? 'Only one weigh-in this week — two or more are needed to plot a trend.'
+        : 'No weight measurements logged this week.';
+    chartHtml = `<p style="font-size:12px; color:#4b5a6b;">${note}</p>`;
   } else {
     chartHtml = buildWeightChartImg(data);
   }
@@ -669,7 +696,7 @@ function buildWeightChartImg(data: BuildWeeklyReportHtmlData): string {
   const projectedData: (number | null)[] = new Array(7).fill(null);
   if (weekStartWeight !== null) {
     projectedData[0] = weekStartWeight;
-    projectedData[6] = parseFloat((weekStartWeight - data.goalWeeklyRateKg).toFixed(2));
+    projectedData[6] = parseFloat((weekStartWeight + data.goalWeeklyRateKg).toFixed(2));
   }
 
   const chartConfig = {
@@ -770,10 +797,8 @@ function buildOutlook(data: BuildWeeklyReportHtmlData): string {
     data.weightPoints.length > 0
       ? data.weightPoints.slice().sort((a, b) => a.date.localeCompare(b.date))[data.weightPoints.length - 1]!.value
       : data.latestMeasurements[MeasurementTypes.Weight];
-  const projectedWeight = weekEndWeight != null ? weekEndWeight - data.goalWeeklyRateKg : null;
-  const dailyDeficit = data.tdee - data.goalMaxCalories;
-  const deficitColor = dailyDeficit >= 0 ? '#3db87a' : '#e05a5a';
-  const deficitStr = dailyDeficit >= 0 ? `${MINUS}${fmt(dailyDeficit)}` : `+${fmt(Math.abs(dailyDeficit))}`;
+  const projectedWeight = weekEndWeight != null ? weekEndWeight + data.goalWeeklyRateKg : null;
+  const energyGap = energyGapSummary(data.goalMaxCalories, data.tdee, data.goalDirection);
   // Active = TDEE - BMR
   const activeKcal = data.tdee - data.bmr;
 
@@ -793,8 +818,8 @@ function buildOutlook(data: BuildWeeklyReportHtmlData): string {
       </tr>
       <tr>
         <td style="width:50%;padding-right:8px;vertical-align:top;">
-          <div style="font-size:11px;color:#4b5a6b;margin-bottom:4px;">Daily deficit</div>
-          <div style="font-family:'IBM Plex Mono','Courier New',monospace;font-size:16px;color:${deficitColor};">${deficitStr} <span style="font-size:11px;">kcal</span></div>
+          <div style="font-size:11px;color:#4b5a6b;margin-bottom:4px;">${energyGap.label}</div>
+          <div style="font-family:'IBM Plex Mono','Courier New',monospace;font-size:16px;color:${energyGap.color};">${energyGap.value} <span style="font-size:11px;">kcal</span></div>
         </td>
         <td style="width:50%;vertical-align:top;">
           <div style="font-size:11px;color:#4b5a6b;margin-bottom:4px;">Projected weight</div>
@@ -804,7 +829,7 @@ function buildOutlook(data: BuildWeeklyReportHtmlData): string {
       </tr>
     </table>
     <div style="margin-top:14px; padding-top:14px; border-top:1px solid #1a2230; font-size:12px; color:#4b5a6b; line-height:1.7;">
-      BMR ${fmt(data.bmr)} kcal &middot; Active ${fmt(activeKcal)} kcal &middot; Goal rate ${MINUS}${fmtWeight(data.goalWeeklyRateKg)} kg/week
+      BMR ${fmt(data.bmr)} kcal &middot; Active ${fmt(activeKcal)} kcal &middot; Goal rate ${fmtGoalRate(data.goalWeeklyRateKg, data.goalDirection, 'kg/week')}
     </div>
   </div>`;
 }
