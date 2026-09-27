@@ -20,7 +20,8 @@ entry in `tools/tools.ts`. Follow the steps below exactly.
 
 ## Step 1 — Create the implementation file
 
-Create `packages/mcp-server/src/calories/tools/<name>.ts`.
+Create `packages/mcp-server/src/<domain>/tools/<name>.ts` (`<domain>` is `calories`, `travel`, `finances`,
+`vacation`, …; the example below is from calories). For a brand-new domain run `mcp-add-server` first.
 
 **Required imports:**
 
@@ -48,9 +49,7 @@ export const myActionTool: ToolHandler<typeof MyActionSchema.shape> = async (inp
 
   // ... business logic, call shared services, etc.
 
-  return toolResponse({
-    /* structured output */
-  });
+  return toolResponse({/* structured output */});
 };
 ```
 
@@ -59,7 +58,8 @@ Key rules:
 - Always use `context.userId` for authenticated tools.
 - The optional third callback arg (`extra`) is the raw SDK request extra when needed.
 - Return via `toolResponse(payload)` — this wraps the payload in the MCP text content format.
-- Throw plain `Error` instances for user-visible errors (the SDK surfaces them cleanly).
+- For user-visible errors throw `HandledError` (`../../shared/errors`) in the handler, or a `UserInputError`
+  subclass from the shared service; both are logged as warnings and returned as the tool error message.
 - For read-only tools add no side-effect annotations; for writes set `idempotentHint: false`.
 
 **Minimal real example** (`summary.ts`):
@@ -87,7 +87,7 @@ export const getDailySummaryTool: ToolHandler<typeof GetDailySummarySchema.shape
 
 ## Step 2 — Register in `tools/tools.ts`
 
-File: `packages/mcp-server/src/calories/tools/tools.ts`
+File: `packages/mcp-server/src/<domain>/tools/tools.ts`
 
 1. **Add imports** at the top (alongside the other tool imports):
 
@@ -95,11 +95,11 @@ File: `packages/mcp-server/src/calories/tools/tools.ts`
 import { MyActionSchema, myActionTool } from './my-action';
 ```
 
-2. **Add a `defineTool` entry** to the `caloriesTools` array:
+2. **Add a `defineTool` entry** to the domain's tools array (e.g. `caloriesTools`, `vacationTools`):
 
 ```typescript
 defineTool({
-  name: 'calories_my_action',          // prefix all tool names with 'calories_'
+  name: '<domain>_my_action',          // prefix every tool name with the domain, e.g. 'calories_'
   description:
     'One paragraph description for the AI model. Be specific about when to use ' +
     'this tool vs alternatives. Mention related resources or tools if relevant.',
@@ -119,7 +119,7 @@ defineTool({
 
 ## Step 3 — Export from `tools/index.ts` (only if needed)
 
-File: `packages/mcp-server/src/calories/tools/index.ts`
+File: `packages/mcp-server/src/<domain>/tools/index.ts`
 
 Currently this file just re-exports `./tools`. Only add an explicit export if symbols from the
 new file are consumed outside the `tools/` folder:
@@ -132,14 +132,14 @@ Most tools do NOT need this — `tools.ts` imports directly from the implementat
 
 ## Shared utilities reference
 
-| Utility                                 | Location                  | Purpose                                                             |
-| --------------------------------------- | ------------------------- | ------------------------------------------------------------------- |
-| `toolResponse(payload)`                 | `../../shared/toolsUtils` | Wrap any object as MCP tool response                                |
-| `defineTool(def)`                       | `../../shared/toolsUtils` | Type-safe tool definition (used in tools.ts)                        |
-| `withUserIdCheck(cb)`                   | `../../shared/toolsUtils` | Auth middleware (applied automatically in registerCaloriesTools)    |
-| `yyyyMmDdSchema`                        | `../../shared/schemas`    | Zod schema for "YYYY-MM-DD" date strings                            |
-| `currentDateString(timezone?)`          | `@my-hub/shared/utils`    | Returns current date as "YYYY-MM-DD" in user timezone when provided |
-| `dateStringDaysAgo(daysAgo, timezone?)` | `@my-hub/shared/utils`    | Returns "YYYY-MM-DD" for N days ago in the resolved timezone        |
+| Utility                                 | Location                  | Purpose                                                                                |
+| --------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------- |
+| `toolResponse(payload)`                 | `../../shared/toolsUtils` | Wrap any object as MCP tool response                                                   |
+| `defineTool(def)`                       | `../../shared/toolsUtils` | Type-safe tool definition (used in tools.ts)                                           |
+| `wrapToolHandler(cb)`                   | `../../shared/toolsUtils` | Auth + logging wrapper, applied by the domain's register loop — never call it yourself |
+| `yyyyMmDdSchema`                        | `../../shared/schemas`    | Zod schema for "YYYY-MM-DD" date strings                                               |
+| `currentDateString(timezone?)`          | `@my-hub/shared/utils`    | Returns current date as "YYYY-MM-DD" in user timezone when provided                    |
+| `dateStringDaysAgo(daysAgo, timezone?)` | `@my-hub/shared/utils`    | Returns "YYYY-MM-DD" for N days ago in the resolved timezone                           |
 
 ## Verification
 
@@ -147,4 +147,4 @@ After creating the files, verify by:
 
 1. Building the package: `pnpm --filter @my-hub/mcp-server build` (or `pnpm --filter @my-hub/mcp-server typecheck`)
 2. Confirming the new tool name appears in the registered tools list
-3. Calling the tool via the MCP client (e.g. Claude with the calories MCP server connected)
+3. Calling the tool via the MCP client (e.g. Claude with that domain's MCP server connected)

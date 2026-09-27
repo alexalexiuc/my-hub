@@ -39,6 +39,16 @@ Sign in with **sandbox@test.local / SandboxPass123!**.
 Override the connection with `SANDBOX_DATABASE_URL`, or piecewise with `SANDBOX_PGHOST`,
 `SANDBOX_PGPORT`, `SANDBOX_PGUSER`, `SANDBOX_PGPASSWORD`, `SANDBOX_PGDATABASE`.
 
+With `SANDBOX_DATABASE_URL` set, the script skips starting and probing a local PostgreSQL (`pg_isready`,
+`su postgres`) and uses that database as-is — the way to run it where those tools are missing, e.g. WSL
+against a database on the Windows host. Pair it with the scratch database:
+
+```bash
+pnpm db:scratch create
+pnpm db:scratch exec -- sh -c 'SANDBOX_DATABASE_URL="$DATABASE_URL" pnpm ui:sandbox'
+pnpm db:scratch drop
+```
+
 ## The fixtures
 
 `packages/e2e/seeds/sandbox.seed.ts` generates a budget with four accounts (bank, goal, credit
