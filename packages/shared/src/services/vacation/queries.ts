@@ -8,9 +8,11 @@
  *   getVacationBalance      — projected balance per rule-set bucket on a date
  *   findBestLeaveWindows    — ranked non-overlapping leave spans for an objective
  *   getVacationConfig       — profile, rule sets, tax regimes, leave periods, salary + holiday coverage
+ *   getVacationLeaveEstimates — every recorded leave period with its span totals and rate
  *   listVacationSalaries    — every salary month, oldest first, with its month as YYYY-MM
  *   Types: VacationCalendarResult, VacationSpanResult, VacationBalanceResult, VacationWindowsResult,
- *          VacationConfig, VacationSalaryRow, BestWindowsQuery
+ *          VacationConfig, VacationSalaryRow, BestWindowsQuery,
+ *          VacationLeaveEstimate, VacationLeaveEstimatesResult
  */
 import { asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -170,6 +172,47 @@ export async function findBestLeaveWindows(userId: string, q: BestWindowsQuery):
   if (windows.length === 0)
     warnings.push('No span in the range fits: check the range, the day count and existing leave.');
   return { objective, windows, warnings, demo };
+}
+
+export interface VacationLeaveEstimate extends VacationLeavePeriod {
+  /** The period priced as one leave (rate of its start month); null when no salary backs that rate. */
+  estimate: VacationSpan | null;
+  rate: VacationMonthRate | null;
+}
+
+export interface VacationLeaveEstimatesResult {
+  /** True when answered from demo data (no profile yet). */
+  demo: boolean;
+  /** Oldest first. */
+  leave: VacationLeaveEstimate[];
+}
+
+/**
+ * Prices every recorded leave period as one leave: net pay, net delta vs working it, balance cost
+ * and rest. Periods with no salary in their averaging window (e.g. before the first salary row)
+ * get `estimate: null` rather than a misleading zero. Only the user's own rows are listed, so
+ * demo mode (no profile) usually answers with an empty list.
+ */
+export async function getVacationLeaveEstimates(
+  userId: string,
+  q: VacationQueryOptions = {},
+): Promise<VacationLeaveEstimatesResult> {
+  const [{ profile, model, demo }, rows] = await Promise.all([
+    loadVacationModel(userId, q),
+    db
+      .select()
+      .from(vacationLeavePeriods)
+      .where(eq(vacationLeavePeriods.userId, userId))
+      .orderBy(asc(vacationLeavePeriods.startDate)),
+  ]);
+  const leave = rows
+    .filter(l => vacationHorizonError(profile.openingBalanceDate, l.endDate) === null)
+    .map(l => {
+      const rate = model.rateFor(l.startDate);
+      const priced = rate !== null && rate.windowMonths.length > 0;
+      return { ...l, estimate: priced ? model.evaluateSpan(l.startDate, l.endDate) : null, rate: priced ? rate : null };
+    });
+  return { demo, leave };
 }
 
 export interface VacationSalaryRow {

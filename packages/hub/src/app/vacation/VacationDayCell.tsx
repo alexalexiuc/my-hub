@@ -27,8 +27,10 @@ export function VacationDayCell({ day, row, maxAbs, isToday, selected }: Vacatio
         'relative flex h-11 select-none flex-col justify-between rounded-md border border-[var(--border)] px-1 py-0.5 text-left sm:h-12',
         fill?.strong && 'border-transparent text-[var(--bg)]',
         !day.inMonth && 'opacity-40',
-        taken && 'border-[var(--violet)]',
-        planned && 'border-dashed border-[var(--blue)]',
+        // Leave is outlined outside the cell, against the page background, so it reads on any fill.
+        (taken || planned) && 'outline outline-2 outline-offset-1',
+        taken && 'outline-[var(--violet)]',
+        planned && 'outline-dashed outline-[var(--blue)]',
         selected && 'ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--bg)]',
       )}
       style={{ backgroundColor: fill?.background }}
@@ -37,6 +39,17 @@ export function VacationDayCell({ day, row, maxAbs, isToday, selected }: Vacatio
         {Number(day.date.slice(8))}
         {holiday && <span className="ml-1 text-[var(--amber)]">●</span>}
       </span>
+      {(taken || planned) && (
+        <span
+          aria-label={taken ? 'Leave taken' : 'Leave planned'}
+          className={cn(
+            'absolute right-0.5 top-0.5 rounded-sm px-0.5 text-[9px] font-bold leading-tight text-[var(--bg)]',
+            taken ? 'bg-[var(--violet)]' : 'bg-[var(--blue)]',
+          )}
+        >
+          {taken ? 'OFF' : 'PLAN'}
+        </span>
+      )}
       {row && (
         <span className="text-right text-[11px] font-semibold tabular-nums sm:text-xs">
           {cost === 0 && delta === 0 ? '—' : formatDeltaCompact(delta)}

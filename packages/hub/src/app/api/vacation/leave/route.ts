@@ -1,6 +1,15 @@
 import { route } from '@/lib/api/route';
-import { applyLeaveChanges } from '@my-hub/shared/services';
-import { VacationLeaveBodySchema } from '../vacation.schemas';
+import { applyLeaveChanges, getVacationLeaveEstimates } from '@my-hub/shared/services';
+import { VacationLeaveBodySchema, VacationLeaveQuerySchema } from '../vacation.schemas';
+
+/**
+ * GET /api/vacation/leave?includeDraftRules=true
+ * Every recorded leave period, oldest first, each priced as one leave (net pay, delta vs working,
+ * balance cost, rest). `estimate` is null when no salary backs the rate of its start month.
+ */
+export const GET = route({ query: VacationLeaveQuerySchema })(async ({ user, query }) =>
+  getVacationLeaveEstimates(user.id, { ...query, allowDemo: true }),
+);
 
 /**
  * POST /api/vacation/leave

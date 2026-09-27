@@ -2,14 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { VacationBalanceResult, VacationCalendarResult } from '@my-hub/shared/services';
+import type {
+  VacationBalanceResult,
+  VacationCalendarResult,
+  VacationLeaveEstimatesResult,
+} from '@my-hub/shared/services';
 import { buildMonthGridDays, dateToString, formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
 import { Card, Checkbox, IconButton, PageHeader } from '@/components';
 import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon } from '@/components/icons';
 import { apiFetch, ApiError } from '@/lib/utils';
 import { VacationMonthGrid } from './VacationMonthGrid';
 import { SelectionPanel } from './SelectionPanel';
-import { formatDays, normalizeRange } from './vacation.utils';
+import { VacationLegend } from './VacationLegend';
+import { formatDays, leaveCovering, normalizeRange } from './vacation.utils';
 
 export default function VacationPage() {
   const today = dateToString(new Date());
@@ -17,6 +22,7 @@ export default function VacationPage() {
   const [includeDraftRules, setIncludeDraftRules] = useState(false);
   const [calendar, setCalendar] = useState<VacationCalendarResult | null>(null);
   const [balance, setBalance] = useState<VacationBalanceResult | null>(null);
+  const [leave, setLeave] = useState<VacationLeaveEstimatesResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selection, setSelection] = useState<[string, string] | null>(null);
 
@@ -25,7 +31,7 @@ export default function VacationPage() {
 
   const load = useCallback(async () => {
     try {
-      const [cal, bal] = await Promise.all([
+      const [cal, bal, lv] = await Promise.all([
         apiFetch<VacationCalendarResult>('/api/vacation/calendar', {
           query: { month, includeDraftRules },
           silentToast: true,
@@ -34,9 +40,14 @@ export default function VacationPage() {
           query: { date: today, includeDraftRules },
           silentToast: true,
         }),
+        apiFetch<VacationLeaveEstimatesResult>('/api/vacation/leave', {
+          query: { includeDraftRules },
+          silentToast: true,
+        }),
       ]);
       setCalendar(cal);
       setBalance(bal);
+      setLeave(lv);
       setError(null);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not load the vacation calendar.');
@@ -48,6 +59,7 @@ export default function VacationPage() {
   }, [load]);
 
   const selectedDayRow = selection && selection[0] === selection[1] ? rows.get(selection[0]) : undefined;
+  const selectedLeave = selection ? leaveCovering(leave?.leave ?? [], selection[0]) : undefined;
 
   return (
     <main className="mx-auto max-w-xl space-y-4">
@@ -122,13 +134,21 @@ export default function VacationPage() {
             onSelect={(a, b) => setSelection(normalizeRange(a, b))}
           />
 
+          <VacationLegend />
+
           <p className="text-xs text-[var(--subtle)]">
             Each day shows net money vs working it, if a leave starting that month covers it. Tap a day, or drag across
-            days to price a whole span.
+            days to price a whole span. Tap a vacation day to see that vacation's totals.
           </p>
 
           {selection && (
-            <SelectionPanel range={selection} dayRow={selectedDayRow} includeDraftRules={includeDraftRules} />
+            <SelectionPanel
+              range={selection}
+              dayRow={selectedDayRow}
+              leave={selectedLeave}
+              includeDraftRules={includeDraftRules}
+              onShowLeave={() => selectedLeave && setSelection([selectedLeave.startDate, selectedLeave.endDate])}
+            />
           )}
 
           {calendar && calendar.warnings.length > 0 && (
