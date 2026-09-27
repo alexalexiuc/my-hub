@@ -1,80 +1,79 @@
 import type { VacationConfig } from '@my-hub/shared/services';
+import { dateToString } from '@my-hub/shared/utils';
 import { Card, SectionLabel } from '@/components';
+import { formatMdl } from '../vacation.utils';
+import { RuleSetsSection } from './RuleSetsSection';
+import { TaxRegimesSection } from './TaxRegimesSection';
 
 type SetupSummaryProps = {
   config: VacationConfig;
 };
 
 /**
- * Read-only view of the parts of the setup that are researched rather than typed in — labour-law
- * rule sets, tax regimes and public holidays — plus what is still missing.
+ * Read-only view of everything the calculations use besides the profile form: leave-law rule sets
+ * and employer tax regimes on a dated timeline, salary and holiday coverage, and what is missing.
  */
 export function SetupSummary({ config }: SetupSummaryProps) {
-  const { ruleSets, taxRegimes, holidayCoverage, salaryCoverage, warnings } = config;
+  const { profile, ruleSets, taxRegimes, holidayCoverage, salaryCoverage, warnings } = config;
+  const today = dateToString(new Date());
 
   return (
-    <Card compact className="space-y-4">
-      <div>
-        <SectionLabel>Rule sets</SectionLabel>
-        {ruleSets.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">None yet.</p>
-        ) : (
-          <ul className="space-y-1 text-sm">
-            {ruleSets.map(r => (
-              <li key={r.id} className="flex flex-wrap justify-between gap-2">
-                <span>
-                  {r.name} <span className="text-xs text-[var(--subtle)]">({r.status})</span>
-                </span>
-                <span className="text-xs text-[var(--muted)]">
-                  {r.annualEntitlementDays} {r.leaveUnit} days/yr · {r.validFrom} → {r.validTo ?? 'open'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+    <Card compact className="space-y-5">
+      <RuleSetsSection ruleSets={ruleSets} today={today} />
+      <TaxRegimesSection taxRegimes={taxRegimes} employer={profile?.employer ?? null} today={today} />
 
-      <div>
-        <SectionLabel>Tax regimes</SectionLabel>
-        {taxRegimes.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">None yet.</p>
-        ) : (
-          <ul className="space-y-1 text-sm">
-            {taxRegimes.map(t => (
-              <li key={t.id} className="flex flex-wrap justify-between gap-2">
-                <span>
-                  {t.employer} <span className="text-xs text-[var(--subtle)]">({t.regime.replace('_', ' ')})</span>
-                </span>
-                <span className="text-xs text-[var(--muted)]">
-                  {t.validFrom} → {t.validTo ?? 'open'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div>
+      <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+        <section>
           <SectionLabel>Salaries</SectionLabel>
-          <p className="text-[var(--muted)]">
-            {salaryCoverage.firstMonth
-              ? `${salaryCoverage.firstMonth} → ${salaryCoverage.lastMonth}`
-              : 'None yet — add them under Payments.'}
-          </p>
-        </div>
-        <div>
+          {salaryCoverage.firstMonth ? (
+            <ul className="space-y-0.5 text-xs text-[var(--muted)]">
+              <li>
+                Recorded {salaryCoverage.firstMonth} → {salaryCoverage.lastMonth}
+              </li>
+              <li>Latest actual: {salaryCoverage.lastActualMonth ?? 'none'}</li>
+              {salaryCoverage.missingMonths.length > 0 && (
+                <li className={profile?.baseSalaryMdl != null ? '' : 'text-[var(--amber)]'}>
+                  Gaps{profile?.baseSalaryMdl != null ? ' (base salary used)' : ''}:{' '}
+                  {salaryCoverage.missingMonths.join(', ')}
+                </li>
+              )}
+              <li>
+                Later months:{' '}
+                {profile?.baseSalaryMdl != null
+                  ? `base salary ${formatMdl(profile.baseSalaryMdl)} gross`
+                  : 'latest payment repeated (set a base salary above)'}
+              </li>
+            </ul>
+          ) : (
+            <p className="text-xs text-[var(--muted)]">None yet — add them under Payments.</p>
+          )}
+        </section>
+        <section>
           <SectionLabel>Public holidays</SectionLabel>
-          <p className="text-[var(--muted)]">
-            {holidayCoverage.length === 0 ? 'None yet.' : holidayCoverage.map(h => h.year).join(', ')}
-          </p>
-        </div>
+          {holidayCoverage.length === 0 ? (
+            <p className="text-xs text-[var(--muted)]">None yet.</p>
+          ) : (
+            <ul className="space-y-0.5 text-xs text-[var(--muted)]">
+              {holidayCoverage.map(h => (
+                <li key={h.year}>
+                  {h.year}: {h.holidays} holidays{h.transfers > 0 && `, ${h.transfers} transferred days`}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
 
-      <p className="text-xs text-[var(--subtle)]">
-        Rule sets, tax regimes and holidays come from labour law research — ask Claude to set them up through the
-        Vacation MCP (vacation_setup).
-      </p>
+      <div className="space-y-1 text-xs text-[var(--subtle)]">
+        <p>
+          Leave rules, tax regimes and holidays come from labour-law research. Ask Claude to change them through the
+          Vacation MCP (vacation_setup). Each one applies only between its own dates.
+        </p>
+        <p>
+          Changing employer: update Employer above, and ask Claude to end the old employer’s tax regime the day before
+          you start and add the new one from your first day. Past months keep the old employer’s regime.
+        </p>
+      </div>
 
       {warnings.length > 0 && (
         <ul className="list-disc space-y-1 pl-4 text-xs text-[var(--amber)]">

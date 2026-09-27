@@ -28,8 +28,9 @@ const vacationTools = [
     description:
       'Set up or correct the vacation planner in one call: profile (country, locality, employer, opening leave ' +
       'balance), leave-law rule sets, tax regimes, monthly salaries and public holidays. Every section is optional ' +
-      'and uses the same {upsert, remove} shape. Salaries are keyed by the month EARNED; a base salary carries ' +
-      'forward, so a projection is one row ("from 2027-01, 45000"). Holidays: research the Labour Code art. 111 ' +
+      'and uses the same {upsert, remove} shape. Salaries are keyed by the month EARNED; a projected base ' +
+      'carries forward, so a raise is one projected row ("from 2027-01, 45000"); months after the latest actual ' +
+      'row use profile.baseSalaryMdl (gross) when set. Holidays: research the Labour Code art. 111 ' +
       'list, the local hram day and Government day transfers for the year, then write them here. The call is ' +
       'validated as a whole and applied in one transaction; it returns change counts plus coverage warnings.',
     inputSchema: VacationSetupSchema.shape,

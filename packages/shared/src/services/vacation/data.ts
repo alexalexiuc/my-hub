@@ -45,6 +45,8 @@ export async function getVacationProfile(userId: string): Promise<VacationProfil
   return db.query.vacationProfiles.findFirst({ where: eq(vacationProfiles.userId, userId) });
 }
 
+const sameEmployer = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
 const sameRegion = (a: string | null, b: string | null) =>
   a !== null && b !== null && a.toLowerCase() === b.toLowerCase();
 
@@ -84,10 +86,7 @@ export async function loadVacationModel(userId: string, opts: VacationQueryOptio
       .select()
       .from(vacationRuleSets)
       .where(and(eq(vacationRuleSets.userId, userId), eq(vacationRuleSets.country, profile.country))),
-    db
-      .select()
-      .from(vacationTaxRegimes)
-      .where(and(eq(vacationTaxRegimes.userId, userId), eq(vacationTaxRegimes.employer, profile.employer))),
+    db.select().from(vacationTaxRegimes).where(eq(vacationTaxRegimes.userId, userId)),
     db
       .select()
       .from(vacationSalaryMonths)
@@ -108,8 +107,14 @@ export async function loadVacationModel(userId: string, opts: VacationQueryOptio
     openingBalanceDays: profile.openingBalanceDays,
     openingBalanceDate: profile.openingBalanceDate,
     accrualStart: profile.accrualStart,
+    baseSalaryMdl: profile.baseSalaryMdl,
     ruleSets: ruleSets.filter(r => r.region === null || sameRegion(r.region, profile.region)),
-    taxRegimes,
+    // Every employer's regimes, each applying to its own dates, so past months keep the regime of the
+    // employer you had then. Where two overlap, the profile's current employer wins (listed first).
+    taxRegimes: [...taxRegimes].sort(
+      (a, b) =>
+        Number(!sameEmployer(a.employer, profile.employer)) - Number(!sameEmployer(b.employer, profile.employer)),
+    ),
     salaries,
     holidays: resolveHolidaysForRegion(holidays, profile.region),
     leavePeriods,

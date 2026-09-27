@@ -29,6 +29,7 @@ export function buildVacationDemo(today: string): {
     openingBalanceDays: 14,
     openingBalanceDate,
     accrualStart: null,
+    baseSalaryMdl: null,
     updatedAt: new Date(0),
   };
 

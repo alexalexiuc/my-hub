@@ -8,9 +8,10 @@ import type {
   VacationLeaveEstimatesResult,
 } from '@my-hub/shared/services';
 import { buildMonthGridDays, dateToString, formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
-import { Card, Checkbox, IconButton, PageHeader } from '@/components';
+import { Card, IconButton, PageHeader } from '@/components';
 import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon } from '@/components/icons';
 import { apiFetch, ApiError } from '@/lib/utils';
+import { DraftRulesToggle } from './DraftRulesToggle';
 import { VacationMonthGrid } from './VacationMonthGrid';
 import { SelectionPanel } from './SelectionPanel';
 import { VacationLegend } from './VacationLegend';
@@ -112,10 +113,7 @@ export default function VacationPage() {
                 onClick={() => setMonth(m => shiftMonthStr(m, 1))}
               />
             </div>
-            <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--muted)]">
-              <Checkbox checked={includeDraftRules} onChange={e => setIncludeDraftRules(e.target.checked)} />
-              Preview draft rules (2027 reform)
-            </label>
+            <DraftRulesToggle checked={includeDraftRules} onChange={setIncludeDraftRules} />
           </div>
 
           {balance && (

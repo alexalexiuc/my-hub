@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   blankToNull,
+  coversDate,
   deltaFill,
   formatDays,
   formatDeltaCompact,
+  formatRate,
   formatSignedMdl,
   isInRange,
   leaveCovering,
@@ -80,5 +82,17 @@ describe('vacation utils', () => {
     expect(leaveDelta(base)).toEqual({ value: 4_000, actual: false });
     expect(leaveDelta({ ...base, payReceivedMdl: 9_000 })).toEqual({ value: 3_000, actual: true });
     expect(leaveDelta({ ...base, estimate: null })).toBeNull();
+  });
+
+  it('checks a dated rule against a date, open-ended or not', () => {
+    expect(coversDate({ validFrom: '2027-01-01', validTo: null }, '2026-12-31')).toBe(false);
+    expect(coversDate({ validFrom: '2027-01-01', validTo: null }, '2030-05-01')).toBe(true);
+    expect(coversDate({ validFrom: '2026-01-01', validTo: '2026-10-31' }, '2026-11-01')).toBe(false);
+  });
+
+  it('formats a rate as a percentage', () => {
+    expect(formatRate(0.12)).toBe('12%');
+    expect(formatRate(0.09)).toBe('9%');
+    expect(formatRate(0)).toBe('0%');
   });
 });

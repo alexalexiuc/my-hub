@@ -1,0 +1,1 @@
+ALTER TABLE "vacation_profiles" ADD COLUMN "base_salary_mdl" real;

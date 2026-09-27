@@ -78,9 +78,15 @@ export interface VacationModelInput {
   openingBalanceDays: number;
   openingBalanceDate: string;
   accrualStart: string | null;
+  /**
+   * Gross monthly base for months with no salary row of their own and no earlier projection (from
+   * the first row on, or every month when there are none). Null/omitted: the latest earlier actual
+   * row is carried forward, with a warning.
+   */
+  baseSalaryMdl?: number | null;
   /** Rule sets already narrowed to the profile's country and region. */
   ruleSets: VacationRuleInput[];
-  /** Tax regimes already narrowed to the profile's employer. */
+  /** Tax regimes by date; where two cover the same date, the first listed applies (the current employer). */
   taxRegimes: VacationTaxInput[];
   salaries: VacationSalaryInput[];
   /** One entry per date, already resolved (a regional entry beats a national one). */
@@ -250,7 +256,13 @@ export function createVacationModel(input: VacationModelInput) {
   /** Months that borrowed a carried-forward base, keyed by the source, reported as one warning each. */
   const carried = new Map<string, string[]>();
 
-  /** Base salary for a month: its own row, else the latest earlier row carried forward. */
+  /**
+   * Gross base salary for a month without guessing where possible:
+   * 1. its own row;
+   * 2. the latest earlier row when that is a projection (a projection states the salary from then on);
+   * 3. the profile's configured base, from the first row on (every month when there are no rows);
+   * 4. otherwise the latest earlier actual row carried forward, reported as a warning.
+   */
   function baseFor(month: string): number | null {
     if (baseCache.has(month)) return baseCache.get(month)!;
     let found: (typeof salaries)[number] | undefined;
@@ -258,11 +270,17 @@ export function createVacationModel(input: VacationModelInput) {
       if (s.month > month) break;
       found = s;
     }
-    if (found && found.month !== month) {
-      const key = `${found.kind} base from ${found.month}`;
-      carried.set(key, [...(carried.get(key) ?? []), month]);
+    const configured = input.baseSalaryMdl ?? null;
+    let base: number | null;
+    if (found && (found.month === month || found.kind === 'projected')) base = found.baseMdl;
+    else if (configured !== null && (salaries.length === 0 || month >= salaries[0]!.month)) base = configured;
+    else {
+      if (found) {
+        const key = `${found.kind} base from ${found.month}`;
+        carried.set(key, [...(carried.get(key) ?? []), month]);
+      }
+      base = found?.baseMdl ?? null;
     }
-    const base = found?.baseMdl ?? null;
     baseCache.set(month, base);
     return base;
   }
@@ -662,7 +680,7 @@ export function createVacationModel(input: VacationModelInput) {
       ...[...carried].map(([source, months]) => {
         const sorted = [...months].sort();
         const span = sorted.length === 1 ? sorted[0] : `${sorted[0]} to ${sorted.at(-1)}`;
-        return `No salary for ${span}; carrying forward ${source}.`;
+        return `No salary for ${span}; carrying forward ${source}. Set a base salary in the profile to use that instead.`;
       }),
       ...warnings,
     ],
