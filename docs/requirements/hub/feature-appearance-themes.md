@@ -12,7 +12,7 @@
 
 The Hub ships a library of colour themes that the user picks from on the Profile page or a
 dedicated browse-and-preview gallery at `/appearance`. One choice applies to the whole app; each
-themed feature (Travel, Finances, Calories) can optionally override it. Themes are picked from a
+themed feature (Travel, Finances, Calories, Vacation) can optionally override it. Themes are picked from a
 single dropdown listing every preset by name — the 5 hand-preserved **signature** palettes first
 (grouped as 2 neutral shells, then the 3 original feature palettes), then each accent colour's
 three depths grouped together. Until the user picks something, every surface looks exactly as it
@@ -32,7 +32,7 @@ popup, a date picker, default scrollbars) renders correctly rather than mismatch
 | Hue (12)      | Emerald, Lime, Amber, Orange, Rose, Fuchsia, Violet, Indigo, Ocean, Sky, Teal, Slate                                       |
 | Mood (3)      | `soft` (pastel accent, near-neutral surfaces), `classic`, `deep` (saturated accent, rich surfaces)                         |
 | Signature (5) | Neutral: `graphite-signature`, `light-signature`. Original: `travel-signature`, `finances-signature`, `calories-signature` |
-| Scope (4)     | `global`, `travel`, `finances`, `calories`                                                                                 |
+| Scope (5)     | `global`, `travel`, `finances`, `calories`, `vacation`                                                                     |
 
 A theme key is either a signature key or `<hue>-<mood>` — 41 in total.
 
@@ -43,13 +43,14 @@ A theme key is either a signature key or `<hue>-<mood>` — 41 in total.
 | ID    | Requirement                                                                                                                                                                       |
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | FR-01 | The user must be able to choose a colour theme that applies to the entire app, from the Profile page.                                                                             |
-| FR-02 | The user must be able to override the theme independently for Travel, Finances and Calories.                                                                                      |
+| FR-02 | The user must be able to override the theme independently for Travel, Finances, Calories and Vacation.                                                                            |
 | FR-03 | A feature with no override must follow the global choice; clearing an override must restore that inheritance.                                                                     |
 | FR-04 | With nothing chosen, Travel and Finances must render their original palettes and the rest of the app the Graphite (zinc) palette. Calories defaults to `orange-deep` — see below. |
 | FR-05 | Selecting a theme must repaint the page immediately, before the change is persisted.                                                                                              |
 | FR-06 | The chosen theme must persist across reloads and sessions, and must be applied on the first server render without flash.                                                          |
 | FR-07 | Every preset must keep body and secondary text legible, and must keep success/warning/danger colours distinguishable from the accent.                                             |
 | FR-08 | Deleting all user data must remove the user's stored theme preferences.                                                                                                           |
+| FR-09 | With nothing chosen, Vacation must render `sky-deep` (matching its sky dashboard card) on a coloured, accent-tinted background rather than the neutral shell.                     |
 
 ---
 
@@ -111,6 +112,7 @@ A theme key is either a signature key or `<hue>-<mood>` — 41 in total.
 - [x] All 41 presets pass the contrast assertions (the 36 generated ones enforced in CI; the 5
       hand-authored signatures, including Light, verified by hand against the same thresholds).
 - [x] Theme preferences are removed by the delete-all route.
+- [x] Vacation is a themed scope with its own `sky-deep` default and an accent-tinted page background.
 - [x] Dashboard header, Profile page, MCP Control page and the Appearance gallery itself are
       fully tokenized and use shared components (`Button`, `IconButton`, `Card`) instead of
       bespoke inline markup.

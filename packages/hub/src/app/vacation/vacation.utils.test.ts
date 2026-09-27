@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  blankToNull,
   deltaFill,
   formatDays,
   formatDeltaCompact,
   formatSignedMdl,
   isInRange,
   normalizeRange,
+  parseOptionalNumber,
+  spanDays,
 } from './vacation.utils';
 
 describe('vacation utils', () => {
@@ -36,5 +39,23 @@ describe('vacation utils', () => {
       background: 'color-mix(in srgb, var(--red) 46%, var(--card))',
       strong: false,
     });
+  });
+
+  it('turns blank form text into null and keeps trimmed text', () => {
+    expect(blankToNull('   ')).toBeNull();
+    expect(blankToNull(' Chisinau ')).toBe('Chisinau');
+  });
+
+  it('parses optional numbers, rejecting blanks and garbage', () => {
+    expect(parseOptionalNumber('')).toBeNull();
+    expect(parseOptionalNumber('abc')).toBeNull();
+    expect(parseOptionalNumber('12.5')).toBe(12.5);
+    expect(parseOptionalNumber('0')).toBe(0);
+  });
+
+  it('counts a leave span inclusively, across a DST change', () => {
+    expect(spanDays('2026-05-04', '2026-05-10')).toBe(7);
+    expect(spanDays('2026-03-28', '2026-03-30')).toBe(3);
+    expect(spanDays('2026-05-04', '2026-05-04')).toBe(1);
   });
 });

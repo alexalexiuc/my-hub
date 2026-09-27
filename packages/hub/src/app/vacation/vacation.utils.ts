@@ -56,3 +56,21 @@ export function deltaFill(delta: number, maxAbs: number): { background: string; 
   const token = delta > 0 ? 'var(--green)' : 'var(--red)';
   return { background: `color-mix(in srgb, ${token} ${pct}%, var(--card))`, strong: pct >= 60 };
 }
+
+/** Trimmed text from a form input, or null when left blank — the "clear this field" value. */
+export function blankToNull(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed;
+}
+
+/** A number typed into a form input, or null when blank or not a finite number. */
+export function parseOptionalNumber(value: string): number | null {
+  if (value.trim() === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Inclusive calendar-day length of a YYYY-MM-DD span, e.g. 2026-05-04 → 2026-05-10 is 7. */
+export function spanDays(startDate: string, endDate: string): number {
+  return Math.round((Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000) + 1;
+}

@@ -22,7 +22,7 @@ async function featureThemeClass(page: Page, feature: string): Promise<string> {
 test.describe('Appearance themes', () => {
   test.beforeEach(async ({ page }) => {
     // Start from a known state: no stored overrides at all.
-    for (const scope of ['global', 'travel', 'finances', 'calories']) {
+    for (const scope of ['global', 'travel', 'finances', 'calories', 'vacation']) {
       await page.request.put('/api/user/theme-preferences', { data: { scope, themeKey: null } });
     }
     await page.goto('/profile');
@@ -30,7 +30,7 @@ test.describe('Appearance themes', () => {
   });
 
   test.afterEach(async ({ page }) => {
-    for (const scope of ['global', 'travel', 'finances', 'calories']) {
+    for (const scope of ['global', 'travel', 'finances', 'calories', 'vacation']) {
       await page.request.put('/api/user/theme-preferences', { data: { scope, themeKey: null } });
     }
   });
@@ -53,6 +53,11 @@ test.describe('Appearance themes', () => {
     await page.goto('/calories');
     await page.waitForLoadState('networkidle');
     expect(await featureThemeClass(page, 'calories')).toBe('orange-deep-theme');
+
+    // Vacation had no palette before themes; its default gives the page a coloured background.
+    await page.goto('/vacation');
+    await page.waitForLoadState('networkidle');
+    expect(await featureThemeClass(page, 'vacation')).toBe('sky-deep-theme');
   });
 
   /**
@@ -88,6 +93,10 @@ test.describe('Appearance themes', () => {
     await page.goto('/travel');
     await page.waitForLoadState('networkidle');
     expect(await featureThemeClass(page, 'travel')).toBe('ocean-deep-theme');
+
+    await page.goto('/vacation');
+    await page.waitForLoadState('networkidle');
+    expect(await featureThemeClass(page, 'vacation')).toBe('ocean-deep-theme');
 
     // ── 4. Clearing the override restores inheritance ─────────────────────────
     await page.goto('/profile');

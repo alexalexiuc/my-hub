@@ -101,8 +101,11 @@ test.describe('Calories — Weekly Menu page', () => {
     // Only today has a meal at this point. Requiring every day used to deadlock "copy meals
     // from" whenever the source week had a gap — and a day can be emptied again straight after
     // creation anyway, so the rule guarded nothing.
+    // Guarded: on a Sunday run today is the only plannable day, so filling it leaves no gap.
     await expect(submitBtn).toBeEnabled();
-    await expect(modal.getByText(/No meals planned for .* — you can add them later/)).toBeVisible();
+    if (today < 6) {
+      await expect(modal.getByText(/No meals planned for .* — you can add them later/)).toBeVisible();
+    }
 
     // ── 5. Fill the remaining available days and create ────────────────────────
     for (let d = today + 1; d <= 6; d++) {
