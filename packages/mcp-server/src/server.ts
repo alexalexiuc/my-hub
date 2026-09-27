@@ -16,6 +16,7 @@ import { mcpSubServers } from './mcp/registry.js';
 import { createCaloriesServer } from './calories/server.js';
 import { createTravelServer } from './travel/server.js';
 import { createFinancesServer } from './finances/server.js';
+import { createVacationServer } from './vacation/server.js';
 import { envConfig } from './config/env.js';
 
 export async function buildServer() {
@@ -81,12 +82,13 @@ export async function buildServer() {
   // Health check: /api/health
   await app.register(healthRoutes, { prefix: '/api' });
 
-  // MCP sub-servers: /api/calories/mcp  /api/travel/mcp  /api/finances/mcp
+  // MCP sub-servers: /api/calories/mcp  /api/travel/mcp  /api/finances/mcp  /api/vacation/mcp
   // Registered directly on app (not via prefix plugin) because FastifyMcpServer
   // manages its own child scopes and fp()-based plugins bypass prefix inheritance.
   registerMcpSubServer(app, '/api/calories/mcp', McpServerNames.Calories, createCaloriesServer);
   registerMcpSubServer(app, '/api/travel/mcp', McpServerNames.Travel, createTravelServer);
   registerMcpSubServer(app, '/api/finances/mcp', McpServerNames.Finances, createFinancesServer);
+  registerMcpSubServer(app, '/api/vacation/mcp', McpServerNames.Vacation, createVacationServer);
 
   // Session cleanup plugin (reads mcpSubServers registry via onReady hook)
   await app.register(sessionCleanupPlugin);

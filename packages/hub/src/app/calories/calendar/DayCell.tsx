@@ -7,7 +7,8 @@ import { MenuStatusBadge } from './MenuStatusBadge';
 import { MenuStatusIcon } from './MenuStatusIcon';
 import { menuDayStatus } from './calendar.utils';
 import type { CalendarDay } from './types';
-import type { DayRelation, MonthGridDay } from './calendar.utils';
+import type { MonthGridDay } from '@my-hub/shared/utils';
+import type { DayRelation } from './calendar.utils';
 
 type DayCellProps = {
   day: MonthGridDay;

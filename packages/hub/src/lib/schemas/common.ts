@@ -8,6 +8,9 @@ import { z } from 'zod';
  */
 export const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD');
 
+/** A calendar month as YYYY-MM (month 01–12) — the query shape for month views. */
+export const isoMonthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'must be YYYY-MM');
+
 /**
  * A numeric text input that may be left blank. `type="number"` only constrains what most browsers
  * let you type — it does not stop a pasted value, and a bare `z.string()` lets "abc" through as

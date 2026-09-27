@@ -6,6 +6,7 @@ export const McpServerNames = {
   Finances: 'finances',
   Products: 'products',
   Travel: 'travel',
+  Vacation: 'vacation',
 } as const;
 
 export type McpServerName = (typeof McpServerNames)[keyof typeof McpServerNames];

@@ -3,7 +3,7 @@
 import { dayNamesShort } from '@my-hub/shared/constants';
 import { DayCell } from './DayCell';
 import type { CalendarDay } from './types';
-import type { MonthGridDay } from './calendar.utils';
+import type { MonthGridDay } from '@my-hub/shared/utils';
 
 type MonthGridProps = {
   days: MonthGridDay[];
