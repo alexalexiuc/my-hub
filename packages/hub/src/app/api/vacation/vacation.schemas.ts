@@ -14,6 +14,8 @@ export const VacationSpanQuerySchema = z.object({
 
 export const VacationBalanceQuerySchema = z.object({ date: isoDateSchema, includeDraftRules });
 
+export const VacationLeaveQuerySchema = z.object({ includeDraftRules });
+
 const optionalText = z.string().trim().max(500).nullish();
 
 /** Body of `PUT /api/vacation/profile`. Every field is required, since the page always saves the whole form. */

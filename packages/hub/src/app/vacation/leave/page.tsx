@@ -1,29 +1,31 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { VacationConfig } from '@my-hub/shared/services';
+import type { VacationLeaveEstimate, VacationLeaveEstimatesResult } from '@my-hub/shared/services';
 import type { VacationLeavePeriod } from '@my-hub/shared/types';
 import { Button, Card, ConfirmModal, IconButton, PageHeader } from '@/components';
-import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
+import { ChevronDownOutlineIcon, PencilIcon, TrashOutlineIcon } from '@/components/icons';
 import { apiFetch, cn } from '@/lib/utils';
 import { LEAVE_STATUS_LABELS } from '../constants';
-import { formatMdl, spanDays } from '../vacation.utils';
+import { LeaveDetails } from '../LeaveDetails';
+import { formatMdl, formatSignedMdl, leaveDelta, spanDays } from '../vacation.utils';
 import { LeaveForm } from './LeaveForm';
 
 /** `null` = form closed, `'new'` = adding, a leave period = editing it. */
 type Editing = null | 'new' | VacationLeavePeriod;
 
 export default function VacationLeavePage() {
-  const [leave, setLeave] = useState<VacationLeavePeriod[] | null>(null);
+  const [leave, setLeave] = useState<VacationLeaveEstimate[] | null>(null);
+  const [expanded, setExpanded] = useState<number | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
   const [deleting, setDeleting] = useState<VacationLeavePeriod | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const config = await apiFetch<VacationConfig>('/api/vacation/config');
+      const result = await apiFetch<VacationLeaveEstimatesResult>('/api/vacation/leave');
       // Newest first: upcoming plans are what this page is opened for.
-      setLeave([...config.leavePeriods].reverse());
+      setLeave([...result.leave].reverse());
     } catch {
       // apiFetch already surfaced the error as a toast.
     }
@@ -80,46 +82,70 @@ export default function VacationLeavePage() {
 
       {leave && leave.length > 0 && (
         <ul className="space-y-2">
-          {leave.map(l => (
-            <li key={l.id} data-leave-id={l.id}>
-              <Card compact className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-                    <span>
-                      {l.startDate} → {l.endDate}
-                    </span>
-                    <span
-                      className={cn(
-                        'rounded-full border px-2 py-px text-[11px] font-medium',
-                        l.status === 'taken'
-                          ? 'border-[var(--violet)] text-[var(--violet)]'
-                          : 'border-dashed border-[var(--blue)] text-[var(--blue)]',
-                      )}
+          {leave.map(l => {
+            const delta = leaveDelta(l);
+            const open = expanded === l.id;
+            return (
+              <li key={l.id} data-leave-id={l.id}>
+                <Card compact className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      onClick={() => setExpanded(open ? null : l.id)}
+                      className="min-w-0 flex-1 text-left"
                     >
-                      {LEAVE_STATUS_LABELS[l.status]}
-                    </span>
+                      <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+                        <span>
+                          {l.startDate} → {l.endDate}
+                        </span>
+                        <span
+                          className={cn(
+                            'rounded-full border px-2 py-px text-[11px] font-medium',
+                            l.status === 'taken'
+                              ? 'border-[var(--violet)] text-[var(--violet)]'
+                              : 'border-dashed border-[var(--blue)] text-[var(--blue)]',
+                          )}
+                        >
+                          {LEAVE_STATUS_LABELS[l.status]}
+                        </span>
+                        <ChevronDownOutlineIcon
+                          className={cn('size-3.5 text-[var(--muted)] transition-transform', open && 'rotate-180')}
+                        />
+                      </div>
+                      <p className="mt-0.5 truncate text-xs text-[var(--muted)]">
+                        {spanDays(l.startDate, l.endDate)} days
+                        {delta && (
+                          <>
+                            {' · '}
+                            <span className={delta.value >= 0 ? 'text-[var(--green)]' : 'text-[var(--red)]'}>
+                              {formatSignedMdl(delta.value)}
+                            </span>
+                            {delta.actual ? '' : ' est.'}
+                          </>
+                        )}
+                        {l.payReceivedMdl != null && ` · paid ${formatMdl(l.payReceivedMdl)}`}
+                        {l.notes && ` · ${l.notes}`}
+                      </p>
+                    </button>
+                    <div className="flex shrink-0 gap-1">
+                      <IconButton
+                        label="Edit vacation"
+                        icon={<PencilIcon className="size-4" />}
+                        onClick={() => setEditing(l)}
+                      />
+                      <IconButton
+                        label="Delete vacation"
+                        icon={<TrashOutlineIcon className="size-4" />}
+                        onClick={() => setDeleting(l)}
+                      />
+                    </div>
                   </div>
-                  <p className="mt-0.5 truncate text-xs text-[var(--muted)]">
-                    {spanDays(l.startDate, l.endDate)} days
-                    {l.payReceivedMdl != null && ` · paid ${formatMdl(l.payReceivedMdl)}`}
-                    {l.notes && ` · ${l.notes}`}
-                  </p>
-                </div>
-                <div className="flex shrink-0 gap-1">
-                  <IconButton
-                    label="Edit vacation"
-                    icon={<PencilIcon className="size-4" />}
-                    onClick={() => setEditing(l)}
-                  />
-                  <IconButton
-                    label="Delete vacation"
-                    icon={<TrashOutlineIcon className="size-4" />}
-                    onClick={() => setDeleting(l)}
-                  />
-                </div>
-              </Card>
-            </li>
-          ))}
+                  {open && <LeaveDetails leave={l} />}
+                </Card>
+              </li>
+            );
+          })}
         </ul>
       )}
 

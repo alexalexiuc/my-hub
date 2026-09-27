@@ -6,10 +6,13 @@ import {
   formatDeltaCompact,
   formatSignedMdl,
   isInRange,
+  leaveCovering,
+  leaveDelta,
   normalizeRange,
   parseOptionalNumber,
   spanDays,
 } from './vacation.utils';
+import type { VacationLeaveEstimate } from '@my-hub/shared/services';
 
 describe('vacation utils', () => {
   it('orders a dragged range regardless of direction', () => {
@@ -57,5 +60,25 @@ describe('vacation utils', () => {
     expect(spanDays('2026-05-04', '2026-05-10')).toBe(7);
     expect(spanDays('2026-03-28', '2026-03-30')).toBe(3);
     expect(spanDays('2026-05-04', '2026-05-04')).toBe(1);
+  });
+
+  it('finds the leave covering a date', () => {
+    const leave = [
+      { id: 1, startDate: '2026-10-02', endDate: '2026-10-04' },
+      { id: 2, startDate: '2026-11-24', endDate: '2026-11-29' },
+    ];
+    expect(leaveCovering(leave, '2026-10-03')?.id).toBe(1);
+    expect(leaveCovering(leave, '2026-11-29')?.id).toBe(2);
+    expect(leaveCovering(leave, '2026-10-05')).toBeUndefined();
+  });
+
+  it('uses the pay actually received for the delta when recorded', () => {
+    const base = {
+      payReceivedMdl: null,
+      estimate: { amountNet: 10_000, deltaNet: 4_000 },
+    } as unknown as VacationLeaveEstimate;
+    expect(leaveDelta(base)).toEqual({ value: 4_000, actual: false });
+    expect(leaveDelta({ ...base, payReceivedMdl: 9_000 })).toEqual({ value: 3_000, actual: true });
+    expect(leaveDelta({ ...base, estimate: null })).toBeNull();
   });
 });

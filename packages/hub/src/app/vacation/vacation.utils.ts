@@ -1,4 +1,5 @@
 import type { DayMarker } from '@my-hub/shared/constants';
+import type { VacationLeaveEstimate } from '@my-hub/shared/services';
 
 export const MARKER_LABELS: Record<DayMarker, string> = {
   weekend: 'Weekend',
@@ -73,4 +74,24 @@ export function parseOptionalNumber(value: string): number | null {
 /** Inclusive calendar-day length of a YYYY-MM-DD span, e.g. 2026-05-04 → 2026-05-10 is 7. */
 export function spanDays(startDate: string, endDate: string): number {
   return Math.round((Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000) + 1;
+}
+
+/** The recorded leave period covering a date, if any. */
+export function leaveCovering<T extends { startDate: string; endDate: string }>(
+  leave: T[],
+  date: string,
+): T | undefined {
+  return leave.find(l => l.startDate <= date && date <= l.endDate);
+}
+
+/**
+ * Net money vs working the leave's days. With the pay actually received recorded, that pay minus
+ * the salary forgone (estimated pay − estimated delta); otherwise the engine's estimate. Null when
+ * the leave could not be priced.
+ */
+export function leaveDelta(leave: VacationLeaveEstimate): { value: number; actual: boolean } | null {
+  const { estimate, payReceivedMdl } = leave;
+  if (!estimate) return null;
+  if (payReceivedMdl == null) return { value: estimate.deltaNet, actual: false };
+  return { value: payReceivedMdl - (estimate.amountNet - estimate.deltaNet), actual: true };
 }
