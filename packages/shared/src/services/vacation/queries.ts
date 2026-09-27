@@ -44,6 +44,8 @@ function assertWithinHorizon(profile: VacationProfile, date: string) {
 }
 
 export interface VacationCalendarResult {
+  /** True when answered from demo data (no profile yet). */
+  demo: boolean;
   from: string;
   to: string;
   /** [date, net delta vs working, net amount, balance cost, markers] */
@@ -53,12 +55,16 @@ export interface VacationCalendarResult {
 }
 
 export interface VacationSpanResult {
+  /** True when answered from demo data (no profile yet). */
+  demo: boolean;
   span: VacationSpan;
   rate: VacationMonthRate | null;
   warnings: string[];
 }
 
 export interface VacationBalanceResult extends VacationBalance {
+  /** True when answered from demo data (no profile yet). */
+  demo: boolean;
   includePlanned: boolean;
   warnings: string[];
 }
@@ -73,6 +79,8 @@ export interface BestWindowsQuery extends VacationQueryOptions {
 }
 
 export interface VacationWindowsResult {
+  /** True when answered from demo data (no profile yet). */
+  demo: boolean;
   objective: WindowObjective;
   windows: VacationSpan[];
   warnings: string[];
@@ -99,10 +107,10 @@ export async function getVacationCalendar(
   q: VacationQueryOptions & { from: string; to: string },
 ): Promise<VacationCalendarResult> {
   assertRange(q.from, q.to);
-  const { profile, model } = await loadVacationModel(userId, q);
+  const { profile, model, demo } = await loadVacationModel(userId, q);
   assertWithinHorizon(profile, q.to);
   const { rows, rates } = model.calendar(q.from, q.to);
-  return { from: q.from, to: q.to, rows, rates, warnings: model.warnings() };
+  return { from: q.from, to: q.to, rows, rates, warnings: model.warnings(), demo };
 }
 
 export async function evaluateVacationSpan(
@@ -110,12 +118,12 @@ export async function evaluateVacationSpan(
   q: VacationQueryOptions & { startDate: string; endDate: string },
 ): Promise<VacationSpanResult> {
   assertRange(q.startDate, q.endDate);
-  const { profile, model } = await loadVacationModel(userId, q);
+  const { profile, model, demo } = await loadVacationModel(userId, q);
   assertWithinHorizon(profile, q.endDate);
   const span = model.evaluateSpan(q.startDate, q.endDate);
   const warnings = model.warnings();
   if (span.overlapsExistingLeave) warnings.push('The span overlaps leave already recorded.');
-  return { span, rate: model.rateFor(q.startDate), warnings };
+  return { span, rate: model.rateFor(q.startDate), warnings, demo };
 }
 
 export async function getVacationBalance(
@@ -123,10 +131,10 @@ export async function getVacationBalance(
   q: VacationQueryOptions & { date: string },
 ): Promise<VacationBalanceResult> {
   assertRange(q.date, q.date);
-  const { profile, model } = await loadVacationModel(userId, q);
+  const { profile, model, demo } = await loadVacationModel(userId, q);
   assertWithinHorizon(profile, q.date);
   const balance = model.balanceOn(q.date);
-  return { ...balance, includePlanned: q.includePlanned ?? true, warnings: model.warnings() };
+  return { ...balance, includePlanned: q.includePlanned ?? true, warnings: model.warnings(), demo };
 }
 
 /**
@@ -147,7 +155,7 @@ export async function findBestLeaveWindows(userId: string, q: BestWindowsQuery):
   if (q.restDays !== undefined && objective === 'max_rest') {
     throw new VacationValidationError('max_rest needs leaveDays: with restDays the time off is fixed.');
   }
-  const { profile, model } = await loadVacationModel(userId, q);
+  const { profile, model, demo } = await loadVacationModel(userId, q);
   assertWithinHorizon(profile, q.to);
   const windows = model.findBestWindows({
     from: q.from,
@@ -160,7 +168,7 @@ export async function findBestLeaveWindows(userId: string, q: BestWindowsQuery):
   const warnings = model.warnings();
   if (windows.length === 0)
     warnings.push('No span in the range fits: check the range, the day count and existing leave.');
-  return { objective, windows, warnings };
+  return { objective, windows, warnings, demo };
 }
 
 export async function getVacationConfig(userId: string, today: string): Promise<VacationConfig> {

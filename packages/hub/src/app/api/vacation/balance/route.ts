@@ -7,5 +7,5 @@ import { VacationBalanceQuerySchema } from '../vacation.schemas';
  * Projected leave balance at the end of a date, per rule-set bucket, planned leave included.
  */
 export const GET = route({ query: VacationBalanceQuerySchema })(async ({ user, query }) =>
-  getVacationBalance(user.id, query),
+  getVacationBalance(user.id, { ...query, allowDemo: true }),
 );

@@ -3,7 +3,8 @@
  *
  * Exports:
  *   getVacationProfile         — the user's vacation profile, or undefined
- *   loadVacationModel          — loads everything the engine needs and builds a model (throws without a profile)
+ *   loadVacationModel          — loads everything the engine needs and builds a model (throws without a
+ *                                profile unless `allowDemo`, which answers from buildVacationDemo instead)
  *   deleteAllUserVacationData  — deletes every vacation row the user owns; returns the row count
  *   VacationValidationError    — a UserInputError for invalid vacation input or missing setup
  *   Types: VacationQueryOptions, LoadedVacationModel
@@ -21,6 +22,7 @@ import {
 import type { VacationHoliday, VacationProfile } from '../../types';
 import { createVacationModel, type VacationModel } from '../../utils/vacation';
 import { UserInputError } from '../../utils/errors';
+import { buildVacationDemo } from './demo';
 
 /** Invalid vacation input or missing setup. The message is written for the user. */
 export class VacationValidationError extends UserInputError {}
@@ -28,11 +30,15 @@ export class VacationValidationError extends UserInputError {}
 export interface VacationQueryOptions {
   includeDraftRules?: boolean;
   includePlanned?: boolean;
+  /** Without a profile, answer from demo data instead of throwing (Hub preview; MCP keeps the error). */
+  allowDemo?: boolean;
 }
 
 export interface LoadedVacationModel {
   profile: VacationProfile;
   model: VacationModel;
+  /** True when the model runs on demo data because the user has no profile yet. */
+  demo: boolean;
 }
 
 export async function getVacationProfile(userId: string): Promise<VacationProfile | undefined> {
@@ -61,6 +67,16 @@ function resolveHolidaysForRegion(holidays: VacationHoliday[], region: string | 
 /** Loads a user's vacation data and builds an engine model. Throws when no profile is set up. */
 export async function loadVacationModel(userId: string, opts: VacationQueryOptions = {}): Promise<LoadedVacationModel> {
   const profile = await getVacationProfile(userId);
+  if (!profile && opts.allowDemo) {
+    const demo = buildVacationDemo(new Date().toISOString().slice(0, 10));
+    const model = createVacationModel({
+      ...demo.input,
+      includeDraftRules: opts.includeDraftRules ?? false,
+      includePlanned: opts.includePlanned ?? true,
+    });
+    // Demo data is complete by construction; carry-forward notices about it would only be noise.
+    return { profile: demo.profile, model: { ...model, warnings: () => [] }, demo: true };
+  }
   if (!profile) throw new VacationValidationError('No vacation profile yet. Set one up with vacation_setup first.');
 
   const [ruleSets, taxRegimes, salaries, leavePeriods, holidays] = await Promise.all([
@@ -100,7 +116,7 @@ export async function loadVacationModel(userId: string, opts: VacationQueryOptio
     includeDraftRules: opts.includeDraftRules ?? false,
     includePlanned: opts.includePlanned ?? true,
   });
-  return { profile, model };
+  return { profile, model, demo: false };
 }
 
 export async function deleteAllUserVacationData(userId: string): Promise<number> {

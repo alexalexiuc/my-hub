@@ -61,13 +61,25 @@ describe('vacation tools', () => {
   });
 
   it('defaults the best-window search to the next 182 days from today', async () => {
-    vi.mocked(findBestLeaveWindows).mockResolvedValue({ objective: 'max_money', windows: [], warnings: [] });
+    vi.mocked(findBestLeaveWindows).mockResolvedValue({
+      objective: 'max_money',
+      windows: [],
+      warnings: [],
+      demo: false,
+    });
     await findBestWindowsTool(FindBestWindowsSchema.parse({ leaveDays: 7 }) as FindInput, context);
     expect(findBestLeaveWindows).toHaveBeenCalledWith('user-1', { leaveDays: 7, from: '2026-09-27', to: '2027-03-28' });
   });
 
   it('defaults the calendar to the current month', async () => {
-    vi.mocked(getVacationCalendar).mockResolvedValue({ from: '', to: '', rows: [], rates: [], warnings: [] });
+    vi.mocked(getVacationCalendar).mockResolvedValue({
+      from: '',
+      to: '',
+      rows: [],
+      rates: [],
+      warnings: [],
+      demo: false,
+    });
     await getCalendarTool(GetCalendarSchema.parse({}) as CalendarInput, context);
     expect(getVacationCalendar).toHaveBeenCalledWith('user-1', { from: '2026-09-01', to: '2026-09-30' });
   });

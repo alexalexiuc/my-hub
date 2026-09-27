@@ -61,6 +61,16 @@ export default function VacationPage() {
         </Card>
       ) : (
         <>
+          {calendar?.demo && (
+            <Card compact className="border-[var(--amber)] md:border-[var(--amber)]">
+              <p className="text-sm font-semibold text-[var(--amber)]">Demo data</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                You have no vacation profile yet, so this calendar runs on sample salaries and leave. Connect the
+                Vacation MCP in Claude and ask it to set up your profile, salaries and holidays (vacation_setup) to see
+                your own numbers.
+              </p>
+            </Card>
+          )}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <IconButton

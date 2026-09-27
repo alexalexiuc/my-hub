@@ -7,5 +7,5 @@ import { VacationSpanQuerySchema } from '../vacation.schemas';
  * Totals for taking leave over a span: balance cost, net amount, net delta vs working, rest days.
  */
 export const GET = route({ query: VacationSpanQuerySchema })(async ({ user, query }) =>
-  evaluateVacationSpan(user.id, query),
+  evaluateVacationSpan(user.id, { ...query, allowDemo: true }),
 );

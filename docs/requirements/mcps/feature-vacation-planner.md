@@ -99,18 +99,19 @@ delta(D)    = (amount(D) − baseline(D)) × (1 − medicalRate) × (1 − incom
 
 ## Functional Requirements
 
-| ID    | Requirement                                                                                                                                                                        |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FR-01 | Per-day view: net delta vs working, net leave pay, balance cost and markers (weekend, holiday, transferred day off/workday, leave taken/planned).                                  |
-| FR-02 | Span pricing: balance cost, net pay, net delta, rest days including adjacent weekends/holidays/leave, and the rate used.                                                           |
-| FR-03 | Best windows: ranked, non-overlapping spans in a range for `leaveDays` (max_money, max_rest) or `restDays` (min_balance, max_money); spans overlapping recorded leave are skipped. |
-| FR-04 | Balance on any date, split per rule-set bucket, with accrual and (optionally) planned leave applied.                                                                               |
-| FR-05 | Rule sets are versioned by date, country and region; draft rule sets are opt-in per query.                                                                                         |
-| FR-06 | Tax regimes are time-boxed per employer; amounts are net where a regime applies and gross with a warning otherwise.                                                                |
-| FR-07 | Setup via one MCP call with an identical `{upsert, remove}` shape per section; the whole call is validated before anything is written.                                             |
-| FR-08 | Holidays: national rows plus the profile locality's hram day; a manual row is never overwritten by researched data.                                                                |
-| FR-09 | Every query returns data-quality warnings (carried-forward salaries, missing rule set or tax regime, raises around the window, negative balance, missing holiday years).           |
-| FR-10 | Hub `/vacation`: month grid coloured by delta magnitude, tap a day or drag a span for totals, draft-rules toggle, balance today.                                                   |
+| ID    | Requirement                                                                                                                                                                                                                                                                |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FR-01 | Per-day view: net delta vs working, net leave pay, balance cost and markers (weekend, holiday, transferred day off/workday, leave taken/planned).                                                                                                                          |
+| FR-02 | Span pricing: balance cost, net pay, net delta, rest days including adjacent weekends/holidays/leave, and the rate used.                                                                                                                                                   |
+| FR-03 | Best windows: ranked, non-overlapping spans in a range for `leaveDays` (max_money, max_rest) or `restDays` (min_balance, max_money); spans overlapping recorded leave are skipped.                                                                                         |
+| FR-04 | Balance on any date, split per rule-set bucket, with accrual and (optionally) planned leave applied.                                                                                                                                                                       |
+| FR-05 | Rule sets are versioned by date, country and region; draft rule sets are opt-in per query.                                                                                                                                                                                 |
+| FR-06 | Tax regimes are time-boxed per employer; amounts are net where a regime applies and gross with a warning otherwise.                                                                                                                                                        |
+| FR-07 | Setup via one MCP call with an identical `{upsert, remove}` shape per section; the whole call is validated before anything is written.                                                                                                                                     |
+| FR-08 | Holidays: national rows plus the profile locality's hram day; a manual row is never overwritten by researched data.                                                                                                                                                        |
+| FR-09 | Every query returns data-quality warnings (carried-forward salaries, missing rule set or tax regime, raises around the window, negative balance, missing holiday years).                                                                                                   |
+| FR-10 | Hub `/vacation`: month grid coloured by delta magnitude, tap a day or drag a span for totals, draft-rules toggle, balance today.                                                                                                                                           |
+| FR-11 | Without a vacation profile, Hub `/vacation` shows a labelled demo calendar (sample salaries, leave and art. 111 holidays for the current and next two years) instead of an error. MCP tools keep returning the setup error so the assistant knows to run `vacation_setup`. |
 
 ---
 
@@ -154,5 +155,6 @@ delta(D)    = (amount(D) − baseline(D)) × (1 − medicalRate) × (1 − incom
 - [x] `vacation_setup` rejects overlapping rule sets / tax regimes and writes nothing on failure.
 - [x] MCP sub-server with 7 task-oriented tools registered at `/api/vacation/mcp`.
 - [x] Hub `/vacation` page with colour-coded grid, tap/drag span pricing and draft toggle (desktop and mobile).
+- [x] Demo calendar shown in Hub until a profile exists.
 - [x] Vacation data removed by Profile "Delete all my data" and selectable in per-feature deletion.
 - [x] MCP E2E spec `packages/mcp-server/e2e/vacation.e2e.ts`.
