@@ -196,8 +196,12 @@ async function startHub() {
   hub.on('exit', code => process.exit(code ?? 0));
 }
 
-ensurePostgres();
-ensureDatabase();
+// With an explicit SANDBOX_DATABASE_URL the database is the caller's to provide: probing with pg_isready and
+// creating roles via `su postgres` need local PostgreSQL tools that e.g. WSL talking to a host database lacks.
+if (!process.env.SANDBOX_DATABASE_URL) {
+  ensurePostgres();
+  ensureDatabase();
+}
 if (!hasFlag('skip-seed')) migrateAndSeed();
 if (hasFlag('seed-only')) {
   console.log('▸ Seed complete (--seed-only)');

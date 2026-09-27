@@ -11,7 +11,7 @@
     "start:standalone": "bash scripts/start-hub-standalone.sh",
     "start:standalone:skip-build": "bash scripts/start-hub-standalone.sh --skip-build",
     "lint": "pnpm exec eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "pnpm run test:unit",
     "test:unit": "vitest run --passWithNoTests",
     "healthcheck": "node scripts/healthcheck.mjs",

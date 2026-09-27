@@ -19,7 +19,7 @@ file and a registration entry in `resources/index.ts`.
 
 ## Step 1 — Create the implementation file
 
-Create `packages/mcp-server/src/calories/resources/<name>.ts`.
+Create `packages/mcp-server/src/<domain>/resources/<name>.ts` (the examples below are from calories).
 
 **Required imports:**
 
@@ -37,9 +37,7 @@ export const getMyDataResource: ResourceHandler = async (uri, context) => {
 
   // ... fetch data, compute, etc.
 
-  return resourceResponse(uri, {
-    /* structured output */
-  });
+  return resourceResponse(uri, {/* structured output */});
 };
 ```
 
@@ -70,7 +68,7 @@ export const getTodayResource: ResourceHandler = async (uri, context) => {
 
 ## Step 2 — Register in `resources/index.ts`
 
-File: `packages/mcp-server/src/calories/resources/index.ts`
+File: `packages/mcp-server/src/<domain>/resources/index.ts`
 
 1. **Add import** at the top alongside the other resource imports:
 
@@ -94,16 +92,16 @@ defineResource({
 
 ## Shared utilities reference
 
-| Utility                                 | Location                      | Purpose                                                              |
-| --------------------------------------- | ----------------------------- | -------------------------------------------------------------------- |
-| `resourceResponse(uri, payload)`        | `../../shared/resourcesUtils` | Wrap any object as MCP resource response                             |
-| `defineResource(def)`                   | `../../shared/toolsUtils`     | Type-safe resource definition (used in index.ts)                     |
-| `withUserIdCheckResource(cb)`           | `../../shared/toolsUtils`     | Auth middleware (applied automatically in registerCaloriesResources) |
-| `currentDateString(timezone?)`          | `@my-hub/shared/utils`        | Returns current date as "YYYY-MM-DD" in user timezone when provided  |
-| `dateStringDaysAgo(daysAgo, timezone?)` | `@my-hub/shared/utils`        | Returns "YYYY-MM-DD" for N days ago in the resolved timezone         |
-| `buildDailySummary(userId, date)`       | `../models/daily`             | Full daily summary (meals + targets + macros)                        |
-| `getWeekBounds(dateStr)`                | `../models/summary`           | Monday–Sunday bounds for a given date                                |
-| `sumMeals(meals)`                       | `../models/summary`           | Aggregate calories + macros from a meals array                       |
+| Utility                                 | Location                      | Purpose                                                                                |
+| --------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------- |
+| `resourceResponse(uri, payload)`        | `../../shared/resourcesUtils` | Wrap any object as MCP resource response                                               |
+| `defineResource(def)`                   | `../../shared/toolsUtils`     | Type-safe resource definition (used in index.ts)                                       |
+| `wrapResourceHandler(cb)`               | `../../shared/toolsUtils`     | Auth + logging wrapper, applied by the domain's register loop — never call it yourself |
+| `currentDateString(timezone?)`          | `@my-hub/shared/utils`        | Returns current date as "YYYY-MM-DD" in user timezone when provided                    |
+| `dateStringDaysAgo(daysAgo, timezone?)` | `@my-hub/shared/utils`        | Returns "YYYY-MM-DD" for N days ago in the resolved timezone                           |
+| `buildDailySummary(userId, date)`       | `../models/daily`             | Full daily summary (meals + targets + macros)                                          |
+| `getWeekBounds(dateStr)`                | `../models/summary`           | Monday–Sunday bounds for a given date                                                  |
+| `sumMeals(meals)`                       | `../models/summary`           | Aggregate calories + macros from a meals array                                         |
 
 ## Tools vs Resources — when to use which
 
