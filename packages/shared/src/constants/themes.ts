@@ -13,7 +13,7 @@
  *   programmatically from `THEME_HUES` / `THEME_MOODS` / `THEME_SIGNATURES` so it can never drift.
  * - `isThemeKey` — type guard for a `ThemeKey`, backed by a `Set` for O(1) lookup.
  * - `THEME_SCOPES` / `ThemeScope` / `THEME_SCOPE_KEYS` — the areas of the app a theme can be
- *   applied to (global shell + the three themed features).
+ *   applied to (global shell + the four themed features).
  * - `DEFAULT_THEME_BY_SCOPE` — the theme each scope falls back to before the user picks anything.
  * - `themeClassName` — maps a `ThemeKey` to its CSS class name (always ending in `-theme`).
  * - `themeLabel` — human-readable name for a `ThemeKey`, e.g. 'Emerald Soft'.
@@ -86,6 +86,7 @@ export const THEME_SCOPES = [
   { key: 'travel', label: 'Travel' },
   { key: 'finances', label: 'Finances' },
   { key: 'calories', label: 'Calories' },
+  { key: 'vacation', label: 'Vacation' },
 ] as const;
 
 export type ThemeScope = (typeof THEME_SCOPES)[number]['key'];
@@ -98,12 +99,16 @@ export const THEME_SCOPE_KEYS: readonly ThemeScope[] = THEME_SCOPES.map(scope =>
  * 19-33 degrees off its own accent hue, in the olive band, which is what made it read as muddy;
  * `orange-deep` is the same colour family with that drift corrected. `calories-signature` remains
  * selectable for anyone who wants the original back.
+ *
+ * Vacation predates themes without a palette of its own; `sky-deep` matches the sky tint of its
+ * dashboard card and gives the page a coloured background instead of the neutral shell.
  */
 export const DEFAULT_THEME_BY_SCOPE: Record<ThemeScope, ThemeKey> = {
   global: 'graphite-signature',
   travel: 'travel-signature',
   finances: 'finances-signature',
   calories: 'orange-deep',
+  vacation: 'sky-deep',
 };
 
 /**

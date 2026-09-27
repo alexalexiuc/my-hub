@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { FeatureTheme } from './FeatureTheme';
 import { ThemeProvider } from './ThemeProvider';
 
-function renderThemed(feature: 'travel' | 'finances' | 'calories', overrides = {}) {
+function renderThemed(feature: 'travel' | 'finances' | 'calories' | 'vacation', overrides = {}) {
   const { container } = render(
     <ThemeProvider initial={overrides}>
       <FeatureTheme feature={feature} className="flex h-screen">
@@ -17,6 +17,10 @@ function renderThemed(feature: 'travel' | 'finances' | 'calories', overrides = {
 describe('FeatureTheme', () => {
   it('applies the feature’s signature theme class by default', () => {
     expect(renderThemed('travel').className).toContain('travel-theme');
+  });
+
+  it('gives Vacation its own coloured default rather than the neutral shell', () => {
+    expect(renderThemed('vacation').className).toContain('sky-deep-theme');
   });
 
   it('applies a feature override in preference to global', () => {

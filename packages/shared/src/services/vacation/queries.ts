@@ -8,8 +8,9 @@
  *   getVacationBalance      — projected balance per rule-set bucket on a date
  *   findBestLeaveWindows    — ranked non-overlapping leave spans for an objective
  *   getVacationConfig       — profile, rule sets, tax regimes, leave periods, salary + holiday coverage
+ *   listVacationSalaries    — every salary month, oldest first, with its month as YYYY-MM
  *   Types: VacationCalendarResult, VacationSpanResult, VacationBalanceResult, VacationWindowsResult,
- *          VacationConfig, BestWindowsQuery
+ *          VacationConfig, VacationSalaryRow, BestWindowsQuery
  */
 import { asc, eq } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -21,7 +22,7 @@ import {
   vacationTaxRegimes,
 } from '../../db/schema/vacation';
 import type { VacationLeavePeriod, VacationProfile, VacationRuleSet, VacationTaxRegime } from '../../types';
-import type { WindowObjective } from '../../constants/vacation';
+import type { SalaryKind, WindowObjective } from '../../constants/vacation';
 import { shiftMonthStr } from '../../utils/dates';
 import {
   vacationHorizonError,
@@ -169,6 +170,34 @@ export async function findBestLeaveWindows(userId: string, q: BestWindowsQuery):
   if (windows.length === 0)
     warnings.push('No span in the range fits: check the range, the day count and existing leave.');
   return { objective, windows, warnings, demo };
+}
+
+export interface VacationSalaryRow {
+  /** YYYY-MM the salary was earned in. */
+  month: string;
+  baseMdl: number;
+  extraMdl: number;
+  kind: SalaryKind;
+  notes: string | null;
+}
+
+/**
+ * Lists the user's salary months, oldest first. The DB stores each month as its first day;
+ * this returns `YYYY-MM`, the same shape `applyVacationSetup` takes for upserts and removals.
+ */
+export async function listVacationSalaries(userId: string): Promise<VacationSalaryRow[]> {
+  const rows = await db
+    .select({
+      month: vacationSalaryMonths.month,
+      baseMdl: vacationSalaryMonths.baseMdl,
+      extraMdl: vacationSalaryMonths.extraMdl,
+      kind: vacationSalaryMonths.kind,
+      notes: vacationSalaryMonths.notes,
+    })
+    .from(vacationSalaryMonths)
+    .where(eq(vacationSalaryMonths.userId, userId))
+    .orderBy(asc(vacationSalaryMonths.month));
+  return rows.map(r => ({ ...r, month: r.month.slice(0, 7) }));
 }
 
 export async function getVacationConfig(userId: string, today: string): Promise<VacationConfig> {

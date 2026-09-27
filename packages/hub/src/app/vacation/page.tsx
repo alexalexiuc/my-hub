@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import type { VacationBalanceResult, VacationCalendarResult } from '@my-hub/shared/services';
 import { buildMonthGridDays, dateToString, formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
 import { Card, Checkbox, IconButton, PageHeader } from '@/components';
@@ -49,14 +50,22 @@ export default function VacationPage() {
   const selectedDayRow = selection && selection[0] === selection[1] ? rows.get(selection[0]) : undefined;
 
   return (
-    <main className="mx-auto max-w-xl space-y-4 px-4 py-8">
-      <PageHeader title="Vacation" backHref="/" backLabel="← Home" />
+    <main className="mx-auto max-w-xl space-y-4">
+      <PageHeader title="Calendar" />
 
       {error ? (
         <Card compact>
           <p className="text-sm text-[var(--muted)]">{error}</p>
           <p className="mt-2 text-xs text-[var(--subtle)]">
-            Set up your profile, salaries and holidays through the Vacation MCP (vacation_setup).
+            Fill in your{' '}
+            <Link href="/vacation/profile" className="text-[var(--accent)]">
+              Profile
+            </Link>{' '}
+            and{' '}
+            <Link href="/vacation/payments" className="text-[var(--accent)]">
+              Payments
+            </Link>
+            , or ask Claude to run vacation_setup through the Vacation MCP.
           </p>
         </Card>
       ) : (
@@ -65,9 +74,15 @@ export default function VacationPage() {
             <Card compact className="border-[var(--amber)] md:border-[var(--amber)]">
               <p className="text-sm font-semibold text-[var(--amber)]">Demo data</p>
               <p className="mt-1 text-xs text-[var(--muted)]">
-                You have no vacation profile yet, so this calendar runs on sample salaries and leave. Connect the
-                Vacation MCP in Claude and ask it to set up your profile, salaries and holidays (vacation_setup) to see
-                your own numbers.
+                You have no vacation profile yet, so this calendar runs on sample salaries and leave. Fill in your{' '}
+                <Link href="/vacation/profile" className="text-[var(--accent)]">
+                  Profile
+                </Link>{' '}
+                and{' '}
+                <Link href="/vacation/payments" className="text-[var(--accent)]">
+                  Payments
+                </Link>
+                , or ask Claude to set everything up through the Vacation MCP (vacation_setup), to see your own numbers.
               </p>
             </Card>
           )}
