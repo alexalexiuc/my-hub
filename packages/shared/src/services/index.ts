@@ -14,3 +14,4 @@ export * from './notifications';
 export * from './email';
 export * from './password-reset';
 export * from './user-theme-preferences';
+export * from './vacation';

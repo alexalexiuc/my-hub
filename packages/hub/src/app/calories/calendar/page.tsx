@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '@/lib/utils';
-import { shiftMonthStr, formatMonthStr, dateToString } from '@my-hub/shared/utils';
+import { shiftMonthStr, formatMonthStr, dateToString, buildMonthGridDays } from '@my-hub/shared/utils';
 import { PeriodNav } from '../ui';
 import { mealEvents } from '../mealEvents';
-import { currentMonthStr, buildMonthGridDays } from './calendar.utils';
+import { currentMonthStr } from './calendar.utils';
 import { MonthGrid } from './MonthGrid';
 import { DayDetailModal } from './DayDetailModal';
 import type { CalendarDay } from './types';

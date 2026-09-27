@@ -5,7 +5,7 @@ import { SectionCard } from '@/components/SectionCard';
 import { Button, Card, Checkbox } from '@/components';
 import { apiFetch, cn } from '@/lib/utils';
 
-type Feature = 'meals' | 'measurements' | 'calories_profile' | 'my_travels' | 'finances';
+type Feature = 'meals' | 'measurements' | 'calories_profile' | 'my_travels' | 'finances' | 'vacation';
 
 const DATA_FEATURES: { key: Feature; label: string; description: string }[] = [
   { key: 'finances', label: 'Finances', description: 'All budgets, accounts, categories, and transactions' },
@@ -24,6 +24,11 @@ const DATA_FEATURES: { key: Feature; label: string; description: string }[] = [
     key: 'my_travels',
     label: 'My Travels data',
     description: 'All data related to My Travels feature (travel logs, travel meals, etc.)',
+  },
+  {
+    key: 'vacation',
+    label: 'Vacation planner',
+    description: 'Vacation profile, salaries, holidays, rule sets, tax regimes and leave periods',
   },
 ];
 

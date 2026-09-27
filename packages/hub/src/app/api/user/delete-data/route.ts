@@ -15,6 +15,7 @@ import {
   deleteAllUserFinanceBudgets,
   deleteAllUserAvailableOverrides,
   deleteAllUserWeeklyMenus,
+  deleteAllUserVacationData,
 } from '@my-hub/shared/services';
 
 const SUPPORTED_FEATURES = [
@@ -24,6 +25,7 @@ const SUPPORTED_FEATURES = [
   'my_travels',
   'finances',
   'weekly_menus',
+  'vacation',
 ] as const;
 
 type Feature = (typeof SUPPORTED_FEATURES)[number];
@@ -91,6 +93,11 @@ export const POST = route({ body: PostBodySchema })(async ({ user, body }) => {
       case 'weekly_menus': {
         const deleted = await deleteAllUserWeeklyMenus(user.id);
         results.weekly_menus = { deleted };
+        break;
+      }
+      case 'vacation': {
+        const deleted = await deleteAllUserVacationData(user.id);
+        results.vacation = { deleted };
         break;
       }
     }

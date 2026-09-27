@@ -26,6 +26,8 @@
  * - formatWeekRangeStr(weekStart, includeYear?) — format a YYYY-MM-DD Monday as "Mon D – Mon D[, YYYY]"
  * - weekLabel(weekStart) — "Week W, YYYY" string from an ISO week-start date
  * - calendarDays(startAt, endAt) — array of YYYY-MM-DD strings for each day start→end inclusive
+ * - monthEndStr(month) — last day of a YYYY-MM month as YYYY-MM-DD (UTC)
+ * - buildMonthGridDays(month) — Monday-to-Sunday full weeks covering a YYYY-MM month (+ MonthGridDay type)
  * - formatDayHeading(dateStr) — YYYY-MM-DD → locale short heading e.g. "Mon, 1 Jan"
  * - fmtDuration(ms) — milliseconds → human-readable duration e.g. "2h 30m" or "45 min"
  * - formatSegmentTime(datetime, timezone, now?) — timezone-aware relative time string + isSoon flag
@@ -50,6 +52,13 @@ import { dayNamesShort } from '../constants/calendar';
 /** Checks if the given value is a valid Date object or null */
 export function isValidDate(d: unknown): d is Date {
   return d instanceof Date && !isNaN(d.getTime());
+}
+
+/** True when `value` is a real calendar date written as YYYY-MM-DD ('2026-02-30' and '2026-13-01' are not). */
+export function isIsoDateStr(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return isValidDate(d) && toUTCDateStr(d) === value;
 }
 
 type SupportedDateFormat = 'YYYY-MM-DD' | 'MM/DD/YYYY' | 'YYYY-MM';
@@ -331,6 +340,33 @@ export function calendarDays(startAt: Date, endAt: Date): string[] {
     cur.setUTCDate(cur.getUTCDate() + 1);
   }
   return days;
+}
+
+/** Last day of a YYYY-MM month as YYYY-MM-DD, all-UTC, e.g. '2026-02' → '2026-02-28'. */
+export function monthEndStr(month: string): string {
+  return shiftDateStr(`${shiftMonthStr(month, 1)}-01`, -1);
+}
+
+export interface MonthGridDay {
+  date: string;
+  /** False for the leading/trailing days borrowed from the adjacent month to fill the grid. */
+  inMonth: boolean;
+}
+
+/**
+ * Full weeks of YYYY-MM-DD strings covering `month` (YYYY-MM), padded with the trailing days of
+ * the surrounding months so the grid always starts on a Monday and ends on a Sunday — a fixed
+ * 7-column week layout only works if every row is a complete week.
+ */
+export function buildMonthGridDays(month: string): MonthGridDay[] {
+  const firstOfMonth = `${month}-01`;
+  const lastOfMonth = monthEndStr(month);
+  const gridStart = shiftDateStr(firstOfMonth, -dayOfWeekMon0(firstOfMonth));
+  const gridEnd = shiftDateStr(lastOfMonth, 6 - dayOfWeekMon0(lastOfMonth));
+  return calendarDays(new Date(`${gridStart}T00:00:00Z`), new Date(`${gridEnd}T00:00:00Z`)).map(date => ({
+    date,
+    inMonth: date >= firstOfMonth && date <= lastOfMonth,
+  }));
 }
 
 /**

@@ -10,6 +10,7 @@ MCP sub-servers currently available:
 - **Calorie Tracker** — meal logging, nutritional summaries, user profiles, body measurements
 - **Travel** — trip planning, reservation capture, checklist preparation, companions, and document links
 - **Finances** — accounts, transactions, budgets, monthly plans, net worth, and portfolios
+- **Vacation** — Moldovan leave pay per day, best leave windows, and leave balance by rule-set bucket
 - **Products Manager** _(planned)_ — home inventory, shopping lists, product catalog
 
 The former **Todo** and **Apiary** sub-servers were proofs of concept and have been removed, including their
@@ -67,6 +68,7 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 | `meal_logs`         | Time-stamped meal entries with kcal and macros                                                             |
 | `body_measurements` | Time-series body measurements (weight, height, waist, etc.) per user; metadata comes from shared constants |
 | `trips` + `trip_*`  | Travel domain tables for reservations, places, checklist, companions, and documents                        |
+| `vacation_*`        | Vacation planner: profile, leave-law rule sets, tax regimes, monthly salaries, holidays, leave periods     |
 | `api_request_logs`  | HTTP request/response audit log (`service`=app, `server`=MCP sub-server) with trigram-indexed error field  |
 
 ---
@@ -75,9 +77,9 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 
 - Replace Cloudflare Worker HTTP layer with a Fastify app
 - Expose MCP over HTTP (SSE or Streamable HTTP — MCP SDK supports both)
-- Endpoint pattern: `/api/<domain>/mcp` (for example: `/api/calories/mcp`, `/api/travel/mcp`, `/api/finances/mcp`)
+- Endpoint pattern: `/api/<domain>/mcp` (for example: `/api/calories/mcp`, `/api/travel/mcp`, `/api/finances/mcp`, `/api/vacation/mcp`)
 - OAuth 2.0 stays — adapt existing implementation from `src/http/`
-- Each MCP sub-server remains its own module (calories, travel, finances, ...)
+- Each MCP sub-server remains its own module (calories, travel, finances, vacation, ...)
 - Future MCPs are added as new modules without touching infrastructure
 
 ---

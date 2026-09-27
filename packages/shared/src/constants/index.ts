@@ -11,3 +11,4 @@ export * from './auth';
 export * from './finances';
 export * from './weekly-menu';
 export * from './themes';
+export * from './vacation';

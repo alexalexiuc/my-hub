@@ -2,7 +2,7 @@ import {
   ReadResourceCallback as SdkReadResourceCallback,
   ToolCallback as SdkToolCallback,
 } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { logger } from '@my-hub/shared/utils';
+import { logger, UserInputError } from '@my-hub/shared/utils';
 import {
   AnyInput,
   AnyOutput,
@@ -56,7 +56,7 @@ export function requireHubAuthExtra(extra: RequestExtraParam): HubAuthExtra {
 }
 
 function logMcpError(err: unknown, handlerType: string): void {
-  if (err instanceof HandledError) {
+  if (err instanceof HandledError || err instanceof UserInputError) {
     logger.warn(`[mcp] ${err.message}`);
   } else {
     logger.error(`[mcp] Unexpected error in ${handlerType}:`, err);

@@ -29,6 +29,12 @@ export const SERVER_META: Record<McpServerName, { label: string; path: string; d
       description: 'Financial management, budgeting, expense tracking',
       active: true,
     },
+    vacation: {
+      label: 'Vacation',
+      path: '/api/vacation/mcp',
+      description: 'Leave pay per day, best leave windows, leave balance',
+      active: true,
+    },
   };
 
 export const SERVER_OPTIONS: { value: McpServerName | ''; label: string }[] = [
@@ -36,5 +42,6 @@ export const SERVER_OPTIONS: { value: McpServerName | ''; label: string }[] = [
   { value: 'calories', label: 'Calories' },
   { value: 'travel', label: 'Travel' },
   { value: 'finances', label: 'Finances' },
+  { value: 'vacation', label: 'Vacation' },
   { value: 'products', label: 'Products' },
 ];

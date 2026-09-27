@@ -17,6 +17,9 @@ import {
   deleteAllUserMeasurements,
   deleteAllUserMeals,
   deleteAllUserCalorieProfiles,
+  applyVacationSetup,
+  applyLeaveChanges,
+  deleteAllUserVacationData,
 } from '@my-hub/shared/services';
 import {
   AccountTypes,
@@ -36,6 +39,116 @@ import { SANDBOX_USER, SANDBOX_BUDGET_NAME } from '../constants';
  */
 function dayJitter(index: number): number {
   return Math.sin(index * 12.9898) * 43758.5453 - Math.floor(Math.sin(index * 12.9898) * 43758.5453) - 0.5;
+}
+
+// Labour Code art. 111 non-working holidays (Orthodox Easter: 12 Apr 2026, 2 May 2027).
+const MD_HOLIDAYS: Record<number, string[]> = {
+  2026: [
+    '01-01',
+    '01-07',
+    '01-08',
+    '03-08',
+    '04-12',
+    '04-13',
+    '04-20',
+    '05-01',
+    '05-09',
+    '06-01',
+    '08-27',
+    '08-31',
+    '12-25',
+  ],
+  2027: [
+    '01-01',
+    '01-07',
+    '01-08',
+    '03-08',
+    '05-01',
+    '05-02',
+    '05-03',
+    '05-09',
+    '05-10',
+    '06-01',
+    '08-27',
+    '08-31',
+    '12-25',
+  ],
+};
+
+/**
+ * Vacation planner demo data: a Chișinău employee under IT Park, the current calendar-day law plus
+ * the 2027 working-day draft, six months of salary with a projected raise, and one taken and one
+ * planned leave — enough for every colour, marker and the draft-rules toggle to show up.
+ */
+async function seedVacationFixtures(userId: string): Promise<void> {
+  await deleteAllUserVacationData(userId);
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const today = new Date().toISOString().slice(0, 10);
+
+  await applyVacationSetup(userId, {
+    profile: {
+      country: 'MD',
+      region: 'Chisinau',
+      employer: 'Sandbox Employer',
+      openingBalanceDays: 14,
+      openingBalanceDate: `${shiftMonthStr(thisMonth, -6)}-01`,
+    },
+    ruleSets: {
+      upsert: [
+        {
+          name: 'MD Labour Code (calendar days)',
+          country: 'MD',
+          validFrom: '2004-01-01',
+          leaveUnit: 'calendar',
+          annualEntitlementDays: 28,
+          rateBasis: 'calendar_day',
+          status: 'active',
+        },
+        {
+          name: 'MD 2027 reform (draft)',
+          country: 'MD',
+          validFrom: '2027-01-01',
+          leaveUnit: 'working',
+          annualEntitlementDays: 22,
+          rateBasis: 'working_day',
+          status: 'draft',
+        },
+      ],
+    },
+    taxRegimes: { upsert: [{ employer: 'Sandbox Employer', regime: 'it_park', validFrom: '2020-01-01' }] },
+    salaries: {
+      upsert: [
+        ...Array.from({ length: 6 }, (_, i) => ({
+          month: shiftMonthStr(thisMonth, i - 6),
+          baseMdl: 42000,
+          extraMdl: i === 3 ? 6000 : 0,
+          kind: 'actual' as const,
+        })),
+        { month: shiftMonthStr(thisMonth, 3), baseMdl: 46000, kind: 'projected' as const },
+      ],
+    },
+    holidays: {
+      upsert: [
+        ...Object.entries(MD_HOLIDAYS).flatMap(([year, days]) =>
+          days.map(d => ({ date: `${year}-${d}`, country: 'MD', kind: 'holiday' as const, name: 'Public holiday' })),
+        ),
+        ...[2026, 2027].map(year => ({
+          date: `${year}-10-14`,
+          country: 'MD',
+          region: 'Chisinau',
+          kind: 'holiday' as const,
+          name: 'Hramul Chișinăului',
+        })),
+      ],
+    },
+  });
+
+  await applyLeaveChanges(userId, {
+    upsert: [
+      { startDate: shiftDateStr(today, -60), endDate: shiftDateStr(today, -54), status: 'taken' },
+      { startDate: shiftDateStr(today, 35), endDate: shiftDateStr(today, 41), status: 'planned' },
+    ],
+  });
 }
 
 /**
@@ -289,6 +402,7 @@ export async function seedSandboxFixtures(monthsOfHistory = 21): Promise<{ budge
   });
 
   await seedCaloriesFixtures(user.id);
+  await seedVacationFixtures(user.id);
 
   return { budgetId: budget.id };
 }

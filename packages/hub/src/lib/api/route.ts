@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-user';
 import { formatZodError, writeApiLog } from './with-error-logging';
-import { logger } from '@my-hub/shared/utils';
+import { logger, UserInputError } from '@my-hub/shared/utils';
 import { hubEnvConfig } from '@/config/env';
 
 type MaybePromise<T> = T | Promise<T>;
@@ -286,6 +286,10 @@ function createRouteHandler<
       if (err instanceof RouteHttpError) {
         await log(err.status, err.message, userId);
         return err.toResponse();
+      }
+      if (err instanceof UserInputError) {
+        await log(400, err.message, userId);
+        return NextResponse.json({ error: err.message }, { status: 400 });
       }
 
       const message = err instanceof Error ? err.message : 'Unknown server error';
