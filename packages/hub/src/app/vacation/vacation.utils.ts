@@ -95,3 +95,13 @@ export function leaveDelta(leave: VacationLeaveEstimate): { value: number; actua
   if (payReceivedMdl == null) return { value: estimate.deltaNet, actual: false };
   return { value: payReceivedMdl - (estimate.amountNet - estimate.deltaNet), actual: true };
 }
+
+/** Whether a dated rule (validFrom → validTo, null = open) covers a YYYY-MM-DD date. */
+export function coversDate(rule: { validFrom: string; validTo: string | null }, date: string): boolean {
+  return rule.validFrom <= date && (rule.validTo === null || date <= rule.validTo);
+}
+
+/** A 0–1 rate as a percentage, e.g. 0.12 → "12%". */
+export function formatRate(rate: number): string {
+  return `${Math.round(rate * 1000) / 10}%`;
+}

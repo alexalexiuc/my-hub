@@ -58,7 +58,10 @@ export function SalaryForm({ salary, onSaved, onCancel }: SalaryFormProps) {
           <Field label="Kind" info="Projected salaries price future leave until the actual figure is known.">
             <Select value={kind} options={KIND_OPTIONS} onChange={e => setKind(e.target.value as SalaryKind)} />
           </Field>
-          <Field label="Base salary (MDL, gross)" info="Carries forward to later months that have no row of their own.">
+          <Field
+            label="Base salary (MDL, gross)"
+            info="A projected row applies to later months too. After an actual row, months without their own row use the base salary from Profile."
+          >
             <Input type="number" min={0} step="0.01" value={base} onChange={e => setBase(e.target.value)} />
           </Field>
           <Field

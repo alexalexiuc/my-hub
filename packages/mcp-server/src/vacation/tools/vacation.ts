@@ -88,7 +88,8 @@ const salarySchema = z.object({
     .number()
     .min(0)
     .describe(
-      'Gross monthly base salary in MDL for a fully worked month. Carries forward to later months with no row.',
+      'Gross monthly base salary in MDL for a fully worked month. A projected row carries forward to later months ' +
+        'with no row; after an actual row, those months use profile.baseSalaryMdl when it is set.',
     ),
   extraMdl: z
     .number()
@@ -131,6 +132,15 @@ export const VacationSetupSchema = z.object({
         .nullable()
         .optional()
         .describe('Accrual starts after this date. Default: after openingBalanceDate.'),
+      baseSalaryMdl: z
+        .number()
+        .min(0)
+        .nullable()
+        .optional()
+        .describe(
+          'Gross monthly base salary for months with no salary row and no earlier projected row, e.g. future months ' +
+            'after the latest payslip. null: carry the latest actual salary forward instead (with a warning).',
+        ),
     })
     .optional()
     .describe('Creating the profile needs country, employer, openingBalanceDays and openingBalanceDate.'),

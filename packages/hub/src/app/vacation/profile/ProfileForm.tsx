@@ -19,11 +19,18 @@ export function ProfileForm({ profile, onSaved }: ProfileFormProps) {
   const [openingBalanceDays, setOpeningBalanceDays] = useState(profile ? String(profile.openingBalanceDays) : '');
   const [openingBalanceDate, setOpeningBalanceDate] = useState(profile?.openingBalanceDate ?? '');
   const [accrualStart, setAccrualStart] = useState(profile?.accrualStart ?? '');
+  const [baseSalary, setBaseSalary] = useState(profile?.baseSalaryMdl != null ? String(profile.baseSalaryMdl) : '');
   const [saving, setSaving] = useState(false);
 
   const balance = parseOptionalNumber(openingBalanceDays);
+  const base = parseOptionalNumber(baseSalary);
   const canSave =
-    country.trim().length === 2 && employer.trim() !== '' && balance !== null && balance >= 0 && !!openingBalanceDate;
+    country.trim().length === 2 &&
+    employer.trim() !== '' &&
+    balance !== null &&
+    balance >= 0 &&
+    !!openingBalanceDate &&
+    (base === null || base >= 0);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -39,6 +46,7 @@ export function ProfileForm({ profile, onSaved }: ProfileFormProps) {
           openingBalanceDays: balance,
           openingBalanceDate,
           accrualStart: blankToNull(accrualStart),
+          baseSalaryMdl: base,
         },
       });
       onSaved();
@@ -82,6 +90,12 @@ export function ProfileForm({ profile, onSaved }: ProfileFormProps) {
           </Field>
           <Field label="Accrual start" info="Optional: when you started earning leave, if later than the balance date.">
             <Input type="date" value={accrualStart} onChange={e => setAccrualStart(e.target.value)} />
+          </Field>
+          <Field
+            label="Base salary (gross MDL / month)"
+            info="Gross. Used for months with no entry in Payments (e.g. future months) unless a projected payment covers them. Leave blank to repeat the latest payment instead."
+          >
+            <Input type="number" min={0} step="1" value={baseSalary} onChange={e => setBaseSalary(e.target.value)} />
           </Field>
         </div>
         <Button type="submit" variant="accent" disabled={!canSave || saving}>

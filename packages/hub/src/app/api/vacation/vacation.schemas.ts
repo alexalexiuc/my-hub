@@ -26,6 +26,7 @@ export const VacationProfileBodySchema = z.object({
   openingBalanceDays: z.number().min(0),
   openingBalanceDate: isoDateSchema,
   accrualStart: isoDateSchema.nullish(),
+  baseSalaryMdl: z.number().min(0).nullish(),
 });
 
 /** Body of `POST /api/vacation/leave` — omit `id` to record new leave, pass it to overwrite. */

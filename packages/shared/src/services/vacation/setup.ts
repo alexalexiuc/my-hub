@@ -43,6 +43,8 @@ export interface VacationProfileUpsert {
   openingBalanceDays?: number;
   openingBalanceDate?: string;
   accrualStart?: string | null;
+  /** Gross monthly base for months with no salary row and no earlier projection; null carries the latest actual row forward. */
+  baseSalaryMdl?: number | null;
 }
 
 export interface VacationRuleSetUpsert {
@@ -225,6 +227,8 @@ export async function applyVacationSetup(userId: string, changes: VacationSetupC
     }
     if (profile.openingBalanceDate !== undefined) assertDate(profile.openingBalanceDate, 'profile.openingBalanceDate');
     if (profile.accrualStart) assertDate(profile.accrualStart, 'profile.accrualStart');
+    if (profile.baseSalaryMdl != null && profile.baseSalaryMdl < 0)
+      throw new VacationValidationError('profile.baseSalaryMdl cannot be negative.');
   }
 
   for (const r of changes.ruleSets?.upsert ?? []) {
@@ -280,6 +284,7 @@ export async function applyVacationSetup(userId: string, changes: VacationSetupC
           openingBalanceDays: profile.openingBalanceDays!,
           openingBalanceDate: profile.openingBalanceDate!,
           accrualStart: profile.accrualStart ?? null,
+          baseSalaryMdl: profile.baseSalaryMdl ?? null,
         });
         profileResult = 'created';
       }

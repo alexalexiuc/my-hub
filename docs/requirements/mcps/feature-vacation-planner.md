@@ -70,7 +70,9 @@ delta(D)    = (amount(D) − baseline(D)) × (1 − medicalRate) × (1 − incom
   Saturdays. A transferred day off is an ordinary rest day, so it is charged and paid under calendar-day rules.
 - Span totals fix the rate by the start month and compute the pay forgone by each day's own month.
 - Per-day calendar values assume a leave starting in that day's month; window totals never sum independent days.
-- Base salary carries forward to months with no row (that is how projections work); `extra` never does.
+- A month with no salary row uses: the latest earlier row if that is a **projection** (a projection states the salary from then on); else the profile's gross `baseSalaryMdl` when set (from the first row on); else the latest actual row carried forward, with a warning. `extra` never carries.
+- Tax regimes apply by their own dates across every employer, so past months keep the regime of the employer you had then; on overlap the profile's current employer wins.
+- A rule set applies only between `validFrom` and `validTo`; a draft only when previewed. From a new rule set's start, balance saved under the previous one is spent first under its own unit and rate.
 - Balance: opening snapshot on `openingBalanceDate`, then `annualEntitlementDays / daysInYear` per day under the
   rule set in force. Leave is charged to the oldest bucket with balance left (pre-2027 calendar days before 2027
   working days); a deficit rolls into the bucket in force.
@@ -115,6 +117,7 @@ delta(D)    = (amount(D) − baseline(D)) × (1 − medicalRate) × (1 − incom
 | FR-12 | Hub `/vacation` is a themed feature scope (`vacation`, default `sky-deep`): it renders on the theme's tinted surfaces with an accent wash on the page background, and can be re-themed from Profile / Appearance.                                                                                                                                                                                                                                                                                                                              |
 | FR-13 | Hub `/vacation` has a tab menu (sidebar on desktop, bottom nav on mobile): **Calendar** (the month grid, landing tab), **Vacations** (record, edit and delete leave), **Payments** (record, edit and delete monthly salaries) and **Profile** (edit the vacation profile; read-only view of rule sets, tax regimes, holiday coverage and setup warnings).                                                                                                                                                                                      |
 | FR-14 | Recorded leave is visible on any cell fill: taken days get a solid violet outline and an `OFF` badge, planned days a dashed blue outline and a `PLAN` badge, explained by a legend under the grid. Tapping a leave day shows that vacation (status, dates, notes) with a **Show whole vacation** action that prices the whole period. The **Vacations** list shows each period's net delta vs working (estimate, or actual when the pay received is recorded) and expands on tap to pay, balance cost, rest, salary forgone and the rate used. |
+| FR-15 | Profile has an optional gross monthly **base salary** (`baseSalaryMdl`), used for months with no salary row instead of guessing from the latest payslip. The Profile tab shows every rule set and employer tax regime as a dated card (in force today / draft, unit, entitlement, pay basis, notes), salary and holiday coverage, and how to record an employer change. The calendar's draft toggle lists each draft rule set, what it changes and the date it would apply from.                                                               |
 
 ---
 
@@ -166,3 +169,4 @@ delta(D)    = (amount(D) − baseline(D)) × (1 − medicalRate) × (1 − incom
 - [x] Vacation data removed by Profile "Delete all my data" and selectable in per-feature deletion.
 - [x] MCP E2E spec `packages/mcp-server/e2e/vacation.e2e.ts`.
 - [x] Leave days outlined and badged in the grid; vacation totals from a tapped leave day and from expandable rows on the Vacations tab.
+- [x] Configurable gross base salary replaces carry-forward for months without a row; tax regimes follow employer changes by date; full configuration view on Profile and draft explanation on the calendar.

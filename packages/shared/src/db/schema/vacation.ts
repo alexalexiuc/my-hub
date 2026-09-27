@@ -41,6 +41,9 @@ export const vacationProfiles = pgTable('vacation_profiles', {
   openingBalanceDate: date('opening_balance_date').notNull(),
   // Accrual begins the day after max(openingBalanceDate, accrualStart).
   accrualStart: date('accrual_start'),
+  // Gross monthly base salary for months with no salary row and no earlier projected row, instead of
+  // carrying the latest actual row forward. Null = carry forward, with a warning.
+  baseSalaryMdl: real('base_salary_mdl'),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
@@ -93,7 +96,8 @@ export const vacationSalaryMonths = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     month: date('month').notNull(), // first day of the month the salary was earned in
-    // Gross monthly base salary for a fully worked month. Carries forward to later months without a row.
+    // Gross monthly base salary for a fully worked month. A projected row carries forward to later
+    // months without a row; after an actual row they use the profile's baseSalaryMdl when set.
     baseMdl: real('base_mdl').notNull(),
     // Other gross earnings attributed to this month that HG 426 counts (bonuses, allowances). Never carried forward.
     extraMdl: real('extra_mdl').notNull().default(0),

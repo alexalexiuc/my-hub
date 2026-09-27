@@ -148,10 +148,40 @@ describe('rateFor (HG 426 average daily salary)', () => {
     expect(rate.calendarDayRate).toBeCloseTo(102000 / 85, 6);
   });
 
-  it('carries a projected base forward and warns', () => {
+  it('carries a projected base forward without a warning: a projection states the salary from then on', () => {
     const m = model({ salaries: [{ month: '2026-01', baseMdl: 30000, extraMdl: 0, kind: 'projected' }] });
     expect(m.rateFor('2026-05-11')!.calendarDayRate).toBeCloseTo(90000 / 85, 6);
+    expect(m.warnings().some(w => w.startsWith('No salary for'))).toBe(false);
+  });
+
+  it('carries an actual base forward and warns when no base salary is configured', () => {
+    const m = model({ salaries: monthly(1, 1, 30000) });
+    expect(m.rateFor('2026-05-11')!.calendarDayRate).toBeCloseTo(90000 / 85, 6);
     expect(m.warnings().some(w => w.startsWith('No salary for 2026-02'))).toBe(true);
+  });
+
+  it('uses the configured base instead of carrying an actual salary forward', () => {
+    const m = model({
+      ruleSets: [{ ...CURRENT, raiseResetsWindow: false }],
+      salaries: monthly(1, 2, 30000),
+      baseSalaryMdl: 36000,
+    });
+    // Window for May: Feb (row, 30000), Mar and Apr (configured 36000).
+    expect(m.rateFor('2026-05-11')!.calendarDayRate).toBeCloseTo(102000 / 85, 6);
+    expect(m.warnings().some(w => w.startsWith('No salary for'))).toBe(false);
+  });
+
+  it('lets a projection carry forward over the configured base', () => {
+    const m = model({
+      salaries: [...monthly(1, 1, 30000), { month: '2026-02', baseMdl: 40000, extraMdl: 0, kind: 'projected' }],
+      baseSalaryMdl: 36000,
+    });
+    expect(m.rateFor('2026-05-11')!.calendarDayRate).toBeCloseTo(120000 / 85, 6);
+  });
+
+  it('does not apply the configured base before the first salary row', () => {
+    const rate = model({ salaries: monthly(4, 12, 30000), baseSalaryMdl: 50000 }).rateFor('2026-05-11')!;
+    expect(rate.windowMonths).toEqual(['2026-04']);
   });
 
   it('leaves out months before employment started', () => {
@@ -185,6 +215,21 @@ describe('calendar', () => {
     const [, delta, amount] = m.calendar('2026-05-11', '2026-05-11').rows[0]!;
     expect(amount).toBeCloseTo(round2(cdr * 0.91 * 0.88), 2);
     expect(delta).toBeCloseTo(round2((cdr - 1500) * 0.8008), 2);
+  });
+
+  it('applies each employer regime on its own dates, the first listed winning an overlap', () => {
+    const m = model({
+      taxRegimes: [
+        // New employer (listed first, as for the profile's current employer) from June.
+        { validFrom: '2026-06-01', validTo: null, medicalRate: 0.09, incomeTaxRate: 0.12 },
+        // Old employer, never closed: still loses from June.
+        { validFrom: '2020-01-01', validTo: null, medicalRate: 0, incomeTaxRate: 0 },
+      ],
+    });
+    const [, , mayAmount] = m.calendar('2026-05-11', '2026-05-11').rows[0]!;
+    expect(mayAmount).toBeCloseTo(round2(cdr), 2);
+    const [, , juneAmount] = m.calendar('2026-06-15', '2026-06-15').rows[0]!;
+    expect(juneAmount).toBeLessThan(round2(m.rateFor('2026-06-15')!.rateGross));
   });
 
   it('warns and reports gross when no tax regime applies', () => {
