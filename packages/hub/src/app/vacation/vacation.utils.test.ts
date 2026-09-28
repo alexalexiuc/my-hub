@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   blankToNull,
   coversDate,
-  deltaFill,
+  deltaTextClass,
   formatDays,
   formatDeltaCompact,
   formatRate,
@@ -34,16 +34,10 @@ describe('vacation utils', () => {
     expect(formatDays(6.5)).toBe('6.5 days');
   });
 
-  it('scales the fill with magnitude and leaves zero days plain', () => {
-    expect(deltaFill(0, 1000)).toBeUndefined();
-    expect(deltaFill(1000, 1000)).toEqual({
-      background: 'color-mix(in srgb, var(--green) 90%, var(--card))',
-      strong: true,
-    });
-    expect(deltaFill(-200, 1000)).toEqual({
-      background: 'color-mix(in srgb, var(--red) 46%, var(--card))',
-      strong: false,
-    });
+  it('colours gains green, losses red and leaves zero days plain', () => {
+    expect(deltaTextClass(0.2)).toBeUndefined();
+    expect(deltaTextClass(1000)).toBe('text-[var(--green)]');
+    expect(deltaTextClass(-200)).toBe('text-[var(--red)]');
   });
 
   it('turns blank form text into null and keeps trimmed text', () => {
