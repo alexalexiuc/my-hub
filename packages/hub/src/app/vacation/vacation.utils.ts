@@ -46,16 +46,12 @@ export function formatDeltaCompact(value: number): string {
 }
 
 /**
- * Fill for a day cell: green for a gain, red for a loss, mixed into the card surface so it stays
- * saturated on any theme, stronger with magnitude relative to the largest magnitude on screen.
- * `strong` tells the cell to use the page background as text colour: semantic tokens are built to
- * contrast with --bg, so that holds on every theme. Undefined for zero so neutral days stay plain.
+ * Text colour class for a day cell's amount: green for a gain, red for a loss. Undefined for zero
+ * so neutral days keep the normal text colour.
  */
-export function deltaFill(delta: number, maxAbs: number): { background: string; strong: boolean } | undefined {
-  if (Math.abs(delta) < 0.5 || maxAbs <= 0) return undefined;
-  const pct = Math.round(35 + 55 * Math.min(1, Math.abs(delta) / maxAbs));
-  const token = delta > 0 ? 'var(--green)' : 'var(--red)';
-  return { background: `color-mix(in srgb, ${token} ${pct}%, var(--card))`, strong: pct >= 60 };
+export function deltaTextClass(delta: number): string | undefined {
+  if (Math.abs(delta) < 0.5) return undefined;
+  return delta > 0 ? 'text-[var(--green)]' : 'text-[var(--red)]';
 }
 
 /** Trimmed text from a form input, or null when left blank — the "clear this field" value. */

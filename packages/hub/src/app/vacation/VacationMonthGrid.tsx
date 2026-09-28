@@ -26,7 +26,6 @@ function dateAt(x: number, y: number): string | null {
  */
 export function VacationMonthGrid({ days, rows, today, selection, onSelect }: VacationMonthGridProps) {
   const anchor = useRef<string | null>(null);
-  const maxAbs = Math.max(0, ...[...rows.values()].map(r => Math.abs(r[1])));
 
   return (
     <div>
@@ -60,7 +59,6 @@ export function VacationMonthGrid({ days, rows, today, selection, onSelect }: Va
             key={day.date}
             day={day}
             row={rows.get(day.date)}
-            maxAbs={maxAbs}
             isToday={day.date === today}
             selected={isInRange(day.date, selection)}
           />

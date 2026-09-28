@@ -1,4 +1,4 @@
-/** Key for the vacation grid's leave outlines, holiday dot and gain/loss fills. */
+/** Key for the vacation grid's leave outlines, holiday dot and gain/loss amount colours. */
 export function VacationLegend() {
   return (
     <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[var(--muted)]">
@@ -15,11 +15,11 @@ export function VacationLegend() {
         Public holiday
       </li>
       <li className="flex items-center gap-1.5">
-        <span className="size-3 rounded-sm bg-[var(--green)]" />
+        <span className="font-semibold text-[var(--green)]">+</span>
         Gain vs working
       </li>
       <li className="flex items-center gap-1.5">
-        <span className="size-3 rounded-sm bg-[var(--red)]" />
+        <span className="font-semibold text-[var(--red)]">−</span>
         Loss vs working
       </li>
     </ul>
