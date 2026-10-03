@@ -106,3 +106,34 @@ export function formatTransactionDate(dateStr: string): string {
   }
   return date.toLocaleDateString();
 }
+
+/**
+ * Short label for a current-rate conversion: "20.1101 · 03 Oct" — the rate (budget currency per
+ * one unit of the account currency, 4 decimals) and the day it applies to.
+ */
+export function formatFxRateLabel(rate: number, rateDate: string): string {
+  const day = new Date(`${rateDate}T00:00:00Z`).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+  return `${rate.toFixed(4)} · ${day}`;
+}
+
+/**
+ * Effective rate of a cross-currency transfer, quoted the way people read it — units of the
+ * cheaper (sent) currency per one received unit, e.g. 6033.03 MDL → 300 EUR gives "20.1101 MDL/EUR".
+ * Returns null when either side is missing or zero.
+ */
+export function formatTransferRate(
+  sentAmount: number,
+  sentCurrency: string,
+  receivedAmount: number,
+  receivedCurrency: string,
+): string | null {
+  if (!(sentAmount > 0) || !(receivedAmount > 0)) return null;
+  const perReceived = sentAmount / receivedAmount;
+  return perReceived >= 1
+    ? `${perReceived.toFixed(4)} ${sentCurrency}/${receivedCurrency}`
+    : `${(receivedAmount / sentAmount).toFixed(4)} ${receivedCurrency}/${sentCurrency}`;
+}

@@ -50,7 +50,9 @@ export const dashboardPortfolioSchema = z.object({
 export const dashboardTransactionSchema = z.object({
   id: z.number().int(),
   date: z.string(),
+  /** In accountCurrency. */
   amount: z.number(),
+  accountCurrency: supportedCurrencySchema,
   type: z.enum(TransactionTypes),
   notes: z.string().nullable(),
   payeeName: z.string().nullable(),
@@ -60,6 +62,18 @@ export const dashboardTransactionSchema = z.object({
   accountName: z.string(),
   toAccountName: z.string().nullable(),
   addedByInitials: z.string().nullable(),
+});
+
+/** An Available-card account held in a currency other than the budget's, converted at the current rate. */
+export const dashboardForeignBalanceSchema = z.object({
+  accountId: z.number().int(),
+  name: z.string(),
+  currency: supportedCurrencySchema,
+  balance: z.number(),
+  /** null when no rate is known at all (then it is left out of availableBalance). */
+  balanceInDefaultCurrency: z.number().nullable(),
+  rate: z.number().nullable(),
+  rateDate: z.string().nullable(),
 });
 
 export const availableBudgetSchema = z.object({
@@ -76,6 +90,7 @@ export const financeDashboardDataSchema = z.object({
   currency: supportedCurrencySchema,
   amountsHidden: z.boolean(),
   availableBalance: z.number(),
+  availableForeign: z.array(dashboardForeignBalanceSchema),
   monthlyIncome: z.number(),
   monthlyExpense: z.number(),
   monthlyTransfers: z.number(),

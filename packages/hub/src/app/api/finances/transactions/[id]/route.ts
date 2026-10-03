@@ -8,12 +8,13 @@ import {
   getPayees,
   upsertPayee,
   syncLabels,
+  transferToAmount,
 } from '@my-hub/shared/services';
 import type { TransactionUpdate } from '@my-hub/shared/services';
-import { TransactionTypes } from '@my-hub/shared/constants';
+import { FxRateSources, TransactionTypes } from '@my-hub/shared/constants';
 import { omitUndefined } from '@my-hub/shared/utils';
 import { okResponseSchema } from '../../shared.schema';
-import { transactionMutationResponseSchema } from '../route';
+import { transactionMoneyInputSchema, transactionMutationResponseSchema, withMoneyInputErrors } from '../route';
 import type { TransactionMutationResponse } from '../route';
 
 export const transactionDetailSchema = z.object({
@@ -24,7 +25,19 @@ export const transactionDetailSchema = z.object({
   categoryId: z.number().int().nullable(),
   payeeId: z.number().int().nullable(),
   payeeName: z.string().nullable(),
+  /** In the account's currency. */
   amount: z.number(),
+  /** Transfers: amount received, in the destination account's currency. */
+  toAmount: z.number().nullable(),
+  /** Set when the amount was entered in another currency: what the user typed and the rate used. */
+  original: z
+    .object({
+      amount: z.number(),
+      currency: z.string(),
+      rate: z.number(),
+      rateSource: z.enum(FxRateSources).nullable(),
+    })
+    .nullable(),
   date: z.string(),
   notes: z.string().nullable(),
   labels: z.array(z.string()),
@@ -36,7 +49,7 @@ export type { TransactionMutationResponse };
 
 const paramsSchema = z.object({ id: z.coerce.number().int().positive() });
 
-const TransactionPatchSchema = z.object({
+const TransactionPatchSchema = transactionMoneyInputSchema.extend({
   type: z.enum(Object.values(TransactionTypes) as [string, ...string[]]).optional(),
   accountId: z.number().int().positive().optional(),
   toAccountId: z.number().int().positive().nullable().optional(),
@@ -60,6 +73,7 @@ export const GET = route({ params: paramsSchema, response: transactionDetailSche
   if (!tx) routeHttpError(404, { error: 'Transaction not found' });
 
   const payee = tx.payeeId != null ? payees.find(p => p.id === tx.payeeId) : undefined;
+  const conversion = tx.extras?.conversion;
 
   return {
     id: tx.id,
@@ -70,6 +84,16 @@ export const GET = route({ params: paramsSchema, response: transactionDetailSche
     payeeId: tx.payeeId ?? null,
     payeeName: payee?.name ?? null,
     amount: tx.amount,
+    toAmount: tx.type === TransactionTypes.Transfer ? transferToAmount(tx) : null,
+    original:
+      conversion?.originalAmount != null && conversion.originalCurrency && conversion.originalToAccountRate != null
+        ? {
+            amount: conversion.originalAmount,
+            currency: conversion.originalCurrency,
+            rate: conversion.originalToAccountRate,
+            rateSource: conversion.rateSource ?? null,
+          }
+        : null,
     date: tx.date,
     notes: tx.notes ?? null,
     labels: (tx.labels as string[]) ?? [],
@@ -103,6 +127,9 @@ export const PATCH = route({
     accountId: body.accountId,
     toAccountId: body.toAccountId,
     amount: body.amount,
+    amountCurrency: body.amountCurrency,
+    rate: body.rate,
+    toAmount: body.toAmount,
     date: body.date,
     categoryId: body.categoryId,
     payeeId,
@@ -110,7 +137,7 @@ export const PATCH = route({
     labels: body.labels,
   });
 
-  const transaction = await updateTransaction(user.id, budgetId, params.id, update);
+  const transaction = await withMoneyInputErrors(() => updateTransaction(user.id, budgetId, params.id, update));
   if (body.labels !== undefined && body.labels.length > 0) {
     syncLabels(user.id, budgetId, body.labels).catch(err => console.warn('[finances] label sync failed:', err));
   }

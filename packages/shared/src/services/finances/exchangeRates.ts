@@ -1,9 +1,10 @@
 /**
  * Finance exchange rate service
- * - getExchangeRate(from, to, date) — returns a cached or fetched exchange rate and persists missing rows
- * Types: (none beyond function signatures)
+ * - getExchangeRate(from, to, date) — lenient lookup: cached or fetched rate, persists missing rows; falls back to the most recent cached rate, then 1.0 (legacy — never use it to compute stored amounts)
+ * - getExchangeRateQuote(from, to, date, opts?) — strict lookup returning { rate, rateDate }: exact cache row or API fetch, else the nearest cached rate within opts.maxAgeDays (default 7); throws when none — use for every stored amount
+ * Types: ExchangeRateQuote, ExchangeRateQuoteOpts
  */
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { PromiseCacheX } from 'promise-cachex';
 import { db } from '../../db/client';
 import { financeCurrencyRates } from '../../db/schema/finances';
@@ -148,4 +149,79 @@ export async function getExchangeRate(from: string, to: string, date: string): P
     const recentRate = await getMostRecentRateFromDb(fromCurrency, toCurrency);
     return recentRate ?? 1;
   });
+}
+
+export interface ExchangeRateQuote {
+  rate: number;
+  /** YYYY-MM-DD the rate applies to — may differ from the requested date when a nearby rate was used. */
+  rateDate: string;
+}
+
+export interface ExchangeRateQuoteOpts {
+  /**
+   * How many days away from the requested date a cached rate may be when neither an exact cached
+   * row nor the provider has one (e.g. today's rate not published yet). Default 7. Pass Infinity
+   * for display-only conversions where any known rate beats none.
+   */
+  maxAgeDays?: number;
+}
+
+const DEFAULT_QUOTE_MAX_AGE_DAYS = 7;
+
+async function getNearestRateFromDb(
+  fromCurrency: SupportedCurrency,
+  toCurrency: SupportedCurrency,
+  date: string,
+): Promise<ExchangeRateQuote | null> {
+  const distance = sql`abs(${financeCurrencyRates.date} - ${date}::date)`;
+  const [row] = await db
+    .select({ rate: financeCurrencyRates.rate, date: financeCurrencyRates.date })
+    .from(financeCurrencyRates)
+    .where(and(eq(financeCurrencyRates.fromCurrency, fromCurrency), eq(financeCurrencyRates.toCurrency, toCurrency)))
+    // Nearest date wins; on a tie prefer the earlier (already-published) rate.
+    .orderBy(distance, financeCurrencyRates.date)
+    .limit(1);
+  return row ? { rate: row.rate, rateDate: row.date } : null;
+}
+
+function daysBetween(a: string, b: string): number {
+  return Math.abs(Math.round((Date.parse(a) - Date.parse(b)) / 86400000));
+}
+
+/**
+ * Strict exchange-rate lookup for converting `from` → `to` on `date` (YYYY-MM-DD).
+ * Unlike getExchangeRate it never invents a rate: it returns an exact cached row or a freshly
+ * fetched (and persisted) provider rate, otherwise the nearest cached rate within
+ * opts.maxAgeDays, otherwise it throws. The returned rateDate says which day's rate was used.
+ */
+export async function getExchangeRateQuote(
+  from: string,
+  to: string,
+  date: string,
+  opts: ExchangeRateQuoteOpts = {},
+): Promise<ExchangeRateQuote> {
+  const fromCurrency = normalizeCurrency(from);
+  const toCurrency = normalizeCurrency(to);
+  if (fromCurrency === toCurrency) return { rate: 1, rateDate: date };
+
+  try {
+    // Shares the lenient cache key: an exact/API hit is the same value either way. Misses throw,
+    // and PromiseCacheX evicts rejected entries, so a miss is never cached.
+    const rate = await exchangeRatePromiseCache.get(`quote:${fromCurrency}:${toCurrency}:${date}`, async () => {
+      const exactRate = await getExactRateFromDb(fromCurrency, toCurrency, date);
+      if (exactRate != null) return exactRate;
+      const fetchedRate = await fetchExchangeRateFromApi(fromCurrency, toCurrency, date);
+      if (fetchedRate != null) {
+        await saveRateToDb(fromCurrency, toCurrency, date, fetchedRate);
+        return fetchedRate;
+      }
+      throw new Error('miss');
+    });
+    return { rate, rateDate: date };
+  } catch {
+    const maxAgeDays = opts.maxAgeDays ?? DEFAULT_QUOTE_MAX_AGE_DAYS;
+    const nearest = await getNearestRateFromDb(fromCurrency, toCurrency, date);
+    if (nearest && daysBetween(nearest.rateDate, date) <= maxAgeDays) return nearest;
+    throw new Error(`No ${fromCurrency}→${toCurrency} exchange rate available for ${date}. Enter the rate manually.`);
+  }
 }

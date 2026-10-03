@@ -8,13 +8,15 @@ import { FinFieldCard, renderAccountOption } from '../../ui';
 import { LabelMultiSelect } from '../LabelMultiSelect';
 import { TransactionTypes } from '@my-hub/shared/constants';
 import type { TransactionType } from '@my-hub/shared/constants';
-import { getCurrencySymbol } from '@my-hub/shared/utils';
 import type { PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
 import type { DropdownOption } from '../../financialDropdown.utils';
 import type { UseFormRegister, UseFormWatch } from 'react-hook-form';
 import type { AddTransactionValues } from '../../finances-form.schema';
 import { TRANSACTION_TYPE_COLORS } from '../../finances.utils';
+import { AmountCurrencySelect } from './AmountCurrencySelect';
+import { CurrencyFields } from './CurrencyFields';
+import type { TransactionCurrencyState } from './useTransactionCurrency';
 
 export type TransactionModalDesktopProps = {
   register: UseFormRegister<AddTransactionValues>;
@@ -50,6 +52,9 @@ export type TransactionModalDesktopProps = {
   allLabels: string[];
   onLabelsChange: (vals: string[]) => void;
   dropdownInputClass: string;
+  currencyState: TransactionCurrencyState;
+  accountCurrency: string | null;
+  toAccountCurrency: string | null;
 };
 
 export function TransactionModalDesktop({
@@ -86,6 +91,9 @@ export function TransactionModalDesktop({
   allLabels,
   onLabelsChange,
   dropdownInputClass,
+  currencyState,
+  accountCurrency,
+  toAccountCurrency,
 }: TransactionModalDesktopProps) {
   return (
     <form data-layout="desktop" onSubmit={onFormSubmit} autoComplete="off" className="hidden flex-col gap-2.5 md:flex">
@@ -114,7 +122,10 @@ export function TransactionModalDesktop({
 
       <div className="flex items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--card2)] px-4 py-3">
         {formData && (
-          <span className="text-xl font-light text-[var(--muted)]">{getCurrencySymbol(formData.currency ?? '')}</span>
+          <AmountCurrencySelect
+            value={currencyState.effectiveCurrency ?? formData.currency}
+            onChange={currencyState.setAmountCurrency}
+          />
         )}
         <Input
           value={amountDisplay}
@@ -225,6 +236,17 @@ export function TransactionModalDesktop({
               />
             </FinFieldCard>
           )}
+
+          <CurrencyFields
+            currency={currencyState}
+            accountCurrency={accountCurrency}
+            toAccountCurrency={toAccountCurrency}
+            renderField={(label, field) => (
+              <FinFieldCard key={label} className="cursor-default" label={label}>
+                {field}
+              </FinFieldCard>
+            )}
+          />
 
           <div className="grid grid-cols-2 gap-2">
             <FinFieldCard className="cursor-default" label="Date">

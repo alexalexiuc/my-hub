@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Divider, IncludeExcludeChip, SubText } from '@/components';
 import { fmt, AmountText } from '../ui';
 import { FinModalShell } from '../FinModalShell';
+import { ForeignBalanceLine } from '../ForeignBalanceLine';
 import { ACCOUNT_TYPE_NAMES, LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
 import type { AccountItem } from '@/app/api/finances/accounts/route';
@@ -49,13 +50,31 @@ function AccountListSection({ accounts, currency, included, onToggle }: AccountL
                   </div>
                   <SubText className="block">{ACCOUNT_TYPE_NAMES[acc.type as AccountType]}</SubText>
                 </div>
-                {included ? (
-                  <AmountText value={isLiability ? -acc.balance : acc.balance} currency={currency} size="sm" sign />
-                ) : (
-                  <span className="shrink-0 text-[13px] tabular-nums text-[var(--subtle)]">
-                    {fmt(acc.balance, currency)}
-                  </span>
-                )}
+                <div className="shrink-0 text-right">
+                  {included ? (
+                    <AmountText
+                      value={isLiability ? -acc.balance : acc.balance}
+                      currency={acc.currency}
+                      size="sm"
+                      sign
+                    />
+                  ) : (
+                    <span className="text-[13px] tabular-nums text-[var(--subtle)]">
+                      {fmt(acc.balance, acc.currency)}
+                    </span>
+                  )}
+                  {acc.defaultCurrencyValue && (
+                    <ForeignBalanceLine
+                      balance={acc.balance}
+                      currency={acc.currency}
+                      balanceInDefaultCurrency={acc.defaultCurrencyValue.balance}
+                      defaultCurrency={currency}
+                      rate={acc.defaultCurrencyValue.rate}
+                      rateDate={acc.defaultCurrencyValue.rateDate}
+                      className="block text-[10px] tabular-nums"
+                    />
+                  )}
+                </div>
                 <IncludeExcludeChip included={included} onToggle={() => onToggle(acc.id, included)} />
               </div>
             </div>

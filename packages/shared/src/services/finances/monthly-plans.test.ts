@@ -62,7 +62,7 @@ function makePlanItem(overrides: Record<string, unknown> = {}) {
 }
 
 function makeAutoMatchTx(overrides: Record<string, unknown> = {}) {
-  return {
+  const base = {
     id: 10,
     type: TransactionTypes.Expense,
     accountId: 5,
@@ -72,6 +72,8 @@ function makeAutoMatchTx(overrides: Record<string, unknown> = {}) {
     date: '2026-04-15',
     ...overrides,
   };
+  // Default-currency account: the frozen reporting value equals the amount.
+  return { toAmount: null, toExchangeRate: null, reportingAmount: base.amount, ...base };
 }
 
 // ─── doesItemMatchTransaction ─────────────────────────────────────────────────
@@ -252,7 +254,13 @@ describe('syncTransactionWithPlan (insert)', () => {
 
   it('updates assignedAmount on a matching plan item (by categoryId)', async () => {
     const plan = makePlan({ id: 1, incomeAccountId: null });
-    const item = makePlanItem({ categoryId: 7, linkedAccountId: null, assignedAmount: 100, amount: 500 });
+    const item = makePlanItem({
+      categoryId: 7,
+      linkedAccountId: null,
+      assignedAmount: 100,
+      amount: 500,
+      currency: 'MDL',
+    });
 
     chainMocked(db).select.from.where.limit.mockResolvedValue([plan]);
     chainMocked(db).select.from.where.mockResolvedValue([item]);
@@ -269,7 +277,13 @@ describe('syncTransactionWithPlan (insert)', () => {
 
   it('updates plan item when assignedAmount exceeds the planned threshold', async () => {
     const plan = makePlan({ id: 1, incomeAccountId: null });
-    const item = makePlanItem({ categoryId: 7, linkedAccountId: null, assignedAmount: 400, amount: 500 });
+    const item = makePlanItem({
+      categoryId: 7,
+      linkedAccountId: null,
+      assignedAmount: 400,
+      amount: 500,
+      currency: 'MDL',
+    });
 
     chainMocked(db).select.from.where.limit.mockResolvedValue([plan]);
     chainMocked(db).select.from.where.mockResolvedValue([item]);
@@ -290,6 +304,7 @@ describe('syncTransactionWithPlan (insert)', () => {
       linkedAccountId: null,
       assignedAmount: 200,
       amount: 500,
+      currency: 'MDL',
     });
 
     chainMocked(db).select.from.where.limit.mockResolvedValue([plan]);

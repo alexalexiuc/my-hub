@@ -45,6 +45,9 @@ vi.mock('@my-hub/shared/services', () => ({
   getBudgetProgress: vi.fn(),
   getLoanBalanceSnapshotForAccount: vi.fn(),
   getLoanDisplayBalance: vi.fn(),
+  transferToAmount: (t: { amount: number; toAmount: number | null; toExchangeRate: number | null }) =>
+    t.toAmount ?? t.amount * (t.toExchangeRate ?? 1),
+  TransactionMoneyError: class TransactionMoneyError extends Error {},
 }));
 
 describe('finances transaction schemas', () => {
@@ -281,6 +284,7 @@ describe('addTransactionsTool', () => {
     expect(payload.account).toEqual({
       id: 1,
       name: 'Checking',
+      currency: 'USD',
       balance: 950,
       availableAfter: null,
     });
@@ -533,6 +537,9 @@ describe('updateTransactionTool', () => {
           transactionId: 10,
           type: TransactionTypes.Transfer,
           amount: undefined,
+          currency: undefined,
+          rate: undefined,
+          toAmount: undefined,
           date: undefined,
           accountId: undefined,
           toAccountId: undefined,
@@ -572,6 +579,9 @@ describe('updateTransactionTool', () => {
         transactionId: 10,
         type: undefined,
         amount: undefined,
+        currency: undefined,
+        rate: undefined,
+        toAmount: undefined,
         date: undefined,
         accountId: undefined,
         toAccountId: undefined,
@@ -617,6 +627,9 @@ describe('updateTransactionTool', () => {
         transactionId: 10,
         type: undefined,
         amount: undefined,
+        currency: undefined,
+        rate: undefined,
+        toAmount: undefined,
         date: undefined,
         accountId: undefined,
         toAccountId: undefined,
@@ -671,6 +684,9 @@ describe('updateTransactionTool', () => {
         transactionId: 10,
         type: TransactionTypes.Expense,
         amount: undefined,
+        currency: undefined,
+        rate: undefined,
+        toAmount: undefined,
         date: undefined,
         accountId: undefined,
         toAccountId: undefined,
@@ -901,5 +917,219 @@ describe('queryTransactionsTool', () => {
     expect(findPayeeByNameOrAlias).toHaveBeenCalledWith('user-1', 1, 'Unknown Payee');
     expect(getTransactions).not.toHaveBeenCalled();
     expect(countTransactions).not.toHaveBeenCalled();
+  });
+});
+
+describe('multi-currency inputs and responses', () => {
+  const mdlCash = { id: 10, name: 'Cash', currency: 'MDL', type: 'cash', balance: 6033.03, details: null };
+  const eurWallet = { id: 25, name: 'EUR', currency: 'EUR', type: 'cash', balance: 0, details: null };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getUserActiveBudget).mockResolvedValue({ id: 1, defaultCurrency: 'MDL' } as never);
+    vi.mocked(getAccountById).mockImplementation(
+      async (_u: string, _b: number, id: number) => ({ 10: mdlCash, 25: eurWallet })[id as 10 | 25] as never,
+    );
+    vi.mocked(getCategories).mockResolvedValue([] as never);
+    vi.mocked(checkDuplicateTransaction).mockResolvedValue(null as never);
+  });
+
+  it('rejects rate without currency and toAmount on non-transfers', () => {
+    const base = { accountId: 10, transactions: [] as unknown[] };
+    expect(
+      AddTransactionsSchema.safeParse({
+        ...base,
+        transactions: [{ type: TransactionTypes.Expense, amount: 5, rate: 20, notes: 'x' }],
+      }).success,
+    ).toBe(false);
+    expect(
+      AddTransactionsSchema.safeParse({
+        ...base,
+        transactions: [{ type: TransactionTypes.Expense, amount: 5, toAmount: 5, notes: 'x' }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('passes toAmount through and reports both legs with the effective rate', async () => {
+    vi.mocked(addTransaction).mockResolvedValue({
+      id: 500,
+      type: TransactionTypes.Transfer,
+      accountId: 10,
+      toAccountId: 25,
+      amount: 6033.03,
+      toAmount: 300,
+      toExchangeRate: 0.04972604,
+      reportingAmount: 6033.03,
+      extras: null,
+      fromAccountBalanceAfter: 0,
+      toAccountBalanceAfter: 300,
+    } as never);
+
+    const result = await addTransactionsTool(
+      {
+        accountId: 10,
+        transactions: [
+          {
+            type: TransactionTypes.Transfer,
+            toAccountId: 25,
+            amount: 6033.03,
+            toAmount: 300,
+            notes: 'Bought EUR',
+            date: '2026-10-03',
+          },
+        ],
+        createPayee: undefined,
+      },
+      financesContext,
+    );
+
+    expect(addTransaction).toHaveBeenCalledWith('user-1', 1, expect.objectContaining({ toAmount: 300 }));
+    const payload = parseToolPayload(result) as {
+      results: Array<Record<string, unknown>>;
+      account: Record<string, unknown>;
+    };
+    expect(payload.results[0]).toMatchObject({
+      amount: 6033.03,
+      currency: 'MDL',
+      toAmount: 300,
+      toCurrency: 'EUR',
+      reportingAmount: 6033.03,
+      reportingCurrency: 'MDL',
+      effectiveRate: { rate: 20.1101, unit: 'MDL per EUR' },
+      balanceAfter: 0,
+      toAccountBalanceAfter: 300,
+    });
+    expect(payload.account).toMatchObject({ currency: 'MDL' });
+  });
+
+  it('reports the stored account-currency amount and the original input for converted entries', async () => {
+    vi.mocked(addTransaction).mockResolvedValue({
+      id: 501,
+      type: TransactionTypes.Expense,
+      accountId: 25,
+      toAccountId: null,
+      amount: 20.11,
+      toAmount: null,
+      toExchangeRate: null,
+      reportingAmount: 404.42,
+      extras: {
+        kind: 'manual',
+        conversion: {
+          originalAmount: 100,
+          originalCurrency: 'RON',
+          originalToAccountRate: 0.2011,
+          rateSource: 'market',
+          rateDate: '2026-10-03',
+        },
+      },
+      fromAccountBalanceAfter: 279.89,
+      toAccountBalanceAfter: null,
+    } as never);
+
+    const result = await addTransactionsTool(
+      {
+        accountId: 25,
+        transactions: [
+          { type: TransactionTypes.Expense, amount: 100, currency: 'RON', notes: 'Lunch', date: '2026-10-03' },
+        ],
+        createPayee: undefined,
+      },
+      financesContext,
+    );
+
+    expect(addTransaction).toHaveBeenCalledWith(
+      'user-1',
+      1,
+      expect.objectContaining({ amountCurrency: 'RON', amount: 100 }),
+    );
+    // Duplicate check runs after insert, against the stored EUR amount, excluding the new row.
+    expect(checkDuplicateTransaction).toHaveBeenCalledWith(
+      'user-1',
+      1,
+      expect.objectContaining({ amount: 20.11, excludeTransactionId: 501 }),
+    );
+    const payload = parseToolPayload(result) as { results: Array<Record<string, unknown>> };
+    expect(payload.results[0]).toMatchObject({
+      amount: 20.11,
+      currency: 'EUR',
+      reportingAmount: 404.42,
+      original: { amount: 100, currency: 'RON', rate: 0.2011, rateSource: 'market' },
+    });
+  });
+
+  it('surfaces a per-item error when the service rejects the money input', async () => {
+    vi.mocked(addTransaction).mockRejectedValue(
+      new Error('Transfer from MDL to EUR: provide the amount received in EUR (toAmount).'),
+    );
+    const result = await addTransactionsTool(
+      {
+        accountId: 10,
+        transactions: [{ type: TransactionTypes.Transfer, toAccountId: 25, amount: 6033.03, notes: 'Bought EUR' }],
+        createPayee: undefined,
+      },
+      financesContext,
+    );
+    const payload = parseToolPayload(result) as { results: Array<{ error?: string }> };
+    expect(payload.results[0]?.error).toContain('provide the amount received in EUR');
+  });
+
+  it('update_transaction forwards currency, rate and toAmount', async () => {
+    vi.mocked(getTransactionById).mockResolvedValue({
+      id: 7,
+      type: 'expense',
+      addedByUserId: 'user-1',
+      toAccountId: null,
+    } as never);
+    vi.mocked(updateTransaction).mockResolvedValue({
+      id: 7,
+      type: TransactionTypes.Expense,
+      accountId: 10,
+      toAccountId: null,
+      amount: 419.2056,
+      toAmount: null,
+      toExchangeRate: null,
+      reportingAmount: 419.2056,
+      extras: {
+        kind: 'base',
+        conversion: { originalAmount: 24, originalCurrency: 'USD', originalToAccountRate: 17.4669, rateSource: 'user' },
+      },
+      fromAccountBalanceAfter: 100,
+      toAccountBalanceAfter: null,
+      categoryId: null,
+      date: '2026-10-03',
+    } as never);
+
+    const result = await updateTransactionTool(
+      {
+        transactionId: 7,
+        type: undefined,
+        amount: 24,
+        currency: 'USD',
+        rate: 17.4669,
+        toAmount: undefined,
+        date: undefined,
+        accountId: undefined,
+        toAccountId: undefined,
+        categoryId: undefined,
+        payeeName: undefined,
+        notes: undefined,
+        labels: undefined,
+        isCorrection: undefined,
+      },
+      financesContext,
+    );
+
+    expect(updateTransaction).toHaveBeenCalledWith(
+      'user-1',
+      1,
+      7,
+      expect.objectContaining({ amount: 24, amountCurrency: 'USD', rate: 17.4669 }),
+    );
+    const payload = parseToolPayload(result) as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      amount: 419.2056,
+      currency: 'MDL',
+      original: { amount: 24, currency: 'USD', rateSource: 'user' },
+    });
   });
 });

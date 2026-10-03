@@ -26,6 +26,7 @@ import { sortAccountsByGroup } from '../../accounts/accounts.utils';
 import { categoryIconEmoji } from '../../categoryIcons';
 import { finDropdownInputClass, TRANSACTION_TYPE_COLORS } from '../../finances.utils';
 import { formatMobileAmount, formatDigitsWithCurrency, formatDigitsCompact } from './transactionModal.utils';
+import { useTransactionCurrency } from './useTransactionCurrency';
 
 type TransactionModalProps = {
   onCloseAction: () => void;
@@ -104,6 +105,18 @@ export function TransactionModal({
   const txType = watch('txType');
   const payeeRequired = isPayeeRequired(txType);
 
+  const accountCurrency = formData?.accounts.find(a => a.id === selAccId)?.currency ?? null;
+  const toAccountCurrency =
+    txType === TransactionTypes.Transfer ? (formData?.accounts.find(a => a.id === selToAccId)?.currency ?? null) : null;
+  const currencyState = useTransactionCurrency({
+    accountCurrency,
+    toAccountCurrency,
+    isTransfer: txType === TransactionTypes.Transfer,
+    date: watch('date'),
+    amount: parseFloat(watch('amount')) || 0,
+  });
+  const { hydrate: hydrateCurrency } = currencyState;
+
   const load = useCallback(async () => {
     const [fd, pd, labelsData, selectedTransaction] = await Promise.all([
       apiFetch<TransactionFormDataResponse>('/api/finances/transactions/form-data', { silentToast: true }),
@@ -120,7 +133,7 @@ export function TransactionModal({
 
     if (selectedTransaction) {
       setValue('txType', selectedTransaction.type);
-      setFromAmount(String(selectedTransaction.amount));
+      setFromAmount(String(hydrateCurrency(selectedTransaction)));
       setValue('date', selectedTransaction.date);
       setValue('payee', selectedTransaction.payeeName ?? '');
       setValue('note', selectedTransaction.notes ?? '');
@@ -130,7 +143,7 @@ export function TransactionModal({
       if (selectedTransaction.toAccountId != null) setSelToAccId(selectedTransaction.toAccountId);
       if (selectedTransaction.categoryId != null) setSelCatId(selectedTransaction.categoryId);
     }
-  }, [editId, isEdit, setValue, setFromAmount]);
+  }, [editId, isEdit, setValue, setFromAmount, hydrateCurrency]);
 
   useEffect(() => {
     load();
@@ -174,6 +187,7 @@ export function TransactionModal({
       payeeName: values.payee.trim(),
       notes: values.note.trim(),
       labels: values.labels,
+      ...currencyState.requestFields(),
     };
 
     if (isEdit) {
@@ -193,10 +207,15 @@ export function TransactionModal({
   }
 
   const isSubmitDisabled =
-    !watch('amount') || !selAccId || (txType === TransactionTypes.Expense && !selCatId) || isSubmitting;
+    !watch('amount') ||
+    !selAccId ||
+    (txType === TransactionTypes.Expense && !selCatId) ||
+    !currencyState.isValid ||
+    isSubmitting;
 
-  const currencyCode = formData?.currency ?? '';
-  const currencySymbol = formData ? getCurrencySymbol(formData.currency ?? '') : '';
+  // The amount is typed in the selected currency (default: the account's, before one is picked the budget's).
+  const currencyCode = currencyState.effectiveCurrency ?? formData?.currency ?? '';
+  const currencySymbol = getCurrencySymbol(currencyCode);
 
   const mobileAmountText = useMemo(
     () => (amountDisplay ? formatMobileAmount(amountDisplay, currencyCode) : `0.00${currencyCode}`),
@@ -300,6 +319,9 @@ export function TransactionModal({
     allLabels,
     onLabelsChange: handleLabelsChange,
     dropdownInputClass,
+    currencyState,
+    accountCurrency,
+    toAccountCurrency,
   } as const;
 
   return (

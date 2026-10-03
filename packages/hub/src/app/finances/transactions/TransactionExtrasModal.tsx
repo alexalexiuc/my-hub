@@ -2,6 +2,7 @@
 
 import { FinModalShell } from '../FinModalShell';
 import { fmt } from '../ui';
+import { FxRateSources } from '@my-hub/shared/constants';
 import type { TransactionDetails, ReceiptTransactionDetails } from '@my-hub/shared/types';
 
 type TransactionExtrasModalProps = {
@@ -88,7 +89,16 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
             <Row label="Account currency" value={extras.conversion.accountCurrency} />
           )}
           {extras.conversion.originalToAccountRate != null && (
-            <Row label="FX rate" value={extras.conversion.originalToAccountRate.toFixed(6)} />
+            <Row
+              label="FX rate"
+              value={`${extras.conversion.originalToAccountRate.toFixed(6)}${
+                extras.conversion.rateSource === FxRateSources.User
+                  ? ' (entered)'
+                  : extras.conversion.rateDate
+                    ? ` (market, ${extras.conversion.rateDate})`
+                    : ''
+              }`}
+            />
           )}
           {extras.conversion.convertedAmount != null && (
             <Row label="Converted amount" value={fmt(extras.conversion.convertedAmount, currency)} />

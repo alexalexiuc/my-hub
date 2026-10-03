@@ -15,6 +15,9 @@ import type { UseFormRegister } from 'react-hook-form';
 import type { AddTransactionValues } from '../../finances-form.schema';
 import { MOBILE_TYPE_LABELS } from './transactionModal.utils';
 import { TRANSACTION_TYPE_COLORS } from '../../finances.utils';
+import { AmountCurrencySelect } from './AmountCurrencySelect';
+import { CurrencyFields } from './CurrencyFields';
+import type { TransactionCurrencyState } from './useTransactionCurrency';
 
 function MobileFieldRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -62,6 +65,9 @@ export type TransactionModalMobileProps = {
   labels: string[];
   onLabelsChange: (vals: string[]) => void;
   dropdownInputClass: string;
+  currencyState: TransactionCurrencyState;
+  accountCurrency: string | null;
+  toAccountCurrency: string | null;
 };
 
 export function TransactionModalMobile({
@@ -101,6 +107,9 @@ export function TransactionModalMobile({
   labels,
   onLabelsChange,
   dropdownInputClass,
+  currencyState,
+  accountCurrency,
+  toAccountCurrency,
 }: TransactionModalMobileProps) {
   return (
     <div data-layout="mobile" className="flex flex-1 flex-col md:hidden">
@@ -142,6 +151,13 @@ export function TransactionModalMobile({
         {!amountDisplay && !largeExpression && !keypadOpen ? (
           <span className="mt-1.5 text-xs text-[var(--muted)]">Tap to Enter Amount</span>
         ) : null}
+        {currencyState.effectiveCurrency && (
+          <AmountCurrencySelect
+            value={currencyState.effectiveCurrency}
+            onChange={currencyState.setAmountCurrency}
+            className="mt-2"
+          />
+        )}
       </div>
 
       <div
@@ -232,6 +248,17 @@ export function TransactionModalMobile({
             />
           </MobileFieldRow>
         )}
+
+        <CurrencyFields
+          currency={currencyState}
+          accountCurrency={accountCurrency}
+          toAccountCurrency={toAccountCurrency}
+          renderField={(label, field) => (
+            <MobileFieldRow key={label} label={label}>
+              {field}
+            </MobileFieldRow>
+          )}
+        />
 
         <MobileFieldRow label="Date">
           <Input

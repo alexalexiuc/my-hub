@@ -169,6 +169,27 @@
       "when": 1790325026361,
       "tag": "0023_shiny_squadron_supreme",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791005092450,
+      "tag": "0024_minor_deathstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791005095253,
+      "tag": "0025_backfill_transaction_reporting_amount",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791005103236,
+      "tag": "0026_reporting_amount_not_null",
+      "breakpoints": true
     }
   ]
 }

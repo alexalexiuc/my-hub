@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
 import { fmt, TYPE_META } from '../ui';
+import { ForeignBalanceLine } from '../ForeignBalanceLine';
 import type { NetWorthData } from '@/app/api/finances/networth/route';
 import { SubText, Card, SectionLabel, Divider } from '@/components';
 
@@ -154,7 +155,20 @@ export default function NetWorthPage() {
                       <div className="text-[13px] text-[var(--text)]">{a.name}</div>
                       <SubText className="block">{meta?.label ?? a.type}</SubText>
                     </div>
-                    <div className="text-sm font-semibold text-[var(--text)]">{fmt(a.balance, a.currency)}</div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-[var(--text)]">{fmt(a.balance, a.currency)}</div>
+                      {a.currency !== data.currency && (
+                        <ForeignBalanceLine
+                          balance={a.balance}
+                          currency={a.currency}
+                          balanceInDefaultCurrency={a.balanceInDefaultCurrency}
+                          defaultCurrency={data.currency}
+                          rate={a.rate ?? null}
+                          rateDate={a.rateDate ?? null}
+                          className="block text-[10px] tabular-nums"
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -182,7 +196,20 @@ export default function NetWorthPage() {
                       <div className="text-[13px] text-[var(--text)]">{a.name}</div>
                       <SubText className="block">{meta?.label ?? a.type}</SubText>
                     </div>
-                    <div className="text-sm font-semibold text-[var(--red)]">-{fmt(a.balance, a.currency)}</div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-[var(--red)]">-{fmt(a.balance, a.currency)}</div>
+                      {a.currency !== data.currency && (
+                        <ForeignBalanceLine
+                          balance={a.balance}
+                          currency={a.currency}
+                          balanceInDefaultCurrency={a.balanceInDefaultCurrency}
+                          defaultCurrency={data.currency}
+                          rate={a.rate ?? null}
+                          rateDate={a.rateDate ?? null}
+                          className="block text-[10px] tabular-nums"
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               );

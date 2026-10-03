@@ -3,6 +3,7 @@ import { route, routeHttpError, created } from '@/lib/api/route';
 import {
   getUserActiveBudget,
   addTransaction,
+  TransactionMoneyError,
   upsertPayee,
   getTransactionListItems,
   getTransactionListItemById,
@@ -17,7 +18,14 @@ import { categoryIconSchema, categoryColorSchema } from '../shared.schema';
 export const transactionListItemSchema = z.object({
   id: z.number().int(),
   date: z.string(),
+  /** In accountCurrency. */
   amount: z.number(),
+  accountCurrency: supportedCurrencySchema,
+  /** Transfers: amount received, in toAccountCurrency. */
+  toAmount: z.number().nullable(),
+  toAccountCurrency: supportedCurrencySchema.nullable(),
+  /** Frozen value in the budget currency (the list response's `currency`). */
+  reportingAmount: z.number(),
   type: z.enum(TransactionTypes),
   isCorrection: z.boolean(),
   notes: z.string().nullable(),
@@ -46,7 +54,18 @@ export type TransactionListItem = z.infer<typeof transactionListItemSchema>;
 export type TransactionsListResponse = z.infer<typeof transactionsListResponseSchema>;
 export type TransactionMutationResponse = z.infer<typeof transactionMutationResponseSchema>;
 
-const TransactionCreateSchema = z.object({
+/**
+ * Money input shared by create/update: `amount` is in `amountCurrency` (default: the account's
+ * currency), converted at `rate` (1 amountCurrency = rate × account currency) or the market rate;
+ * `toAmount` is what a transfer's destination receives in its own currency.
+ */
+export const transactionMoneyInputSchema = z.object({
+  amountCurrency: supportedCurrencySchema.nullable().optional(),
+  rate: z.number().positive().nullable().optional(),
+  toAmount: z.number().positive().nullable().optional(),
+});
+
+const TransactionCreateSchema = transactionMoneyInputSchema.extend({
   type: z.enum(Object.values(TransactionTypes) as [string, ...string[]]),
   accountId: z.number().int().positive(),
   toAccountId: z.number().int().positive().nullable().optional(),
@@ -149,12 +168,13 @@ export const POST = route({ body: TransactionCreateSchema, response: transaction
     isCorrection: body.isCorrection === true,
     labels,
     source: 'hub',
-    fromAccountBalanceAfter: null,
-    toAccountBalanceAfter: null,
+    amountCurrency: body.amountCurrency ?? null,
+    rate: body.rate ?? null,
+    toAmount: body.toAmount ?? null,
     extras: null,
   };
 
-  const transaction = await addTransaction(user.id, budgetId, data);
+  const transaction = await withMoneyInputErrors(() => addTransaction(user.id, budgetId, data));
   if (labels.length > 0) {
     syncLabels(user.id, budgetId, labels).catch(err => console.warn('[finances] label sync failed:', err));
   }
@@ -162,3 +182,13 @@ export const POST = route({ body: TransactionCreateSchema, response: transaction
 
   return created({ transaction, listItem });
 });
+
+/** Runs a transaction write, turning invalid money input (e.g. a missing received amount) into a 400. */
+export async function withMoneyInputErrors<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof TransactionMoneyError) routeHttpError(400, { error: err.message });
+    throw err;
+  }
+}

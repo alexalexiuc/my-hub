@@ -6,6 +6,7 @@ import {
   getUserActiveBudget,
   createAccount,
   updateAccount,
+  accountHasTransactions,
   getAccountById,
   addTransaction,
   addCorrectionTransaction,
@@ -29,7 +30,12 @@ export const UpsertAccountSchema = z.object({
     .describe(
       'Account type. Required when creating. One of: cash, bank, credit_card, investment, loan, borrowed_lent, tracking, goal.',
     ),
-  currency: supportedCurrencySchema.optional().describe('Supported currency code (e.g. EUR, USD, MDL).'),
+  currency: supportedCurrencySchema
+    .optional()
+    .describe(
+      'Supported currency code (e.g. EUR, USD, MDL). Balances and transactions of the account are kept in it. ' +
+        'Can only be changed while the account has no transactions.',
+    ),
   openingBalance: z
     .number()
     .optional()
@@ -147,6 +153,17 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
   if (input.id !== undefined) {
     const existing = await getAccountById(userId, budget.id, input.id);
     if (!existing) throw new HandledError(`Account id ${input.id} not found`);
+
+    if (
+      input.currency !== undefined &&
+      input.currency !== existing.currency &&
+      (await accountHasTransactions(input.id))
+    ) {
+      throw new HandledError(
+        `Account ${input.id} has transactions in ${existing.currency}; its currency cannot be changed. ` +
+          'Create a new account in the new currency and transfer the balance instead.',
+      );
+    }
 
     account = await updateAccount(userId, budget.id, input.id, {
       name: input.name,
@@ -348,10 +365,14 @@ export const correctAccountBalanceTool: ToolHandler<typeof CorrectAccountBalance
 
   return toolResponse({
     transactionId: result.transaction.id,
+    currency: result.currency,
     correctionAmount: result.correctionAmount,
     type: result.type,
     targetBalance: input.targetBalance,
     balanceAfter: result.transaction.fromAccountBalanceAfter,
+    // Signed, in the budget currency at the correction-date rate.
+    correctionAmountInDefaultCurrency: Math.sign(result.correctionAmount) * result.transaction.reportingAmount,
+    defaultCurrency: budget.defaultCurrency,
     date: input.date,
   });
 };
