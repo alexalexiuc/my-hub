@@ -27,6 +27,7 @@ import {
   financeTransactions,
 } from '../../db/schema/finances';
 import { currentDateString, logger, omitUndefined } from '../../utils';
+import { UserInputError } from '../../utils/errors';
 import { getExchangeRateQuote } from './exchangeRates';
 import { transferToAmountSql } from './transaction-money';
 import { getBudgetDefaultCurrency, hasAccessToBudget } from './budgets';
@@ -143,7 +144,7 @@ export async function updateAccount(
 }
 
 /** Thrown by updateAccount when a currency change is attempted on an account with transactions. */
-export class AccountCurrencyLockedError extends Error {
+export class AccountCurrencyLockedError extends UserInputError {
   constructor(currency: string) {
     super(
       `This account already has transactions in ${currency}, so its currency can't be changed. ` +

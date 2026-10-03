@@ -2,6 +2,7 @@
  * Finance exchange rate service
  * - getExchangeRate(from, to, date) — lenient lookup: cached or fetched rate, persists missing rows; falls back to the most recent cached rate, then 1.0 (legacy — never use it to compute stored amounts)
  * - getExchangeRateQuote(from, to, date, opts?) — strict lookup returning { rate, rateDate }: exact cache row or API fetch, else the nearest cached rate within opts.maxAgeDays (default 7); throws when none — use for every stored amount
+ * - ExchangeRateUnavailableError — UserInputError thrown by getExchangeRateQuote when no rate is close enough
  * Types: ExchangeRateQuote, ExchangeRateQuoteOpts
  */
 import { and, desc, eq, sql } from 'drizzle-orm';
@@ -10,6 +11,7 @@ import { db } from '../../db/client';
 import { financeCurrencyRates } from '../../db/schema/finances';
 import { SupportedCurrencies, type SupportedCurrency } from '../../constants/finances';
 import { daysBetweenDateStr } from '../../utils/weight-goal';
+import { UserInputError } from '../../utils/errors';
 
 const exchangeRatePromiseCache = new PromiseCacheX({
   // Date-based rates are immutable enough for long-lived process caching.
@@ -152,6 +154,14 @@ export async function getExchangeRate(from: string, to: string, date: string): P
   });
 }
 
+/** No usable rate for a currency pair/date — the user can enter the rate manually. */
+export class ExchangeRateUnavailableError extends UserInputError {
+  constructor(from: string, to: string, date: string) {
+    super(`No ${from}→${to} exchange rate available for ${date}. Enter the rate manually.`);
+    this.name = 'ExchangeRateUnavailableError';
+  }
+}
+
 export interface ExchangeRateQuote {
   rate: number;
   /** YYYY-MM-DD the rate applies to — may differ from the requested date when a nearby rate was used. */
@@ -227,6 +237,6 @@ export async function getExchangeRateQuote(
     const maxAgeDays = opts.maxAgeDays ?? DEFAULT_QUOTE_MAX_AGE_DAYS;
     const nearest = await getNearestRateFromDb(fromCurrency, toCurrency, date);
     if (nearest && Math.abs(daysBetweenDateStr(nearest.rateDate, date)) <= maxAgeDays) return nearest;
-    throw new Error(`No ${fromCurrency}→${toCurrency} exchange rate available for ${date}. Enter the rate manually.`);
+    throw new ExchangeRateUnavailableError(fromCurrency, toCurrency, date);
   }
 }

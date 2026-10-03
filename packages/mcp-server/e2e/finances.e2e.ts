@@ -653,12 +653,12 @@ describe('finances — add_transactions with createPayee flag', () => {
     const result = await client.callTool({
       name: 'finances_add_transactions',
       arguments: {
+        accountId: testAccountId,
         createPayee: false,
         transactions: [
           {
             type: 'expense',
             amount: 1,
-            accountId: testAccountId,
             payeeName: newPayeeName,
             notes: `[e2e:${runId}] should fail`,
             date: '2099-01-01',
@@ -682,12 +682,12 @@ describe('finances — add_transactions with createPayee flag', () => {
     const result = await client.callTool({
       name: 'finances_add_transactions',
       arguments: {
+        accountId: testAccountId,
         createPayee: true,
         transactions: [
           {
             type: 'expense',
             amount: 1,
-            accountId: testAccountId,
             payeeName: newPayeeName,
             notes: `[e2e:${runId}] auto-create payee`,
             date: '2099-01-01',

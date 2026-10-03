@@ -6,7 +6,7 @@ import {
   getUserActiveBudget,
   createAccount,
   updateAccount,
-  AccountCurrencyLockedError,
+  deleteAccount,
   getAccountById,
   addTransaction,
   addCorrectionTransaction,
@@ -154,18 +154,13 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
     const existing = await getAccountById(userId, budget.id, input.id);
     if (!existing) throw new HandledError(`Account id ${input.id} not found`);
 
-    try {
-      account = await updateAccount(userId, budget.id, input.id, {
-        name: input.name,
-        type: input.type,
-        currency: input.currency,
-        archived: input.archived,
-        ...(input.details !== undefined ? { details: input.details } : {}),
-      });
-    } catch (err) {
-      if (err instanceof AccountCurrencyLockedError) throw new HandledError(err.message);
-      throw err;
-    }
+    account = await updateAccount(userId, budget.id, input.id, {
+      name: input.name,
+      type: input.type,
+      currency: input.currency,
+      archived: input.archived,
+      ...(input.details !== undefined ? { details: input.details } : {}),
+    });
   } else {
     if (!input.name) throw new HandledError('name is required when creating an account');
     if (!input.type) throw new HandledError('type is required when creating an account');
@@ -198,17 +193,24 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
     const txType = input.openingBalance >= 0 ? 'income' : 'expense';
     const date = input.openingDate;
 
-    const tx = await addTransaction(userId, budget.id, {
-      type: txType,
-      amount,
-      date,
-      accountId: account.id,
-      categoryId: null,
-      payeeId: null,
-      notes: 'Initial Balance',
-      isCorrection: true,
-      source: 'mcp',
-    });
+    let tx;
+    try {
+      tx = await addTransaction(userId, budget.id, {
+        type: txType,
+        amount,
+        date,
+        accountId: account.id,
+        categoryId: null,
+        payeeId: null,
+        notes: 'Initial Balance',
+        isCorrection: true,
+        source: 'mcp',
+      });
+    } catch (err) {
+      // Don't leave a half-created account behind when its opening balance can't be recorded.
+      if (input.id === undefined) await deleteAccount(userId, budget.id, account.id);
+      throw err;
+    }
 
     openingTx = {
       transactionId: tx.id,

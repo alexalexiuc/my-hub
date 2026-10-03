@@ -15,7 +15,7 @@ import type { TransactionUpdate } from '@my-hub/shared/services';
 import { FxRateSources, TransactionTypes } from '@my-hub/shared/constants';
 import { omitUndefined } from '@my-hub/shared/utils';
 import { okResponseSchema } from '../../shared.schema';
-import { transactionMoneyInputSchema, transactionMutationResponseSchema, withMoneyInputErrors } from '../route';
+import { transactionMoneyInputSchema, transactionMutationResponseSchema } from '../route';
 import type { TransactionMutationResponse } from '../route';
 
 export const transactionDetailSchema = z.object({
@@ -130,7 +130,7 @@ export const PATCH = route({
     labels: body.labels,
   });
 
-  const transaction = await withMoneyInputErrors(() => updateTransaction(user.id, budgetId, params.id, update));
+  const transaction = await updateTransaction(user.id, budgetId, params.id, update);
   if (body.labels !== undefined && body.labels.length > 0) {
     syncLabels(user.id, budgetId, body.labels).catch(err => console.warn('[finances] label sync failed:', err));
   }

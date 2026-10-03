@@ -12,17 +12,18 @@
  * - transferToAmountSql — SQL fragment for the same destination leg, for aggregate queries
  * - getOriginalInput(extras) — the originally typed amount/currency/rate of a converted entry, or null
  * - round4(n) — rounds to the 4-decimal scale used by money columns
- * - TransactionMoneyError — thrown for invalid money input (safe to show to the user)
+ * - TransactionMoneyError — UserInputError for invalid money input (Hub → 400, MCP → handled tool error)
  * Types: TransactionMoneyInput, ResolvedTransactionMoney
  */
 import { sql } from 'drizzle-orm';
 import { financeTransactions } from '../../db/schema/finances';
 import { FxRateSources, TransactionTypes, type FxRateSource, type TransactionType } from '../../constants/finances';
 import type { TransactionConversionMeta, TransactionDetails } from '../../types';
-import { getExchangeRateQuote } from './exchangeRates';
+import { UserInputError } from '../../utils/errors';
+import { ExchangeRateUnavailableError, getExchangeRateQuote } from './exchangeRates';
 
 /** Invalid money input — the message is written for the end user. */
-export class TransactionMoneyError extends Error {
+export class TransactionMoneyError extends UserInputError {
   constructor(message: string) {
     super(message);
     this.name = 'TransactionMoneyError';
@@ -45,6 +46,8 @@ export interface TransactionMoneyInput {
   /** Transfers only: destination account currency. */
   toAccountCurrency?: string | null;
   budgetCurrency: string;
+  /** Balance corrections: the reporting value is best-effort (never blocks the correction). */
+  isCorrection?: boolean;
   /**
    * Update path: a previously stored conversion whose rate is reused when no new rate is given and
    * the currency pair and date are unchanged — so editing notes/amount keeps a user-entered rate.
@@ -65,6 +68,25 @@ export interface ResolvedTransactionMoney {
   reportingAmount: number;
   /** reportingAmount / amount — kept for legacy readers of the exchangeRate column. */
   exchangeRate: number;
+}
+
+/**
+ * Account → budget currency rate for the reporting value. Corrections accept any known rate and
+ * return null instead of failing when none exists; everything else uses the strict lookup.
+ */
+async function quoteReportingRate(
+  accountCurrency: string,
+  budgetCurrency: string,
+  date: string,
+  isCorrection: boolean,
+): Promise<{ rate: number } | null> {
+  if (!isCorrection) return getExchangeRateQuote(accountCurrency, budgetCurrency, date);
+  try {
+    return await getExchangeRateQuote(accountCurrency, budgetCurrency, date, { maxAgeDays: Infinity });
+  } catch (err) {
+    if (err instanceof ExchangeRateUnavailableError) return null;
+    throw err;
+  }
 }
 
 /** Destination leg of a stored transfer, in the destination currency (legacy rows fall back to amount × toExchangeRate). */
@@ -224,9 +246,11 @@ export async function resolveTransactionMoney(input: TransactionMoneyInput): Pro
     } else if (conversion != null && inputCurrency === budgetCurrency) {
       reportingAmount = inputAmount; // entered in the budget currency — exact value
     } else {
-      const quote = await getExchangeRateQuote(accountCurrency, budgetCurrency, date);
-      reportingAmount = round4(amount * quote.rate);
-      exchangeRate = quote.rate;
+      const quote = await quoteReportingRate(accountCurrency, budgetCurrency, date, input.isCorrection === true);
+      // Corrections never enter a reporting sum, so a missing rate must not block them (e.g. an
+      // opening balance on a new foreign-currency account): their reporting value is left at 0.
+      reportingAmount = quote ? round4(amount * quote.rate) : 0;
+      exchangeRate = quote?.rate ?? 0;
     }
     if (exchangeRate === 1 && amount > 0) exchangeRate = round8(reportingAmount / amount);
   }

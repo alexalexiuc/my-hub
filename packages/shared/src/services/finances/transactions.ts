@@ -374,6 +374,7 @@ export async function addTransaction(
       accountCurrency: fromAccount.currency,
       toAccountCurrency: toAccount?.currency ?? null,
       budgetCurrency,
+      isCorrection: data.isCorrection === true,
     });
 
     const fromBalanceAfter = round4(
@@ -477,6 +478,7 @@ export async function addCorrectionTransaction(
       date: data.date,
       inputAmount: amount,
       accountCurrency: account.currency,
+      isCorrection: true,
       budgetCurrency: await getBudgetDefaultCurrency(budgetId, tx),
     });
 
@@ -808,6 +810,7 @@ export async function updateTransaction(
         toAccountCurrency: newToAcct?.currency ?? null,
         budgetCurrency: await getBudgetDefaultCurrency(budgetId, tx),
         reuseConversion,
+        isCorrection: data.isCorrection ?? existing.isCorrection,
       });
       money = resolved;
       extras = withConversion(baseExtras, resolved.conversion);

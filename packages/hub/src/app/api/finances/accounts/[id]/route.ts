@@ -13,7 +13,6 @@ import {
   getUserActiveBudget,
   getLoanCardBalance,
   getAccountFlows,
-  AccountCurrencyLockedError,
 } from '@my-hub/shared/services';
 import { currentDateString } from '@my-hub/shared/utils';
 import { AccountTypes, TransactionTypes, type BorrowedLentAccountDetails } from '@my-hub/shared/constants';
@@ -203,13 +202,8 @@ export const PATCH = route({
     if (body.currency !== undefined) patch.currency = body.currency;
     if (body.description !== undefined) patch.description = body.description ?? null;
     if (body.details !== undefined) patch.details = body.details ?? null;
-    try {
-      const updated = await updateAccount(user.id, budget.id, accountId, patch);
-      return { account: flattenAccount(updated, currentIncluded) };
-    } catch (err) {
-      if (err instanceof AccountCurrencyLockedError) routeHttpError(400, { error: err.message });
-      throw err;
-    }
+    const updated = await updateAccount(user.id, budget.id, accountId, patch);
+    return { account: flattenAccount(updated, currentIncluded) };
   }
 
   if (body.action === 'recreateInitialBalance') {

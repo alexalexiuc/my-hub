@@ -3,7 +3,6 @@ import { route, routeHttpError, created } from '@/lib/api/route';
 import {
   getUserActiveBudget,
   addTransaction,
-  TransactionMoneyError,
   upsertPayee,
   getTransactionListItems,
   getTransactionListItemById,
@@ -174,7 +173,7 @@ export const POST = route({ body: TransactionCreateSchema, response: transaction
     extras: null,
   };
 
-  const transaction = await withMoneyInputErrors(() => addTransaction(user.id, budgetId, data));
+  const transaction = await addTransaction(user.id, budgetId, data);
   if (labels.length > 0) {
     syncLabels(user.id, budgetId, labels).catch(err => console.warn('[finances] label sync failed:', err));
   }
@@ -182,13 +181,3 @@ export const POST = route({ body: TransactionCreateSchema, response: transaction
 
   return created({ transaction, listItem });
 });
-
-/** Runs a transaction write, turning invalid money input (e.g. a missing received amount) into a 400. */
-export async function withMoneyInputErrors<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof TransactionMoneyError) routeHttpError(400, { error: err.message });
-    throw err;
-  }
-}

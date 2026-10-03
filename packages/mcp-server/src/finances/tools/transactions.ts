@@ -21,7 +21,6 @@ import {
   getLoanDisplayBalance,
   transferToAmount,
   getOriginalInput,
-  TransactionMoneyError,
 } from '@my-hub/shared/services';
 import { TransactionTypes, AccountTypes } from '@my-hub/shared/constants';
 import type { TransactionInsert } from '@my-hub/shared/services';
@@ -699,13 +698,7 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
     isCorrection: input.isCorrection,
   });
 
-  let updated: FinanceTransaction;
-  try {
-    updated = await updateTransaction(userId, budget.id, input.transactionId, updateData);
-  } catch (err) {
-    if (err instanceof TransactionMoneyError) throw new HandledError(err.message);
-    throw err;
-  }
+  const updated = await updateTransaction(userId, budget.id, input.transactionId, updateData);
   if (input.labels !== undefined && input.labels.length > 0) {
     syncLabels(userId, budget.id, input.labels).catch(err => logger.warn('[finances] label sync failed:', err));
   }

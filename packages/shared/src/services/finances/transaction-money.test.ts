@@ -2,9 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveTransactionMoney, transferToAmount, withConversion, TransactionMoneyError } from './transaction-money';
 import { TransactionTypes } from '../../constants/finances';
 
-vi.mock('./exchangeRates.js', () => ({ getExchangeRateQuote: vi.fn() }));
+vi.mock('./exchangeRates.js', () => {
+  class ExchangeRateUnavailableError extends Error {
+    constructor(from: string, to: string, date: string) {
+      super(`No ${from}→${to} exchange rate available for ${date}.`);
+    }
+  }
+  return { getExchangeRateQuote: vi.fn(), ExchangeRateUnavailableError };
+});
 
-import { getExchangeRateQuote } from './exchangeRates.js';
+import { ExchangeRateUnavailableError, getExchangeRateQuote } from './exchangeRates.js';
 
 const DATE = '2026-10-03';
 
@@ -12,7 +19,7 @@ const DATE = '2026-10-03';
 function mockRates(rates: Record<string, number>) {
   vi.mocked(getExchangeRateQuote).mockImplementation(async (from: string, to: string, date: string) => {
     const rate = rates[`${from}:${to}`];
-    if (rate == null) throw new Error(`No ${from}→${to} exchange rate available for ${date}.`);
+    if (rate == null) throw new ExchangeRateUnavailableError(from, to, date);
     return { rate, rateDate: date };
   });
 }
@@ -240,6 +247,32 @@ describe('resolveTransactionMoney', () => {
         budgetCurrency: 'MDL',
       }),
     ).rejects.toThrow('No EUR→MDL exchange rate');
+  });
+
+  it('never blocks a correction on a missing rate: any known rate, else a 0 reporting value', async () => {
+    mockRates({});
+    const money = await resolveTransactionMoney({
+      type: TransactionTypes.Income,
+      date: '2099-01-01',
+      inputAmount: 250,
+      accountCurrency: 'EUR',
+      budgetCurrency: 'MDL',
+      isCorrection: true,
+    });
+    expect(money.amount).toBe(250);
+    expect(money.reportingAmount).toBe(0);
+    expect(getExchangeRateQuote).toHaveBeenCalledWith('EUR', 'MDL', '2099-01-01', { maxAgeDays: Infinity });
+
+    mockRates({ 'EUR:MDL': 20 });
+    const withRate = await resolveTransactionMoney({
+      type: TransactionTypes.Income,
+      date: '2099-01-01',
+      inputAmount: 250,
+      accountCurrency: 'EUR',
+      budgetCurrency: 'MDL',
+      isCorrection: true,
+    });
+    expect(withRate.reportingAmount).toBe(5000);
   });
 
   it('reuses a stored conversion rate (update path) without a lookup', async () => {

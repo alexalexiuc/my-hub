@@ -5,6 +5,7 @@ import {
   updateAccount,
   getAccountById,
   addTransaction,
+  deleteAccount,
 } from '@my-hub/shared/services';
 import { UpsertAccountSchema, upsertAccountTool } from './accounts';
 import { financesContext, parseToolPayload } from './test-utils';
@@ -13,6 +14,7 @@ vi.mock('@my-hub/shared/services', () => ({
   getUserActiveBudget: vi.fn(),
   createAccount: vi.fn(),
   updateAccount: vi.fn(),
+  deleteAccount: vi.fn(),
   getAccountById: vi.fn(),
   createCategory: vi.fn(),
   updateCategory: vi.fn(),
@@ -80,6 +82,19 @@ describe('upsertAccountTool', () => {
     await expect(upsertAccountTool({ ...baseInput, name: 'Savings', type: 'bank' }, financesContext)).rejects.toThrow(
       'No active budget',
     );
+  });
+
+  it('removes the new account when its opening balance cannot be recorded', async () => {
+    vi.mocked(createAccount).mockResolvedValue({ id: 42, name: 'EUR', type: 'cash', currency: 'EUR' } as never);
+    vi.mocked(addTransaction).mockRejectedValue(new Error('boom'));
+
+    await expect(
+      upsertAccountTool(
+        { ...baseInput, name: 'EUR', type: 'cash', currency: 'EUR', openingBalance: 300, openingDate: '2026-10-01' },
+        financesContext,
+      ),
+    ).rejects.toThrow('boom');
+    expect(deleteAccount).toHaveBeenCalledWith('user-1', 1, 42);
   });
 
   it('throws when openingBalance is provided without openingDate', async () => {
