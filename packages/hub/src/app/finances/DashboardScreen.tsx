@@ -27,6 +27,7 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
   const {
     currency,
     availableBalance,
+    availableForeign,
     monthlyIncome,
     monthlyExpense,
     monthlyTransfers,
@@ -56,7 +57,12 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
 
       {/* Available balance + cashflow row */}
       <div className="grid gap-2.5 md:grid-cols-2">
-        <AvailableCard availableBalance={availableBalance} currency={currency} month={selectedMonth} />
+        <AvailableCard
+          availableBalance={availableBalance}
+          foreignBalances={availableForeign}
+          currency={currency}
+          month={selectedMonth}
+        />
 
         <Card className="p-[14px]">
           <SubText className="block mb-1.5 uppercase tracking-[0.08em]">

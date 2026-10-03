@@ -73,13 +73,13 @@ export const GET = route({
     if (!existing) {
       agg.set(t.payeeId, {
         txCount: 1,
-        totalSpent: t.amount,
+        totalSpent: t.reportingAmount,
         lastDate: t.date,
         lastCategoryId: t.categoryId ?? null,
       });
     } else {
       existing.txCount++;
-      existing.totalSpent += t.amount;
+      existing.totalSpent += t.reportingAmount;
       if (t.date > existing.lastDate) {
         existing.lastDate = t.date;
         existing.lastCategoryId = t.categoryId ?? null;

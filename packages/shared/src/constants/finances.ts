@@ -20,6 +20,15 @@ export type TransactionType = (typeof TransactionTypes)[keyof typeof Transaction
 export const SupportedCurrencies = ['EUR', 'USD', 'GBP', 'MDL', 'RON', 'UAH', 'CHF', 'JPY', 'CAD', 'AUD'] as const;
 export type SupportedCurrency = (typeof SupportedCurrencies)[number];
 
+/** Where an FX rate used to convert a transaction amount came from. */
+export const FxRateSources = {
+  /** Entered by the user (e.g. the rate printed on a bank statement or exchange receipt). */
+  User: 'user',
+  /** Daily market rate looked up for the transaction date. */
+  Market: 'market',
+} as const;
+export type FxRateSource = (typeof FxRateSources)[keyof typeof FxRateSources];
+
 export const LentDirections = {
   Gave: 'gave',
   Received: 'received',

@@ -1,13 +1,17 @@
 /**
  * Finance exchange rate service
- * - getExchangeRate(from, to, date) — returns a cached or fetched exchange rate and persists missing rows
- * Types: (none beyond function signatures)
+ * - getExchangeRate(from, to, date) — lenient lookup: cached or fetched rate, persists missing rows; falls back to the most recent cached rate, then 1.0 (legacy — never use it to compute stored amounts)
+ * - getExchangeRateQuote(from, to, date, opts?) — strict lookup returning { rate, rateDate }: exact cache row or API fetch, else the nearest cached rate within opts.maxAgeDays (default 7); throws when none — use for every stored amount
+ * - ExchangeRateUnavailableError — UserInputError thrown by getExchangeRateQuote when no rate is close enough
+ * Types: ExchangeRateQuote, ExchangeRateQuoteOpts
  */
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { PromiseCacheX } from 'promise-cachex';
 import { db } from '../../db/client';
 import { financeCurrencyRates } from '../../db/schema/finances';
 import { SupportedCurrencies, type SupportedCurrency } from '../../constants/finances';
+import { daysBetweenDateStr } from '../../utils/weight-goal';
+import { UserInputError } from '../../utils/errors';
 
 const exchangeRatePromiseCache = new PromiseCacheX({
   // Date-based rates are immutable enough for long-lived process caching.
@@ -148,4 +152,91 @@ export async function getExchangeRate(from: string, to: string, date: string): P
     const recentRate = await getMostRecentRateFromDb(fromCurrency, toCurrency);
     return recentRate ?? 1;
   });
+}
+
+/** No usable rate for a currency pair/date — the user can enter the rate manually. */
+export class ExchangeRateUnavailableError extends UserInputError {
+  constructor(from: string, to: string, date: string) {
+    super(`No ${from}→${to} exchange rate available for ${date}. Enter the rate manually.`);
+    this.name = 'ExchangeRateUnavailableError';
+  }
+}
+
+export interface ExchangeRateQuote {
+  rate: number;
+  /** YYYY-MM-DD the rate applies to — may differ from the requested date when a nearby rate was used. */
+  rateDate: string;
+}
+
+export interface ExchangeRateQuoteOpts {
+  /**
+   * How many days away from the requested date a cached rate may be when neither an exact cached
+   * row nor the provider has one (e.g. today's rate not published yet). Default 7. Pass Infinity
+   * for display-only conversions where any known rate beats none.
+   */
+  maxAgeDays?: number;
+}
+
+const DEFAULT_QUOTE_MAX_AGE_DAYS = 7;
+
+async function getNearestRateFromDb(
+  fromCurrency: SupportedCurrency,
+  toCurrency: SupportedCurrency,
+  date: string,
+): Promise<ExchangeRateQuote | null> {
+  const distance = sql`abs(${financeCurrencyRates.date} - ${date}::date)`;
+  const [row] = await db
+    .select({ rate: financeCurrencyRates.rate, date: financeCurrencyRates.date })
+    .from(financeCurrencyRates)
+    .where(and(eq(financeCurrencyRates.fromCurrency, fromCurrency), eq(financeCurrencyRates.toCurrency, toCurrency)))
+    // Nearest date wins; on a tie prefer the earlier (already-published) rate.
+    .orderBy(distance, financeCurrencyRates.date)
+    .limit(1);
+  return row ? { rate: row.rate, rateDate: row.date } : null;
+}
+
+// Pairs/dates with no cached row and no provider answer, so repeated lookups (e.g. today's rate
+// before it is published, on every dashboard load) skip the DB + HTTP round-trips for a while.
+const QUOTE_MISS_TTL_MS = 60 * 60 * 1000;
+const recentQuoteMisses = new Map<string, number>();
+
+/**
+ * Strict exchange-rate lookup for converting `from` → `to` on `date` (YYYY-MM-DD).
+ * Unlike getExchangeRate it never invents a rate: it returns an exact cached row or a freshly
+ * fetched (and persisted) provider rate, otherwise the nearest cached rate within
+ * opts.maxAgeDays, otherwise it throws. The returned rateDate says which day's rate was used.
+ */
+export async function getExchangeRateQuote(
+  from: string,
+  to: string,
+  date: string,
+  opts: ExchangeRateQuoteOpts = {},
+): Promise<ExchangeRateQuote> {
+  const fromCurrency = normalizeCurrency(from);
+  const toCurrency = normalizeCurrency(to);
+  if (fromCurrency === toCurrency) return { rate: 1, rateDate: date };
+
+  const key = `quote:${fromCurrency}:${toCurrency}:${date}`;
+  const missedAt = recentQuoteMisses.get(key);
+  try {
+    if (missedAt != null && Date.now() - missedAt < QUOTE_MISS_TTL_MS) throw new Error('recent miss');
+    // Misses throw, and PromiseCacheX evicts rejected entries, so only hits are cached here.
+    const rate = await exchangeRatePromiseCache.get(key, async () => {
+      const exactRate = await getExactRateFromDb(fromCurrency, toCurrency, date);
+      if (exactRate != null) return exactRate;
+      const fetchedRate = await fetchExchangeRateFromApi(fromCurrency, toCurrency, date);
+      if (fetchedRate != null) {
+        await saveRateToDb(fromCurrency, toCurrency, date, fetchedRate);
+        return fetchedRate;
+      }
+      throw new Error('miss');
+    });
+    return { rate, rateDate: date };
+  } catch {
+    if (missedAt == null || Date.now() - missedAt >= QUOTE_MISS_TTL_MS) recentQuoteMisses.set(key, Date.now());
+    const maxAgeDays = opts.maxAgeDays ?? DEFAULT_QUOTE_MAX_AGE_DAYS;
+    const nearest = await getNearestRateFromDb(fromCurrency, toCurrency, date);
+    if (nearest && Math.abs(daysBetweenDateStr(nearest.rateDate, date)) <= maxAgeDays) return nearest;
+    throw new ExchangeRateUnavailableError(fromCurrency, toCurrency, date);
+  }
 }

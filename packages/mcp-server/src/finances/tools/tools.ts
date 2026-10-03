@@ -88,7 +88,7 @@ const financeTools = [
   defineTool({
     name: 'finances_correct_account_balance',
     description:
-      'Reconcile an account by setting it to its correct real-world balance. ' +
+      "Reconcile an account by setting it to its correct real-world balance, in the account's own currency. " +
       'Provide the actual balance the account should have — the tool computes and records the correction amount atomically ' +
       'from the live database balance, so you must NOT pre-compute or pass a delta. ' +
       'The correction is recorded as a marked transaction (excluded from spending reports and cashflow) ' +
@@ -181,6 +181,12 @@ const financeTools = [
       'The tool automatically detects possible duplicates and includes a warning in the result if found. ' +
       'categoryId is optional for all transaction types including transfers. ' +
       'For loan repayments and other categorised transfers, set categoryId to track the spending. ' +
+      '\n\nCurrencies: every account has its own currency and the stored amount is always in it. ' +
+      'If the user paid in another currency, pass amount + currency as given (e.g. 100 RON from the EUR account); ' +
+      'it is converted at `rate` when the user states one (e.g. "24 USD @ 17.4669"), otherwise at the transaction-date market rate. ' +
+      'Transfers between accounts in different currencies need toAmount = what the destination received in its own currency ' +
+      '(e.g. 6033.03 MDL → toAmount 300 EUR); if it is unknown, ask the user — the call is rejected rather than guessed. ' +
+      'Results return amount + currency (account currency), reportingAmount in the budget currency, and both legs for transfers. ' +
       'If a payeeName is not recognized and createPayee is false (default), the call returns a payee_not_found error — ' +
       'use finances_upsert_payee to create the payee first, or set createPayee: true to create it automatically. ' +
       '\n\nExtras field guidance:\n' +
@@ -202,6 +208,8 @@ const financeTools = [
     description:
       'Edit an existing transaction. Only transactions you added can be updated. ' +
       'Account balances are recomputed atomically when amount, account, or type changes. ' +
+      'amount is in the account currency unless currency is given; pass rate for a manual exchange rate and toAmount for the received ' +
+      'side of a cross-currency transfer. The budget-currency reporting value is re-frozen only when money fields or the date change. ' +
       'categoryId is supported for all transaction types including transfers; pass null to clear it. ' +
       'This tool does NOT support editing receipt line items or other extras fields (payeeAddress, receiptNumber, ' +
       'taxAmount, tipAmount, deliveryAmount, discountAmount) — use finances_itemize_transaction for those.',

@@ -1,0 +1,1 @@
+ALTER TABLE "finance_transactions" ALTER COLUMN "reporting_amount" SET NOT NULL;

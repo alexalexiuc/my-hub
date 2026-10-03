@@ -20,6 +20,7 @@ import type { LoanAccountDetails } from '@my-hub/shared/types';
 import type { AccountUpdate } from '@my-hub/shared/services';
 import { FinanceAccount } from '@my-hub/shared/types';
 import { categoryIconSchema, categoryColorSchema } from '../../shared.schema';
+import { supportedCurrencySchema } from '../../currency.schema';
 import { accountDetailsSchema, accountItemSchema, accountMutationResponseSchema } from '../route';
 import type { AccountItem } from '../route';
 
@@ -61,6 +62,8 @@ const AccountPatchSchema = z.discriminatedUnion('action', [
     action: z.literal('edit'),
     name: z.string().trim().min(1),
     description: z.string().trim().nullable().optional(),
+    // Only changeable while the account has no transactions.
+    currency: supportedCurrencySchema.optional(),
     details: accountDetailsSchema.nullable().optional(),
   }),
   z.object({ action: z.literal('setAvailableInclusion'), include: z.boolean() }),
@@ -196,6 +199,7 @@ export const PATCH = route({
 
   if (body.action === 'edit') {
     const patch: AccountUpdate = { name: body.name };
+    if (body.currency !== undefined) patch.currency = body.currency;
     if (body.description !== undefined) patch.description = body.description ?? null;
     if (body.details !== undefined) patch.details = body.details ?? null;
     const updated = await updateAccount(user.id, budget.id, accountId, patch);
@@ -218,14 +222,11 @@ export const PATCH = route({
       accountId,
       toAccountId: null,
       amount: details.principal,
-      exchangeRate: 1,
       date: details.firstPaymentDate,
       categoryId: null,
       payeeId: null,
       notes: 'Initial Balance',
       isCorrection: true,
-      fromAccountBalanceAfter: null,
-      toAccountBalanceAfter: null,
       extras: null,
     });
 

@@ -19,11 +19,26 @@ import {
   syncLabels,
   getLoanBalanceSnapshotForAccount,
   getLoanDisplayBalance,
+  transferToAmount,
+  getOriginalInput,
 } from '@my-hub/shared/services';
 import { TransactionTypes, AccountTypes } from '@my-hub/shared/constants';
 import type { TransactionInsert } from '@my-hub/shared/services';
-import type { FinanceAccount, ReceiptTransactionDetails, TransactionDetails } from '@my-hub/shared/types';
-import { currentDateString, isPayeeRequired, omitUndefined, trimOrNull, logger } from '@my-hub/shared/utils';
+import type {
+  FinanceAccount,
+  FinanceTransaction,
+  ReceiptTransactionDetails,
+  TransactionDetails,
+} from '@my-hub/shared/types';
+import {
+  currentDateString,
+  isPayeeRequired,
+  omitNullish,
+  omitUndefined,
+  quoteTransferRate,
+  trimOrNull,
+  logger,
+} from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
 
 // Loan repayments are recorded as their total amount (principal + interest), so the raw ledger
@@ -52,6 +67,56 @@ function getAccountAvailable(
     return targetAmount - acc.balance;
   }
   return null;
+}
+
+/** Account-id → currency lookup that fetches each account at most once per tool call. */
+function accountCurrencyLookup(
+  userId: string,
+  budgetId: number,
+  known: Array<Pick<FinanceAccount, 'id' | 'currency'> | null | undefined>,
+): (accountId: number) => Promise<string | null> {
+  const cache = new Map<number, Promise<string | null>>();
+  for (const a of known) if (a) cache.set(a.id, Promise.resolve(a.currency));
+  return accountId => {
+    let currency = cache.get(accountId);
+    if (!currency) {
+      currency = getAccountById(userId, budgetId, accountId).then(a => a?.currency ?? null);
+      cache.set(accountId, currency);
+    }
+    return currency;
+  };
+}
+
+/**
+ * Money fields for a tool response: the stored amount in the account currency, its frozen
+ * budget-currency reporting value, the original input when it was converted, and both legs of a transfer.
+ */
+async function describeMoney(
+  budgetCurrency: string,
+  tx: FinanceTransaction,
+  currencyOf: (accountId: number) => Promise<string | null>,
+): Promise<Record<string, unknown>> {
+  const currency = await currencyOf(tx.accountId);
+  const original = getOriginalInput(tx.extras);
+  const out: Record<string, unknown> = {
+    amount: tx.amount,
+    currency,
+    reportingAmount: tx.reportingAmount,
+    reportingCurrency: budgetCurrency,
+    ...(original ? { original: omitNullish(original) } : {}),
+  };
+  if (tx.type === TransactionTypes.Transfer && tx.toAccountId != null) {
+    const toCurrency = await currencyOf(tx.toAccountId);
+    const toAmount = transferToAmount(tx);
+    out.toAmount = toAmount;
+    out.toCurrency = toCurrency;
+    const quote =
+      currency && toCurrency && currency !== toCurrency
+        ? quoteTransferRate(tx.amount, currency, toAmount, toCurrency)
+        : null;
+    if (quote) out.effectiveRate = { rate: quote.rate, unit: `${quote.quote} per ${quote.base}` };
+  }
+  return out;
 }
 
 // Surfaces the current receipt-item count on every transaction response so a missing
@@ -173,8 +238,27 @@ const TransactionItemSchema = z
     currency: supportedCurrencySchema
       .optional()
       .describe(
-        'ISO 4217 currency code of the original amount when paying in a foreign currency (e.g. "EUR" when the account is USD). ' +
-          'Omit if the transaction is already in the account currency. The system handles conversion automatically.',
+        'Currency of `amount` when it differs from the account currency (e.g. "RON" paid from a EUR account, "USD" charged to an MDL card). ' +
+          'Omit when the amount is already in the account currency. The stored amount is always converted into the account currency; ' +
+          'the original amount, currency and rate are kept as metadata.',
+      ),
+    rate: z
+      .number()
+      .positive()
+      .optional()
+      .describe(
+        'Exchange rate applied by the bank/exchange office: 1 unit of `currency` = rate units of the account currency ' +
+          '(e.g. 17.4669 for "24 USD @ 17.4669" on an MDL account). Requires `currency`. ' +
+          'Omit to use the market rate for the transaction date.',
+      ),
+    toAmount: z
+      .number()
+      .positive()
+      .optional()
+      .describe(
+        'Transfers only: amount received by the destination account, in the destination account currency ' +
+          '(e.g. 300 when 6033.03 MDL buys 300 EUR). Required when the two accounts have different currencies, ' +
+          'unless `currency` equals the destination currency (then `amount` is what arrives). Omit for same-currency transfers.',
       ),
     date: z
       .string()
@@ -226,6 +310,22 @@ const TransactionItemSchema = z
         message: 'toAccountId can only be set for transfer transactions',
       });
     }
+
+    if (item.type !== TransactionTypes.Transfer && item.toAmount != null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['toAmount'],
+        message: 'toAmount can only be set for transfer transactions',
+      });
+    }
+
+    if (item.rate != null && item.currency == null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['rate'],
+        message: 'rate requires currency (the currency the rate converts from)',
+      });
+    }
   });
 
 export const AddTransactionsSchema = z.object({
@@ -258,6 +358,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
   if (!account) throw new HandledError(`Account ${input.accountId} not found`);
 
   const results: Array<Record<string, unknown>> = [];
+  const currencyOf = accountCurrencyLookup(userId, budget.id, [account]);
   let lastBalanceAfter: number | null = null;
   const categoryMonthsUsed = new Map<number, Set<string>>();
   let categoryTargetsById: Map<number, number | null> | null = null;
@@ -301,13 +402,6 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
       }
 
       const resolvedCategoryId = item.categoryId ?? null;
-
-      const duplicate = await checkDuplicateTransaction(userId, budget.id, {
-        accountId: input.accountId,
-        date,
-        amount: item.amount,
-        payeeId,
-      });
 
       const amountCurrency = item.currency?.toUpperCase();
 
@@ -376,7 +470,18 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         isCorrection: item.isCorrection ?? false,
         source: 'mcp',
         amountCurrency,
+        rate: item.rate,
+        toAmount: item.toAmount,
         extras: inferredExtras,
+      });
+
+      // Checked after insert so the comparison uses the stored (account-currency) amount.
+      const duplicate = await checkDuplicateTransaction(userId, budget.id, {
+        accountId: input.accountId,
+        date,
+        amount: tx.amount,
+        payeeId,
+        excludeTransactionId: tx.id,
       });
       if (labels.length > 0) {
         syncLabels(userId, budget.id, labels).catch(err => logger.warn('[finances] label sync failed:', err));
@@ -395,7 +500,8 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         index: i,
         transactionId: tx.id,
         date,
-        amount: item.amount,
+        ...(await describeMoney(budget.defaultCurrency, tx, currencyOf)),
+        balanceAfter: tx.fromAccountBalanceAfter,
         resolvedPayee: item.payeeName ?? null,
         ...withItemsHint(inferredExtras, item.type),
       };
@@ -429,6 +535,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
   const accountSummary = {
     id: account.id,
     name: account.name,
+    currency: account.currency,
     balance: displayBalance,
     availableAfter: getAccountAvailable({ type: account.type, balance: displayBalance, details: account.details }),
   };
@@ -484,7 +591,31 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
 export const UpdateTransactionSchema = z.object({
   transactionId: z.number().int().positive(),
   type: z.enum(TransactionTypes).optional(),
-  amount: z.number().positive().optional(),
+  amount: z
+    .number()
+    .positive()
+    .optional()
+    .describe('New amount, in `currency` when given, otherwise in the account currency.'),
+  currency: supportedCurrencySchema
+    .optional()
+    .describe(
+      'Currency of the amount when it differs from the account currency. When set without `amount`, the originally entered amount is re-read in this currency.',
+    ),
+  rate: z
+    .number()
+    .positive()
+    .optional()
+    .describe(
+      '1 unit of the entered currency = rate units of the account currency. Omit to keep the stored rate ' +
+        '(user-entered rates are always kept; market rates are re-looked-up when the date changes).',
+    ),
+  toAmount: z
+    .number()
+    .positive()
+    .optional()
+    .describe(
+      'Transfers only: amount received in the destination account currency. Required when the sent amount changes on a cross-currency transfer.',
+    ),
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -554,6 +685,9 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
   const updateData = omitUndefined({
     type: input.type,
     amount: input.amount,
+    amountCurrency: input.currency,
+    rate: input.rate,
+    toAmount: input.toAmount,
     date: input.date,
     accountId: input.accountId,
     toAccountId: toAccountIdForUpdate,
@@ -581,6 +715,11 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
   const responseData: Record<string, unknown> = {
     index: 0,
     transactionId: updated.id,
+    ...(await describeMoney(
+      budget.defaultCurrency,
+      updated,
+      accountCurrencyLookup(userId, budget.id, [resolvedAccount, toAccount]),
+    )),
     fromAccountBalanceAfter: fromDisplayBalance,
     fromAccountAvailableAfter: getAccountAvailable(resolvedAccount),
     resolvedAccount: resolvedAccount?.name ?? String(updated.accountId),
@@ -837,7 +976,10 @@ export const queryTransactionsTool: ToolHandler<typeof QueryTransactionsSchema> 
     return {
       id: tx.id,
       type: tx.type,
+      // In account.currency; reportingAmount is the frozen budget-currency value.
       amount: tx.amount,
+      reportingAmount: tx.reportingAmount,
+      ...(tx.toAmount != null && tx.toAccountCurrency !== tx.accountCurrency ? { toAmount: tx.toAmount } : {}),
       date: tx.date,
       notes: tx.notes,
       labels: tx.labels,

@@ -87,8 +87,6 @@ export const POST = route({ body: ImportRequestSchema, response: importBatchResp
       isCorrection: false,
       source: 'import',
       importBatchId: batchId,
-      fromAccountBalanceAfter: null,
-      toAccountBalanceAfter: null,
       extras: null,
     };
 

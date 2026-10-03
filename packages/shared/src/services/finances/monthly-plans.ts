@@ -14,10 +14,10 @@
  * - bulkAssignAll(userId, planId) — mark all unassigned items in the plan as assigned
  * - copyToNextMonth(userId, budgetId, month) — create next month's plan from current; amounts copied as-is; no-op if already exists
  * - doesItemMatchTransaction(item, transaction) — returns true if a plan item's linkedAccountId/categoryId matches a transaction
- * - syncTransactionWithPlan(userId, budgetId, before, after) — syncs plan items and availableAmount when a transaction is created, updated, or deleted
+ * - syncTransactionWithPlan(userId, budgetId, before, after) — syncs plan items (assignedAmount in each item's currency) and availableAmount (budget currency, from the frozen reportingAmount) when a transaction is created, updated, or deleted
  * Types: PlanItemInsert, PlanItemUpdate, MonthlyPlanFull, MonthlyPlanSummary, PlanItemWithMeta
  */
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db, DbOrTx, DbTx } from '../../db/client';
 import {
   financeBudgets,
@@ -30,7 +30,8 @@ import {
 import { arrayfy, logger, omitUndefined } from '../../utils';
 import { shiftMonthStr, toUTCDateStr } from '../../utils/dates';
 import { enforceBudgetAccess } from './budgets';
-import { getExchangeRate } from './exchangeRates';
+import { getExchangeRate, getExchangeRateQuote } from './exchangeRates';
+import { round4, transferToAmount } from './transaction-money';
 import type { FinanceMonthlyPlan, FinanceMonthlyPlanItem, FinanceTransaction } from '../../types';
 import { PromiseCacheX } from 'promise-cachex';
 import { TransactionTypes, type SupportedCurrency } from '../../constants/finances';
@@ -79,7 +80,16 @@ export interface MonthlyPlanFull {
 
 type AutoMatchTx = Pick<
   FinanceTransaction,
-  'id' | 'type' | 'accountId' | 'toAccountId' | 'categoryId' | 'amount' | 'date'
+  | 'id'
+  | 'type'
+  | 'accountId'
+  | 'toAccountId'
+  | 'categoryId'
+  | 'amount'
+  | 'toAmount'
+  | 'toExchangeRate'
+  | 'reportingAmount'
+  | 'date'
 >;
 
 /** Checks if the user has access to a specific plan item */
@@ -504,29 +514,66 @@ export function doesItemMatchTransaction(
   return categoryMatches;
 }
 
+/**
+ * The transaction's value in `currency`: the frozen reporting value for the budget currency, a
+ * native leg when one is already in that currency (received leg for transfers into a linked
+ * account, sent leg otherwise), else the reporting value converted at the transaction-date rate.
+ */
+async function transactionValueIn(
+  transaction: AutoMatchTx,
+  currency: string,
+  ctx: { budgetCurrency: string; fromCurrency: string | null; toCurrency: string | null },
+): Promise<number> {
+  if (currency === ctx.budgetCurrency) return transaction.reportingAmount;
+  if (transaction.type === TransactionTypes.Transfer && ctx.toCurrency === currency) {
+    return transferToAmount(transaction);
+  }
+  if (ctx.fromCurrency === currency) return transaction.amount;
+  const { rate } = await getExchangeRateQuote(ctx.budgetCurrency, currency, transaction.date, { maxAgeDays: Infinity });
+  return transaction.reportingAmount * rate;
+}
+
 async function applyDeltaInTx(
   tx: DbTx,
   userId: string,
   budgetId: number,
   transaction: AutoMatchTx,
-  amountDelta: number,
+  sign: 1 | -1,
 ): Promise<void> {
   const month = transaction.date.slice(0, 7);
   const plan = await getMonthlyPlan(userId, budgetId, month, tx);
   if (!plan) return;
+
+  const accountIds = [transaction.accountId, transaction.toAccountId].filter((id): id is number => id != null);
+  const [budgetCurrency, accountRows] = await Promise.all([
+    resolveBudgetCurrency(budgetId),
+    tx
+      .select({ id: financeAccounts.id, currency: financeAccounts.currency })
+      .from(financeAccounts)
+      .where(inArray(financeAccounts.id, accountIds)),
+  ]);
+  const currencyById = new Map(accountRows.map(a => [a.id, a.currency as string]));
+  const ctx = {
+    budgetCurrency,
+    fromCurrency: currencyById.get(transaction.accountId) ?? null,
+    toCurrency: transaction.toAccountId != null ? (currencyById.get(transaction.toAccountId) ?? null) : null,
+  };
 
   if (
     plan.incomeAccountId !== null &&
     ((transaction.type === TransactionTypes.Income && transaction.accountId === plan.incomeAccountId) ||
       (transaction.type === TransactionTypes.Transfer && transaction.toAccountId === plan.incomeAccountId))
   ) {
-    await updateMonthlyPlan(userId, budgetId, plan.id, { amountToAdd: amountDelta }, tx);
+    // availableAmount is kept in the budget currency.
+    await updateMonthlyPlan(userId, budgetId, plan.id, { amountToAdd: sign * transaction.reportingAmount }, tx);
   }
 
   const items = await tx.select().from(financeMonthlyPlanItems).where(eq(financeMonthlyPlanItems.planId, plan.id));
   for (const item of items) {
     if (!doesItemMatchTransaction(item, transaction)) continue;
-    await updatePlanItem(userId, item.id, { assignedAmount: item.assignedAmount + amountDelta }, tx);
+    // assignedAmount is kept in the item's own currency.
+    const value = await transactionValueIn(transaction, item.currency, ctx);
+    await updatePlanItem(userId, item.id, { assignedAmount: round4(item.assignedAmount + sign * value) }, tx);
   }
 }
 
@@ -551,12 +598,14 @@ export async function syncTransactionWithPlan(
     before.toAccountId === after.toAccountId &&
     before.categoryId === after.categoryId &&
     before.date === after.date &&
-    before.amount === after.amount
+    before.amount === after.amount &&
+    before.toAmount === after.toAmount &&
+    before.reportingAmount === after.reportingAmount
   )
     return;
 
   await db.transaction(async tx => {
-    if (before) await applyDeltaInTx(tx, userId, budgetId, before, -before.amount);
-    if (after) await applyDeltaInTx(tx, userId, budgetId, after, after.amount);
+    if (before) await applyDeltaInTx(tx, userId, budgetId, before, -1);
+    if (after) await applyDeltaInTx(tx, userId, budgetId, after, 1);
   });
 }

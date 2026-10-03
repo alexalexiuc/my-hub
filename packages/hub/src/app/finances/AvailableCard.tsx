@@ -5,10 +5,14 @@ import { apiFetch } from '@/lib/utils';
 import { Card, Pill, ProgressBar, SubText } from '@/components';
 import { fmt, fmtNum } from './ui';
 import { computePlannedExpenses, type PlannedExpensesTotals } from './finances.utils';
+import { ForeignBalanceLine } from './ForeignBalanceLine';
 import type { CategoriesResponse } from '@/app/api/finances/categories/route';
+import type { FinanceDashboardData } from '@/app/api/finances/dashboard/schema';
 
 type AvailableCardProps = {
   availableBalance: number;
+  /** Included accounts in another currency — already converted into availableBalance at the current rate. */
+  foreignBalances?: FinanceDashboardData['availableForeign'];
   currency: string;
   month: string;
 };
@@ -18,7 +22,7 @@ type AvailableCardProps = {
  * Expenses" card/sheet use and runs them through the shared `computePlannedExpenses` aggregation,
  * so the spent-toward-plan bar and spare/short badge here never drift from that screen's numbers.
  */
-export function AvailableCard({ availableBalance, currency, month }: AvailableCardProps) {
+export function AvailableCard({ availableBalance, foreignBalances = [], currency, month }: AvailableCardProps) {
   const [planned, setPlanned] = useState<PlannedExpensesTotals | null>(null);
 
   const load = useCallback(async () => {
@@ -47,6 +51,18 @@ export function AvailableCard({ availableBalance, currency, month }: AvailableCa
       <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">
         {fmt(availableBalance, currency)}
       </div>
+
+      {foreignBalances.length > 0 && (
+        <div className="mt-1 flex flex-col gap-0.5">
+          {foreignBalances.map(acc => (
+            <div key={acc.accountId} className="flex flex-wrap items-baseline gap-x-1.5 text-[11px]">
+              <span className="text-[var(--muted)]">{acc.name}</span>
+              <span className="font-semibold tabular-nums text-[var(--text)]">{fmt(acc.balance, acc.currency)}</span>
+              <ForeignBalanceLine value={acc} defaultCurrency={currency} className="inline text-[11px]" />
+            </div>
+          ))}
+        </div>
+      )}
 
       {totalPlanned > 0 && (
         <div className="mt-2.5">

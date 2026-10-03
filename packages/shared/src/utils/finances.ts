@@ -4,6 +4,7 @@
  * @exports getCurrencySymbol - Returns the display symbol for a currency code (e.g. 'USD' → '$').
  * @exports isPayeeRequired - Returns whether a transaction type should involve payee selection.
  * @exports formatCardLastFour - Formats a (possibly comma-separated) cardLastFour value for display.
+ * @exports quoteTransferRate - Effective rate of a cross-currency transfer as {rate, base, quote}, weaker-per-stronger.
  */
 
 import { TransactionTypes, type TransactionType } from '../constants/finances';
@@ -41,4 +42,22 @@ export function formatCardLastFour(cardLastFour: string): string {
     .split(',')
     .map(digits => `•••• ${digits.trim()}`)
     .join(', ');
+}
+
+/**
+ * Effective rate of a cross-currency transfer, quoted the way people read it: units of the weaker
+ * currency per one unit of the stronger (6033.03 MDL → 300 EUR gives 20.1101 MDL per EUR; 92 EUR →
+ * 100 USD gives 1.087 USD per EUR). Null when either side is missing or zero.
+ */
+export function quoteTransferRate(
+  sentAmount: number,
+  sentCurrency: string,
+  receivedAmount: number,
+  receivedCurrency: string,
+): { rate: number; base: string; quote: string } | null {
+  if (!(sentAmount > 0) || !(receivedAmount > 0)) return null;
+  const sentPerReceived = sentAmount / receivedAmount;
+  return sentPerReceived >= 1
+    ? { rate: Math.round(sentPerReceived * 10000) / 10000, base: receivedCurrency, quote: sentCurrency }
+    : { rate: Math.round((receivedAmount / sentAmount) * 10000) / 10000, base: sentCurrency, quote: receivedCurrency };
 }

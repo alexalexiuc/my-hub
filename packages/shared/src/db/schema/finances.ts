@@ -236,16 +236,22 @@ export const financeTransactions = pgTable(
     // Transfer destination — null for expense/income.
     toAccountId: integer('to_account_id').references(() => financeAccounts.id, { onDelete: 'restrict' }),
 
-    amount: numericCasted('amount', { precision: 18, scale: 4 }).notNull(), // in account currency
+    // Always in the source account's currency — the source of truth for balances.
+    amount: numericCasted('amount', { precision: 18, scale: 4 }).notNull(),
     // Reporting rate: source account currency → budget default currency. 1.0 if same.
-    // Used to convert amounts to a common currency for net-worth and cashflow reports.
-    // Never used to compute the credited amount for transfer destinations — use toExchangeRate for that.
+    // Kept consistent with reportingAmount (reportingAmount / amount); prefer reportingAmount for sums.
     exchangeRate: numericCasted('exchange_rate', { precision: 18, scale: 8 }).notNull().default(1),
-    // Transfer FX rate: source account currency → destination account currency.
-    // Only meaningful for Transfer transactions where the two accounts have different currencies.
-    // Null for expense/income transactions. 1.0 for same-currency transfers.
-    // toBalanceAfter = toAccount.balance + amount * toExchangeRate
+    // Transfer FX rate: source account currency → destination account currency (toAmount / amount).
+    // Derived and informational — the destination leg is toAmount. Null for expense/income.
     toExchangeRate: numericCasted('to_exchange_rate', { precision: 18, scale: 8 }),
+    // Transfers only: amount credited to the destination account, in the destination account's
+    // currency. Equal to amount for same-currency transfers. Null for expense/income.
+    toAmount: numericCasted('to_amount', { precision: 18, scale: 4 }),
+    // Value in the budget's default currency, frozen when the transaction's money fields are written
+    // (transaction-date rate) and never revalued. Every cross-account spending/cashflow/budget sum
+    // uses this column; it is never the source of truth for balances. Equals amount when the account
+    // is in the default currency.
+    reportingAmount: numericCasted('reporting_amount', { precision: 18, scale: 4 }).notNull(),
 
     date: date('date').notNull(), // YYYY-MM-DD, user-visible date
     categoryId: integer('category_id').references(() => financeCategories.id, { onDelete: 'set null' }),

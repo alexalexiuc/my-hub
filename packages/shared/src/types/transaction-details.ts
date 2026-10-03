@@ -2,6 +2,7 @@
 // Discriminated union — kind drives which shape is expected.
 // Use TransactionDetails as the root; extend for each entry type.
 // Use BaseTransactionDetails for types without a dedicated shape yet.
+import type { FxRateSource } from '../constants/finances';
 
 export interface TransactionConversionMeta {
   // User-entered amount before conversion (for example amount from receipt abroad).
@@ -14,6 +15,12 @@ export interface TransactionConversionMeta {
   originalToAccountRate?: number;
   // Final amount stored in ledger/account currency.
   convertedAmount?: number;
+  // 'user' when originalToAccountRate was entered by the user, 'market' when looked up.
+  // Absent on entries created before rate input existed (those were always market rates).
+  rateSource?: FxRateSource;
+  // YYYY-MM-DD of the market rate actually used (may precede the transaction date when the
+  // provider had not published that day yet). Absent for user-entered rates.
+  rateDate?: string;
 }
 
 export interface TransactionExtra {
