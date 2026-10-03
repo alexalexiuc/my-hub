@@ -6,6 +6,7 @@
  * - setActiveBudget(userId, budgetId) — deactivates all user memberships, activates the specified one
  * - getBudgetById(userId, budgetId) — single budget with access check, null if not found or no access
  * - getBudgetByIdSystem(budgetId) — system maintenance: single budget with no access check — worker use only, no auth
+ * - getBudgetDefaultCurrency(budgetId, tx?) — the budget's default currency (no auth; accepts a DB transaction handle)
  * - getBudgetMembers(userId, budgetId) — lists members (id, email, name, joinedAt) with access check
  * - updateBudget(userId, budgetId, data) — partial update; requires budget membership
  * - deleteBudget(userId, budgetId) — hard delete; requires budget membership; clears portfolio supply lines first (see below)
@@ -19,7 +20,8 @@
  */
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { PromiseCacheX } from 'promise-cachex';
-import { db } from '../../db/client';
+import { db, type DbOrTx } from '../../db/client';
+import type { SupportedCurrency } from '../../constants/finances';
 import {
   financeBudgets,
   financeBudgetMembers,
@@ -147,6 +149,19 @@ export async function getBudgetById(userId: string, budgetId: number): Promise<F
 export async function getBudgetByIdSystem(budgetId: number): Promise<FinanceBudget | null> {
   const [row] = await db.select().from(financeBudgets).where(eq(financeBudgets.id, budgetId));
   return row ?? null;
+}
+
+/**
+ * The budget's default (reporting) currency. No auth — callers have already checked access.
+ * Accepts a transaction handle so it can run inside an open DB transaction.
+ */
+export async function getBudgetDefaultCurrency(budgetId: number, tx: DbOrTx = db): Promise<SupportedCurrency> {
+  const [row] = await tx
+    .select({ defaultCurrency: financeBudgets.defaultCurrency })
+    .from(financeBudgets)
+    .where(eq(financeBudgets.id, budgetId));
+  if (!row) throw new Error('Budget not found');
+  return row.defaultCurrency;
 }
 
 export async function updateBudget(userId: string, budgetId: number, data: BudgetUpdate): Promise<FinanceBudget> {

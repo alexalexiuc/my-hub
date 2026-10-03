@@ -6,6 +6,7 @@ import {
   getUserActiveBudget,
   createAccount,
   updateAccount,
+  deleteAccount,
   getAccountById,
   addTransaction,
   addCorrectionTransaction,
@@ -29,7 +30,12 @@ export const UpsertAccountSchema = z.object({
     .describe(
       'Account type. Required when creating. One of: cash, bank, credit_card, investment, loan, borrowed_lent, tracking, goal.',
     ),
-  currency: supportedCurrencySchema.optional().describe('Supported currency code (e.g. EUR, USD, MDL).'),
+  currency: supportedCurrencySchema
+    .optional()
+    .describe(
+      'Supported currency code (e.g. EUR, USD, MDL). Balances and transactions of the account are kept in it. ' +
+        'Can only be changed while the account has no transactions.',
+    ),
   openingBalance: z
     .number()
     .optional()
@@ -187,17 +193,24 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
     const txType = input.openingBalance >= 0 ? 'income' : 'expense';
     const date = input.openingDate;
 
-    const tx = await addTransaction(userId, budget.id, {
-      type: txType,
-      amount,
-      date,
-      accountId: account.id,
-      categoryId: null,
-      payeeId: null,
-      notes: 'Initial Balance',
-      isCorrection: true,
-      source: 'mcp',
-    });
+    let tx;
+    try {
+      tx = await addTransaction(userId, budget.id, {
+        type: txType,
+        amount,
+        date,
+        accountId: account.id,
+        categoryId: null,
+        payeeId: null,
+        notes: 'Initial Balance',
+        isCorrection: true,
+        source: 'mcp',
+      });
+    } catch (err) {
+      // Don't leave a half-created account behind when its opening balance can't be recorded.
+      if (input.id === undefined) await deleteAccount(userId, budget.id, account.id);
+      throw err;
+    }
 
     openingTx = {
       transactionId: tx.id,
@@ -348,10 +361,14 @@ export const correctAccountBalanceTool: ToolHandler<typeof CorrectAccountBalance
 
   return toolResponse({
     transactionId: result.transaction.id,
+    currency: result.currency,
     correctionAmount: result.correctionAmount,
     type: result.type,
     targetBalance: input.targetBalance,
     balanceAfter: result.transaction.fromAccountBalanceAfter,
+    // Signed, in the budget currency at the correction-date rate.
+    correctionAmountInDefaultCurrency: result.correctionAmountInDefaultCurrency,
+    defaultCurrency: budget.defaultCurrency,
     date: input.date,
   });
 };

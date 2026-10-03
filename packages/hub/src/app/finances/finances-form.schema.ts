@@ -108,6 +108,8 @@ export const AddAccountSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   description: z.string(),
   type: z.string(),
+  // '' = the budget's default currency
+  currency: z.string(),
   openingBalance: z.string(),
   // Credit Card
   creditLimit: z.string(),
@@ -139,6 +141,7 @@ export const defaultAddAccountValues: AddAccountValues = {
   name: '',
   description: '',
   type: AccountTypes.Bank,
+  currency: '',
   openingBalance: '0',
   creditLimit: '',
   statementDay: '',
@@ -209,6 +212,7 @@ export function accountToEditValues(acc: {
   name: string;
   description?: string | null;
   type: string;
+  currency: string;
   creditLimit?: number;
   statementDay?: number;
   cardLastFour?: string;
@@ -227,6 +231,7 @@ export function accountToEditValues(acc: {
   return {
     name: acc.name,
     description: acc.description ?? '',
+    currency: acc.currency,
     creditLimit: String(acc.creditLimit ?? ''),
     statementDay: String(acc.statementDay ?? ''),
     cardLastFour: acc.cardLastFour ?? '',

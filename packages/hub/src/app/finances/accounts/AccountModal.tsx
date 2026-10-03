@@ -6,7 +6,7 @@ import type { UseFormRegister, Control } from 'react-hook-form';
 import { apiFetch } from '@/lib/utils';
 import type { AccountMutationResponse, AccountCreateData, AccountItem } from '@/app/api/finances/accounts/route';
 import { FinModalShell } from '../FinModalShell';
-import { Input, SubText } from '@/components';
+import { Input, Select, SubText } from '@/components';
 import { FinancialDropdown } from '../FinancialDropdown';
 import { FinFieldCard } from '../ui';
 import { AccountTypes, ACCOUNT_TYPE_DESCRIPTIONS, SupportedCurrency } from '@my-hub/shared/constants';
@@ -21,7 +21,11 @@ import {
   type EditAccountValues,
 } from '../finances-form.schema';
 import { ACCOUNT_TYPE_OPTIONS, DIRECTION_OPTIONS } from './accountOptions';
-import { finGhostInputClass as ghostInputClass, finDropdownInputClass as dropdownInputClass } from '../finances.utils';
+import {
+  CURRENCY_SELECT_OPTIONS,
+  finGhostInputClass as ghostInputClass,
+  finDropdownInputClass as dropdownInputClass,
+} from '../finances.utils';
 
 // ─── Shared type-specific field blocks ───────────────────────────────────────
 
@@ -255,7 +259,7 @@ function AddAccountForm({
         name: values.name,
         description: values.description.trim() || undefined,
         type: values.type,
-        currency: defaultCurrency,
+        currency: (values.currency || defaultCurrency) as SupportedCurrency,
         openingBalance:
           values.type === AccountTypes.Loan
             ? parseFloat(values.principal) || 0
@@ -302,6 +306,17 @@ function AddAccountForm({
               />
             )}
           />
+        </FinFieldCard>
+
+        <FinFieldCard label="Currency">
+          <Select
+            {...register('currency')}
+            options={CURRENCY_SELECT_OPTIONS}
+            aria-label="Account currency"
+            className="w-full border-none bg-transparent px-0 py-0.5 text-[13px]"
+          >
+            <option value="">{defaultCurrency} (budget currency)</option>
+          </Select>
         </FinFieldCard>
 
         {type && ACCOUNT_TYPE_DESCRIPTIONS[type as keyof typeof ACCOUNT_TYPE_DESCRIPTIONS] && (
@@ -358,6 +373,7 @@ function EditAccountForm({ acc, onClose, onDone }: { acc: AccountItem; onClose: 
         action: 'edit',
         name: values.name,
         description: values.description.trim() || null,
+        currency: values.currency,
         ...(details !== null ? { details } : {}),
       },
     });
@@ -386,6 +402,18 @@ function EditAccountForm({ acc, onClose, onDone }: { acc: AccountItem; onClose: 
             className={ghostInputClass}
           />
         </FinFieldCard>
+
+        <FinFieldCard label="Currency">
+          <Select
+            {...register('currency')}
+            options={CURRENCY_SELECT_OPTIONS}
+            aria-label="Account currency"
+            className="w-full border-none bg-transparent px-0 py-0.5 text-[13px]"
+          />
+        </FinFieldCard>
+        <SubText className="block -mt-0.5 leading-[1.5]">
+          Can only be changed while the account has no transactions.
+        </SubText>
 
         <TypeSpecificFields
           type={acc.type}

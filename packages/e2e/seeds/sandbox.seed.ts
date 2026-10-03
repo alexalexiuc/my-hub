@@ -401,6 +401,24 @@ export async function seedSandboxFixtures(monthsOfHistory = 21): Promise<{ budge
     notes: 'Holiday withdrawal',
   });
 
+  // A foreign-currency wallet funded by a cross-currency transfer: each leg in its own account's
+  // currency (460 EUR sent, 500 USD received). The reporting value is the EUR leg, so no FX lookup.
+  const usdCash = await createAccount(user.id, budget.id, {
+    name: 'USD Cash',
+    type: AccountTypes.Cash,
+    currency: 'USD',
+    balance: 0,
+  });
+  await addTransaction(user.id, budget.id, {
+    accountId: current.id,
+    type: TransactionTypes.Transfer,
+    amount: 460,
+    toAmount: 500,
+    date: `${thisMonth}-03`,
+    toAccountId: usdCash.id,
+    notes: 'Bought USD',
+  });
+
   await seedCaloriesFixtures(user.id);
   await seedVacationFixtures(user.id);
 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
-import { getAccounts, getTransactions, getUserActiveBudget } from '@my-hub/shared/services';
+import { getAccounts, getTransactions, transferToAmount, getUserActiveBudget } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import type { GoalAccountDetails } from '@my-hub/shared/constants';
 import { supportedCurrencySchema } from '../currency.schema';
@@ -49,7 +49,8 @@ export const GET = route({ response: goalsResponseSchema })(async ({ user }) => 
   const inflowByGoal = new Map<number, number>();
   for (const t of recentTxns) {
     if (t.toAccountId != null && goalIds.has(t.toAccountId)) {
-      inflowByGoal.set(t.toAccountId, (inflowByGoal.get(t.toAccountId) ?? 0) + t.amount);
+      // Received leg, in the goal account's own currency.
+      inflowByGoal.set(t.toAccountId, (inflowByGoal.get(t.toAccountId) ?? 0) + transferToAmount(t));
     }
   }
 

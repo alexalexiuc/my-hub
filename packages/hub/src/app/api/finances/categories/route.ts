@@ -103,12 +103,12 @@ export const GET = route({ query: CategoryQuerySchema, response: categoriesRespo
   const spentByCategory = new Map<number, number>();
   for (const t of expenseTxns) {
     if (t.categoryId != null) {
-      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.amount);
+      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.reportingAmount);
     }
   }
   for (const t of transferTxns) {
     if (t.categoryId != null) {
-      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.amount);
+      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.reportingAmount);
     }
   }
 

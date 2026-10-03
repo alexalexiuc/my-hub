@@ -278,19 +278,19 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
   // Compute totals
   const expenseTxns =
     breakdownType === TransactionTypes.Expense || summaryType === TransactionTypes.Expense ? breakdownTxns : [];
-  const totalExpenses = expenseTxns.reduce((s, t) => s + t.amount, 0);
+  const totalExpenses = expenseTxns.reduce((s, t) => s + t.reportingAmount, 0);
   const totalIncome =
     summaryType === TransactionTypes.Income
-      ? breakdownTxns.reduce((s, t) => s + t.amount, 0)
-      : incomeTxns.reduce((s, t) => s + t.amount, 0);
+      ? breakdownTxns.reduce((s, t) => s + t.reportingAmount, 0)
+      : incomeTxns.reduce((s, t) => s + t.reportingAmount, 0);
 
   const prevExpenseTxns =
     breakdownType === TransactionTypes.Expense || summaryType === TransactionTypes.Expense ? prevBreakdownTxns : [];
-  const prevTotalExpenses = prevExpenseTxns.reduce((s, t) => s + t.amount, 0);
+  const prevTotalExpenses = prevExpenseTxns.reduce((s, t) => s + t.reportingAmount, 0);
   const prevTotalIncome =
     summaryType === TransactionTypes.Income
-      ? prevBreakdownTxns.reduce((s, t) => s + t.amount, 0)
-      : prevIncomeTxns.reduce((s, t) => s + t.amount, 0);
+      ? prevBreakdownTxns.reduce((s, t) => s + t.reportingAmount, 0)
+      : prevIncomeTxns.reduce((s, t) => s + t.reportingAmount, 0);
 
   const summary = {
     totalExpenses,
@@ -317,16 +317,16 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
   >();
   for (const t of breakdownTxns) {
     if (t.categoryId == null) continue;
-    totalForPct += t.amount;
+    totalForPct += t.reportingAmount;
     const existing = categoryMap.get(t.categoryId);
     if (existing) {
-      existing.amount += t.amount;
+      existing.amount += t.reportingAmount;
     } else {
       categoryMap.set(t.categoryId, {
         name: t.categoryName ?? 'Unknown',
         color: t.categoryColor ?? null,
         icon: (t.categoryIcon as CategoryIcon | null) ?? null,
-        amount: t.amount,
+        amount: t.reportingAmount,
       });
     }
   }
@@ -334,7 +334,7 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
   const prevCategoryMap = new Map<number, number>();
   for (const t of prevBreakdownTxns) {
     if (t.categoryId == null) continue;
-    prevCategoryMap.set(t.categoryId, (prevCategoryMap.get(t.categoryId) ?? 0) + t.amount);
+    prevCategoryMap.set(t.categoryId, (prevCategoryMap.get(t.categoryId) ?? 0) + t.reportingAmount);
   }
   const categoryBreakdown = Array.from(categoryMap.entries())
     .sort((a, b) => b[1].amount - a[1].amount)
@@ -355,14 +355,14 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
   for (const t of breakdownTxns) {
     if (t.categoryId == null) continue;
     const key = categoryGroupName.get(t.categoryId) ?? 'Ungrouped';
-    groupMap.set(key, (groupMap.get(key) ?? 0) + t.amount);
+    groupMap.set(key, (groupMap.get(key) ?? 0) + t.reportingAmount);
   }
 
   const prevGroupMap = new Map<string, number>();
   for (const t of prevBreakdownTxns) {
     if (t.categoryId == null) continue;
     const key = categoryGroupName.get(t.categoryId) ?? 'Ungrouped';
-    prevGroupMap.set(key, (prevGroupMap.get(key) ?? 0) + t.amount);
+    prevGroupMap.set(key, (prevGroupMap.get(key) ?? 0) + t.reportingAmount);
   }
 
   const groupBreakdown = Array.from(groupMap.entries())
@@ -381,16 +381,16 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
     const existing = payeeMap.get(t.payeeId);
     if (existing) {
       existing.count++;
-      existing.total += t.amount;
+      existing.total += t.reportingAmount;
     } else {
-      payeeMap.set(t.payeeId, { name: t.payeeName ?? 'Unknown', count: 1, total: t.amount });
+      payeeMap.set(t.payeeId, { name: t.payeeName ?? 'Unknown', count: 1, total: t.reportingAmount });
     }
   }
 
   const prevPayeeMap = new Map<number, number>();
   for (const t of prevBreakdownTxns) {
     if (t.payeeId == null) continue;
-    prevPayeeMap.set(t.payeeId, (prevPayeeMap.get(t.payeeId) ?? 0) + t.amount);
+    prevPayeeMap.set(t.payeeId, (prevPayeeMap.get(t.payeeId) ?? 0) + t.reportingAmount);
   }
 
   const topPayees = Array.from(payeeMap.entries())
@@ -419,23 +419,23 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
     const currentDayMap = new Map<number, number>();
     for (const t of breakdownTxns) {
       const day = +t.date.slice(8, 10);
-      currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.amount);
+      currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.reportingAmount);
     }
     for (const t of transferTxns) {
       if (isLoanRepayment(t)) {
         const day = +t.date.slice(8, 10);
-        currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.amount);
+        currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.reportingAmount);
       }
     }
     const prevDayMap = new Map<number, number>();
     for (const t of prevBreakdownTxns) {
       const day = +t.date.slice(8, 10);
-      prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.amount);
+      prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.reportingAmount);
     }
     for (const t of prevTransferTxns) {
       if (isLoanRepayment(t)) {
         const day = +t.date.slice(8, 10);
-        prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.amount);
+        prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.reportingAmount);
       }
     }
 
@@ -453,12 +453,12 @@ export const GET = route({ query: QuerySchema, response: reportingResponseSchema
   let cashflowByMonth: { month: string; label: string; income: number; expense: number }[] | null = null;
   if (query.dateMode !== 'month') {
     const monthMap = new Map<string, { income: number; expense: number }>();
-    const addToMonthMap = (t: { date: string; amount: number; type: string }) => {
+    const addToMonthMap = (t: { date: string; reportingAmount: number; type: string }) => {
       const m = t.date.slice(0, 7);
       if (!monthMap.has(m)) monthMap.set(m, { income: 0, expense: 0 });
       const entry = monthMap.get(m)!;
-      if (t.type === TransactionTypes.Income) entry.income += t.amount;
-      else entry.expense += t.amount;
+      if (t.type === TransactionTypes.Income) entry.income += t.reportingAmount;
+      else entry.expense += t.reportingAmount;
     };
     for (const t of breakdownTxns) addToMonthMap(t);
     for (const t of incomeTxns) addToMonthMap(t);

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  formatFxRateLabel,
+  formatTransferRate,
   sortBudgets,
   sortBySpentDesc,
   sortTransactionsByDateDesc,
@@ -204,5 +206,26 @@ describe('getCategoryFallbackLetter', () => {
 
   it('returns ? for empty names', () => {
     expect(getCategoryFallbackLetter('')).toBe('?');
+  });
+});
+
+describe('formatTransferRate', () => {
+  it('quotes the effective rate as sent units per received unit when that is ≥ 1', () => {
+    expect(formatTransferRate(6033.03, 'MDL', 300, 'EUR')).toBe('20.1101 MDL/EUR');
+  });
+
+  it('flips the quote when the sent currency is the stronger one', () => {
+    expect(formatTransferRate(92, 'EUR', 100, 'USD')).toBe('1.0870 USD/EUR');
+  });
+
+  it('returns null when a side is missing or zero', () => {
+    expect(formatTransferRate(0, 'MDL', 300, 'EUR')).toBeNull();
+    expect(formatTransferRate(100, 'MDL', Number.NaN, 'EUR')).toBeNull();
+  });
+});
+
+describe('formatFxRateLabel', () => {
+  it('shows the rate with 4 decimals and the day it applies to', () => {
+    expect(formatFxRateLabel(20.11, '2026-10-03')).toBe('20.1100 · 03 Oct');
   });
 });

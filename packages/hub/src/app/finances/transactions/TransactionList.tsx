@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button, Divider, IconButton, Pill, SectionLabel, SubText, SwipeRow } from '@/components';
 import { PencilIcon, TrashIcon, InfoCircleIcon } from '@/components/icons';
 import { cn, apiFetch } from '@/lib/utils';
-import { fmt, CategoryIcon } from '../ui';
+import { CategoryIcon } from '../ui';
 import { categoryIconEmoji } from '../categoryIcons';
 import { TransactionTypes } from '@my-hub/shared/constants';
 import { formatTransactionDate } from '../finances.utils';
@@ -13,6 +13,7 @@ import { TransactionModal } from './TransactionModal';
 import { CorrectionEditModal } from './CorrectionEditModal';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { TransactionExtrasModal } from './TransactionExtrasModal';
+import { TransactionAmount } from './TransactionAmount';
 import type { TransactionDetails } from '@my-hub/shared/types';
 import type { TransactionListItem, TransactionsListResponse } from '@/app/api/finances/transactions/route';
 import type { TransactionType } from '@my-hub/shared/constants';
@@ -62,7 +63,6 @@ export function TransactionList({
   emptyMessage = 'No transactions yet',
 }: TransactionListProps) {
   const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
-  const [currency, setCurrency] = useState('EUR');
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
@@ -71,7 +71,7 @@ export function TransactionList({
   const [editCorrectionTx, setEditCorrectionTx] = useState<TransactionListItem | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [openRowId, setOpenRowId] = useState<number | null>(null);
-  const [extrasModal, setExtrasModal] = useState<TransactionDetails | null>(null);
+  const [extrasModal, setExtrasModal] = useState<{ extras: TransactionDetails; currency: string } | null>(null);
 
   const fetchPage = useCallback(
     async (reset: boolean, currentOffset: number) => {
@@ -97,7 +97,6 @@ export function TransactionList({
           },
           silentToast: true,
         });
-        setCurrency(result.currency);
         if (reset) {
           setTransactions(result.transactions);
           setOffset(result.transactions.length);
@@ -238,16 +237,22 @@ export function TransactionList({
                   </div>
 
                   <div className="shrink-0 text-right">
-                    <div className={cn('text-[13px] font-semibold tabular-nums leading-snug', amountColorClass)}>
-                      {fmt(tx.amount, currency)}
-                    </div>
+                    <TransactionAmount
+                      transaction={tx}
+                      className={cn('text-[13px] font-semibold tabular-nums leading-snug', amountColorClass)}
+                    />
                     <div className="flex items-center justify-end gap-1.5 mt-0.5">
                       {tx.extras && (
                         <IconButton
                           variant="ghost"
                           label="View transaction extras"
                           icon={<InfoCircleIcon className="size-3" />}
-                          onClick={() => setExtrasModal(tx.extras as unknown as TransactionDetails)}
+                          onClick={() =>
+                            setExtrasModal({
+                              extras: tx.extras as unknown as TransactionDetails,
+                              currency: tx.accountCurrency,
+                            })
+                          }
                           className="p-1 text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--accent)]"
                         />
                       )}
@@ -295,7 +300,12 @@ export function TransactionList({
                       variant="ghost"
                       label="View transaction extras"
                       icon={<InfoCircleIcon className="size-3" />}
-                      onClick={() => setExtrasModal(tx.extras as unknown as TransactionDetails)}
+                      onClick={() =>
+                        setExtrasModal({
+                          extras: tx.extras as unknown as TransactionDetails,
+                          currency: tx.accountCurrency,
+                        })
+                      }
                       className="p-1 text-[var(--muted)] hover:bg-[var(--card2)] hover:text-[var(--accent)]"
                     />
                   </>
@@ -307,9 +317,10 @@ export function TransactionList({
               </SubText>
 
               <div className="w-[120px] shrink-0 text-right">
-                <div className={cn('text-[13px] font-semibold tabular-nums', amountColorClass)}>
-                  {fmt(tx.amount, currency)}
-                </div>
+                <TransactionAmount
+                  transaction={tx}
+                  className={cn('text-[13px] font-semibold tabular-nums', amountColorClass)}
+                />
               </div>
 
               <div className="w-7 shrink-0 flex items-center justify-center">
@@ -365,7 +376,7 @@ export function TransactionList({
       {editCorrectionTx && (
         <CorrectionEditModal
           transaction={editCorrectionTx}
-          currency={currency}
+          currency={editCorrectionTx.accountCurrency}
           onClose={() => setEditCorrectionTx(null)}
           onSaved={() => {
             setEditCorrectionTx(null);
@@ -386,7 +397,11 @@ export function TransactionList({
       )}
 
       {extrasModal !== null && (
-        <TransactionExtrasModal extras={extrasModal} currency={currency} onClose={() => setExtrasModal(null)} />
+        <TransactionExtrasModal
+          extras={extrasModal.extras}
+          currency={extrasModal.currency}
+          onClose={() => setExtrasModal(null)}
+        />
       )}
     </>
   );

@@ -25,6 +25,7 @@ import { AccountTypes, TransactionTypes } from '../../constants/finances';
 import { currentDateString } from '../../utils';
 import { getAccountDetails, type FinanceAccount, type LoanAccountDetails } from '../../types';
 import { getTransactions } from './transactions';
+import { transferToAmount } from './transaction-money';
 
 export interface LoanAmortizationSummary {
   monthlyPayment: number;
@@ -352,7 +353,7 @@ export async function getLoanSummaryForAccount(
     .filter(txn => isLoanPaymentTransaction(account.id, txn) && txn.date <= today)
     .reduce((sum, txn) => {
       if (txn.type === TransactionTypes.Transfer && txn.toAccountId === account.id) {
-        return sum + txn.amount * (txn.toExchangeRate ?? 1);
+        return sum + transferToAmount(txn); // received leg, in the loan's currency
       }
       return sum + txn.amount;
     }, 0);

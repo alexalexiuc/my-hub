@@ -12,6 +12,7 @@ import { BorrowedLentDetails } from './BorrowedLentDetails';
 import { AccountsPageSkeleton } from './AccountsPageSkeleton';
 import { AvailableBalanceSheet } from './AvailableBalanceSheet';
 import { NetWorthSheet } from './NetWorthSheet';
+import { ForeignBalanceLine } from '../ForeignBalanceLine';
 import type { AccountItem, AccountsListData } from '@/app/api/finances/accounts/route';
 import { LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
@@ -27,10 +28,12 @@ function amountColor(balance: number, type: AccountType): string {
 
 function AccountCard({
   acc,
+  defaultCurrency,
   onSettle,
   onClick,
 }: {
   acc: AccountItem;
+  defaultCurrency: string;
   onSettle: (id: number) => void;
   onClick: () => void;
 }) {
@@ -52,13 +55,13 @@ function AccountCard({
             )}
           </div>
         </div>
-        <div
-          className={cn(
-            'text-base font-bold tabular-nums text-right shrink-0 ml-2',
-            amountColor(acc.balance, acc.type as AccountType),
+        <div className="shrink-0 ml-2 text-right">
+          <div className={cn('text-base font-bold tabular-nums', amountColor(acc.balance, acc.type as AccountType))}>
+            {fmt(acc.balance, acc.currency)}
+          </div>
+          {acc.defaultCurrencyValue && (
+            <ForeignBalanceLine value={acc.defaultCurrencyValue} defaultCurrency={defaultCurrency} />
           )}
-        >
-          {fmt(acc.balance, acc.currency)}
         </div>
       </div>
 
@@ -211,6 +214,7 @@ export default function AccountsPage() {
                   {i > 0 && <Divider />}
                   <AccountCard
                     acc={acc}
+                    defaultCurrency={currency}
                     onSettle={handleSettle}
                     onClick={() => router.push(`/finances/accounts/${acc.id}`)}
                   />
@@ -240,6 +244,7 @@ export default function AccountsPage() {
                 {i > 0 && <Divider />}
                 <AccountCard
                   acc={acc}
+                  defaultCurrency={currency}
                   onSettle={handleSettle}
                   onClick={() => router.push(`/finances/accounts/${acc.id}`)}
                 />
