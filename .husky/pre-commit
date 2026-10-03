@@ -1,7 +1,8 @@
 #!/bin/sh
 
-if command -v corepack >/dev/null 2>&1; then
-	corepack pnpm exec lint-staged
-else
+# Prefer pnpm: Corepack (<= 0.34) can't run pnpm 12, which no longer ships bin/pnpm.cjs.
+if command -v pnpm >/dev/null 2>&1; then
 	pnpm exec lint-staged
+else
+	corepack pnpm exec lint-staged
 fi

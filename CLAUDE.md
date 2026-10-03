@@ -17,6 +17,7 @@ This repository is a pnpm TypeScript monorepo. Keep changes small, explicit, and
   - `docker-compose.staging.yml` — **standalone** staging deployment; builds images from source, uses staging domains (`staging.mcp.alexiuc.dev`, `staging.hub.alexiuc.dev`) and a separate DB volume (`db_staging_data`). Connects to the same external `proxy` network. Usage: `docker compose --project-name my-hub-staging --env-file .env.staging -f infra/docker-compose.staging.yml up -d --build`.
 - `docker-bake.hcl` (repo root): how CI builds every image (`prod` group in `deploy.yml`, `staging` group in `e2e.yml`). Adding an image means adding a target here. Keep the service Dockerfiles (`hub`, `mcp-server`, `worker`, `e2e`) byte-identical from `FROM` through `RUN pnpm --filter @my-hub/shared build` — BuildKit then runs that install + shared build once for all images. Put image-specific steps (such as hub's placeholder `ENV` block) after it. Local single image: `docker buildx bake --load hub`.
 - `.github/workflows`: CI/CD only.
+- `.claude/hooks/session-start.sh`: SessionStart hook for Claude Code cloud sessions. It links pnpm 12's native binary over the placeholder bin and installs dependencies. If `turbo` reports `Exec format error (os error 8)` or `corepack pnpm` fails with `Cannot find module …/pnpm.cjs`, run `CLAUDE_CODE_REMOTE=true CLAUDE_PROJECT_DIR=$PWD .claude/hooks/session-start.sh`. Never skip the git hooks with `--no-verify` to get past it.
 
 ## Change order
 
