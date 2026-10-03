@@ -79,6 +79,7 @@ export type {
   ReceiptTransactionDetails,
   ReceiptLineItem,
   BaseTransactionDetails,
+  TransactionConversionMeta,
 } from './transaction-details';
 
 // Finances — table row types

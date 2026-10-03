@@ -1,7 +1,7 @@
 import type { BudgetInfo } from '@/app/api/finances/budget/budget.schema';
 import type { CategoryRow } from '@/app/api/finances/categories/route';
-import { dateToString } from '@my-hub/shared/utils';
-import { TransactionTypes } from '@my-hub/shared/constants';
+import { dateToString, quoteTransferRate } from '@my-hub/shared/utils';
+import { SupportedCurrencies, TransactionTypes } from '@my-hub/shared/constants';
 import type { TransactionType } from '@my-hub/shared/constants';
 
 /**
@@ -106,3 +106,30 @@ export function formatTransactionDate(dateStr: string): string {
   }
   return date.toLocaleDateString();
 }
+
+/**
+ * Short label for a current-rate conversion: "20.1101 · 03 Oct" — the rate (budget currency per
+ * one unit of the account currency, 4 decimals) and the day it applies to.
+ */
+export function formatFxRateLabel(rate: number, rateDate: string): string {
+  const day = new Date(`${rateDate}T00:00:00Z`).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+  return `${rate.toFixed(4)} · ${day}`;
+}
+
+/** Label for a transfer's effective rate, e.g. "20.1101 MDL/EUR" (see shared quoteTransferRate); null when unknown. */
+export function formatTransferRate(
+  sentAmount: number,
+  sentCurrency: string,
+  receivedAmount: number,
+  receivedCurrency: string,
+): string | null {
+  const q = quoteTransferRate(sentAmount, sentCurrency, receivedAmount, receivedCurrency);
+  return q ? `${q.rate.toFixed(4)} ${q.quote}/${q.base}` : null;
+}
+
+/** Supported currencies as `<Select>` options (value and label are the ISO code). */
+export const CURRENCY_SELECT_OPTIONS = SupportedCurrencies.map(c => ({ value: c, label: c }));

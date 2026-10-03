@@ -5,7 +5,7 @@ import {
   getCategories,
   getTransactions,
   getTransactionListItems,
-  getAvailableBalance,
+  getAvailableBalanceBreakdown,
   getUserActiveBudget,
   getUserBudgets,
   getBudgetProgress,
@@ -68,7 +68,7 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     incomeTxns,
     transferTxns,
     recentTxns,
-    availableBalance,
+    available,
     prevExpenseTxns,
     prevTransferTxns,
     budgetProgress,
@@ -95,7 +95,7 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
       limit: 2000,
     }),
     getTransactionListItems(user.id, budgetId, { limit: 5, fromDate: monthStart, toDate }),
-    getAvailableBalance(user.id, budgetId),
+    getAvailableBalanceBreakdown(user.id, budgetId),
     getTransactions(user.id, budgetId, {
       type: TransactionTypes.Expense,
       fromDate: prevMonthStart,
@@ -119,37 +119,37 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     t.categoryId != null && t.toAccountId != null && loanAccountIds.has(t.toAccountId);
 
   // Monthly totals
-  const monthlyExpense = expenseTxns.reduce((sum, t) => sum + t.amount, 0);
-  const monthlyIncome = incomeTxns.reduce((sum, t) => sum + t.amount, 0);
-  const monthlyTransfers = transferTxns.reduce((sum, t) => (isLoanRepayment(t) ? sum + t.amount : sum), 0);
+  const monthlyExpense = expenseTxns.reduce((sum, t) => sum + t.reportingAmount, 0);
+  const monthlyIncome = incomeTxns.reduce((sum, t) => sum + t.reportingAmount, 0);
+  const monthlyTransfers = transferTxns.reduce((sum, t) => (isLoanRepayment(t) ? sum + t.reportingAmount : sum), 0);
 
   // Single pass: category totals + daily map for current month
   const spentByCategory = new Map<number, number>();
   const currentDayMap = new Map<number, number>();
   for (const t of expenseTxns) {
     if (t.categoryId != null) {
-      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.amount);
+      spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.reportingAmount);
     }
     const day = +t.date.slice(8, 10);
-    currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.amount);
+    currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.reportingAmount);
   }
   for (const t of transferTxns) {
     if (isLoanRepayment(t)) {
-      spentByCategory.set(t.categoryId!, (spentByCategory.get(t.categoryId!) ?? 0) + t.amount);
+      spentByCategory.set(t.categoryId!, (spentByCategory.get(t.categoryId!) ?? 0) + t.reportingAmount);
       const day = +t.date.slice(8, 10);
-      currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.amount);
+      currentDayMap.set(day, (currentDayMap.get(day) ?? 0) + t.reportingAmount);
     }
   }
 
   const prevDayMap = new Map<number, number>();
   for (const t of prevExpenseTxns) {
     const day = +t.date.slice(8, 10);
-    prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.amount);
+    prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.reportingAmount);
   }
   for (const t of prevTransferTxns) {
     if (isLoanRepayment(t)) {
       const day = +t.date.slice(8, 10);
-      prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.amount);
+      prevDayMap.set(day, (prevDayMap.get(day) ?? 0) + t.reportingAmount);
     }
   }
 
@@ -254,7 +254,18 @@ export const GET = route({ query: DashboardQuerySchema, response: dashboardRespo
     budgetName: budget.name,
     currency,
     amountsHidden: budget.amountsHidden,
-    availableBalance,
+    availableBalance: available.total,
+    availableForeign: available.accounts
+      .filter(a => a.currency !== currency)
+      .map(a => ({
+        accountId: a.accountId,
+        name: a.name,
+        currency: a.currency as typeof currency,
+        balance: a.balance,
+        balanceInDefaultCurrency: a.balanceInDefaultCurrency,
+        rate: a.rate,
+        rateDate: a.rateDate,
+      })),
     monthlyIncome,
     monthlyExpense,
     monthlyTransfers,

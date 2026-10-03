@@ -1,17 +1,22 @@
 /**
  * Finance reporting queries (read-only aggregations for MCP reporting tools)
+ * Currency rule: every cross-account money sum (budget progress, cashflow, spending, payees, aggregates,
+ * comparison, category spending, savings/debt flows) uses the transaction's frozen reportingAmount, so it is
+ * in the budget's default currency and never moves with exchange rates. Per-account figures (getAccountsCashflow,
+ * getAccountFlows, getMonthlyAccountFlows) stay in each account's own currency (transfers in use toAmount).
+ * Net worth converts current balances at today's rate and reports that rate and its date per account.
  * - getBudgetProgress(userId, budgetId, month?) — category spending vs monthly target
  * - getCashflowSummary(userId, budgetId, dateFrom, dateTo) — income vs expenses by period
  * - getSpendingByPayee(userId, budgetId, dateFrom, dateTo, limit?, categoryId?) — aggregated spend per payee, optional category filter
  * - getSpendingAggregates(userId, budgetId, opts) — flexible groupBy aggregation
  * - getComparison(userId, budgetId, opts) — side-by-side period comparison with absolute and percentage delta
- * - getAccountsCashflow(userId, budgetId, dateFrom, dateTo, accountIds?) — per-account income vs spending (expenses + categorized transfers into Loan accounts) for a date range
+ * - getAccountsCashflow(userId, budgetId, dateFrom, dateTo, accountIds?) — per-account income vs spending (expenses + categorized transfers into Loan accounts) for a date range, in each account's own currency
  * - getSavingsAndDebtFlows(userId, budgetId, dateFrom, dateTo) — net transfers (in minus out) into Goal/Tracking (savings), Investment, and Loan (debt repayment) accounts for a date range
  * - getAccountFlows(userId, budgetId, dateFrom, dateTo, accountId?) — per-account opening/closing balance + inflows/outflows/net delta for a date range, with a reconciliation flag
  * - getMonthlyAccountFlows(userId, budgetId, monthFrom, monthTo) — per-account inflows/outflows/net for every calendar month in a window, zero-filled, in each account's own currency
  * - getCategorySpending(userId, budgetId, dateFrom, dateTo) — expense totals per category for a date range, with each category's icon/colour, highest spend first
  * - getSavingsContributions(userId, budgetId, dateFrom, dateTo) — net transfers in/out of Goal/Tracking/Investment accounts, per account (as MoneyAmount pairs: original account currency + budget-default-currency converted) + combined total, plus the same metric for the immediately preceding period of equal length
- * - getNetWorthSummary(userId, budgetId) — current net worth with account breakdown and history
+ * - getNetWorthSummary(userId, budgetId) — current net worth with account breakdown (native balance + default-currency value + rate + rateDate) and history
  * Types: BudgetProgressResult, CashflowSummaryResult, SpendingByPayeeResult, SpendingAggregatesResult, ComparisonResult, ComparisonGroup, AccountCashflowResult, SavingsAndDebtFlowsResult, AccountFlow, AccountFlowsResult, AccountMonthFlow, MonthlyAccountFlow, MonthlyAccountFlowsResult, MoneyAmount, AccountContribution, SavingsContributionsResult, NetWorthSummaryResult, AccountNetWorth (includes optional loanSummary for loan accounts)
  */
 import { and, eq, gte, inArray, lte, sql } from 'drizzle-orm';
@@ -27,8 +32,8 @@ import {
 import type { AccountType, CategoryIcon, TransactionType } from '../../constants/finances';
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
 import { hasAccessToBudget, getBudgetByIdSystem } from './budgets';
-import { getLedgerBalances } from './accounts';
-import { getExchangeRate } from './exchangeRates';
+import { convertBalanceToDefaultCurrency, getLedgerBalances } from './accounts';
+import { transferToAmountSql } from './transaction-money';
 import { getLoanBalanceSnapshotForAccount, getLoanSummaryForAccount, type LoanSummary } from './loan-amortization';
 import {
   currentDateString,
@@ -88,7 +93,7 @@ export async function getBudgetProgress(
   const spendingRows = await db
     .select({
       categoryId: financeTransactions.categoryId,
-      total: sql<string>`sum(${financeTransactions.amount})`,
+      total: sql<string>`sum(${financeTransactions.reportingAmount})`,
     })
     .from(financeTransactions)
     .where(
@@ -177,7 +182,7 @@ export async function getCashflowSummary(
     .select({
       type: financeTransactions.type,
       month: sql<string>`to_char(${financeTransactions.date}::date, 'YYYY-MM')`,
-      total: sql<string>`sum(${financeTransactions.amount})`,
+      total: sql<string>`sum(${financeTransactions.reportingAmount})`,
     })
     .from(financeTransactions)
     .where(
@@ -357,7 +362,7 @@ export async function getSavingsAndDebtFlows(
   const inflowRows = await db
     .select({
       accountType: financeAccounts.type,
-      total: sql<string>`sum(${financeTransactions.amount} * ${financeTransactions.exchangeRate})`,
+      total: sql<string>`sum(${financeTransactions.reportingAmount})`,
     })
     .from(financeTransactions)
     .innerJoin(financeAccounts, eq(financeAccounts.id, financeTransactions.toAccountId))
@@ -368,7 +373,7 @@ export async function getSavingsAndDebtFlows(
   const outflowRows = await db
     .select({
       accountType: financeAccounts.type,
-      total: sql<string>`sum(${financeTransactions.amount} * ${financeTransactions.exchangeRate})`,
+      total: sql<string>`sum(${financeTransactions.reportingAmount})`,
     })
     .from(financeTransactions)
     .innerJoin(financeAccounts, eq(financeAccounts.id, financeTransactions.accountId))
@@ -478,7 +483,7 @@ export async function getAccountFlows(
     db
       .select({
         accountId: financeTransactions.toAccountId,
-        total: sql<string>`sum(${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1))`,
+        total: sql<string>`sum(${transferToAmountSql})`,
       })
       .from(financeTransactions)
       .where(
@@ -570,7 +575,7 @@ export interface MonthlyAccountFlowsResult {
  * definition the account detail page shows for the current month (`getAccountFlows`), repeated
  * per month so a trend is visible: inflows are income plus transfers in, outflows are expenses
  * plus transfers out, corrections excluded. Transfers in are converted with the transaction's
- * stored `toExchangeRate`, so every figure is in the account's own currency.
+ * stored `toAmount` (destination leg), so every figure is in the account's own currency.
  *
  * Archived accounts are excluded, matching `getAccountFlows`. Months with no activity are
  * returned as zero rows so callers can render a fixed set of columns without gap-filling.
@@ -629,7 +634,7 @@ export async function getMonthlyAccountFlows(
       .select({
         accountId: financeTransactions.toAccountId,
         month: monthExpr,
-        total: sql<string>`sum(${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1))`,
+        total: sql<string>`sum(${transferToAmountSql})`,
       })
       .from(financeTransactions)
       .where(
@@ -733,7 +738,7 @@ export async function getCategorySpending(
       name: financeCategories.name,
       color: financeCategories.color,
       icon: financeCategories.icon,
-      total: sql<string>`sum(${financeTransactions.amount})`,
+      total: sql<string>`sum(${financeTransactions.reportingAmount})`,
       transactionCount: sql<number>`count(*)::int`,
     })
     .from(financeTransactions)
@@ -820,15 +825,20 @@ async function getSavingsContributionsForRange(
     name: financeAccounts.name,
     type: financeAccounts.type,
     currency: financeAccounts.currency,
-    // Raw, in the account's own currency.
+    // In the tracked account's own currency: the sent leg when money leaves it.
     totalOriginal: sql<string>`sum(${financeTransactions.amount})`,
-    // exchangeRate is "source currency -> budget default currency", so this is already converted.
-    totalConverted: sql<string>`sum(${financeTransactions.amount} * ${financeTransactions.exchangeRate})`,
+    // Frozen budget-default-currency value of the transfer.
+    totalConverted: sql<string>`sum(${financeTransactions.reportingAmount})`,
+  };
+  // Money arriving in the tracked account is measured by the received leg (its own currency).
+  const inflowCols = {
+    ...selectCols,
+    totalOriginal: sql<string>`sum(${transferToAmountSql})`,
   };
 
   const [inflowRows, outflowRows] = await Promise.all([
     db
-      .select(selectCols)
+      .select(inflowCols)
       .from(financeTransactions)
       .innerJoin(financeAccounts, eq(financeAccounts.id, financeTransactions.toAccountId))
       .where(and(...baseConditions, inArray(financeAccounts.type, SAVINGS_TRACKED_TYPES)))
@@ -974,13 +984,13 @@ export async function getSpendingByPayee(
       payeeId: financeTransactions.payeeId,
       name: financePayees.name,
       count: sql<number>`count(*)::int`,
-      total: sql<string>`sum(${financeTransactions.amount})`,
+      total: sql<string>`sum(${financeTransactions.reportingAmount})`,
     })
     .from(financeTransactions)
     .leftJoin(financePayees, eq(financePayees.id, financeTransactions.payeeId))
     .where(and(...conditions))
     .groupBy(financeTransactions.payeeId, financePayees.name)
-    .orderBy(sql`sum(${financeTransactions.amount}) desc`)
+    .orderBy(sql`sum(${financeTransactions.reportingAmount}) desc`)
     .limit(limit);
 
   return {
@@ -1057,13 +1067,13 @@ export async function getSpendingAggregates(
         id: financeTransactions.categoryId,
         name: financeCategories.name,
         count: sql<number>`count(*)::int`,
-        total: sql<string>`sum(${financeTransactions.amount})`,
+        total: sql<string>`sum(${financeTransactions.reportingAmount})`,
       })
       .from(financeTransactions)
       .leftJoin(financeCategories, eq(financeCategories.id, financeTransactions.categoryId))
       .where(and(...conditions))
       .groupBy(financeTransactions.categoryId, financeCategories.name)
-      .orderBy(sql`sum(${financeTransactions.amount}) desc`);
+      .orderBy(sql`sum(${financeTransactions.reportingAmount}) desc`);
 
     groups = rows.map(r => {
       const total = parseFloat(r.total ?? '0');
@@ -1081,13 +1091,13 @@ export async function getSpendingAggregates(
         id: financeTransactions.payeeId,
         name: financePayees.name,
         count: sql<number>`count(*)::int`,
-        total: sql<string>`sum(${financeTransactions.amount})`,
+        total: sql<string>`sum(${financeTransactions.reportingAmount})`,
       })
       .from(financeTransactions)
       .leftJoin(financePayees, eq(financePayees.id, financeTransactions.payeeId))
       .where(and(...conditions))
       .groupBy(financeTransactions.payeeId, financePayees.name)
-      .orderBy(sql`sum(${financeTransactions.amount}) desc`);
+      .orderBy(sql`sum(${financeTransactions.reportingAmount}) desc`);
 
     groups = rows.map(r => {
       const total = parseFloat(r.total ?? '0');
@@ -1105,13 +1115,13 @@ export async function getSpendingAggregates(
         id: financeTransactions.accountId,
         name: financeAccounts.name,
         count: sql<number>`count(*)::int`,
-        total: sql<string>`sum(${financeTransactions.amount})`,
+        total: sql<string>`sum(${financeTransactions.reportingAmount})`,
       })
       .from(financeTransactions)
       .leftJoin(financeAccounts, eq(financeAccounts.id, financeTransactions.accountId))
       .where(and(...conditions))
       .groupBy(financeTransactions.accountId, financeAccounts.name)
-      .orderBy(sql`sum(${financeTransactions.amount}) desc`);
+      .orderBy(sql`sum(${financeTransactions.reportingAmount}) desc`);
 
     groups = rows.map(r => {
       const total = parseFloat(r.total ?? '0');
@@ -1128,7 +1138,7 @@ export async function getSpendingAggregates(
       .select({
         month: sql<string>`to_char(${financeTransactions.date}::date, 'YYYY-MM')`,
         count: sql<number>`count(*)::int`,
-        total: sql<string>`sum(${financeTransactions.amount})`,
+        total: sql<string>`sum(${financeTransactions.reportingAmount})`,
       })
       .from(financeTransactions)
       .where(and(...conditions))
@@ -1150,12 +1160,12 @@ export async function getSpendingAggregates(
       .select({
         type: financeTransactions.type,
         count: sql<number>`count(*)::int`,
-        total: sql<string>`sum(${financeTransactions.amount})`,
+        total: sql<string>`sum(${financeTransactions.reportingAmount})`,
       })
       .from(financeTransactions)
       .where(and(...conditions))
       .groupBy(financeTransactions.type)
-      .orderBy(sql`sum(${financeTransactions.amount}) desc`);
+      .orderBy(sql`sum(${financeTransactions.reportingAmount}) desc`);
 
     groups = rows.map(r => {
       const total = parseFloat(r.total ?? '0');
@@ -1288,9 +1298,15 @@ export async function getComparison(userId: string, budgetId: number, opts: Comp
 export interface AccountNetWorth {
   id: number;
   name: string;
+  /** In the account's own currency. */
   balance: number;
   currency: string;
+  /** balance × rate — a current-rate reporting view, never stored on transactions. 0 when no rate is known (see rate). */
   balanceInDefaultCurrency: number;
+  /** Budget default currency per one unit of the account currency (1 for default-currency accounts); null when no rate is known. */
+  rate: number | null;
+  /** YYYY-MM-DD the rate applies to. */
+  rateDate: string | null;
   loanSummary?: LoanSummary;
 }
 
@@ -1360,8 +1376,12 @@ async function computeNetWorthSummary(userId: string, budgetId: number): Promise
         loanSummary = summary;
       }
     }
-    const rate = await getExchangeRate(acct.currency, budget.defaultCurrency, today);
-    const balanceDefault = balance * rate;
+    const conversion = await convertBalanceToDefaultCurrency(balance, acct.currency, budget.defaultCurrency, {
+      accountId: acct.id,
+      today,
+    });
+    const { rate, rateDate } = conversion;
+    const balanceDefault = conversion.balanceInDefaultCurrency ?? 0; // no rate known → left out of totals
 
     const entry: AccountNetWorth = {
       id: acct.id,
@@ -1369,6 +1389,8 @@ async function computeNetWorthSummary(userId: string, budgetId: number): Promise
       balance,
       currency: acct.currency,
       balanceInDefaultCurrency: balanceDefault,
+      rate,
+      rateDate,
       ...(loanSummary ? { loanSummary } : {}),
     };
 

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { parseApiRate, getExchangeRate } from './exchangeRates';
+import { parseApiRate, getExchangeRate, getExchangeRateQuote } from './exchangeRates';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -140,5 +140,65 @@ describe('getExchangeRate', () => {
     const rate = await getExchangeRate('AUD', 'CAD', '2024-11-01');
 
     expect(rate).toBe(1);
+  });
+});
+
+// ─── getExchangeRateQuote ─────────────────────────────────────────────────────
+
+describe('getExchangeRateQuote', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockInsert();
+  });
+
+  it('returns 1 for the same currency without touching the DB', async () => {
+    await expect(getExchangeRateQuote('EUR', 'eur', '2026-10-01')).resolves.toEqual({
+      rate: 1,
+      rateDate: '2026-10-01',
+    });
+    expect(db.select).not.toHaveBeenCalled();
+  });
+
+  it('returns the exact cached rate with the requested date', async () => {
+    (vi.mocked(db) as any).select.mockReturnValueOnce(makeSelectChain([{ rate: 20.11 }]));
+    await expect(getExchangeRateQuote('EUR', 'MDL', '2026-10-02')).resolves.toEqual({
+      rate: 20.11,
+      rateDate: '2026-10-02',
+    });
+  });
+
+  it('falls back to the nearest cached rate within 7 days and reports its date', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+    (vi.mocked(db) as any).select
+      .mockReturnValueOnce(makeSelectChain([])) // exact miss
+      .mockReturnValueOnce(makeSelectChain([{ rate: 20.05, date: '2026-09-30' }])); // nearest
+    await expect(getExchangeRateQuote('EUR', 'MDL', '2026-10-03')).resolves.toEqual({
+      rate: 20.05,
+      rateDate: '2026-09-30',
+    });
+    vi.unstubAllGlobals();
+  });
+
+  it('throws instead of returning 1.0 when no rate is close enough', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+    (vi.mocked(db) as any).select
+      .mockReturnValueOnce(makeSelectChain([]))
+      .mockReturnValueOnce(makeSelectChain([{ rate: 19.5, date: '2026-01-10' }]));
+    await expect(getExchangeRateQuote('EUR', 'MDL', '2026-10-04')).rejects.toThrow(
+      'No EUR→MDL exchange rate available for 2026-10-04',
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it('accepts an old rate when maxAgeDays allows it (display conversions)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+    (vi.mocked(db) as any).select
+      .mockReturnValueOnce(makeSelectChain([]))
+      .mockReturnValueOnce(makeSelectChain([{ rate: 19.5, date: '2026-01-10' }]));
+    await expect(getExchangeRateQuote('EUR', 'MDL', '2026-10-05', { maxAgeDays: Infinity })).resolves.toEqual({
+      rate: 19.5,
+      rateDate: '2026-01-10',
+    });
+    vi.unstubAllGlobals();
   });
 });

@@ -262,8 +262,8 @@ export async function getPayeeSummary(userId: string, budgetId: number, payeeId:
       .select({
         txCount: sql<number>`count(*)::int`,
         expenseCount: sql<number>`count(*) filter (where ${financeTransactions.type} = ${TransactionTypes.Expense})::int`,
-        totalSpent: sql<string>`coalesce(sum(${financeTransactions.amount}) filter (where ${financeTransactions.type} = ${TransactionTypes.Expense}), 0)`,
-        totalIncome: sql<string>`coalesce(sum(${financeTransactions.amount}) filter (where ${financeTransactions.type} = ${TransactionTypes.Income}), 0)`,
+        totalSpent: sql<string>`coalesce(sum(${financeTransactions.reportingAmount}) filter (where ${financeTransactions.type} = ${TransactionTypes.Expense}), 0)`,
+        totalIncome: sql<string>`coalesce(sum(${financeTransactions.reportingAmount}) filter (where ${financeTransactions.type} = ${TransactionTypes.Income}), 0)`,
         firstDate: sql<string | null>`min(${financeTransactions.date})`,
         lastDate: sql<string | null>`max(${financeTransactions.date})`,
       })

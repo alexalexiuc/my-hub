@@ -11,6 +11,7 @@ import {
   getUserActiveBudget,
   getLoanCardBalance,
   getAccountsCashflow,
+  convertBalanceToDefaultCurrency,
 } from '@my-hub/shared/services';
 import {
   AccountTypes,
@@ -31,6 +32,7 @@ import type {
 } from '@my-hub/shared/types';
 import { monthToDateRange, dateToString } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../currency.schema';
+import { balanceConversionSchema } from '../money.schema';
 
 export const accountDetailsSchema = z.discriminatedUnion('type', [
   z.object({
@@ -75,7 +77,10 @@ export const accountItemSchema = z
     description: z.string().nullable().optional(),
     type: z.enum(AccountTypes),
     currency: supportedCurrencySchema,
+    /** In the account's own currency. */
     balance: z.number(),
+    /** Only for accounts not in the budget currency: balance at the current rate, with that rate and its date. */
+    defaultCurrencyValue: balanceConversionSchema.optional(),
     archived: z.boolean(),
     creditLimit: z.number().optional(),
     statementDay: z.number().optional(),
@@ -214,11 +219,21 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
         const bal = loanCard ? loanCard.balance : account.balance;
         const isOtherLiability = !isLoan && LIABILITY_TYPES.has(account.type);
         const includedInAvailable = isIncludedInAvailable(account.type, prefs.get(account.id) ?? null);
+        const isForeign = account.currency !== budget.defaultCurrency;
+        // Totals are in the budget currency: foreign balances are converted at the current rate.
+        const conversion =
+          isForeign && !account.archived
+            ? await convertBalanceToDefaultCurrency(bal, account.currency, budget.defaultCurrency, {
+                accountId: account.id,
+              })
+            : null;
+        // No rate known at all → left out of the totals (the row still shows its native balance).
+        const balDefault = conversion ? (conversion.balanceInDefaultCurrency ?? 0) : bal;
         if (!account.archived) {
           // Loans: positive remaining principal must be subtracted from net worth (it's a liability).
           // Other liabilities and assets keep the existing sign convention.
-          netWorth += isLoan || isOtherLiability ? -bal : bal;
-          if (includedInAvailable) availableBalance += isLoan || isOtherLiability ? -bal : bal;
+          netWorth += isLoan || isOtherLiability ? -balDefault : balDefault;
+          if (includedInAvailable) availableBalance += isLoan || isOtherLiability ? -balDefault : balDefault;
         }
         return {
           id: account.id,
@@ -227,6 +242,11 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
           type: account.type,
           currency: account.currency,
           balance: bal,
+          ...(conversion
+            ? {
+                defaultCurrencyValue: conversion,
+              }
+            : {}),
           archived: account.archived,
           includedInAvailable,
           showOnWidget: account.showOnWidget,
@@ -286,14 +306,11 @@ export const POST = route({ body: accountCreateSchema, response: accountMutation
       accountId: account.id,
       toAccountId: null,
       amount: Math.abs(openingBal),
-      exchangeRate: 1,
       date: new Date().toISOString().slice(0, 10),
       categoryId: null,
       payeeId: null,
       notes: 'Initial Balance',
       isCorrection: true,
-      fromAccountBalanceAfter: null,
-      toAccountBalanceAfter: null,
       extras: null,
     });
   }

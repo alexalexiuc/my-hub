@@ -1,13 +1,20 @@
 import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
-import { getUserActiveBudget, getAccounts, getNetWorthHistory } from '@my-hub/shared/services';
+import {
+  getUserActiveBudget,
+  getAccounts,
+  getNetWorthHistory,
+  convertBalanceToDefaultCurrency,
+} from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import { supportedCurrencySchema } from '../currency.schema';
+import { balanceConversionSchema } from '../money.schema';
 
-export const netWorthItemSchema = z.object({
+export const netWorthItemSchema = balanceConversionSchema.extend({
   id: z.number().int(),
   name: z.string(),
   type: z.enum(AccountTypes),
+  /** In the account's own currency. */
   balance: z.number(),
   currency: supportedCurrencySchema,
 });
@@ -53,12 +60,24 @@ export const GET = route({ response: netWorthResponseSchema })(async ({ user }) 
     // Loans store a negative balance (-remaining principal). Take absolute value so
     // totalLiabilities and the breakdown item show the conventional positive debt amount.
     const balance = account.type === AccountTypes.Loan ? Math.abs(account.balance) : account.balance;
-    const item = { id: account.id, name: account.name, type: account.type, balance, currency: account.currency };
+    // Totals are in the budget currency: a current-rate view that never touches cashflow/spending.
+    const conversion = await convertBalanceToDefaultCurrency(balance, account.currency, budget.defaultCurrency, {
+      accountId: account.id,
+    });
+    const valueInDefault = conversion.balanceInDefaultCurrency ?? 0; // no rate known → left out of totals
+    const item = {
+      id: account.id,
+      name: account.name,
+      type: account.type,
+      balance,
+      currency: account.currency,
+      ...conversion,
+    };
     if (LIABILITY_TYPES.has(account.type)) {
-      totalLiabilities += balance;
+      totalLiabilities += valueInDefault;
       liabilities.push(item);
     } else {
-      totalAssets += balance;
+      totalAssets += valueInDefault;
       assets.push(item);
     }
   }
