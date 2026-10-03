@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { z } from 'zod';
+import { UserInputError } from '@my-hub/shared/utils';
 import { route } from './route';
 
 const { mockGetAuthUser, mockWriteApiLog } = vi.hoisted(() => ({
@@ -47,6 +48,18 @@ describe('route()', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true, isAnonymous: true });
+  });
+
+  it('answers a UserInputError with a 400 carrying its message', async () => {
+    mockGetAuthUser.mockResolvedValue({ id: 'u1', name: 'U', email: 'u@test.local' });
+
+    const handler = route(async () => {
+      throw new UserInputError('No vacation profile yet.');
+    });
+    const response = await handler(new Request('https://hub.local/api/thing'));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: 'No vacation profile yet.' });
   });
 
   describe('empty request bodies', () => {

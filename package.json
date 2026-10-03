@@ -4,6 +4,7 @@
   "private": true,
   "author": "Alexiuc Alex",
   "scripts": {
+    "db:scratch": "pnpm --filter @my-hub/shared exec node scripts/db-scratch.mjs",
     "dev": "turbo dev",
     "dev:hub": "turbo dev --filter=@my-hub/hub",
     "build": "turbo build",

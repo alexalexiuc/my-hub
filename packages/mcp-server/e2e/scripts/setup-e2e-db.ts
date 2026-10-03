@@ -51,8 +51,9 @@ const lines =
     `E2E_MCP_USER_ID=${user.id}`,
   ].join('\n') + '\n';
 
-// Write .env.e2e only on local machines (IS_LOCAL=true in .env)
-if (process.env.IS_LOCAL === 'true') {
+// Write e2e/.env.e2e only when asked (`pnpm e2e:setup` passes --write-env). Keying this off IS_LOCAL let a run
+// pointed at a throwaway database silently replace the dev credentials in that file.
+if (process.argv.includes('--write-env')) {
   const envPath = resolve(__dirname, '../.env.e2e');
   writeFileSync(envPath, lines);
   console.error('Written to', envPath);

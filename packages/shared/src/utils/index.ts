@@ -9,3 +9,6 @@ export * from './portfolio';
 export * from './travel';
 export * from './weight-goal';
 export * from './withBackoffRetry';
+export * from './vacation';
+export * from './errors';
+export * from './holidays-md';

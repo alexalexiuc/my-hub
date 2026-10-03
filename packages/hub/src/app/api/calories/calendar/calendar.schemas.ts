@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
-/** A calendar month as YYYY-MM — the query shape for the Calendar month view. */
-export const isoMonthSchema = z.string().regex(/^\d{4}-\d{2}$/, 'must be YYYY-MM');
+import { isoMonthSchema } from '@/lib/schemas/common';
 
 export const CalendarQuerySchema = z.object({ month: isoMonthSchema });
 

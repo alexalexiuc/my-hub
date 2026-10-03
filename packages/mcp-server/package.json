@@ -15,7 +15,7 @@
     "test:unit": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
-    "e2e:setup": "tsx e2e/scripts/setup-e2e-db.ts",
+    "e2e:setup": "tsx e2e/scripts/setup-e2e-db.ts --write-env",
     "kill:port": "node scripts/kill-port.js",
     "healthcheck": "node scripts/healthcheck.mjs"
   },

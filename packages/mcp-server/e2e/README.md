@@ -30,6 +30,9 @@ inspecting the database directly. The test suite covers:
    `e2e/.env.e2e` with `E2E_MCP_CLIENT_ID`, `E2E_MCP_CLIENT_SECRET`, and `E2E_MCP_USER_ID`.
    Tests load this file automatically — no manual env exports needed.
 
+   Running the script directly (`tsx e2e/scripts/setup-e2e-db.ts`, e.g. against a throwaway database) only
+   prints the credentials; the file is written only with `--write-env`, which `e2e:setup` passes.
+
 ## Running locally
 
 ```bash

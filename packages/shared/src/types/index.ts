@@ -178,3 +178,19 @@ export type { TripStatus, TripBookingType, TripPlacePriority, TripDocumentType, 
 // Appearance / color themes
 export type UserThemePreference = InferSelectModel<typeof userThemePreferences>;
 export type NewUserThemePreference = InferInsertModel<typeof userThemePreferences>;
+
+// Vacation planner
+import type {
+  vacationProfiles,
+  vacationRuleSets,
+  vacationTaxRegimes,
+  vacationSalaryMonths,
+  vacationLeavePeriods,
+  vacationHolidays,
+} from '../db/schema/vacation';
+export type VacationProfile = InferSelectModel<typeof vacationProfiles>;
+export type VacationRuleSet = InferSelectModel<typeof vacationRuleSets>;
+export type VacationTaxRegime = InferSelectModel<typeof vacationTaxRegimes>;
+export type VacationSalaryMonth = InferSelectModel<typeof vacationSalaryMonths>;
+export type VacationLeavePeriod = InferSelectModel<typeof vacationLeavePeriods>;
+export type VacationHoliday = InferSelectModel<typeof vacationHolidays>;

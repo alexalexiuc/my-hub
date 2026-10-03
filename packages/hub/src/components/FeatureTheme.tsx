@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { useThemes } from './ThemeProvider';
 
 export type FeatureThemeProps = {
-  /** Which themed feature scope this subtree belongs to ('travel' | 'finances' | 'calories'). */
+  /** Which themed feature scope this subtree belongs to ('travel' | 'finances' | 'calories' | 'vacation'). */
   feature: ThemeScope;
   className?: string;
   children: React.ReactNode;

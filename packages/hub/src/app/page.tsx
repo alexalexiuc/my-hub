@@ -9,6 +9,7 @@ import {
   ServerOutlineIcon,
   UserPlusOutlineIcon,
   BarChartIcon,
+  CalendarIcon,
 } from '@/components/icons';
 
 const appSections = [
@@ -41,6 +42,16 @@ const appSections = [
     labelColor: 'text-violet-400',
     accentColor: 'bg-violet-500/20',
     icon: <BarChartIcon className="size-5" />,
+  },
+  {
+    href: '/vacation',
+    label: 'Vacation',
+    description: 'See what each day off pays and find the best leave windows',
+    color:
+      'bg-gradient-to-br from-sky-950/40 to-zinc-900 border-sky-800/50 hover:border-sky-500/70 hover:shadow-lg hover:shadow-sky-950/20 hover:-translate-y-0.5',
+    labelColor: 'text-sky-400',
+    accentColor: 'bg-sky-500/20',
+    icon: <CalendarIcon className="size-5" />,
   },
 ];
 

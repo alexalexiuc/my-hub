@@ -1,6 +1,6 @@
 # hub package — Agent Guidelines
 
-@import ../../shared/CLAUDE.md
+Before writing a helper, read `packages/shared/src/utils/CLAUDE.md` (the shared utility inventory).
 
 ## Component location
 
@@ -72,7 +72,7 @@ Each section component should:
 
 - Util functions live in a separate file, never inline in a component file.
 - If specific to one feature and not reusable → `[feature].utils.ts` in the same folder.
-- If general purpose → it goes in `packages/shared/src/utils/`. Check the shared CLAUDE.md first.
+- If general purpose → it goes in `packages/shared/src/utils/`. Check `packages/shared/src/utils/CLAUDE.md` first.
 
 ## React hooks
 
@@ -157,10 +157,13 @@ Rules:
   is generated to guarantee 4.5:1 against its own accent.
 - Semantic tokens carry meaning (`--red` = danger, `--green` = success). Use them for status, not
   for decoration, and never substitute the accent for them.
-- `--on-solid` is unconditionally `#ffffff` and is only verified safe on `--red` `--green` `--blue`
-  `--violet` `--teal` — **not** `--amber`, which is a light pastel even in dark mode and fails
-  contrast badly under white text. A solid amber/warning CTA should use the normal
-  `Button variant="accent"` treatment instead of a solid amber fill.
+- `--on-solid` is unconditionally `#ffffff`. It reads on the darker semantic fills (`--red`, `--blue`,
+  `--violet`, `--teal`) but **not** on light pastels: `--amber` always, and `--green` in the default
+  signature (a light mint — white on it was unreadable on the vacation grid). A solid amber/warning CTA
+  should use the normal `Button variant="accent"` treatment instead of a solid amber fill.
+- For text on a strong semantic fill (e.g. a heat-map cell mixed ≥60% towards `--green`/`--red`), use
+  `text-[var(--bg)]`: semantic tokens are generated to contrast with `--bg`, so the pair holds on every
+  theme. For weaker fills keep the normal `--text`.
 - Prefer `Button`, `IconButton`, `Card` and `SectionCard` over a raw `<button>` or a hand-styled
   `<div>` when tokenizing a surface — they already carry the right tokens (with fallbacks) and
   converge the app toward one consistent look. `Card compact` is the right base for a bordered
