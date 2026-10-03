@@ -65,9 +65,12 @@ test.describe('Vacation planner tabs', () => {
     const leaveRow = page.getByRole('listitem').filter({ hasText: `${LEAVE_TAG} summer` });
     await expect(leaveRow).toBeVisible();
     await expect(leaveRow.getByText('3 days')).toBeVisible();
-    // Tapping the row expands the vacation's totals.
+    // Tapping the row expands the vacation's totals: the pay estimate, or — with no salary recorded
+    // for the months the pay is averaged over — the notice saying it can't be estimated.
     await leaveRow.getByRole('button', { name: /2030-07-01/ }).click();
-    await expect(leaveRow.getByText('Balance cost')).toBeVisible();
+    await expect(
+      leaveRow.getByText('Balance cost').or(leaveRow.getByText(/^No salary is recorded for the months/)),
+    ).toBeVisible();
     await leaveRow.getByRole('button', { name: 'Delete vacation' }).click();
     await page.getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(leaveRow).toHaveCount(0);
