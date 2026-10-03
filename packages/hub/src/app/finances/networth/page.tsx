@@ -157,17 +157,7 @@ export default function NetWorthPage() {
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-semibold text-[var(--text)]">{fmt(a.balance, a.currency)}</div>
-                      {a.currency !== data.currency && (
-                        <ForeignBalanceLine
-                          balance={a.balance}
-                          currency={a.currency}
-                          balanceInDefaultCurrency={a.balanceInDefaultCurrency}
-                          defaultCurrency={data.currency}
-                          rate={a.rate ?? null}
-                          rateDate={a.rateDate ?? null}
-                          className="block text-[10px] tabular-nums"
-                        />
-                      )}
+                      {a.currency !== data.currency && <ForeignBalanceLine value={a} defaultCurrency={data.currency} />}
                     </div>
                   </div>
                 </div>
@@ -198,17 +188,7 @@ export default function NetWorthPage() {
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-semibold text-[var(--red)]">-{fmt(a.balance, a.currency)}</div>
-                      {a.currency !== data.currency && (
-                        <ForeignBalanceLine
-                          balance={a.balance}
-                          currency={a.currency}
-                          balanceInDefaultCurrency={a.balanceInDefaultCurrency}
-                          defaultCurrency={data.currency}
-                          rate={a.rate ?? null}
-                          rateDate={a.rateDate ?? null}
-                          className="block text-[10px] tabular-nums"
-                        />
-                      )}
+                      {a.currency !== data.currency && <ForeignBalanceLine value={a} defaultCurrency={data.currency} />}
                     </div>
                   </div>
                 </div>

@@ -58,7 +58,7 @@ export function AvailableCard({ availableBalance, foreignBalances = [], currency
             <div key={acc.accountId} className="flex flex-wrap items-baseline gap-x-1.5 text-[11px]">
               <span className="text-[var(--muted)]">{acc.name}</span>
               <span className="font-semibold tabular-nums text-[var(--text)]">{fmt(acc.balance, acc.currency)}</span>
-              <ForeignBalanceLine {...acc} defaultCurrency={currency} className="tabular-nums" />
+              <ForeignBalanceLine value={acc} defaultCurrency={currency} className="inline text-[11px]" />
             </div>
           ))}
         </div>

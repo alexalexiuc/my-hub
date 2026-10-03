@@ -13,7 +13,7 @@ import {
   getUserActiveBudget,
   getLoanCardBalance,
   getAccountFlows,
-  accountHasTransactions,
+  AccountCurrencyLockedError,
 } from '@my-hub/shared/services';
 import { currentDateString } from '@my-hub/shared/utils';
 import { AccountTypes, TransactionTypes, type BorrowedLentAccountDetails } from '@my-hub/shared/constants';
@@ -199,21 +199,17 @@ export const PATCH = route({
   }
 
   if (body.action === 'edit') {
-    if (
-      body.currency !== undefined &&
-      body.currency !== existing.currency &&
-      (await accountHasTransactions(accountId))
-    ) {
-      routeHttpError(400, {
-        error: `This account already has transactions in ${existing.currency}, so its currency can't be changed. Create a new account instead.`,
-      });
-    }
     const patch: AccountUpdate = { name: body.name };
     if (body.currency !== undefined) patch.currency = body.currency;
     if (body.description !== undefined) patch.description = body.description ?? null;
     if (body.details !== undefined) patch.details = body.details ?? null;
-    const updated = await updateAccount(user.id, budget.id, accountId, patch);
-    return { account: flattenAccount(updated, currentIncluded) };
+    try {
+      const updated = await updateAccount(user.id, budget.id, accountId, patch);
+      return { account: flattenAccount(updated, currentIncluded) };
+    } catch (err) {
+      if (err instanceof AccountCurrencyLockedError) routeHttpError(400, { error: err.message });
+      throw err;
+    }
   }
 
   if (body.action === 'recreateInitialBalance') {

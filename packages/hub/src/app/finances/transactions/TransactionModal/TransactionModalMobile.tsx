@@ -66,8 +66,6 @@ export type TransactionModalMobileProps = {
   onLabelsChange: (vals: string[]) => void;
   dropdownInputClass: string;
   currencyState: TransactionCurrencyState;
-  accountCurrency: string | null;
-  toAccountCurrency: string | null;
 };
 
 export function TransactionModalMobile({
@@ -108,8 +106,6 @@ export function TransactionModalMobile({
   onLabelsChange,
   dropdownInputClass,
   currencyState,
-  accountCurrency,
-  toAccountCurrency,
 }: TransactionModalMobileProps) {
   return (
     <div data-layout="mobile" className="flex flex-1 flex-col md:hidden">
@@ -251,8 +247,6 @@ export function TransactionModalMobile({
 
         <CurrencyFields
           currency={currencyState}
-          accountCurrency={accountCurrency}
-          toAccountCurrency={toAccountCurrency}
           renderField={(label, field) => (
             <MobileFieldRow key={label} label={label}>
               {field}

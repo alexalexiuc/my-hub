@@ -32,6 +32,7 @@ import type {
 } from '@my-hub/shared/types';
 import { monthToDateRange, dateToString } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../currency.schema';
+import { balanceConversionSchema } from '../money.schema';
 
 export const accountDetailsSchema = z.discriminatedUnion('type', [
   z.object({
@@ -79,9 +80,7 @@ export const accountItemSchema = z
     /** In the account's own currency. */
     balance: z.number(),
     /** Only for accounts not in the budget currency: balance at the current rate, with that rate and its date. */
-    defaultCurrencyValue: z
-      .object({ balance: z.number().nullable(), rate: z.number().nullable(), rateDate: z.string().nullable() })
-      .optional(),
+    defaultCurrencyValue: balanceConversionSchema.optional(),
     archived: z.boolean(),
     creditLimit: z.number().optional(),
     statementDay: z.number().optional(),
@@ -224,7 +223,7 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
         // Totals are in the budget currency: foreign balances are converted at the current rate.
         const conversion =
           isForeign && !account.archived
-            ? await convertBalanceToDefaultCurrency(bal, account.currency, budget.defaultCurrency, undefined, {
+            ? await convertBalanceToDefaultCurrency(bal, account.currency, budget.defaultCurrency, {
                 accountId: account.id,
               })
             : null;
@@ -245,11 +244,7 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
           balance: bal,
           ...(conversion
             ? {
-                defaultCurrencyValue: {
-                  balance: conversion.balanceInDefaultCurrency,
-                  rate: conversion.rate,
-                  rateDate: conversion.rateDate,
-                },
+                defaultCurrencyValue: conversion,
               }
             : {}),
           archived: account.archived,

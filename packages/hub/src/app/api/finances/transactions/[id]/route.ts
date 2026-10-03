@@ -9,6 +9,7 @@ import {
   upsertPayee,
   syncLabels,
   transferToAmount,
+  getOriginalInput,
 } from '@my-hub/shared/services';
 import type { TransactionUpdate } from '@my-hub/shared/services';
 import { FxRateSources, TransactionTypes } from '@my-hub/shared/constants';
@@ -36,6 +37,7 @@ export const transactionDetailSchema = z.object({
       currency: z.string(),
       rate: z.number(),
       rateSource: z.enum(FxRateSources).nullable(),
+      rateDate: z.string().nullable(),
     })
     .nullable(),
   date: z.string(),
@@ -73,7 +75,6 @@ export const GET = route({ params: paramsSchema, response: transactionDetailSche
   if (!tx) routeHttpError(404, { error: 'Transaction not found' });
 
   const payee = tx.payeeId != null ? payees.find(p => p.id === tx.payeeId) : undefined;
-  const conversion = tx.extras?.conversion;
 
   return {
     id: tx.id,
@@ -85,15 +86,7 @@ export const GET = route({ params: paramsSchema, response: transactionDetailSche
     payeeName: payee?.name ?? null,
     amount: tx.amount,
     toAmount: tx.type === TransactionTypes.Transfer ? transferToAmount(tx) : null,
-    original:
-      conversion?.originalAmount != null && conversion.originalCurrency && conversion.originalToAccountRate != null
-        ? {
-            amount: conversion.originalAmount,
-            currency: conversion.originalCurrency,
-            rate: conversion.originalToAccountRate,
-            rateSource: conversion.rateSource ?? null,
-          }
-        : null,
+    original: getOriginalInput(tx.extras),
     date: tx.date,
     notes: tx.notes ?? null,
     labels: (tx.labels as string[]) ?? [],

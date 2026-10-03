@@ -9,12 +9,7 @@ import { FinModalShell } from '../FinModalShell';
 import { Input, Select, SubText } from '@/components';
 import { FinancialDropdown } from '../FinancialDropdown';
 import { FinFieldCard } from '../ui';
-import {
-  AccountTypes,
-  ACCOUNT_TYPE_DESCRIPTIONS,
-  SupportedCurrencies,
-  SupportedCurrency,
-} from '@my-hub/shared/constants';
+import { AccountTypes, ACCOUNT_TYPE_DESCRIPTIONS, SupportedCurrency } from '@my-hub/shared/constants';
 import {
   AddAccountSchema,
   EditAccountSchema,
@@ -26,9 +21,11 @@ import {
   type EditAccountValues,
 } from '../finances-form.schema';
 import { ACCOUNT_TYPE_OPTIONS, DIRECTION_OPTIONS } from './accountOptions';
-import { finGhostInputClass as ghostInputClass, finDropdownInputClass as dropdownInputClass } from '../finances.utils';
-
-const CURRENCY_OPTIONS = SupportedCurrencies.map(c => ({ value: c, label: c }));
+import {
+  CURRENCY_SELECT_OPTIONS,
+  finGhostInputClass as ghostInputClass,
+  finDropdownInputClass as dropdownInputClass,
+} from '../finances.utils';
 
 // ─── Shared type-specific field blocks ───────────────────────────────────────
 
@@ -314,7 +311,7 @@ function AddAccountForm({
         <FinFieldCard label="Currency">
           <Select
             {...register('currency')}
-            options={CURRENCY_OPTIONS}
+            options={CURRENCY_SELECT_OPTIONS}
             aria-label="Account currency"
             className="w-full border-none bg-transparent px-0 py-0.5 text-[13px]"
           >
@@ -409,7 +406,7 @@ function EditAccountForm({ acc, onClose, onDone }: { acc: AccountItem; onClose: 
         <FinFieldCard label="Currency">
           <Select
             {...register('currency')}
-            options={CURRENCY_OPTIONS}
+            options={CURRENCY_SELECT_OPTIONS}
             aria-label="Account currency"
             className="w-full border-none bg-transparent px-0 py-0.5 text-[13px]"
           />

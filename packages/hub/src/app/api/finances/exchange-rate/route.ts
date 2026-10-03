@@ -1,12 +1,13 @@
 import { z } from 'zod';
 import { route } from '@/lib/api/route';
 import { getExchangeRateQuote } from '@my-hub/shared/services';
+import { isoDateSchema } from '@/lib/schemas/common';
 import { supportedCurrencySchema } from '../currency.schema';
 
 const ExchangeRateQuerySchema = z.object({
   from: supportedCurrencySchema,
   to: supportedCurrencySchema,
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: isoDateSchema,
 });
 
 export const exchangeRateResponseSchema = z.object({

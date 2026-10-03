@@ -30,8 +30,8 @@ import {
 import { arrayfy, logger, omitUndefined } from '../../utils';
 import { shiftMonthStr, toUTCDateStr } from '../../utils/dates';
 import { enforceBudgetAccess } from './budgets';
-import { getExchangeRate } from './exchangeRates';
-import { transferToAmount } from './transaction-money';
+import { getExchangeRate, getExchangeRateQuote } from './exchangeRates';
+import { round4, transferToAmount } from './transaction-money';
 import type { FinanceMonthlyPlan, FinanceMonthlyPlanItem, FinanceTransaction } from '../../types';
 import { PromiseCacheX } from 'promise-cachex';
 import { TransactionTypes, type SupportedCurrency } from '../../constants/finances';
@@ -529,7 +529,7 @@ async function transactionValueIn(
     return transferToAmount(transaction);
   }
   if (ctx.fromCurrency === currency) return transaction.amount;
-  const rate = await getExchangeRate(ctx.budgetCurrency, currency, transaction.date);
+  const { rate } = await getExchangeRateQuote(ctx.budgetCurrency, currency, transaction.date, { maxAgeDays: Infinity });
   return transaction.reportingAmount * rate;
 }
 
@@ -573,12 +573,7 @@ async function applyDeltaInTx(
     if (!doesItemMatchTransaction(item, transaction)) continue;
     // assignedAmount is kept in the item's own currency.
     const value = await transactionValueIn(transaction, item.currency, ctx);
-    await updatePlanItem(
-      userId,
-      item.id,
-      { assignedAmount: Math.round((item.assignedAmount + sign * value) * 10000) / 10000 },
-      tx,
-    );
+    await updatePlanItem(userId, item.id, { assignedAmount: round4(item.assignedAmount + sign * value) }, tx);
   }
 }
 

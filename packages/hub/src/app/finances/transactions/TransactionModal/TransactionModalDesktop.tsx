@@ -53,8 +53,6 @@ export type TransactionModalDesktopProps = {
   onLabelsChange: (vals: string[]) => void;
   dropdownInputClass: string;
   currencyState: TransactionCurrencyState;
-  accountCurrency: string | null;
-  toAccountCurrency: string | null;
 };
 
 export function TransactionModalDesktop({
@@ -92,8 +90,6 @@ export function TransactionModalDesktop({
   onLabelsChange,
   dropdownInputClass,
   currencyState,
-  accountCurrency,
-  toAccountCurrency,
 }: TransactionModalDesktopProps) {
   return (
     <form data-layout="desktop" onSubmit={onFormSubmit} autoComplete="off" className="hidden flex-col gap-2.5 md:flex">
@@ -239,8 +235,6 @@ export function TransactionModalDesktop({
 
           <CurrencyFields
             currency={currencyState}
-            accountCurrency={accountCurrency}
-            toAccountCurrency={toAccountCurrency}
             renderField={(label, field) => (
               <FinFieldCard key={label} className="cursor-default" label={label}>
                 {field}

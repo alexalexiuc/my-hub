@@ -9,11 +9,15 @@
  * - resolveTransactionMoney(input) — computes amount, conversion, toAmount, toExchangeRate, reportingAmount, exchangeRate
  * - withConversion(extras, conversion) — returns extras with conversion set or removed
  * - transferToAmount(t) — destination leg of a stored transfer (toAmount, or amount × toExchangeRate for legacy rows)
+ * - transferToAmountSql — SQL fragment for the same destination leg, for aggregate queries
+ * - getOriginalInput(extras) — the originally typed amount/currency/rate of a converted entry, or null
  * - round4(n) — rounds to the 4-decimal scale used by money columns
  * - TransactionMoneyError — thrown for invalid money input (safe to show to the user)
  * Types: TransactionMoneyInput, ResolvedTransactionMoney
  */
-import { FxRateSources, TransactionTypes, type TransactionType } from '../../constants/finances';
+import { sql } from 'drizzle-orm';
+import { financeTransactions } from '../../db/schema/finances';
+import { FxRateSources, TransactionTypes, type FxRateSource, type TransactionType } from '../../constants/finances';
 import type { TransactionConversionMeta, TransactionDetails } from '../../types';
 import { getExchangeRateQuote } from './exchangeRates';
 
@@ -70,6 +74,24 @@ export function transferToAmount(t: {
   toExchangeRate: number | null;
 }): number {
   return t.toAmount ?? round4(t.amount * (t.toExchangeRate ?? 1));
+}
+
+/** SQL twin of transferToAmount — the destination leg of a transfer row, in the destination currency. */
+export const transferToAmountSql = sql<number>`COALESCE(${financeTransactions.toAmount}, ${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1))`;
+
+/** What the user originally typed when the amount was converted (null when entered in the account currency). */
+export function getOriginalInput(
+  extras: TransactionDetails | null | undefined,
+): { amount: number; currency: string; rate: number; rateSource: FxRateSource | null; rateDate: string | null } | null {
+  const c = extras?.conversion;
+  if (c?.originalAmount == null || !c.originalCurrency || c.originalToAccountRate == null) return null;
+  return {
+    amount: c.originalAmount,
+    currency: c.originalCurrency,
+    rate: c.originalToAccountRate,
+    rateSource: c.rateSource ?? null,
+    rateDate: c.rateDate ?? null,
+  };
 }
 
 export function round4(n: number): number {

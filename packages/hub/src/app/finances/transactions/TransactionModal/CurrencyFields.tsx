@@ -6,8 +6,6 @@ import type { TransactionCurrencyState } from './useTransactionCurrency';
 
 type CurrencyFieldsProps = {
   currency: TransactionCurrencyState;
-  accountCurrency: string | null;
-  toAccountCurrency: string | null;
   /** Renders each field inside the layout's own row/card wrapper. */
   renderField: (label: string, field: React.ReactNode) => React.ReactNode;
 };
@@ -16,8 +14,10 @@ type CurrencyFieldsProps = {
  * Extra fields that appear only when currencies differ: the rate converting the typed amount into
  * the account currency, and the amount a cross-currency transfer's destination receives.
  */
-export function CurrencyFields({ currency, accountCurrency, toAccountCurrency, renderField }: CurrencyFieldsProps) {
+export function CurrencyFields({ currency, renderField }: CurrencyFieldsProps) {
   const {
+    accountCurrency,
+    toAccountCurrency,
     effectiveCurrency,
     needsRate,
     rateInput,

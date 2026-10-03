@@ -26,29 +26,33 @@ import {
 import { TransactionTypes } from '@my-hub/shared/constants';
 import { financesContext, parseToolPayload } from './test-utils';
 
-vi.mock('@my-hub/shared/services', () => ({
-  getUserActiveBudget: vi.fn(),
-  addTransaction: vi.fn(),
-  updateTransaction: vi.fn(),
-  deleteTransaction: vi.fn(),
-  getTransactions: vi.fn(),
-  countTransactions: vi.fn(),
-  checkDuplicateTransaction: vi.fn(),
-  findPayeeByNameOrAlias: vi.fn(),
-  upsertPayee: vi.fn(),
-  getAccountById: vi.fn(),
-  getAccounts: vi.fn(),
-  getCategories: vi.fn(),
-  getGroups: vi.fn(),
-  getTransactionById: vi.fn(),
-  getExchangeRate: vi.fn(),
-  getBudgetProgress: vi.fn(),
-  getLoanBalanceSnapshotForAccount: vi.fn(),
-  getLoanDisplayBalance: vi.fn(),
-  transferToAmount: (t: { amount: number; toAmount: number | null; toExchangeRate: number | null }) =>
-    t.toAmount ?? t.amount * (t.toExchangeRate ?? 1),
-  TransactionMoneyError: class TransactionMoneyError extends Error {},
-}));
+vi.mock('@my-hub/shared/services', async importOriginal => {
+  // Pure money helpers run for real; everything that touches the DB is stubbed.
+  const actual = await importOriginal<typeof import('@my-hub/shared/services')>();
+  return {
+    getUserActiveBudget: vi.fn(),
+    addTransaction: vi.fn(),
+    updateTransaction: vi.fn(),
+    deleteTransaction: vi.fn(),
+    getTransactions: vi.fn(),
+    countTransactions: vi.fn(),
+    checkDuplicateTransaction: vi.fn(),
+    findPayeeByNameOrAlias: vi.fn(),
+    upsertPayee: vi.fn(),
+    getAccountById: vi.fn(),
+    getAccounts: vi.fn(),
+    getCategories: vi.fn(),
+    getGroups: vi.fn(),
+    getTransactionById: vi.fn(),
+    getExchangeRate: vi.fn(),
+    getBudgetProgress: vi.fn(),
+    getLoanBalanceSnapshotForAccount: vi.fn(),
+    getLoanDisplayBalance: vi.fn(),
+    transferToAmount: actual.transferToAmount,
+    getOriginalInput: actual.getOriginalInput,
+    TransactionMoneyError: actual.TransactionMoneyError,
+  };
+});
 
 describe('finances transaction schemas', () => {
   it('rejects transfer items without a destination account', () => {

@@ -7,7 +7,10 @@ import { addTransaction, updateTransaction, deleteTransaction } from './transact
 vi.mock('../../db/client.js', () => ({
   db: { transaction: vi.fn() },
 }));
-vi.mock('./budgets.js', () => ({ hasAccessToBudget: vi.fn() }));
+vi.mock('./budgets.js', () => ({
+  hasAccessToBudget: vi.fn(),
+  getBudgetDefaultCurrency: vi.fn().mockResolvedValue('USD'),
+}));
 vi.mock('./exchangeRates.js', () => ({ getExchangeRate: vi.fn(), getExchangeRateQuote: vi.fn() }));
 vi.mock('./monthly-plans.js', () => ({
   syncTransactionWithPlan: vi.fn().mockResolvedValue(undefined),
@@ -146,7 +149,7 @@ describe('addTransaction', () => {
 
   it('deducts amount from source account on expense', async () => {
     const insertedRow = makeTransaction({ fromAccountBalanceAfter: 900 });
-    const tx = makeTx([[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }]], insertedRow);
+    const tx = makeTx([[{ balance: 1000, currency: 'USD' }]], insertedRow);
     useTx(tx);
 
     const result = await addTransaction('user-1', 1, {
@@ -169,7 +172,7 @@ describe('addTransaction', () => {
 
   it('credits source account on income', async () => {
     const insertedRow = makeTransaction({ type: TransactionTypes.Income, fromAccountBalanceAfter: 1100 });
-    const tx = makeTx([[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }]], insertedRow);
+    const tx = makeTx([[{ balance: 1000, currency: 'USD' }]], insertedRow);
     useTx(tx);
 
     await addTransaction('user-1', 1, {
@@ -197,10 +200,7 @@ describe('addTransaction', () => {
       toAccountBalanceAfter: 600,
     });
     // select[0] = budget, select[1] = fromAccount, select[2] = toAccount
-    const tx = makeTx(
-      [[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }], [{ balance: 500, currency: 'USD' }]],
-      insertedRow,
-    );
+    const tx = makeTx([[{ balance: 1000, currency: 'USD' }], [{ balance: 500, currency: 'USD' }]], insertedRow);
     useTx(tx);
 
     await addTransaction('user-1', 1, {
@@ -225,10 +225,7 @@ describe('addTransaction', () => {
   it('credits the received leg (toAmount) on a cross-currency transfer', async () => {
     const insertedRow = makeTransaction({ type: TransactionTypes.Transfer, toAccountId: 20 });
     // 100 EUR sent, 110 USD received; budget currency USD so the USD leg is the reporting value.
-    const tx = makeTx(
-      [[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'EUR' }], [{ balance: 500, currency: 'USD' }]],
-      insertedRow,
-    );
+    const tx = makeTx([[{ balance: 1000, currency: 'EUR' }], [{ balance: 500, currency: 'USD' }]], insertedRow);
     useTx(tx);
 
     await addTransaction('user-1', 1, {
@@ -261,10 +258,7 @@ describe('addTransaction', () => {
   });
 
   it('rejects a cross-currency transfer without toAmount', async () => {
-    const tx = makeTx(
-      [[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'EUR' }], [{ balance: 500, currency: 'RON' }]],
-      makeTransaction(),
-    );
+    const tx = makeTx([[{ balance: 1000, currency: 'EUR' }], [{ balance: 500, currency: 'RON' }]], makeTransaction());
     useTx(tx);
 
     await expect(
@@ -286,10 +280,7 @@ describe('addTransaction', () => {
 
   it('looks up the reporting rate when neither leg is in the budget currency', async () => {
     const insertedRow = makeTransaction({ type: TransactionTypes.Transfer, toAccountId: 20 });
-    const tx = makeTx(
-      [[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'EUR' }], [{ balance: 500, currency: 'RON' }]],
-      insertedRow,
-    );
+    const tx = makeTx([[{ balance: 1000, currency: 'EUR' }], [{ balance: 500, currency: 'RON' }]], insertedRow);
     useTx(tx);
     vi.mocked(getExchangeRateQuote).mockResolvedValueOnce({ rate: 1.08, rateDate: '2026-04-28' }); // EUR -> USD
 
@@ -315,7 +306,7 @@ describe('addTransaction', () => {
 
   it('converts amount from amountCurrency into account currency', async () => {
     const insertedRow = makeTransaction({ type: TransactionTypes.Expense });
-    const tx = makeTx([[{ defaultCurrency: 'USD' }], [{ balance: 1000, currency: 'USD' }]], insertedRow);
+    const tx = makeTx([[{ balance: 1000, currency: 'USD' }]], insertedRow);
     useTx(tx);
     vi.mocked(getExchangeRateQuote).mockResolvedValueOnce({ rate: 1.2, rateDate: '2026-04-28' }); // EUR -> USD
 
@@ -386,14 +377,8 @@ describe('updateTransaction', () => {
     const existing = makeTransaction({ type: TransactionTypes.Expense, accountId: 10, amount: 100, toAccountId: null });
     const updatedRow = makeTransaction({ amount: 200, fromAccountBalanceAfter: 800 });
     // select[0] = existing tx, select[1] = oldFromAcct, select[2] = newFromAcct
-    // select[3] = budget currency (money changed → re-resolved)
     const tx = makeTx(
-      [
-        [existing],
-        [{ balance: 900, currency: 'USD' }],
-        [{ balance: 900, currency: 'USD' }],
-        [{ defaultCurrency: 'USD' }],
-      ],
+      [[existing], [{ balance: 900, currency: 'USD' }], [{ balance: 900, currency: 'USD' }]],
       updatedRow,
     );
     useTx(tx);
@@ -410,12 +395,7 @@ describe('updateTransaction', () => {
     const existing = makeTransaction({ type: TransactionTypes.Income, accountId: 10, amount: 100, toAccountId: null });
     const updatedRow = makeTransaction({ type: TransactionTypes.Income, amount: 50, fromAccountBalanceAfter: 950 });
     const tx = makeTx(
-      [
-        [existing],
-        [{ balance: 1100, currency: 'USD' }],
-        [{ balance: 1100, currency: 'USD' }],
-        [{ defaultCurrency: 'USD' }],
-      ],
+      [[existing], [{ balance: 1100, currency: 'USD' }], [{ balance: 1100, currency: 'USD' }]],
       updatedRow,
     );
     useTx(tx);

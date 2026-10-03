@@ -20,6 +20,7 @@ import {
   getLoanBalanceSnapshotForAccount,
   getLoanDisplayBalance,
   transferToAmount,
+  getOriginalInput,
   TransactionMoneyError,
 } from '@my-hub/shared/services';
 import { TransactionTypes, AccountTypes } from '@my-hub/shared/constants';
@@ -30,7 +31,15 @@ import type {
   ReceiptTransactionDetails,
   TransactionDetails,
 } from '@my-hub/shared/types';
-import { currentDateString, isPayeeRequired, omitUndefined, trimOrNull, logger } from '@my-hub/shared/utils';
+import {
+  currentDateString,
+  isPayeeRequired,
+  omitNullish,
+  omitUndefined,
+  quoteTransferRate,
+  trimOrNull,
+  logger,
+} from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
 
 // Loan repayments are recorded as their total amount (principal + interest), so the raw ledger
@@ -61,46 +70,52 @@ function getAccountAvailable(
   return null;
 }
 
+/** Account-id → currency lookup that fetches each account at most once per tool call. */
+function accountCurrencyLookup(
+  userId: string,
+  budgetId: number,
+  known: Array<Pick<FinanceAccount, 'id' | 'currency'> | null | undefined>,
+): (accountId: number) => Promise<string | null> {
+  const cache = new Map<number, Promise<string | null>>();
+  for (const a of known) if (a) cache.set(a.id, Promise.resolve(a.currency));
+  return accountId => {
+    let currency = cache.get(accountId);
+    if (!currency) {
+      currency = getAccountById(userId, budgetId, accountId).then(a => a?.currency ?? null);
+      cache.set(accountId, currency);
+    }
+    return currency;
+  };
+}
+
 /**
  * Money fields for a tool response: the stored amount in the account currency, its frozen
  * budget-currency reporting value, the original input when it was converted, and both legs of a transfer.
  */
 async function describeMoney(
-  userId: string,
-  budgetId: number,
   budgetCurrency: string,
   tx: FinanceTransaction,
-  account: Pick<FinanceAccount, 'id' | 'currency'> | null | undefined,
+  currencyOf: (accountId: number) => Promise<string | null>,
 ): Promise<Record<string, unknown>> {
-  const fromAccount = account?.id === tx.accountId ? account : await getAccountById(userId, budgetId, tx.accountId);
-  const conversion = tx.extras?.conversion;
+  const currency = await currencyOf(tx.accountId);
+  const original = getOriginalInput(tx.extras);
   const out: Record<string, unknown> = {
     amount: tx.amount,
-    currency: fromAccount?.currency ?? null,
+    currency,
     reportingAmount: tx.reportingAmount,
     reportingCurrency: budgetCurrency,
+    ...(original ? { original: omitNullish(original) } : {}),
   };
-  if (conversion?.originalAmount != null && conversion.originalCurrency) {
-    out.original = omitUndefined({
-      amount: conversion.originalAmount,
-      currency: conversion.originalCurrency,
-      rate: conversion.originalToAccountRate,
-      rateSource: conversion.rateSource,
-      rateDate: conversion.rateDate,
-    });
-  }
   if (tx.type === TransactionTypes.Transfer && tx.toAccountId != null) {
-    const toAccount = await getAccountById(userId, budgetId, tx.toAccountId);
+    const toCurrency = await currencyOf(tx.toAccountId);
     const toAmount = transferToAmount(tx);
     out.toAmount = toAmount;
-    out.toCurrency = toAccount?.currency ?? null;
-    if (toAccount && fromAccount && toAccount.currency !== fromAccount.currency && toAmount > 0) {
-      // Quoted the way people read it: source units per destination unit (e.g. MDL per EUR).
-      out.effectiveRate = {
-        rate: Math.round((tx.amount / toAmount) * 10000) / 10000,
-        unit: `${fromAccount.currency} per ${toAccount.currency}`,
-      };
-    }
+    out.toCurrency = toCurrency;
+    const quote =
+      currency && toCurrency && currency !== toCurrency
+        ? quoteTransferRate(tx.amount, currency, toAmount, toCurrency)
+        : null;
+    if (quote) out.effectiveRate = { rate: quote.rate, unit: `${quote.quote} per ${quote.base}` };
   }
   return out;
 }
@@ -344,6 +359,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
   if (!account) throw new HandledError(`Account ${input.accountId} not found`);
 
   const results: Array<Record<string, unknown>> = [];
+  const currencyOf = accountCurrencyLookup(userId, budget.id, [account]);
   let lastBalanceAfter: number | null = null;
   const categoryMonthsUsed = new Map<number, Set<string>>();
   let categoryTargetsById: Map<number, number | null> | null = null;
@@ -485,7 +501,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
         index: i,
         transactionId: tx.id,
         date,
-        ...(await describeMoney(userId, budget.id, budget.defaultCurrency, tx, account)),
+        ...(await describeMoney(budget.defaultCurrency, tx, currencyOf)),
         balanceAfter: tx.fromAccountBalanceAfter,
         resolvedPayee: item.payeeName ?? null,
         ...withItemsHint(inferredExtras, item.type),
@@ -706,7 +722,11 @@ export const updateTransactionTool: ToolHandler<typeof UpdateTransactionSchema.s
   const responseData: Record<string, unknown> = {
     index: 0,
     transactionId: updated.id,
-    ...(await describeMoney(userId, budget.id, budget.defaultCurrency, updated, resolvedAccount)),
+    ...(await describeMoney(
+      budget.defaultCurrency,
+      updated,
+      accountCurrencyLookup(userId, budget.id, [resolvedAccount, toAccount]),
+    )),
     fromAccountBalanceAfter: fromDisplayBalance,
     fromAccountAvailableAfter: getAccountAvailable(resolvedAccount),
     resolvedAccount: resolvedAccount?.name ?? String(updated.accountId),

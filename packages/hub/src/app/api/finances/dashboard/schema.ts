@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TransactionTypes } from '@my-hub/shared/constants';
 import { supportedCurrencySchema } from '../currency.schema';
+import { balanceConversionSchema } from '../money.schema';
 import { categoryIconSchema, categoryColorSchema } from '../shared.schema';
 
 export const dashboardCategorySchema = z.object({
@@ -65,15 +66,11 @@ export const dashboardTransactionSchema = z.object({
 });
 
 /** An Available-card account held in a currency other than the budget's, converted at the current rate. */
-export const dashboardForeignBalanceSchema = z.object({
+export const dashboardForeignBalanceSchema = balanceConversionSchema.extend({
   accountId: z.number().int(),
   name: z.string(),
   currency: supportedCurrencySchema,
   balance: z.number(),
-  /** null when no rate is known at all (then it is left out of availableBalance). */
-  balanceInDefaultCurrency: z.number().nullable(),
-  rate: z.number().nullable(),
-  rateDate: z.string().nullable(),
 });
 
 export const availableBudgetSchema = z.object({

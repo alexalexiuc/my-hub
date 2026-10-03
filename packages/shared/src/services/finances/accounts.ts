@@ -6,18 +6,16 @@
  * - updateAccount(userId, budgetId, accountId, data) — partial update; data.showOnWidget/widgetSortOrder control whether a loan-type account gets a dedicated card on the finances widget and its display order
  * - deleteAccount(userId, budgetId, accountId) — hard delete
  * - getNetWorthHistory(userId, budgetId, limit?) — last N monthly net-worth snapshots, oldest-first
- * - updateAccount also refuses a currency change once the account has transactions (accountHasTransactions)
- * - accountHasTransactions(accountId) — true when any transaction uses the account as source or destination
- * - convertBalanceToDefaultCurrency(balance, accountCurrency, defaultCurrency, today?, opts?) — current-rate conversion of a balance (reporting view) with the rate, its date and source; falls back to the account's last transfer rate (opts.accountId), else nulls — never throws
+ * - updateAccount also refuses a currency change once the account has transactions (throws AccountCurrencyLockedError)
+ * - convertBalanceToDefaultCurrency(balance, accountCurrency, defaultCurrency, opts?) — current-rate conversion of a balance (reporting view) with the rate and its date; falls back to the account's last transfer rate (opts.accountId), else nulls — never throws
  * - getAvailableBalanceBreakdown(userId, budgetId) — included non-archived accounts, each converted to the budget currency at today's rate, plus the total (liabilities subtracted). Default: bank+cash included, all others excluded. Per-user rows in financeAccountAvailability override the default.
- * - getAvailableBalance(userId, budgetId) — the breakdown's total (budget currency)
  * - getAvailabilityPreferences(userId, budgetId) — returns Map<accountId, include> for accounts where the user has an explicit preference
  * - setAccountAvailableInclusion(userId, budgetId, accountId, include) — stores or removes a preference row; no-op if the value matches the default
  * - deleteAllUserAvailableOverrides(userId) — removes all availability preferences for a user (used by delete-all-data flow)
  * - getAllAccountIds() — system maintenance: returns all account IDs across all budgets (worker use only)
  * - getLedgerBalances(accountIds, opts?) — single source of truth for "balance computed from the ledger": batched across accounts, optionally date-bounded (opts.asOfDate); no auth, used by recalculateAccountBalance and reporting.ts's getAccountFlows
  * - recalculateAccountBalance(accountId) — system maintenance: recomputes balance from full transaction history via getLedgerBalances (corrections included); returns the new balance
- * Types: AccountInsert, AccountUpdate, GetAccountsOpts, NetWorthSnapshot, AccountBalanceConversion, AvailableBalanceAccount, AvailableBalanceBreakdown
+ * Types: AccountCurrencyLockedError (class), AccountInsert, AccountUpdate, GetAccountsOpts, NetWorthSnapshot, AccountBalanceConversion, AvailableBalanceAccount, AvailableBalanceBreakdown
  */
 import { and, desc, eq, inArray, lte, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
@@ -25,13 +23,13 @@ import { db } from '../../db/client';
 import {
   financeAccounts,
   financeAccountAvailability,
-  financeBudgets,
   financeNetWorthSnapshots,
   financeTransactions,
 } from '../../db/schema/finances';
 import { currentDateString, logger, omitUndefined } from '../../utils';
 import { getExchangeRateQuote } from './exchangeRates';
-import { hasAccessToBudget } from './budgets';
+import { transferToAmountSql } from './transaction-money';
+import { getBudgetDefaultCurrency, hasAccessToBudget } from './budgets';
 import type { FinanceAccount, NewFinanceAccount } from '../../types';
 import { AccountTypes, TransactionTypes, LIABILITY_ACCOUNT_TYPES, type AccountType } from '../../constants';
 
@@ -130,10 +128,7 @@ export async function updateAccount(
       .where(and(eq(financeAccounts.id, accountId), eq(financeAccounts.budgetId, budgetId)));
     if (!existing) throw new Error('Account not found');
     if (existing.currency !== data.currency && (await accountHasTransactions(accountId))) {
-      throw new Error(
-        `Cannot change the currency of an account that has transactions (balances and history are in ${existing.currency}). ` +
-          'Create a new account in the new currency and transfer the balance instead.',
-      );
+      throw new AccountCurrencyLockedError(existing.currency);
     }
   }
 
@@ -147,8 +142,19 @@ export async function updateAccount(
   return row;
 }
 
+/** Thrown by updateAccount when a currency change is attempted on an account with transactions. */
+export class AccountCurrencyLockedError extends Error {
+  constructor(currency: string) {
+    super(
+      `This account already has transactions in ${currency}, so its currency can't be changed. ` +
+        'Create a new account in the new currency and transfer the balance instead.',
+    );
+    this.name = 'AccountCurrencyLockedError';
+  }
+}
+
 /** True when any transaction uses the account as source or transfer destination. */
-export async function accountHasTransactions(accountId: number): Promise<boolean> {
+async function accountHasTransactions(accountId: number): Promise<boolean> {
   const [row] = await db
     .select({ id: financeTransactions.id })
     .from(financeTransactions)
@@ -213,8 +219,6 @@ export interface AccountBalanceConversion {
   rate: number | null;
   /** YYYY-MM-DD the rate applies to; null when no rate is known. */
   rateDate: string | null;
-  /** Where the rate came from: a market quote, or the account's last transfer with a default-currency account. */
-  rateSource: 'market' | 'transfer' | null;
   /** balance × rate, in the budget default currency; null when no rate is known (left out of totals). */
   balanceInDefaultCurrency: number | null;
 }
@@ -229,49 +233,29 @@ async function getLastTransferRate(
   defaultCurrency: string,
 ): Promise<{ rate: number; rateDate: string } | null> {
   const other = alias(financeAccounts, 'other_acct');
-  const toLeg = sql`COALESCE(${financeTransactions.toAmount}, ${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1))`;
-  const [outgoing, incoming] = await Promise.all([
-    // foreign → default: rate = received (default) / sent (foreign)
-    db
-      .select({
-        date: financeTransactions.date,
-        foreign: financeTransactions.amount,
-        def: sql<number>`${toLeg}::float8`,
-      })
-      .from(financeTransactions)
-      .innerJoin(other, eq(other.id, financeTransactions.toAccountId))
-      .where(
-        and(
-          eq(financeTransactions.type, TransactionTypes.Transfer),
-          eq(financeTransactions.accountId, accountId),
-          eq(other.currency, defaultCurrency as never),
-        ),
-      )
-      .orderBy(desc(financeTransactions.date), desc(financeTransactions.id))
-      .limit(1),
-    // default → foreign: rate = sent (default) / received (foreign)
-    db
-      .select({
-        date: financeTransactions.date,
-        def: financeTransactions.amount,
-        foreign: sql<number>`${toLeg}::float8`,
-      })
-      .from(financeTransactions)
-      .innerJoin(other, eq(other.id, financeTransactions.accountId))
-      .where(
-        and(
-          eq(financeTransactions.type, TransactionTypes.Transfer),
-          eq(financeTransactions.toAccountId, accountId),
-          eq(other.currency, defaultCurrency as never),
-        ),
-      )
-      .orderBy(desc(financeTransactions.date), desc(financeTransactions.id))
-      .limit(1),
-  ]);
-  const latest = [outgoing[0], incoming[0]]
-    .filter((r): r is NonNullable<typeof r> => r != null && Number(r.foreign) > 0)
-    .sort((a, b) => b.date.localeCompare(a.date))[0];
-  return latest ? { rate: Number(latest.def) / Number(latest.foreign), rateDate: latest.date } : null;
+  const isOutgoing = sql`${financeTransactions.accountId} = ${accountId}`;
+  const [row] = await db
+    .select({
+      date: financeTransactions.date,
+      // Outgoing (foreign → default): sent leg is foreign; incoming: received leg is foreign.
+      foreign: sql<number>`(CASE WHEN ${isOutgoing} THEN ${financeTransactions.amount} ELSE ${transferToAmountSql} END)::float8`,
+      def: sql<number>`(CASE WHEN ${isOutgoing} THEN ${transferToAmountSql} ELSE ${financeTransactions.amount} END)::float8`,
+    })
+    .from(financeTransactions)
+    .innerJoin(
+      other,
+      sql`${other.id} = CASE WHEN ${isOutgoing} THEN ${financeTransactions.toAccountId} ELSE ${financeTransactions.accountId} END`,
+    )
+    .where(
+      and(
+        eq(financeTransactions.type, TransactionTypes.Transfer),
+        or(eq(financeTransactions.accountId, accountId), eq(financeTransactions.toAccountId, accountId)),
+        eq(other.currency, defaultCurrency as never),
+      ),
+    )
+    .orderBy(desc(financeTransactions.date), desc(financeTransactions.id))
+    .limit(1);
+  return row && row.foreign > 0 ? { rate: row.def / row.foreign, rateDate: row.date } : null;
 }
 
 /**
@@ -285,26 +269,25 @@ export async function convertBalanceToDefaultCurrency(
   balance: number,
   accountCurrency: string,
   defaultCurrency: string,
-  today: string = currentDateString(),
-  opts: { accountId?: number } = {},
+  opts: { accountId?: number; today?: string } = {},
 ): Promise<AccountBalanceConversion> {
+  const today = opts.today ?? currentDateString();
   if (accountCurrency === defaultCurrency) {
-    return { rate: 1, rateDate: today, rateSource: 'market', balanceInDefaultCurrency: balance };
+    return { rate: 1, rateDate: today, balanceInDefaultCurrency: balance };
   }
-  const toResult = (rate: number, rateDate: string, rateSource: 'market' | 'transfer'): AccountBalanceConversion => ({
+  const toResult = (rate: number, rateDate: string): AccountBalanceConversion => ({
     rate,
     rateDate,
-    rateSource,
     balanceInDefaultCurrency: Math.round(balance * rate * 100) / 100,
   });
   try {
     const quote = await getExchangeRateQuote(accountCurrency, defaultCurrency, today, { maxAgeDays: Infinity });
-    return toResult(quote.rate, quote.rateDate, 'market');
+    return toResult(quote.rate, quote.rateDate);
   } catch (err) {
     const fromTransfer = opts.accountId != null ? await getLastTransferRate(opts.accountId, defaultCurrency) : null;
-    if (fromTransfer) return toResult(fromTransfer.rate, fromTransfer.rateDate, 'transfer');
+    if (fromTransfer) return toResult(fromTransfer.rate, fromTransfer.rateDate);
     logger.warn(`[finances] ${(err as Error).message} — balance shown without a ${defaultCurrency} value`);
-    return { rate: null, rateDate: null, rateSource: null, balanceInDefaultCurrency: null };
+    return { rate: null, rateDate: null, balanceInDefaultCurrency: null };
   }
 }
 
@@ -338,11 +321,7 @@ export async function getAvailableBalanceBreakdown(
     throw new Error('Budget not found');
   }
 
-  const [budget] = await db
-    .select({ defaultCurrency: financeBudgets.defaultCurrency })
-    .from(financeBudgets)
-    .where(eq(financeBudgets.id, budgetId));
-  if (!budget) throw new Error('Budget not found');
+  const defaultCurrency = await getBudgetDefaultCurrency(budgetId);
 
   const rows = await db
     .select({
@@ -360,37 +339,22 @@ export async function getAvailableBalanceBreakdown(
     )
     .where(and(eq(financeAccounts.budgetId, budgetId), eq(financeAccounts.archived, false)));
 
-  const accounts: AvailableBalanceAccount[] = [];
-  let total = 0;
-  for (const row of rows) {
-    if (!isIncludedInAvailable(row.type, row.preferredInclude)) continue;
-    const conversion = await convertBalanceToDefaultCurrency(
-      row.balance,
-      row.currency,
-      budget.defaultCurrency,
-      undefined,
-      {
+  // Conversions are independent per account — resolve them concurrently.
+  const accounts: AvailableBalanceAccount[] = await Promise.all(
+    rows
+      .filter(row => isIncludedInAvailable(row.type, row.preferredInclude))
+      .map(async row => ({
         accountId: row.id,
-      },
-    );
-    const isLiability = LIABILITY_ACCOUNT_TYPES.has(row.type);
-    const value = conversion.balanceInDefaultCurrency ?? 0; // no rate known → left out of the total
-    total += isLiability ? -value : value;
-    accounts.push({
-      accountId: row.id,
-      name: row.name,
-      currency: row.currency,
-      balance: row.balance,
-      isLiability,
-      ...conversion,
-    });
-  }
-  return { currency: budget.defaultCurrency, total: Math.round(total * 100) / 100, accounts };
-}
-
-/** Returns the available balance for a user, in the budget default currency: see getAvailableBalanceBreakdown. */
-export async function getAvailableBalance(userId: string, budgetId: number): Promise<number> {
-  return (await getAvailableBalanceBreakdown(userId, budgetId)).total;
+        name: row.name,
+        currency: row.currency,
+        balance: row.balance,
+        isLiability: LIABILITY_ACCOUNT_TYPES.has(row.type),
+        ...(await convertBalanceToDefaultCurrency(row.balance, row.currency, defaultCurrency, { accountId: row.id })),
+      })),
+  );
+  // No rate known → left out of the total.
+  const total = accounts.reduce((sum, a) => sum + (a.isLiability ? -1 : 1) * (a.balanceInDefaultCurrency ?? 0), 0);
+  return { currency: defaultCurrency, total: Math.round(total * 100) / 100, accounts };
 }
 
 /** Returns a map of accountId → explicit include preference for accounts where the user has set one. */
@@ -501,7 +465,7 @@ export async function getLedgerBalances(
     db
       .select({
         accountId: financeTransactions.toAccountId,
-        net: sql<number>`COALESCE(SUM(COALESCE(${financeTransactions.toAmount}, ${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1))), 0)::float8`,
+        net: sql<number>`COALESCE(SUM(${transferToAmountSql}), 0)::float8`,
       })
       .from(financeTransactions)
       .where(and(...toConditions))

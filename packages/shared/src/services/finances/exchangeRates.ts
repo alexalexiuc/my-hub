@@ -9,6 +9,7 @@ import { PromiseCacheX } from 'promise-cachex';
 import { db } from '../../db/client';
 import { financeCurrencyRates } from '../../db/schema/finances';
 import { SupportedCurrencies, type SupportedCurrency } from '../../constants/finances';
+import { daysBetweenDateStr } from '../../utils/weight-goal';
 
 const exchangeRatePromiseCache = new PromiseCacheX({
   // Date-based rates are immutable enough for long-lived process caching.
@@ -184,9 +185,10 @@ async function getNearestRateFromDb(
   return row ? { rate: row.rate, rateDate: row.date } : null;
 }
 
-function daysBetween(a: string, b: string): number {
-  return Math.abs(Math.round((Date.parse(a) - Date.parse(b)) / 86400000));
-}
+// Pairs/dates with no cached row and no provider answer, so repeated lookups (e.g. today's rate
+// before it is published, on every dashboard load) skip the DB + HTTP round-trips for a while.
+const QUOTE_MISS_TTL_MS = 60 * 60 * 1000;
+const recentQuoteMisses = new Map<string, number>();
 
 /**
  * Strict exchange-rate lookup for converting `from` → `to` on `date` (YYYY-MM-DD).
@@ -204,10 +206,12 @@ export async function getExchangeRateQuote(
   const toCurrency = normalizeCurrency(to);
   if (fromCurrency === toCurrency) return { rate: 1, rateDate: date };
 
+  const key = `quote:${fromCurrency}:${toCurrency}:${date}`;
+  const missedAt = recentQuoteMisses.get(key);
   try {
-    // Shares the lenient cache key: an exact/API hit is the same value either way. Misses throw,
-    // and PromiseCacheX evicts rejected entries, so a miss is never cached.
-    const rate = await exchangeRatePromiseCache.get(`quote:${fromCurrency}:${toCurrency}:${date}`, async () => {
+    if (missedAt != null && Date.now() - missedAt < QUOTE_MISS_TTL_MS) throw new Error('recent miss');
+    // Misses throw, and PromiseCacheX evicts rejected entries, so only hits are cached here.
+    const rate = await exchangeRatePromiseCache.get(key, async () => {
       const exactRate = await getExactRateFromDb(fromCurrency, toCurrency, date);
       if (exactRate != null) return exactRate;
       const fetchedRate = await fetchExchangeRateFromApi(fromCurrency, toCurrency, date);
@@ -219,9 +223,10 @@ export async function getExchangeRateQuote(
     });
     return { rate, rateDate: date };
   } catch {
+    if (missedAt == null || Date.now() - missedAt >= QUOTE_MISS_TTL_MS) recentQuoteMisses.set(key, Date.now());
     const maxAgeDays = opts.maxAgeDays ?? DEFAULT_QUOTE_MAX_AGE_DAYS;
     const nearest = await getNearestRateFromDb(fromCurrency, toCurrency, date);
-    if (nearest && daysBetween(nearest.rateDate, date) <= maxAgeDays) return nearest;
+    if (nearest && Math.abs(daysBetweenDateStr(nearest.rateDate, date)) <= maxAgeDays) return nearest;
     throw new Error(`No ${fromCurrency}→${toCurrency} exchange rate available for ${date}. Enter the rate manually.`);
   }
 }

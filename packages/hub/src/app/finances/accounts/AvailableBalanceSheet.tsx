@@ -64,15 +64,7 @@ function AccountListSection({ accounts, currency, included, onToggle }: AccountL
                     </span>
                   )}
                   {acc.defaultCurrencyValue && (
-                    <ForeignBalanceLine
-                      balance={acc.balance}
-                      currency={acc.currency}
-                      balanceInDefaultCurrency={acc.defaultCurrencyValue.balance}
-                      defaultCurrency={currency}
-                      rate={acc.defaultCurrencyValue.rate}
-                      rateDate={acc.defaultCurrencyValue.rateDate}
-                      className="block text-[10px] tabular-nums"
-                    />
+                    <ForeignBalanceLine value={acc.defaultCurrencyValue} defaultCurrency={currency} />
                   )}
                 </div>
                 <IncludeExcludeChip included={included} onToggle={() => onToggle(acc.id, included)} />

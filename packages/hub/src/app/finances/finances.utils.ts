@@ -1,7 +1,7 @@
 import type { BudgetInfo } from '@/app/api/finances/budget/budget.schema';
 import type { CategoryRow } from '@/app/api/finances/categories/route';
-import { dateToString } from '@my-hub/shared/utils';
-import { TransactionTypes } from '@my-hub/shared/constants';
+import { dateToString, quoteTransferRate } from '@my-hub/shared/utils';
+import { SupportedCurrencies, TransactionTypes } from '@my-hub/shared/constants';
 import type { TransactionType } from '@my-hub/shared/constants';
 
 /**
@@ -120,20 +120,16 @@ export function formatFxRateLabel(rate: number, rateDate: string): string {
   return `${rate.toFixed(4)} · ${day}`;
 }
 
-/**
- * Effective rate of a cross-currency transfer, quoted the way people read it — units of the
- * cheaper (sent) currency per one received unit, e.g. 6033.03 MDL → 300 EUR gives "20.1101 MDL/EUR".
- * Returns null when either side is missing or zero.
- */
+/** Label for a transfer's effective rate, e.g. "20.1101 MDL/EUR" (see shared quoteTransferRate); null when unknown. */
 export function formatTransferRate(
   sentAmount: number,
   sentCurrency: string,
   receivedAmount: number,
   receivedCurrency: string,
 ): string | null {
-  if (!(sentAmount > 0) || !(receivedAmount > 0)) return null;
-  const perReceived = sentAmount / receivedAmount;
-  return perReceived >= 1
-    ? `${perReceived.toFixed(4)} ${sentCurrency}/${receivedCurrency}`
-    : `${(receivedAmount / sentAmount).toFixed(4)} ${receivedCurrency}/${sentCurrency}`;
+  const q = quoteTransferRate(sentAmount, sentCurrency, receivedAmount, receivedCurrency);
+  return q ? `${q.rate.toFixed(4)} ${q.quote}/${q.base}` : null;
 }
+
+/** Supported currencies as `<Select>` options (value and label are the ISO code). */
+export const CURRENCY_SELECT_OPTIONS = SupportedCurrencies.map(c => ({ value: c, label: c }));

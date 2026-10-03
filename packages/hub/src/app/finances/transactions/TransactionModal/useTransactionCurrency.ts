@@ -123,6 +123,8 @@ export function useTransactionCurrency({
   }, []);
 
   return {
+    accountCurrency,
+    toAccountCurrency,
     effectiveCurrency,
     setAmountCurrency,
     needsRate,
@@ -132,7 +134,6 @@ export function useTransactionCurrency({
     rateDate,
     rateUnavailable,
     amountInAccountCurrency,
-    isCrossCurrencyTransfer,
     needsToAmount,
     toAmountInput,
     setToAmountInput,

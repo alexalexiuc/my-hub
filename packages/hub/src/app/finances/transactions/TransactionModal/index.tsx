@@ -320,8 +320,6 @@ export function TransactionModal({
     onLabelsChange: handleLabelsChange,
     dropdownInputClass,
     currencyState,
-    accountCurrency,
-    toAccountCurrency,
   } as const;
 
   return (

@@ -33,6 +33,7 @@ import type { AccountType, CategoryIcon, TransactionType } from '../../constants
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
 import { hasAccessToBudget, getBudgetByIdSystem } from './budgets';
 import { convertBalanceToDefaultCurrency, getLedgerBalances } from './accounts';
+import { transferToAmountSql } from './transaction-money';
 import { getLoanBalanceSnapshotForAccount, getLoanSummaryForAccount, type LoanSummary } from './loan-amortization';
 import {
   currentDateString,
@@ -482,7 +483,7 @@ export async function getAccountFlows(
     db
       .select({
         accountId: financeTransactions.toAccountId,
-        total: sql<string>`sum(COALESCE(${financeTransactions.toAmount}, ${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1)))`,
+        total: sql<string>`sum(${transferToAmountSql})`,
       })
       .from(financeTransactions)
       .where(
@@ -633,7 +634,7 @@ export async function getMonthlyAccountFlows(
       .select({
         accountId: financeTransactions.toAccountId,
         month: monthExpr,
-        total: sql<string>`sum(COALESCE(${financeTransactions.toAmount}, ${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1)))`,
+        total: sql<string>`sum(${transferToAmountSql})`,
       })
       .from(financeTransactions)
       .where(
@@ -832,7 +833,7 @@ async function getSavingsContributionsForRange(
   // Money arriving in the tracked account is measured by the received leg (its own currency).
   const inflowCols = {
     ...selectCols,
-    totalOriginal: sql<string>`sum(COALESCE(${financeTransactions.toAmount}, ${financeTransactions.amount} * COALESCE(${financeTransactions.toExchangeRate}, 1)))`,
+    totalOriginal: sql<string>`sum(${transferToAmountSql})`,
   };
 
   const [inflowRows, outflowRows] = await Promise.all([
@@ -1375,8 +1376,9 @@ async function computeNetWorthSummary(userId: string, budgetId: number): Promise
         loanSummary = summary;
       }
     }
-    const conversion = await convertBalanceToDefaultCurrency(balance, acct.currency, budget.defaultCurrency, today, {
+    const conversion = await convertBalanceToDefaultCurrency(balance, acct.currency, budget.defaultCurrency, {
       accountId: acct.id,
+      today,
     });
     const { rate, rateDate } = conversion;
     const balanceDefault = conversion.balanceInDefaultCurrency ?? 0; // no rate known → left out of totals

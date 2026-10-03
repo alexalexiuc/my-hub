@@ -60,15 +60,7 @@ function AccountCard({
             {fmt(acc.balance, acc.currency)}
           </div>
           {acc.defaultCurrencyValue && (
-            <ForeignBalanceLine
-              balance={acc.balance}
-              currency={acc.currency}
-              balanceInDefaultCurrency={acc.defaultCurrencyValue.balance}
-              defaultCurrency={defaultCurrency}
-              rate={acc.defaultCurrencyValue.rate}
-              rateDate={acc.defaultCurrencyValue.rateDate}
-              className="block text-[10px] tabular-nums"
-            />
+            <ForeignBalanceLine value={acc.defaultCurrencyValue} defaultCurrency={defaultCurrency} />
           )}
         </div>
       </div>
