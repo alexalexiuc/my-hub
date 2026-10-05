@@ -5,6 +5,7 @@ import {
   getAccounts,
   getNetWorthHistory,
   convertBalanceToDefaultCurrency,
+  getLoanCardBalance,
 } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 import { supportedCurrencySchema } from '../currency.schema';
@@ -57,9 +58,14 @@ export const GET = route({ response: netWorthResponseSchema })(async ({ user }) 
   const liabilities: NetWorthData['liabilities'] = [];
 
   for (const account of accounts) {
-    // Loans store a negative balance (-remaining principal). Take absolute value so
+    // Loans: the raw ledger balance treats every payment as principal, so it understates the debt
+    // of an interest-bearing loan. getLoanCardBalance resolves the amortization-derived remaining
+    // principal — the same figure the account list/detail show. Take the absolute value so
     // totalLiabilities and the breakdown item show the conventional positive debt amount.
-    const balance = account.type === AccountTypes.Loan ? Math.abs(account.balance) : account.balance;
+    // A loan without amortization details (no snapshot) falls back to the ledger balance.
+    const loanCard = account.type === AccountTypes.Loan ? await getLoanCardBalance(user.id, budgetId, account) : null;
+    const balance =
+      account.type === AccountTypes.Loan ? Math.abs(loanCard?.balance ?? account.balance) : account.balance;
     // Totals are in the budget currency: a current-rate view that never touches cashflow/spending.
     const conversion = await convertBalanceToDefaultCurrency(balance, account.currency, budget.defaultCurrency, {
       accountId: account.id,
