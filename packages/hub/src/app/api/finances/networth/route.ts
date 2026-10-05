@@ -7,7 +7,9 @@ import {
   convertBalanceToDefaultCurrency,
   getLoanCardBalance,
 } from '@my-hub/shared/services';
-import { AccountTypes, LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
+import { AccountTypes } from '@my-hub/shared/constants';
+import { getAccountDetails } from '@my-hub/shared/types';
+import { isLiabilityAccount } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../currency.schema';
 import { balanceConversionSchema } from '../money.schema';
 
@@ -61,9 +63,18 @@ export const GET = route({ response: netWorthResponseSchema })(async ({ user }) 
     // principal — the same figure the account list/detail show. Take the absolute value so
     // totalLiabilities and the breakdown item show the conventional positive debt amount.
     // A loan without amortization details (no snapshot) falls back to the ledger balance.
+    // Money borrowed (a Borrowed/Lent account with direction "received") is a liability shown the same way.
     const loanCard = account.type === AccountTypes.Loan ? await getLoanCardBalance(user.id, budgetId, account) : null;
+    const isLiability = isLiabilityAccount(
+      account.type,
+      getAccountDetails(AccountTypes.BorrowedLent, account.details)?.direction,
+    );
     const balance =
-      account.type === AccountTypes.Loan ? Math.abs(loanCard?.balance ?? account.balance) : account.balance;
+      account.type === AccountTypes.Loan
+        ? Math.abs(loanCard?.balance ?? account.balance)
+        : account.type === AccountTypes.BorrowedLent && isLiability
+          ? Math.abs(account.balance)
+          : account.balance;
     // Totals are in the budget currency: a current-rate view that never touches cashflow/spending.
     const conversion = await convertBalanceToDefaultCurrency(balance, account.currency, budget.defaultCurrency, {
       accountId: account.id,
@@ -77,7 +88,7 @@ export const GET = route({ response: netWorthResponseSchema })(async ({ user }) 
       currency: account.currency,
       ...conversion,
     };
-    if (LIABILITY_ACCOUNT_TYPES.has(account.type)) {
+    if (isLiability) {
       totalLiabilities += valueInDefault;
       liabilities.push(item);
     } else {

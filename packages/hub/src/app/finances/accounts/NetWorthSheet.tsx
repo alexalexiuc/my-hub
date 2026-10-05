@@ -2,7 +2,8 @@
 
 import { fmt, AmountText } from '../ui';
 import { FinModalShell } from '../FinModalShell';
-import { ACCOUNT_TYPE_NAMES, LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
+import { ACCOUNT_TYPE_NAMES } from '@my-hub/shared/constants';
+import { isLiabilityAccount } from '@my-hub/shared/utils';
 import type { AccountType } from '@my-hub/shared/constants';
 import type { AccountItem } from '@/app/api/finances/accounts/route';
 import { SubText, Divider } from '@/components';
@@ -15,8 +16,8 @@ type NetWorthSheetProps = {
 };
 
 export function NetWorthSheet({ accounts, netWorth, currency, onClose }: NetWorthSheetProps) {
-  const assets = accounts.filter(a => !LIABILITY_ACCOUNT_TYPES.has(a.type as AccountType));
-  const liabilities = accounts.filter(a => LIABILITY_ACCOUNT_TYPES.has(a.type as AccountType));
+  const assets = accounts.filter(a => !isLiabilityAccount(a.type as AccountType, a.direction));
+  const liabilities = accounts.filter(a => isLiabilityAccount(a.type as AccountType, a.direction));
 
   return (
     <FinModalShell title="Net Worth" onClose={onClose} className="md:max-w-[420px]">

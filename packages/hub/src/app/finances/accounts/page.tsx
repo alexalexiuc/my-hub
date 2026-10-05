@@ -14,13 +14,12 @@ import { AvailableBalanceSheet } from './AvailableBalanceSheet';
 import { NetWorthSheet } from './NetWorthSheet';
 import { ForeignBalanceLine } from '../ForeignBalanceLine';
 import type { AccountItem, AccountsListData } from '@/app/api/finances/accounts/route';
-import { LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
-import type { AccountType } from '@my-hub/shared/constants';
-import { formatCardLastFour } from '@my-hub/shared/utils';
+import type { AccountType, LentDirection } from '@my-hub/shared/constants';
+import { formatCardLastFour, isLiabilityAccount } from '@my-hub/shared/utils';
 import { ACCOUNT_GROUPS, groupAccountsByCurrency } from './accounts.utils';
 
-function amountColor(balance: number, type: AccountType): string {
-  if (LIABILITY_ACCOUNT_TYPES.has(type)) return 'text-[var(--red)]';
+function amountColor(balance: number, type: AccountType, direction?: LentDirection): string {
+  if (isLiabilityAccount(type, direction)) return 'text-[var(--red)]';
   if (balance > 0) return 'text-[var(--green)]';
   if (balance < 0) return 'text-[var(--red)]';
   return 'text-[var(--text)]';
@@ -56,7 +55,12 @@ function AccountCard({
           </div>
         </div>
         <div className="shrink-0 ml-2 text-right">
-          <div className={cn('text-base font-bold tabular-nums', amountColor(acc.balance, acc.type as AccountType))}>
+          <div
+            className={cn(
+              'text-base font-bold tabular-nums',
+              amountColor(acc.balance, acc.type as AccountType, acc.direction),
+            )}
+          >
             {fmt(acc.balance, acc.currency)}
           </div>
           {acc.defaultCurrencyValue && (
