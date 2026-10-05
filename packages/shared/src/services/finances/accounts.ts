@@ -26,13 +26,13 @@ import {
   financeNetWorthSnapshots,
   financeTransactions,
 } from '../../db/schema/finances';
-import { currentDateString, logger, omitUndefined } from '../../utils';
+import { currentDateString, isLiabilityAccount, logger, omitUndefined } from '../../utils';
 import { UserInputError } from '../../utils/errors';
 import { getExchangeRateQuote } from './exchangeRates';
 import { transferToAmountSql } from './transaction-money';
 import { getBudgetDefaultCurrency, hasAccessToBudget } from './budgets';
-import type { FinanceAccount, NewFinanceAccount } from '../../types';
-import { AccountTypes, TransactionTypes, LIABILITY_ACCOUNT_TYPES, type AccountType } from '../../constants';
+import { getAccountDetails, type FinanceAccount, type NewFinanceAccount } from '../../types';
+import { AccountTypes, TransactionTypes, type AccountType } from '../../constants';
 
 export interface NetWorthSnapshot {
   month: string;
@@ -331,6 +331,7 @@ export async function getAvailableBalanceBreakdown(
       currency: financeAccounts.currency,
       balance: financeAccounts.balance,
       type: financeAccounts.type,
+      details: financeAccounts.details,
       preferredInclude: financeAccountAvailability.include,
     })
     .from(financeAccounts)
@@ -344,14 +345,22 @@ export async function getAvailableBalanceBreakdown(
   const accounts: AvailableBalanceAccount[] = await Promise.all(
     rows
       .filter(row => isIncludedInAvailable(row.type, row.preferredInclude))
-      .map(async row => ({
-        accountId: row.id,
-        name: row.name,
-        currency: row.currency,
-        balance: row.balance,
-        isLiability: LIABILITY_ACCOUNT_TYPES.has(row.type),
-        ...(await convertBalanceToDefaultCurrency(row.balance, row.currency, defaultCurrency, { accountId: row.id })),
-      })),
+      .map(async row => {
+        const isLiability = isLiabilityAccount(
+          row.type,
+          getAccountDetails(AccountTypes.BorrowedLent, row.details)?.direction,
+        );
+        // Money borrowed counts as the positive amount owed, whatever sign the ledger holds.
+        const balance = row.type === AccountTypes.BorrowedLent && isLiability ? Math.abs(row.balance) : row.balance;
+        return {
+          accountId: row.id,
+          name: row.name,
+          currency: row.currency,
+          balance,
+          isLiability,
+          ...(await convertBalanceToDefaultCurrency(balance, row.currency, defaultCurrency, { accountId: row.id })),
+        };
+      }),
   );
   // No rate known → left out of the total.
   const total = accounts.reduce((sum, a) => sum + (a.isLiability ? -1 : 1) * (a.balanceInDefaultCurrency ?? 0), 0);

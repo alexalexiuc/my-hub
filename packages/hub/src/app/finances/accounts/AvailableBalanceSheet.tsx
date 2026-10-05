@@ -5,7 +5,8 @@ import { Divider, IncludeExcludeChip, SubText } from '@/components';
 import { fmt, AmountText } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { ForeignBalanceLine } from '../ForeignBalanceLine';
-import { ACCOUNT_TYPE_NAMES, LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
+import { ACCOUNT_TYPE_NAMES } from '@my-hub/shared/constants';
+import { isLiabilityAccount } from '@my-hub/shared/utils';
 import type { AccountType } from '@my-hub/shared/constants';
 import type { AccountItem } from '@/app/api/finances/accounts/route';
 
@@ -33,7 +34,7 @@ function AccountListSection({ accounts, currency, included, onToggle }: AccountL
       </SubText>
       <div className="overflow-hidden rounded-[10px] border border-[var(--border)]">
         {accounts.map((acc, i) => {
-          const isLiability = LIABILITY_ACCOUNT_TYPES.has(acc.type as AccountType);
+          const isLiability = isLiabilityAccount(acc.type as AccountType, acc.direction);
           return (
             <div key={acc.id}>
               {i > 0 && <Divider />}

@@ -5,9 +5,18 @@
  * @exports isPayeeRequired - Returns whether a transaction type should involve payee selection.
  * @exports formatCardLastFour - Formats a (possibly comma-separated) cardLastFour value for display.
  * @exports quoteTransferRate - Effective rate of a cross-currency transfer as {rate, base, quote}, weaker-per-stronger.
+ * @exports isLiabilityAccount - Whether an account subtracts from net worth / available balance (loans, credit cards, money borrowed).
  */
 
-import { TransactionTypes, type TransactionType } from '../constants/finances';
+import {
+  AccountTypes,
+  LIABILITY_ACCOUNT_TYPES,
+  LentDirections,
+  TransactionTypes,
+  type AccountType,
+  type LentDirection,
+  type TransactionType,
+} from '../constants/finances';
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: '$',
@@ -60,4 +69,18 @@ export function quoteTransferRate(
   return sentPerReceived >= 1
     ? { rate: Math.round(sentPerReceived * 10000) / 10000, base: receivedCurrency, quote: sentCurrency }
     : { rate: Math.round((receivedAmount / sentAmount) * 10000) / 10000, base: sentCurrency, quote: receivedCurrency };
+}
+
+/**
+ * Returns whether an account is a liability — its balance subtracts from net worth and available balance.
+ * Loans and credit cards always are. A Borrowed/Lent account depends on its direction: money borrowed
+ * (`received`) is owed back, so it is a liability; money lent (`gave`) is an asset — not immediately
+ * liquid, but still owed to the user. Every net-worth/available view must classify through this.
+ *
+ * @param type - The account type.
+ * @param direction - The Borrowed/Lent account's direction (ignored for other types).
+ */
+export function isLiabilityAccount(type: AccountType, direction?: LentDirection | null): boolean {
+  if (type === AccountTypes.BorrowedLent) return direction === LentDirections.Received;
+  return LIABILITY_ACCOUNT_TYPES.has(type);
 }

@@ -5,7 +5,6 @@ import {
   getNetWorthHistory,
   getAvailabilityPreferences,
   isIncludedInAvailable,
-  LIABILITY_TYPES,
   createAccount,
   addTransaction,
   getUserActiveBudget,
@@ -30,7 +29,8 @@ import type {
   BorrowedLentAccountDetails,
   CashAccountDetails,
 } from '@my-hub/shared/types';
-import { monthToDateRange, dateToString } from '@my-hub/shared/utils';
+import { getAccountDetails } from '@my-hub/shared/types';
+import { monthToDateRange, dateToString, isLiabilityAccount } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../currency.schema';
 import { balanceConversionSchema } from '../money.schema';
 
@@ -216,8 +216,11 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
       rawAccounts.map(async account => {
         const isLoan = account.type === AccountTypes.Loan;
         const loanCard = isLoan ? await getLoanCardBalance(user.id, budgetId, account) : null;
-        const bal = loanCard ? loanCard.balance : account.balance;
-        const isOtherLiability = !isLoan && LIABILITY_TYPES.has(account.type);
+        const direction = getAccountDetails(AccountTypes.BorrowedLent, account.details)?.direction;
+        const isOtherLiability = !isLoan && isLiabilityAccount(account.type, direction);
+        // Money borrowed is shown as the positive amount owed, like a loan's remaining principal.
+        const isBorrowed = account.type === AccountTypes.BorrowedLent && isOtherLiability;
+        const bal = loanCard ? loanCard.balance : isBorrowed ? Math.abs(account.balance) : account.balance;
         const includedInAvailable = isIncludedInAvailable(account.type, prefs.get(account.id) ?? null);
         const isForeign = account.currency !== budget.defaultCurrency;
         // Totals are in the budget currency: foreign balances are converted at the current rate.

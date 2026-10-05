@@ -5,8 +5,11 @@ import {
   getAccounts,
   getNetWorthHistory,
   convertBalanceToDefaultCurrency,
+  getLoanCardBalance,
 } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
+import { getAccountDetails } from '@my-hub/shared/types';
+import { isLiabilityAccount } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../currency.schema';
 import { balanceConversionSchema } from '../money.schema';
 
@@ -40,8 +43,6 @@ export const netWorthResponseSchema = z.object({
 
 export type NetWorthData = z.infer<typeof netWorthResponseSchema>;
 
-const LIABILITY_TYPES = new Set<string>([AccountTypes.Loan, AccountTypes.CreditCard]);
-
 export const GET = route({ response: netWorthResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
@@ -57,9 +58,23 @@ export const GET = route({ response: netWorthResponseSchema })(async ({ user }) 
   const liabilities: NetWorthData['liabilities'] = [];
 
   for (const account of accounts) {
-    // Loans store a negative balance (-remaining principal). Take absolute value so
+    // Loans: the raw ledger balance treats every payment as principal, so it understates the debt
+    // of an interest-bearing loan. getLoanCardBalance resolves the amortization-derived remaining
+    // principal — the same figure the account list/detail show. Take the absolute value so
     // totalLiabilities and the breakdown item show the conventional positive debt amount.
-    const balance = account.type === AccountTypes.Loan ? Math.abs(account.balance) : account.balance;
+    // A loan without amortization details (no snapshot) falls back to the ledger balance.
+    // Money borrowed (a Borrowed/Lent account with direction "received") is a liability shown the same way.
+    const loanCard = account.type === AccountTypes.Loan ? await getLoanCardBalance(user.id, budgetId, account) : null;
+    const isLiability = isLiabilityAccount(
+      account.type,
+      getAccountDetails(AccountTypes.BorrowedLent, account.details)?.direction,
+    );
+    const balance =
+      account.type === AccountTypes.Loan
+        ? Math.abs(loanCard?.balance ?? account.balance)
+        : account.type === AccountTypes.BorrowedLent && isLiability
+          ? Math.abs(account.balance)
+          : account.balance;
     // Totals are in the budget currency: a current-rate view that never touches cashflow/spending.
     const conversion = await convertBalanceToDefaultCurrency(balance, account.currency, budget.defaultCurrency, {
       accountId: account.id,
@@ -73,7 +88,7 @@ export const GET = route({ response: netWorthResponseSchema })(async ({ user }) 
       currency: account.currency,
       ...conversion,
     };
-    if (LIABILITY_TYPES.has(account.type)) {
+    if (isLiability) {
       totalLiabilities += valueInDefault;
       liabilities.push(item);
     } else {
