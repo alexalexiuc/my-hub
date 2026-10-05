@@ -7,7 +7,7 @@ import {
   convertBalanceToDefaultCurrency,
   getLoanCardBalance,
 } from '@my-hub/shared/services';
-import { AccountTypes } from '@my-hub/shared/constants';
+import { AccountTypes, LIABILITY_ACCOUNT_TYPES } from '@my-hub/shared/constants';
 import { supportedCurrencySchema } from '../currency.schema';
 import { balanceConversionSchema } from '../money.schema';
 
@@ -40,8 +40,6 @@ export const netWorthResponseSchema = z.object({
 });
 
 export type NetWorthData = z.infer<typeof netWorthResponseSchema>;
-
-const LIABILITY_TYPES = new Set<string>([AccountTypes.Loan, AccountTypes.CreditCard]);
 
 export const GET = route({ response: netWorthResponseSchema })(async ({ user }) => {
   const budget = await getUserActiveBudget(user.id);
@@ -79,7 +77,7 @@ export const GET = route({ response: netWorthResponseSchema })(async ({ user }) 
       currency: account.currency,
       ...conversion,
     };
-    if (LIABILITY_TYPES.has(account.type)) {
+    if (LIABILITY_ACCOUNT_TYPES.has(account.type)) {
       totalLiabilities += valueInDefault;
       liabilities.push(item);
     } else {

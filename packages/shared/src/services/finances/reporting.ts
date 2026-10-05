@@ -30,7 +30,7 @@ import {
   financeTransactions,
 } from '../../db/schema/finances';
 import type { AccountType, CategoryIcon, TransactionType } from '../../constants/finances';
-import { AccountTypes, TransactionTypes } from '../../constants/finances';
+import { AccountTypes, LIABILITY_ACCOUNT_TYPES, TransactionTypes } from '../../constants/finances';
 import { hasAccessToBudget, getBudgetByIdSystem } from './budgets';
 import { convertBalanceToDefaultCurrency, getLedgerBalances } from './accounts';
 import { transferToAmountSql } from './transaction-money';
@@ -1329,8 +1329,6 @@ export interface NetWorthSummaryResult {
   history: NetWorthHistoryEntry[];
 }
 
-const LIABILITY_TYPES: AccountType[] = [AccountTypes.Loan, AccountTypes.CreditCard, AccountTypes.BorrowedLent];
-
 export async function getNetWorthSummary(userId: string, budgetId: number): Promise<NetWorthSummaryResult> {
   if (!(await hasAccessToBudget(userId, budgetId))) {
     throw new Error('Budget not found');
@@ -1399,8 +1397,9 @@ async function computeNetWorthSummary(userId: string, budgetId: number): Promise
     }
     byType[acct.type]!.accounts.push(entry);
 
-    const isLiability = LIABILITY_TYPES.includes(acct.type as AccountType);
-    if (isLiability) {
+    // Same liability set as the Hub net-worth views: money lent (borrowed_lent) is an asset —
+    // not immediately liquid, but still owed back.
+    if (LIABILITY_ACCOUNT_TYPES.has(acct.type)) {
       totalLiabilities += Math.abs(balanceDefault);
     } else {
       totalAssets += balanceDefault;
