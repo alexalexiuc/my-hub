@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/server';
-import { defineTool, wrapToolHandler } from '../../shared/toolsUtils';
+import { defineTool, registerTools } from '../../shared/toolsUtils';
 import {
   EstimateLeavePaySchema,
   estimateLeavePayTool,
@@ -102,17 +102,5 @@ const vacationTools = [
 ];
 
 export function registerVacationTools(server: McpServer): void {
-  for (const tool of vacationTools) {
-    server.registerTool(
-      tool.name,
-      {
-        title: tool.title,
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-        outputSchema: tool.outputSchema,
-        annotations: tool.annotations,
-      },
-      wrapToolHandler(tool.callback),
-    );
-  }
+  registerTools(server, vacationTools);
 }

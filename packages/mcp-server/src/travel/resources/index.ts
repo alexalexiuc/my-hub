@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/server';
-import { defineResource, wrapResourceHandler } from '../../shared/toolsUtils';
+import { defineResource, registerResources } from '../../shared/toolsUtils';
 import { getTravelTripsResource, getTravelUpcomingResource, getTravelUploadPolicyResource } from './resources';
 
 const travelResources = [
@@ -27,12 +27,5 @@ const travelResources = [
 ];
 
 export function registerTravelResources(server: McpServer): void {
-  for (const resource of travelResources) {
-    server.registerResource(
-      resource.name,
-      resource.uri,
-      { description: resource.description, mimeType: resource.mimeType },
-      wrapResourceHandler(resource.callback),
-    );
-  }
+  registerResources(server, travelResources);
 }

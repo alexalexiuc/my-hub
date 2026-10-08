@@ -26,9 +26,8 @@ vi.mock('../plugins/oauth-verifier.js', () => ({
 }));
 
 import { putLog } from '@my-hub/shared/services';
-import { defineTool, toolResponse, wrapToolHandler } from '../shared/toolsUtils.js';
+import { defineTool, registerTools, toolResponse } from '../shared/toolsUtils.js';
 import { HandledError } from '../shared/errors.js';
-import { mcpRequestLoggerPlugin } from '../plugins/mcp-request-logger.js';
 import { registerMcpSubServer } from './sub-server.js';
 import { mcpSubServers } from './registry.js';
 
@@ -50,9 +49,7 @@ const tools = [
 
 const factory = vi.fn(() => {
   const server = new McpServer({ name: 'test-server', version: '1.0.0' });
-  for (const tool of tools) {
-    server.registerTool(tool.name, { inputSchema: tool.inputSchema }, wrapToolHandler(tool.callback));
-  }
+  registerTools(server, tools);
   return server;
 });
 
@@ -77,7 +74,6 @@ const flushLogs = () => new Promise(resolve => setTimeout(resolve, 20));
 beforeAll(async () => {
   mcpSubServers.length = 0;
   app = Fastify();
-  await app.register(mcpRequestLoggerPlugin);
   registerMcpSubServer(app, ENDPOINT, McpServerNames.Calories, factory);
   await app.listen({ host: '127.0.0.1', port: 0 });
   const { port } = app.server.address() as { port: number };
@@ -145,7 +141,7 @@ describe('registerMcpSubServer (MCP 2026-07-28, stateless)', () => {
   });
 });
 
-describe('mcpRequestLoggerPlugin', () => {
+describe('attachMcpRequestLogger', () => {
   it('logs a successful tool call with tool path, identity, status and duration', async () => {
     const client = await connect();
     await client.callTool({ name: 'echo', arguments: { text: 'hi' } });

@@ -3,17 +3,16 @@ import type {
   CallToolResult,
   ReadResourceCallback as SdkReadResourceCallback,
   ServerContext,
+  ToolCallback as SdkToolCallback,
   StandardSchemaWithJSON,
   ToolAnnotations,
 } from '@modelcontextprotocol/server';
 import type { z } from 'zod';
 import { McpServerName } from '@my-hub/shared/constants';
 
-/** Raw Zod object shape (`Schema.shape`) — wrapped into `z.object()` once, at definition time. */
-export type ZodRawShape = z.ZodRawShape;
-
-export type AnyInput = undefined | ZodRawShape | StandardSchemaWithJSON;
-export type AnyOutput = undefined | ZodRawShape | StandardSchemaWithJSON;
+/** A tool schema: a Standard Schema, or a raw Zod shape (`Schema.shape`) wrapped into `z.object()` at definition. */
+export type AnyInput = undefined | z.ZodRawShape | StandardSchemaWithJSON;
+export type AnyOutput = AnyInput;
 
 /** Exact per-request context passed by SDK tool/resource callbacks. */
 export type RequestExtraParam = ServerContext;
@@ -29,7 +28,7 @@ export type HubAuthExtra = {
   timezone: string | null;
 };
 
-export type ToolInput<InputArgs extends AnyInput = undefined> = InputArgs extends ZodRawShape
+export type ToolInput<InputArgs extends AnyInput = undefined> = InputArgs extends z.ZodRawShape
   ? z.output<z.ZodObject<InputArgs>>
   : InputArgs extends StandardSchemaWithJSON
     ? StandardSchemaWithJSON.InferOutput<InputArgs>
@@ -67,8 +66,8 @@ export type McpResourceDef = {
 };
 
 /**
- * Type-erased, registration-ready tool: schemas are already normalised to Standard Schemas
- * (built once at module load) so per-request server construction does no schema work.
+ * Type-erased, registration-ready tool: schemas are normalised to Standard Schemas and the handler is wrapped,
+ * both once at module load, so the per-request server factory does no schema or wrapping work.
  */
 export type AnyMcpToolDef = {
   name: string;
@@ -77,6 +76,8 @@ export type AnyMcpToolDef = {
   inputSchema?: StandardSchemaWithJSON;
   outputSchema?: StandardSchemaWithJSON;
   annotations?: ToolAnnotations;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  callback: ToolHandler<any>;
+  handler: SdkToolCallback<StandardSchemaWithJSON>;
 };
+
+/** Registration-ready resource: the handler is wrapped once at module load. */
+export type RegisteredResourceDef = Omit<McpResourceDef, 'callback'> & { handler: SdkReadResourceCallback };

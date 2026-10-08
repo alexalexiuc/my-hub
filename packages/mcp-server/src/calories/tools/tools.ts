@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { measurementTypeDefinitions } from '@my-hub/shared/constants';
 import { DeleteMealSchema, deleteMealTool, GetMealsSchema, getMealsTool, LogMealSchema, logMealTool } from './meals';
-import { defineTool, toolResponse, wrapToolHandler } from '../../shared/toolsUtils';
+import { defineTool, toolResponse, registerTools } from '../../shared/toolsUtils';
 import { getProfileTool, UpdateProfileSchema, updateProfileTool } from './profile';
 import { GetDailySummarySchema, getDailySummaryTool } from './summary';
 import { GetHistorySchema, getHistoryTool } from './history';
@@ -265,17 +265,5 @@ const caloriesTools = [
 ];
 
 export function registerCaloriesTools(server: McpServer): void {
-  for (const tool of caloriesTools) {
-    server.registerTool(
-      tool.name,
-      {
-        title: tool.title,
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-        outputSchema: tool.outputSchema,
-        annotations: tool.annotations,
-      },
-      wrapToolHandler(tool.callback),
-    );
-  }
+  registerTools(server, caloriesTools);
 }

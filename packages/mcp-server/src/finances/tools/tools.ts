@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/server';
-import { defineTool, wrapToolHandler } from '../../shared/toolsUtils';
+import { defineTool, registerTools } from '../../shared/toolsUtils';
 import {
   AddTransactionsSchema,
   UpdateTransactionSchema,
@@ -396,16 +396,5 @@ const financeTools = [
 ];
 
 export function registerFinancesTools(server: McpServer): void {
-  for (const tool of financeTools) {
-    server.registerTool(
-      tool.name,
-      {
-        title: tool.title,
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-        annotations: tool.annotations,
-      },
-      wrapToolHandler(tool.callback),
-    );
-  }
+  registerTools(server, financeTools);
 }

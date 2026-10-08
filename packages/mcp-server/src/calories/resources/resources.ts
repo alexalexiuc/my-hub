@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/server';
-import { defineResource, wrapResourceHandler } from '../../shared/toolsUtils';
+import { defineResource, registerResources } from '../../shared/toolsUtils';
 import { getHistory7DaysResource } from './history-7days';
 import { getHistory30DaysResource } from './history-30days';
 import { getProfileResource } from './profile';
@@ -41,12 +41,5 @@ const caloriesResources = [
 ];
 
 export function registerCaloriesResources(server: McpServer): void {
-  for (const resource of caloriesResources) {
-    server.registerResource(
-      resource.name,
-      resource.uri,
-      { description: resource.description, mimeType: resource.mimeType },
-      wrapResourceHandler(resource.callback),
-    );
-  }
+  registerResources(server, caloriesResources);
 }

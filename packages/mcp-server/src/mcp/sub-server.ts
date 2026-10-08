@@ -4,6 +4,7 @@ import FastifyMcpServer, { getMcpDecorator } from 'fastify-mcp-server';
 import type { McpServerName } from '@my-hub/shared/constants';
 import { logger } from '@my-hub/shared/utils';
 import { createHubTokenVerifier } from '../plugins/oauth-verifier.js';
+import { attachMcpRequestLogger } from '../plugins/mcp-request-logger.js';
 import { envConfig } from '../config/env.js';
 import { mcpSubServers } from './registry.js';
 
@@ -31,6 +32,8 @@ export function registerMcpSubServer(
   createMcpServer: () => McpServer,
 ): void {
   app.register(async child => {
+    attachMcpRequestLogger(child, endpoint);
+
     await child.register(FastifyMcpServer, {
       transport: 'http',
       createMcpServer,

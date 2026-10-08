@@ -1,17 +1,17 @@
 import fp from 'fastify-plugin';
-import { mcpSubServers } from '../mcp/registry.js';
+import { mcpSubServers, type McpEndpointStats } from '../mcp/registry.js';
 
 export const monitorRoute = fp(async app => {
   app.get('/api/monitor', { logLevel: 'silent' }, async (_request, _reply) => {
     const mem = process.memoryUsage();
 
-    const subServerStats = mcpSubServers.map(({ endpoint, serverName, getStats }) => {
-      const { requestsTotal, inFlightRequests, errorsTotal } = getStats();
-      return { endpoint, serverName, requestsTotal, inFlightRequests, errorsTotal };
-    });
+    const subServerStats = mcpSubServers.map(({ endpoint, serverName, getStats }) => ({
+      ...getStats(),
+      endpoint,
+      serverName,
+    }));
 
-    const sum = (key: 'requestsTotal' | 'inFlightRequests' | 'errorsTotal') =>
-      subServerStats.reduce((total, s) => total + s[key], 0);
+    const sum = (key: keyof McpEndpointStats) => subServerStats.reduce((total, s) => total + s[key], 0);
 
     return {
       status: 'ok',

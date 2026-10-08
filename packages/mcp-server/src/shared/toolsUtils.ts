@@ -1,4 +1,6 @@
 import type {
+  AuthInfo,
+  McpServer,
   ReadResourceCallback as SdkReadResourceCallback,
   StandardSchemaWithJSON,
   ToolCallback as SdkToolCallback,
@@ -13,11 +15,11 @@ import {
   HubAuthInfoLike,
   McpResourceDef,
   McpToolDef,
+  RegisteredResourceDef,
   ResourceHandler,
   ToolHandler,
   ToolInput,
   RequestExtraParam,
-  ZodRawShape,
 } from './types';
 import { HandledError } from './errors';
 
@@ -41,11 +43,11 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-/** Caches one converter's output per options object (the SDK always passes the same JSON Schema target). */
+/** Caches one converter's output per JSON Schema target (the SDK always passes the same one). */
 function memoizeConverter(convert: JsonSchemaConverter): JsonSchemaConverter {
   const cache = new Map<string, Record<string, unknown>>();
   return options => {
-    const key = JSON.stringify(options ?? {});
+    const key = options.target;
     let json = cache.get(key);
     if (!json) {
       // Frozen: the cached object is shared by every request's McpServer and must never be mutated.
@@ -84,22 +86,45 @@ function withCachedJsonSchema(schema: StandardSchemaWithJSON): StandardSchemaWit
  */
 function toStandardSchema(schema: AnyInput | AnyOutput): StandardSchemaWithJSON | undefined {
   if (schema === undefined) return undefined;
-  return withCachedJsonSchema(isStandardSchema(schema) ? schema : z.object(schema as ZodRawShape));
+  return withCachedJsonSchema(isStandardSchema(schema) ? schema : z.object(schema as z.ZodRawShape));
 }
 
 /**
  * Type-checks schema↔callback alignment at call site, then erases to AnyMcpToolDef for array storage.
- * Schemas are normalised once here so the per-request server factory only registers prebuilt definitions.
+ * Schemas are normalised and the handler wrapped once here, so the per-request server factory only
+ * registers prebuilt definitions.
  */
-export const defineTool = <InputArgs extends AnyInput = undefined, OutputArgs extends AnyOutput = undefined>(
-  tool: McpToolDef<InputArgs, OutputArgs>,
-): AnyMcpToolDef => ({
-  ...(tool as AnyMcpToolDef),
-  inputSchema: toStandardSchema(tool.inputSchema),
-  outputSchema: toStandardSchema(tool.outputSchema),
+export const defineTool = <InputArgs extends AnyInput = undefined, OutputArgs extends AnyOutput = undefined>({
+  callback,
+  inputSchema,
+  outputSchema,
+  ...meta
+}: McpToolDef<InputArgs, OutputArgs>): AnyMcpToolDef => ({
+  ...meta,
+  inputSchema: toStandardSchema(inputSchema),
+  outputSchema: toStandardSchema(outputSchema),
+  handler: wrapToolHandler(callback),
 });
 
-export const defineResource = (def: McpResourceDef): McpResourceDef => def;
+/** Prebuilds a resource definition with its handler wrapped once, at module load. */
+export const defineResource = ({ callback, ...meta }: McpResourceDef): RegisteredResourceDef => ({
+  ...meta,
+  handler: wrapResourceHandler(callback),
+});
+
+/** Registers prebuilt tool definitions on a (per-request) server. */
+export function registerTools(server: McpServer, tools: readonly AnyMcpToolDef[]): void {
+  for (const { name, handler, ...config } of tools) {
+    server.registerTool(name, config, handler);
+  }
+}
+
+/** Registers prebuilt resource definitions on a (per-request) server. */
+export function registerResources(server: McpServer, resources: readonly RegisteredResourceDef[]): void {
+  for (const { name, uri, description, mimeType, handler } of resources) {
+    server.registerResource(name, uri, { description, mimeType }, handler);
+  }
+}
 
 /** Reads the Hub identity that `createHubTokenVerifier` attached to the verified bearer token. */
 export function getHubAuthExtra(authInfo?: HubAuthInfoLike): HubAuthExtra | null {
@@ -116,6 +141,11 @@ export function getHubAuthExtra(authInfo?: HubAuthInfoLike): HubAuthExtra | null
     serverName: serverName as HubAuthExtra['serverName'],
     timezone: typeof timezone === 'string' ? timezone : null,
   };
+}
+
+/** Hub identity of an HTTP request — fastify-mcp-server's bearer preHandler attaches the verified auth to `req.raw`. */
+export function getRequestHubAuthExtra(req: { raw: object }): HubAuthExtra | null {
+  return getHubAuthExtra((req.raw as { auth?: AuthInfo }).auth);
 }
 
 export function requireHubAuthExtra(extra: RequestExtraParam): HubAuthExtra {

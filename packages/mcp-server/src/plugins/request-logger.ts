@@ -1,13 +1,16 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { AuthInfo } from '@modelcontextprotocol/server';
 import { putLog, PutLogData } from '@my-hub/shared/services';
 import { logger } from '@my-hub/shared/utils';
 import { envConfig } from '../config/env.js';
-import { getHubAuthExtra } from '../shared/toolsUtils.js';
+import { getRequestHubAuthExtra } from '../shared/toolsUtils.js';
 import { capPayload, redactSensitiveFields } from './payload-logging.js';
 import { REDACTED_PLACEHOLDER, SENSITIVE_HEADERS } from '../config/constants.js';
-import { isMcpEndpoint } from '../utils/mcp-endpoint.js';
+
+/** Returns true for MCP transport endpoints (/api/<name>/mcp). */
+function isMcpEndpoint(url: string): boolean {
+  return /\/api\/[^/]+\/mcp(\?|$)/.test(url);
+}
 
 function redactHeaders(headers: Record<string, unknown>): Record<string, unknown> {
   const redacted: Record<string, unknown> = {};
@@ -77,11 +80,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
 
     // Read userId from verified auth (set by fastify-mcp-server's bearer middleware).
     // Falls back to null for unauthenticated or non-MCP routes — never uses unverified token data.
-    const {
-      userId = null,
-      clientId = null,
-      serverName = null,
-    } = getHubAuthExtra((req.raw as { auth?: AuthInfo }).auth) || {};
+    const { userId = null, clientId = null, serverName = null } = getRequestHubAuthExtra(req) || {};
 
     // Write to DB asynchronously — don't await so we don't slow down the response.
     const logData: PutLogData = {

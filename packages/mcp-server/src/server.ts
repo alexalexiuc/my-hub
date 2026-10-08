@@ -7,7 +7,6 @@ import { healthRoutes } from './routes/health.js';
 import { oauthRoutes } from './routes/oauth.js';
 import { monitorRoute } from './routes/monitor.js';
 import { publicRoutes } from './routes/public/index.js';
-import { mcpRequestLoggerPlugin } from './plugins/mcp-request-logger.js';
 import relaxedJsonBodyPlugin from './plugins/relaxed-json-body.js';
 import requestLoggerPlugin from './plugins/request-logger.js';
 import { McpServerNames } from '@my-hub/shared/constants';
@@ -65,9 +64,6 @@ export async function buildServer() {
 
   // Custom two-line request logger (console + DB)
   await app.register(requestLoggerPlugin);
-
-  // MCP exchange logger (console + DB). Registered before the sub-servers so its hooks cover their routes.
-  await app.register(mcpRequestLoggerPlugin);
 
   // Public root routes: discovery metadata + favicon.
   await app.register(publicRoutes);
