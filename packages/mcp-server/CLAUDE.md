@@ -29,10 +29,14 @@ Both steps are required. A tool defined but not registered in `tools.ts` will no
   - `ResourceHandler` for resource readers
 - Do not import `ToolCallback` or `ReadResourceCallback` directly from the MCP SDK in feature files. Those SDK types are reserved for the transport boundary in `src/shared/toolsUtils.ts`.
 - Keep handler functions in domain files (`tools/<domain>.ts`, `resources/<domain>.ts`) and keep registration files (`tools/tools.ts`, `resources/resources.ts` or `resources/index.ts`) focused on `defineTool()` / `defineResource()` entries plus registration loops.
-- Handlers are wrapped at registration by `src/shared/toolsUtils.ts`: each domain's `registerXTools` loop calls
-  `wrapToolHandler(tool.callback)` (and `wrapResourceHandler` for resources). The wrapper resolves the
-  authenticated `HubAuthExtra` context (`userId`, `timezone`, …) and logs failures — do not call it inside
-  handlers.
+- Handlers are wrapped once, at module load, by `defineTool()` / `defineResource()` in `src/shared/toolsUtils.ts`
+  (which also prebuilds each tool's schema and caches its JSON Schema). Each domain's `registerXTools` /
+  `registerXResources` just calls `registerTools(server, defs)` / `registerResources(server, defs)`. The wrapper
+  resolves the authenticated `HubAuthExtra` context (`userId`, `timezone`, …) and logs failures — do not call it
+  inside handlers.
+- MCP is stateless (protocol `2026-07-28`): the SDK calls each domain's `createXServer()` once per HTTP request.
+  Keep that factory to `new McpServer(...)` plus `registerTools`/`registerResources` — no per-request schema
+  building, I/O or other setup.
 
 ## Errors
 
