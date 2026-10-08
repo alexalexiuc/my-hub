@@ -22,12 +22,12 @@
   "dependencies": {
     "@fastify/cors": "^11.3.0",
     "@fastify/formbody": "^9.0.0",
-    "@modelcontextprotocol/sdk": "^1.30.1",
+    "@modelcontextprotocol/server": "^2.3.1",
     "@my-hub/shared": "workspace:*",
     "close-with-grace": "^2.0.0",
     "dotenv-mono": "^1.5.1",
     "fastify": "^5.12.5",
-    "fastify-mcp-server": "^0.7.0",
+    "fastify-mcp-server": "^1.1.0",
     "fastify-plugin": "^6.0.0",
     "fuse.js": "^7.5.0",
     "jose": "^6.2.12",
@@ -36,6 +36,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "^2.3.1",
     "@types/node": "^24.13.6",
     "@vitest/coverage-v8": "^5.0.1",
     "nodemon": "^3.1.14",

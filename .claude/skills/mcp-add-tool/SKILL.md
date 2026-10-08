@@ -56,7 +56,7 @@ export const myActionTool: ToolHandler<typeof MyActionSchema.shape> = async (inp
 Key rules:
 
 - Always use `context.userId` for authenticated tools.
-- The optional third callback arg (`extra`) is the raw SDK request extra when needed.
+- The optional third callback arg (`extra`) is the raw SDK v2 request context (`ServerContext`: `mcpReq`, `http.authInfo`) when needed.
 - Return via `toolResponse(payload)` — this wraps the payload in the MCP text content format.
 - For user-visible errors throw `HandledError` (`../../shared/errors`) in the handler, or a `UserInputError`
   subclass from the shared service; both are logged as warnings and returned as the tool error message.

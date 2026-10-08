@@ -1,5 +1,5 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { defineResource, wrapResourceHandler } from '../../shared/toolsUtils';
+import { McpServer } from '@modelcontextprotocol/server';
+import { defineResource, registerResources } from '../../shared/toolsUtils';
 import { getFinancesContextResource } from './context';
 import { getFinancesAccountResource } from './account';
 import { getFinancesPayeesResource } from './payees';
@@ -33,12 +33,5 @@ const financeResources = [
 ];
 
 export function registerFinancesResources(server: McpServer): void {
-  for (const resource of financeResources) {
-    server.registerResource(
-      resource.name,
-      resource.uri,
-      { description: resource.description, mimeType: resource.mimeType },
-      wrapResourceHandler(resource.callback),
-    );
-  }
+  registerResources(server, financeResources);
 }

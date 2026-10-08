@@ -76,7 +76,8 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 ### MCP Server Layer (Fastify)
 
 - Replace Cloudflare Worker HTTP layer with a Fastify app
-- Expose MCP over HTTP (SSE or Streamable HTTP — MCP SDK supports both)
+- Expose MCP over stateless Streamable HTTP, protocol `2026-07-28` only (`fastify-mcp-server` 1.x on MCP TypeScript SDK v2, `@modelcontextprotocol/server`). No sessions, no `initialize` handshake: the SDK builds a fresh `McpServer` per HTTP request, so tool definitions and their JSON Schemas are prebuilt once at module load (`defineTool`). Pre-2026 clients are rejected.
+- MCP endpoints validate the `Host` header against `MCP_ALLOWED_HOSTS` (and browser `Origin` against `MCP_ALLOWED_ORIGINS`)
 - Endpoint pattern: `/api/<domain>/mcp` (for example: `/api/calories/mcp`, `/api/travel/mcp`, `/api/finances/mcp`, `/api/vacation/mcp`)
 - OAuth 2.0 stays — adapt existing implementation from `src/http/`
 - Each MCP sub-server remains its own module (calories, travel, finances, vacation, ...)

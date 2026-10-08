@@ -1,5 +1,5 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { defineTool, wrapToolHandler } from '../../shared/toolsUtils';
+import { McpServer } from '@modelcontextprotocol/server';
+import { defineTool, registerTools } from '../../shared/toolsUtils';
 import {
   TravelAddReservationFromTextInputSchema,
   TravelAddFlightSchema,
@@ -186,16 +186,5 @@ const travelTools = [
 ];
 
 export function registerTravelTools(server: McpServer): void {
-  for (const tool of travelTools) {
-    server.registerTool(
-      tool.name,
-      {
-        title: tool.title,
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-        annotations: tool.annotations,
-      },
-      wrapToolHandler(tool.callback),
-    );
-  }
+  registerTools(server, travelTools);
 }

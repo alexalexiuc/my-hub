@@ -1,21 +1,27 @@
 import { describe, expect, it, vi } from 'vitest';
 import { McpServerNames } from '@my-hub/shared/constants';
-import type { HubExtraParam, RequestExtraParam, ResourceHandler, ToolHandler } from './types';
-import { getHubAuthExtra, requireHubAuthExtra, toolResponse, wrapToolHandler, wrapResourceHandler } from './toolsUtils';
+import { z } from 'zod';
+import type { HubAuthInfoLike, RequestExtraParam, ResourceHandler, ToolHandler } from './types';
+import {
+  defineTool,
+  getHubAuthExtra,
+  requireHubAuthExtra,
+  toolResponse,
+  wrapToolHandler,
+  wrapResourceHandler,
+} from './toolsUtils';
 
 function buildExtra(
   overrides?: Partial<Record<'userId' | 'email' | 'clientId' | 'serverName' | 'timezone', unknown>>,
-): HubExtraParam {
+): HubAuthInfoLike {
   return {
-    authInfo: {
-      extra: {
-        userId: 'user-1',
-        email: 'user@example.com',
-        clientId: 'client-1',
-        serverName: McpServerNames.Calories,
-        timezone: 'Europe/Bucharest',
-        ...overrides,
-      },
+    extra: {
+      userId: 'user-1',
+      email: 'user@example.com',
+      clientId: 'client-1',
+      serverName: McpServerNames.Calories,
+      timezone: 'Europe/Bucharest',
+      ...overrides,
     },
   };
 }
@@ -23,7 +29,7 @@ function buildExtra(
 function buildRequestExtra(
   overrides?: Partial<Record<'userId' | 'email' | 'clientId' | 'serverName' | 'timezone', unknown>>,
 ): RequestExtraParam {
-  return buildExtra(overrides) as RequestExtraParam;
+  return { http: { authInfo: buildExtra(overrides) } } as RequestExtraParam;
 }
 
 describe('toolResponse', () => {
@@ -33,6 +39,45 @@ describe('toolResponse', () => {
     expect(result).toEqual({
       content: [{ type: 'text', text: '{"ok":true,"count":2}' }],
     });
+  });
+});
+
+describe('defineTool', () => {
+  const jsonOptions = { target: 'draft-2020-12' } as const;
+
+  it('wraps a raw zod shape into an object schema that validates with zod', async () => {
+    const tool = defineTool({
+      name: 't',
+      inputSchema: { tripId: z.coerce.number() },
+      callback: async () => toolResponse({}),
+    });
+    const standard = tool.inputSchema!['~standard'];
+
+    expect(await standard.validate({ tripId: '7' })).toEqual({ value: { tripId: 7 } });
+    expect(await standard.validate({})).toHaveProperty('issues');
+    expect(standard.jsonSchema.input(jsonOptions)).toMatchObject({ type: 'object', required: ['tripId'] });
+    expect(tool.outputSchema).toBeUndefined();
+  });
+
+  it('keeps standard schema refinements', async () => {
+    const schema = z.object({ tripId: z.number() }).strict();
+    const tool = defineTool({ name: 't', inputSchema: schema, callback: async () => toolResponse({}) });
+
+    expect(await tool.inputSchema!['~standard'].validate({ tripId: 1, extra: true })).toHaveProperty('issues');
+  });
+
+  it('converts to JSON Schema once and returns the same frozen object afterwards', () => {
+    const schema = z.object({ tripId: z.number() });
+    const convert = vi.spyOn(schema['~standard'].jsonSchema, 'input');
+    const tool = defineTool({ name: 't', inputSchema: schema, callback: async () => toolResponse({}) });
+    const { jsonSchema } = tool.inputSchema!['~standard'];
+
+    const first = jsonSchema.input(jsonOptions);
+    const second = jsonSchema.input({ ...jsonOptions });
+
+    expect(second).toBe(first);
+    expect(Object.isFrozen(first)).toBe(true);
+    expect(convert).toHaveBeenCalledOnce();
   });
 });
 
@@ -130,7 +175,7 @@ describe('wrapResourceHandler', () => {
 });
 
 describe('wrapToolHandler', () => {
-  it('supports two-argument sdk callback style (input, extra)', async () => {
+  it('supports two-argument sdk callback style (input, ctx)', async () => {
     const cb: ToolHandler = vi.fn(async () => toolResponse({ ok: true }));
     const wrapped = wrapToolHandler(cb);
     const extra = buildRequestExtra();
@@ -152,7 +197,7 @@ describe('wrapToolHandler', () => {
     );
   });
 
-  it('supports single-argument sdk callback style (extra only)', async () => {
+  it('supports single-argument sdk callback style (ctx only)', async () => {
     const cb: ToolHandler<undefined> = vi.fn(async () => toolResponse({ ok: true }));
     const wrapped = wrapToolHandler(cb);
     const extra = buildRequestExtra();

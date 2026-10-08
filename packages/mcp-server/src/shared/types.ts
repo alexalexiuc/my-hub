@@ -1,31 +1,24 @@
-import { ReadResourceCallback as SdkReadResourceCallback } from '@modelcontextprotocol/sdk/server/mcp.js';
-import {
-  AnySchema,
-  SchemaOutput,
-  ShapeOutput,
-  ZodRawShapeCompat,
-} from '@modelcontextprotocol/sdk/server/zod-compat.js';
-import { CallToolResult, ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
+import type {
+  AuthInfo,
+  CallToolResult,
+  ReadResourceCallback as SdkReadResourceCallback,
+  ServerContext,
+  ToolCallback as SdkToolCallback,
+  StandardSchemaWithJSON,
+  ToolAnnotations,
+} from '@modelcontextprotocol/server';
+import type { z } from 'zod';
 import { McpServerName } from '@my-hub/shared/constants';
 
-export type AnyInput = undefined | ZodRawShapeCompat | AnySchema;
-export type AnyOutput = undefined | ZodRawShapeCompat | AnySchema;
+/** A tool schema: a Standard Schema, or a raw Zod shape (`Schema.shape`) wrapped into `z.object()` at definition. */
+export type AnyInput = undefined | z.ZodRawShape | StandardSchemaWithJSON;
+export type AnyOutput = AnyInput;
 
-/** Exact extra object passed by SDK tool/resource callbacks. */
-export type RequestExtraParam = Parameters<SdkReadResourceCallback>[1];
+/** Exact per-request context passed by SDK tool/resource callbacks. */
+export type RequestExtraParam = ServerContext;
 
 /** Minimal auth-bearing shape accepted by auth helper utilities and logging hooks. */
-export type HubExtraParam = {
-  authInfo?: {
-    extra?: {
-      userId?: unknown;
-      email?: unknown;
-      clientId?: unknown;
-      serverName?: unknown;
-      timezone?: unknown;
-    };
-  };
-};
+export type HubAuthInfoLike = Pick<AuthInfo, 'extra'> | undefined;
 
 export type HubAuthExtra = {
   userId: string;
@@ -35,10 +28,10 @@ export type HubAuthExtra = {
   timezone: string | null;
 };
 
-export type ToolInput<InputArgs extends AnyInput = undefined> = InputArgs extends ZodRawShapeCompat
-  ? ShapeOutput<InputArgs>
-  : InputArgs extends AnySchema
-    ? SchemaOutput<InputArgs>
+export type ToolInput<InputArgs extends AnyInput = undefined> = InputArgs extends z.ZodRawShape
+  ? z.output<z.ZodObject<InputArgs>>
+  : InputArgs extends StandardSchemaWithJSON
+    ? StandardSchemaWithJSON.InferOutput<InputArgs>
     : undefined;
 
 export type ToolHandler<InputArgs extends AnyInput = undefined> = (
@@ -72,14 +65,19 @@ export type McpResourceDef = {
   callback: ResourceHandler;
 };
 
-/** Type-erased alias for storing mixed-schema tools in a single array */
+/**
+ * Type-erased, registration-ready tool: schemas are normalised to Standard Schemas and the handler is wrapped,
+ * both once at module load, so the per-request server factory does no schema or wrapping work.
+ */
 export type AnyMcpToolDef = {
   name: string;
   title?: string;
   description?: string;
-  inputSchema?: AnyInput;
-  outputSchema?: AnyOutput;
+  inputSchema?: StandardSchemaWithJSON;
+  outputSchema?: StandardSchemaWithJSON;
   annotations?: ToolAnnotations;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  callback: ToolHandler<any>;
+  handler: SdkToolCallback<StandardSchemaWithJSON>;
 };
+
+/** Registration-ready resource: the handler is wrapped once at module load. */
+export type RegisteredResourceDef = Omit<McpResourceDef, 'callback'> & { handler: SdkReadResourceCallback };
