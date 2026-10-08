@@ -2,36 +2,16 @@ import fp from 'fastify-plugin';
 import { mcpSubServers } from '../mcp/registry.js';
 
 export const monitorRoute = fp(async app => {
-  const counters = new Map<string, { totalCreated: number; totalDestroyed: number }>();
-
-  // Wire session event counters per sub-server after all sub-servers are registered
-  app.addHook('onReady', async () => {
-    for (const { endpoint, sessionManager } of mcpSubServers) {
-      const c = { totalCreated: 0, totalDestroyed: 0 };
-      counters.set(endpoint, c);
-      sessionManager.on('sessionCreated', () => {
-        c.totalCreated++;
-      });
-      sessionManager.on('sessionDestroyed', () => {
-        c.totalDestroyed++;
-      });
-    }
-  });
-
   app.get('/api/monitor', { logLevel: 'silent' }, async (_request, _reply) => {
     const mem = process.memoryUsage();
 
-    const subServerStats = await Promise.all(
-      mcpSubServers.map(async ({ endpoint, sessionManager }) => {
-        const active = await sessionManager.getSessionsCount();
-        const c = counters.get(endpoint) ?? { totalCreated: 0, totalDestroyed: 0 };
-        return { endpoint, active, totalCreated: c.totalCreated, totalDestroyed: c.totalDestroyed };
-      }),
-    );
+    const subServerStats = mcpSubServers.map(({ endpoint, serverName, getStats }) => {
+      const { requestsTotal, inFlightRequests, errorsTotal } = getStats();
+      return { endpoint, serverName, requestsTotal, inFlightRequests, errorsTotal };
+    });
 
-    const totalActive = subServerStats.reduce((sum, s) => sum + s.active, 0);
-    const totalCreated = subServerStats.reduce((sum, s) => sum + s.totalCreated, 0);
-    const totalDestroyed = subServerStats.reduce((sum, s) => sum + s.totalDestroyed, 0);
+    const sum = (key: 'requestsTotal' | 'inFlightRequests' | 'errorsTotal') =>
+      subServerStats.reduce((total, s) => total + s[key], 0);
 
     return {
       status: 'ok',
@@ -45,14 +25,15 @@ export const monitorRoute = fp(async app => {
         heapTotal: mem.heapTotal,
         external: mem.external,
       },
-      sessions: {
-        active: totalActive,
-        totalCreated,
-        totalDestroyed,
+      requests: {
+        total: sum('requestsTotal'),
+        inFlight: sum('inFlightRequests'),
+        errors: sum('errorsTotal'),
       },
       mcp: {
         transport: 'streamable-http',
-        sessionStore: 'in-memory',
+        protocolVersion: '2026-07-28',
+        sessions: 'stateless',
         subServers: subServerStats,
       },
     };

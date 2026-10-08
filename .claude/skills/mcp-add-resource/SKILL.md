@@ -44,7 +44,7 @@ export const getMyDataResource: ResourceHandler = async (uri, context) => {
 Key rules:
 
 - Always use `context.userId` for authenticated resources.
-- The optional third callback arg (`extra`) is the raw SDK request extra when needed.
+- The optional third callback arg (`extra`) is the raw SDK v2 request context (`ServerContext`: `mcpReq`, `http.authInfo`) when needed.
 - Return via `resourceResponse(uri, payload)` — this wraps the payload as MCP resource content
   with `mimeType: 'application/json'` and pretty-printed JSON.
 - Resources are read-only by convention; never write to the database from a resource callback.

@@ -1,17 +1,13 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
+import type { AuthInfo } from '@modelcontextprotocol/server';
 import { putLog, PutLogData } from '@my-hub/shared/services';
 import { logger } from '@my-hub/shared/utils';
 import { envConfig } from '../config/env.js';
 import { getHubAuthExtra } from '../shared/toolsUtils.js';
 import { capPayload, redactSensitiveFields } from './payload-logging.js';
 import { REDACTED_PLACEHOLDER, SENSITIVE_HEADERS } from '../config/constants.js';
-
-/** Returns true for MCP transport endpoints (/api/<name>/mcp). */
-function isMcpEndpoint(url: string): boolean {
-  return /\/api\/[^/]+\/mcp(\?|$)/.test(url);
-}
+import { isMcpEndpoint } from '../utils/mcp-endpoint.js';
 
 function redactHeaders(headers: Record<string, unknown>): Record<string, unknown> {
   const redacted: Record<string, unknown> = {};
@@ -41,8 +37,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
     // logLevel:'silent' set on known routes; empty url means no route matched (setNotFoundHandler)
     if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
 
-    // MCP endpoints are fully covered by the session logger — skip HTTP-level logging entirely.
-    // GET opens a long-lived SSE stream; POST carries MCP JSON-RPC messages logged by session-logger.
+    // MCP endpoints are fully covered by mcp-request-logger — skip HTTP-level logging entirely.
     if (isMcpEndpoint(req.url)) return;
 
     logger.info(`--> ${req.method} ${req.url}`);
@@ -71,7 +66,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
   app.addHook('onResponse', async (req, reply) => {
     if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
 
-    // MCP endpoints are fully covered by the session logger.
+    // MCP endpoints are fully covered by mcp-request-logger.
     if (isMcpEndpoint(req.url)) return;
 
     const durationMs = Math.round(reply.elapsedTime);
@@ -86,7 +81,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
       userId = null,
       clientId = null,
       serverName = null,
-    } = getHubAuthExtra({ authInfo: (req.raw as { auth?: AuthInfo }).auth }) || {};
+    } = getHubAuthExtra((req.raw as { auth?: AuthInfo }).auth) || {};
 
     // Write to DB asynchronously — don't await so we don't slow down the response.
     const logData: PutLogData = {

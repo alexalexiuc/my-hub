@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { measurementTypeDefinitions } from '@my-hub/shared/constants';
 import { DeleteMealSchema, deleteMealTool, GetMealsSchema, getMealsTool, LogMealSchema, logMealTool } from './meals';
 import { defineTool, toolResponse, wrapToolHandler } from '../../shared/toolsUtils';

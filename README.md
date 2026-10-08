@@ -26,7 +26,7 @@ A **Next.js dashboard** (`hub`) lets you view and manage all your data in one pl
 ## Tech stack
 
 - **Runtime**: Node.js 24+, TypeScript (ESM, strict)
-- **MCP**: `@modelcontextprotocol/sdk` 1.x
+- **MCP**: protocol `2026-07-28` (stateless Streamable HTTP) via `fastify-mcp-server` 1.x and `@modelcontextprotocol/server` 2.x
 - **API server**: Fastify
 - **Frontend**: Next.js 16 App Router, React 18, Tailwind CSS, Recharts
 - **Database**: PostgreSQL 18, Drizzle ORM

@@ -36,6 +36,23 @@ export const envConfig = {
   get CORS_ORIGIN() {
     return getEnvVar('CORS_ORIGIN', '*');
   },
+  /**
+   * Host-header allowlist for the MCP endpoints (DNS-rebinding protection). Hostnames only, no ports.
+   * Must include the public MCP domain in deployed environments.
+   */
+  get MCP_ALLOWED_HOSTS() {
+    return parseCsv(getEnvVar('MCP_ALLOWED_HOSTS', ''), ['localhost', '127.0.0.1', '[::1]']);
+  },
+  /** Origin-header allowlist (hostnames) for browser clients of the MCP endpoints. Requests without Origin pass. */
+  get MCP_ALLOWED_ORIGINS() {
+    return parseCsv(getEnvVar('MCP_ALLOWED_ORIGINS', ''), [
+      'localhost',
+      '127.0.0.1',
+      '[::1]',
+      'claude.ai',
+      'claude.com',
+    ]);
+  },
   get ALLOWED_REDIRECT_URIS() {
     return parseCsv(getEnvVar('ALLOWED_REDIRECT_URIS', ''), []);
   },

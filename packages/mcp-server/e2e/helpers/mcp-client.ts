@@ -1,5 +1,7 @@
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+
+/** The server only speaks MCP 2026-07-28 (stateless, no `initialize` handshake), so the client pins it. */
+const MCP_PROTOCOL_VERSION = '2026-07-28';
 
 export type McpClient = Client;
 
@@ -16,7 +18,10 @@ export async function createMcpClient(baseUrl: string, path: string, token: stri
       headers: { Authorization: `Bearer ${token}` },
     },
   });
-  const client = new Client({ name: 'e2e-test-client', version: '1.0.0' });
+  const client = new Client(
+    { name: 'e2e-test-client', version: '1.0.0' },
+    { versionNegotiation: { mode: { pin: MCP_PROTOCOL_VERSION } } },
+  );
   await client.connect(transport);
   return client;
 }

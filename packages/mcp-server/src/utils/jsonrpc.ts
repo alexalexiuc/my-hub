@@ -4,13 +4,13 @@ import type {
   JSONRPCNotification,
   JSONRPCResultResponse,
   JSONRPCErrorResponse,
-} from '@modelcontextprotocol/sdk/types.js';
+} from '@modelcontextprotocol/server';
 import {
   isJSONRPCRequest,
   isJSONRPCNotification,
   isJSONRPCResultResponse,
   isJSONRPCErrorResponse,
-} from '@modelcontextprotocol/sdk/types.js';
+} from '@modelcontextprotocol/server';
 
 export type { JSONRPCRequest, JSONRPCNotification, JSONRPCResultResponse, JSONRPCErrorResponse };
 export { isJSONRPCRequest, isJSONRPCNotification, isJSONRPCResultResponse, isJSONRPCErrorResponse };

@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { defineResource, wrapResourceHandler } from '../../shared/toolsUtils';
 import { getHistory7DaysResource } from './history-7days';
 import { getHistory30DaysResource } from './history-30days';

@@ -1,13 +1,13 @@
 import 'dotenv-mono/load';
 import Fastify from 'fastify';
+import { preloadSchemas } from '@modelcontextprotocol/server';
 import cors from '@fastify/cors';
 import formbody from '@fastify/formbody';
 import { healthRoutes } from './routes/health.js';
 import { oauthRoutes } from './routes/oauth.js';
 import { monitorRoute } from './routes/monitor.js';
 import { publicRoutes } from './routes/public/index.js';
-import { sessionCleanupPlugin } from './plugins/session-cleanup.js';
-import { sessionLoggerPlugin } from './plugins/session-logger.js';
+import { mcpRequestLoggerPlugin } from './plugins/mcp-request-logger.js';
 import relaxedJsonBodyPlugin from './plugins/relaxed-json-body.js';
 import requestLoggerPlugin from './plugins/request-logger.js';
 import { McpServerNames } from '@my-hub/shared/constants';
@@ -23,6 +23,11 @@ export async function buildServer() {
   // Clear the shared registry so that repeated buildServer() calls (e.g. in tests)
   // don't accumulate duplicate sub-server entries.
   mcpSubServers.length = 0;
+
+  // The SDK builds its protocol wire schemas lazily on first use. This is a long-lived process,
+  // so pay that once at boot instead of inside the first MCP request.
+  preloadSchemas();
+
   const app = Fastify({
     logger: {
       level: envConfig.LOG_LEVEL,
@@ -33,18 +38,6 @@ export async function buildServer() {
           singleLine: true,
           ignore: 'pid,hostname',
           translateTime: 'UTC:yyyy-mm-dd"T"HH:MM:ss.l"Z"',
-        },
-      },
-      hooks: {
-        logMethod(args, method) {
-          if (
-            method.name === 'error' &&
-            (args[0] as { err?: { name?: string } })?.err?.name === 'SessionNotFoundError'
-          ) {
-            // eslint-disable-next-line prefer-spread
-            return this.warn.apply(this, args);
-          }
-          return method.apply(this, args);
         },
       },
     },
@@ -73,6 +66,9 @@ export async function buildServer() {
   // Custom two-line request logger (console + DB)
   await app.register(requestLoggerPlugin);
 
+  // MCP exchange logger (console + DB). Registered before the sub-servers so its hooks cover their routes.
+  await app.register(mcpRequestLoggerPlugin);
+
   // Public root routes: discovery metadata + favicon.
   await app.register(publicRoutes);
 
@@ -89,12 +85,6 @@ export async function buildServer() {
   registerMcpSubServer(app, '/api/travel/mcp', McpServerNames.Travel, createTravelServer);
   registerMcpSubServer(app, '/api/finances/mcp', McpServerNames.Finances, createFinancesServer);
   registerMcpSubServer(app, '/api/vacation/mcp', McpServerNames.Vacation, createVacationServer);
-
-  // Session cleanup plugin (reads mcpSubServers registry via onReady hook)
-  await app.register(sessionCleanupPlugin);
-
-  // Session logger plugin: intercepts transport onmessage to log MCP messages and tool calls
-  await app.register(sessionLoggerPlugin);
 
   // Monitor route: /api/monitor
   // Uses fp() so registered at root — path is set to /api/monitor directly in monitor.ts.
