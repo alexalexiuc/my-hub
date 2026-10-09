@@ -52,12 +52,16 @@ async function mcpBridgeHandler(req: NextRequest) {
     return NextResponse.json({ error: 'Redirect must be HTTPS' }, { status: 403 });
   }
 
+  // Use NEXTAUTH_URL as the public base: inside Docker req.nextUrl carries the
+  // internal bind address (http://0.0.0.0:3000), which browsers cannot reach.
+  const baseUrl = hubEnvConfig.NEXTAUTH_URL;
+
   // Check NextAuth session (works here because we're on hub.alexiuc.dev)
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     // Not logged in — redirect to signin, with callbackUrl back to this bridge
-    const bridgeUrl = req.nextUrl.toString();
-    const signinUrl = new URL('/auth/signin', req.nextUrl.origin);
+    const bridgeUrl = new URL(req.nextUrl.pathname + req.nextUrl.search, baseUrl).toString();
+    const signinUrl = new URL('/auth/signin', baseUrl);
     signinUrl.searchParams.set('callbackUrl', bridgeUrl);
     return NextResponse.redirect(signinUrl.toString());
   }
@@ -65,7 +69,7 @@ async function mcpBridgeHandler(req: NextRequest) {
   // Create bridge token and set it as a cookie on the shared domain
   const token = await createBridgeToken(session.user.email);
   const domain = hubEnvConfig.SHARED_COOKIE_DOMAIN;
-  const isSecure = req.nextUrl.protocol === 'https:';
+  const isSecure = new URL(baseUrl).protocol === 'https:';
 
   const response = NextResponse.redirect(redirect);
   response.cookies.set(BRIDGE_COOKIE_NAME, token, {
