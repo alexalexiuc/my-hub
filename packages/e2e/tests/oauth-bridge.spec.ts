@@ -21,7 +21,12 @@ test.describe('OAuth Bridge Flow', () => {
 
   test('mcp-bridge sends a signed-out user to sign-in on the public hub origin', async ({ playwright }) => {
     // Fresh context without the saved auth state, as when a session has expired.
-    const request = await playwright.request.newContext({ baseURL: BASE_URL });
+    // An explicit empty storageState is required: otherwise the context inherits
+    // the project's saved auth state.
+    const request = await playwright.request.newContext({
+      baseURL: BASE_URL,
+      storageState: { cookies: [], origins: [] },
+    });
     const redirect = `${MCP_URL}/api/authorize?response_type=code&client_id=test`;
     const response = await request.get('/api/auth/mcp-bridge?redirect=' + encodeURIComponent(redirect), {
       maxRedirects: 0,
