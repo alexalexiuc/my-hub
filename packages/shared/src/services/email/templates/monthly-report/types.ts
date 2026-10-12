@@ -32,7 +32,10 @@ export interface MonthlyReportData {
   longestStreak: number;
 
   goalMaxCalories: number;
+  /** Signed kg/week (negative to lose, positive to gain); zero for maintain or an unset rate. For arithmetic only. */
   goalWeeklyRateKg: number;
+  /** Which way the goal wants the scale to move: -1 lose, 1 gain, 0 maintain or no goal. Survives an unset rate. */
+  goalDirection: -1 | 0 | 1;
   bmr: number;
   tdee: number;
 

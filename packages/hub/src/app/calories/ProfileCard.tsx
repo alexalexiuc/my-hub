@@ -209,8 +209,10 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
         sex: values.sex || undefined,
         heightCm: values.heightCm ? Number(values.heightCm) : undefined,
         activityLevel: values.activityLevel || undefined,
-        goalType: values.goalType || undefined,
-        goalWeeklyRateKg: values.goalWeeklyRateKg ? Number(values.goalWeeklyRateKg) : undefined,
+        // Null rather than undefined, so picking "— no goal —" and saving actually clears it
+        // instead of being silently ignored as "leave unchanged".
+        goalType: values.goalType || null,
+        goalWeeklyRateKg: values.goalWeeklyRateKg ? Number(values.goalWeeklyRateKg) : null,
         // Null rather than undefined, so clearing the field actually removes the finish line.
         goalTargetWeightKg: values.goalTargetWeightKg ? Number(values.goalTargetWeightKg) : null,
         goalMinCalories: values.goalMinCalories ? Math.round(Number(values.goalMinCalories)) : null,
@@ -227,7 +229,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
         gymDays: values.gymDays.length > 0 ? values.gymDays : null,
         gymDayCalorieBonus: values.gymDayCalorieBonus ? Number(values.gymDayCalorieBonus) : null,
         gymTime: values.gymTime || null,
-        notes: values.notes || undefined,
+        notes: values.notes.trim() || null,
       },
     });
 
