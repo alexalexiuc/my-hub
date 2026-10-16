@@ -28,6 +28,9 @@ Change order for cross-layer work: shared → mcp-server → hub → worker → 
   reports false errors — run `pnpm --filter @my-hub/shared build` before it.
 - **Before writing any helper or query**: `pnpm inventory <dir> [--docs]` lists what already exists (default: shared
   utils + services). E.g. `pnpm inventory packages/shared/src/services/finances --docs`.
+  The session-start hook already put the names of every shared util and hub `@/lib/utils` / `@/hooks` export in
+  your context, and a PostToolUse hook flags a new function that duplicates one — when it does, reuse the existing
+  helper.
 - MCP surface: `pnpm --filter @my-hub/mcp-server list-tools [domain] [--desc]`.
 - Schema change → `pnpm db:generate` (never hand-write schema SQL). Data-only migration →
   `pnpm --filter shared drizzle-kit generate --custom --name=<what>` and fill in the SQL.
