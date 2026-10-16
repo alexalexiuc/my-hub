@@ -2,7 +2,8 @@
 
 import type { MonthGridDay, VacationCalendarRow } from '@my-hub/shared/utils';
 import { cn } from '@/lib/utils';
-import { deltaTextClass, formatDeltaCompact } from './vacation.utils';
+import { formatCompact } from '@my-hub/shared/utils';
+import { deltaTextClass } from './vacation.utils';
 
 type VacationDayCellProps = {
   day: MonthGridDay;
@@ -48,7 +49,7 @@ export function VacationDayCell({ day, row, isToday, selected }: VacationDayCell
       )}
       {row && (
         <span className={cn('text-right text-[11px] font-semibold tabular-nums sm:text-xs', deltaTextClass(delta))}>
-          {cost === 0 && delta === 0 ? '—' : formatDeltaCompact(delta)}
+          {cost === 0 && delta === 0 ? '—' : formatCompact(delta, { signed: true, minus: '−' })}
         </span>
       )}
     </div>

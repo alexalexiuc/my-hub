@@ -1,6 +1,6 @@
 'use client';
 
-import { fmt } from '../ui';
+import { formatMoney } from '@my-hub/shared/utils';
 import type { ReportingData } from '@/app/api/finances/reporting/route';
 
 type ComparisonTableProps = {
@@ -40,8 +40,10 @@ export function ComparisonTable({ data, currency, periodLabel, prevLabel }: Comp
                     <span className="text-[var(--text)]">{cat.name}</span>
                   </div>
                 </td>
-                <td className="py-2 text-right font-medium text-[var(--text)]">{fmt(cat.amount, currency)}</td>
-                {prevLabel && <td className="py-2 text-right text-[var(--muted)]">{fmt(cat.prevAmount, currency)}</td>}
+                <td className="py-2 text-right font-medium text-[var(--text)]">{formatMoney(cat.amount, currency)}</td>
+                {prevLabel && (
+                  <td className="py-2 text-right text-[var(--muted)]">{formatMoney(cat.prevAmount, currency)}</td>
+                )}
                 <td className="py-2 text-right">
                   {delta !== null ? (
                     <span
@@ -49,7 +51,7 @@ export function ComparisonTable({ data, currency, periodLabel, prevLabel }: Comp
                       style={{ color: absDelta > 0 ? 'var(--red)' : absDelta < 0 ? 'var(--green)' : 'var(--muted)' }}
                     >
                       {absDelta > 0 ? '+' : ''}
-                      {fmt(absDelta, currency)}
+                      {formatMoney(absDelta, currency)}
                     </span>
                   ) : (
                     <span className="text-[var(--muted)]">—</span>

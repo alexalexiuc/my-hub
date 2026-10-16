@@ -130,6 +130,16 @@ describe('buildLoanSummary', () => {
     expect(summary.remainingPrincipal).toBeLessThan(summary.originalPrincipal);
   });
 
+  it('a payment on the 31st falls due on the last day of shorter months', () => {
+    const endOfMonth = { ...base, firstPaymentDate: '2026-01-31', termMonths: 13 };
+    expect(buildLoanSummary(endOfMonth, 0, '2026-02-27').paymentsCompleted).toBe(1);
+    expect(buildLoanSummary(endOfMonth, 0, '2026-02-28').paymentsCompleted).toBe(2);
+    expect(buildLoanSummary(endOfMonth, 0, '2026-03-30').paymentsCompleted).toBe(2);
+    expect(buildLoanSummary(endOfMonth, 0, '2026-03-31').paymentsCompleted).toBe(3);
+    expect(buildLoanSummary(endOfMonth, 0, '2026-04-30').paymentsCompleted).toBe(4);
+    expect(buildLoanSummary(endOfMonth, 0, today).projectedPayoffDate).toBe('2027-01-31');
+  });
+
   it('k=0 the day before firstPaymentDate: no payment due yet', () => {
     const summary = buildLoanSummary(base, 0, '2023-12-31');
     expect(summary.remainingPrincipal).toBe(summary.originalPrincipal);

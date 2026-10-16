@@ -1,8 +1,8 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { cn } from '@/lib/utils';
 import { SubText } from '@/components';
-import { fmt } from './ui';
 import { formatFxRateLabel } from './finances.utils';
 import type { BalanceConversion } from '@/app/api/finances/money.schema';
 
@@ -19,7 +19,7 @@ export function ForeignBalanceLine({ value, defaultCurrency, className }: Foreig
     <SubText className={cn('block text-[10px] tabular-nums', className)}>
       {balanceInDefaultCurrency == null || rate == null || rateDate == null
         ? `≈ — ${defaultCurrency} · no rate yet`
-        : `≈ ${fmt(balanceInDefaultCurrency, defaultCurrency)} · ${formatFxRateLabel(rate, rateDate)}`}
+        : `≈ ${formatMoney(balanceInDefaultCurrency, defaultCurrency)} · ${formatFxRateLabel(rate, rateDate)}`}
     </SubText>
   );
 }

@@ -10,8 +10,8 @@ import { ChevronLeftOutlineIcon, ChevronRightOutlineIcon, ChevronDownOutlineIcon
 import {
   shiftMonthStr,
   formatMonthStr,
-  addDays,
   dateToString,
+  shiftDateStr,
   shiftWeekStr,
   formatWeekRangeStr,
 } from '@my-hub/shared/utils';
@@ -40,15 +40,10 @@ export type DatePickerProps = {
   fullBleed?: boolean;
 };
 
-/** Shifts a YYYY-MM-DD string by n days. */
-function shiftDayStr(date: string, n: number): string {
-  return dateToString(addDays(new Date(date + 'T12:00:00'), n));
-}
-
 /** Formats a YYYY-MM-DD string as "Today", "Yesterday", or "Weekday Mon D". */
 function formatDayStr(date: string): string {
   const today = dateToString(new Date());
-  const yesterday = shiftDayStr(today, -1);
+  const yesterday = shiftDateStr(today, -1);
   if (date === today) return 'Today';
   if (date === yesterday) return 'Yesterday';
   return new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
@@ -135,7 +130,7 @@ export function DatePicker({
   // branch instead of chasing matching ternaries through the label, onClick, and displayLabel.
   const stepConfig =
     dateMode === 'day'
-      ? { unit: 'day', step: (n: number) => onChange({ day: shiftDayStr(month, n) }) }
+      ? { unit: 'day', step: (n: number) => onChange({ day: shiftDateStr(month, n) }) }
       : dateMode === 'week'
         ? { unit: 'week', step: (n: number) => onChange({ month: shiftWeekStr(month, n) }) }
         : { unit: 'month', step: (n: number) => onChange({ month: shiftMonthStr(month, n) }) };

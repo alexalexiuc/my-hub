@@ -1,8 +1,9 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { useEffect, useState } from 'react';
 import { PieChart, Pie, ResponsiveContainer, Tooltip, LineChart, Line, XAxis } from 'recharts';
-import { fmt, tooltipBoxStyle } from './ui';
+import { tooltipBoxStyle } from './ui';
 import type { DashboardCategory, DailySpendingPoint } from '@/app/api/finances/dashboard/route';
 import type { SupportedCurrency } from '@my-hub/shared/constants';
 
@@ -33,7 +34,7 @@ function PieTooltip({ currency }: { currency: SupportedCurrency }) {
           <div style={tooltipBoxStyle}>
             <div style={{ color: 'var(--muted)', fontSize: 10, marginBottom: 2 }}>{item.name}</div>
             <div style={{ fontWeight: 600 }}>
-              {typeof item.value === 'number' ? fmt(item.value, currency) : String(item.value)}
+              {typeof item.value === 'number' ? formatMoney(item.value, currency) : String(item.value)}
             </div>
           </div>
         );
@@ -83,7 +84,7 @@ export function CategoryPieChart({ categories, currency }: CategoryPieChartProps
               <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: entry.fill }} />
               <span className="min-w-0 flex-1 truncate text-[10px] text-[var(--muted)]">{entry.name}</span>
               <span className="flex-shrink-0 text-[10px] font-medium text-[var(--text)]">
-                {fmt(entry.value, currency)}
+                {formatMoney(entry.value, currency)}
               </span>
             </div>
           ))}
@@ -143,7 +144,7 @@ export function SpendingTrendChart({ dailySpending, currency, monthLabel, prevLa
                 {payload.map((p, i) => (
                   <div key={i} style={{ color: p.color as string, marginBottom: 2 }}>
                     {p.name === 'current' ? (monthLabel ?? 'This month') : (prevLabel ?? 'Prev month')}:{' '}
-                    {typeof p.value === 'number' ? fmt(p.value, currency) : String(p.value)}
+                    {typeof p.value === 'number' ? formatMoney(p.value, currency) : String(p.value)}
                   </div>
                 ))}
               </div>

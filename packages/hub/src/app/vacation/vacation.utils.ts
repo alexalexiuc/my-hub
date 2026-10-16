@@ -1,5 +1,6 @@
 import type { DayMarker } from '@my-hub/shared/constants';
 import type { VacationLeaveEstimate } from '@my-hub/shared/services';
+import { formatNumber, formatSigned } from '@my-hub/shared/utils';
 
 export const MARKER_LABELS: Record<DayMarker, string> = {
   weekend: 'Weekend',
@@ -21,7 +22,7 @@ export function isInRange(date: string, range: [string, string] | null): boolean
 
 /** Whole MDL with a thousands separator, e.g. 1058.82 → "1,059 MDL". */
 export function formatMdl(value: number): string {
-  return `${Math.round(value).toLocaleString('en-US')} MDL`;
+  return `${formatNumber(Math.round(value), { decimals: 0, locale: 'en-US' })} MDL`;
 }
 
 /** "1 day" / "7 days" / "2.5 days". */
@@ -31,18 +32,7 @@ export function formatDays(value: number): string {
 
 /** Signed MDL, e.g. −441.18 → "−441 MDL", 1058.8 → "+1,059 MDL". */
 export function formatSignedMdl(value: number): string {
-  const rounded = Math.round(value);
-  if (rounded === 0) return '0 MDL';
-  return `${rounded > 0 ? '+' : '−'}${Math.abs(rounded).toLocaleString('en-US')} MDL`;
-}
-
-/** Short signed amount for a day cell, e.g. 1058.8 → "+1.1k", −441.2 → "−441", 0 → "0". */
-export function formatDeltaCompact(value: number): string {
-  const abs = Math.abs(value);
-  if (abs < 0.5) return '0';
-  const sign = value > 0 ? '+' : '−';
-  if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(1)}k`;
-  return `${sign}${Math.round(abs)}`;
+  return formatSigned(Math.round(value), formatMdl, { minus: '−' });
 }
 
 /**

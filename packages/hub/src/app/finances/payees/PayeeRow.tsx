@@ -3,8 +3,8 @@ import { Divider, IconButton, Pill, SectionLabel, SubText, SwipeRow } from '@/co
 import { PencilIcon } from '@/components/icons';
 import type { PayeeWithSuggestion } from '@/app/api/finances/payees/route';
 import type { PayeeReportItem } from '@/app/api/finances/payees/report/route';
-import { CategoryIcon, fmt } from '../ui';
-import { dateToString } from '@my-hub/shared/utils';
+import { CategoryIcon } from '../ui';
+import { dateToString, formatMoney } from '@my-hub/shared/utils';
 
 type PayeeRowProps = {
   payee: PayeeWithSuggestion;
@@ -130,7 +130,7 @@ export function PayeeRow({
           {reportItem ? reportItem.txCount : '—'}
         </div>
         <div className="text-right text-[13px] font-semibold tabular-nums text-[var(--text)]">
-          {reportItem ? fmt(reportItem.totalSpent, currency) : '—'}
+          {reportItem ? formatMoney(reportItem.totalSpent, currency) : '—'}
         </div>
 
         <div className="pointer-events-none absolute inset-y-0 right-[14px] flex items-center opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
@@ -180,7 +180,7 @@ export function PayeeRow({
                 {reportItem ? (
                   <>
                     <div className="text-[13px] font-semibold tabular-nums text-[var(--text)]">
-                      {fmt(reportItem.totalSpent, currency)}
+                      {formatMoney(reportItem.totalSpent, currency)}
                     </div>
                     <SubText className="tabular-nums">{reportItem.txCount} txns</SubText>
                   </>

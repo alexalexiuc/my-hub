@@ -1,9 +1,8 @@
 'use client';
 
 import { Card, ProgressBar } from '@/components';
-import { fmt, fmtSign } from '../ui';
 import type { PortfolioOverview } from '@my-hub/shared/services';
-import { currentDateString } from '@my-hub/shared/utils';
+import { currentDateString, formatMoney } from '@my-hub/shared/utils';
 
 type PortfolioSummaryCardsProps = {
   overview: PortfolioOverview;
@@ -19,20 +18,20 @@ export function PortfolioSummaryCards({ overview }: PortfolioSummaryCardsProps) 
     <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
       <SummaryCard
         label="Current Value"
-        value={totals.currentValue !== null ? fmt(totals.currentValue, currency) : '—'}
+        value={totals.currentValue !== null ? formatMoney(totals.currentValue, currency) : '—'}
         sub={stale ? `as of ${pricesAsOf}` : null}
         color="var(--accent)"
       />
-      <SummaryCard label="Invested" value={fmt(totals.contributed, currency)} color="var(--text)" />
+      <SummaryCard label="Invested" value={formatMoney(totals.contributed, currency)} color="var(--text)" />
       <SummaryCard
         label="Profit"
-        value={totals.profit !== null ? fmtSign(totals.profit, currency) : '—'}
+        value={totals.profit !== null ? formatMoney(totals.profit, currency, { signed: true }) : '—'}
         sub={totals.profitPct !== null ? `${totals.profitPct >= 0 ? '+' : ''}${totals.profitPct.toFixed(2)}%` : null}
         color={totals.profit === null ? 'var(--muted)' : totals.profit >= 0 ? 'var(--green)' : 'var(--red)'}
       />
       <SummaryCard
         label="Profit excl. fees"
-        value={totals.profitExclFees !== null ? fmtSign(totals.profitExclFees, currency) : '—'}
+        value={totals.profitExclFees !== null ? formatMoney(totals.profitExclFees, currency, { signed: true }) : '—'}
         sub={
           totals.profitExclFeesPct !== null
             ? `${totals.profitExclFeesPct >= 0 ? '+' : ''}${totals.profitExclFeesPct.toFixed(2)}%`
@@ -47,7 +46,7 @@ export function PortfolioSummaryCards({ overview }: PortfolioSummaryCardsProps) 
           <div className="mb-1.5 flex items-center justify-between">
             <span className="text-[10px] uppercase tracking-[0.07em] text-[var(--muted)]">Target progress</span>
             <span className="text-[11px] text-[var(--subtle)]">
-              {fmt(totals.currentValue ?? 0, currency)} of {fmt(targetAmount, currency)}
+              {formatMoney(totals.currentValue ?? 0, currency)} of {formatMoney(targetAmount, currency)}
             </span>
           </div>
           <ProgressBar value={totals.currentValue ?? 0} max={targetAmount} color="var(--accent)" thresholds={false} />

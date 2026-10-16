@@ -1,5 +1,6 @@
 'use client';
 
+import { formatNumber } from '@my-hub/shared/utils';
 import { useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,7 +19,6 @@ import {
 } from '../finances-form.schema';
 import type { MonthlyPlanItem } from '@/app/api/finances/monthly-plans/[month]/route';
 import type { TransactionFormDataResponse } from '@/app/api/finances/transactions/form-data/route';
-import { fmtNum } from './monthly-plan.utils';
 import { finGhostInputClass as ghostInputClass, finDropdownInputClass as dropdownInputClass } from '../finances.utils';
 
 type PlanItemModalProps = {
@@ -155,7 +155,7 @@ export function PlanItemModal({ defaultCurrency, formData, onClose, item, onSave
               <div className="mb-2 flex items-center justify-between text-[12px] text-[var(--muted)]">
                 <span>Current</span>
                 <span className="font-semibold tabular-nums text-[var(--text)]">
-                  {fmtNum(item.assignedAmount)} {itemCurrency}
+                  {formatNumber(item.assignedAmount, { decimals: 0 })} {itemCurrency}
                 </span>
               </div>
               <Input
@@ -175,7 +175,7 @@ export function PlanItemModal({ defaultCurrency, formData, onClose, item, onSave
                   )}
                 >
                   {delta > 0 ? '+' : ''}
-                  {fmtNum(delta)} {itemCurrency}
+                  {formatNumber(delta, { decimals: 0 })} {itemCurrency}
                 </span>
               </div>
             </div>

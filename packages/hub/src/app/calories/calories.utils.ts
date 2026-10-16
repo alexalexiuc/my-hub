@@ -351,17 +351,6 @@ export function formatDateLabel(date: string): string {
 }
 
 /**
- * Shifts a date string by a given number of days and returns the new date string.
- * @param date - ISO date string (YYYY-MM-DD)
- * @param days - Number of days to shift (positive = forward, negative = backward)
- */
-export function shiftDate(date: string, days: number): string {
-  const d = new Date(date + 'T12:00:00');
-  d.setDate(d.getDate() + days);
-  return dateToString(d);
-}
-
-/**
  * Converts a percentage of total calories to grams for a given macro.
  * @param pct - The percentage string (e.g. "30")
  * @param kcalPerG - Calories per gram for the macro (protein/carbs = 4, fat = 9)

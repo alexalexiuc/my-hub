@@ -1,5 +1,5 @@
+import { formatMoney } from '@my-hub/shared/utils';
 import { Card, SubText } from '@/components';
-import { fmt, fmtSign } from './ui';
 
 type CashflowSummaryCardsProps = {
   totalIncome: number;
@@ -20,16 +20,16 @@ export function CashflowSummaryCards({ totalIncome, totalExpenses, net, currency
     <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
       <Card compact className="p-2.5 sm:p-3">
         <SubText>Income</SubText>
-        <div className={AMOUNT_CLASS + ' text-[var(--text)]'}>{fmt(totalIncome, currency)}</div>
+        <div className={AMOUNT_CLASS + ' text-[var(--text)]'}>{formatMoney(totalIncome, currency)}</div>
       </Card>
       <Card compact className="p-2.5 sm:p-3">
         <SubText>Expenses</SubText>
-        <div className={AMOUNT_CLASS + ' text-[var(--text)]'}>{fmt(totalExpenses, currency)}</div>
+        <div className={AMOUNT_CLASS + ' text-[var(--text)]'}>{formatMoney(totalExpenses, currency)}</div>
       </Card>
       <Card compact className="p-2.5 sm:p-3">
         <SubText>Net cashflow</SubText>
         <div className={AMOUNT_CLASS} style={{ color: netColor }}>
-          {fmtSign(net, currency)}
+          {formatMoney(net, currency, { signed: true })}
         </div>
       </Card>
     </div>

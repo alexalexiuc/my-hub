@@ -1,7 +1,7 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { SubText } from '@/components';
-import { fmt } from '../ui';
 import type { TransactionListItem } from '@/app/api/finances/transactions/route';
 
 type TransactionAmountProps = {
@@ -18,8 +18,10 @@ export function TransactionAmount({ transaction, className }: TransactionAmountP
   const isCrossCurrency = toAmount != null && toAccountCurrency != null && toAccountCurrency !== accountCurrency;
   return (
     <>
-      <div className={className}>{fmt(amount, accountCurrency)}</div>
-      {isCrossCurrency && <SubText className="block tabular-nums">→ {fmt(toAmount, toAccountCurrency)}</SubText>}
+      <div className={className}>{formatMoney(amount, accountCurrency)}</div>
+      {isCrossCurrency && (
+        <SubText className="block tabular-nums">→ {formatMoney(toAmount, toAccountCurrency)}</SubText>
+      )}
     </>
   );
 }

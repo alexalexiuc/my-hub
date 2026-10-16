@@ -1,11 +1,12 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { FeatureTheme, IconButton } from '@/components';
 import { SectionCard, ProgressBar } from '@/components';
 import { EyeOffOutlineIcon, EyeOutlineIcon, SpinnerIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
 import { useCachedResource } from '@/hooks/useCachedResource';
-import { CategoryIcon, fmt, pct } from './ui';
+import { CategoryIcon, pct } from './ui';
 import { financeDashboardDataSchema } from '@/app/api/finances/dashboard/schema';
 import type { DashboardResponse, FinanceDashboardData } from '@/app/api/finances/dashboard/schema';
 import { useSession } from 'next-auth/react';
@@ -101,7 +102,7 @@ export function FinancesWidget() {
                   <span className="text-zinc-400">Budget</span>
                   <span className="tabular-nums text-zinc-300">
                     {revealed
-                      ? `${fmt(data.budgetSpent, data.currency)} / ${fmt(data.budgetTotal, data.currency)}`
+                      ? `${formatMoney(data.budgetSpent, data.currency)} / ${formatMoney(data.budgetTotal, data.currency)}`
                       : HIDDEN}
                   </span>
                 </div>
@@ -125,11 +126,13 @@ export function FinancesWidget() {
                   <span className="text-[10px] uppercase tracking-wide text-zinc-500">Available</span>
                 </div>
                 <div className="mt-1 text-sm font-semibold tabular-nums text-zinc-100">
-                  {revealed ? fmt(data.availableBalance, data.currency) : HIDDEN}
+                  {revealed ? formatMoney(data.availableBalance, data.currency) : HIDDEN}
                 </div>
                 {data.budgetTotal > data.budgetSpent && (
                   <div className="text-[10px] text-zinc-500">
-                    {revealed ? `${fmt(data.budgetTotal - data.budgetSpent, data.currency)} still planned` : HIDDEN}
+                    {revealed
+                      ? `${formatMoney(data.budgetTotal - data.budgetSpent, data.currency)} still planned`
+                      : HIDDEN}
                   </div>
                 )}
               </MetricLinkCard>
@@ -144,7 +147,7 @@ export function FinancesWidget() {
                   {!data.portfolio || data.portfolio.value === null
                     ? '—'
                     : revealed
-                      ? fmt(data.portfolio.value, data.portfolio.currency)
+                      ? formatMoney(data.portfolio.value, data.portfolio.currency)
                       : HIDDEN}
                 </div>
                 {data.portfolio?.returnPct != null && (
@@ -170,7 +173,7 @@ export function FinancesWidget() {
                       <span className="truncate text-[10px] uppercase tracking-wide text-zinc-500">{loan.name}</span>
                     </div>
                     <div className="mt-1 text-sm font-semibold tabular-nums text-zinc-100">
-                      {revealed ? fmt(loan.balance, loan.currency) : HIDDEN}
+                      {revealed ? formatMoney(loan.balance, loan.currency) : HIDDEN}
                     </div>
                     <div className="text-[10px] text-zinc-500">
                       {loan.monthsRemaining} mo left · payoff {loan.payoffDate}
@@ -192,7 +195,7 @@ export function FinancesWidget() {
                         <span className="text-xs text-zinc-300 truncate">{cat.name}</span>
                       </div>
                       <span className="text-xs tabular-nums ml-2 shrink-0 text-zinc-200">
-                        {revealed ? fmt(cat.spent, data.currency) : HIDDEN}
+                        {revealed ? formatMoney(cat.spent, data.currency) : HIDDEN}
                       </span>
                     </div>
                   ))}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn, apiFetch } from '@/lib/utils';
-import { fmt, AddButton, TYPE_META } from '../ui';
+import { AddButton, TYPE_META } from '../ui';
 import { Card, Collapsible, Divider, IconButton, SectionLabel, Sparkline, SubText } from '@/components';
 import { QuestionMarkIcon } from '@/components/icons';
 import { AccountModal } from './AccountModal';
@@ -15,7 +15,7 @@ import { NetWorthSheet } from './NetWorthSheet';
 import { ForeignBalanceLine } from '../ForeignBalanceLine';
 import type { AccountItem, AccountsListData } from '@/app/api/finances/accounts/route';
 import type { AccountType, LentDirection } from '@my-hub/shared/constants';
-import { formatCardLastFour, isLiabilityAccount } from '@my-hub/shared/utils';
+import { formatCardLastFour, formatMoney, isLiabilityAccount } from '@my-hub/shared/utils';
 import { ACCOUNT_GROUPS, groupAccountsByCurrency } from './accounts.utils';
 
 function amountColor(balance: number, type: AccountType, direction?: LentDirection): string {
@@ -48,8 +48,8 @@ function AccountCard({
             {acc.cardLastFour && <SubText className="block">{formatCardLastFour(acc.cardLastFour)}</SubText>}
             {(acc.monthIncome != null || acc.monthExpenses != null) && (
               <div className="flex flex-wrap items-center gap-2 text-[10px] tabular-nums">
-                <span className="text-[var(--green)]">+{fmt(acc.monthIncome ?? 0, acc.currency)}</span>
-                <span className="text-[var(--red)]">-{fmt(acc.monthExpenses ?? 0, acc.currency)}</span>
+                <span className="text-[var(--green)]">+{formatMoney(acc.monthIncome ?? 0, acc.currency)}</span>
+                <span className="text-[var(--red)]">-{formatMoney(acc.monthExpenses ?? 0, acc.currency)}</span>
               </div>
             )}
           </div>
@@ -61,7 +61,7 @@ function AccountCard({
               amountColor(acc.balance, acc.type as AccountType, acc.direction),
             )}
           >
-            {fmt(acc.balance, acc.currency)}
+            {formatMoney(acc.balance, acc.currency)}
           </div>
           {acc.defaultCurrencyValue && (
             <ForeignBalanceLine value={acc.defaultCurrencyValue} defaultCurrency={defaultCurrency} />
@@ -162,7 +162,7 @@ export default function AccountsPage() {
           />
           <SubText className="block mb-1.5 uppercase tracking-[0.08em]">Net Worth</SubText>
           <div className="mb-2 text-[15px] font-bold tracking-[-0.02em] text-[var(--text)] break-all leading-tight">
-            {fmt(netWorth, currency)}
+            {formatMoney(netWorth, currency)}
           </div>
           <Sparkline data={netWorthHistory} color="var(--green)" width={80} height={28} />
         </Card>
@@ -177,7 +177,7 @@ export default function AccountsPage() {
           />
           <SubText className="block mb-1.5 uppercase tracking-[0.08em]">Available</SubText>
           <div className="text-[15px] font-bold tracking-[-0.02em] text-[var(--text)] break-all leading-tight">
-            {fmt(availableBalance, currency)}
+            {formatMoney(availableBalance, currency)}
           </div>
         </Card>
       </div>
@@ -205,7 +205,7 @@ export default function AccountsPage() {
                   const groupTotal = accounts.reduce((sum, acc) => sum + acc.balance, 0);
                   return (
                     <span key={currency} className="ml-2">
-                      {fmt(groupTotal, currency)}
+                      {formatMoney(groupTotal, currency)}
                     </span>
                   );
                 })}

@@ -1,5 +1,5 @@
+import { formatMoney } from '@my-hub/shared/utils';
 import { Sparkline } from '@/components';
-import { fmt } from '../ui';
 
 export function NetWorthSummary({
   netWorth,
@@ -20,7 +20,9 @@ export function NetWorthSummary({
     >
       <div>
         <div className="mb-1 text-[11px] text-[var(--muted)]">Total Net Worth</div>
-        <div className="text-[26px] font-bold tracking-[-0.02em] text-[var(--text)]">{fmt(netWorth, currency)}</div>
+        <div className="text-[26px] font-bold tracking-[-0.02em] text-[var(--text)]">
+          {formatMoney(netWorth, currency)}
+        </div>
       </div>
       <Sparkline data={history} color={'var(--green)'} width={80} height={40} />
     </div>

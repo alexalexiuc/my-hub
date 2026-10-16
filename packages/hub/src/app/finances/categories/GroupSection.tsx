@@ -1,9 +1,9 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { useState } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
-import { fmt } from '../ui';
 import { CatRow } from './CatRow';
 import type { CategoryGroup, CategoryRow } from '@/app/api/finances/categories/route';
 import { SubText, Card, Collapsible, Divider } from '@/components';
@@ -78,7 +78,7 @@ export function GroupSection({
         <div className="flex items-center gap-2">
           {groupTarget > 0 && (
             <SubText>
-              {fmt(groupSpent, currency)} / {fmt(groupTarget, currency)}
+              {formatMoney(groupSpent, currency)} / {formatMoney(groupTarget, currency)}
             </SubText>
           )}
           {groupPct !== null && (

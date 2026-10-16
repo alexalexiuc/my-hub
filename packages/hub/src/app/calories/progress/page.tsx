@@ -10,6 +10,7 @@ import {
   dayCalorieTargets,
   latestWeightKg,
   getCurrentWeekDays,
+  shiftDateStr,
   shiftWeekStr,
   weekLabel,
 } from '@my-hub/shared/utils';
@@ -20,7 +21,6 @@ import { WeeklyChart } from '../WeeklyChart';
 import { WeightChart } from '../WeightChart';
 import { MeasurementsSection } from '../MeasurementsSection';
 import { PeriodNav } from '../ui';
-import { shiftDate } from '../calories.utils';
 import { DEFAULT_TREND_RANGE, WEIGHT_RANGE_OPTIONS, type WeightRangeKey } from '../constants';
 import { mealEvents } from '../mealEvents';
 
@@ -41,7 +41,7 @@ export default function ProgressPage() {
   // finished week became unreachable the moment Monday arrived.
   const [weekStart, setWeekStart] = useState(thisWeekStart);
   const isCurrentWeek = weekStart === thisWeekStart;
-  const weekEnd = shiftDate(weekStart, 6);
+  const weekEnd = shiftDateStr(weekStart, 6);
   // `weekLabel` reads UTC components, so it needs a UTC-midnight date. Parsing the same string at
   // local midnight puts a positive-offset timezone on the previous UTC day — and therefore in the
   // previous ISO week, which labelled the week before this one as two weeks back.
@@ -149,7 +149,7 @@ export default function ProgressPage() {
   const weightSamples = weightHistory.map(m => ({ date: m.date, value: m.value }));
 
   const trendDays = WEIGHT_RANGE_OPTIONS.find(o => o.key === trendRange)?.days ?? null;
-  const trendFrom = trendDays === null ? null : shiftDate(today, -trendDays);
+  const trendFrom = trendDays === null ? null : shiftDateStr(today, -trendDays);
   const trendSamples = trendFrom === null ? weightSamples : weightSamples.filter(s => s.date >= trendFrom);
 
   /**

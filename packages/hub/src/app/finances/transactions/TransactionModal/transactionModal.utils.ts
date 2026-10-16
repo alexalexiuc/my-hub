@@ -1,5 +1,6 @@
 import type { TransactionType } from '@my-hub/shared/constants';
 import { TransactionTypes } from '@my-hub/shared/constants';
+import { formatNumber } from '@my-hub/shared/utils';
 
 export const MOBILE_TYPE_LABELS: Record<TransactionType, string> = {
   [TransactionTypes.Expense]: '- Outflow',
@@ -10,18 +11,17 @@ export const MOBILE_TYPE_LABELS: Record<TransactionType, string> = {
 export function formatMobileAmount(value: string, currencyCode: string): string {
   const num = parseFloat(value);
   if (isNaN(num)) return `0.00${currencyCode}`;
-  return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + currencyCode;
+  return formatNumber(num, { locale: 'en-US' }) + currencyCode;
 }
 
 /** Format raw cents (e.g. "110050") as a currency-suffixed string: "1,100.50MDL". */
 export function formatDigitsWithCurrency(digits: string, currency: string): string {
   const n = digits ? parseInt(digits, 10) / 100 : 0;
-  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + currency;
+  return formatNumber(n, { locale: 'en-US' }) + currency;
 }
 
 /** Format raw cents without trailing zeros for the compact expression strip: "1100.50" → "1100.5". */
 export function formatDigitsCompact(digits: string): string {
-  if (!digits) return '0';
-  const n = parseInt(digits, 10) / 100;
-  return n.toFixed(2).replace(/\.?0+$/, '');
+  const n = digits ? parseInt(digits, 10) / 100 : 0;
+  return formatNumber(n, { trimZeros: true, locale: 'en-US', grouping: false });
 }

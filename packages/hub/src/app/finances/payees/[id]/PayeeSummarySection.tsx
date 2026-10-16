@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { Card, SectionLabel } from '@/components';
-import { CategoryIcon, FinFieldCard, fmt } from '../../ui';
-import { dateToString } from '@my-hub/shared/utils';
+import { CategoryIcon, FinFieldCard } from '../../ui';
+import { dateToString, formatMoney } from '@my-hub/shared/utils';
 import type { PayeeSummaryResponse } from '@/app/api/finances/payees/[id]/route';
 
 type PayeeSummarySectionProps = {
@@ -53,14 +53,14 @@ export function PayeeSummarySection({ payeeId }: PayeeSummarySectionProps) {
 
         <FinFieldCard label="Total Spent">
           <span className="text-[15px] font-semibold tabular-nums text-[var(--text)]">
-            {fmt(summary.totalSpent, currency)}
+            {formatMoney(summary.totalSpent, currency)}
           </span>
         </FinFieldCard>
 
         {summary.avgSpent != null && (
           <FinFieldCard label="Avg per Transaction">
             <span className="text-[15px] font-semibold tabular-nums text-[var(--text)]">
-              {fmt(summary.avgSpent, currency)}
+              {formatMoney(summary.avgSpent, currency)}
             </span>
           </FinFieldCard>
         )}
@@ -68,7 +68,7 @@ export function PayeeSummarySection({ payeeId }: PayeeSummarySectionProps) {
         {summary.totalIncome > 0 && (
           <FinFieldCard label="Total Received">
             <span className="text-[15px] font-semibold tabular-nums text-[var(--green)]">
-              {fmt(summary.totalIncome, currency)}
+              {formatMoney(summary.totalIncome, currency)}
             </span>
           </FinFieldCard>
         )}

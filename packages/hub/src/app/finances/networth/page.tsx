@@ -1,10 +1,11 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
-import { fmt, TYPE_META } from '../ui';
+import { TYPE_META } from '../ui';
 import { ForeignBalanceLine } from '../ForeignBalanceLine';
 import type { NetWorthData } from '@/app/api/finances/networth/route';
 import { SubText, Card, SectionLabel, Divider } from '@/components';
@@ -101,11 +102,11 @@ export default function NetWorthPage() {
       >
         <div className="mb-1.5 text-xs text-[var(--muted)]">Current Net Worth</div>
         <div className="mb-1.5 text-[34px] font-bold tracking-[-0.02em] text-[var(--text)]">
-          {fmt(netWorth, currency)}
+          {formatMoney(netWorth, currency)}
         </div>
         {deltaVsLastMonth != null && (
           <div className={cn('mb-4 text-xs', deltaVsLastMonth >= 0 ? 'text-[var(--green)]' : 'text-[var(--red)]')}>
-            {deltaVsLastMonth >= 0 ? '↑' : '↓'} {fmt(Math.abs(deltaVsLastMonth), currency)} vs last month
+            {deltaVsLastMonth >= 0 ? '↑' : '↓'} {formatMoney(Math.abs(deltaVsLastMonth), currency)} vs last month
           </div>
         )}
         {history.length >= 2 ? (
@@ -128,11 +129,11 @@ export default function NetWorthPage() {
       <div className="grid gap-2 sm:grid-cols-2">
         <Card compact className="px-[14px] py-3">
           <div className="mb-1 text-[10px] uppercase tracking-[0.08em] text-[var(--green)]">Assets</div>
-          <div className="text-xl font-bold text-[var(--green)]">{fmt(totalAssets, currency)}</div>
+          <div className="text-xl font-bold text-[var(--green)]">{formatMoney(totalAssets, currency)}</div>
         </Card>
         <Card compact className="px-[14px] py-3">
           <div className="mb-1 text-[10px] uppercase tracking-[0.08em] text-[var(--red)]">Liabilities</div>
-          <div className="text-xl font-bold text-[var(--red)]">{fmt(totalLiabilities, currency)}</div>
+          <div className="text-xl font-bold text-[var(--red)]">{formatMoney(totalLiabilities, currency)}</div>
         </Card>
       </div>
 
@@ -156,7 +157,9 @@ export default function NetWorthPage() {
                       <SubText className="block">{meta?.label ?? a.type}</SubText>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-semibold text-[var(--text)]">{fmt(a.balance, a.currency)}</div>
+                      <div className="text-sm font-semibold text-[var(--text)]">
+                        {formatMoney(a.balance, a.currency)}
+                      </div>
                       {a.currency !== data.currency && <ForeignBalanceLine value={a} defaultCurrency={data.currency} />}
                     </div>
                   </div>
@@ -187,7 +190,9 @@ export default function NetWorthPage() {
                       <SubText className="block">{meta?.label ?? a.type}</SubText>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-semibold text-[var(--red)]">-{fmt(a.balance, a.currency)}</div>
+                      <div className="text-sm font-semibold text-[var(--red)]">
+                        -{formatMoney(a.balance, a.currency)}
+                      </div>
                       {a.currency !== data.currency && <ForeignBalanceLine value={a} defaultCurrency={data.currency} />}
                     </div>
                   </div>
@@ -218,9 +223,11 @@ export default function NetWorthPage() {
               const isLatest = i === history.length - 1;
               const cells = [
                 <span className="text-[var(--muted)]">{row.label}</span>,
-                <span className="tabular-nums text-[var(--green)]">{fmt(row.totalAssets, currency)}</span>,
-                <span className="tabular-nums text-[var(--red)]">-{fmt(row.totalLiabilities, currency)}</span>,
-                <span className="font-semibold tabular-nums text-[var(--text)]">{fmt(row.netWorth, currency)}</span>,
+                <span className="tabular-nums text-[var(--green)]">{formatMoney(row.totalAssets, currency)}</span>,
+                <span className="tabular-nums text-[var(--red)]">-{formatMoney(row.totalLiabilities, currency)}</span>,
+                <span className="font-semibold tabular-nums text-[var(--text)]">
+                  {formatMoney(row.netWorth, currency)}
+                </span>,
               ];
               return cells.map((cell, ci) => (
                 <div

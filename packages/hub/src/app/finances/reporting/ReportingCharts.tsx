@@ -1,6 +1,7 @@
 'use client';
 
-import { fmt, CategoryIcon } from '../ui';
+import { formatMoney } from '@my-hub/shared/utils';
+import { CategoryIcon } from '../ui';
 import type { ReportingCategoryItem, ReportingPayeeItem } from '@/app/api/finances/reporting/route';
 import type { SupportedCurrency } from '@my-hub/shared/constants';
 
@@ -40,7 +41,7 @@ function BarRow({ leading, name, amount, prevAmount, currency, barColor, trailin
                 {delta.toFixed(0)}%
               </span>
             )}
-            <span className="text-[11px] font-semibold text-[var(--text)]">{fmt(amount, currency)}</span>
+            <span className="text-[11px] font-semibold text-[var(--text)]">{formatMoney(amount, currency)}</span>
             <span className="text-[9px] text-[var(--subtle)]">{trailingStat}</span>
           </div>
         </div>

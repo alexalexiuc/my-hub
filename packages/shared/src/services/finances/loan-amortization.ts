@@ -22,7 +22,7 @@
  * what each transaction represents.
  */
 import { AccountTypes, TransactionTypes } from '../../constants/finances';
-import { currentDateString } from '../../utils';
+import { addMonthsKeepDay, currentDateString, toUTCDateStr } from '../../utils';
 import { getAccountDetails, type FinanceAccount, type LoanAccountDetails } from '../../types';
 import { getTransactions } from './transactions';
 import { transferToAmount } from './transaction-money';
@@ -53,16 +53,6 @@ function roundToTwoDecimals(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-function addMonths(date: Date, months: number): Date {
-  const d = new Date(date);
-  d.setMonth(d.getMonth() + months);
-  return d;
-}
-
-function toDateString(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
 // Payment k (1-indexed) is due on firstPaymentDate + (k-1) months, so the payment due on
 // firstPaymentDate itself already counts — this returns the count of payments due on or
 // before asOfDate, not the number of full months elapsed since firstPaymentDate.
@@ -72,8 +62,10 @@ function countScheduledPayments(firstPaymentDate: string, asOfDate: string): num
 
   if (asOf < start) return 0;
 
-  let monthsElapsed = (asOf.getFullYear() - start.getFullYear()) * 12 + (asOf.getMonth() - start.getMonth());
-  if (asOf.getDate() < start.getDate()) {
+  let monthsElapsed =
+    (asOf.getUTCFullYear() - start.getUTCFullYear()) * 12 + (asOf.getUTCMonth() - start.getUTCMonth());
+  // Same due dates as the schedule: a payment on the 31st falls due on the 28th/29th/30th in shorter months.
+  if (addMonthsKeepDay(start, monthsElapsed) > asOf) {
     monthsElapsed -= 1;
   }
 
@@ -141,7 +133,9 @@ export function calculateLoanAmortizationSummary(
   const monthlyRate = details.interestRate / 100 / 12;
   const monthlyPayment = getMonthlyPayment(details.principal, monthlyRate, details.termMonths);
   // Payment #termMonths (the last one) is due termMonths-1 months after payment #1.
-  const scheduledPayoffDate = toDateString(addMonths(new Date(details.firstPaymentDate), details.termMonths - 1));
+  const scheduledPayoffDate = toUTCDateStr(
+    addMonthsKeepDay(new Date(details.firstPaymentDate), details.termMonths - 1),
+  );
 
   const scheduledPaymentsMade = Math.min(
     details.termMonths,
@@ -285,7 +279,7 @@ export function buildLoanSummary(
     const paymentsRemaining = termMonths != null && termMonths > 0 ? Math.max(0, termMonths - paymentsCompleted) : 0;
     const projectedPayoffDate =
       firstPaymentDate && termMonths != null && termMonths > 0
-        ? toDateString(addMonths(new Date(firstPaymentDate), termMonths - 1))
+        ? toUTCDateStr(addMonthsKeepDay(new Date(firstPaymentDate), termMonths - 1))
         : today;
     return {
       originalPrincipal: safePrincipal,
@@ -310,7 +304,7 @@ export function buildLoanSummary(
   const remainingPrincipal = computeRemainingPrincipal(principal!, interestRate!, termMonths!, paymentsCompleted);
   const remainingInterest = roundToTwoDecimals(Math.max(0, remainingObligation - remainingPrincipal));
   const paymentsRemaining = termMonths! - paymentsCompleted;
-  const projectedPayoffDate = toDateString(addMonths(new Date(firstPaymentDate!), termMonths! - 1));
+  const projectedPayoffDate = toUTCDateStr(addMonthsKeepDay(new Date(firstPaymentDate!), termMonths! - 1));
 
   return {
     originalPrincipal: roundToTwoDecimals(principal!),

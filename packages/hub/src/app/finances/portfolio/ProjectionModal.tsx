@@ -3,12 +3,12 @@
 import { useMemo, useState } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, Tooltip, ReferenceLine } from 'recharts';
 import { FinModalShell } from '../FinModalShell';
-import { fmt, tooltipBoxStyle, FinFieldCard } from '../ui';
+import { tooltipBoxStyle, FinFieldCard } from '../ui';
 import { finGhostInputClass } from '../finances.utils';
 import { Input } from '@/components';
 import { monthMetaFromIndex, monthsUntilEndOfYear } from './portfolio.utils';
 import type { PortfolioOverview } from '@my-hub/shared/services';
-import { projectPortfolioGrowth } from '@my-hub/shared/utils';
+import { formatMoney, projectPortfolioGrowth } from '@my-hub/shared/utils';
 
 type ProjectionModalProps = {
   overview: PortfolioOverview;
@@ -114,8 +114,8 @@ export function ProjectionModal({ overview, onClose }: ProjectionModalProps) {
       </div>
 
       <div className="mb-2 text-[9px] text-[var(--muted)]">
-        Start {fmt(startValue, currency)} · {fmt(portfolio.plannedMonthlyContribution, currency)}/month ·{' '}
-        {portfolio.pessimisticAnnualReturnPct}% / {portfolio.expectedAnnualReturnPct}% /{' '}
+        Start {formatMoney(startValue, currency)} · {formatMoney(portfolio.plannedMonthlyContribution, currency)}/month
+        · {portfolio.pessimisticAnnualReturnPct}% / {portfolio.expectedAnnualReturnPct}% /{' '}
         {portfolio.optimisticAnnualReturnPct}% p.a.
       </div>
 
@@ -139,7 +139,7 @@ export function ProjectionModal({ overview, onClose }: ProjectionModalProps) {
                     {payload.map((p, i) => (
                       <div key={i} style={{ color: p.color as string, marginBottom: 2 }}>
                         {SCENARIOS.find(s => s.key === p.name)?.label ?? p.name}:{' '}
-                        {typeof p.value === 'number' ? fmt(p.value, currency) : String(p.value)}
+                        {typeof p.value === 'number' ? formatMoney(p.value, currency) : String(p.value)}
                       </div>
                     ))}
                   </div>
@@ -163,7 +163,7 @@ export function ProjectionModal({ overview, onClose }: ProjectionModalProps) {
                 stroke="var(--subtle)"
                 strokeDasharray="4 3"
                 label={{
-                  value: `Target: ${fmt(portfolio.targetAmount, currency)}`,
+                  value: `Target: ${formatMoney(portfolio.targetAmount, currency)}`,
                   position: 'insideTopLeft',
                   fill: 'var(--subtle)',
                   fontSize: 9,

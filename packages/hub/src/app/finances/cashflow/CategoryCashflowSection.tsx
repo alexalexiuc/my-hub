@@ -1,9 +1,10 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { useEffect, useState } from 'react';
 import { Card, Divider, ProgressBar, SectionLabel, SubText } from '@/components';
 import { apiFetch } from '@/lib/utils';
-import { CategoryIcon, fmt } from '../ui';
+import { CategoryIcon } from '../ui';
 import { getCategoryFallbackLetter } from '../finances.utils';
 import { categorySpendingResponseSchema } from '@/app/api/finances/reports/category-spending/category-spending.schema';
 import type { CategorySpendingData } from '@/app/api/finances/reports/category-spending/category-spending.schema';
@@ -70,7 +71,9 @@ export function CategoryCashflowSection({ year }: CategoryCashflowSectionProps) 
                 />
               </div>
               <div className="shrink-0 text-right">
-                <div className="text-[13px] font-semibold text-[var(--text)]">{fmt(cat.spent, data.currency)}</div>
+                <div className="text-[13px] font-semibold text-[var(--text)]">
+                  {formatMoney(cat.spent, data.currency)}
+                </div>
                 <SubText className="block">
                   {data.totalSpent > 0 ? Math.round((cat.spent / data.totalSpent) * 100) : 0}% of total
                 </SubText>

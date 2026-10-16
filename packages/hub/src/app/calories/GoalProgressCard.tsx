@@ -5,7 +5,7 @@ import { ComposedChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip as Rech
 import type { TooltipContentProps, TooltipPayloadEntry } from 'recharts';
 import { Card, ProgressBar } from '@/components';
 import { GoalTypes } from '@my-hub/shared/constants';
-import { isAheadOfGoal } from '@my-hub/shared/utils';
+import { formatSigned, isAheadOfGoal } from '@my-hub/shared/utils';
 import {
   buildGoalProgressView,
   formatAxisDate,
@@ -37,9 +37,10 @@ const SERIES_LABELS: Record<string, string> = {
   projected: 'Goal',
 };
 
+// toFixed, not formatNumber: Intl rounds 1.45 to "1.5" where these have always shown "1.4".
 const fmtKg = (value: number) => `${value.toFixed(1)} kg`;
-const fmtRate = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(2)} kg/wk`;
-const fmtSignedKg = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)} kg`;
+const fmtRate = (value: number) => `${formatSigned(value, n => n.toFixed(2))} kg/wk`;
+const fmtSignedKg = (value: number) => `${formatSigned(value, n => n.toFixed(1))} kg`;
 
 function CustomTooltip({ active, payload, label }: TooltipContentProps<number, string>) {
   if (!active || !payload?.length) return null;

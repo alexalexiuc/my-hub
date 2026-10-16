@@ -1,11 +1,11 @@
 'use client';
 
+import { formatNumber } from '@my-hub/shared/utils';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, IconButton, ProgressBar, SectionLabel } from '@/components';
 import { PencilIcon } from '@/components/icons';
 import { FinancialDropdown } from '../FinancialDropdown';
-import { fmtNum } from './monthly-plan.utils';
 
 type Summary = {
   planned: number;
@@ -81,7 +81,7 @@ export function SummaryBar({ availableAmount, incomeAccountId, summary, accounts
                 />
               ) : (
                 <span className="text-[24px] font-bold tabular-nums text-[var(--green)] md:text-[28px]">
-                  {saving ? '…' : fmtNum(availableAmount)}
+                  {saving ? '…' : formatNumber(availableAmount, { decimals: 0 })}
                 </span>
               )}
             </div>
@@ -89,7 +89,7 @@ export function SummaryBar({ availableAmount, incomeAccountId, summary, accounts
             <div className="text-right md:text-left">
               <SectionLabel>Planned</SectionLabel>
               <span className="text-[24px] font-bold tabular-nums text-[var(--text)] md:text-[28px]">
-                {fmtNum(summary.planned)}
+                {formatNumber(summary.planned, { decimals: 0 })}
               </span>
             </div>
           </div>
@@ -136,7 +136,7 @@ export function SummaryBar({ availableAmount, incomeAccountId, summary, accounts
                 summary.remainingPotential >= 0 ? 'text-[var(--amber)]' : 'text-[var(--red)]',
               )}
             >
-              {fmtNum(summary.remainingPotential)}
+              {formatNumber(summary.remainingPotential, { decimals: 0 })}
             </span>
           </div>
 
@@ -148,7 +148,7 @@ export function SummaryBar({ availableAmount, incomeAccountId, summary, accounts
                 summary.remainingReal >= 0 ? 'text-[var(--green)]' : 'text-[var(--red)]',
               )}
             >
-              {fmtNum(summary.remainingReal)}
+              {formatNumber(summary.remainingReal, { decimals: 0 })}
             </span>
           </div>
         </div>

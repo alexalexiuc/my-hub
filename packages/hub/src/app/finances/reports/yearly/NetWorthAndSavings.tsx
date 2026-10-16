@@ -1,5 +1,5 @@
+import { formatMoney } from '@my-hub/shared/utils';
 import { Card, SectionLabel, SubText } from '@/components';
-import { fmt, fmtSign } from '../../ui';
 import type { YearlyReportData } from '@/app/api/finances/reports/yearly/route';
 
 interface Props {
@@ -27,7 +27,7 @@ export function NetWorthAndSavings({ report, currency }: Props) {
                 <>
                   <SubText>Start-of-year to end-of-year</SubText>
                   <div className="mb-3 text-[22px] font-bold" style={{ color: deltaColor }}>
-                    {fmtSign(netWorthDelta, currency)}
+                    {formatMoney(netWorthDelta, currency, { signed: true })}
                   </div>
                 </>
               )}
@@ -35,7 +35,7 @@ export function NetWorthAndSavings({ report, currency }: Props) {
                 {netWorthHistory.map(h => (
                   <div key={h.month} className="flex justify-between text-[12px]">
                     <span className="text-[var(--muted)]">{h.month}</span>
-                    <span className="font-medium text-[var(--text)]">{fmt(h.netWorth, currency)}</span>
+                    <span className="font-medium text-[var(--text)]">{formatMoney(h.netWorth, currency)}</span>
                   </div>
                 ))}
               </div>
@@ -49,9 +49,10 @@ export function NetWorthAndSavings({ report, currency }: Props) {
         <Card compact className="p-4">
           <SubText>Net contribution this year</SubText>
           <div className="mt-1 text-[24px] font-bold" style={{ color: totalColor }}>
-            {fmtSign(
+            {formatMoney(
               savingsContributions.totalNetContribution.amount,
               savingsContributions.totalNetContribution.currency,
+              { signed: true },
             )}
           </div>
           {savingsContributions.accounts.length > 0 && (
@@ -60,10 +61,10 @@ export function NetWorthAndSavings({ report, currency }: Props) {
                 <div key={a.accountId} className="flex justify-between text-[12px]">
                   <span className="text-[var(--text)]">{a.accountName}</span>
                   <span className="font-medium text-[var(--text)]">
-                    {fmtSign(a.converted.amount, a.converted.currency)}
+                    {formatMoney(a.converted.amount, a.converted.currency, { signed: true })}
                     {a.original.currency !== a.converted.currency && (
                       <span className="ml-1 font-normal text-[var(--muted)]">
-                        ({fmtSign(a.original.amount, a.original.currency)})
+                        ({formatMoney(a.original.amount, a.original.currency, { signed: true })})
                       </span>
                     )}
                   </span>
@@ -75,7 +76,8 @@ export function NetWorthAndSavings({ report, currency }: Props) {
             <div className="mt-3 border-t border-[var(--border)] pt-3">
               <SubText>Portfolio DCA vs target</SubText>
               <div className="mt-1 text-[14px] font-semibold text-[var(--text)]">
-                {fmt(ibkrDca.actualContributed, ibkrDca.currency)} / {fmt(ibkrDca.targetContribution, ibkrDca.currency)}
+                {formatMoney(ibkrDca.actualContributed, ibkrDca.currency)} /{' '}
+                {formatMoney(ibkrDca.targetContribution, ibkrDca.currency)}
               </div>
             </div>
           )}

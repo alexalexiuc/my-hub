@@ -1,11 +1,12 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Input, Pill, IconButton, Button, ProgressBar, Card, SectionLabel, SubText } from '@/components';
 import { ScaleIcon, PencilIcon, ArchiveBoxIcon } from '@/components/icons';
 import { cn, apiFetch } from '@/lib/utils';
-import { fmt, FlowInOut, TYPE_META } from '../ui';
+import { FlowInOut, TYPE_META } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { TransactionList } from '../transactions/TransactionList';
 import { AccountModal } from './AccountModal';
@@ -76,7 +77,7 @@ function CorrectionModal({
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--card2)] px-[14px] py-3">
           <div>
             <div className="mb-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--subtle)]">Current</div>
-            <div className="text-[15px] font-semibold text-[var(--muted)]">{fmt(currentBalance, currency)}</div>
+            <div className="text-[15px] font-semibold text-[var(--muted)]">{formatMoney(currentBalance, currency)}</div>
           </div>
           <div className="text-center">
             <div
@@ -86,13 +87,13 @@ function CorrectionModal({
                 background: isZero ? 'transparent' : correctionColor + '18',
               }}
             >
-              {isZero ? '—' : `${correction > 0 ? '+' : ''}${fmt(correction, currency)}`}
+              {isZero ? '—' : `${correction > 0 ? '+' : ''}${formatMoney(correction, currency)}`}
             </div>
           </div>
           <div className="text-right">
             <div className="mb-0.5 text-[9px] uppercase tracking-[0.07em] text-[var(--subtle)]">New</div>
             <div className={cn('text-[15px] font-semibold', isZero ? 'text-[var(--muted)]' : 'text-[var(--text)]')}>
-              {isNaN(parsed) ? '—' : fmt(parsed, currency)}
+              {isNaN(parsed) ? '—' : formatMoney(parsed, currency)}
             </div>
           </div>
         </div>
@@ -209,7 +210,7 @@ function AccountHeader({
           isLiability ? 'text-[var(--red)]' : 'text-[var(--text)]',
         )}
       >
-        {fmt(acc.balance, acc.currency)}
+        {formatMoney(acc.balance, acc.currency)}
       </div>
 
       <FlowInOut
@@ -225,8 +226,8 @@ function AccountHeader({
         <div>
           <ProgressBar value={acc.balance} max={acc.creditLimit} color={meta.color} height={6} className="mb-1.5" />
           <div className="text-[11px] text-[var(--muted)]">
-            {fmt(acc.creditLimit - acc.balance, acc.currency)} available
-            {' · '}Limit {fmt(acc.creditLimit, acc.currency)}
+            {formatMoney(acc.creditLimit - acc.balance, acc.currency)} available
+            {' · '}Limit {formatMoney(acc.creditLimit, acc.currency)}
             {acc.statementDay != null ? ` · Statement day ${acc.statementDay}` : ''}
           </div>
         </div>
@@ -236,7 +237,8 @@ function AccountHeader({
         <div>
           <ProgressBar value={acc.balance} max={acc.targetAmount} color={meta.color} height={6} className="mb-1.5" />
           <div className="text-[11px] text-[var(--muted)]">
-            {fmt(acc.targetAmount - acc.balance, acc.currency)} to go · Target {fmt(acc.targetAmount, acc.currency)}
+            {formatMoney(acc.targetAmount - acc.balance, acc.currency)} to go · Target{' '}
+            {formatMoney(acc.targetAmount, acc.currency)}
           </div>
         </div>
       )}
@@ -245,13 +247,13 @@ function AccountHeader({
         <div className="flex gap-5">
           <div>
             <SubText className="block">Deposited</SubText>
-            <div className="text-[var(--muted)]">{fmt(acc.deposited, acc.currency)}</div>
+            <div className="text-[var(--muted)]">{formatMoney(acc.deposited, acc.currency)}</div>
           </div>
           <div>
             <SubText className="block">Unrealised P&L</SubText>
             <div className={acc.balance >= acc.deposited ? 'text-[var(--green)]' : 'text-[var(--red)]'}>
               {acc.balance >= acc.deposited ? '+' : '-'}
-              {fmt(Math.abs(acc.balance - acc.deposited), acc.currency)}
+              {formatMoney(Math.abs(acc.balance - acc.deposited), acc.currency)}
               {acc.deposited > 0 &&
                 ` (${acc.balance >= acc.deposited ? '+' : ''}${(((acc.balance - acc.deposited) / acc.deposited) * 100).toFixed(1)}%)`}
             </div>
@@ -269,13 +271,15 @@ function AccountHeader({
           )}
           <div>
             <SubText className="block">Monthly</SubText>
-            <div className="text-[var(--muted)]">{fmt(acc.amortizationSummary.monthlyPayment, acc.currency)}</div>
+            <div className="text-[var(--muted)]">
+              {formatMoney(acc.amortizationSummary.monthlyPayment, acc.currency)}
+            </div>
           </div>
           {acc.amortizationSummary.totalInterestRemaining > 0 && (
             <div>
               <SubText className="block">Remaining interest</SubText>
               <div className="text-[var(--amber)]">
-                {fmt(acc.amortizationSummary.totalInterestRemaining, acc.currency)}
+                {formatMoney(acc.amortizationSummary.totalInterestRemaining, acc.currency)}
               </div>
             </div>
           )}

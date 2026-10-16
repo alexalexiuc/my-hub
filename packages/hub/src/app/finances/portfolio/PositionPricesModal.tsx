@@ -1,10 +1,11 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { Collapsible } from '@/components';
 import { FinModalShell } from '../FinModalShell';
-import { fmt, fmtSign, pct, deviationColor } from '../ui';
+import { pct, deviationColor } from '../ui';
 import type { PortfolioOverview, PositionOverview, SupplyWithLines } from '@my-hub/shared/services';
 import type { SuppliesResponse } from '@/app/api/finances/portfolio/supplies/route';
 
@@ -96,11 +97,11 @@ function PositionPriceCard({
       actions={
         <div className="text-right">
           <div className="text-[13px] font-semibold text-[var(--text)]">
-            {currentPriceBase !== null ? fmt(currentPriceBase, currency) : '—'}
+            {currentPriceBase !== null ? formatMoney(currentPriceBase, currency) : '—'}
           </div>
           {vsLastBuy !== null && (
             <div className="text-[9px]" style={{ color: deviationColor(vsLastBuy) }}>
-              {fmtSign(vsLastBuy, currency)} ({pct(vsLastBuyPct, true)}) vs last buy
+              {formatMoney(vsLastBuy, currency, { signed: true })} ({pct(vsLastBuyPct, true)}) vs last buy
             </div>
           )}
         </div>
@@ -127,7 +128,9 @@ function PositionPriceCard({
                   <td className="py-1 px-2 text-right text-[var(--text)]">
                     {buy.units.toLocaleString('de-DE', { maximumFractionDigits: 4 })}
                   </td>
-                  <td className="py-1 px-2 text-right text-[var(--muted)]">{fmt(buy.pricePerUnit, currency)}</td>
+                  <td className="py-1 px-2 text-right text-[var(--muted)]">
+                    {formatMoney(buy.pricePerUnit, currency)}
+                  </td>
                   <td className="py-1 pl-2 text-right" style={{ color: deviationColor(diffPct) }}>
                     {pct(diffPct, true)}
                   </td>
