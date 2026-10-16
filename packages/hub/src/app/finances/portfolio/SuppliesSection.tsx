@@ -1,10 +1,10 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { Card, ConfirmModal, IconButton, SectionLabel } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
-import { fmt } from '../ui';
 import { SupplyModal } from './SupplyModal';
 import type { PortfolioOverview, SupplyWithLines } from '@my-hub/shared/services';
 import type { SuppliesResponse } from '@/app/api/finances/portfolio/supplies/route';
@@ -77,7 +77,7 @@ export function SuppliesSection({ overview, refreshKey, onChanged }: SuppliesSec
                         <div className="flex items-baseline gap-2.5">
                           <span className="text-[12px] font-semibold text-[var(--text)]">{supply.date}</span>
                           <span className="text-[12px] font-bold text-[var(--accent)]">
-                            {fmt(supply.totalAmount, currency)}
+                            {formatMoney(supply.totalAmount, currency)}
                           </span>
                           {supply.notes && <span className="text-[10px] text-[var(--subtle)]">{supply.notes}</span>}
                         </div>
@@ -104,10 +104,12 @@ export function SuppliesSection({ overview, refreshKey, onChanged }: SuppliesSec
                       <td className="py-1 px-2 text-right text-[var(--text)]">
                         {line.units.toLocaleString('de-DE', { maximumFractionDigits: 4 })}
                       </td>
-                      <td className="py-1 px-2 text-right text-[var(--muted)]">{fmt(line.pricePerUnit, currency)}</td>
-                      <td className="py-1 px-2 text-right text-[var(--muted)]">{fmt(line.fee, currency)}</td>
+                      <td className="py-1 px-2 text-right text-[var(--muted)]">
+                        {formatMoney(line.pricePerUnit, currency)}
+                      </td>
+                      <td className="py-1 px-2 text-right text-[var(--muted)]">{formatMoney(line.fee, currency)}</td>
                       <td className="py-1 pl-2 text-right font-medium text-[var(--text)]">
-                        {fmt(line.units * line.pricePerUnit + line.fee, currency)}
+                        {formatMoney(line.units * line.pricePerUnit + line.fee, currency)}
                       </td>
                     </tr>
                   ))}
@@ -134,7 +136,7 @@ export function SuppliesSection({ overview, refreshKey, onChanged }: SuppliesSec
       {deleting && (
         <ConfirmModal
           title="Delete supply"
-          message={`Delete the supply from ${deleting.date} (${fmt(deleting.totalAmount, currency)})? This removes all its lines.`}
+          message={`Delete the supply from ${deleting.date} (${formatMoney(deleting.totalAmount, currency)})? This removes all its lines.`}
           confirmLabel="Delete"
           loading={deleteLoading}
           onConfirm={confirmDelete}

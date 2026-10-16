@@ -9,7 +9,9 @@ import {
   addDays,
   getISOWeek,
   getLastMonthStart,
-  addMonths,
+  shiftMonthStart,
+  addMonthsKeepDay,
+  shiftDateStr,
   monthLabel,
   getLastMonday,
   isoWeekAndYear,
@@ -200,13 +202,78 @@ describe('getLastMonthStart', () => {
   });
 });
 
-describe('addMonths', () => {
+describe('shiftMonthStart', () => {
   it('moves month start forward by one month', () => {
-    expect(toUTCDateStr(addMonths(new Date('2026-03-01T00:00:00.000Z'), 1))).toBe('2026-04-01');
+    expect(toUTCDateStr(shiftMonthStart(new Date('2026-03-01T00:00:00.000Z'), 1))).toBe('2026-04-01');
   });
 
   it('moves month start backward by one month', () => {
-    expect(toUTCDateStr(addMonths(new Date('2026-03-01T00:00:00.000Z'), -1))).toBe('2026-02-01');
+    expect(toUTCDateStr(shiftMonthStart(new Date('2026-03-01T00:00:00.000Z'), -1))).toBe('2026-02-01');
+  });
+
+  it('drops the day of month', () => {
+    expect(toUTCDateStr(shiftMonthStart(new Date('2026-03-15T00:00:00.000Z'), 1))).toBe('2026-04-01');
+  });
+});
+
+describe('addMonthsKeepDay', () => {
+  const shift = (date: string, n: number) => toUTCDateStr(addMonthsKeepDay(new Date(date), n));
+
+  it('keeps the day of month', () => {
+    expect(shift('2024-01-15', 1)).toBe('2024-02-15');
+    expect(shift('2024-01-15', 23)).toBe('2025-12-15');
+    expect(shift('2024-03-15', -3)).toBe('2023-12-15');
+  });
+
+  it("clamps to the target month's last day", () => {
+    expect(shift('2026-01-31', 1)).toBe('2026-02-28');
+    expect(shift('2024-01-31', 1)).toBe('2024-02-29');
+    expect(shift('2026-03-31', 1)).toBe('2026-04-30');
+    expect(shift('2026-05-31', -3)).toBe('2026-02-28');
+  });
+
+  it('does not drift once clamped: each payment is derived from the first one', () => {
+    expect(shift('2026-01-31', 2)).toBe('2026-03-31');
+    expect(shift('2026-01-30', 1)).toBe('2026-02-28');
+    expect(shift('2026-01-30', 2)).toBe('2026-03-30');
+  });
+
+  it('gives a 24-month loan schedule from 2024-01-01 ending 2025-12-01', () => {
+    const rows = Array.from({ length: 24 }, (_, i) => shift('2024-01-01', i));
+    expect(rows[0]).toBe('2024-01-01');
+    expect(rows[12]).toBe('2025-01-01');
+    expect(rows[23]).toBe('2025-12-01');
+    expect(new Set(rows).size).toBe(24);
+  });
+
+  it('keeps the time of day and does not mutate the input', () => {
+    const d = new Date('2026-01-31T10:30:00.000Z');
+    expect(addMonthsKeepDay(d, 1).toISOString()).toBe('2026-02-28T10:30:00.000Z');
+    expect(d.toISOString()).toBe('2026-01-31T10:30:00.000Z');
+  });
+});
+
+describe('shiftDateStr', () => {
+  it('moves forward and back across month, year and leap-day boundaries', () => {
+    expect(shiftDateStr('2026-08-01', -1)).toBe('2026-07-31');
+    expect(shiftDateStr('2026-12-31', 1)).toBe('2027-01-01');
+    expect(shiftDateStr('2028-02-28', 1)).toBe('2028-02-29');
+    expect(shiftDateStr('2026-08-01', 0)).toBe('2026-08-01');
+  });
+
+  it('steps whole weeks, as the calorie week navigation does', () => {
+    expect(shiftDateStr('2026-08-03', -7)).toBe('2026-07-27');
+    expect(shiftDateStr('2026-07-27', 7)).toBe('2026-08-03');
+  });
+
+  // The Hub used to shift via local noon + local date; across DST changes that gives the same dates.
+  it('is unaffected by DST changes (EU and US, spring and autumn)', () => {
+    expect(shiftDateStr('2026-03-28', 1)).toBe('2026-03-29');
+    expect(shiftDateStr('2026-03-29', 1)).toBe('2026-03-30');
+    expect(shiftDateStr('2026-10-25', -1)).toBe('2026-10-24');
+    expect(shiftDateStr('2026-10-24', 2)).toBe('2026-10-26');
+    expect(shiftDateStr('2026-03-08', 1)).toBe('2026-03-09');
+    expect(shiftDateStr('2026-11-01', -1)).toBe('2026-10-31');
   });
 });
 

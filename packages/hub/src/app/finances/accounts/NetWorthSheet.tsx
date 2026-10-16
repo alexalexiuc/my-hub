@@ -1,9 +1,9 @@
 'use client';
 
-import { fmt, AmountText } from '../ui';
+import { AmountText } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { ACCOUNT_TYPE_NAMES } from '@my-hub/shared/constants';
-import { isLiabilityAccount } from '@my-hub/shared/utils';
+import { formatMoney, isLiabilityAccount } from '@my-hub/shared/utils';
 import type { AccountType } from '@my-hub/shared/constants';
 import type { AccountItem } from '@/app/api/finances/accounts/route';
 import { SubText, Divider } from '@/components';
@@ -21,7 +21,9 @@ export function NetWorthSheet({ accounts, netWorth, currency, onClose }: NetWort
 
   return (
     <FinModalShell title="Net Worth" onClose={onClose} className="md:max-w-[420px]">
-      <div className="mb-5 text-[28px] font-bold tracking-[-0.02em] text-[var(--text)]">{fmt(netWorth, currency)}</div>
+      <div className="mb-5 text-[28px] font-bold tracking-[-0.02em] text-[var(--text)]">
+        {formatMoney(netWorth, currency)}
+      </div>
 
       <p className="mb-4 text-[12px] leading-relaxed text-[var(--subtle)]">
         Total assets minus total liabilities across all non-archived accounts.

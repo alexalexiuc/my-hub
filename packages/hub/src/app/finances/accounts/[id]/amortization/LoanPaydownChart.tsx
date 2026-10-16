@@ -1,7 +1,7 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import type { ScheduleRow } from '@/app/api/finances/accounts/[id]/amortization/route';
-import { fmt } from '../../../ui';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 type LoanPaydownChartProps = {
@@ -75,7 +75,7 @@ export function LoanPaydownChart({ rows, principal, currency, nextPaymentDate, h
 
         <Tooltip
           cursor={{ stroke: 'var(--border)', strokeDasharray: '4 4' }}
-          formatter={value => [fmt(Number(value), currency), 'Remaining principal']}
+          formatter={value => [formatMoney(Number(value), currency), 'Remaining principal']}
           labelFormatter={(label: unknown) => fmtTick(String(label))}
           contentStyle={{
             border: '1px solid var(--border)',

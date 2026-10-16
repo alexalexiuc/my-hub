@@ -1,7 +1,7 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { Card, SectionLabel, SubText } from '@/components';
-import { fmt, fmtSign } from '../ui';
 import type { ReportingAccountCashflow } from '@/app/api/finances/reporting/route';
 
 type AccountCashflowCardProps = {
@@ -23,7 +23,7 @@ export function AccountCashflowCard({ data, periodLabel }: AccountCashflowCardPr
             className="break-all text-[15px] font-bold tracking-[-0.02em] leading-tight"
             style={{ color: 'var(--green)' }}
           >
-            {fmt(data.income, data.currency)}
+            {formatMoney(data.income, data.currency)}
           </div>
         </div>
         <div>
@@ -32,7 +32,7 @@ export function AccountCashflowCard({ data, periodLabel }: AccountCashflowCardPr
             className="break-all text-[15px] font-bold tracking-[-0.02em] leading-tight"
             style={{ color: 'var(--red)' }}
           >
-            {fmt(data.expenses, data.currency)}
+            {formatMoney(data.expenses, data.currency)}
           </div>
         </div>
         <div>
@@ -41,7 +41,7 @@ export function AccountCashflowCard({ data, periodLabel }: AccountCashflowCardPr
             className="break-all text-[15px] font-bold tracking-[-0.02em] leading-tight"
             style={{ color: data.net >= 0 ? 'var(--green)' : 'var(--red)' }}
           >
-            {fmtSign(data.net, data.currency)}
+            {formatMoney(data.net, data.currency, { signed: true })}
           </div>
         </div>
       </div>

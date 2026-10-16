@@ -1,10 +1,10 @@
 'use client';
 
+import { formatNumber } from '@my-hub/shared/utils';
 import { cn } from '@/lib/utils';
 import { Button, SubText, SwipeRow } from '@/components';
 import { TrashOutlineIcon } from '@/components/icons';
 import type { MonthlyPlanItem } from '@/app/api/finances/monthly-plans/[month]/route';
-import { fmtNum } from './monthly-plan.utils';
 
 function LinkedToChip({ item }: { item: MonthlyPlanItem }) {
   if (!item.linkedAccountName && !item.categoryName) {
@@ -60,21 +60,23 @@ export function PlanItemRow({ item, currency, onToggle, onDelete, onEdit, isOpen
 
         <div className="text-right">
           {isNonDefault && <SubText className="mr-1">{item.currency}</SubText>}
-          <span className="text-[13px] font-semibold tabular-nums text-[var(--text)]">{fmtNum(item.amount)}</span>
+          <span className="text-[13px] font-semibold tabular-nums text-[var(--text)]">
+            {formatNumber(item.amount, { decimals: 0 })}
+          </span>
         </div>
 
         <div className="flex justify-end">
           {isDone ? (
             <div className="flex items-center justify-end gap-1.5">
               <span className="text-[14px] font-semibold tabular-nums text-[var(--green)]">
-                {fmtNum(item.assignedAmount)}
+                {formatNumber(item.assignedAmount, { decimals: 0 })}
               </span>
               <span className="text-[13px] text-[var(--green)]">✓</span>
             </div>
           ) : isPartial ? (
             <div className="flex flex-col items-end gap-0.5">
               <span className="text-[13px] font-medium tabular-nums text-[var(--amber)]">
-                {fmtNum(item.assignedAmount)}
+                {formatNumber(item.assignedAmount, { decimals: 0 })}
               </span>
               <div className="h-1 w-16 overflow-hidden rounded-full bg-[var(--card3)]">
                 <div
@@ -142,7 +144,7 @@ export function PlanItemRow({ item, currency, onToggle, onDelete, onEdit, isOpen
             <div className="flex shrink-0 items-center gap-3">
               <div className="w-16 text-right text-[13px] font-semibold tabular-nums text-[var(--text)]">
                 {isNonDefault && <SubText className="mr-0.5">{item.currency}</SubText>}
-                {fmtNum(item.amount)}
+                {formatNumber(item.amount, { decimals: 0 })}
               </div>
               <div
                 className={cn(
@@ -150,7 +152,7 @@ export function PlanItemRow({ item, currency, onToggle, onDelete, onEdit, isOpen
                   isDone ? 'text-[var(--green)]' : isPartial ? 'text-[var(--amber)]' : 'text-[var(--subtle)]',
                 )}
               >
-                {item.assignedAmount > 0 ? fmtNum(item.assignedAmount) : '—'}
+                {item.assignedAmount > 0 ? formatNumber(item.assignedAmount, { decimals: 0 }) : '—'}
               </div>
               <span className={cn('text-[var(--green)]', !isDone && 'invisible')}>✓</span>
             </div>

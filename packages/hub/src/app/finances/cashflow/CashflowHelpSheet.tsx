@@ -1,9 +1,10 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { useEffect, useState } from 'react';
 import { Divider, Modal, SubText } from '@/components';
 import { apiFetch, cn } from '@/lib/utils';
-import { CategoryIcon, fmt, TYPE_META } from '../ui';
+import { CategoryIcon, TYPE_META } from '../ui';
 import { hasAccountActivity } from './cashflow.utils';
 import { accountFlowsReportResponseSchema } from '@/app/api/finances/reports/account-flows/account-flows.schema';
 import type {
@@ -87,9 +88,11 @@ function AccountList({ accounts, label, muted = false }: AccountListProps) {
                 {!muted && (
                   <div className="shrink-0 text-right tabular-nums">
                     <div className="text-[12px] text-[var(--green)]">
-                      +{fmt(account.totalInflows, account.currency)}
+                      +{formatMoney(account.totalInflows, account.currency)}
                     </div>
-                    <div className="text-[12px] text-[var(--red)]">-{fmt(account.totalOutflows, account.currency)}</div>
+                    <div className="text-[12px] text-[var(--red)]">
+                      -{formatMoney(account.totalOutflows, account.currency)}
+                    </div>
                   </div>
                 )}
               </div>

@@ -2,11 +2,11 @@
 
 import { cn } from '@/lib/utils';
 import { Divider, IncludeExcludeChip, SubText } from '@/components';
-import { fmt, AmountText } from '../ui';
+import { AmountText } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { ForeignBalanceLine } from '../ForeignBalanceLine';
 import { ACCOUNT_TYPE_NAMES } from '@my-hub/shared/constants';
-import { isLiabilityAccount } from '@my-hub/shared/utils';
+import { formatMoney, isLiabilityAccount } from '@my-hub/shared/utils';
 import type { AccountType } from '@my-hub/shared/constants';
 import type { AccountItem } from '@/app/api/finances/accounts/route';
 
@@ -61,7 +61,7 @@ function AccountListSection({ accounts, currency, included, onToggle }: AccountL
                     />
                   ) : (
                     <span className="text-[13px] tabular-nums text-[var(--subtle)]">
-                      {fmt(acc.balance, acc.currency)}
+                      {formatMoney(acc.balance, acc.currency)}
                     </span>
                   )}
                   {acc.defaultCurrencyValue && (
@@ -91,7 +91,7 @@ export function AvailableBalanceSheet({
   return (
     <FinModalShell title="Available Balance" onClose={onClose} className="md:max-w-[420px]">
       <div className="mb-5 text-[28px] font-bold tracking-[-0.02em] text-[var(--text)]">
-        {fmt(availableBalance, currency)}
+        {formatMoney(availableBalance, currency)}
       </div>
 
       <p className="mb-4 text-[12px] leading-relaxed text-[var(--subtle)]">

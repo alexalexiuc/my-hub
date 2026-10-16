@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '@/lib/utils';
 import {
   addDays,
-  addMonths,
+  shiftMonthStart,
   getLastMonday,
   getLastMonthStart,
   toUTCDateStr,
@@ -18,7 +18,7 @@ export type ReportPeriod = 'weekly' | 'monthly';
 
 /** The Monday of the current week, and the first of the current month — in the UTC terms the report endpoints use. */
 export const currentWeekStart = () => addDays(getLastMonday(), 7);
-export const currentMonthStart = () => addMonths(getLastMonthStart(), 1);
+export const currentMonthStart = () => shiftMonthStart(getLastMonthStart(), 1);
 
 /**
  * What differs between the weekly and monthly views. Everything else about them is identical, so
@@ -50,7 +50,7 @@ export const PERIODS: Record<ReportPeriod, PeriodConfig> = {
     endpoint: '/api/calories/reports/monthly-preview',
     param: 'monthStart',
     current: currentMonthStart,
-    step: (from, direction) => addMonths(from, direction),
+    step: (from, direction) => shiftMonthStart(from, direction),
     label: monthLabel,
     currentLabel: 'This month',
     emptyMessage: 'No meals logged for this month.',

@@ -1,7 +1,7 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { cn } from '@/lib/utils';
-import { fmt, fmtSign } from '../ui';
 
 type Tone = 'in' | 'out';
 
@@ -15,7 +15,7 @@ function AmountCell({ value, tone, currency }: { value: number; tone: Tone; curr
       )}
     >
       {isZero ? '' : tone === 'in' ? '+' : '-'}
-      {fmt(value, currency)}
+      {formatMoney(value, currency)}
     </span>
   );
 }
@@ -51,7 +51,7 @@ export function FlowRow({ label, inflow, outflow, currency, divider = false }: F
           net === 0 ? 'text-[var(--subtle)]' : net > 0 ? 'text-[var(--green)]' : 'text-[var(--red)]',
         )}
       >
-        {net === 0 ? fmt(0, currency) : fmtSign(net, currency)}
+        {net === 0 ? formatMoney(0, currency) : formatMoney(net, currency, { signed: true })}
       </span>
     </div>
   );

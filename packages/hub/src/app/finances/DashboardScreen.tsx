@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
-import { formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
-import { fmt, SeeAllButton } from './ui';
+import { formatMoney, formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
+import { SeeAllButton } from './ui';
 import { CategoryPieChart, SpendingTrendChart } from './DashboardCharts';
 import { TransactionList } from './transactions/TransactionList';
 import { AvailableCard } from './AvailableCard';
@@ -71,23 +71,25 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
           <div className="mt-1 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-[var(--muted)]">Income</span>
-              <span className="text-sm font-semibold text-[var(--green)]">{fmt(monthlyIncome, currency)}</span>
+              <span className="text-sm font-semibold text-[var(--green)]">{formatMoney(monthlyIncome, currency)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-[var(--muted)]">Expenses</span>
-              <span className="text-sm font-semibold text-[var(--red)]">{fmt(monthlyExpense, currency)}</span>
+              <span className="text-sm font-semibold text-[var(--red)]">{formatMoney(monthlyExpense, currency)}</span>
             </div>
             {monthlyTransfers > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-[var(--muted)]">Loan repayments</span>
-                <span className="text-sm font-semibold text-[var(--red)]">{fmt(monthlyTransfers, currency)}</span>
+                <span className="text-sm font-semibold text-[var(--red)]">
+                  {formatMoney(monthlyTransfers, currency)}
+                </span>
               </div>
             )}
             <Divider />
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-[var(--muted)]">Saved</span>
               <span className={cn('text-sm font-bold', saved >= 0 ? 'text-[var(--accent)]' : 'text-[var(--red)]')}>
-                {fmt(saved, currency)}
+                {formatMoney(saved, currency)}
               </span>
             </div>
           </div>
@@ -147,8 +149,8 @@ export function DashboardScreen({ data, userName, selectedMonth, currentMonth, o
               return (
                 <div key={g.id} className="rounded-lg px-3 py-2.5 bg-[var(--card2)]">
                   <div className="mb-1 text-[11px] text-[var(--muted)]">{g.name}</div>
-                  <div className="text-[15px] font-bold text-[var(--text)]">{fmt(g.balance, currency)}</div>
-                  <SubText className="block mb-1.5">of {fmt(g.target, currency)}</SubText>
+                  <div className="text-[15px] font-bold text-[var(--text)]">{formatMoney(g.balance, currency)}</div>
+                  <SubText className="block mb-1.5">of {formatMoney(g.target, currency)}</SubText>
                   <ProgressBar value={g.balance} max={g.target} color={'var(--green)'} height={4} />
                   <div className="mt-1 text-[10px] text-[var(--green)]">{pct}%</div>
                 </div>

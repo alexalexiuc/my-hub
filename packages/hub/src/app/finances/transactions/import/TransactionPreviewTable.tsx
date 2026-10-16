@@ -1,10 +1,10 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { cn } from '@/lib/utils';
 import { FinancialDropdown } from '../../FinancialDropdown';
 import type { DropdownOption } from '../../FinancialDropdown';
 import { TransactionTypes } from '@my-hub/shared/constants';
-import { fmt } from '../../ui';
 import { TypeToggle } from './TypeToggle';
 import { CurrencyCell } from './CurrencyCell';
 import type { ImportRow, ColumnMap } from './types';
@@ -93,7 +93,7 @@ export function TransactionPreviewTable({
                     }}
                   >
                     {row.type === TransactionTypes.Expense ? '−' : '+'}
-                    {fmt(row.amount, currency).replace(/[^0-9.,]/g, '')}
+                    {formatMoney(row.amount, currency).replace(/[^0-9.,]/g, '')}
                   </span>
                 </td>
                 {colMap.currencyCol && (

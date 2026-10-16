@@ -1,10 +1,11 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
 import type { CategoriesResponse, CategoryRow } from '@/app/api/finances/categories/route';
-import { CategoryIcon, fmt } from '../../ui';
+import { CategoryIcon } from '../../ui';
 import { TransactionList } from '../../transactions/TransactionList';
 import { transactionEvents } from '../../transactions/transactionEvents';
 import { Button, Card, SectionLabel, SubText } from '@/components';
@@ -104,12 +105,12 @@ export default function CategoryDetailPage() {
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--card2)] p-2.5">
             <SubText className="block uppercase tracking-[0.08em]">Spent</SubText>
-            <div className="text-[16px] font-semibold text-[var(--text)]">{fmt(category.spent, currency)}</div>
+            <div className="text-[16px] font-semibold text-[var(--text)]">{formatMoney(category.spent, currency)}</div>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--card2)] p-2.5">
             <SubText className="block uppercase tracking-[0.08em]">Target</SubText>
             <div className="text-[16px] font-semibold text-[var(--text)]">
-              {target > 0 ? fmt(target, currency) : '—'}
+              {target > 0 ? formatMoney(target, currency) : '—'}
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { FinModalShell } from '../FinModalShell';
-import { fmt } from '../ui';
 import { FxRateSources } from '@my-hub/shared/constants';
 import type { TransactionDetails, ReceiptTransactionDetails } from '@my-hub/shared/types';
 
@@ -101,7 +101,7 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
             />
           )}
           {extras.conversion.convertedAmount != null && (
-            <Row label="Converted amount" value={fmt(extras.conversion.convertedAmount, currency)} />
+            <Row label="Converted amount" value={formatMoney(extras.conversion.convertedAmount, currency)} />
           )}
         </Section>
       )}
@@ -110,13 +110,13 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
         <Section title="Receipt">
           {receipt.payeeAddress && <Row label="Address" value={receipt.payeeAddress} />}
           {receipt.receiptNumber && <Row label="Receipt #" value={receipt.receiptNumber} />}
-          {receipt.taxAmount != null && <Row label="Tax" value={fmt(receipt.taxAmount, receiptCurrency)} />}
-          {receipt.tipAmount != null && <Row label="Tip" value={fmt(receipt.tipAmount, receiptCurrency)} />}
+          {receipt.taxAmount != null && <Row label="Tax" value={formatMoney(receipt.taxAmount, receiptCurrency)} />}
+          {receipt.tipAmount != null && <Row label="Tip" value={formatMoney(receipt.tipAmount, receiptCurrency)} />}
           {receipt.deliveryAmount != null && (
-            <Row label="Delivery" value={fmt(receipt.deliveryAmount, receiptCurrency)} />
+            <Row label="Delivery" value={formatMoney(receipt.deliveryAmount, receiptCurrency)} />
           )}
           {receipt.discountAmount != null && (
-            <Row label="Discount" value={fmt(receipt.discountAmount, receiptCurrency)} />
+            <Row label="Discount" value={formatMoney(receipt.discountAmount, receiptCurrency)} />
           )}
         </Section>
       )}
@@ -131,7 +131,7 @@ export function TransactionExtrasModal({ extras, currency, onClose }: Transactio
               </span>
               {item.totalPrice != null && (
                 <span className="shrink-0 tabular-nums text-[var(--muted)]">
-                  {fmt(item.totalPrice, receiptCurrency)}
+                  {formatMoney(item.totalPrice, receiptCurrency)}
                 </span>
               )}
             </div>

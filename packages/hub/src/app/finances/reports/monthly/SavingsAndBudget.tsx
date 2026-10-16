@@ -1,5 +1,5 @@
+import { formatMoney } from '@my-hub/shared/utils';
 import { Card, SectionLabel, SubText, ProgressBar } from '@/components';
-import { fmt, fmtSign } from '../../ui';
 import type { MonthlyReportData } from '@/app/api/finances/reports/monthly/route';
 
 interface Props {
@@ -21,13 +21,14 @@ export function SavingsAndBudget({ report, currency }: Props) {
         <Card compact className="p-4">
           <SubText>Net contribution this month</SubText>
           <div className="mt-1 text-[24px] font-bold" style={{ color: totalColor }}>
-            {fmtSign(
+            {formatMoney(
               savingsContributions.totalNetContribution.amount,
               savingsContributions.totalNetContribution.currency,
+              { signed: true },
             )}
           </div>
           <div className="mt-0.5 text-[11px] text-[var(--muted)]">
-            {fmtSign(delta, savingsContributions.totalNetContribution.currency)} vs prior month
+            {formatMoney(delta, savingsContributions.totalNetContribution.currency, { signed: true })} vs prior month
           </div>
           {savingsContributions.accounts.length > 0 && (
             <div className="mt-3 flex flex-col gap-1.5 border-t border-[var(--border)] pt-3">
@@ -35,10 +36,10 @@ export function SavingsAndBudget({ report, currency }: Props) {
                 <div key={a.accountId} className="flex justify-between text-[12px]">
                   <span className="text-[var(--text)]">{a.accountName}</span>
                   <span className="font-medium text-[var(--text)]">
-                    {fmtSign(a.converted.amount, a.converted.currency)}
+                    {formatMoney(a.converted.amount, a.converted.currency, { signed: true })}
                     {a.original.currency !== a.converted.currency && (
                       <span className="ml-1 font-normal text-[var(--muted)]">
-                        ({fmtSign(a.original.amount, a.original.currency)})
+                        ({formatMoney(a.original.amount, a.original.currency, { signed: true })})
                       </span>
                     )}
                   </span>
@@ -55,7 +56,7 @@ export function SavingsAndBudget({ report, currency }: Props) {
           <div className="mb-3 flex items-center justify-between">
             <SubText>Total</SubText>
             <span className="text-[13px] font-semibold text-[var(--text)]">
-              {fmt(budgetProgress.totalSpent, currency)} / {fmt(budgetProgress.totalBudgeted, currency)}
+              {formatMoney(budgetProgress.totalSpent, currency)} / {formatMoney(budgetProgress.totalBudgeted, currency)}
             </span>
           </div>
           {targetedCategories.length === 0 && (
@@ -66,7 +67,7 @@ export function SavingsAndBudget({ report, currency }: Props) {
               <div className="mb-1 flex justify-between text-[12px]">
                 <span className="text-[var(--text)]">{c.displayName}</span>
                 <span className="text-[var(--muted)]">
-                  {fmt(c.spent, currency)} / {fmt(c.monthlyTarget ?? 0, currency)}
+                  {formatMoney(c.spent, currency)} / {formatMoney(c.monthlyTarget ?? 0, currency)}
                 </span>
               </div>
               <ProgressBar value={c.spent} max={c.monthlyTarget ?? 0} height={5} />

@@ -1,5 +1,5 @@
+import { formatMoney } from '@my-hub/shared/utils';
 import { ProgressBar } from '@/components/ProgressBar';
-import { fmt } from '../ui';
 
 export function AccountProgressBar({
   value,
@@ -21,7 +21,7 @@ export function AccountProgressBar({
       <div className="mb-1 flex justify-between">
         <span className="text-[10px] text-[var(--muted)]">
           {prefix ? `${prefix} ` : ''}
-          {fmt(value, currency)} of {fmt(max, currency)}
+          {formatMoney(value, currency)} of {formatMoney(max, currency)}
         </span>
         <span className="text-[10px]" style={{ color }}>
           {pct}%

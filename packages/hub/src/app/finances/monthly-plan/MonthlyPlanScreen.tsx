@@ -9,8 +9,7 @@ import { SummaryBar } from './SummaryBar';
 import { MonthHeader } from './MonthHeader';
 import { PlanItemRow } from './PlanItemRow';
 import { PlanItemModal } from './PlanItemModal';
-import { fmtNum } from './monthly-plan.utils';
-import { dateToString } from '@my-hub/shared/utils';
+import { dateToString, formatNumber } from '@my-hub/shared/utils';
 import { SupportedCurrencies } from '@my-hub/shared/constants';
 import type { SupportedCurrency } from '@my-hub/shared/constants';
 
@@ -164,12 +163,13 @@ export function MonthlyPlanScreen() {
               </Button>
               <div className="flex items-center gap-4 text-[11px] text-[var(--muted)]">
                 <span>
-                  Planned: <strong className="text-[var(--text)]">{fmtNum(data.summary.planned)}</strong>
+                  Planned:{' '}
+                  <strong className="text-[var(--text)]">{formatNumber(data.summary.planned, { decimals: 0 })}</strong>
                 </span>
                 <span>
                   Assigned:{' '}
                   <strong className="text-[var(--text)]">
-                    {fmtNum(data.availableAmount - data.summary.remainingReal)}
+                    {formatNumber(data.availableAmount - data.summary.remainingReal, { decimals: 0 })}
                   </strong>
                 </span>
               </div>

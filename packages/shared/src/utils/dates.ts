@@ -11,7 +11,8 @@
  * - shiftDateStr(dateStr, n) — shift a YYYY-MM-DD string by n calendar days, all-UTC, returns YYYY-MM-DD
  * - addMinutes(date, minutes) — new Date shifted by n minutes
  * - addHours(date, hours) — new Date shifted by n hours
- * - addMonths(d, n) — shift a UTC month-start date by n months (always 1st of month)
+ * - shiftMonthStart(d, n) — first day of the month n months from d's month (UTC midnight; drops the day)
+ * - addMonthsKeepDay(d, n) — same day of month n months later (UTC), clamped to the month's last day
  * - getISOWeek(d) — ISO 8601 week number (week 1 = week containing first Thursday)
  * - getLastMonday(referenceDate?) — start of the previous ISO week at UTC midnight
  * - getLastMonthStart(referenceDate?) — first day of the previous month at UTC midnight
@@ -204,11 +205,25 @@ export function getLastMonthStart(referenceDate: Date = new Date()): Date {
 }
 
 /**
- * Shifts a UTC month-start date by n months and returns the resulting month start.
- * The returned date is always the first day of month at UTC midnight.
+ * Returns the first day of the month n months from d's (UTC) month, at UTC midnight. The day of month
+ * is dropped: `shiftMonthStart(2026-03-15, 1)` → 2026-04-01. Use `addMonthsKeepDay` to keep the day.
  */
-export function addMonths(d: Date, n: number): Date {
+export function shiftMonthStart(d: Date, n: number): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1));
+}
+
+/**
+ * Shifts a date by n calendar months keeping its UTC day of month and time, clamped to the target
+ * month's last day: 2026-01-31 + 1 → 2026-02-28, 2024-01-31 + 1 → 2024-02-29. For monthly schedules
+ * (loan payment n is due n-1 months after the first one).
+ */
+export function addMonthsKeepDay(d: Date, n: number): Date {
+  const year = d.getUTCFullYear();
+  const month = d.getUTCMonth() + n;
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const out = new Date(d);
+  out.setUTCFullYear(year, month, Math.min(d.getUTCDate(), lastDay));
+  return out;
 }
 
 /** Formats a UTC month-start date as "Month YYYY" in English. */
@@ -227,7 +242,7 @@ function parseMonthStr(month: string): Date {
  * e.g. shiftMonthStr('2026-01', -1) → '2025-12'
  */
 export function shiftMonthStr(month: string, delta: number): string {
-  const d = addMonths(parseMonthStr(month), delta);
+  const d = shiftMonthStart(parseMonthStr(month), delta);
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 

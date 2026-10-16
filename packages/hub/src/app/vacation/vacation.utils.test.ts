@@ -4,7 +4,6 @@ import {
   coversDate,
   deltaTextClass,
   formatDays,
-  formatDeltaCompact,
   formatRate,
   formatSignedMdl,
   isInRange,
@@ -25,9 +24,6 @@ describe('vacation utils', () => {
   });
 
   it('formats compact and signed amounts', () => {
-    expect(formatDeltaCompact(1058.8)).toBe('+1.1k');
-    expect(formatDeltaCompact(-441.2)).toBe('−441');
-    expect(formatDeltaCompact(0.2)).toBe('0');
     expect(formatSignedMdl(-1147.06)).toBe('−1,147 MDL');
     expect(formatSignedMdl(0.3)).toBe('0 MDL');
     expect(formatDays(1)).toBe('1 day');

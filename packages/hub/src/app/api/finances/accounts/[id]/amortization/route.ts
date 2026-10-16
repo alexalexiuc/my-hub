@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { route, routeHttpError } from '@/lib/api/route';
 import { getAccountById, getUserActiveBudget } from '@my-hub/shared/services';
 import type { LoanAccountDetails } from '@my-hub/shared/types';
+import { addMonthsKeepDay, toUTCDateStr } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../../currency.schema';
 
 export const scheduleRowSchema = z.object({
@@ -32,16 +33,6 @@ export const amortizationResponseSchema = z.object({
 export type ScheduleRow = z.infer<typeof scheduleRowSchema>;
 export type AmortizationData = z.infer<typeof amortizationResponseSchema>;
 
-function addMonths(date: Date, months: number): Date {
-  const d = new Date(date);
-  d.setMonth(d.getMonth() + months);
-  return d;
-}
-
-function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
 export const GET = route({
   params: z.object({ id: z.string() }),
   response: amortizationResponseSchema,
@@ -70,7 +61,7 @@ export const GET = route({
   const monthlyPaymentRounded = Math.round(monthlyPayment * 100) / 100;
 
   // Payment #termMonths (the last one) is due termMonths-1 months after payment #1 (firstPaymentDate).
-  const payoffDate = toDateStr(addMonths(new Date(firstPaymentDate), termMonths - 1));
+  const payoffDate = toUTCDateStr(addMonthsKeepDay(new Date(firstPaymentDate), termMonths - 1));
   const totalCost = Math.round(monthlyPaymentRounded * termMonths * 100) / 100;
   const totalInterest = Math.round((totalCost - principal) * 100) / 100;
 
@@ -84,7 +75,7 @@ export const GET = route({
     const principalPart = Math.round(Math.min(monthlyPaymentRounded - interestPart, balance) * 100) / 100;
     balance = Math.round(Math.max(0, balance - principalPart) * 100) / 100;
     // Payment n (1-indexed) is due n-1 months after firstPaymentDate.
-    const date = toDateStr(addMonths(start, n - 1));
+    const date = toUTCDateStr(addMonthsKeepDay(start, n - 1));
     rows.push({ n, date, principalPart, interestPart, balance, past: false, next: false });
   }
 

@@ -10,35 +10,14 @@ import {
   timeAxisTicks,
   groupByMealType,
   intakeBarColor,
-  shiftDate,
   pctToGrams,
   gramsToPct,
   computeMacroSummary,
   sortSuggestionsForMealType,
 } from './calories.utils';
 import type { MealLog } from '@my-hub/shared/types';
-import { dateToString } from '@my-hub/shared/utils';
+import { dateToString, shiftDateStr } from '@my-hub/shared/utils';
 import { MealTypes } from '@my-hub/shared/constants';
-
-describe('shiftDate', () => {
-  it('moves forward and back across a month boundary', () => {
-    expect(shiftDate('2026-08-01', -1)).toBe('2026-07-31');
-    expect(shiftDate('2026-07-31', 1)).toBe('2026-08-01');
-  });
-
-  it('steps whole weeks, which is what the week navigation relies on', () => {
-    expect(shiftDate('2026-08-03', -7)).toBe('2026-07-27');
-    expect(shiftDate('2026-07-27', 7)).toBe('2026-08-03');
-  });
-
-  it('crosses a leap day', () => {
-    expect(shiftDate('2028-02-28', 1)).toBe('2028-02-29');
-  });
-
-  it('returns the same date for a zero shift', () => {
-    expect(shiftDate('2026-08-01', 0)).toBe('2026-08-01');
-  });
-});
 
 describe('formatDateLabel', () => {
   it('names today and yesterday rather than printing their dates', () => {
@@ -106,7 +85,7 @@ describe('buildGoalProgressView', () => {
   /** A daily weigh-in series starting at `from`, each day `step` kg off the last. */
   const series = (from: string, start: number, step: number, days: number) =>
     Array.from({ length: days }, (_, i) => ({
-      date: shiftDate(from, i),
+      date: shiftDateStr(from, i),
       value: parseFloat((start + step * i).toFixed(3)),
     }));
 
@@ -136,12 +115,12 @@ describe('buildGoalProgressView', () => {
     // Three flat weeks at 90, then one water-weight day at 92.
     const flat = series('2026-09-07', 90, 0, 21);
     const view = buildGoalProgressView({
-      weightHistory: [...flat, { date: shiftDate('2026-09-07', 21), value: 92 }],
+      weightHistory: [...flat, { date: shiftDateStr('2026-09-07', 21), value: 92 }],
       profile: { goalStartDate: '2026-09-07', goalStartWeightKg: 90 },
       goalType: 'maintain',
       goalWeeklyRateKg: null,
       windowStart: '2026-09-07',
-      today: shiftDate('2026-09-07', 21),
+      today: shiftDateStr('2026-09-07', 21),
     });
 
     expect(view!.currentActualKg).toBe(92);
@@ -176,7 +155,7 @@ describe('buildGoalProgressView', () => {
       goalType: 'weight_loss',
       goalWeeklyRateKg: 1,
       windowStart: '2026-09-07',
-      today: shiftDate('2026-09-07', 27),
+      today: shiftDateStr('2026-09-07', 27),
     });
 
     expect(view!.goalRateKgPerWeek).toBeCloseTo(-1);
@@ -191,8 +170,8 @@ describe('buildGoalProgressView', () => {
       profile: { goalStartDate: '2026-09-07', goalStartWeightKg: 90 },
       goalType: 'weight_loss',
       goalWeeklyRateKg: 1,
-      windowStart: shiftDate('2026-09-07', 21), // last week only
-      today: shiftDate('2026-09-07', 27),
+      windowStart: shiftDateStr('2026-09-07', 21), // last week only
+      today: shiftDateStr('2026-09-07', 27),
     });
 
     expect(view!.points).toHaveLength(7);
@@ -252,7 +231,7 @@ describe('buildGoalProgressView', () => {
 describe('buildGoalProgressView — goal weight', () => {
   const daily = (from: string, start: number, step: number, days: number) =>
     Array.from({ length: days }, (_, i) => ({
-      date: shiftDate(from, i),
+      date: shiftDateStr(from, i),
       value: parseFloat((start + step * i).toFixed(3)),
     }));
 
@@ -261,7 +240,7 @@ describe('buildGoalProgressView — goal weight', () => {
     goalType: 'weight_loss',
     goalWeeklyRateKg: 1,
     windowStart: '2026-09-07',
-    today: shiftDate('2026-09-07', 27),
+    today: shiftDateStr('2026-09-07', 27),
   };
 
   it('reports the journey and a finish date once a target is set', () => {
@@ -337,7 +316,7 @@ describe('buildGoalProgressView — goal weight', () => {
     const view = buildGoalProgressView({
       ...base,
       weightHistory: daily('2026-09-07', 98, -0.1, 3),
-      today: shiftDate('2026-09-07', 2),
+      today: shiftDateStr('2026-09-07', 2),
       goalTargetWeightKg: 88,
     })!;
 
@@ -348,7 +327,7 @@ describe('buildGoalProgressView — goal weight', () => {
 describe('buildGoalProgressView — time axis and empty ranges', () => {
   const daily = (from: string, start: number, step: number, days: number) =>
     Array.from({ length: days }, (_, i) => ({
-      date: shiftDate(from, i),
+      date: shiftDateStr(from, i),
       value: parseFloat((start + step * i).toFixed(3)),
     }));
 
@@ -471,7 +450,7 @@ describe('formatEtaDate', () => {
 describe('averageWeeklyWeights', () => {
   it('collapses each seven-day block to its mean, labelled by that block’s first date', () => {
     const samples = Array.from({ length: 14 }, (_, i) => ({
-      date: shiftDate('2026-09-07', i),
+      date: shiftDateStr('2026-09-07', i),
       value: i < 7 ? 96 : 94,
     }));
 

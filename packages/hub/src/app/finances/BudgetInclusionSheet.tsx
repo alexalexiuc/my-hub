@@ -1,8 +1,9 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { cn } from '@/lib/utils';
 import { Divider, IncludeExcludeChip, Modal, SubText } from '@/components';
-import { fmt, CategoryIcon } from './ui';
+import { CategoryIcon } from './ui';
 import type { CategoryRow } from '@/app/api/finances/categories/route';
 
 type BudgetInclusionSheetProps = {
@@ -55,9 +56,9 @@ function CategoryListSection({ categories, currency, included, onToggle }: Categ
                     over ? 'text-[var(--red)]' : included ? 'text-[var(--text)]' : 'text-[var(--subtle)]',
                   )}
                 >
-                  {fmt(cat.spent, currency)}
+                  {formatMoney(cat.spent, currency)}
                   {cat.monthlyTarget != null && (
-                    <span className="text-[var(--subtle)]"> / {fmt(cat.monthlyTarget, currency)}</span>
+                    <span className="text-[var(--subtle)]"> / {formatMoney(cat.monthlyTarget, currency)}</span>
                   )}
                 </span>
                 <IncludeExcludeChip included={included} onToggle={() => onToggle(cat)} />
@@ -90,8 +91,10 @@ export function BudgetInclusionSheet({
   return (
     <Modal title="Planned Expenses" onClose={onClose} className="md:max-w-[420px]">
       <div className="mb-5 text-[28px] font-bold tracking-[-0.02em] text-[var(--text)]">
-        {fmt(totalSpent, currency)}
-        <span className="ml-1 text-[16px] font-normal text-[var(--subtle)]">/ {fmt(totalBudgeted, currency)}</span>
+        {formatMoney(totalSpent, currency)}
+        <span className="ml-1 text-[16px] font-normal text-[var(--subtle)]">
+          / {formatMoney(totalBudgeted, currency)}
+        </span>
       </div>
 
       <p className="mb-4 text-[12px] leading-relaxed text-[var(--subtle)]">

@@ -42,8 +42,11 @@ export async function deleteAllUserCalorieProfiles(userId: string): Promise<numb
   return rows.length;
 }
 
-/** The user's most recent `weight` measurement in kg, or null if they have never logged one. */
-async function latestWeightKg(userId: string): Promise<number | null> {
+/**
+ * The user's most recent `weight` measurement in kg, or null if they have never logged one. One-row query,
+ * same-day ties broken by id; the `latestWeightKg` util picks from an already-loaded measurement list instead.
+ */
+async function queryLatestWeightKg(userId: string): Promise<number | null> {
   const [row] = await db
     .select({ value: bodyMeasurements.value })
     .from(bodyMeasurements)
@@ -86,7 +89,7 @@ async function goalBaselinePatch(
   // known would anchor a line that cannot yet be drawn.
   if (goalType !== GoalTypes.Maintain && !goalRate) return {};
 
-  const weightKg = await latestWeightKg(userId);
+  const weightKg = await queryLatestWeightKg(userId);
   if (weightKg === null) return {};
 
   return { goalStartDate: currentDateString(), goalStartWeightKg: weightKg };

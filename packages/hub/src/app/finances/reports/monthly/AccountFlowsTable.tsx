@@ -1,5 +1,5 @@
+import { formatMoney } from '@my-hub/shared/utils';
 import { Card, SectionLabel, Pill } from '@/components';
-import { fmt, fmtSign } from '../../ui';
 import type { MonthlyReportData } from '@/app/api/finances/reports/monthly/route';
 
 interface Props {
@@ -23,16 +23,16 @@ export function AccountFlowsTable({ report }: Props) {
                 {!a.reconciles && <Pill label="check balance" color="var(--red)" />}
               </div>
               <div className="text-[13px] font-bold" style={{ color: a.netDelta >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                {fmtSign(a.netDelta, a.currency)}
+                {formatMoney(a.netDelta, a.currency, { signed: true })}
               </div>
             </div>
             <div className="flex justify-between text-[11px] text-[var(--muted)]">
               <span>
-                {fmt(a.openingBalance, a.currency)} → {fmt(a.closingBalance, a.currency)}
+                {formatMoney(a.openingBalance, a.currency)} → {formatMoney(a.closingBalance, a.currency)}
               </span>
               <span>
-                <span style={{ color: 'var(--green)' }}>+{fmt(a.inflows, a.currency)}</span>{' '}
-                <span style={{ color: 'var(--red)' }}>-{fmt(a.outflows, a.currency)}</span>
+                <span style={{ color: 'var(--green)' }}>+{formatMoney(a.inflows, a.currency)}</span>{' '}
+                <span style={{ color: 'var(--red)' }}>-{formatMoney(a.outflows, a.currency)}</span>
               </span>
             </div>
           </div>

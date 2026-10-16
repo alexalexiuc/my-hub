@@ -1,9 +1,9 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { apiFetch, cn } from '@/lib/utils';
-import { fmt } from '../../../ui';
 import { LoanPaydownChart } from './LoanPaydownChart';
 import type { AmortizationData } from '@/app/api/finances/accounts/[id]/amortization/route';
 import { Button } from '@/components/Button';
@@ -70,12 +70,12 @@ export default function AmortizationPage() {
       >
         <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
-            { label: 'Principal', value: fmt(data.principal, data.currency) },
+            { label: 'Principal', value: formatMoney(data.principal, data.currency) },
             { label: 'Rate', value: data.interestRate === 0 ? '0% (installment)' : `${data.interestRate}%` },
-            { label: 'Monthly', value: fmt(data.monthlyPayment, data.currency) },
+            { label: 'Monthly', value: formatMoney(data.monthlyPayment, data.currency) },
             {
               label: hasInterest ? 'Total interest' : 'Total cost',
-              value: fmt(hasInterest ? data.totalInterest : data.totalCost, data.currency),
+              value: formatMoney(hasInterest ? data.totalInterest : data.totalCost, data.currency),
             },
           ].map(s => (
             <div
@@ -184,14 +184,14 @@ export default function AmortizationPage() {
                         className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--blue)]"
                         style={cell}
                       >
-                        {fmt(row.principalPart, data.currency)}
+                        {formatMoney(row.principalPart, data.currency)}
                       </div>,
                       <div
                         key={`${row.n}-i`}
                         className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--muted)]"
                         style={cell}
                       >
-                        {fmt(row.interestPart, data.currency)}
+                        {formatMoney(row.interestPart, data.currency)}
                       </div>,
                     ]
                   : [
@@ -200,7 +200,7 @@ export default function AmortizationPage() {
                         className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--blue)]"
                         style={cell}
                       >
-                        {fmt(row.principalPart, data.currency)}
+                        {formatMoney(row.principalPart, data.currency)}
                       </div>,
                     ]),
                 <div
@@ -208,7 +208,7 @@ export default function AmortizationPage() {
                   className="px-2 py-2.5 text-xs tabular-nums text-right text-[var(--text)]"
                   style={cell}
                 >
-                  {fmt(row.balance, data.currency)}
+                  {formatMoney(row.balance, data.currency)}
                 </div>,
               ];
             })}
@@ -245,16 +245,18 @@ export default function AmortizationPage() {
               <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
                 <div className="text-[var(--subtle)]">Principal</div>
                 <div className="text-right font-semibold text-[var(--blue)]">
-                  {fmt(row.principalPart, data.currency)}
+                  {formatMoney(row.principalPart, data.currency)}
                 </div>
                 {hasInterest && (
                   <>
                     <div className="text-[var(--subtle)]">Interest</div>
-                    <div className="text-right text-[var(--muted)]">{fmt(row.interestPart, data.currency)}</div>
+                    <div className="text-right text-[var(--muted)]">{formatMoney(row.interestPart, data.currency)}</div>
                   </>
                 )}
                 <div className="text-[var(--subtle)]">Remaining</div>
-                <div className="text-right font-semibold text-[var(--text)]">{fmt(row.balance, data.currency)}</div>
+                <div className="text-right font-semibold text-[var(--text)]">
+                  {formatMoney(row.balance, data.currency)}
+                </div>
               </div>
             </Card>
           ))}

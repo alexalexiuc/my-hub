@@ -1,5 +1,5 @@
+import { formatMoney } from '@my-hub/shared/utils';
 import { Card, SectionLabel, SubText } from '@/components';
-import { fmt, fmtSign } from '../../ui';
 import type { YearlyReportData } from '@/app/api/finances/reports/yearly/route';
 
 const TOP_CATEGORIES = 8;
@@ -35,7 +35,8 @@ export function LoansAndCategories({ report, currency }: Props) {
               >
                 <span className="text-[var(--text)]">{l.accountName}</span>
                 <span style={{ color: 'var(--green)' }}>
-                  {fmtSign(l.paidDownThisYear, l.currency)} paid down, {fmt(l.remainingBalance, l.currency)} left
+                  {formatMoney(l.paidDownThisYear, l.currency, { signed: true })} paid down,{' '}
+                  {formatMoney(l.remainingBalance, l.currency)} left
                 </span>
               </div>
             ))
@@ -90,7 +91,7 @@ export function LoansAndCategories({ report, currency }: Props) {
               >
                 <span className="text-[var(--text)]">{g.key}</span>
                 <span style={{ color: g.absoluteDelta >= 0 ? 'var(--red)' : 'var(--green)' }}>
-                  {fmtSign(g.absoluteDelta, currency)}
+                  {formatMoney(g.absoluteDelta, currency, { signed: true })}
                   {g.percentDelta != null ? ` (${g.percentDelta >= 0 ? '+' : ''}${g.percentDelta}%)` : ''}
                 </span>
               </div>

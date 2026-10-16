@@ -5,11 +5,11 @@ import { apiFetch, cn } from '@/lib/utils';
 import { FinModalShell } from '../FinModalShell';
 import { Button, IconButton, Input, Select, Textarea } from '@/components';
 import { TrashIcon } from '@/components/icons';
-import { fmt, FinFieldCard } from '../ui';
+import { FinFieldCard } from '../ui';
 import { finGhostInputClass, finGhostFieldClass } from '../finances.utils';
 import { computeSupplyTotal, type SupplyLineDraft } from './portfolio.utils';
 import type { PortfolioOverview, SupplyWithLines } from '@my-hub/shared/services';
-import { currentDateString } from '@my-hub/shared/utils';
+import { currentDateString, formatMoney } from '@my-hub/shared/utils';
 
 type SupplyModalProps = {
   overview: PortfolioOverview;
@@ -178,7 +178,7 @@ export function SupplyModal({ overview, supply, onClose, onSaved }: SupplyModalP
           </Button>
         </div>
 
-        <FinFieldCard label={`Total contributed (lines sum to ${fmt(computedTotal, currency)})`}>
+        <FinFieldCard label={`Total contributed (lines sum to ${formatMoney(computedTotal, currency)})`}>
           <Input
             variant="ghost"
             className={finGhostInputClass}

@@ -1,9 +1,9 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/utils';
-import { fmt } from '../ui';
 import { Button, Card, ProgressBar, SubText } from '@/components';
 import { TransactionModal } from '../transactions/TransactionModal';
 import { AddGoalModal } from './AddGoalModal';
@@ -92,10 +92,10 @@ export default function GoalsPage() {
           }}
         >
           <div className="mb-1 text-[11px] text-[var(--muted)]">Total saved across all goals</div>
-          <div className="mb-1.5 text-[26px] font-bold text-[var(--text)]">{fmt(totalSaved, currency)}</div>
+          <div className="mb-1.5 text-[26px] font-bold text-[var(--text)]">{formatMoney(totalSaved, currency)}</div>
           <ProgressBar value={totalSaved} max={totalTarget} color={'var(--green)'} height={6} className="mb-1.5" />
           <div className="text-[11px] text-[var(--muted)]">
-            {fmt(totalSaved, currency)} of {fmt(totalTarget, currency)} · {overallPct}% overall
+            {formatMoney(totalSaved, currency)} of {formatMoney(totalTarget, currency)} · {overallPct}% overall
           </div>
         </div>
       )}
@@ -109,8 +109,8 @@ export default function GoalsPage() {
               <div>
                 <div className="mb-[3px] text-[15px] font-semibold text-[var(--text)]">{g.name}</div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-bold text-[var(--text)]">{fmt(g.balance, g.currency)}</span>
-                  <SubText>of {fmt(g.targetAmount, g.currency)}</SubText>
+                  <span className="text-[13px] font-bold text-[var(--text)]">{formatMoney(g.balance, g.currency)}</span>
+                  <SubText>of {formatMoney(g.targetAmount, g.currency)}</SubText>
                 </div>
               </div>
               <div className="text-right">

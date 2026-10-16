@@ -1,7 +1,8 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { BarChart, Bar, XAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { fmt, tooltipBoxStyle } from './ui';
+import { tooltipBoxStyle } from './ui';
 
 export type CashflowBarPoint = {
   /** X-axis tick, e.g. 'Sep'. */
@@ -36,7 +37,7 @@ export function CashflowBarChart({ data, currency }: CashflowBarChartProps) {
                 {payload.map((p, i) => (
                   <div key={i} style={{ color: p.color as string, marginBottom: 2 }}>
                     {p.name === 'income' ? 'Income' : 'Expenses'}:{' '}
-                    {typeof p.value === 'number' ? fmt(p.value, currency) : String(p.value)}
+                    {typeof p.value === 'number' ? formatMoney(p.value, currency) : String(p.value)}
                   </div>
                 ))}
               </div>

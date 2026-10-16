@@ -6,8 +6,7 @@ import { toast } from 'sonner';
 import { apiFetch } from '@/lib/utils';
 import type { CategoriesResponse, CategoryGroup, CategoryRow } from '@/app/api/finances/categories/route';
 import type { CategoryDeleteResponse } from '@/app/api/finances/categories/[id]/route';
-import { fmt } from '../ui';
-import { dateToString } from '@my-hub/shared/utils';
+import { dateToString, formatMoney } from '@my-hub/shared/utils';
 import { Button, Card, Divider, IconButton, SectionLabel, SubText } from '@/components';
 import { QuestionMarkIcon } from '@/components/icons';
 import { CategoryModal } from './CategoryModal';
@@ -126,7 +125,9 @@ export default function CategoriesPage() {
             <Card className="p-[14px]">
               <div className="mb-2 flex justify-between">
                 <span className="text-[13px] text-[var(--muted)]">Total spent</span>
-                <span className="text-base font-bold text-[var(--text)]">{fmt(data.totalSpent, data.currency)}</span>
+                <span className="text-base font-bold text-[var(--text)]">
+                  {formatMoney(data.totalSpent, data.currency)}
+                </span>
               </div>
               {data.totalSpent > 0 && (
                 <>
@@ -136,7 +137,7 @@ export default function CategoriesPage() {
                       return pct > 0.5 ? (
                         <div
                           key={cat.id}
-                          title={`${cat.name}: ${fmt(cat.spent, data.currency)}`}
+                          title={`${cat.name}: ${formatMoney(cat.spent, data.currency)}`}
                           style={{ width: `${pct}%`, background: cat.color ?? 'var(--muted)', minWidth: 3 }}
                         />
                       ) : null;
@@ -176,8 +177,10 @@ export default function CategoriesPage() {
                 />
                 <SubText className="block mb-1.5 uppercase tracking-[0.08em]">Planned this month</SubText>
                 <div className="text-[15px] font-bold tracking-[-0.02em] text-[var(--text)]">
-                  {fmt(totalBudgetSpent, data.currency)}
-                  <span className="ml-1 font-normal text-[var(--subtle)]">/ {fmt(totalBudgeted, data.currency)}</span>
+                  {formatMoney(totalBudgetSpent, data.currency)}
+                  <span className="ml-1 font-normal text-[var(--subtle)]">
+                    / {formatMoney(totalBudgeted, data.currency)}
+                  </span>
                 </div>
               </Card>
             )}

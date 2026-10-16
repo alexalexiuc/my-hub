@@ -1,10 +1,11 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { useEffect, useState } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, Tooltip, ReferenceLine } from 'recharts';
 import { apiFetch } from '@/lib/utils';
 import { FinModalShell } from '../FinModalShell';
-import { fmt, tooltipBoxStyle } from '../ui';
+import { tooltipBoxStyle } from '../ui';
 import type { PortfolioHistoryPoint } from '@my-hub/shared/services';
 import type { PortfolioHistoryResponse } from '@/app/api/finances/portfolio/history/route';
 
@@ -66,7 +67,7 @@ export function HistoryModal({ currency, targetAmount, onClose }: HistoryModalPr
                       {payload.map((p, i) => (
                         <div key={i} style={{ color: p.color as string, marginBottom: 2 }}>
                           {p.name === 'value' ? 'Value' : 'Invested'}:{' '}
-                          {typeof p.value === 'number' ? fmt(p.value, currency) : String(p.value)}
+                          {typeof p.value === 'number' ? formatMoney(p.value, currency) : String(p.value)}
                         </div>
                       ))}
                     </div>
@@ -96,7 +97,7 @@ export function HistoryModal({ currency, targetAmount, onClose }: HistoryModalPr
                   stroke="var(--subtle)"
                   strokeDasharray="4 3"
                   label={{
-                    value: `Target: ${fmt(targetAmount, currency)}`,
+                    value: `Target: ${formatMoney(targetAmount, currency)}`,
                     position: 'insideTopLeft',
                     fill: 'var(--subtle)',
                     fontSize: 9,

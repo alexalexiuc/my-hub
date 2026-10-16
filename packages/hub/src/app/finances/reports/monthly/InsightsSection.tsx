@@ -1,5 +1,5 @@
+import { formatMoney } from '@my-hub/shared/utils';
 import { Card, SectionLabel, SubText } from '@/components';
-import { fmt, fmtSign } from '../../ui';
 import type { MonthlyReportData } from '@/app/api/finances/reports/monthly/route';
 
 interface Props {
@@ -50,7 +50,7 @@ export function InsightsSection({ report, currency }: Props) {
         {insights.newPayees.length === 0 ? (
           <Empty text="No new payees." />
         ) : (
-          insights.newPayees.map(p => <Row key={p.payeeId} left={p.name} right={fmt(p.totalSpent, currency)} />)
+          insights.newPayees.map(p => <Row key={p.payeeId} left={p.name} right={formatMoney(p.totalSpent, currency)} />)
         )}
       </Card>
 
@@ -74,7 +74,7 @@ export function InsightsSection({ report, currency }: Props) {
             <Row
               key={g.accountId}
               left={g.accountName}
-              right={`${fmt(g.balance, g.currency)}${g.percentComplete != null ? ` (${g.percentComplete}%)` : ''}`}
+              right={`${formatMoney(g.balance, g.currency)}${g.percentComplete != null ? ` (${g.percentComplete}%)` : ''}`}
             />
           ))
         )}
@@ -89,7 +89,7 @@ export function InsightsSection({ report, currency }: Props) {
             <Row
               key={l.accountId}
               left={l.accountName}
-              right={`${fmtSign(l.paidDownThisPeriod, l.currency)} paid down, ${fmt(l.remainingBalance, l.currency)} left`}
+              right={`${formatMoney(l.paidDownThisPeriod, l.currency, { signed: true })} paid down, ${formatMoney(l.remainingBalance, l.currency)} left`}
               color="var(--green)"
             />
           ))

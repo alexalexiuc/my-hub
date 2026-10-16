@@ -1,9 +1,10 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/utils';
-import { fmt, CategoryIcon } from '../ui';
+import { CategoryIcon } from '../ui';
 import type { CategoriesResponse, CategoryRow } from '@/app/api/finances/categories/route';
 import { Card, IconButton, SectionLabel } from '@/components';
 import { QuestionMarkIcon } from '@/components/icons';
@@ -114,7 +115,7 @@ export default function BudgetPage() {
                 />
                 <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--subtle)]">Budget</div>
                 <div className="text-base font-bold" style={{ color: 'var(--blue)' }}>
-                  {fmt(totalBudget, currency)}
+                  {formatMoney(totalBudget, currency)}
                 </div>
               </Card>
               <Card compact className="px-3 py-2.5 text-center">
@@ -123,13 +124,13 @@ export default function BudgetPage() {
                   className="text-base font-bold"
                   style={{ color: totalSpent > totalBudget ? 'var(--red)' : 'var(--text)' }}
                 >
-                  {fmt(totalSpent, currency)}
+                  {formatMoney(totalSpent, currency)}
                 </div>
               </Card>
               <Card compact className="px-3 py-2.5 text-center">
                 <div className="mb-1 text-[9px] uppercase tracking-[0.08em] text-[var(--subtle)]">Left</div>
                 <div className="text-base font-bold" style={{ color: left < 0 ? 'var(--red)' : 'var(--green)' }}>
-                  {fmt(Math.abs(left), currency)}
+                  {formatMoney(Math.abs(left), currency)}
                 </div>
               </Card>
             </div>
@@ -153,12 +154,14 @@ export default function BudgetPage() {
                         </div>
                         <div className="flex items-center gap-1.5 text-right text-[11px] text-[var(--muted)]">
                           <span className={cn('font-semibold', over ? 'text-[var(--red)]' : 'text-[var(--text)]')}>
-                            {fmt(cat.spent, currency)}
+                            {formatMoney(cat.spent, currency)}
                           </span>
-                          {target > 0 && <span className="text-[var(--subtle)]">/ {fmt(target, currency)}</span>}
+                          {target > 0 && (
+                            <span className="text-[var(--subtle)]">/ {formatMoney(target, currency)}</span>
+                          )}
                           {over && (
                             <span className="rounded px-[5px] py-[1px] text-[10px] text-[var(--red)] bg-[var(--red-d)]">
-                              +{fmt(cat.spent - target, currency)}
+                              +{formatMoney(cat.spent - target, currency)}
                             </span>
                           )}
                         </div>
@@ -196,7 +199,7 @@ export default function BudgetPage() {
                       {c.name}
                     </span>
                     <span className="text-[var(--red)]">
-                      +{fmt(c.spent - (c.monthlyTarget ?? 0), currency)} (
+                      +{formatMoney(c.spent - (c.monthlyTarget ?? 0), currency)} (
                       {Math.round(((c.spent - (c.monthlyTarget ?? 0)) / (c.monthlyTarget ?? 1)) * 100)}%)
                     </span>
                   </div>

@@ -1,9 +1,9 @@
 'use client';
 
+import { formatMoney, formatNumber } from '@my-hub/shared/utils';
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { Card, Pill, ProgressBar, SubText } from '@/components';
-import { fmt, fmtNum } from './ui';
 import { computePlannedExpenses, type PlannedExpensesTotals } from './finances.utils';
 import { ForeignBalanceLine } from './ForeignBalanceLine';
 import type { CategoriesResponse } from '@/app/api/finances/categories/route';
@@ -49,7 +49,7 @@ export function AvailableCard({ availableBalance, foreignBalances = [], currency
     <Card className="p-[14px]">
       <SubText className="block mb-1.5 uppercase tracking-[0.08em]">Available</SubText>
       <div className="text-[22px] font-bold tracking-[-0.02em] text-[var(--text)]">
-        {fmt(availableBalance, currency)}
+        {formatMoney(availableBalance, currency)}
       </div>
 
       {foreignBalances.length > 0 && (
@@ -57,7 +57,9 @@ export function AvailableCard({ availableBalance, foreignBalances = [], currency
           {foreignBalances.map(acc => (
             <div key={acc.accountId} className="flex flex-wrap items-baseline gap-x-1.5 text-[11px]">
               <span className="text-[var(--muted)]">{acc.name}</span>
-              <span className="font-semibold tabular-nums text-[var(--text)]">{fmt(acc.balance, acc.currency)}</span>
+              <span className="font-semibold tabular-nums text-[var(--text)]">
+                {formatMoney(acc.balance, acc.currency)}
+              </span>
               <ForeignBalanceLine value={acc} defaultCurrency={currency} className="inline text-[11px]" />
             </div>
           ))}
@@ -69,10 +71,10 @@ export function AvailableCard({ availableBalance, foreignBalances = [], currency
           <ProgressBar value={spentTowardPlan} max={totalPlanned} color="var(--blue)" thresholds={false} height={5} />
           <div className="mt-1.5 flex items-center justify-between gap-2">
             <span className="text-[11px] text-[var(--muted)] tabular-nums">
-              {fmtNum(spentTowardPlan)} / {fmtNum(totalPlanned)} {currency} max plan
+              {formatNumber(spentTowardPlan)} / {formatNumber(totalPlanned)} {currency} max plan
             </span>
             <Pill
-              label={spare >= 0 ? `+${fmtNum(spare)} spare` : `-${fmtNum(Math.abs(spare))} short`}
+              label={spare >= 0 ? `+${formatNumber(spare)} spare` : `-${formatNumber(Math.abs(spare))} short`}
               color={spare >= 0 ? 'var(--green)' : 'var(--red)'}
               className="shrink-0"
             />

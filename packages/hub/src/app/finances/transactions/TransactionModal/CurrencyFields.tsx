@@ -1,7 +1,7 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { Input, SubText } from '@/components';
-import { fmt } from '../../ui';
 import type { TransactionCurrencyState } from './useTransactionCurrency';
 
 type CurrencyFieldsProps = {
@@ -50,7 +50,7 @@ export function CurrencyFields({ currency, renderField }: CurrencyFieldsProps) {
             />
             <SubText className="block tabular-nums">
               {amountInAccountCurrency != null && accountCurrency
-                ? `= ${fmt(amountInAccountCurrency, accountCurrency)}`
+                ? `= ${formatMoney(amountInAccountCurrency, accountCurrency)}`
                 : '—'}
               {!rateEdited && rateDate ? ` · market rate ${rateDate}` : ''}
               {rateUnavailable && !rateEdited ? ' · no market rate, enter it' : ''}

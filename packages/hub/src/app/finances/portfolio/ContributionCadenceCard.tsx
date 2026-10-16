@@ -1,10 +1,9 @@
 'use client';
 
 import { Card, Pill, ProgressBar } from '@/components';
-import { fmt, fmtSign } from '../ui';
 import { ContributionCadenceStatuses, type ContributionCadenceStatus } from '@my-hub/shared/constants';
 import type { ContributionCadence } from '@my-hub/shared/utils';
-import { formatMonthStr } from '@my-hub/shared/utils';
+import { formatMoney, formatMonthStr } from '@my-hub/shared/utils';
 
 type ContributionCadenceCardProps = {
   cadence: ContributionCadence;
@@ -39,8 +38,8 @@ export function ContributionCadenceCard({ cadence, currency }: ContributionCaden
   const overdue = cadence.dueNow && cadence.nextContributionMonth < cadence.currentMonth;
   const detail = cadence.dueNow
     ? overdue
-      ? `Outstanding since ${formatMonthStr(cadence.nextContributionMonth)} — ${fmt(cadence.amountDueNow, currency)} behind plan`
-      : `This month's ${fmt(cadence.plannedMonthlyContribution, currency)} has not been contributed yet`
+      ? `Outstanding since ${formatMonthStr(cadence.nextContributionMonth)} — ${formatMoney(cadence.amountDueNow, currency)} behind plan`
+      : `This month's ${formatMoney(cadence.plannedMonthlyContribution, currency)} has not been contributed yet`
     : cadence.monthsAhead > 0
       ? `${months(cadence.monthsAhead)} already funded — you can skip until then`
       : 'This month is covered';
@@ -63,10 +62,11 @@ export function ContributionCadenceCard({ cadence, currency }: ContributionCaden
       <div className="mt-3">
         <div className="mb-1.5 flex items-center justify-between text-[11px] text-[var(--subtle)]">
           <span>
-            {fmt(cadence.contributedToDate, currency)} of {fmt(cadence.expectedToDate, currency)} planned
+            {formatMoney(cadence.contributedToDate, currency)} of {formatMoney(cadence.expectedToDate, currency)}{' '}
+            planned
           </span>
           <span style={{ color: behind ? 'var(--amber)' : 'var(--green)' }}>
-            {cadence.difference === 0 ? 'Exactly on plan' : fmtSign(cadence.difference, currency)}
+            {cadence.difference === 0 ? 'Exactly on plan' : formatMoney(cadence.difference, currency, { signed: true })}
           </span>
         </div>
         <ProgressBar
@@ -78,7 +78,7 @@ export function ContributionCadenceCard({ cadence, currency }: ContributionCaden
       </div>
 
       <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] md:grid-cols-4">
-        <Detail label="Planned" value={`${fmt(cadence.plannedMonthlyContribution, currency)} / month`} />
+        <Detail label="Planned" value={`${formatMoney(cadence.plannedMonthlyContribution, currency)} / month`} />
         <Detail label="Plan started" value={formatMonthStr(cadence.anchorMonth)} />
         <Detail
           label="Covered through"

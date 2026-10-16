@@ -1,9 +1,10 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { cn } from '@/lib/utils';
 import { ProgressBar, SubText, SwipeRow } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
-import { fmt, CategoryIcon } from '../ui';
+import { CategoryIcon } from '../ui';
 import type { CategoryRow } from '@/app/api/finances/categories/route';
 
 type CatRowProps = {
@@ -35,7 +36,7 @@ function CatRowContent({ cat, currency, onClick }: { cat: CategoryRow; currency:
         <div className="min-w-0 flex-1">
           <div className="text-[13px] font-medium text-[var(--text)]">{cat.name}</div>
           {cat.monthlyTarget ? (
-            <SubText className="mt-0.5 block">Target {fmt(cat.monthlyTarget, currency)}/mo</SubText>
+            <SubText className="mt-0.5 block">Target {formatMoney(cat.monthlyTarget, currency)}/mo</SubText>
           ) : null}
         </div>
         <div className="text-right">
@@ -45,7 +46,7 @@ function CatRowContent({ cat, currency, onClick }: { cat: CategoryRow; currency:
               pct !== null && pct >= 100 ? 'text-[var(--red)]' : 'text-[var(--text)]',
             )}
           >
-            {fmt(cat.spent, currency)}
+            {formatMoney(cat.spent, currency)}
           </div>
           {pct !== null && (
             <div className="text-[10px]" style={{ color: barColor }}>

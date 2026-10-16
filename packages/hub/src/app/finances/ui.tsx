@@ -1,5 +1,6 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { cn } from '@/lib/utils';
 import { categoryIconEmoji } from './categoryIcons';
 import { Button, SubText } from '@/components';
@@ -16,25 +17,6 @@ export const tooltipBoxStyle = {
   fontSize: 12,
   color: 'var(--text)',
 } as const;
-
-// ─── Currency formatter ───────────────────────────────────────────────────────
-export function fmt(value: number, currency = 'EUR', reverseSign = false) {
-  const finalValue = reverseSign ? -value : value;
-  return new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-  }).format(finalValue);
-}
-
-export function fmtSign(value: number, currency = 'EUR') {
-  return (value < 0 ? '-' : '+') + fmt(Math.abs(value), currency);
-}
-
-/** Plain number formatting (no currency symbol), same thousands/decimal style as fmt(). */
-export function fmtNum(value: number): string {
-  return new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-}
 
 // ─── Percentage formatter ─────────────────────────────────────────────────────
 export function pct(value: number | null, signed = false): string {
@@ -83,7 +65,7 @@ export function AmountText({
   return (
     <span className={cn('font-semibold tabular-nums', sizeClass[size], colorClass)}>
       {sign ? (isNeg ? '-' : '+') : ''}
-      {fmt(value, currency)}
+      {formatMoney(value, currency)}
     </span>
   );
 }
@@ -165,14 +147,14 @@ export function FlowInOut({
         <SubText className="block">{inLabel}</SubText>
         <div className="flex items-center gap-1 text-[var(--green)]">
           <TrendingUpOutlineIcon className="size-3.5" />
-          {fmt(inflows, currency)}
+          {formatMoney(inflows, currency)}
         </div>
       </div>
       <div>
         <SubText className="block">{outLabel}</SubText>
         <div className="flex items-center gap-1 text-[var(--red)]">
           <TrendingUpOutlineIcon className="size-3.5 scale-y-[-1]" />
-          {fmt(outflows, currency)}
+          {formatMoney(outflows, currency)}
         </div>
       </div>
     </div>

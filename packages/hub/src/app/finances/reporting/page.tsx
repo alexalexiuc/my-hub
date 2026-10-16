@@ -6,7 +6,6 @@ import { apiFetch } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { Card, SectionLabel, IconButton, DateMode } from '@/components';
 import { FunnelIcon } from '@/components/icons';
-import { fmt, fmtSign } from '../ui';
 import { SmartDatePicker } from '../SmartDatePicker';
 import { TransactionFilters } from '../transactions/TransactionFilters';
 import type { ExtraFilterValues } from '../transactions/TransactionFilters';
@@ -20,7 +19,7 @@ import { SummaryCard } from './SummaryCard';
 import { ComparisonTable } from './ComparisonTable';
 import type { ReportingData } from '@/app/api/finances/reporting/route';
 import type { TransactionType } from '@my-hub/shared/constants';
-import { formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
+import { formatMoney, formatMonthStr, shiftMonthStr } from '@my-hub/shared/utils';
 import { currentMonthString } from '../finances.utils';
 import { useDebounce } from '@/hooks/useDebounce';
 
@@ -192,7 +191,7 @@ export default function ReportingPage() {
         <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
           <SummaryCard
             label="Expenses"
-            value={fmt(summary.totalExpenses, currency)}
+            value={formatMoney(summary.totalExpenses, currency)}
             delta={
               prevSummary ? (
                 <SummaryDelta current={summary.totalExpenses} prev={prevSummary.totalExpenses} lowerIsBetter />
@@ -202,13 +201,13 @@ export default function ReportingPage() {
           />
           <SummaryCard
             label="Income"
-            value={fmt(summary.totalIncome, currency)}
+            value={formatMoney(summary.totalIncome, currency)}
             delta={prevSummary ? <SummaryDelta current={summary.totalIncome} prev={prevSummary.totalIncome} /> : null}
             color="var(--green)"
           />
           <SummaryCard
             label="Net"
-            value={fmtSign(summary.net, currency)}
+            value={formatMoney(summary.net, currency, { signed: true })}
             delta={prevSummary ? <SummaryDelta current={summary.net} prev={prevSummary.net} /> : null}
             color={summary.net >= 0 ? 'var(--green)' : 'var(--red)'}
           />

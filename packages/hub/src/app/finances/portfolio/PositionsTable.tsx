@@ -1,7 +1,8 @@
 'use client';
 
+import { formatMoney } from '@my-hub/shared/utils';
 import { Card, SectionLabel } from '@/components';
-import { fmt, fmtSign, pct, deviationColor } from '../ui';
+import { pct, deviationColor } from '../ui';
 import type { PortfolioOverview, PositionOverview } from '@my-hub/shared/services';
 
 type PositionsTableProps = {
@@ -42,18 +43,20 @@ export function PositionsTable({ overview }: PositionsTableProps) {
               <td className="py-2 px-2" />
               <td className="py-2 px-2" />
               <td className="py-2 px-2 text-right text-[var(--text)]">
-                {totals.currentValue !== null ? fmt(totals.currentValue, currency) : '—'}
+                {totals.currentValue !== null ? formatMoney(totals.currentValue, currency) : '—'}
               </td>
               <td
                 className="py-2 px-2 text-right"
                 style={{ color: deviationColor(totals.profit) }}
                 title={pct(totals.profitPct, true)}
               >
-                {totals.profit !== null ? `${fmtSign(totals.profit, currency)} (${pct(totals.profitPct, true)})` : '—'}
+                {totals.profit !== null
+                  ? `${formatMoney(totals.profit, currency, { signed: true })} (${pct(totals.profitPct, true)})`
+                  : '—'}
               </td>
               <td className="py-2 px-2 text-right" style={{ color: deviationColor(totals.profitExclFees) }}>
                 {totals.profitExclFees !== null
-                  ? `${fmtSign(totals.profitExclFees, currency)} (${pct(totals.profitExclFeesPct, true)})`
+                  ? `${formatMoney(totals.profitExclFees, currency, { signed: true })} (${pct(totals.profitExclFeesPct, true)})`
                   : '—'}
               </td>
               <td className="py-2 px-2" />
@@ -79,19 +82,21 @@ function PositionRow({ position: p, currency }: { position: PositionOverview; cu
         {p.units.toLocaleString('de-DE', { maximumFractionDigits: 4 })}
       </td>
       <td className="py-2 px-2 text-right text-[var(--muted)]">
-        {p.avgUnitCost !== null ? fmt(p.avgUnitCost, currency) : '—'}
+        {p.avgUnitCost !== null ? formatMoney(p.avgUnitCost, currency) : '—'}
       </td>
       <td className="py-2 px-2 text-right text-[var(--text)]" title={p.priceDate ? `EOD ${p.priceDate}` : undefined}>
-        {p.currentPrice !== null ? fmt(p.currentPrice, p.priceCurrency ?? currency) : '—'}
+        {p.currentPrice !== null ? formatMoney(p.currentPrice, p.priceCurrency ?? currency) : '—'}
       </td>
       <td className="py-2 px-2 text-right font-medium text-[var(--text)]">
-        {p.currentValue !== null ? fmt(p.currentValue, currency) : '—'}
+        {p.currentValue !== null ? formatMoney(p.currentValue, currency) : '—'}
       </td>
       <td className="py-2 px-2 text-right" style={{ color: deviationColor(p.profit) }}>
-        {p.profit !== null ? `${fmtSign(p.profit, currency)} (${pct(p.profitPct, true)})` : '—'}
+        {p.profit !== null ? `${formatMoney(p.profit, currency, { signed: true })} (${pct(p.profitPct, true)})` : '—'}
       </td>
       <td className="py-2 px-2 text-right" style={{ color: deviationColor(p.profitExclFees) }}>
-        {p.profitExclFees !== null ? `${fmtSign(p.profitExclFees, currency)} (${pct(p.profitExclFeesPct, true)})` : '—'}
+        {p.profitExclFees !== null
+          ? `${formatMoney(p.profitExclFees, currency, { signed: true })} (${pct(p.profitExclFeesPct, true)})`
+          : '—'}
       </td>
       <td className="py-2 px-2 text-right text-[var(--text)]">{pct(p.actualAllocationPct)}</td>
       <td className="py-2 px-2 text-right text-[var(--muted)]">{pct(p.targetAllocationPct)}</td>
