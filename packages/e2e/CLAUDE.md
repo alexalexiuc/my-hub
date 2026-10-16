@@ -1,66 +1,29 @@
 # E2E Test Guidelines (`packages/e2e`)
 
-## Test philosophy: natural flow over granularity
+Hub UI + REST Playwright specs. MCP tool tests belong in `packages/mcp-server/e2e`, not here. To run specs
+locally, load the `e2e-tests` skill (one sandbox command + one Playwright command).
 
-Tests should reflect how a real user interacts with the app — not a QA checklist of isolated feature toggles.
+## Writing specs
 
-**Prefer one test per logical flow.** Instead of creating a separate test for every single assertion, group related scenarios into a single end-to-end journey where each step builds on the previous one. This produces tests that are easier to read, faster to run, and closer to real usage.
+- **One test per user journey**, each step building on the last
+  (`'full trip journey: create through delete covering all features'`), not one test per assertion. Split a test
+  out only when it cannot share state: precise relative timestamps, a disposable resource (e.g. cancelling ends
+  the flow), seeded fixtures or another user, a mid-test reload to prove persistence, a different page, or a
+  destructive flow with teardown.
+- One `test.describe` per file with a `beforeEach` that opens the feature page; mark phases with
+  `// ── N. Phase name`.
+- Role-based locators (`getByRole`, `getByLabel`, `getByPlaceholder`); scope to a section with
+  `page.getByRole('heading', { name }).locator('xpath=ancestor::section[1]')`. Responsive duplicates: scope to
+  `[data-layout="desktop"]` unless testing mobile.
+- Helpers live at the top of the spec unless several specs share them (`helpers.ts`, `finances-helpers.ts`,
+  `travel-helpers.ts`): `createX(page, name)`, `getXIdByName`, `uniqueName(prefix)`. Helpers set up state; they
+  don't assert.
 
-```
-// Bad: each test creates its own resource for a micro-scenario
-test('adds an item', ...)    // creates resource A
-test('edits an item', ...)   // creates resource B
-test('deletes an item', ...) // creates resource C
+## Seeds
 
-// Good: one flow, natural progression
-test('full item lifecycle: add, edit, delete', async ({ page }) => {
-  // create item → verify visible → edit → verify updated → delete → verify gone
-})
-```
-
-## When to use a separate test
-
-Break out a separate test only when it genuinely cannot share state with the main flow:
-
-| Reason                                                    | Example                                              |
-| --------------------------------------------------------- | ---------------------------------------------------- |
-| Requires precise relative timestamps                      | Time-state chip tests (past/imminent/future offsets) |
-| Requires a dedicated disposable resource                  | Cancelled trip filter — cancelling ends the flow     |
-| Uses seeded fixture data or a different user session      | Shared trip read-only view (`SHARED_TRIP_FIXTURE`)   |
-| Needs a mid-test page reload to verify server persistence | Profile goals reload test                            |
-| Navigates to a completely different page context          | Home page tile links                                 |
-| Destructive flow with teardown that resets shared state   | Two-step delete confirmation flows                   |
-
-## Test structure conventions
-
-- **One `test.describe` block per feature file.** Use a `beforeEach` that navigates to the feature page.
-- **Name journey tests descriptively:** `'full trip journey: create through delete covering all features'` beats `'trip CRUD'`.
-- **Comment each logical phase** with a short `// ── N. Phase name` header so the test is scannable at a glance.
-- **Scope locators to sections** using `page.getByRole('heading', { name: '...' }).locator('xpath=ancestor::section[1]')` to avoid cross-section selector collisions when multiple similar controls exist on the page.
-- **Prefer role-based locators** (`getByRole`, `getByPlaceholder`, `getByLabel`) over CSS class selectors. Use CSS only when no semantic alternative exists, and keep it scoped.
-- **Use `data-layout` to disambiguate responsive duplicates.** When a component renders both a desktop and a mobile variant (controlled by Tailwind responsive classes), both are in the DOM simultaneously and generic locators will match twice. Scope to the layout you mean: `page.locator('[data-layout="desktop"]').getByText('Savings Transfer')`. Prefer the desktop variant in tests unless the scenario is specifically testing the mobile view.
-
-## Helpers
-
-Shared helpers live at the top of each spec file (not in a separate utils module unless reused across multiple specs). Keep them small and focused — a helper that sets up state and returns nothing is fine; a helper that also makes assertions is harder to debug.
-
-| Pattern                              | Example                                                         |
-| ------------------------------------ | --------------------------------------------------------------- |
-| `createX(page, name)`                | Creates a resource via UI and waits for it to appear            |
-| `getXIdByName(page, name)`           | Fetches a resource ID from the API by name                      |
-| `uniqueName(prefix)`                 | Generates a timestamped unique name to avoid fixture collisions |
-| `ensureUserExists(page, email, ...)` | Registers a user or accepts 409 if already exists               |
-
-## Seed data
-
-Hub E2E seed files live in `packages/e2e/seeds/` and are orchestrated by `packages/e2e/scripts/setup-e2e-db.ts`. Do not move Hub E2E fixtures into MCP setup scripts or DB migrations.
-
-`seeds/sandbox.seed.ts` is the one file here that is **not** a test fixture. It backs the UI sandbox (`pnpm ui:sandbox`, orchestrated by `scripts/setup-sandbox-db.ts`) and exists so a developer or agent can look at a populated UI. No spec may assert against it — its data is free to change — and it seeds its own user and budget (`SANDBOX_USER`, `SANDBOX_BUDGET_NAME`), never `TEST_USER`'s. See `docs/ui-sandbox.md`.
-
-## Running tests
-
-```sh
-pnpm --filter @my-hub/e2e test:e2e
-```
-
-Set `IS_LOCAL=true` to run the seed script locally before the test suite.
+- Fixtures: `seeds/*.seed.ts`, orchestrated by `scripts/setup-e2e-db.ts` (CI runs it compiled inside the `hub`
+  container). Never move them into MCP setup scripts or migrations.
+- `global.setup.ts` must not import seed modules (Playwright's CJS loader breaks on the ESM graph): with
+  `IS_LOCAL=true` it spawns `setup-e2e-db.ts` as a child process.
+- `seeds/sandbox.seed.ts` is **not** a fixture: it backs `pnpm ui:sandbox` (own user + `Sandbox Demo` budget) and
+  no spec may assert against it.

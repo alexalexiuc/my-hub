@@ -11,6 +11,8 @@ pnpm ui:sandbox --port 3100     # pick a port
 pnpm ui:sandbox --skip-seed     # reuse the existing sandbox DB (faster restarts)
 pnpm ui:sandbox --seed-only     # refresh the data, don't start a server
 pnpm ui:sandbox --months 36     # months of history to generate (default 21)
+pnpm ui:sandbox --prod          # next build + next start (run Hub Playwright specs against this)
+pnpm ui:sandbox --stop          # stop the sandbox on --port from another shell
 pnpm ui:sandbox --help
 ```
 
@@ -65,5 +67,7 @@ migration.
 ## Driving it from an agent session
 
 Chromium is preinstalled in the Claude Code container at `/opt/pw-browsers/chromium` and Playwright
-is configured to find it — do not run `playwright install`. See
-`.claude/skills/ui-sandbox/SKILL.md` for the agent-facing version of these notes.
+is configured to find it — do not run `playwright install`. Screenshot pages with
+`cd packages/e2e && node scripts/shoot.mjs /finances /vacation` (signed in, 390px + 1280px, reports console
+errors). See `.claude/skills/ui-sandbox/SKILL.md` and `.claude/skills/e2e-tests/SKILL.md` for the agent-facing
+version of these notes.

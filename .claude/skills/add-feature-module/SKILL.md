@@ -11,42 +11,41 @@ metadata:
 
 # Adding a feature module
 
-Reference implementation: the vacation module (`git log --oneline -- packages/shared/src/services/vacation`).
-Read `docs/requirements/<area>/` first; if no spec exists, write one as you go.
+Reference implementation: vacation (`git log --oneline -- packages/shared/src/services/vacation`, and the
+`vacation-domain` skill). Read `docs/requirements/<area>/` first; if no spec exists, write one from
+`docs/requirements/_template.md` as you go.
 
 ## 1. shared
 
-| What             | Where                                           | Notes                                                                                                                                           |
-| ---------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Enum-like values | `src/constants/<domain>.ts`                     | `as const` object + union type + `…Values` tuple for `z.enum`; export from `constants/index.ts`                                                 |
-| Tables           | `src/db/schema/<domain>.ts`                     | `<domain>_` table prefix in `public`; `user_id` FK with `onDelete: 'cascade'`; `real()` money; `.$type<Union>()`; export from `schema/index.ts` |
-| Row types        | `src/types/index.ts`                            | `InferSelectModel` per table                                                                                                                    |
-| Migration        | `pnpm db:generate`                              | never hand-write schema SQL                                                                                                                     |
-| Pure logic       | `src/utils/<domain>.ts` + `.test.ts`            | no DB; unit-test the math against hand-computed cases                                                                                           |
-| Services         | `src/services/<domain>/`                        | queries + `deleteAllUser<Domain>Data`; validate first, then one transaction; throw a `UserInputError` subclass for user mistakes                |
-| Inventory        | `src/utils/CLAUDE.md`, `src/services/CLAUDE.md` | one entry per new file, plus a JSDoc inventory header                                                                                           |
+| What             | Where                                | Notes                                                                                                                      |
+| ---------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Enum-like values | `src/constants/<domain>.ts`          | `as const` object + union type + `…Values` tuple for `z.enum`; export from `constants/index.ts`                            |
+| Tables           | `src/db/schema/<domain>.ts`          | `<domain>_` prefix; `user_id` FK `onDelete: 'cascade'`; `real()` numbers; `.$type<Union>()`; export from `schema/index.ts` |
+| Row types        | `src/types/index.ts`                 | `InferSelectModel` per table                                                                                               |
+| Migration        | `pnpm db:generate`                   | never hand-write schema SQL; read the generated file                                                                       |
+| Pure logic       | `src/utils/<domain>.ts` + `.test.ts` | no DB; unit-test the maths against hand-computed cases                                                                     |
+| Services         | `src/services/<domain>/`             | queries + `deleteAllUser<Domain>Data`; validate, then one transaction; `UserInputError` subclass                           |
 
-Then `pnpm --filter @my-hub/shared build`.
+JSDoc every export (the inventory prints it). Then add a `<domain>-domain` skill with the rules a future session
+must not re-derive (copy the shape of `vacation-domain`).
 
-## 2. mcp-server (if the feature is exposed to Claude)
+## 2. mcp-server (if Claude should reach it)
 
-Design tools with `mcp-task-tools`, wire the server with `mcp-add-server`, add tools with `mcp-add-tool`.
-camelCase inputs; outcome-oriented names; reads return compact rows plus `warnings`.
+`mcp-add-server` for the endpoint, then `mcp-tool` per tool. Outcome-oriented names, camelCase inputs, reads
+return compact rows plus `warnings`.
 
 ## 3. hub
 
-- API routes in `src/app/api/<domain>/…/route.ts` using `route({ query|body })`; shared query schemas from
-  `@/lib/schemas/common` (`isoDateSchema`, `isoMonthSchema`). `UserInputError` already becomes a 400.
-- Page in `src/app/<domain>/` — sections as co-located components, helpers in `<domain>.utils.ts` (+ test),
-  colours from theme tokens only (see hub `CLAUDE.md`).
-- Link from `src/app/page.tsx`; wire deletion (see `mcp-add-server` step 7).
-- If the page is empty without setup, consider a labelled demo mode rather than an error (vacation's
-  `allowDemo`).
+- API routes `src/app/api/<domain>/…/route.ts` with `route({ query | body })`; `UserInputError` is already a 400.
+- Page `src/app/<domain>/`: section components, `<domain>.utils.ts` (+ test), theme tokens only, wrapped in
+  `FeatureTheme` if it gets its own theme (see `hub-theming`).
+- Link it from `src/app/page.tsx`; wire data deletion (`mcp-add-server` step 8).
+- A page that is empty without setup can show a labelled demo (vacation's `allowDemo`) instead of an error.
 
-## 4. demo data, docs, verification
+## 4. Demo data, docs, verification
 
-- Sandbox fixtures in `packages/e2e/seeds/sandbox.seed.ts` (`seed<Domain>Fixtures`), never asserted by specs.
-- Spec `docs/requirements/<area>/feature-<name>.md` (status, FR/TR tables, acceptance criteria) and
-  `PLATFORM_REQUIREMENTS.md` if architecture facts changed.
-- Run the `verify` skill; exercise services against real PostgreSQL with `pnpm db:scratch`; look at the page
+- Sandbox demo data: a `seed<Domain>Fixtures(userId)` called from `seedSandboxFixtures` in
+  `packages/e2e/seeds/sandbox.seed.ts` (never asserted by specs).
+- E2E: a Hub journey spec (`packages/e2e/tests/<domain>.spec.ts`) and an MCP suite — `e2e-tests` skill.
+- Finish with `verify` (plus services against real Postgres via `pnpm db:scratch`) and `ship`; look at the page
   with `ui-sandbox`.
