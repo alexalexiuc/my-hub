@@ -17,7 +17,8 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "e2e:setup": "tsx e2e/scripts/setup-e2e-db.ts --write-env",
     "kill:port": "node scripts/kill-port.js",
-    "healthcheck": "node scripts/healthcheck.mjs"
+    "healthcheck": "node scripts/healthcheck.mjs",
+    "list-tools": "tsx scripts/list-tools.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",

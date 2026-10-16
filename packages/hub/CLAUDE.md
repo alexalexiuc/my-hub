@@ -1,267 +1,66 @@
 # hub package — Agent Guidelines
 
-Before writing a helper, read `packages/shared/src/utils/CLAUDE.md` (the shared utility inventory).
+Before writing a helper, run `pnpm inventory packages/shared/src/utils` (general-purpose helpers belong there) and
+`pnpm inventory packages/hub/src/components` (reuse before you build).
 
-## Component location
+## Where things go
 
-- **`src/components/`** — global, reusable atom/molecule components only (e.g. `SectionCard`, `PageHeader`, `Button`, `Field`, `IconButton`). Must be completely page-agnostic.
-- **`src/components/icons/`** — SVG icon components (e.g. `PencilIcon`, `TrashIcon`). Must be completely page-agnostic.
-- **`src/components/dashboard/`** — dashboard-level layout only (e.g. `DashboardHeader`, `DashboardFooter`). Do **not** put feature widgets here.
-- **`src/components/widgets/`** — barrel re-exports for dashboard widgets; the widget implementations live co-located with their feature (see below).
-- **`src/app/<page>/`** — page-specific section components and their dashboard widget live **co-located with their page**. When a widget shares significant logic or subcomponents with its feature page, implement it here and re-export from `src/components/widgets/index.ts`. Never add page-specific logic to `src/components/`.
-  - Example: `src/app/calories/CaloriesWidget.tsx` and `src/app/calories/CaloriesDonut.tsx` are co-located with the calories feature and re-exported via `src/components/widgets/index.ts`.
+- `src/components/` — page-agnostic atoms/molecules only (`Button`, `Card`, `SectionCard`, `Field`, …), barrel
+  `index.ts`. `icons/` (barrel too) for SVG icons, `dashboard/` for dashboard layout only.
+- `src/app/<page>/` — page sections, its dashboard widget (re-exported from `src/components/widgets/index.ts`),
+  `ui.tsx` (micro-components shared by sections), `types.ts`, `<feature>.utils.ts` (+ `.test.ts`).
+- `src/hooks/` — hooks reused across features (`@/hooks/<name>`); feature-only hooks stay with the feature.
+- API routes: `src/app/api/<domain>/…/route.ts` using `route({ query | body })`; shared query schemas in
+  `@/lib/schemas/common` (`isoDateSchema`, `isoMonthSchema`).
+- Reference implementations: `src/app/travel/`, `src/app/calories/`, `src/app/profile/NotificationsSection.tsx`.
 
 ## Component rules
 
-- One component per file. Small co-located helpers allowed (max 2–3) only if not independently useful.
-- Props typed in the same file as a `type` named `[ComponentName]Props`.
-- Reusable components go to `src/components/` — never duplicate inline.
-- Named exports only, no default exports for components.
+- One component per file, PascalCase file = export name, named exports only, props `type <Name>Props` in the
+  same file. Up to 2–3 small co-located helpers if not independently useful; utility functions go in a separate
+  `.utils.ts`.
+- A new top-level `src/components/*.tsx` ships with a story (`src/components/stories/<Name>.stories.tsx`,
+  `@storybook/nextjs-vite`, pattern: `Select.stories.tsx`) and a vitest + jsdom test (`<Name>.test.tsx`) in the
+  same change, and is added to the barrel.
+- File-level JSDoc inventory headers only in `src/components/` (not in `src/app/…`).
+- Pages stay under ~300 lines: split into section components that own their UI state, take a minimal prop surface
+  (`data`, `canEdit`, `onChanged()`), and make their own API calls.
+- Responsive duplicates (`hidden md:block` / `md:hidden`): put `data-layout="desktop|mobile"` on the element that
+  carries the responsive class, so tests can target one.
 
-## Component coverage requirements
+## Data fetching
 
-Every new component added to `src/components/` (top-level `.tsx` files only, not subdirectories) **must** be accompanied by:
-
-1. **Storybook story** at `src/components/stories/ComponentName.stories.tsx` — use `@storybook/nextjs-vite`, follow the pattern in existing story files (see `Select.stories.tsx` for a reference).
-2. **Unit test** at `src/components/ComponentName.test.tsx` — use vitest + jsdom, test the component's rendered output and key interactions.
-
-Create both files in the same task as the component. Do not defer them.
-
-## Responsive layout duplicates
-
-When a component renders two variants of the same content (one for desktop, one for mobile) using Tailwind's responsive visibility classes (`hidden md:block`, `md:hidden`, etc.), add a `data-layout` attribute to the outermost element of each variant so that tests and tooling can unambiguously target one layout:
-
-```tsx
-{
-  /* Desktop */
-}
-<div data-layout="desktop" className="hidden md:grid ...">
-  ...
-</div>;
-
-{
-  /* Mobile */
-}
-<div data-layout="mobile" className="... md:hidden">
-  ...
-</div>;
-```
-
-Apply `data-layout` at the element that carries the `hidden`/responsive class, not deeper inside it.
-
-## Page size rule
-
-**Pages must not exceed ~300 lines.** When a page grows beyond this, split it into co-located section components in the same directory.
-
-Each section component should:
-
-- **Own its own local UI state** (form inputs, edit mode toggles)
-- **Receive a minimal prop surface**: relevant data slice, `canEdit` flag, and `onChanged()` refresh callback
-- **Make its own API calls** — do not hoist fetch logic into the page to pass it down
-- **Shared micro-components** used across sections within the same page → `ui.tsx` in that page's directory
-- **Shared TypeScript interfaces** needed by multiple section files → `types.ts` in that page's directory
-
-## Naming conventions
-
-- **Component files**: PascalCase matching the exported component name (e.g. `BookingsSection.tsx`, `TripsSidebar.tsx`).
-- **Icon components**: PascalCase with `Icon` suffix (e.g. `PencilIcon.tsx`, `TrashIcon.tsx`).
-- **Shared page helpers**: lowercase `ui.tsx` and `types.ts` in that page's directory.
-- **Feature-scoped utility files**: `[feature].utils.ts` in the same folder (e.g. `coming-next.utils.ts`).
-
-## Utility rules
-
-- Util functions live in a separate file, never inline in a component file.
-- If specific to one feature and not reusable → `[feature].utils.ts` in the same folder.
-- If general purpose → it goes in `packages/shared/src/utils/`. Check `packages/shared/src/utils/CLAUDE.md` first.
-
-## React hooks
-
-- **`src/hooks/`** — reusable React hooks used across multiple features (e.g. `useDebounce`, `useUserNameFromSession`). Import via `@/hooks/<name>`.
-- Feature-scoped hooks that are not independently reusable belong co-located with their feature file, not in `src/hooks/`.
-
-## API fetch rule
-
-**Always use `apiFetch` from `@/lib/utils` — never call the global `fetch` directly in hub client code.**
+Always `apiFetch` from `@/lib/utils`, never global `fetch`:
 
 ```ts
-import { apiFetch, ApiError } from '@/lib/utils';
-
-// GET with typed response
-const data = await apiFetch<{ trips: Trip[] }>('/api/travel/trips');
-
-// GET with query params (null/undefined values are omitted automatically)
-const data = await apiFetch<{ meals: Meal[] }>('/api/calories/meals', {
-  query: { date: today, limit: 100, type: undefined }, // type omitted
-});
-
-// POST/PATCH — body auto-JSON-stringified, Content-Type set automatically
-await apiFetch('/api/travel/trips', { method: 'POST', body: { name } });
-
-// DELETE — no body needed
-await apiFetch(`/api/travel/trips/${id}`, { method: 'DELETE' });
-
-// FormData — no Content-Type injected (browser sets multipart boundary)
-await apiFetch('/api/upload', { method: 'POST', body: formData });
-
-// Optional: local status-specific handling (global toasts still apply)
-try {
-  await apiFetch('/api/user/profile', { method: 'PUT', body: profilePayload });
-} catch (e) {
-  if (e instanceof ApiError && e.status === 401) {
-    setError('Not signed in');
-    return;
-  }
-  throw e;
-}
+const { trips } = await apiFetch<{ trips: Trip[] }>('/api/travel/trips', { query: { limit: 20, type: undefined } }); // nullish query values dropped
+await apiFetch('/api/travel/trips', { method: 'POST', body: { name } }); // JSON-encoded; FormData passed through
 ```
 
-`apiFetch` throws `ApiError` (with `.status`) on non-2xx. Empty responses (204 / no body) return `undefined`.
+Throws `ApiError` (`.status`) on non-2xx; empty responses return `undefined`. It toasts globally: errors always,
+"Saved/Deleted successfully" for POST/PUT/PATCH/DELETE, nothing for GET; `silentToast: true` opts out. Add a local
+`try/catch` only for status-specific UI (e.g. a 401 state).
 
-By default, `apiFetch` now shows global toasts:
+## Styling and colour
 
-- Error toast for non-2xx responses.
-- Success toast for `POST`/`PUT`/`PATCH` (`Saved successfully`) and `DELETE` (`Deleted successfully`).
-- `GET` remains silent by default.
-- Use `silentToast: true` to suppress toasts for a specific request.
+- Tailwind `className` only; inline `style` only for runtime values (user hex, CSS var, `calc()`). Join classes
+  with `cn()` from `@/lib/utils`.
+- Colour comes from theme tokens: `bg-[var(--card)]`, `text-[var(--muted)]`, `--accent`, semantic `--green`/`--red`/…
+  **Never** a literal Tailwind colour (`bg-emerald-600`) inside themed UI, and **never `text-white` on
+  `--accent`** — use `text-[var(--on-accent)]`.
+- Shared components may render outside a theme: give tokens a fallback (`bg-[var(--card,#18181b)]`).
+- Prefer `Button`, `IconButton`, `Card`, `SectionCard` over hand-styled elements. Feature subtrees are wrapped in
+  `<FeatureTheme feature="…">`. Anything deeper (token table, palettes generator, contrast, signatures) → the
+  `hub-theming` skill.
+- Form controls from `@/components`, not bare elements: `Input` (`variant="ghost"` for inline fields), `Select`
+  (`options` prop; placeholder as children), `Textarea`, `ColorPicker`, `Checkbox`, `FilePicker`, `DatePicker`.
+  In flex filter rows override width with `className="w-auto"`.
 
-Only add a local `try/catch` when the component needs status-specific behavior (for example, custom `401` UI state).
+## Env
 
-## Styling rules
-
-- **Always prefer `className` with Tailwind utility classes** for all visual styling. Do not use inline `style` props unless Tailwind cannot express the value — for example, a dynamic colour derived at runtime (`style={{ color: userPickedHex }}`), a CSS custom property, or a `calc()` expression that requires a runtime value.
-- Use `cn` from `@/lib/utils` (wraps `clsx` + `twMerge`) for joining Tailwind class names:
-
-```ts
-import { cn } from '@/lib/utils';
-cn('base-class', condition && 'conditional-class', className);
-```
-
-## Colour tokens & theming
-
-All colour comes from CSS custom properties scoped to a `*-theme` class. **Never hardcode a
-Tailwind colour** (`bg-emerald-600`, `text-violet-400`, `border-zinc-800`) inside a themed
-subtree — it will not follow the user's chosen theme.
-
-| Group     | Tokens                                                                                                             |
-| --------- | ------------------------------------------------------------------------------------------------------------------ |
-| Surfaces  | `--bg` `--overlay` `--shell` `--card` `--card2` `--card3` `--border`                                               |
-| Text      | `--text` `--muted` `--subtle`                                                                                      |
-| Accent    | `--accent` `--accent-d` `--accent-shadow` `--accent-hover`                                                         |
-| Semantic  | `--green` `--blue` `--amber` `--red` `--violet` `--teal` `--orange` `--pink` `--emerald` `--sky` (+ `-d` variants) |
-| On-colour | `--on-accent` (text **on** `--accent`), `--on-solid` (text on a solid semantic fill)                               |
-
-Rules:
-
-- Use `text-[var(--on-accent)]` on anything with `bg-[var(--accent)]`. **Never `text-white`** —
-  pastel accents (soft Amber, soft Lime) are light, and white on them is unreadable. `--on-accent`
-  is generated to guarantee 4.5:1 against its own accent.
-- Semantic tokens carry meaning (`--red` = danger, `--green` = success). Use them for status, not
-  for decoration, and never substitute the accent for them.
-- `--on-solid` is unconditionally `#ffffff`. It reads on the darker semantic fills (`--red`, `--blue`,
-  `--violet`, `--teal`) but **not** on light pastels: `--amber` always, and `--green` in the default
-  signature (a light mint — white on it was unreadable on the vacation grid). A solid amber/warning CTA
-  should use the normal `Button variant="accent"` treatment instead of a solid amber fill.
-- For text on a strong semantic fill (e.g. a heat-map cell mixed ≥60% towards `--green`/`--red`), use
-  `text-[var(--bg)]`: semantic tokens are generated to contrast with `--bg`, so the pair holds on every
-  theme. For weaker fills keep the normal `--text`.
-- Prefer `Button`, `IconButton`, `Card` and `SectionCard` over a raw `<button>` or a hand-styled
-  `<div>` when tokenizing a surface — they already carry the right tokens (with fallbacks) and
-  converge the app toward one consistent look. `Card compact` is the right base for a bordered
-  callout/row that shouldn't take Card's mobile full-bleed behaviour.
-- Data colours are not theme colours. Per-trip colours, finance category swatches and `MACRO_COLORS`
-  are user/domain data and stay as they are.
-- Shared components in `src/components/` may be rendered outside a themed subtree, so they use a
-  fallback: `bg-[var(--card,#18181b)]`.
-- A theme class **must end in `-theme`**. `usePortalTheme` matches `/\b\S+-theme\b/` to copy the
-  palette onto portaled modals; a differently-shaped name silently breaks every modal.
-- Wrap a feature subtree in `<FeatureTheme feature="travel|finances|calories">` rather than a
-  literal class. It also sets `data-feature`, which is what CSS should key off when it needs to
-  target a feature regardless of the active theme.
-- Themes are chosen from one flat dropdown (`ThemePicker`); `THEME_OPTIONS` and `themeLabel` in
-  `@my-hub/shared/constants` are the single source of the option list and its display names.
-  `groupThemeOptions()` buckets them for `<optgroup>`s and the `/appearance` gallery grid.
-- The 36 generated palettes are produced by `scripts/gen-palettes.mts`; edit the generator, never
-  `src/styles/themes.generated.css`. Run `pnpm --filter @my-hub/hub gen:palettes` after changing it.
-  `gen:palettes:report` prints the contrast matrix. CI fails on drift. The 5 hand-authored
-  signatures (`src/styles/*.css`) are NOT covered by the generator's assertions — verify a new or
-  edited signature's contrast by hand against the same thresholds.
-- `light-signature` is the one light-mode exception in an otherwise dark-only app. It scopes
-  `color-scheme: light` to its own class so native browser chrome (a `<select>` popup, a date
-  picker) doesn't render mismatched dark chrome; every other signature relies on the page-wide
-  dark default in `globals.css`.
-
-## Input components
-
-Use these components from `@/components` instead of bare HTML elements:
-
-| Component     | Replaces                  | Notes                                                                                                             |
-| ------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `Input`       | `<input>`                 | Applies `.input` CSS class; supports `variant="ghost"` for transparent border-bottom style (inline modal fields)  |
-| `Select`      | `<select>`                | Applies `.input`; accepts `options` prop for data-driven option lists; blank/placeholder options go as `children` |
-| `Textarea`    | `<textarea>`              | Applies `.input`                                                                                                  |
-| `ColorPicker` | `<input type="color">`    | Circular swatch, `h-8 w-8`                                                                                        |
-| `Checkbox`    | `<input type="checkbox">` | `accent-blue-500`; override accent color via `className`                                                          |
-| `FilePicker`  | `<input type="file">`     | Separate component — will gain drag-and-drop in future                                                            |
-
-```tsx
-import { Input, Select, Textarea, ColorPicker, Checkbox, FilePicker } from '@/components';
-
-<Input type="number" value={val} onChange={...} />
-<Input variant="ghost" placeholder="New task..." ref={inputRef} />
-<Select value={val} onChange={...} options={DATA_OPTIONS}><option value="">Pick one</option></Select>
-<Textarea rows={3} className="resize-none" value={val} onChange={...} />
-<ColorPicker value={color} onChange={(e) => setColor(e.target.value)} />
-<Checkbox checked={val} onChange={(e) => toggle(e.target.checked)} />
-<FilePicker accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-```
-
-For filter controls in flex rows that must not be `w-full`, override with `className="w-auto"`.
-
-## Barrel exports
-
-Each grouping under `src/components/` has a barrel `index.ts`:
-
-- `src/components/index.ts` — re-exports all global components
-- `src/components/icons/index.ts` — re-exports all icon components
-- `src/components/dashboard/index.ts` — re-exports all dashboard widgets
-
-When adding a new component, also add it to the relevant barrel file.
-
-## JSDoc inventory comments
-
-File-level JSDoc inventory comments (listing exports with one-liners) are written **only** in:
-
-- `packages/shared/src/utils/` and `packages/shared/src/services/`
-- `packages/hub/src/components/`
-
-Do **not** add them to feature folders (`src/app/…`).
-
-## Reference implementations
-
-- `src/app/travel/` — section components + `types.ts` + `coming-next.utils.ts`
-- `src/app/calories/` — section components co-located with page
-- `src/app/profile/NotificationsSection.tsx` — pattern for rendering grouped notification checkboxes from `NOTIFICATION_SUBSCRIPTIONS` config; fetches and persists subscription state via `/api/user/notification-preferences`
-
-## Hub E2E notes
-
-- Hub UI Playwright fixtures live in `packages/e2e`, not in `packages/hub` or `packages/mcp-server`.
-- CI seeds Hub E2E data by executing the compiled `packages/e2e/scripts/setup-e2e-db.ts` bundle inside the `hub` container.
-- Local Hub E2E runs seed via `packages/e2e/global.setup.ts` only when `IS_LOCAL=true`; keep that flow process-based rather than directly importing the seed module into Playwright setup.
-
-## Travel booking display: two separate paths
-
-There are two independent rendering paths for bookings. When changing how a booking type is displayed, **both need updating**:
-
-| File                                  | What it drives                                                                            |
-| ------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `src/app/travel/coming-next.utils.ts` | "Coming Next" timeline — `primaryLabel`, `secondaryLabel`, endpoint labels, navigate URLs |
-| `src/app/travel/BookingsSection.tsx`  | Reservations list + add/edit form UI                                                      |
-
-## API field naming: `flightDetails` → `details` column
-
-The booking POST/PATCH API accepts `body.flightDetails` and stores it directly as the `details` JSONB column. The name is historical — it is used for all detail types (`FlightDetails`, `TransportDetails`, etc.), not just flights.
-
-When adding support for a new details shape in the UI, pass it as `body.flightDetails` in the fetch call.
+Lazy `get` getters are mandatory here: `next build` loads route modules, so an eager `process.env` read fails the
+Docker build. Every new required var also needs a placeholder `ENV` line in `packages/hub/Dockerfile` (after the
+shared build step).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

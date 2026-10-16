@@ -23,3 +23,15 @@ if [ "$(head -c 4 "$pnpm_bin" | od -An -c | tr -d ' ')" != '177ELF' ]; then
 fi
 
 pnpm install --frozen-lockfile
+
+# hub/mcp-server/worker compile against packages/shared/dist, which a fresh clone lacks: without it the first
+# `pnpm --filter <pkg> typecheck` or vitest run fails with errors that look like real bugs.
+if [ ! -d packages/shared/dist/services ]; then
+  pnpm --filter @my-hub/shared build >/dev/null
+  echo "[session-start] built packages/shared/dist"
+fi
+
+# ANSI colour codes in turbo/vitest/playwright output are pure token overhead for an agent.
+if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+  echo 'export NO_COLOR=1 FORCE_COLOR=0' >> "$CLAUDE_ENV_FILE"
+fi

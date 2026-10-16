@@ -7,6 +7,8 @@
  *   pnpm ui:sandbox --skip-seed  # reuse whatever is already in the sandbox DB
  *   pnpm ui:sandbox --seed-only  # migrate + seed, then exit (no dev server)
  *   pnpm ui:sandbox --port 3100
+ *   pnpm ui:sandbox --prod       # `next build` + `next start` (what Hub Playwright specs should run against)
+ *   pnpm ui:sandbox --stop       # stop the sandbox started on that port (from another shell)
  *
  * Built for a disposable environment (a CI box, a fresh container, a Claude Code session): it
  * targets its own database, fills it with demo fixtures, and prints sign-in credentials. It is
@@ -17,10 +19,13 @@
  *   2. Creates the sandbox role/database if they do not exist.
  *   3. Runs Drizzle migrations against it.
  *   4. Seeds demo fixtures via packages/e2e/scripts/setup-sandbox-db.ts.
- *   5. Starts `next dev` with placeholder secrets and waits for it to answer.
+ *   5. Starts `next dev` (or, with --prod, builds and runs `next start`) with placeholder secrets, waits for
+ *      it to answer, and records its PID so `--stop` can end it without a `pkill -f` pattern.
  */
 
 import { spawn, spawnSync } from 'node:child_process';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -45,6 +50,8 @@ if (hasFlag('help')) {
       '  --months <n>   Months of demo history to seed (default 21)',
       '  --skip-seed    Skip migrate + seed, just start the hub',
       '  --seed-only    Migrate + seed, then exit',
+      '  --prod         Production build + `next start` instead of `next dev` (add --no-build to reuse .next)',
+      '  --stop         Stop the sandbox running on --port, then exit',
       '  --help         Show this message',
     ].join('\n'),
   );
@@ -53,6 +60,19 @@ if (hasFlag('help')) {
 
 const PORT = readOption('port', '3000');
 const MONTHS = readOption('months', '21');
+const PID_FILE = path.join(tmpdir(), `my-hub-ui-sandbox-${PORT}.pid`);
+
+if (hasFlag('stop')) {
+  const pid = existsSync(PID_FILE) ? Number(readFileSync(PID_FILE, 'utf8')) : NaN;
+  try {
+    process.kill(pid, 'SIGTERM');
+    console.log(`▸ Stopped the sandbox on :${PORT} (pid ${pid})`);
+  } catch {
+    console.log(`▸ No sandbox running on :${PORT}`);
+  }
+  rmSync(PID_FILE, { force: true });
+  process.exit(0);
+}
 
 const PG_HOST = process.env.SANDBOX_PGHOST ?? '127.0.0.1';
 const PG_PORT = process.env.SANDBOX_PGPORT ?? '5432';
@@ -78,7 +98,9 @@ const SANDBOX_ENV = {
   SES_FROM_EMAIL: 'noreply@sandbox.local',
   UNSUBSCRIBE_SECRET: 'sandbox-placeholder',
   EMAIL_VERIFICATION_SECRET: 'sandbox-placeholder',
-  E2E_TEST_EMAILS: '',
+  // Lets the Hub Playwright suite register its own user against the sandbox (see the hub-e2e skill).
+  ALLOWED_EMAILS: 'e2e-hub@test.local',
+  E2E_TEST_EMAILS: 'e2e-hub@test.local',
   NEXT_TELEMETRY_DISABLED: '1',
 };
 
@@ -157,15 +179,32 @@ function migrateAndSeed() {
 }
 
 async function startHub() {
-  console.log(`▸ Starting the hub on http://localhost:${PORT}`);
-  run('pnpm', ['run', 'copy:maplibre-worker'], { cwd: path.join(REPO_ROOT, 'packages/hub') });
-  const hub = spawn('pnpm', ['exec', 'next', 'dev', '-p', PORT], {
-    cwd: path.join(REPO_ROOT, 'packages/hub'),
+  const prod = hasFlag('prod');
+  const hubDir = path.join(REPO_ROOT, 'packages/hub');
+  run('pnpm', ['run', 'copy:maplibre-worker'], { cwd: hubDir, quiet: true });
+  if (prod && !hasFlag('no-build')) {
+    console.log('▸ Building the hub (next build) — takes a few minutes');
+    run('pnpm', ['exec', 'next', 'build'], { cwd: hubDir, quiet: true });
+  }
+  console.log(`▸ Starting the hub (${prod ? 'next start' : 'next dev'}) on http://localhost:${PORT}`);
+  // Own process group, so stopping the sandbox also stops the next-server children pnpm spawns.
+  const hub = spawn('pnpm', ['exec', 'next', prod ? 'start' : 'dev', '-p', PORT], {
+    cwd: hubDir,
     env: { ...process.env, ...SANDBOX_ENV },
     stdio: 'inherit',
+    detached: true,
   });
+  writeFileSync(PID_FILE, String(process.pid));
 
-  const stop = () => hub.kill('SIGTERM');
+  const stop = () => {
+    try {
+      process.kill(-hub.pid, 'SIGTERM');
+    } catch {
+      // already gone
+    }
+    rmSync(PID_FILE, { force: true });
+    process.exit(0);
+  };
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
 
@@ -187,13 +226,19 @@ async function startHub() {
       `  URL      http://localhost:${PORT}`,
       '  Email    sandbox@test.local',
       '  Password SandboxPass123!',
+      `  DB       ${DATABASE_URL}`,
       '',
-      '  Ctrl-C to stop.',
+      `  Stop:    pnpm ui:sandbox --stop --port ${PORT}   (or Ctrl-C)`,
+      '  Shots:   cd packages/e2e && node scripts/shoot.mjs /finances',
+      `  E2E:     cd packages/e2e && IS_LOCAL=true DATABASE_URL=${DATABASE_URL} E2E_HUB_BASE_URL=http://localhost:${PORT} npx playwright test tests/<x>.spec.ts`,
       '',
     ].join('\n'),
   );
 
-  hub.on('exit', code => process.exit(code ?? 0));
+  hub.on('exit', code => {
+    rmSync(PID_FILE, { force: true });
+    process.exit(code ?? 0);
+  });
 }
 
 // With an explicit SANDBOX_DATABASE_URL the database is the caller's to provide: probing with pg_isready and

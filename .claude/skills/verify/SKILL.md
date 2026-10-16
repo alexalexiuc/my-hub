@@ -2,8 +2,8 @@
 name: verify
 description: |
   Use before reporting work as done, before committing, or when asked to "verify", "run the checks", "make sure
-  everything passes". Runs typecheck, unit tests and lint for the packages the current changes touch, in the
-  order that avoids stale-build false errors.
+  everything passes". Runs typecheck, lint and unit tests for the packages the change touches (turbo builds
+  shared first, so no stale-dist false errors), plus the extra checks CI runs.
 metadata:
   scope: monorepo
   stage: verification
@@ -11,29 +11,32 @@ metadata:
 
 # Verify the working tree
 
-1. **Scope.** `git status --short` (and `git diff --stat main...HEAD` on a branch) → which of `shared`,
-   `mcp-server`, `hub`, `worker`, `e2e` changed. A change in `packages/shared` affects every package.
-
-2. **Build shared first** when it changed — the others compile against `packages/shared/dist`:
-   `pnpm --filter @my-hub/shared build`
-
-3. **Typecheck** — `pnpm typecheck` (turbo, all packages; hub regenerates Next route types first, so stale
-   `.next/types` cannot fail it).
-
-4. **Unit tests** per touched package. rtk's vitest filter cannot parse this repo's output
-   ("All parsing tiers failed"), so bypass it:
+1. **Everything CI's `lint-typecheck-test` job runs, for changed packages only:**
 
    ```bash
-   cd packages/<pkg> && rtk proxy npx vitest run 2>&1 | grep -E "Test Files|Tests |FAIL|×"
+   pnpm exec turbo run typecheck lint test:unit --affected --output-logs=errors-only
    ```
 
-5. **Lint** the touched paths with autofix, then re-run tests if files changed:
-   `cd packages/<pkg> && pnpm exec eslint --fix <paths>` (the pre-commit hook runs eslint + prettier on staged
-   files anyway).
+   `--affected` compares against `main` (plus uncommitted changes); only failing tasks print logs. A change to
+   root config (`tsconfig.base.json`, `eslint.config.mjs`, `prettier.config.mjs`) affects everything — drop
+   `--affected` then. Before pushing a large change, run it once without `--affected`.
 
-6. **Beyond unit tests**, when the change warrants it:
-   - DB queries or migrations → run them against `pnpm db:scratch` (see `ui-sandbox` skill, "Throwaway database").
-   - MCP tools → the domain's `e2e/<domain>.e2e.ts` against a local server on the scratch DB.
-   - Hub pages → `ui-sandbox`, desktop 1280px and mobile 390px, with console errors collected.
+2. **Lint failures**: `pnpm exec eslint --fix <files>` and `pnpm exec prettier --write <files>` on the files you
+   touched (never a whole directory — unrelated docs get reformatted). The pre-commit hook runs lint-staged anyway.
 
-Report counts per package (e.g. "shared 477, mcp-server 137, hub 373") and anything you could not run.
+3. **Extra checks when relevant:**
+
+   | You changed                                  | Also run                                                                                                                       |
+   | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+   | `packages/e2e` (no typecheck script)         | `pnpm --filter @my-hub/e2e exec tsc --noEmit -p .`                                                                             |
+   | hub styles / `scripts/gen-palettes.mts`      | `pnpm --filter @my-hub/hub gen:palettes:check` (CI fails on drift)                                                             |
+   | MCP tools                                    | `pnpm --filter @my-hub/mcp-server list-tools <domain>`                                                                         |
+   | schema / migrations / raw SQL                | apply against `pnpm db:scratch` (`create`, `exec -- pnpm db:migrate`, `drop`)                                                  |
+   | a hub page                                   | `ui-sandbox` skill: 390px + 1280px screenshots, no console errors                                                              |
+   | Hub/MCP E2E specs or flows they cover        | `e2e-tests` skill — run the touched specs locally                                                                              |
+   | hub env vars / route modules / `next.config` | a production build: `pnpm ui:sandbox --prod --skip-seed` (builds with placeholder secrets, like the Dockerfile), then `--stop` |
+
+4. **Single test file while iterating**: `pnpm --filter @my-hub/<pkg> exec vitest run <path> --reporter=dot`.
+
+Report results per package with counts (e.g. "shared 528, hub 390, mcp-server 128 passed") and name anything you
+could not run and why.
