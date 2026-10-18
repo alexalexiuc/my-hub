@@ -864,16 +864,40 @@ describe('finances_itemize_transaction', () => {
     );
   });
 
-  it('throws when the transaction was not added by the current user', async () => {
+  it('lets another budget member itemize a transaction that has no items yet', async () => {
     vi.mocked(getTransactionById).mockResolvedValue({
       ...baseTransaction,
       extras: null,
       addedByUserId: 'someone-else',
     } as never);
+    vi.mocked(updateTransaction).mockResolvedValue({
+      ...baseTransaction,
+      extras: { kind: 'receipt', items: [{ name: 'Eggs', totalPrice: 30 }] },
+    } as never);
+
+    await itemizeTransactionTool(
+      { ...baseItemizeInput, transactionId: 10, items: [{ name: 'Eggs', totalPrice: 30 }] },
+      financesContext,
+    );
+
+    expect(updateTransaction).toHaveBeenCalledWith(
+      'user-1',
+      1,
+      10,
+      expect.objectContaining({ extras: expect.objectContaining({ items: [{ name: 'Eggs', totalPrice: 30 }] }) }),
+    );
+  });
+
+  it("throws when another member's transaction already has items", async () => {
+    vi.mocked(getTransactionById).mockResolvedValue({
+      ...baseTransaction,
+      extras: { kind: 'receipt', items: [{ name: 'Milk', totalPrice: 20 }] },
+      addedByUserId: 'someone-else',
+    } as never);
 
     await expect(
       itemizeTransactionTool({ ...baseItemizeInput, transactionId: 10, taxAmount: 5 }, financesContext),
-    ).rejects.toThrow('You can only edit your own transactions');
+    ).rejects.toThrow('only the member who added it can change them');
     expect(updateTransaction).not.toHaveBeenCalled();
   });
 

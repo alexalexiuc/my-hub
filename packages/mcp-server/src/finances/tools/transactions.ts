@@ -807,7 +807,11 @@ export const itemizeTransactionTool: ToolHandler<typeof ItemizeTransactionSchema
 
   const existing = await getTransactionById(userId, budget.id, input.transactionId);
   if (!existing) throw new HandledError('Transaction not found');
-  if (existing.addedByUserId !== userId) throw new HandledError('You can only edit your own transactions');
+  // Any budget member may itemize a transaction that has no line items yet (e.g. one imported from another
+  // member's card statement); once items exist, only the member who added it can change them.
+  if (existing.addedByUserId !== userId && withItemsHint(existing.extras, existing.type).itemsCount > 0) {
+    throw new HandledError('This transaction already has line items; only the member who added it can change them');
+  }
 
   const { transactionId, ...receiptFields } = input;
   const merged = {
