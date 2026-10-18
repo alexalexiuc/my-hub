@@ -221,7 +221,8 @@ const financeTools = [
     name: 'finances_itemize_transaction',
     description:
       'Add or update receipt metadata (line items, tax/tip/delivery/discount amounts, receipt number, payee address) on a ' +
-      'transaction that already exists. Only transactions you added can be itemized. Use this when a transaction was ' +
+      'transaction that already exists. Any budget member can itemize a transaction that has no line items yet; once it has items, ' +
+      'only the member who added it can change them. Use this when a transaction was ' +
       "logged quickly without a receipt and one becomes available later, or to merge a second receipt's line items " +
       'into an existing transaction. ' +
       'items fully REPLACES the existing items array — it is not a merge, so pass the complete set of items you want ' +
