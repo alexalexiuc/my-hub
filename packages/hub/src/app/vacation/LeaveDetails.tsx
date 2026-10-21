@@ -26,12 +26,12 @@ export function LeaveDetails({ leave }: LeaveDetailsProps) {
     <div className="space-y-2">
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
         <VacationStat
-          label={delta.actual ? 'vs working (actual)' : 'vs working (est.)'}
+          label={delta.actual ? 'vs working, net (actual)' : 'vs working, net (est.)'}
           value={formatSignedMdl(delta.value)}
           tone={delta.value >= 0 ? 'gain' : 'loss'}
         />
         <VacationStat
-          label={payReceivedMdl != null ? 'Paid' : 'Leave pay (est.)'}
+          label={payReceivedMdl != null ? 'Paid' : 'Leave pay, net (est.)'}
           value={formatMdl(payReceivedMdl ?? estimate.amountNet)}
         />
         <VacationStat label="Balance cost" value={formatDays(estimate.balanceCost)} />
@@ -41,7 +41,7 @@ export function LeaveDetails({ leave }: LeaveDetailsProps) {
         />
       </dl>
       <p className="text-xs text-[var(--muted)]">
-        {estimate.workdays} working {estimate.workdays === 1 ? 'day' : 'days'} of {estimate.calendarDays} · salary
+        {estimate.workdays} working {estimate.workdays === 1 ? 'day' : 'days'} of {estimate.calendarDays} · net salary
         forgone {formatMdl(estimate.amountNet - estimate.deltaNet)}
         {payReceivedMdl != null && ` · estimated pay was ${formatMdl(estimate.amountNet)}`}
         {rate &&
