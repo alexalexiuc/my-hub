@@ -293,16 +293,12 @@ export async function getVacationConfig(userId: string, today: string): Promise<
   const year = Number(today.slice(0, 4));
   if (!profile) warnings.push('No profile yet: set country, employer and opening balance with vacation_setup.');
   if (!ruleSets.some(r => r.status === 'active')) warnings.push('No active rule set: leave pay cannot be computed.');
-  if (
-    profile &&
-    !taxRegimes.some(
-      t =>
-        t.employer.toLowerCase() === profile.employer.toLowerCase() &&
-        t.validFrom <= today &&
-        (t.validTo === null || today <= t.validTo),
-    )
-  ) {
-    warnings.push(`No tax regime covers today for ${profile.employer}: amounts will be gross.`);
+  // The engine taxes each day with whichever employer's regime covers it, so check coverage across employers.
+  if (profile && !taxRegimes.some(t => t.validFrom <= today && (t.validTo === null || today <= t.validTo))) {
+    warnings.push('No tax regime covers today: amounts will be gross.');
+  }
+  if (profile && !taxRegimes.some(t => t.employer.toLowerCase() === profile.employer.toLowerCase())) {
+    warnings.push(`No tax regime recorded for ${profile.employer}: its months will be gross.`);
   }
   if (months.length === 0) warnings.push('No salaries recorded.');
   else if (months.at(-1)! < shiftMonthStr(today.slice(0, 7), -1)) {
