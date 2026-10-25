@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch, ApiError } from '@/lib/utils';
-import Link from 'next/link';
+import { DisclosureToggle } from '@/components';
 import type { CalorieProfile } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { ProfileCard } from '../ProfileCard';
 import { AutomationApiSection } from '../AutomationApiSection';
+import { NOT_SIGNED_IN, PageError, PageLoading } from '../ui';
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<CalorieProfile | null>(null);
@@ -22,7 +23,7 @@ export default function SettingsPage() {
       setProfile(data.profile);
       setLatestMeasurements(data.measurements);
     } catch (e) {
-      setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
+      setError(e instanceof ApiError && e.status === 401 ? NOT_SIGNED_IN : String(e));
     } finally {
       setLoading(false);
     }
@@ -32,31 +33,19 @@ export default function SettingsPage() {
     loadData();
   }, [loadData]);
 
-  if (loading) {
-    return (
-      <main className="mx-auto max-w-2xl space-y-4 py-6">
-        <div className="text-[var(--muted)]">Loading…</div>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="mx-auto max-w-2xl space-y-4 py-6">
-        <p className="text-[var(--red)]">{error}</p>
-        {error === 'Not signed in' && (
-          <Link href="/auth/signin" className="mt-2 inline-block text-[var(--accent)] underline">
-            Sign in
-          </Link>
-        )}
-      </main>
-    );
-  }
+  if (loading) return <PageLoading />;
+  if (error) return <PageError error={error} />;
 
   return (
     <main className="mx-auto max-w-2xl space-y-4">
       <ProfileCard profile={profile} latestMeasurements={latestMeasurements} onUpdated={loadData} />
-      {profile && <AutomationApiSection userId={profile.userId} initialKey={profile.automationApiKey} />}
+      {/* Developer setup (the key for posting measurements from scripts), kept out of the way of
+          the body profile most visits are for. */}
+      {profile && (
+        <DisclosureToggle label="Advanced: automation API" contentClassName="mt-3">
+          <AutomationApiSection userId={profile.userId} initialKey={profile.automationApiKey} />
+        </DisclosureToggle>
+      )}
     </main>
   );
 }

@@ -85,7 +85,7 @@ export function ShoppingListItems({ items, loading, onAdd, onToggle, onRemove }:
                 type="button"
                 onClick={() => onRemove(item)}
                 aria-label={`Remove ${item.text}`}
-                className="text-[var(--muted)] hover:text-red-400 transition-colors shrink-0"
+                className="text-[var(--muted)] hover:text-[var(--red)] transition-colors shrink-0"
               >
                 <TrashOutlineIcon className="size-3.5" />
               </button>

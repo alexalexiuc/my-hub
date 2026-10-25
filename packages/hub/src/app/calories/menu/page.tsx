@@ -141,7 +141,9 @@ export default function WeeklyMenuPage() {
       )}
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div>
+        <div className="rounded-xl border border-[var(--red)] bg-[var(--red-d)] px-4 py-3 text-sm text-[var(--red)]">
+          {error}
+        </div>
       )}
 
       {menus.length === 0 ? (

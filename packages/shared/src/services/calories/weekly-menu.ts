@@ -38,14 +38,13 @@ import type { DayOfWeek } from '../../constants/weekly-menu';
 import type { ShoppingListItem } from './shopping-list';
 import { PromiseCacheX } from 'promise-cachex';
 import {
-  addDays,
   dateToString,
   dayOfWeekMon0,
   dedupeTrimmed,
   logger,
   omitUndefined,
   startOfWeekMonday,
-  toUTCDateStr,
+  shiftDateStr,
 } from '../../utils';
 
 const menuAccessCache = new PromiseCacheX<boolean>({ ttl: 1000 }); // 1 second
@@ -128,7 +127,7 @@ async function isDateInMenuWeek(menuId: string, dayOfWeek: DayOfWeek, loggedDate
     .where(eq(weeklyMenus.menuId, menuId));
 
   if (!menu) return false;
-  return toUTCDateStr(addDays(new Date(menu.weekStart), dayOfWeek)) === loggedDate;
+  return shiftDateStr(menu.weekStart, dayOfWeek) === loggedDate;
 }
 
 export async function hasAccessToMenu(userId: string, menuId: string): Promise<boolean> {
@@ -839,7 +838,7 @@ export async function getMenuStatusForRange(
   for (const meal of meals) {
     const weekStart = weekStartByMenu.get(meal.menuId);
     if (!weekStart) continue;
-    const date = toUTCDateStr(addDays(new Date(`${weekStart}T00:00:00`), meal.dayOfWeek));
+    const date = shiftDateStr(weekStart, meal.dayOfWeek);
     if (date < start || date > end) continue;
 
     const entry = statuses[date] ?? { hasMenu: false, logged: true };

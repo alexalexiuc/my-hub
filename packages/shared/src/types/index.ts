@@ -7,6 +7,7 @@ import type {
   mcpServers,
   calorieProfiles,
   mealLogs,
+  favouriteMeals,
   bodyMeasurements,
   apiRequestLogs,
   inviteTokens,
@@ -45,6 +46,7 @@ export type CalorieProfile = InferSelectModel<typeof calorieProfiles>;
 export type NewCalorieProfile = InferInsertModel<typeof calorieProfiles>;
 export type MealLog = InferSelectModel<typeof mealLogs>;
 export type NewMealLog = InferInsertModel<typeof mealLogs>;
+export type FavouriteMeal = InferSelectModel<typeof favouriteMeals>;
 
 // Body Measurements
 export type MeasurementType = MeasurementTypeDefinition;

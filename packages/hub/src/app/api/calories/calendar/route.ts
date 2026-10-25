@@ -5,19 +5,24 @@ import {
   getLatestMeasurementsPerType,
   getMenuStatusForRange,
 } from '@my-hub/shared/services';
-import { dayCalorieTargets, latestWeightKg, toUTCDateStr } from '@my-hub/shared/utils';
+import { dayCalorieTargets, latestWeightKg, monthEndStr, shiftDateStr } from '@my-hub/shared/utils';
 import { CalendarQuerySchema, CalendarResponseSchema } from './calendar.schemas';
 
+/** Longest explicit range served — a quarter. Longer views page by month. */
+const MAX_RANGE_DAYS = 92;
+
 /**
- * GET /api/calories/calendar?month=YYYY-MM
+ * GET /api/calories/calendar?month=YYYY-MM  (or ?dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD)
  * Per-day kcal/macro totals for the whole month plus that day's target (gym-day bonus included)
  * and weekly-menu status, resolved the same way as Progress and the weekly menu so a day doesn't
  * read differently here.
  */
 export const GET = route({ query: CalendarQuerySchema, response: CalendarResponseSchema })(async ({ user, query }) => {
-  const [year, monthNum] = query.month.split('-').map(Number);
-  const start = `${query.month}-01`;
-  const end = toUTCDateStr(new Date(Date.UTC(year ?? 2000, monthNum ?? 1, 0)));
+  // The schema guarantees one of the two forms; a range is clipped rather than refused.
+  const start = query.month ? `${query.month}-01` : query.dateFrom!;
+  const requestedEnd = query.month ? monthEndStr(query.month) : query.dateTo!;
+  const cap = shiftDateStr(start, MAX_RANGE_DAYS - 1);
+  const end = requestedEnd < cap ? requestedEnd : cap;
 
   const [summaries, profile, latestMeasurements, menuStatuses] = await Promise.all([
     getDailySummariesForRange(user.id, start, end),

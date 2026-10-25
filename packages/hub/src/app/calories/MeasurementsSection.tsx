@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import type { MeasurementType } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { apiFetch } from '@/lib/utils';
+import { apiFetch, cn } from '@/lib/utils';
 import { Card, ConfirmModal } from '@/components';
-import { PlusOutlineIcon, PencilIcon, TrashOutlineIcon } from '@/components/icons';
+import { ChevronDownOutlineIcon, PlusOutlineIcon, PencilIcon, TrashOutlineIcon } from '@/components/icons';
 import { MeasurementModal } from './MeasurementModal';
 import { formatDateLabel } from './calories.utils';
 
@@ -19,6 +19,10 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
   const [modal, setModal] = useState<'add' | MeasurementWithType | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  // Folded once there is something in it: measurements change monthly at most, so they are opened
+  // on purpose rather than scrolled past on every visit. Open while empty, so the first one can be
+  // added without hunting for it.
+  const [open, setOpen] = useState(latestMeasurements.length === 0);
 
   async function confirmDelete() {
     if (confirmDeleteId == null) return;
@@ -57,10 +61,25 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
         />
       )}
 
-      <Card className="!p-0 overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
+      <Card compact className="!p-0 overflow-hidden">
+        <div
+          className={cn('flex items-center justify-between gap-3 px-5 py-2', open && 'border-b border-[var(--border)]')}
+        >
           <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">
-            Body measurements
+            <button
+              type="button"
+              onClick={() => setOpen(o => !o)}
+              aria-expanded={open}
+              className="flex min-h-[44px] items-center gap-2 uppercase tracking-[0.06em] hover:text-[var(--text)]"
+            >
+              <ChevronDownOutlineIcon className={cn('size-4 transition-transform', !open && '-rotate-90')} />
+              Body measurements
+              {latestMeasurements.length > 0 && (
+                <span className="font-normal normal-case tracking-normal text-[var(--subtle)]">
+                  ({latestMeasurements.length})
+                </span>
+              )}
+            </button>
           </h2>
           <button
             type="button"
@@ -72,7 +91,7 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
           </button>
         </div>
 
-        {latestMeasurements.length === 0 ? (
+        {!open ? null : latestMeasurements.length === 0 ? (
           <p className="px-5 py-4 text-sm text-[var(--subtle)]">No measurements recorded yet.</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">

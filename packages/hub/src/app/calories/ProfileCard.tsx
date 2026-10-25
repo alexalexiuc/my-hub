@@ -607,7 +607,7 @@ function TargetPill({ label, value, unit, accent }: { label: string; value: stri
     <div
       className={`rounded-lg px-3 py-2 text-sm ${
         accent
-          ? 'bg-[var(--accent-d)] border border-[var(--accent)44]'
+          ? 'bg-[var(--accent-d)] border border-[var(--accent)]'
           : 'bg-[var(--card2)] border border-[var(--border)]'
       }`}
     >

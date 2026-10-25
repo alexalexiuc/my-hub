@@ -5,13 +5,27 @@ import { apiFetch, ApiError } from '@/lib/utils';
 import Link from 'next/link';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
+import { MeasurementTypes, measurementTypeDefinitions } from '@my-hub/shared/constants';
 import { dateToString, dayCalorieTargets, latestWeightKg } from '@my-hub/shared/utils';
-import { Card, DatePicker } from '@/components';
+import { Button, Card, DatePicker, ProgressBar } from '@/components';
 import { mealEvents } from './mealEvents';
 import { MealsSection } from './MealsSection';
 import { NextMealCard } from './NextMealCard';
 import { MacroChart } from './MacroChart';
 import { CaloriesDonut } from './CaloriesDonut';
+import { LastSevenDays } from './LastSevenDays';
+import { MeasurementModal } from './MeasurementModal';
+import { sumMealTotals } from './calories.utils';
+import { MACRO_COLORS } from './constants';
+import { setCaloriesSelectedDate } from './selectedDate';
+import { NOT_SIGNED_IN, PageError, PageLoading } from './ui';
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
 export default function TodayPage() {
   const [profile, setProfile] = useState<CalorieProfile | null>(null);
@@ -19,10 +33,18 @@ export default function TodayPage() {
   const [meals, setMeals] = useState<MealLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loggingWeight, setLoggingWeight] = useState(false);
 
   const today = dateToString(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
   const selectedDateRef = useRef(selectedDate);
+
+  // The layout's Add meal buttons log to the day on screen; cleared on leave so they fall back
+  // to today everywhere else.
+  useEffect(() => {
+    setCaloriesSelectedDate(selectedDate);
+  }, [selectedDate]);
+  useEffect(() => () => setCaloriesSelectedDate(null), []);
 
   const loadMeals = useCallback(async (date: string) => {
     try {
@@ -44,7 +66,7 @@ export default function TodayPage() {
       setLatestMeasurements(profileData.measurements);
       if (selectedDateRef.current === date) setMeals(mealsData.meals);
     } catch (e) {
-      setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
+      setError(e instanceof ApiError && e.status === 401 ? NOT_SIGNED_IN : String(e));
     } finally {
       setLoading(false);
     }
@@ -69,26 +91,8 @@ export default function TodayPage() {
     [loadMeals],
   );
 
-  if (loading) {
-    return (
-      <main className="py-6">
-        <div className="text-[var(--muted)]">Loading…</div>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="py-6">
-        <p className="text-[var(--red)]">{error}</p>
-        {error === 'Not signed in' && (
-          <Link href="/auth/signin" className="mt-2 inline-block text-[var(--accent)] underline">
-            Sign in
-          </Link>
-        )}
-      </main>
-    );
-  }
+  if (loading) return <PageLoading />;
+  if (error) return <PageError error={error} />;
 
   const {
     target: cap,
@@ -96,20 +100,27 @@ export default function TodayPage() {
     isGymDay,
     gymDayBonus,
   } = dayCalorieTargets(profile, latestWeightKg(latestMeasurements), selectedDate);
-  const totalKcal = meals.reduce((sum, m) => sum + (m.kcal ?? 0), 0);
-  const totalProtein = Math.round(meals.reduce((sum, m) => sum + (m.protein ?? 0), 0));
-  const totalCarbs = Math.round(meals.reduce((sum, m) => sum + (m.carbs ?? 0), 0));
-  const totalFat = Math.round(meals.reduce((sum, m) => sum + (m.fat ?? 0), 0));
-
-  function greeting() {
-    const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
+  const totals = sumMealTotals(meals);
+  const remainingKcal = cap === null ? null : cap - totals.kcal;
+  const goalProtein = profile?.goalProtein ?? null;
+  const proteinLeft = goalProtein === null ? null : Math.max(0, Math.round(goalProtein - totals.protein));
+  const isToday = selectedDate === today;
+  const weighedToday = latestMeasurements.some(m => m.typeKey === MeasurementTypes.Weight && m.date === today);
 
   return (
     <main>
+      {loggingWeight && (
+        <MeasurementModal
+          measurementTypes={measurementTypeDefinitions}
+          defaultTypeKey={MeasurementTypes.Weight}
+          onClose={() => setLoggingWeight(false)}
+          onSaved={() => {
+            setLoggingWeight(false);
+            void loadData();
+          }}
+        />
+      )}
+
       {/* Greeting + date picker */}
       <div className="mb-4">
         <div className="mb-1 text-xs text-[var(--subtle)]">{greeting()}</div>
@@ -130,7 +141,15 @@ export default function TodayPage() {
           a day with no plan, and a reserved row would leave a hole above the meals list. */}
       <div className="flex flex-col gap-4 md:grid md:grid-cols-3 md:items-start">
         <div className="flex flex-col gap-4 md:col-start-2 md:col-span-2">
-          <NextMealCard date={selectedDate} />
+          {isToday && !weighedToday && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--blue-d)] px-4 py-2.5">
+              <span className="text-sm text-[var(--text)]">No weigh-in today</span>
+              <Button variant="neutral" size="sm" onClick={() => setLoggingWeight(true)}>
+                Log weight
+              </Button>
+            </div>
+          )}
+          <NextMealCard date={selectedDate} loggedMeals={meals} remainingKcal={remainingKcal} />
           <MealsSection
             meals={meals}
             selectedDate={selectedDate}
@@ -139,40 +158,68 @@ export default function TodayPage() {
           />
         </div>
 
-        {/* Left column (col-span-1): calorie summary + macro chart */}
+        {/* Left column (col-span-1): what's left, the week so far, macro split */}
         <div className="flex flex-col gap-4 md:col-start-1 md:row-start-1">
-          <Card className="flex flex-col items-center gap-3 p-5">
-            <CaloriesDonut eaten={totalKcal} cap={cap} min={minTarget} textSize="text-2xl" />
-            <div className="w-full text-center">
-              <p className="text-sm text-[var(--muted)]">
-                <span className="text-xl font-bold text-[var(--text)]">{totalKcal}</span>
-                {cap !== null && <span className="text-[var(--subtle)]"> / {cap}</span>}
-                <span className="ml-1">kcal</span>
-              </p>
-              {minTarget !== null && cap !== null && (
-                <p className="mt-1 text-xs text-[var(--subtle)]">
-                  Range: {minTarget}–{cap} kcal
+          <Card className="flex flex-col gap-4 p-5">
+            <div className="flex items-center gap-4">
+              <CaloriesDonut eaten={totals.kcal} cap={cap} min={minTarget} textSize="text-2xl" />
+              <div className="flex min-w-0 flex-col gap-1">
+                <p className="text-sm text-[var(--muted)]">
+                  <span className="text-lg font-bold text-[var(--text)]">{totals.kcal.toLocaleString()}</span>
+                  {cap !== null && <span> of {cap.toLocaleString()}</span>}
+                  <span className="ml-1">kcal</span>
                 </p>
-              )}
-              {isGymDay && cap !== null && (
-                <p className="mt-1 text-xs text-[var(--accent)]">Gym day · +{gymDayBonus} kcal</p>
-              )}
-              {cap === null && (
-                <p className="mt-1 text-xs text-[var(--subtle)]">
-                  No goal set.{' '}
-                  <Link href="/calories/settings" className="underline underline-offset-2 hover:text-[var(--text)]">
-                    Set up profile
-                  </Link>
-                </p>
-              )}
+                {cap !== null && (
+                  <p className="text-xs text-[var(--subtle)]">
+                    {minTarget !== null ? `Aim for ${minTarget.toLocaleString()}–${cap.toLocaleString()}` : 'Daily cap'}
+                    {isGymDay && <span className="text-[var(--accent)]"> · gym day · +{gymDayBonus} kcal</span>}
+                  </p>
+                )}
+                {cap === null && (
+                  <p className="text-xs text-[var(--subtle)]">
+                    No goal set.{' '}
+                    <Link href="/calories/settings" className="underline underline-offset-2 hover:text-[var(--text)]">
+                      Set up profile
+                    </Link>
+                  </p>
+                )}
+              </div>
             </div>
+
+            {goalProtein !== null && proteinLeft !== null && (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-baseline justify-between text-xs">
+                  <span className="font-semibold" style={{ color: MACRO_COLORS.protein }}>
+                    Protein
+                  </span>
+                  <span className="text-[var(--muted)]">
+                    {proteinLeft > 0 ? (
+                      <>
+                        <strong className="text-[var(--text)]">{proteinLeft} g</strong> left of {goalProtein} g
+                      </>
+                    ) : (
+                      <strong className="text-[var(--green)]">Goal reached · {totals.protein} g</strong>
+                    )}
+                  </span>
+                </div>
+                <ProgressBar
+                  value={totals.protein}
+                  max={goalProtein}
+                  thresholds={false}
+                  color={MACRO_COLORS.protein}
+                  height={6}
+                />
+              </div>
+            )}
           </Card>
 
+          <LastSevenDays proteinGoalG={goalProtein} />
+
           <MacroChart
-            protein={totalProtein}
-            carbs={totalCarbs}
-            fat={totalFat}
-            goalProtein={profile?.goalProtein ?? null}
+            protein={totals.protein}
+            carbs={totals.carbs}
+            fat={totals.fat}
+            goalProtein={goalProtein}
             goalCarbs={profile?.goalCarbs ?? null}
             goalFat={profile?.goalFat ?? null}
           />

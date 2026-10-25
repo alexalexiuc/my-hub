@@ -32,8 +32,9 @@ test.describe('Calories — Progress page', () => {
     await page.waitForLoadState('networkidle');
   });
 
-  test('layout: weekly chart and body measurements section are present', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: /this week/i })).toBeVisible();
+  test('layout: month summary, calendar button and body measurements section are present', async ({ page }) => {
+    await expect(page.getByText('On target', { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'View month calendar' })).toBeVisible();
     await expect(page.getByRole('heading', { name: /body measurements/i })).toBeVisible();
     await expect(page.getByText(/no measurements recorded yet/i)).toBeVisible();
   });
@@ -73,24 +74,26 @@ test.describe('Calories — Progress page', () => {
   });
 
   /**
-   * Week navigation is bounded: the current week is the newest one there can be data for, so
-   * stepping forward from it is barred rather than showing an empty future week.
+   * The month calendar opens in a modal. Its navigation is bounded: the current month is the
+   * newest one there can be data for, so stepping forward from it is barred rather than showing an
+   * empty future month.
    */
-  test('week navigation steps back and stops at the current week', async ({ page }) => {
+  test('month calendar modal steps back and stops at the current month', async ({ page }) => {
+    await page.getByRole('button', { name: 'View month calendar' }).click();
+    await expect(page.getByText('Tap a day to see its meals.')).toBeVisible();
+
     const nextButton = page.getByRole('button', { name: 'Next period' });
     const prevButton = page.getByRole('button', { name: 'Previous period' });
 
-    await expect(periodLabel(page)).toHaveText('This week');
+    await expect(periodLabel(page)).toHaveText('This month');
     await expect(nextButton).toBeDisabled();
 
     await prevButton.click();
     await expect(nextButton).toBeEnabled();
-    // One step back is one week, not two — the label is derived from a UTC-parsed date, and
-    // parsing it locally used to skip a week in any positive-offset timezone.
-    await expect(periodLabel(page)).toHaveText(/^Week \d+, \d{4}$/);
+    await expect(periodLabel(page)).toHaveText(/^[A-Z][a-z]+ \d{4}$/);
 
     await nextButton.click();
-    await expect(periodLabel(page)).toHaveText('This week');
+    await expect(periodLabel(page)).toHaveText('This month');
     await expect(nextButton).toBeDisabled();
   });
 

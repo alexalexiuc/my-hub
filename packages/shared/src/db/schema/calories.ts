@@ -83,6 +83,26 @@ export const mealLogs = pgTable(
   ],
 );
 
+// A dish the user pinned for one-tap logging. Kept apart from meal_logs: a favourite outlives the
+// logs it came from, and pinning one must not depend on still having that history.
+export const favouriteMeals = pgTable(
+  'favourite_meals',
+  {
+    id: serial('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    description: text('description').notNull(),
+    mealType: text('meal_type').$type<MealType>().notNull(),
+    kcal: integer('kcal'),
+    protein: real('protein'),
+    carbs: real('carbs'),
+    fat: real('fat'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  table => [unique('uq_favourite_meals_user_description').on(table.userId, table.description)],
+);
+
 // ---------------------------------------------------------------------------
 // Weekly Menu tables
 // ---------------------------------------------------------------------------

@@ -7,14 +7,17 @@ import type { RecentMealSuggestion } from '@my-hub/shared/services';
 import { apiFetch } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { Modal, Input } from '@/components';
-import { mealOrder } from '@my-hub/shared/utils';
+import { dateToString, mealOrder } from '@my-hub/shared/utils';
+import { formatDateLabel } from './calories.utils';
 import type { GymTime } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from './constants';
 import { useGymTime } from './useGymTime';
 import {
   MealFormSchema,
   type MealFormValues,
-  defaultMealFormValues,
+  newMealFormValues,
+  kcalFromMacroFields,
+  withMacroKcal,
   mealToFormValues,
   formToAddBody,
   formToUpdateBody,
@@ -36,7 +39,7 @@ export function MealModal({ date, meal, gymTime, onClose, onSaved }: MealModalPr
 
   const form = useForm<MealFormValues>({
     resolver: zodResolver(MealFormSchema),
-    defaultValues: meal ? mealToFormValues(meal) : defaultMealFormValues,
+    defaultValues: meal ? mealToFormValues(meal) : newMealFormValues(),
   });
 
   const selectedType = form.watch('mealType');
@@ -44,6 +47,8 @@ export function MealModal({ date, meal, gymTime, onClose, onSaved }: MealModalPr
   // the reason, so pressing Add on a blank description or a negative calorie count simply did
   // nothing and left the user to guess.
   const { errors } = form.formState;
+  // Calories left blank with macros filled: show what they add up to (and save that figure).
+  const macroKcal = kcalFromMacroFields(form.watch());
   // Same ordering rule as the weekly menu's rows and the Today card, so a morning trainer meets
   // pre-workout in the same place everywhere rather than at the end of this one list.
   const mealTypes = mealOrder(useGymTime(gymTime));
@@ -56,7 +61,8 @@ export function MealModal({ date, meal, gymTime, onClose, onSaved }: MealModalPr
     form.reset({ ...mealToFormValues(suggestion), notes: form.getValues('notes') });
   }
 
-  async function handleSubmit(values: MealFormValues) {
+  async function handleSubmit(formValues: MealFormValues) {
+    const values = withMacroKcal(formValues);
     if (isEdit) {
       await apiFetch(`/api/calories/meals/${meal.mealId}`, {
         method: 'PATCH',
@@ -73,7 +79,9 @@ export function MealModal({ date, meal, gymTime, onClose, onSaved }: MealModalPr
 
   return (
     <Modal
-      title={isEdit ? 'Edit Meal' : 'Add Meal'}
+      title={
+        isEdit ? 'Edit Meal' : date === dateToString(new Date()) ? 'Add Meal' : `Add Meal · ${formatDateLabel(date)}`
+      }
       onClose={onClose}
       onSubmit={form.handleSubmit(handleSubmit)}
       submitLabel={isEdit ? 'Save' : 'Add'}
@@ -178,6 +186,12 @@ export function MealModal({ date, meal, gymTime, onClose, onSaved }: MealModalPr
             <Input {...form.register('notes')} placeholder="optional" variant="ghost" className="w-full text-[13px]" />
           </FieldCard>
         </div>
+
+        {macroKcal !== null && (
+          <p className="text-[11px] text-[var(--muted)]">
+            ≈ {macroKcal} kcal from the macros — saved as the calories unless you enter them.
+          </p>
+        )}
       </form>
     </Modal>
   );

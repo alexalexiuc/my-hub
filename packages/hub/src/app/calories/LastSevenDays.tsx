@@ -1,0 +1,124 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { apiFetch, cn } from '@/lib/utils';
+import { Card } from '@/components';
+import { CalendarIcon } from '@/components/icons';
+import { CalendarResponseSchema } from '@/app/api/calories/calendar/calendar.schemas';
+import { DayTargetStatuses } from '@my-hub/shared/constants';
+import { dateToString, dayTargetStatus, shiftDateStr, summariseTargetAdherence } from '@my-hub/shared/utils';
+import { dayStatusColor } from './calories.utils';
+import { mealEvents } from './mealEvents';
+import type { CalendarDay } from './calendar/types';
+
+type LastSevenDaysProps = {
+  /** Daily protein goal in grams, for the protein-hit count. */
+  proteinGoalG: number | null;
+  /**
+   * On Progress the card opens the month calendar instead of linking to Progress: given, the
+   * card ends in a "View month calendar" button and is no longer a link.
+   */
+  onOpenMonth?: () => void;
+};
+
+/** How far back the streak is counted. A month covers any streak worth celebrating on this card. */
+const STREAK_LOOKBACK_DAYS = 30;
+
+/**
+ * The week so far as seven coloured dots plus the current streak — the daily habit signal on the
+ * page you land on, linking through to the month on Progress. Today's dot stays neutral: the day
+ * isn't over, and reading it as "under" at breakfast would be wrong.
+ */
+export function LastSevenDays({ proteinGoalG, onOpenMonth }: LastSevenDaysProps) {
+  const [days, setDays] = useState<CalendarDay[] | null>(null);
+  const today = dateToString(new Date());
+
+  const load = useCallback(() => {
+    apiFetch('/api/calories/calendar', {
+      query: { dateFrom: shiftDateStr(today, -(STREAK_LOOKBACK_DAYS - 1)), dateTo: today },
+      responseSchema: CalendarResponseSchema,
+      silentToast: true,
+    })
+      .then(data => setDays(data.days))
+      .catch(() => undefined);
+  }, [today]);
+
+  useEffect(() => {
+    load();
+    mealEvents.on('changed', load);
+    return () => mealEvents.off('changed', load);
+  }, [load]);
+
+  if (!days) return null;
+
+  const week = days.slice(-7);
+  const summary = summariseTargetAdherence(days, today, proteinGoalG);
+  const finishedWeek = week.filter(d => d.date < today && d.mealCount > 0);
+  const onTargetThisWeek = finishedWeek.filter(d => dayTargetStatus(d) === DayTargetStatuses.OnTarget).length;
+
+  const content = (
+    <>
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Last 7 days</span>
+        {summary.currentStreak > 0 && (
+          <span className="text-xs font-semibold text-[var(--accent)]">{summary.currentStreak}-day streak</span>
+        )}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {week.map(day => {
+          const isToday = day.date === today;
+          const status = dayTargetStatus(day);
+          const color = dayStatusColor(status);
+          const label = new Date(`${day.date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short' });
+          return (
+            <div key={day.date} className="flex flex-col items-center gap-1">
+              <span
+                title={`${label}: ${Math.round(day.kcal)} kcal`}
+                className={cn(
+                  'size-7 rounded-full border-[1.5px]',
+                  isToday ? 'border-dashed border-[var(--muted)]' : 'border-solid',
+                )}
+                style={
+                  isToday
+                    ? undefined
+                    : { borderColor: color, backgroundColor: `color-mix(in srgb, ${color} 22%, transparent)` }
+                }
+              />
+              <span className={cn('text-[10px]', isToday ? 'font-bold text-[var(--accent)]' : 'text-[var(--subtle)]')}>
+                {label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-[11px] text-[var(--muted)]">
+        {finishedWeek.length > 0
+          ? `${onTargetThisWeek} of ${finishedWeek.length} logged days on target${onOpenMonth ? '' : ' · see the month →'}`
+          : `Log a few days to see how you track${onOpenMonth ? '' : ' · open Progress →'}`}
+      </p>
+    </>
+  );
+
+  if (onOpenMonth) {
+    return (
+      <Card compact className="flex flex-col gap-3 p-4">
+        {content}
+        <button
+          type="button"
+          onClick={onOpenMonth}
+          className="flex min-h-[44px] items-center justify-center gap-2 rounded-[10px] border border-[var(--accent)] text-sm font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent-d)]"
+        >
+          <CalendarIcon className="size-4" />
+          View month calendar
+        </button>
+      </Card>
+    );
+  }
+
+  return (
+    <Link href="/calories/progress" className="block no-underline" aria-label="Last 7 days — open Progress">
+      <Card className="flex flex-col gap-3 p-4 transition-colors hover:border-[var(--accent)]">{content}</Card>
+    </Link>
+  );
+}

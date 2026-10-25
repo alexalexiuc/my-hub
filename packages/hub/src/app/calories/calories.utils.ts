@@ -1,5 +1,5 @@
 import type { MealLog } from '@my-hub/shared/types';
-import type { MealType } from '@my-hub/shared/constants';
+import { DayTargetStatuses, type DayTargetStatus, type MealType } from '@my-hub/shared/constants';
 import {
   buildWeightTrend,
   dailyGoalDeltaKg,
@@ -416,4 +416,50 @@ export function sortSuggestionsForMealType<T extends { mealType: MealType }>(
   mealType: MealType,
 ): T[] {
   return [...suggestions.filter(s => s.mealType === mealType), ...suggestions.filter(s => s.mealType !== mealType)];
+}
+
+export interface MealTotals {
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+/** A day's logged totals — kcal summed as stored, macros rounded to whole grams for display. */
+export function sumMealTotals(meals: Pick<MealLog, 'kcal' | 'protein' | 'carbs' | 'fat'>[]): MealTotals {
+  const sum = (pick: (m: (typeof meals)[number]) => number | null) => meals.reduce((s, m) => s + (pick(m) ?? 0), 0);
+  return {
+    kcal: sum(m => m.kcal),
+    protein: Math.round(sum(m => m.protein)),
+    carbs: Math.round(sum(m => m.carbs)),
+    fat: Math.round(sum(m => m.fat)),
+  };
+}
+
+/** Theme colour for a day's target verdict — the same palette as `intakeBarColor`. */
+export function dayStatusColor(status: DayTargetStatus): string {
+  if (status === DayTargetStatuses.OnTarget) return 'var(--green)';
+  if (status === DayTargetStatuses.Over) return 'var(--red)';
+  if (status === DayTargetStatuses.Under) return 'var(--accent)';
+  if (status === DayTargetStatuses.NoTarget) return 'var(--subtle)';
+  return 'var(--border)';
+}
+
+/** A quick-pick chip: a recent or pinned meal, flagged with its favourite id when pinned. */
+export type QuickPickMeal<T> = T & { favouriteId: number | null };
+
+/**
+ * The log-a-meal quick-pick row: pinned meals first (in pin order), then recent meals that aren't
+ * already pinned. Descriptions are compared case-insensitively, the same way recent meals are
+ * deduplicated, so a pinned dish never shows twice.
+ */
+export function mergeFavouritesWithRecent<T extends { description: string }>(
+  favourites: (T & { id: number })[],
+  recent: T[],
+): QuickPickMeal<T>[] {
+  const pinned = new Set(favourites.map(f => f.description.toLowerCase()));
+  return [
+    ...favourites.map(({ id, ...rest }) => ({ ...(rest as unknown as T), favouriteId: id })),
+    ...recent.filter(r => !pinned.has(r.description.toLowerCase())).map(r => ({ ...r, favouriteId: null })),
+  ];
 }

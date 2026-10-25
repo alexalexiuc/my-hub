@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card } from '@/components';
 import { MACRO_COLORS } from './constants';
@@ -22,9 +23,17 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
   const { proteinCal, carbsCal, fatCal, total } = macroCalorieSplit(protein, carbs, fat);
 
   const data = [
-    { name: 'Carbs', value: carbsCal, grams: carbs, goal: goalCarbs, color: MACRO_COLORS.carbs },
-    { name: 'Protein', value: proteinCal, grams: protein, goal: goalProtein, color: MACRO_COLORS.protein },
-    { name: 'Fat', value: fatCal, grams: fat, goal: goalFat, color: MACRO_COLORS.fat },
+    { name: 'Carbs', value: carbsCal, grams: carbs, goal: goalCarbs, color: MACRO_COLORS.carbs, goalIsFloor: false },
+    // Protein's goal is a floor to reach; carbs and fat goals are caps not to pass.
+    {
+      name: 'Protein',
+      value: proteinCal,
+      grams: protein,
+      goal: goalProtein,
+      color: MACRO_COLORS.protein,
+      goalIsFloor: true,
+    },
+    { name: 'Fat', value: fatCal, grams: fat, goal: goalFat, color: MACRO_COLORS.fat, goalIsFloor: false },
   ];
 
   const pct = (val: number) => pctOfTotal(val, total);
@@ -34,7 +43,7 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
       <h2 className="mb-4 text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Macro split</h2>
       {total === 0 ? (
         <div className="flex h-32 items-center justify-center">
-          <p className="text-sm text-[var(--subtle)]">No macro data logged today</p>
+          <p className="text-sm text-[var(--subtle)]">No macros logged for this day</p>
         </div>
       ) : (
         <div className="flex items-center gap-4">
@@ -80,8 +89,9 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
           {/* Legend */}
           <div className="flex-1 space-y-3">
             {data.map(entry => {
-              const exceeded = entry.goal !== null && entry.grams > entry.goal;
-              const barColor = exceeded ? '#b91c1c' : entry.color; // red-700 when over
+              const reachedFloor = entry.goalIsFloor && entry.goal !== null && entry.grams >= entry.goal;
+              const exceeded = !entry.goalIsFloor && entry.goal !== null && entry.grams > entry.goal;
+              const barColor = exceeded ? 'var(--red)' : reachedFloor ? 'var(--green)' : entry.color;
               return (
                 <div key={entry.name} className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: barColor }} />
@@ -89,7 +99,14 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
                     <div className="flex items-baseline justify-between">
                       <span className="text-xs text-[var(--muted)]">{entry.name}</span>
                       <span
-                        className={`text-xs ${exceeded ? 'text-[var(--red)] font-medium' : 'text-[var(--subtle)]'}`}
+                        className={cn(
+                          'text-xs',
+                          exceeded
+                            ? 'font-medium text-[var(--red)]'
+                            : reachedFloor
+                              ? 'font-medium text-[var(--green)]'
+                              : 'text-[var(--subtle)]',
+                        )}
                       >
                         {entry.goal !== null ? `${entry.grams}g / ${entry.goal}g` : `${pct(entry.value)}%`}
                       </span>

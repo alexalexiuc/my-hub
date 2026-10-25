@@ -1,6 +1,7 @@
 import { route } from '@/lib/api/route';
 import {
   deleteAllUserMeals,
+  deleteAllUserFavouriteMeals,
   deleteAllUserMeasurements,
   deleteAllUserCalorieProfiles,
   deleteAllUserOAuthClients,
@@ -35,6 +36,7 @@ export const POST = route(async ({ user }) => {
 
   const [
     meals,
+    favouriteMeals,
     measurements,
     calorieProfiles,
     oauthRefreshTokens,
@@ -57,6 +59,7 @@ export const POST = route(async ({ user }) => {
     vacation,
   ] = await Promise.all([
     deleteAllUserMeals(user.id),
+    deleteAllUserFavouriteMeals(user.id),
     deleteAllUserMeasurements(user.id),
     deleteAllUserCalorieProfiles(user.id),
     deleteAllUserOAuthRefreshTokens(user.id),
@@ -82,6 +85,7 @@ export const POST = route(async ({ user }) => {
   return {
     results: {
       meals,
+      favouriteMeals,
       measurements,
       calorieProfiles,
       oauthRefreshTokens,

@@ -72,8 +72,9 @@ test.describe('Calories — Today page', () => {
 
     await openAddMealModal(page);
 
-    // The chip carries the dish and its calorie count, so match on the description alone.
-    const suggestion = page.getByRole('button', { name: new RegExp(previous) });
+    // The chip carries the dish and its calorie count, so match on the description alone —
+    // anchored, since the chip's favourite star is labelled "Pin <dish> to favourites".
+    const suggestion = page.getByRole('button', { name: new RegExp(`^${previous}`) });
     await expect(suggestion).toBeVisible();
     await suggestion.click();
 

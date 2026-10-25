@@ -69,7 +69,7 @@ export function CreateMenuMealEditor({
             <button
               type="button"
               onClick={() => onRemoveRow(row.id)}
-              className="text-[var(--muted)] hover:text-red-400 transition-colors shrink-0"
+              className="text-[var(--muted)] hover:text-[var(--red)] transition-colors shrink-0"
               aria-label="Remove meal"
             >
               <TrashOutlineIcon className="w-4 h-4" />

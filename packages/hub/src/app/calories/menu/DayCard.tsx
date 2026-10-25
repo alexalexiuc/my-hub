@@ -118,8 +118,8 @@ export function DayCard({
         isFlat ? 'gap-0' : 'gap-3 rounded-xl border p-4',
         isToday
           ? isFlat
-            ? 'bg-green-500/5'
-            : 'border-green-500/60 bg-green-500/5'
+            ? 'bg-[var(--green-d)]'
+            : 'border-[var(--green)] bg-[var(--green-d)]'
           : isFuture
             ? cn(isFlat ? '' : 'border-[var(--border)]', 'bg-[var(--card2)] opacity-50')
             : cn(isFlat ? '' : 'border-[var(--border)]', 'bg-[var(--card2)]'),
@@ -129,7 +129,7 @@ export function DayCard({
         {/* Day header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <span className={`text-sm font-bold ${isToday ? 'text-green-400' : 'text-[var(--text)]'}`}>
+            <span className={`text-sm font-bold ${isToday ? 'text-[var(--green)]' : 'text-[var(--text)]'}`}>
               {DAY_LABELS[day]}
             </span>
             {isGymDay && <DumbbellIcon className="size-3.5 text-[var(--accent)]" title="Gym day" />}
@@ -230,7 +230,7 @@ export function DayCard({
               onClick={() => void toggleLogAll(false)}
               loading={loggingAll}
               title="Undo — I didn't eat this day's meals"
-              className="w-full rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs font-medium text-green-400 hover:border-red-400/50 hover:text-red-400"
+              className="w-full rounded-lg border border-[var(--green)] bg-[var(--green-d)] px-3 py-2 text-xs font-medium text-[var(--green)] hover:border-[var(--red)] hover:text-[var(--red)]"
             >
               ✓ Full day logged
             </Button>

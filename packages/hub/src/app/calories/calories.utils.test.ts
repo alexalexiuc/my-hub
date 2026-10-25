@@ -14,6 +14,9 @@ import {
   gramsToPct,
   computeMacroSummary,
   sortSuggestionsForMealType,
+  sumMealTotals,
+  dayStatusColor,
+  mergeFavouritesWithRecent,
 } from './calories.utils';
 import type { MealLog } from '@my-hub/shared/types';
 import { dateToString, shiftDateStr } from '@my-hub/shared/utils';
@@ -617,5 +620,39 @@ describe('sortSuggestionsForMealType', () => {
   it('preserves recency order within each group', () => {
     const [first, second] = sortSuggestionsForMealType(suggestions, MealTypes.Breakfast);
     expect([first?.description, second?.description]).toEqual(['Oats', 'Eggs']);
+  });
+});
+
+describe('sumMealTotals', () => {
+  it('sums kcal and rounds macros, treating missing values as zero', () => {
+    expect(
+      sumMealTotals([
+        { kcal: 500, protein: 30.4, carbs: 60, fat: null },
+        { kcal: null, protein: 10.3, carbs: 0, fat: 12.6 },
+      ]),
+    ).toEqual({ kcal: 500, protein: 41, carbs: 60, fat: 13 });
+  });
+});
+
+describe('dayStatusColor', () => {
+  it('colours a verdict the way the intake bars do', () => {
+    expect(dayStatusColor('on_target')).toBe('var(--green)');
+    expect(dayStatusColor('over')).toBe('var(--red)');
+    expect(dayStatusColor('under')).toBe('var(--accent)');
+    expect(dayStatusColor('not_logged')).toBe('var(--border)');
+  });
+});
+
+describe('mergeFavouritesWithRecent', () => {
+  it('leads with favourites and drops recent meals already pinned, ignoring case', () => {
+    const merged = mergeFavouritesWithRecent(
+      [{ id: 3, description: 'Greek yogurt' }],
+      [{ description: 'greek yogurt' }, { description: 'Oats' }],
+    );
+
+    expect(merged).toEqual([
+      { description: 'Greek yogurt', favouriteId: 3 },
+      { description: 'Oats', favouriteId: null },
+    ]);
   });
 });

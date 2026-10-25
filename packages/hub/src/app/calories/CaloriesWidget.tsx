@@ -2,10 +2,18 @@
 
 import { FeatureTheme } from '@/components';
 import { useState, useEffect, useCallback } from 'react';
-import { dateToString, calculateMacroKcal, dayCalorieTargets, latestWeightKg } from '@my-hub/shared/utils';
+import {
+  dateToString,
+  calculateMacroKcal,
+  dayCalorieTargets,
+  latestWeightKg,
+  shiftDateStr,
+  summariseTargetAdherence,
+} from '@my-hub/shared/utils';
 import { SectionCard } from '@/components';
 import { PlusOutlineIcon, ScaleIcon } from '@/components/icons';
 import { apiFetch } from '@/lib/utils';
+import { CalendarResponseSchema } from '@/app/api/calories/calendar/calendar.schemas';
 import { CaloriesDonut } from './CaloriesDonut';
 import { MealModal } from './MealModal';
 import { MeasurementModal } from './MeasurementModal';
@@ -38,27 +46,33 @@ function MacroBar({
   const barPct = goal !== null && goal > 0 ? Math.min(100, Math.round((value / goal) * 100)) : sharePct;
   return (
     <div className="flex-1 text-center">
-      <p className="text-xs text-zinc-500 mb-1">{label}</p>
+      <p className="text-xs text-[var(--muted)] mb-1">{label}</p>
       {goal !== null && goal > 0 ? (
         <p className="text-sm font-semibold">
           {reached ? (
-            <span className="text-green-400">✓</span>
+            <span className="text-[var(--green)]">✓</span>
           ) : (
             <>
               {value}
-              <span className="text-xs font-normal text-zinc-500">/{goal}g</span>
+              <span className="text-xs font-normal text-[var(--muted)]">/{goal}g</span>
             </>
           )}
         </p>
       ) : (
         <p className="text-sm font-semibold">{value}g</p>
       )}
-      <div className="mt-1 h-1 w-full rounded-full bg-zinc-800 overflow-hidden">
-        <div className={`h-full rounded-full ${reached ? 'bg-green-400' : color}`} style={{ width: `${barPct}%` }} />
+      <div className="mt-1 h-1 w-full rounded-full bg-[var(--card2)] overflow-hidden">
+        <div
+          className={`h-full rounded-full ${reached ? 'bg-[var(--green)]' : color}`}
+          style={{ width: `${barPct}%` }}
+        />
       </div>
     </div>
   );
 }
+
+/** How far back the streak is counted — matches the Today tab's "Last 7 days" card. */
+const STREAK_LOOKBACK_DAYS = 30;
 
 export function CaloriesWidget() {
   const [loading, setLoading] = useState(true);
@@ -69,6 +83,7 @@ export function CaloriesWidget() {
   const [gymTime, setGymTime] = useState<GymTime | null>(null);
   const [macros, setMacros] = useState<Macros>({ protein: 0, carbs: 0, fat: 0 });
   const [macroGoals, setMacroGoals] = useState<Macros | null>(null);
+  const [streak, setStreak] = useState(0);
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [showAddWeight, setShowAddWeight] = useState(false);
 
@@ -76,11 +91,16 @@ export function CaloriesWidget() {
     if (!silent) setLoading(true);
     try {
       const today = dateToString(new Date());
-      const [profileData, mealsData] = await Promise.all([
+      const [profileData, mealsData, calendarData] = await Promise.all([
         apiFetch<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>(
           '/api/calories/profile',
         ).catch(() => null),
         apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date: today, limit: 200 } }).catch(() => null),
+        apiFetch('/api/calories/calendar', {
+          query: { dateFrom: shiftDateStr(today, -(STREAK_LOOKBACK_DAYS - 1)), dateTo: today },
+          responseSchema: CalendarResponseSchema,
+          silentToast: true,
+        }).catch(() => null),
       ]);
 
       const profile: CalorieProfile | null = profileData?.profile ?? null;
@@ -98,6 +118,7 @@ export function CaloriesWidget() {
       // showing today's target, and it used to omit the gym-day bonus the others apply.
       const { target, min } = dayCalorieTargets(profile, latestWeightKg(measurements), today);
 
+      setStreak(calendarData ? summariseTargetAdherence(calendarData.days, today, null).currentStreak : 0);
       setTodayKcal(kcal);
       setTodayTarget(target);
       setMinCalories(min);
@@ -164,7 +185,7 @@ export function CaloriesWidget() {
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setShowAddWeight(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-[var(--text)] border border-[var(--border)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all"
               aria-label="Log weight"
               title="Log weight"
             >
@@ -173,7 +194,7 @@ export function CaloriesWidget() {
             </button>
             <button
               onClick={() => setShowAddMeal(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 border border-zinc-700 hover:border-zinc-500 hover:text-white hover:bg-zinc-700/60 transition-all"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-[var(--text)] border border-[var(--border)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all"
               aria-label="Log meal"
               title="Log meal"
             >
@@ -185,24 +206,24 @@ export function CaloriesWidget() {
       >
         {loading ? (
           <div className="space-y-3 animate-pulse">
-            <div className="mx-auto w-[140px] h-[140px] rounded-full bg-zinc-800" />
-            <div className="h-4 w-24 mx-auto bg-zinc-800 rounded" />
-            <div className="flex gap-4 pt-3 border-t border-zinc-800">
-              <div className="flex-1 h-8 bg-zinc-800 rounded" />
-              <div className="flex-1 h-8 bg-zinc-800 rounded" />
-              <div className="flex-1 h-8 bg-zinc-800 rounded" />
+            <div className="mx-auto w-[140px] h-[140px] rounded-full bg-[var(--card2)]" />
+            <div className="h-4 w-24 mx-auto bg-[var(--card2)] rounded" />
+            <div className="flex gap-4 pt-3 border-t border-[var(--border)]">
+              <div className="flex-1 h-8 bg-[var(--card2)] rounded" />
+              <div className="flex-1 h-8 bg-[var(--card2)] rounded" />
+              <div className="flex-1 h-8 bg-[var(--card2)] rounded" />
             </div>
           </div>
         ) : (
           <div className="flex flex-col items-center">
             <CaloriesDonut eaten={todayKcal} cap={cap} min={minCalories} innerRadius={45} />
 
-            <p className="text-sm text-zinc-400">
-              <span className="font-semibold text-zinc-200">{todayKcal}</span>
+            <p className="text-sm text-[var(--muted)]">
+              <span className="font-semibold text-[var(--text)]">{todayKcal}</span>
               {cap !== null && (
                 <>
                   {' '}
-                  <span className="text-zinc-600">/</span> <span>{cap}</span>
+                  <span className="text-[var(--subtle)]">/</span> <span>{cap}</span>
                 </>
               )}{' '}
               kcal
@@ -211,10 +232,10 @@ export function CaloriesWidget() {
               <p
                 className={`text-xs mt-1 ${
                   cap !== null && todayKcal > cap
-                    ? 'text-red-400'
+                    ? 'text-[var(--red)]'
                     : minCalories !== null && todayKcal < minCalories
-                      ? 'text-yellow-400'
-                      : 'text-zinc-500'
+                      ? 'text-[var(--amber)]'
+                      : 'text-[var(--muted)]'
                 }`}
               >
                 {minCalories !== null && cap !== null
@@ -224,17 +245,23 @@ export function CaloriesWidget() {
                     : `Target: ${cap} kcal`}
               </p>
             )}
+            {streak > 1 && (
+              <p className="mt-1 text-xs font-semibold text-[var(--accent)]">{streak}-day streak on target</p>
+            )}
             {cap === null && (
-              <p className="text-xs text-zinc-500 mt-1">
+              <p className="text-xs text-[var(--muted)] mt-1">
                 No goal set.{' '}
-                <a href="/calories/settings" className="text-zinc-400 underline underline-offset-2 hover:text-zinc-200">
+                <a
+                  href="/calories/settings"
+                  className="text-[var(--muted)] underline underline-offset-2 hover:text-[var(--text)]"
+                >
                   Complete your profile
                 </a>
                 .
               </p>
             )}
 
-            <div className="flex gap-4 w-full mt-4 pt-3 border-t border-zinc-800">
+            <div className="flex gap-4 w-full mt-4 pt-3 border-t border-[var(--border)]">
               <MacroBar
                 label="Carbs"
                 value={macros.carbs}

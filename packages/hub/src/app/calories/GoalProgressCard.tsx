@@ -3,9 +3,9 @@
 import { useMemo, useState } from 'react';
 import { ComposedChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import type { TooltipContentProps, TooltipPayloadEntry } from 'recharts';
-import { Card, ProgressBar } from '@/components';
+import { Card, ConfirmModal, ProgressBar } from '@/components';
 import { GoalTypes } from '@my-hub/shared/constants';
-import { formatSigned, isAheadOfGoal } from '@my-hub/shared/utils';
+import { dateToString, formatSigned, isAheadOfGoal, shiftDateStr } from '@my-hub/shared/utils';
 import {
   buildGoalProgressView,
   formatAxisDate,
@@ -14,7 +14,7 @@ import {
   type GoalProgressView,
   type WeightPoint,
 } from './calories.utils';
-import { DEFAULT_GOAL_RANGE, GOAL_RANGE_KEYS, WEIGHT_RANGE_OPTIONS, type WeightRangeKey } from './constants';
+import { DEFAULT_GOAL_RANGE, WEIGHT_RANGE_OPTIONS, type WeightRangeKey } from './constants';
 import { RangeChips } from './ui';
 
 type GoalProgressCardProps = {
@@ -101,16 +101,14 @@ export function GoalProgressCard({
   canReset,
 }: GoalProgressCardProps) {
   const [range, setRange] = useState<WeightRangeKey>(DEFAULT_GOAL_RANGE);
-
-  const rangeOptions = useMemo(() => WEIGHT_RANGE_OPTIONS.filter(option => GOAL_RANGE_KEYS.includes(option.key)), []);
+  const [confirmingReset, setConfirmingReset] = useState(false);
 
   const view = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    // Local dates, like every other calories surface: the UTC date ends the window a day early
+    // for the first hours after local midnight in any positive-offset timezone.
+    const today = dateToString(new Date());
     const days = WEIGHT_RANGE_OPTIONS.find(o => o.key === range)?.days ?? null;
-    const windowStart =
-      days === null
-        ? (goalStartDate ?? '0000-01-01')
-        : new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+    const windowStart = days === null ? (goalStartDate ?? '0000-01-01') : shiftDateStr(today, -days);
 
     return buildGoalProgressView({
       weightHistory,
@@ -127,14 +125,14 @@ export function GoalProgressCard({
 
   const header = (
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Goal progress</h2>
-      <RangeChips options={rangeOptions} value={range} onChange={setRange} ariaLabel="Goal progress range" />
+      <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Weight & goal</h2>
+      <RangeChips options={WEIGHT_RANGE_OPTIONS} value={range} onChange={setRange} ariaLabel="Weight and goal range" />
     </div>
   );
 
   if (!view) {
     return (
-      <Card className="p-5">
+      <Card compact className="p-5">
         {header}
         <p className="text-xs text-[var(--subtle)]">
           {goalWeeklyRateKg ? 'No weigh-ins in this range yet.' : 'Set a weekly goal rate to track progress.'}
@@ -151,7 +149,7 @@ export function GoalProgressCard({
   const axisWidth = Math.max(40, domain[1].toFixed(1).length * 8 + 14);
 
   return (
-    <Card className="p-5">
+    <Card compact className="p-5">
       {header}
 
       <div className="mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -295,11 +293,23 @@ export function GoalProgressCard({
         {canReset && (
           <button
             type="button"
-            onClick={onResetBaseline}
+            onClick={() => setConfirmingReset(true)}
             className="rounded-md border border-[var(--border)] px-2 py-1 text-[11px] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
           >
-            Restart from today
+            Restart from today…
           </button>
+        )}
+        {confirmingReset && (
+          <ConfirmModal
+            title="Restart goal from today?"
+            message="The goal line will start again from today at your latest weigh-in. Progress so far stops counting toward this goal."
+            confirmLabel="Restart"
+            onConfirm={() => {
+              setConfirmingReset(false);
+              onResetBaseline();
+            }}
+            onCancel={() => setConfirmingReset(false)}
+          />
         )}
       </div>
     </Card>

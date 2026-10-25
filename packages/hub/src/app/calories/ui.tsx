@@ -1,5 +1,6 @@
 import type React from 'react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 /**
  * Prev/next stepper for a period of time, shared by the reports tabs and the progress week view.
@@ -102,3 +103,29 @@ export function FieldCard({
     </label>
   );
 }
+
+/** The loading line every Calories page shows while its first fetch is in flight. */
+export function PageLoading() {
+  return (
+    <main className="mx-auto max-w-2xl py-6">
+      <div className="text-[var(--muted)]">Loading…</div>
+    </main>
+  );
+}
+
+/** A page's load error, with a sign-in link when the error is a missing session. */
+export function PageError({ error }: { error: string }) {
+  return (
+    <main className="mx-auto max-w-2xl py-6">
+      <p className="text-[var(--red)]">{error}</p>
+      {error === NOT_SIGNED_IN && (
+        <Link href="/auth/signin" className="mt-2 inline-block text-[var(--accent)] underline">
+          Sign in
+        </Link>
+      )}
+    </main>
+  );
+}
+
+/** The message pages set for a 401, which `PageError` turns into a sign-in link. */
+export const NOT_SIGNED_IN = 'Not signed in';

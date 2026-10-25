@@ -8,7 +8,7 @@ import { Button, Card } from '@/components';
 import { AnimatedCheckIcon, UtensilsOutlineIcon } from '@/components/icons';
 import { TodayPlanResponseSchema } from '@/app/api/calories/menu/menu.schemas';
 import { mealOrder } from '@my-hub/shared/utils';
-import type { GymTime, MealType } from '@my-hub/shared/constants';
+import type { GymTime } from '@my-hub/shared/constants';
 import type { MealLog } from '@my-hub/shared/types';
 import { MEAL_LABEL } from './constants';
 import { setMealLogged } from './menu/menu.utils';
@@ -19,6 +19,10 @@ type PlannedMeal = z.infer<typeof TodayPlanResponseSchema>['meals'][number];
 type NextMealCardProps = {
   /** The day being viewed, YYYY-MM-DD. */
   date: string;
+  /** The day's logged meals, already fetched by the page. */
+  loggedMeals: MealLog[];
+  /** kcal left under the day's ceiling, or null without a target — says whether the next meal fits. */
+  remainingKcal: number | null;
 };
 
 // How long the drawn checkmark stays up before the card swaps to the next meal. Long enough
@@ -33,14 +37,10 @@ const CHECK_HOLD_MS = 600;
  * Renders nothing when the day has no plan — an empty card would be noise on every day you
  * haven't planned.
  */
-export function NextMealCard({ date }: NextMealCardProps) {
+export function NextMealCard({ date, loggedMeals, remainingKcal }: NextMealCardProps) {
   const [meals, setMeals] = useState<PlannedMeal[]>([]);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [gymTime, setGymTime] = useState<GymTime | null>(null);
-  // Meal types actually logged for the day, from the calorie journal directly — not just the
-  // ones logged against this exact planned dish. A meal logged some other way (the generic
-  // meal-log modal, `calories_log_meal`) fills a slot just as much as clicking "Log it" here does.
-  const [loggedMealTypes, setLoggedMealTypes] = useState<Set<MealType>>(new Set());
   const [logging, setLogging] = useState(false);
   // The just-logged meal's display info, frozen for the checkmark hold so the card doesn't
   // jump to the next meal before the "logged" animation has had a chance to play.
@@ -56,25 +56,20 @@ export function NextMealCard({ date }: NextMealCardProps) {
 
   const load = useCallback(() => {
     const requested = date;
-    Promise.all([
-      apiFetch('/api/calories/menu/today', {
-        query: { date: requested },
-        responseSchema: TodayPlanResponseSchema,
-      }),
-      apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date: requested }, silentToast: true }),
-    ])
-      .then(([plan, loggedRes]) => {
+    apiFetch('/api/calories/menu/today', {
+      query: { date: requested },
+      responseSchema: TodayPlanResponseSchema,
+    })
+      .then(plan => {
         if (shownDateRef.current !== requested) return;
         setMenuId(plan.menuId);
         setMeals(plan.meals);
         setGymTime(plan.gymTime);
-        setLoggedMealTypes(new Set(loggedRes.meals.map(m => m.mealType)));
       })
       .catch(() => {
         if (shownDateRef.current !== requested) return;
         setMenuId(null);
         setMeals([]);
-        setLoggedMealTypes(new Set());
       });
   }, [date]);
 
@@ -91,6 +86,11 @@ export function NextMealCard({ date }: NextMealCardProps) {
   }, [load]);
 
   if (!frozen && (!menuId || meals.length === 0)) return null;
+
+  // Meal types actually logged for the day, from the calorie journal directly — not just the
+  // ones logged against this exact planned dish. A meal logged some other way (the generic
+  // meal-log modal, `calories_log_meal`) fills a slot just as much as clicking "Log it" here does.
+  const loggedMealTypes = new Set(loggedMeals.map(m => m.mealType));
 
   const order = mealOrder(gymTime);
   const ordered = [...meals].sort((a, b) => order.indexOf(a.mealType) - order.indexOf(b.mealType));
@@ -142,6 +142,13 @@ export function NextMealCard({ date }: NextMealCardProps) {
               {meal.kcal != null && (
                 <p className="text-[10px] text-[var(--subtle)] mt-0.5">
                   {meal.kcal} kcal
+                  {!frozen && remainingKcal !== null && (
+                    <span className={cn(meal.kcal > remainingKcal && 'text-[var(--red)]')}>
+                      {meal.kcal <= remainingKcal
+                        ? ` · fits, ${remainingKcal - meal.kcal} left after`
+                        : ` · ${meal.kcal - remainingKcal} over what's left`}
+                    </span>
+                  )}
                   {displayRemaining > 1 && ` · ${displayRemaining - 1} more planned today`}
                 </p>
               )}
@@ -164,7 +171,7 @@ export function NextMealCard({ date }: NextMealCardProps) {
             ) : null}
           </div>
         ) : (
-          <p className="text-sm text-green-400">✓ Everything planned for today is logged.</p>
+          <p className="text-sm text-[var(--green)]">✓ Everything planned for today is logged.</p>
         )}
       </div>
     </Card>
