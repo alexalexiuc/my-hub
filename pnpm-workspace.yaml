@@ -4,3 +4,8 @@ allowBuilds:
   es5-ext: false
   esbuild: true
   sharp: false
+overrides:
+  # airports-data is only used for its airports.json; these are its CLI deps (never run) and pull in
+  # vulnerable csv-parse / yargs-parser / trim-newlines.
+  airports-data>csv-parse: '-'
+  airports-data>meow: '-'
