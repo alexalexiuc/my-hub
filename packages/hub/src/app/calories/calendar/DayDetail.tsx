@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/utils';
 import { Card } from '@/components';
 import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
 import type { MealType, GymTime } from '@my-hub/shared/constants';
-import { DayTargetStatuses, type DayTargetStatus } from '@my-hub/shared/constants';
+import { DayTargetStatuses } from '@my-hub/shared/constants';
 import { dateToString, dayTargetStatus, mealOrder } from '@my-hub/shared/utils';
 import { dayStatusColor, formatDateLabel } from '../calories.utils';
 import { targetPct } from '../menu/menu.utils';
@@ -18,16 +18,6 @@ import { relogMeals } from '../relogMeals';
 import { mealEvents } from '../mealEvents';
 import type { WeeklyMenuMeal } from '../menu/types';
 import type { CalendarDay } from './types';
-
-const STATUS_BAR: Record<DayTargetStatus, { text: string; bg: string }> = {
-  [DayTargetStatuses.OnTarget]: { text: 'text-[var(--green)]', bg: 'bg-[var(--green)]' },
-  [DayTargetStatuses.Over]: { text: 'text-[var(--red)]', bg: 'bg-[var(--red)]' },
-  [DayTargetStatuses.Under]: { text: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]' },
-  [DayTargetStatuses.NotLogged]: { text: 'text-[var(--muted)]', bg: 'bg-[var(--muted)]' },
-  [DayTargetStatuses.NoTarget]: { text: 'text-[var(--muted)]', bg: 'bg-[var(--muted)]' },
-};
-
-const IN_PROGRESS_BAR = { text: 'text-[var(--text)]', bg: 'bg-[var(--subtle)]' };
 
 type PlannedMeal = WeeklyMenuMeal & { logged: boolean };
 
@@ -118,7 +108,7 @@ export function DayDetail({ date, summary, profile }: DayDetailProps) {
   const status = summary ? dayTargetStatus(summary) : DayTargetStatuses.NotLogged;
   // Coloured by the same verdict as the grid cell above it, so the two never disagree. Today has
   // no verdict yet: half the target at lunchtime is progress, not a red "under".
-  const colors = isToday ? IN_PROGRESS_BAR : STATUS_BAR[status];
+  const barColor = isToday ? 'var(--subtle)' : dayStatusColor(status);
 
   const order = mealOrder(gymTime);
   const orderIndex = (mt: MealType) => {
@@ -154,7 +144,7 @@ export function DayDetail({ date, summary, profile }: DayDetailProps) {
             </span>
           )}
         </div>
-        {target !== null && !isFuture && <TargetBar pct={pct} colors={colors} size="sm" />}
+        {target !== null && !isFuture && <TargetBar pct={pct} colors={barColor} size="sm" />}
         {!isFuture && (summary?.mealCount ?? 0) > 0 && (
           <MacroChart
             protein={Math.round(summary?.protein ?? 0)}

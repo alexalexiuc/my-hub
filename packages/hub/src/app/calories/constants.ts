@@ -43,3 +43,6 @@ export const MACRO_COLORS = {
   protein: '#38bdf8', // sky-400
   fat: '#fb7185', // rose-400
 } as const;
+
+/** How far back the current streak is counted — a month covers any streak worth showing. */
+export const STREAK_LOOKBACK_DAYS = 30;

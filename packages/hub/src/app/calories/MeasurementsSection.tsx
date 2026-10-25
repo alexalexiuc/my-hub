@@ -91,54 +91,55 @@ export function MeasurementsSection({ latestMeasurements, measurementTypes, onCh
           </button>
         </div>
 
-        {!open ? null : latestMeasurements.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-[var(--subtle)]">No measurements recorded yet.</p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
-            {latestMeasurements.map(m => (
-              <div
-                key={m.id}
-                className="group relative rounded-xl border border-[var(--border)] bg-[var(--card2)] px-4 py-3"
-              >
-                <p className="text-xs text-[var(--muted)]">{m.typeLabel}</p>
-                <p className="mt-0.5 text-xl font-bold text-[var(--text)]">
-                  {m.value}
-                  <span className="ml-1 text-sm font-normal text-[var(--muted)]">{m.typeUnit}</span>
-                </p>
-                <p className="mt-0.5 text-xs text-[var(--subtle)]">{formatDateLabel(m.date)}</p>
-                {m.entrySource !== 'hub' && (
-                  <span className="mt-1 inline-block rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">
-                    {m.entrySource}
-                  </span>
-                )}
-                {/*
+        {open &&
+          (latestMeasurements.length === 0 ? (
+            <p className="px-5 py-4 text-sm text-[var(--subtle)]">No measurements recorded yet.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
+              {latestMeasurements.map(m => (
+                <div
+                  key={m.id}
+                  className="group relative rounded-xl border border-[var(--border)] bg-[var(--card2)] px-4 py-3"
+                >
+                  <p className="text-xs text-[var(--muted)]">{m.typeLabel}</p>
+                  <p className="mt-0.5 text-xl font-bold text-[var(--text)]">
+                    {m.value}
+                    <span className="ml-1 text-sm font-normal text-[var(--muted)]">{m.typeUnit}</span>
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--subtle)]">{formatDateLabel(m.date)}</p>
+                  {m.entrySource !== 'hub' && (
+                    <span className="mt-1 inline-block rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">
+                      {m.entrySource}
+                    </span>
+                  )}
+                  {/*
                   Visible by default and only hover-gated from `md` up. Revealing these on hover
                   alone left them unreachable on a phone, where there is no hover at all — the
                   entries could be added but never corrected or removed.
                 */}
-                <div className="absolute right-1.5 top-1.5 flex gap-0.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-                  <button
-                    type="button"
-                    onClick={() => setModal(m)}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--subtle)] hover:bg-[var(--card3)] hover:text-[var(--accent)]"
-                    aria-label="Edit measurement"
-                  >
-                    <PencilIcon className="size-3" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDeleteId(m.id)}
-                    disabled={deletingId === m.id}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--subtle)] hover:bg-[var(--card3)] hover:text-[var(--red)]"
-                    aria-label="Delete measurement"
-                  >
-                    <TrashOutlineIcon className="size-3" />
-                  </button>
+                  <div className="absolute right-1.5 top-1.5 flex gap-0.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => setModal(m)}
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--subtle)] hover:bg-[var(--card3)] hover:text-[var(--accent)]"
+                      aria-label="Edit measurement"
+                    >
+                      <PencilIcon className="size-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteId(m.id)}
+                      disabled={deletingId === m.id}
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--subtle)] hover:bg-[var(--card3)] hover:text-[var(--red)]"
+                      aria-label="Delete measurement"
+                    >
+                      <TrashOutlineIcon className="size-3" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          ))}
       </Card>
     </>
   );

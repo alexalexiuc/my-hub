@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { apiFetch, cn } from '@/lib/utils';
 import { StarIcon } from '@/components/icons';
 import type { RecentMealSuggestion } from '@my-hub/shared/services';
 import type { FavouriteMeal } from '@my-hub/shared/types';
 import type { MealType } from '@my-hub/shared/constants';
-import { mergeFavouritesWithRecent, sortSuggestionsForMealType } from './calories.utils';
+import { mergeFavouritesWithRecent, sortSuggestionsForMealType, type QuickPickMeal } from './calories.utils';
 
 type RecentMealChipsProps = {
   /** The meal type currently selected in the form — decides which suggestions lead the row. */
@@ -26,14 +27,8 @@ type RecentMealChipsProps = {
 export function RecentMealChips({ mealType, onPick }: RecentMealChipsProps) {
   const [recent, setRecent] = useState<RecentMealSuggestion[]>([]);
   const [favourites, setFavourites] = useState<FavouriteMeal[]>([]);
-
-  const loadFavourites = useCallback(
-    () =>
-      apiFetch<{ favourites: FavouriteMeal[] }>('/api/calories/meals/favourites', { silentToast: true })
-        .then(data => setFavourites(data.favourites))
-        .catch(() => undefined),
-    [],
-  );
+  // The chip whose star is mid-request — disabled so a double tap can't send the write twice.
+  const [toggling, setToggling] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,36 +37,43 @@ export function RecentMealChips({ mealType, onPick }: RecentMealChipsProps) {
         if (!cancelled) setRecent(data.meals);
       })
       .catch(() => undefined);
-    void loadFavourites();
+    apiFetch<{ favourites: FavouriteMeal[] }>('/api/calories/meals/favourites', { silentToast: true })
+      .then(data => {
+        if (!cancelled) setFavourites(data.favourites);
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [loadFavourites]);
+  }, []);
 
-  async function toggleFavourite(meal: RecentMealSuggestion, favouriteId: number | null) {
-    if (favouriteId !== null) {
-      await apiFetch(`/api/calories/meals/favourites/${favouriteId}`, { method: 'DELETE', silentToast: true });
-    } else {
-      const { description, mealType: type, kcal, protein, carbs, fat } = meal;
-      await apiFetch('/api/calories/meals/favourites', {
+  // The responses carry everything the row needs, so the list is updated in place rather than
+  // refetched — the star responds as soon as the write lands.
+  // silentToast skips the "Saved" toast a star tap doesn't need; failures are reported here instead.
+  async function toggleFavourite(meal: QuickPickMeal) {
+    const { favouriteId, description } = meal;
+    setToggling(description);
+    try {
+      if (favouriteId !== null) {
+        await apiFetch(`/api/calories/meals/favourites/${favouriteId}`, { method: 'DELETE', silentToast: true });
+        setFavourites(current => current.filter(f => f.id !== favouriteId));
+        return;
+      }
+      const { mealType: type, kcal, protein, carbs, fat } = meal;
+      const { favourite } = await apiFetch<{ favourite: FavouriteMeal }>('/api/calories/meals/favourites', {
         method: 'POST',
         body: { description, mealType: type, kcal, protein, carbs, fat },
         silentToast: true,
       });
+      setFavourites(current => [favourite, ...current.filter(f => f.id !== favourite.id)]);
+    } catch {
+      toast.error(favouriteId !== null ? 'Could not unpin that meal' : 'Could not pin that meal');
+    } finally {
+      setToggling(null);
     }
-    await loadFavourites();
   }
 
-  const favouriteSuggestions = favourites.map(({ id, description, mealType: type, kcal, protein, carbs, fat }) => ({
-    id,
-    description,
-    mealType: type,
-    kcal,
-    protein,
-    carbs,
-    fat,
-  }));
-  const chips = mergeFavouritesWithRecent(favouriteSuggestions, sortSuggestionsForMealType(recent, mealType));
+  const chips = mergeFavouritesWithRecent(favourites, sortSuggestionsForMealType(recent, mealType));
   if (chips.length === 0) return null;
 
   return (
@@ -103,7 +105,8 @@ export function RecentMealChips({ mealType, onPick }: RecentMealChipsProps) {
               </button>
               <button
                 type="button"
-                onClick={() => void toggleFavourite(meal, meal.favouriteId)}
+                onClick={() => void toggleFavourite(meal)}
+                disabled={toggling === meal.description}
                 aria-label={pinned ? `Unpin ${meal.description}` : `Pin ${meal.description} to favourites`}
                 aria-pressed={pinned}
                 className={cn(

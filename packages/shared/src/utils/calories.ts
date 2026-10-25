@@ -259,9 +259,11 @@ export interface TargetDayLike {
 /**
  * Judges one day's intake against its own range (from `dayCalorieTargets`). The single owner of
  * the on-target rule, so the month grid, the Today strip and the streak count agree on a day.
+ * A day whose meals carry no calories counts as not logged: there is no intake to judge, and
+ * calling it "under" would penalise a day that was simply logged without numbers.
  */
 export function dayTargetStatus(day: Pick<TargetDayLike, 'kcal' | 'mealCount' | 'target' | 'min'>): DayTargetStatus {
-  if (day.mealCount === 0) return DayTargetStatuses.NotLogged;
+  if (day.mealCount === 0 || day.kcal === 0) return DayTargetStatuses.NotLogged;
   if (day.target === null && day.min === null) return DayTargetStatuses.NoTarget;
   if (day.target !== null && day.kcal > day.target) return DayTargetStatuses.Over;
   if (day.min !== null && day.kcal < day.min) return DayTargetStatuses.Under;
@@ -269,7 +271,7 @@ export function dayTargetStatus(day: Pick<TargetDayLike, 'kcal' | 'mealCount' | 
 }
 
 export interface TargetAdherenceSummary {
-  /** Finished days with at least one meal logged. */
+  /** Finished days with calories logged (see `dayTargetStatus`). */
   loggedDays: number;
   onTargetDays: number;
   /** On-target run ending yesterday; 0 when yesterday wasn't on target or isn't in the data. */
@@ -303,12 +305,13 @@ export function summariseTargetAdherence(
   let proteinHits = 0;
 
   for (const day of finished) {
-    if (day.mealCount > 0) {
+    const status = dayTargetStatus(day);
+    if (status !== DayTargetStatuses.NotLogged) {
       loggedDays += 1;
       kcalSum += day.kcal;
       if (proteinGoalG && day.protein >= proteinGoalG) proteinHits += 1;
     }
-    if (dayTargetStatus(day) === DayTargetStatuses.OnTarget) {
+    if (status === DayTargetStatuses.OnTarget) {
       onTargetDays += 1;
       run += 1;
       bestStreak = Math.max(bestStreak, run);

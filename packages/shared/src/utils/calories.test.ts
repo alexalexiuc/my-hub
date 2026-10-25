@@ -369,6 +369,10 @@ describe('dayTargetStatus', () => {
     expect(dayTargetStatus({ ...day, kcal: 0, mealCount: 0 })).toBe('not_logged');
     expect(dayTargetStatus({ ...day, target: null, min: null })).toBe('no_target');
   });
+
+  it('treats meals logged without calories as not logged, rather than under', () => {
+    expect(dayTargetStatus({ ...day, kcal: 0 })).toBe('not_logged');
+  });
 });
 
 describe('summariseTargetAdherence', () => {

@@ -1,7 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { intakeBarColor, macroCalorieSplit } from '../calories.utils';
+import { dayTargetStatus, formatDayHeadingLong } from '@my-hub/shared/utils';
+import { dayStatusColor, macroCalorieSplit } from '../calories.utils';
 import { MACRO_COLORS } from '../constants';
 import { MenuStatusBadge } from './MenuStatusBadge';
 import { MenuStatusIcon } from './MenuStatusIcon';
@@ -15,26 +16,24 @@ type DayCellProps = {
   summary?: CalendarDay;
   isToday: boolean;
   isPast: boolean;
-  /** The day open in the detail panel below the grid. */
-  isSelected?: boolean;
   onSelect: (date: string) => void;
 };
 
 /**
  * One month-grid cell: the day number and, once meals are logged, the kcal total tinted by the
- * same red/amber/green adherence rule the weekly menu and progress bars use — a day reads the
- * same way whichever tab it's judged from.
+ * day's `dayTargetStatus` verdict through `dayStatusColor` — the same colour the seven-day dots,
+ * the legend and the day detail's bar use, so a day reads the same wherever it appears.
  *
  * Desktop and mobile render genuinely different layouts rather than the same content resized: a
  * square desktop cell only has room for a thin macro bar and a small corner badge, while a taller
  * mobile cell shows the kcal alone with a bigger status icon.
  */
-export function DayCell({ day, summary, isToday, isPast, isSelected = false, onSelect }: DayCellProps) {
+export function DayCell({ day, summary, isToday, isPast, onSelect }: DayCellProps) {
   const kcal = summary?.kcal ?? 0;
   const hasData = (summary?.mealCount ?? 0) > 0;
   // Today stays neutral until it's over: tinting it red/amber at breakfast reads as a verdict
   // on a day that hasn't finished.
-  const color = isToday ? 'var(--text)' : intakeBarColor(kcal, summary?.min ?? null, summary?.target ?? null);
+  const color = isToday || !summary ? 'var(--text)' : dayStatusColor(dayTargetStatus(summary));
   const dayNum = Number(day.date.slice(-2));
   const {
     proteinCal,
@@ -58,12 +57,11 @@ export function DayCell({ day, summary, isToday, isPast, isSelected = false, onS
       type="button"
       onClick={() => onSelect(day.date)}
       aria-haspopup="dialog"
-      aria-label={`${new Date(`${day.date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}${hasData ? `, ${Math.round(kcal)} kcal` : ''}`}
+      aria-label={`${formatDayHeadingLong(day.date)}${hasData ? `, ${Math.round(kcal)} kcal` : ''}`}
       className={cn(
         'relative flex flex-col items-center rounded-lg border text-center transition-colors',
         day.inMonth ? 'border-[var(--border)] bg-[var(--card2)]' : 'border-transparent bg-transparent opacity-40',
         isToday && 'border-dashed border-[var(--accent)]',
-        isSelected && 'ring-2 ring-[var(--text)] ring-offset-1 ring-offset-[var(--card)]',
         'hover:border-[var(--accent)]/60',
       )}
       style={cellStyle}

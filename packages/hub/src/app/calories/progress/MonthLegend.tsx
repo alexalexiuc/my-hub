@@ -1,15 +1,17 @@
+import { DayTargetStatuses } from '@my-hub/shared/constants';
 import { MenuStatusIcon } from '../calendar/MenuStatusIcon';
+import { dayStatusColor } from '../calories.utils';
 
 const SWATCHES = [
-  { label: 'On target', color: 'var(--green)' },
-  { label: 'Under minimum', color: 'var(--accent)' },
-  { label: 'Over target', color: 'var(--red)' },
-] as const;
+  { label: 'On target', color: dayStatusColor(DayTargetStatuses.OnTarget) },
+  { label: 'Under minimum', color: dayStatusColor(DayTargetStatuses.Under) },
+  { label: 'Over target', color: dayStatusColor(DayTargetStatuses.Over) },
+];
 
 /** What the month grid's colours and menu icons mean — new users shouldn't have to guess. */
 export function MonthLegend() {
   return (
-    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-[var(--muted)]">
+    <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-[var(--muted)]">
       {SWATCHES.map(s => (
         <span key={s.label} className="flex items-center gap-1.5">
           <span

@@ -37,15 +37,7 @@ import type { MealType } from '../../constants/calories';
 import type { DayOfWeek } from '../../constants/weekly-menu';
 import type { ShoppingListItem } from './shopping-list';
 import { PromiseCacheX } from 'promise-cachex';
-import {
-  dateToString,
-  dayOfWeekMon0,
-  dedupeTrimmed,
-  logger,
-  omitUndefined,
-  startOfWeekMonday,
-  shiftDateStr,
-} from '../../utils';
+import { dayOfWeekMon0, dedupeTrimmed, logger, omitUndefined, shiftDateStr, weekStartStr } from '../../utils';
 
 const menuAccessCache = new PromiseCacheX<boolean>({ ttl: 1000 }); // 1 second
 
@@ -741,7 +733,7 @@ export interface PlannedMealForDate extends WeeklyMenuMeal {
  * Returns an empty list when the date's week has no menu.
  */
 export async function getPlannedMealsForDate(userId: string, date: string): Promise<PlannedMealForDate[]> {
-  const weekStart = dateToString(startOfWeekMonday(new Date(`${date}T00:00:00`)));
+  const weekStart = weekStartStr(date);
   const menu = await getWeeklyMenuByWeek(userId, weekStart);
   if (!menu) return [];
 
@@ -798,8 +790,8 @@ export async function getMenuStatusForRange(
   start: string,
   end: string,
 ): Promise<Record<string, DayMenuStatus>> {
-  const startWeek = dateToString(startOfWeekMonday(new Date(`${start}T00:00:00`)));
-  const endWeek = dateToString(startOfWeekMonday(new Date(`${end}T00:00:00`)));
+  const startWeek = weekStartStr(start);
+  const endWeek = weekStartStr(end);
 
   const menus = await db
     .select({ menuId: weeklyMenus.menuId, weekStart: weeklyMenus.weekStart })

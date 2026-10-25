@@ -1,16 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { apiFetch, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { Card } from '@/components';
 import { CalendarIcon } from '@/components/icons';
-import { CalendarResponseSchema } from '@/app/api/calories/calendar/calendar.schemas';
-import { DayTargetStatuses } from '@my-hub/shared/constants';
-import { dateToString, dayTargetStatus, shiftDateStr, summariseTargetAdherence } from '@my-hub/shared/utils';
+import { DayTargetStatuses, dayNamesShort } from '@my-hub/shared/constants';
+import {
+  dateToString,
+  dayOfWeekMon0,
+  dayTargetStatus,
+  shiftDateStr,
+  summariseTargetAdherence,
+} from '@my-hub/shared/utils';
 import { dayStatusColor } from './calories.utils';
-import { mealEvents } from './mealEvents';
-import type { CalendarDay } from './calendar/types';
+import { STREAK_LOOKBACK_DAYS } from './constants';
+import { useCalendarDays } from './calendar/useCalendarDays';
 
 type LastSevenDaysProps = {
   /** Daily protein goal in grams, for the protein-hit count. */
@@ -22,33 +26,14 @@ type LastSevenDaysProps = {
   onOpenMonth?: () => void;
 };
 
-/** How far back the streak is counted. A month covers any streak worth celebrating on this card. */
-const STREAK_LOOKBACK_DAYS = 30;
-
 /**
  * The week so far as seven coloured dots plus the current streak — the daily habit signal on the
  * page you land on, linking through to the month on Progress. Today's dot stays neutral: the day
  * isn't over, and reading it as "under" at breakfast would be wrong.
  */
 export function LastSevenDays({ proteinGoalG, onOpenMonth }: LastSevenDaysProps) {
-  const [days, setDays] = useState<CalendarDay[] | null>(null);
   const today = dateToString(new Date());
-
-  const load = useCallback(() => {
-    apiFetch('/api/calories/calendar', {
-      query: { dateFrom: shiftDateStr(today, -(STREAK_LOOKBACK_DAYS - 1)), dateTo: today },
-      responseSchema: CalendarResponseSchema,
-      silentToast: true,
-    })
-      .then(data => setDays(data.days))
-      .catch(() => undefined);
-  }, [today]);
-
-  useEffect(() => {
-    load();
-    mealEvents.on('changed', load);
-    return () => mealEvents.off('changed', load);
-  }, [load]);
+  const { days } = useCalendarDays({ dateFrom: shiftDateStr(today, -(STREAK_LOOKBACK_DAYS - 1)), dateTo: today });
 
   if (!days) return null;
 
@@ -56,6 +41,10 @@ export function LastSevenDays({ proteinGoalG, onOpenMonth }: LastSevenDaysProps)
   const summary = summariseTargetAdherence(days, today, proteinGoalG);
   const finishedWeek = week.filter(d => d.date < today && d.mealCount > 0);
   const onTargetThisWeek = finishedWeek.filter(d => dayTargetStatus(d) === DayTargetStatuses.OnTarget).length;
+  const verdict =
+    finishedWeek.length > 0
+      ? `${onTargetThisWeek} of ${finishedWeek.length} logged days on target`
+      : 'Log a few days to see how you track';
 
   const content = (
     <>
@@ -68,9 +57,8 @@ export function LastSevenDays({ proteinGoalG, onOpenMonth }: LastSevenDaysProps)
       <div className="grid grid-cols-7 gap-1">
         {week.map(day => {
           const isToday = day.date === today;
-          const status = dayTargetStatus(day);
-          const color = dayStatusColor(status);
-          const label = new Date(`${day.date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short' });
+          const color = dayStatusColor(dayTargetStatus(day));
+          const label = dayNamesShort[dayOfWeekMon0(day.date)];
           return (
             <div key={day.date} className="flex flex-col items-center gap-1">
               <span
@@ -92,11 +80,6 @@ export function LastSevenDays({ proteinGoalG, onOpenMonth }: LastSevenDaysProps)
           );
         })}
       </div>
-      <p className="text-[11px] text-[var(--muted)]">
-        {finishedWeek.length > 0
-          ? `${onTargetThisWeek} of ${finishedWeek.length} logged days on target${onOpenMonth ? '' : ' · see the month →'}`
-          : `Log a few days to see how you track${onOpenMonth ? '' : ' · open Progress →'}`}
-      </p>
     </>
   );
 
@@ -104,6 +87,8 @@ export function LastSevenDays({ proteinGoalG, onOpenMonth }: LastSevenDaysProps)
     return (
       <Card compact className="flex flex-col gap-3 p-4">
         {content}
+        <p className="text-[11px] text-[var(--muted)]">{verdict}</p>
+        {/* Hand-styled: an accent outline, which no Button variant offers. */}
         <button
           type="button"
           onClick={onOpenMonth}
@@ -118,7 +103,12 @@ export function LastSevenDays({ proteinGoalG, onOpenMonth }: LastSevenDaysProps)
 
   return (
     <Link href="/calories/progress" className="block no-underline" aria-label="Last 7 days — open Progress">
-      <Card className="flex flex-col gap-3 p-4 transition-colors hover:border-[var(--accent)]">{content}</Card>
+      <Card className="flex flex-col gap-3 p-4 transition-colors hover:border-[var(--accent)]">
+        {content}
+        <p className="text-[11px] text-[var(--muted)]">
+          {verdict} · {finishedWeek.length > 0 ? 'see the month →' : 'open Progress →'}
+        </p>
+      </Card>
     </Link>
   );
 }

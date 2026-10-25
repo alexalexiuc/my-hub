@@ -9,7 +9,6 @@ import {
   formatEtaDate,
   timeAxisTicks,
   groupByMealType,
-  intakeBarColor,
   pctToGrams,
   gramsToPct,
   computeMacroSummary,
@@ -491,30 +490,6 @@ describe('averageWeeklyWeights', () => {
   });
 });
 
-describe('intakeBarColor', () => {
-  it('is green between the floor and the ceiling', () => {
-    expect(intakeBarColor(1800, 1500, 2000)).toBe('var(--green)');
-  });
-
-  it('is red past the ceiling and amber below the floor', () => {
-    expect(intakeBarColor(2100, 1500, 2000)).toBe('var(--red)');
-    expect(intakeBarColor(1200, 1500, 2000)).toBe('var(--accent)');
-  });
-
-  it('marks an unlogged day rather than calling it under target', () => {
-    expect(intakeBarColor(0, 1500, 2000)).toBe('var(--border)');
-  });
-
-  it('stays neutral when the profile yields no bound to judge against', () => {
-    expect(intakeBarColor(1800, null, null)).toBe('var(--subtle)');
-  });
-
-  it('judges against whichever single bound exists', () => {
-    expect(intakeBarColor(2100, null, 2000)).toBe('var(--red)');
-    expect(intakeBarColor(1200, 1500, null)).toBe('var(--accent)');
-  });
-});
-
 describe('pctToGrams', () => {
   it('converts percentage to grams for protein/carbs (4 kcal/g)', () => {
     expect(pctToGrams('30', 4, 2000)).toBe('150');
@@ -645,14 +620,26 @@ describe('dayStatusColor', () => {
 
 describe('mergeFavouritesWithRecent', () => {
   it('leads with favourites and drops recent meals already pinned, ignoring case', () => {
+    const macros = { kcal: 180, protein: 18, carbs: 12, fat: 5 };
+    const favourite = {
+      id: 3,
+      userId: 'user-1',
+      description: 'Greek yogurt',
+      mealType: MealTypes.Breakfast,
+      ...macros,
+      createdAt: new Date(),
+    };
     const merged = mergeFavouritesWithRecent(
-      [{ id: 3, description: 'Greek yogurt' }],
-      [{ description: 'greek yogurt' }, { description: 'Oats' }],
+      [favourite],
+      [
+        { description: 'greek yogurt', mealType: MealTypes.Breakfast, ...macros },
+        { description: 'Oats', mealType: MealTypes.Breakfast, ...macros },
+      ],
     );
 
-    expect(merged).toEqual([
-      { description: 'Greek yogurt', favouriteId: 3 },
-      { description: 'Oats', favouriteId: null },
+    expect(merged.map(m => [m.description, m.favouriteId])).toEqual([
+      ['Greek yogurt', 3],
+      ['Oats', null],
     ]);
   });
 });

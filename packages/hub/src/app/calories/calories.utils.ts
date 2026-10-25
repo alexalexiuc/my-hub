@@ -1,4 +1,5 @@
-import type { MealLog } from '@my-hub/shared/types';
+import type { FavouriteMeal, MealLog } from '@my-hub/shared/types';
+import type { RecentMealSuggestion } from '@my-hub/shared/services';
 import { DayTargetStatuses, type DayTargetStatus, type MealType } from '@my-hub/shared/constants';
 import {
   buildWeightTrend,
@@ -230,19 +231,6 @@ export function averageWeeklyWeights(samples: WeightPoint[]): WeightPoint[] {
   return [...buckets.values()].map(b => ({ date: b.date, value: b.sum / b.count }));
 }
 
-/**
- * Bar colour for one day's intake against that day's own target: red past the ceiling, amber
- * below the floor, grey for a day with nothing logged, green in between. Neutral when the
- * profile yields neither bound, since there is nothing to judge the day against.
- */
-export function intakeBarColor(kcal: number, min: number | null, target: number | null): string {
-  if (target === null && min === null) return 'var(--subtle)';
-  if (kcal === 0) return 'var(--border)';
-  if (target !== null && kcal > target) return 'var(--red)';
-  if (min !== null && kcal < min) return 'var(--accent)';
-  return 'var(--green)';
-}
-
 export interface CalorieDonutState {
   isOver: boolean;
   isUnder: boolean;
@@ -436,7 +424,11 @@ export function sumMealTotals(meals: Pick<MealLog, 'kcal' | 'protein' | 'carbs' 
   };
 }
 
-/** Theme colour for a day's target verdict — the same palette as `intakeBarColor`. */
+/**
+ * Theme colour for a day's target verdict: red past the ceiling, accent below the floor, green in
+ * between, a neutral line for nothing logged or nothing to judge against. The single palette for
+ * month cells, the seven-day dots, the legend and the day detail's bar.
+ */
 export function dayStatusColor(status: DayTargetStatus): string {
   if (status === DayTargetStatuses.OnTarget) return 'var(--green)';
   if (status === DayTargetStatuses.Over) return 'var(--red)';
@@ -445,21 +437,29 @@ export function dayStatusColor(status: DayTargetStatus): string {
   return 'var(--border)';
 }
 
-/** A quick-pick chip: a recent or pinned meal, flagged with its favourite id when pinned. */
-export type QuickPickMeal<T> = T & { favouriteId: number | null };
+/** A quick-pick chip: a recent or pinned meal, carrying its favourite id when pinned. */
+export type QuickPickMeal = RecentMealSuggestion & { favouriteId: number | null };
 
 /**
  * The log-a-meal quick-pick row: pinned meals first (in pin order), then recent meals that aren't
  * already pinned. Descriptions are compared case-insensitively, the same way recent meals are
  * deduplicated, so a pinned dish never shows twice.
  */
-export function mergeFavouritesWithRecent<T extends { description: string }>(
-  favourites: (T & { id: number })[],
-  recent: T[],
-): QuickPickMeal<T>[] {
+export function mergeFavouritesWithRecent(
+  favourites: FavouriteMeal[],
+  recent: RecentMealSuggestion[],
+): QuickPickMeal[] {
   const pinned = new Set(favourites.map(f => f.description.toLowerCase()));
   return [
-    ...favourites.map(({ id, ...rest }) => ({ ...(rest as unknown as T), favouriteId: id })),
+    ...favourites.map(f => ({
+      description: f.description,
+      mealType: f.mealType,
+      kcal: f.kcal,
+      protein: f.protein,
+      carbs: f.carbs,
+      fat: f.fat,
+      favouriteId: f.id,
+    })),
     ...recent.filter(r => !pinned.has(r.description.toLowerCase())).map(r => ({ ...r, favouriteId: null })),
   ];
 }

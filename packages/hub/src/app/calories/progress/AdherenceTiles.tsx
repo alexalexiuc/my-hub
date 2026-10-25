@@ -6,8 +6,6 @@ type AdherenceTilesProps = {
   summary: TargetAdherenceSummary;
   /** The month's base (non-gym-day) target, for the average's comparison line. */
   baseTarget: number | null;
-  /** The current streak only means something while the month is still running. */
-  isCurrentMonth: boolean;
 };
 
 function Tile({ label, children, footer }: { label: string; children: React.ReactNode; footer?: React.ReactNode }) {
@@ -21,10 +19,10 @@ function Tile({ label, children, footer }: { label: string; children: React.Reac
 }
 
 /**
- * The month in four numbers — so the grid's colours don't have to be counted by eye to know how
+ * The current month in four numbers — so the grid's colours don't have to be counted by eye to know how
  * it went: days on target, streak, average intake, days the protein goal was hit.
  */
-export function AdherenceTiles({ summary, baseTarget, isCurrentMonth }: AdherenceTilesProps) {
+export function AdherenceTiles({ summary, baseTarget }: AdherenceTilesProps) {
   const { loggedDays, onTargetDays, currentStreak, bestStreak, avgKcal, proteinHitDays } = summary;
   const unit = <span className="text-sm font-medium text-[var(--muted)]"> / {loggedDays} days</span>;
 
@@ -44,12 +42,9 @@ export function AdherenceTiles({ summary, baseTarget, isCurrentMonth }: Adherenc
         {unit}
       </Tile>
 
-      <Tile label="Streak" footer={isCurrentMonth ? `Best this month: ${bestStreak}` : 'Longest run this month'}>
-        {isCurrentMonth ? currentStreak : bestStreak}
-        <span className="text-sm font-medium text-[var(--muted)]">
-          {' '}
-          {(isCurrentMonth ? currentStreak : bestStreak) === 1 ? 'day' : 'days'}
-        </span>
+      <Tile label="Streak" footer={`Best this month: ${bestStreak}`}>
+        {currentStreak}
+        <span className="text-sm font-medium text-[var(--muted)]"> {currentStreak === 1 ? 'day' : 'days'}</span>
       </Tile>
 
       <Tile
