@@ -1,8 +1,17 @@
 import { z } from 'zod';
 
-import { isoMonthSchema } from '@/lib/schemas/common';
+import { isoDateSchema, isoMonthSchema } from '@/lib/schemas/common';
 
-export const CalendarQuerySchema = z.object({ month: isoMonthSchema });
+/** A whole month (`month`), or an explicit inclusive range (`dateFrom` + `dateTo`, capped by the route). */
+export const CalendarQuerySchema = z
+  .object({
+    month: isoMonthSchema.optional(),
+    dateFrom: isoDateSchema.optional(),
+    dateTo: isoDateSchema.optional(),
+  })
+  .refine(q => q.month || (q.dateFrom && q.dateTo && q.dateFrom <= q.dateTo), {
+    message: 'Pass month, or dateFrom and dateTo with dateFrom <= dateTo',
+  });
 
 export const CalendarDaySchema = z.object({
   date: z.string(),

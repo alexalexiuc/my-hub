@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { MealLog } from '@my-hub/shared/types';
 import { MealTypes, MealTypesValues } from '@my-hub/shared/constants';
 import type { MealType } from '@my-hub/shared/constants';
+import { calculateMacroKcal, defaultMealTypeForHour } from '@my-hub/shared/utils';
 import { optionalNumber } from '@/lib/schemas/common';
 
 export const MealFormSchema = z.object({
@@ -25,6 +26,28 @@ export const defaultMealFormValues: MealFormValues = {
   fat: '',
   notes: '',
 };
+
+/** Blank form for a new entry, its slot guessed from the clock rather than always Lunch. */
+export function newMealFormValues(now: Date = new Date()): MealFormValues {
+  return { ...defaultMealFormValues, mealType: defaultMealTypeForHour(now.getHours()) };
+}
+
+/**
+ * The kcal the macros add up to, when calories are blank but at least one macro is filled —
+ * null otherwise. Shown as a hint, and used on save so a macro-only entry still counts.
+ */
+export function kcalFromMacroFields(values: Pick<MealFormValues, 'kcal' | 'protein' | 'carbs' | 'fat'>): number | null {
+  if (values.kcal) return null;
+  const [protein, carbs, fat] = [values.protein, values.carbs, values.fat].map(v => Number(v) || 0);
+  if (!protein && !carbs && !fat) return null;
+  return calculateMacroKcal(protein ?? 0, carbs ?? 0, fat ?? 0);
+}
+
+/** The form with blank calories filled in from the macros, when they can be. */
+export function withMacroKcal(values: MealFormValues): MealFormValues {
+  const derived = kcalFromMacroFields(values);
+  return derived === null ? values : { ...values, kcal: String(derived) };
+}
 
 /**
  * A meal's fields as form values. Takes a logged meal when editing, or a recent-meal suggestion

@@ -9,6 +9,9 @@
  * - signedWeeklyRateKg(goalType, rateKg) — the weekly weight-change target signed by the goal direction
  * - goalDirection(goalType) — which way the goal wants the scale to move (-1, 0, 1), independent of the rate
  * - isTowardGoal(delta, direction, maintainToleranceKg) — whether a weight change moves the way the goal wants
+ * - dayTargetStatus(day) — on target / under / over / not logged for one day's totals against its range
+ * - summariseTargetAdherence(days, today, proteinGoalG) — days on target, streaks, average kcal, protein days
+ * - defaultMealTypeForHour(hour) — the meal slot a new entry most likely belongs to at that hour
  * - latestWeightKg(measurements) — most recent weight value from a latest-per-type measurement list
  * - mealOrder(gymTime) — the order a day's meal slots are displayed in, with pre/post-workout placed around the training session
  * - ActivityLevelMultipliers — Record<ActivityLevel, number> mapping activity levels to TDEE multipliers
@@ -32,8 +35,10 @@ import {
   MealTypes,
   MeasurementTypes,
   DEFAULT_GYM_DAY_CALORIE_BONUS,
+  DayTargetStatus,
+  DayTargetStatuses,
 } from '../constants';
-import { dayOfWeekMon0 } from './dates';
+import { dayOfWeekMon0, shiftDateStr } from './dates';
 
 export const ActivityLevelMultipliers: Record<ActivityLevel, number> = {
   [ActivityLevels.Sedentary]: 1.2,
@@ -237,6 +242,104 @@ export function dayCalorieTargets(
     isGymDay,
     gymDayBonus,
   };
+}
+
+/** One day's totals plus its range — the shape `GET /api/calories/calendar` returns per day. */
+export interface TargetDayLike {
+  date: string;
+  kcal: number;
+  protein: number;
+  mealCount: number;
+  /** The day's ceiling, gym-day bonus included. */
+  target: number | null;
+  /** The day's floor, gym-day bonus included. */
+  min: number | null;
+}
+
+/**
+ * Judges one day's intake against its own range (from `dayCalorieTargets`). The single owner of
+ * the on-target rule, so the month grid, the Today strip and the streak count agree on a day.
+ * A day whose meals carry no calories counts as not logged: there is no intake to judge, and
+ * calling it "under" would penalise a day that was simply logged without numbers.
+ */
+export function dayTargetStatus(day: Pick<TargetDayLike, 'kcal' | 'mealCount' | 'target' | 'min'>): DayTargetStatus {
+  if (day.mealCount === 0 || day.kcal === 0) return DayTargetStatuses.NotLogged;
+  if (day.target === null && day.min === null) return DayTargetStatuses.NoTarget;
+  if (day.target !== null && day.kcal > day.target) return DayTargetStatuses.Over;
+  if (day.min !== null && day.kcal < day.min) return DayTargetStatuses.Under;
+  return DayTargetStatuses.OnTarget;
+}
+
+export interface TargetAdherenceSummary {
+  /** Finished days with calories logged (see `dayTargetStatus`). */
+  loggedDays: number;
+  onTargetDays: number;
+  /** On-target run ending yesterday; 0 when yesterday wasn't on target or isn't in the data. */
+  currentStreak: number;
+  /** Longest on-target run among the days given. */
+  bestStreak: number;
+  /** Average kcal over the logged finished days, or null when none. */
+  avgKcal: number | null;
+  /** Logged finished days that reached the protein goal, or null when no goal is set. */
+  proteinHitDays: number | null;
+}
+
+/**
+ * Month-level (or any range) adherence: days on target, streaks, average intake, protein days.
+ *
+ * Only finished days count — today is still in progress, so judging it would break a streak at
+ * breakfast. A finished day with nothing logged breaks a streak but is left out of `loggedDays`
+ * and the average, which describe the days actually tracked.
+ */
+export function summariseTargetAdherence(
+  days: TargetDayLike[],
+  today: string,
+  proteinGoalG: number | null,
+): TargetAdherenceSummary {
+  const finished = days.filter(d => d.date < today).sort((a, b) => a.date.localeCompare(b.date));
+  let run = 0;
+  let bestStreak = 0;
+  let onTargetDays = 0;
+  let loggedDays = 0;
+  let kcalSum = 0;
+  let proteinHits = 0;
+
+  for (const day of finished) {
+    const status = dayTargetStatus(day);
+    if (status !== DayTargetStatuses.NotLogged) {
+      loggedDays += 1;
+      kcalSum += day.kcal;
+      if (proteinGoalG && day.protein >= proteinGoalG) proteinHits += 1;
+    }
+    if (status === DayTargetStatuses.OnTarget) {
+      onTargetDays += 1;
+      run += 1;
+      bestStreak = Math.max(bestStreak, run);
+    } else {
+      run = 0;
+    }
+  }
+
+  const last = finished[finished.length - 1];
+  return {
+    loggedDays,
+    onTargetDays,
+    currentStreak: last && last.date === shiftDateStr(today, -1) ? run : 0,
+    bestStreak,
+    avgKcal: loggedDays > 0 ? Math.round(kcalSum / loggedDays) : null,
+    proteinHitDays: proteinGoalG ? proteinHits : null,
+  };
+}
+
+/**
+ * The meal slot a new entry most likely belongs to at a local clock hour (0–23) — the meal-log
+ * form's default, so logging lunch at 13:00 doesn't start from whatever slot was hard-coded.
+ */
+export function defaultMealTypeForHour(hour: number): MealType {
+  if (hour >= 4 && hour < 11) return MealTypes.Breakfast;
+  if (hour >= 11 && hour < 15) return MealTypes.Lunch;
+  if (hour >= 17 && hour < 22) return MealTypes.Dinner;
+  return MealTypes.Snack;
 }
 
 /** The most recent weight value from a latest-per-type measurement list, or null if never recorded. */

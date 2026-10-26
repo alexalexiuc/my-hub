@@ -23,6 +23,8 @@ import {
   buildMonthGridDays,
   monthEndStr,
   isIsoDateStr,
+  weekStartStr,
+  formatDayHeadingLong,
 } from './dates';
 
 beforeEach(() => {
@@ -434,5 +436,20 @@ describe('isIsoDateStr', () => {
     expect(isIsoDateStr('2026-02-29')).toBe(false);
     expect(isIsoDateStr('2026-13-01')).toBe(false);
     expect(isIsoDateStr('2026-1-01')).toBe(false);
+  });
+});
+
+describe('weekStartStr', () => {
+  it('returns the Monday of the week a date falls in, the date itself on a Monday', () => {
+    expect(weekStartStr('2026-10-22')).toBe('2026-10-19'); // Thursday
+    expect(weekStartStr('2026-10-25')).toBe('2026-10-19'); // Sunday
+    expect(weekStartStr('2026-10-19')).toBe('2026-10-19');
+    expect(weekStartStr('2026-11-01')).toBe('2026-10-26'); // across a month boundary
+  });
+});
+
+describe('formatDayHeadingLong', () => {
+  it('spells the weekday and month out in full', () => {
+    expect(formatDayHeadingLong('2026-10-22')).toBe('Thursday 22 October');
   });
 });

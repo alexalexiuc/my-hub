@@ -28,9 +28,6 @@ export const WEIGHT_RANGE_OPTIONS = [
 
 export type WeightRangeKey = (typeof WEIGHT_RANGE_OPTIONS)[number]['key'];
 
-/** Goal progress is about the current run, so it offers the shorter windows only. */
-export const GOAL_RANGE_KEYS: WeightRangeKey[] = ['4w', '8w', '12w', 'all'];
-
 export const DEFAULT_GOAL_RANGE: WeightRangeKey = '4w';
 export const DEFAULT_TREND_RANGE: WeightRangeKey = '12w';
 
@@ -46,3 +43,6 @@ export const MACRO_COLORS = {
   protein: '#38bdf8', // sky-400
   fat: '#fb7185', // rose-400
 } as const;
+
+/** How far back the current streak is counted — a month covers any streak worth showing. */
+export const STREAK_LOOKBACK_DAYS = 30;

@@ -134,7 +134,7 @@ export function MenuDetail({
             onClick={() => setShowDeleteConfirm(true)}
             disabled={deleting}
             variant="ghost"
-            className="flex min-h-11 min-w-11 items-center justify-center text-red-400 hover:text-red-300"
+            className="flex min-h-11 min-w-11 items-center justify-center text-[var(--red)] hover:opacity-80"
           />
         </div>
       </div>
@@ -163,6 +163,7 @@ export function MenuDetail({
         />
       )}
 
+      {/* One week summary: planned kcal against the target, and how much of the plan is logged. */}
       {menu.meals.length > 0 && (
         <Card className="-mx-4 flex flex-col gap-2 md:mx-0">
           <div className="flex items-center justify-between gap-3">
@@ -176,31 +177,31 @@ export function MenuDetail({
             </div>
           </div>
           <TargetBar pct={weeklyPct} colors={weeklyColors} size="md" />
-          <p className="text-xs text-[var(--subtle)]">
-            {gymDays.length > 0 && `Target rises to ${gymTargetKcal.toLocaleString()} kcal on gym days. `}
-            Macro breakdown stays in the Today tab.
-          </p>
-        </Card>
-      )}
-
-      {daysWithMealsCount > 0 && (
-        <Card className="-mx-4 flex items-center gap-3 md:mx-0">
-          <span className="text-xs text-[var(--muted)] shrink-0">Adherence</span>
-          <div className="flex-1 h-1.5 rounded-full bg-[var(--card3)]">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                adherencePct === 100 ? 'bg-green-400' : 'bg-[var(--accent)]'
-              }`}
-              style={{ width: `${adherencePct}%` }}
-            />
-          </div>
-          <span
-            className={`text-xs font-semibold shrink-0 ${
-              adherencePct === 100 ? 'text-green-400' : 'text-[var(--text)]'
-            }`}
-          >
-            {fullyLoggedDaysCount}/{daysWithMealsCount} days
-          </span>
+          {daysWithMealsCount > 0 && (
+            <div className="mt-1 flex items-center gap-3">
+              <span className="shrink-0 text-xs text-[var(--muted)]">Adherence</span>
+              <div className="h-1.5 flex-1 rounded-full bg-[var(--card3)]">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    adherencePct === 100 ? 'bg-[var(--green)]' : 'bg-[var(--accent)]'
+                  }`}
+                  style={{ width: `${adherencePct}%` }}
+                />
+              </div>
+              <span
+                className={`shrink-0 text-xs font-semibold ${
+                  adherencePct === 100 ? 'text-[var(--green)]' : 'text-[var(--text)]'
+                }`}
+              >
+                {fullyLoggedDaysCount}/{daysWithMealsCount} days
+              </span>
+            </div>
+          )}
+          {gymDays.length > 0 && (
+            <p className="text-xs text-[var(--subtle)]">
+              Target rises to {gymTargetKcal.toLocaleString()} kcal on gym days.
+            </p>
+          )}
         </Card>
       )}
 

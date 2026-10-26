@@ -163,9 +163,9 @@ export function targetPct(planned: number, target: number | null): number | null
 export function targetColorClasses(pct: number | null, isEstimated = false): { text: string; bg: string } {
   if (pct === null || isEstimated) return { text: 'text-[var(--muted)]', bg: 'bg-[var(--muted)]' };
   const diff = Math.abs(pct - 100);
-  if (diff <= 10) return { text: 'text-green-400', bg: 'bg-green-400' };
+  if (diff <= 10) return { text: 'text-[var(--green)]', bg: 'bg-[var(--green)]' };
   if (diff <= 30) return { text: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]' };
-  return { text: 'text-red-400', bg: 'bg-red-400' };
+  return { text: 'text-[var(--red)]', bg: 'bg-[var(--red)]' };
 }
 
 /**

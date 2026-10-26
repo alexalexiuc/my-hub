@@ -4,6 +4,9 @@ import {
   calculateCalorieTargets,
   calculateMacroKcal,
   dayCalorieTargets,
+  dayTargetStatus,
+  defaultMealTypeForHour,
+  summariseTargetAdherence,
   dayTargetKcal,
   goalDirection,
   hasDuplicateMealSlot,
@@ -350,5 +353,87 @@ describe('goalDirection', () => {
   it('is zero for maintain and for no goal', () => {
     expect(goalDirection('maintain')).toBe(0);
     expect(goalDirection(null)).toBe(0);
+  });
+});
+
+describe('dayTargetStatus', () => {
+  const day = { kcal: 2000, mealCount: 3, target: 2100, min: 1800 };
+
+  it('judges a logged day against its own floor and ceiling', () => {
+    expect(dayTargetStatus(day)).toBe('on_target');
+    expect(dayTargetStatus({ ...day, kcal: 2200 })).toBe('over');
+    expect(dayTargetStatus({ ...day, kcal: 1700 })).toBe('under');
+  });
+
+  it('separates a day with nothing logged from one with no range to judge it by', () => {
+    expect(dayTargetStatus({ ...day, kcal: 0, mealCount: 0 })).toBe('not_logged');
+    expect(dayTargetStatus({ ...day, target: null, min: null })).toBe('no_target');
+  });
+
+  it('treats meals logged without calories as not logged, rather than under', () => {
+    expect(dayTargetStatus({ ...day, kcal: 0 })).toBe('not_logged');
+  });
+});
+
+describe('summariseTargetAdherence', () => {
+  const day = (date: string, kcal: number, protein = 100, mealCount = 3) => ({
+    date,
+    kcal,
+    protein,
+    mealCount,
+    target: 2100,
+    min: 1800,
+  });
+
+  it('counts finished days only, so an unfinished today never breaks the streak', () => {
+    const summary = summariseTargetAdherence(
+      [
+        day('2026-10-14', 2500),
+        day('2026-10-15', 2000),
+        day('2026-10-16', 1900),
+        day('2026-10-17', 2050),
+        day('2026-10-18', 400),
+      ],
+      '2026-10-18',
+      140,
+    );
+    expect(summary).toEqual({
+      loggedDays: 4,
+      onTargetDays: 3,
+      currentStreak: 3,
+      bestStreak: 3,
+      avgKcal: Math.round((2500 + 2000 + 1900 + 2050) / 4),
+      proteinHitDays: 0,
+    });
+  });
+
+  it('breaks the streak on a day with nothing logged and leaves it out of the average', () => {
+    const summary = summariseTargetAdherence(
+      [day('2026-10-15', 2000, 150), day('2026-10-16', 2000, 150), day('2026-10-17', 0, 0, 0)],
+      '2026-10-18',
+      140,
+    );
+    expect(summary.currentStreak).toBe(0);
+    expect(summary.bestStreak).toBe(2);
+    expect(summary.loggedDays).toBe(2);
+    expect(summary.avgKcal).toBe(2000);
+    expect(summary.proteinHitDays).toBe(2);
+  });
+
+  it('reports no protein count without a goal and no average without logged days', () => {
+    const summary = summariseTargetAdherence([], '2026-10-18', null);
+    expect(summary.proteinHitDays).toBeNull();
+    expect(summary.avgKcal).toBeNull();
+    expect(summary.currentStreak).toBe(0);
+  });
+});
+
+describe('defaultMealTypeForHour', () => {
+  it('maps the clock to the meal usually eaten then', () => {
+    expect(defaultMealTypeForHour(8)).toBe('breakfast');
+    expect(defaultMealTypeForHour(13)).toBe('lunch');
+    expect(defaultMealTypeForHour(16)).toBe('snack');
+    expect(defaultMealTypeForHour(19)).toBe('dinner');
+    expect(defaultMealTypeForHour(23)).toBe('snack');
   });
 });

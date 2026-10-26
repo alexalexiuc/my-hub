@@ -9,11 +9,13 @@ import {
   formatEtaDate,
   timeAxisTicks,
   groupByMealType,
-  intakeBarColor,
   pctToGrams,
   gramsToPct,
   computeMacroSummary,
   sortSuggestionsForMealType,
+  sumMealTotals,
+  dayStatusColor,
+  mergeFavouritesWithRecent,
 } from './calories.utils';
 import type { MealLog } from '@my-hub/shared/types';
 import { dateToString, shiftDateStr } from '@my-hub/shared/utils';
@@ -488,30 +490,6 @@ describe('averageWeeklyWeights', () => {
   });
 });
 
-describe('intakeBarColor', () => {
-  it('is green between the floor and the ceiling', () => {
-    expect(intakeBarColor(1800, 1500, 2000)).toBe('var(--green)');
-  });
-
-  it('is red past the ceiling and amber below the floor', () => {
-    expect(intakeBarColor(2100, 1500, 2000)).toBe('var(--red)');
-    expect(intakeBarColor(1200, 1500, 2000)).toBe('var(--accent)');
-  });
-
-  it('marks an unlogged day rather than calling it under target', () => {
-    expect(intakeBarColor(0, 1500, 2000)).toBe('var(--border)');
-  });
-
-  it('stays neutral when the profile yields no bound to judge against', () => {
-    expect(intakeBarColor(1800, null, null)).toBe('var(--subtle)');
-  });
-
-  it('judges against whichever single bound exists', () => {
-    expect(intakeBarColor(2100, null, 2000)).toBe('var(--red)');
-    expect(intakeBarColor(1200, 1500, null)).toBe('var(--accent)');
-  });
-});
-
 describe('pctToGrams', () => {
   it('converts percentage to grams for protein/carbs (4 kcal/g)', () => {
     expect(pctToGrams('30', 4, 2000)).toBe('150');
@@ -617,5 +595,51 @@ describe('sortSuggestionsForMealType', () => {
   it('preserves recency order within each group', () => {
     const [first, second] = sortSuggestionsForMealType(suggestions, MealTypes.Breakfast);
     expect([first?.description, second?.description]).toEqual(['Oats', 'Eggs']);
+  });
+});
+
+describe('sumMealTotals', () => {
+  it('sums kcal and rounds macros, treating missing values as zero', () => {
+    expect(
+      sumMealTotals([
+        { kcal: 500, protein: 30.4, carbs: 60, fat: null },
+        { kcal: null, protein: 10.3, carbs: 0, fat: 12.6 },
+      ]),
+    ).toEqual({ kcal: 500, protein: 41, carbs: 60, fat: 13 });
+  });
+});
+
+describe('dayStatusColor', () => {
+  it('colours a verdict the way the intake bars do', () => {
+    expect(dayStatusColor('on_target')).toBe('var(--green)');
+    expect(dayStatusColor('over')).toBe('var(--red)');
+    expect(dayStatusColor('under')).toBe('var(--accent)');
+    expect(dayStatusColor('not_logged')).toBe('var(--border)');
+  });
+});
+
+describe('mergeFavouritesWithRecent', () => {
+  it('leads with favourites and drops recent meals already pinned, ignoring case', () => {
+    const macros = { kcal: 180, protein: 18, carbs: 12, fat: 5 };
+    const favourite = {
+      id: 3,
+      userId: 'user-1',
+      description: 'Greek yogurt',
+      mealType: MealTypes.Breakfast,
+      ...macros,
+      createdAt: new Date(),
+    };
+    const merged = mergeFavouritesWithRecent(
+      [favourite],
+      [
+        { description: 'greek yogurt', mealType: MealTypes.Breakfast, ...macros },
+        { description: 'Oats', mealType: MealTypes.Breakfast, ...macros },
+      ],
+    );
+
+    expect(merged.map(m => [m.description, m.favouriteId])).toEqual([
+      ['Greek yogurt', 3],
+      ['Oats', null],
+    ]);
   });
 });

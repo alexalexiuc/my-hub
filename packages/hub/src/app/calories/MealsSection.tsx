@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import type { MealLog } from '@my-hub/shared/types';
 import { apiFetch } from '@/lib/utils';
-import { dateToString, mealOrder } from '@my-hub/shared/utils';
-import { Card, ConfirmModal, SwipeRow } from '@/components';
-import { PencilIcon, TrashOutlineIcon } from '@/components/icons';
+import { dateToString, mealOrder, shiftDateStr } from '@my-hub/shared/utils';
+import { Button, Card, ConfirmModal, SwipeRow } from '@/components';
+import { PencilIcon, PlusOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 import type { GymTime } from '@my-hub/shared/constants';
-import { MEAL_LABEL } from './constants';
-import { groupByMealType } from './calories.utils';
+import { MACRO_COLORS, MEAL_LABEL } from './constants';
+import { formatDateLabel, groupByMealType, sumMealTotals } from './calories.utils';
+import { relogMeals } from './relogMeals';
 import { MealModal } from './MealModal';
 
 type MealsSectionProps = {
@@ -17,21 +18,56 @@ type MealsSectionProps = {
   /** When the user trains — orders the logged groups the same way every other meal list is ordered. */
   gymTime: GymTime | null;
   onChanged: () => void;
+  /** Shows an "Add meal" button for this day — for surfaces without the layout's Add button in reach. */
+  showAdd?: boolean;
+  /** Renders an inset bordered card at every width — for use inside a modal, where full-bleed would overflow. */
+  compact?: boolean;
 };
 
-export function MealsSection({ meals, selectedDate, gymTime, onChanged }: MealsSectionProps) {
+export function MealsSection({
+  meals,
+  selectedDate,
+  gymTime,
+  onChanged,
+  showAdd = false,
+  compact = false,
+}: MealsSectionProps) {
   const today = dateToString(new Date());
   const [editingMeal, setEditingMeal] = useState<MealLog | null>(null);
   const [deletingMeal, setDeletingMeal] = useState<MealLog | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [openRowId, setOpenRowId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [copyNote, setCopyNote] = useState<string | null>(null);
 
   const grouped = groupByMealType(meals);
-  const total = meals.reduce((sum, m) => sum + (m.kcal ?? 0), 0);
-  const totalProtein = Math.round(meals.reduce((sum, m) => sum + (m.protein ?? 0), 0));
-  const totalCarbs = Math.round(meals.reduce((sum, m) => sum + (m.carbs ?? 0), 0));
-  const totalFat = Math.round(meals.reduce((sum, m) => sum + (m.fat ?? 0), 0));
+  const { kcal: total, protein: totalProtein, carbs: totalCarbs, fat: totalFat } = sumMealTotals(meals);
   const hasMacros = totalProtein > 0 || totalCarbs > 0 || totalFat > 0;
+  const previousDay = shiftDateStr(selectedDate, -1);
+
+  /**
+   * Re-logs everything from the day before onto this one — the quickest fill for the days you
+   * eat the same thing. Only offered while this day is empty, so it can't double a day up.
+   */
+  async function copyPreviousDay() {
+    setCopying(true);
+    setCopyNote(null);
+    try {
+      const { meals: previous } = await apiFetch<{ meals: MealLog[] }>('/api/calories/meals', {
+        query: { date: previousDay, limit: 100 },
+        silentToast: true,
+      });
+      if (previous.length === 0) {
+        setCopyNote(`Nothing logged on ${formatDateLabel(previousDay).toLowerCase()} to copy.`);
+        return;
+      }
+      await relogMeals(previous, selectedDate);
+      onChanged();
+    } finally {
+      setCopying(false);
+    }
+  }
 
   async function confirmDelete() {
     if (!deletingMeal?.mealId) return;
@@ -60,6 +96,18 @@ export function MealsSection({ meals, selectedDate, gymTime, onChanged }: MealsS
         />
       )}
 
+      {adding && (
+        <MealModal
+          date={selectedDate}
+          gymTime={gymTime}
+          onClose={() => setAdding(false)}
+          onSaved={() => {
+            setAdding(false);
+            onChanged();
+          }}
+        />
+      )}
+
       {deletingMeal && (
         <ConfirmModal
           title="Delete meal"
@@ -71,12 +119,21 @@ export function MealsSection({ meals, selectedDate, gymTime, onChanged }: MealsS
         />
       )}
 
-      <Card className="!p-0 overflow-hidden">
+      <Card compact={compact} className="!p-0 overflow-hidden">
         {/* Meal list */}
         {meals.length === 0 ? (
-          <p className="px-5 py-5 text-sm text-[var(--subtle)]">
-            No meals logged{selectedDate === today ? ' today' : ''}.
-          </p>
+          <div className="flex flex-col items-start gap-2 px-5 py-5">
+            <p className="text-sm text-[var(--subtle)]">No meals logged{selectedDate === today ? ' today' : ''}.</p>
+            <button
+              type="button"
+              onClick={() => void copyPreviousDay()}
+              disabled={copying}
+              className="rounded-md border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
+            >
+              {copying ? 'Copying…' : `Copy meals from ${formatDateLabel(previousDay).toLowerCase()}`}
+            </button>
+            {copyNote && <p className="text-xs text-[var(--subtle)]">{copyNote}</p>}
+          </div>
         ) : (
           <>
             {mealOrder(gymTime)
@@ -135,21 +192,30 @@ export function MealsSection({ meals, selectedDate, gymTime, onChanged }: MealsS
                 </div>
               ))}
 
-            {/* Totals row */}
-            <div className="flex items-center justify-between bg-[var(--card2)] px-5 py-2.5 text-xs">
+            {/* Totals row — desktop only: on a phone the calorie card above already says the same.
+                No data-layout marker: it has no mobile twin, and the marker scopes the meal rows. */}
+            <div className="hidden items-center justify-between bg-[var(--card2)] px-5 py-2.5 text-xs md:flex">
               <span className="font-semibold text-[var(--text)]">Total</span>
               <div className="flex gap-3 text-[var(--muted)]">
                 <span>{total} kcal</span>
                 {hasMacros && (
                   <>
-                    <span className="text-sky-400/80">P {totalProtein}g</span>
-                    <span className="text-amber-400/80">C {totalCarbs}g</span>
-                    <span className="text-rose-400/80">F {totalFat}g</span>
+                    <span style={{ color: MACRO_COLORS.protein }}>P {totalProtein}g</span>
+                    <span style={{ color: MACRO_COLORS.carbs }}>C {totalCarbs}g</span>
+                    <span style={{ color: MACRO_COLORS.fat }}>F {totalFat}g</span>
                   </>
                 )}
               </div>
             </div>
           </>
+        )}
+        {showAdd && (
+          <div className="border-t border-[var(--border)] px-5 py-3">
+            <Button variant="ghost" size="sm" onClick={() => setAdding(true)} className="flex items-center gap-1.5">
+              <PlusOutlineIcon className="size-3.5" />
+              Add meal to this day
+            </Button>
+          </div>
         )}
       </Card>
     </>

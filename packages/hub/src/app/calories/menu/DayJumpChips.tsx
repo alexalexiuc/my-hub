@@ -40,7 +40,7 @@ export function DayJumpChips({ mealCounts, todayIndex, selectedDay, onSelect }: 
             className={cn(
               'flex flex-1 flex-col items-center rounded-lg border px-0.5 py-1 text-[11px] font-medium leading-tight transition-colors',
               isToday
-                ? 'border-green-500/60 bg-green-500/10 text-green-400'
+                ? 'border-[var(--green)] bg-[var(--green-d)] text-[var(--green)]'
                 : count > 0
                   ? 'border-[var(--border)] text-[var(--text)]'
                   : 'border-[var(--border)] text-[var(--muted)]',

@@ -24,7 +24,7 @@ function ReportsContent() {
             className={cn(
               'flex-1 rounded-lg py-2 text-sm font-medium capitalize transition-colors',
               tab === t
-                ? 'bg-[var(--card)] text-[var(--accent)] shadow-sm border border-[var(--accent)44]'
+                ? 'bg-[var(--card)] text-[var(--accent)] shadow-sm border border-[var(--accent)]'
                 : 'text-[var(--muted)] hover:text-[var(--text)]',
             )}
           >

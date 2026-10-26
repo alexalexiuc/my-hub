@@ -38,6 +38,7 @@ export { CheckOutlineIcon } from './CheckOutlineIcon';
 export { AnimatedCheckIcon } from './AnimatedCheckIcon';
 export { TrashOutlineIcon } from './TrashOutlineIcon';
 export { SpinnerIcon } from './SpinnerIcon';
+export { StarIcon } from './StarIcon';
 export { EyeOutlineIcon } from './EyeOutlineIcon';
 export { EyeOffOutlineIcon } from './EyeOffOutlineIcon';
 export { QuestionMarkIcon } from './QuestionMarkIcon';

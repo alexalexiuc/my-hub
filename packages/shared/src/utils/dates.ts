@@ -30,6 +30,7 @@
  * - monthEndStr(month) — last day of a YYYY-MM month as YYYY-MM-DD (UTC)
  * - buildMonthGridDays(month) — Monday-to-Sunday full weeks covering a YYYY-MM month (+ MonthGridDay type)
  * - formatDayHeading(dateStr) — YYYY-MM-DD → locale short heading e.g. "Mon, 1 Jan"
+ * - formatDayHeadingLong(dateStr) — YYYY-MM-DD → full heading e.g. "Monday 1 January"
  * - fmtDuration(ms) — milliseconds → human-readable duration e.g. "2h 30m" or "45 min"
  * - formatSegmentTime(datetime, timezone, now?) — timezone-aware relative time string + isSoon flag
  * - monthToDateRange(month) — YYYY-MM → { fromDate, toDate } as YYYY-MM-DD strings (UTC-safe)
@@ -37,6 +38,7 @@
  * - getMonthEnd(date) — last day of the month at local midnight
  * - startOfWeekMonday(date) — Monday of the week containing date, at local midnight
  * - dayOfWeekMon0(dateStr) — day index for a YYYY-MM-DD string, Monday-first (0=Mon … 6=Sun)
+ * - weekStartStr(dateStr) — the Monday of a YYYY-MM-DD date's week, as YYYY-MM-DD
  * - isSameDay(a, b) — true if two dates fall on the same local calendar day
  * - toDate(value) — coerce unknown to Date; returns null on invalid input
  * - startOfDay(date) — copy of date with time set to 00:00:00.000 local
@@ -376,7 +378,7 @@ export interface MonthGridDay {
 export function buildMonthGridDays(month: string): MonthGridDay[] {
   const firstOfMonth = `${month}-01`;
   const lastOfMonth = monthEndStr(month);
-  const gridStart = shiftDateStr(firstOfMonth, -dayOfWeekMon0(firstOfMonth));
+  const gridStart = weekStartStr(firstOfMonth);
   const gridEnd = shiftDateStr(lastOfMonth, 6 - dayOfWeekMon0(lastOfMonth));
   return calendarDays(new Date(`${gridStart}T00:00:00Z`), new Date(`${gridEnd}T00:00:00Z`)).map(date => ({
     date,
@@ -391,6 +393,15 @@ export function buildMonthGridDays(month: string): MonthGridDay[] {
 export function formatDayHeading(dateStr: string): string {
   const date = new Date(dateStr + 'T00:00:00');
   return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+/**
+ * Formats a YYYY-MM-DD date string as a full heading, e.g. "Monday 1 January" — for accessible
+ * names, where an abbreviation is read out letter by letter or clipped.
+ */
+export function formatDayHeadingLong(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00');
+  return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
 /**
@@ -508,6 +519,14 @@ export function startOfWeekMonday(date: Date): Date {
  */
 export function dayOfWeekMon0(dateStr: string): 0 | 1 | 2 | 3 | 4 | 5 | 6 {
   return ((new Date(`${dateStr}T00:00:00`).getDay() + 6) % 7) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+}
+
+/**
+ * The Monday of the week containing a YYYY-MM-DD date, as YYYY-MM-DD. String arithmetic only, so
+ * the result never depends on the timezone the code runs in.
+ */
+export function weekStartStr(dateStr: string): string {
+  return shiftDateStr(dateStr, -dayOfWeekMon0(dateStr));
 }
 
 /** Returns true if `a` and `b` fall on the same local calendar day (year + month + date). */

@@ -95,10 +95,10 @@ export function MealRow({
         className={cn(
           'flex flex-col gap-1',
           variant === 'flat'
-            ? cn('px-4 py-2.5 border-b border-[var(--border)] last:border-b-0', logged && 'bg-green-500/5')
+            ? cn('px-4 py-2.5 border-b border-[var(--border)] last:border-b-0', logged && 'bg-[var(--green-d)]')
             : cn(
                 'rounded-lg p-2.5 border',
-                logged ? 'bg-green-500/5 border-green-500/20' : 'bg-[var(--card)] border-[var(--border)]',
+                logged ? 'bg-[var(--green-d)] border-[var(--green)]' : 'bg-[var(--card)] border-[var(--border)]',
               ),
         )}
       >
@@ -132,7 +132,7 @@ export function MealRow({
                   onClick={() => setShowDeleteConfirm(true)}
                   disabled={deleting || isPast}
                   variant="ghost"
-                  className="rounded px-1.5 py-0.5 border border-[var(--border)] text-[var(--subtle)] hover:border-red-400/50 hover:text-red-400"
+                  className="rounded px-1.5 py-0.5 border border-[var(--border)] text-[var(--subtle)] hover:border-[var(--red)] hover:text-[var(--red)]"
                 />
               </span>
             )}
@@ -148,9 +148,9 @@ export function MealRow({
                 className={cn(
                   'shrink-0 rounded px-2 py-0.5 text-[10px] font-medium border',
                   logged
-                    ? 'border-green-500/30 bg-green-500/10 text-green-400 hover:border-red-400/50 hover:text-red-400'
+                    ? 'border-[var(--green)] bg-[var(--green-d)] text-[var(--green)] hover:border-[var(--red)] hover:text-[var(--red)]'
                     : error
-                      ? 'border-red-500/30 bg-red-500/10 text-red-400'
+                      ? 'border-[var(--red)] bg-[var(--red-d)] text-[var(--red)]'
                       : 'border-[var(--border)] text-[var(--subtle)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]',
                 )}
               >

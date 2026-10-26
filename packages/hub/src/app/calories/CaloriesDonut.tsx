@@ -77,10 +77,14 @@ export function CaloriesDonut({ eaten, cap, min = null, innerRadius = 44, textSi
         </PieChart>
       </ResponsiveContainer>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`${textSize} font-bold ${isOver ? 'text-red-400' : isUnder ? 'text-yellow-400' : ''}`}>
+        <span
+          className={`${textSize} font-bold ${isOver ? 'text-[var(--red)]' : isUnder ? 'text-[var(--amber)]' : ''}`}
+        >
           {cap !== null ? (isOver ? `+${eaten - cap}` : remaining) : eaten}
         </span>
-        <span className="text-[10px] text-zinc-500">{cap !== null ? (isOver ? 'Over' : 'Remaining') : 'kcal'}</span>
+        <span className="text-[10px] text-[var(--muted)]">
+          {cap !== null ? (isOver ? 'kcal over' : 'kcal left') : 'kcal'}
+        </span>
       </div>
     </div>
   );

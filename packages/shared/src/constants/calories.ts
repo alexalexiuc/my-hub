@@ -48,6 +48,22 @@ export const MealTypes = {
 export type MealType = (typeof MealTypes)[keyof typeof MealTypes];
 export const MealTypesValues: MealType[] = Object.values(MealTypes);
 
+/** How one day's logged intake reads against that day's calorie range. */
+export const DayTargetStatuses = {
+  /** Within the day's floor and ceiling. */
+  OnTarget: 'on_target',
+  /** Below the day's floor. */
+  Under: 'under',
+  /** Above the day's ceiling. */
+  Over: 'over',
+  /** Nothing logged for the day. */
+  NotLogged: 'not_logged',
+  /** Something logged, but the profile can't produce a range to judge it against. */
+  NoTarget: 'no_target',
+} as const;
+
+export type DayTargetStatus = (typeof DayTargetStatuses)[keyof typeof DayTargetStatuses];
+
 /** Default calorie bonus applied to a day's target when it's a gym day. Matches the `calorie_profiles.gym_day_calorie_bonus` column default — used as the fallback when a user has no profile row yet. */
 export const DEFAULT_GYM_DAY_CALORIE_BONUS = 300;
 

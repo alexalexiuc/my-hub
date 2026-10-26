@@ -1,70 +1,39 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiFetch, ApiError } from '@/lib/utils';
-import Link from 'next/link';
-import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
+import type { CalorieProfile } from '@my-hub/shared/types';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import {
-  dateToString,
-  dayCalorieTargets,
-  latestWeightKg,
-  getCurrentWeekDays,
-  shiftDateStr,
-  shiftWeekStr,
-  weekLabel,
-} from '@my-hub/shared/utils';
+import { dateToString, shiftDateStr } from '@my-hub/shared/utils';
 import { measurementTypeDefinitions } from '@my-hub/shared/constants';
-import { currentWeekMonday } from '../menu/menu.utils';
 import { GoalProgressCard } from '../GoalProgressCard';
-import { WeeklyChart } from '../WeeklyChart';
 import { WeightChart } from '../WeightChart';
 import { MeasurementsSection } from '../MeasurementsSection';
-import { PeriodNav } from '../ui';
+import { NOT_SIGNED_IN, PageError, PageLoading } from '../ui';
 import { DEFAULT_TREND_RANGE, WEIGHT_RANGE_OPTIONS, type WeightRangeKey } from '../constants';
-import { mealEvents } from '../mealEvents';
+import { LastSevenDays } from '../LastSevenDays';
+import { MonthSummary } from './MonthSummary';
+import { MonthCalendarModal } from './MonthCalendarModal';
 
+/**
+ * How the plan is going: this month against the daily target, the last seven days, then weight
+ * against the goal and body measurements. The month calendar (what used to be the Calendar tab)
+ * opens in a modal from the seven-day card, so the page stays one screen of answers; the weight
+ * chart has its own range, since a goal runs over months rather than one calendar month.
+ */
 export default function ProgressPage() {
   const [profile, setProfile] = useState<CalorieProfile | null>(null);
   const [latestMeasurements, setLatestMeasurements] = useState<MeasurementWithType[]>([]);
   const [weightHistory, setWeightHistory] = useState<MeasurementWithType[]>([]);
-  const [weeklyMeals, setWeeklyMeals] = useState<MealLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Both weight charts read from one history fetch, so the range has to cover the wider of the
-  // two. The goal card tops out at 12 weeks; the trend chart is what can ask for a year.
   const [trendRange, setTrendRange] = useState<WeightRangeKey>(DEFAULT_TREND_RANGE);
 
-  const thisWeekStart = currentWeekMonday();
-  // The week on screen. Previously pinned to the current week with no way to look back, so a
-  // finished week became unreachable the moment Monday arrived.
-  const [weekStart, setWeekStart] = useState(thisWeekStart);
-  const isCurrentWeek = weekStart === thisWeekStart;
-  const weekEnd = shiftDateStr(weekStart, 6);
-  // `weekLabel` reads UTC components, so it needs a UTC-midnight date. Parsing the same string at
-  // local midnight puts a positive-offset timezone on the previous UTC day — and therefore in the
-  // previous ISO week, which labelled the week before this one as two weeks back.
-  const weekStartUtc = new Date(`${weekStart}T00:00:00Z`);
-
-  const weekDays = useMemo(() => getCurrentWeekDays(weekStart), [weekStart]);
-
-  // The week on screen, for discarding responses to weeks the user has already paged past. Paging
-  // quickly leaves several requests in flight, and without this whichever resolves last wins —
-  // plotting one week's meals or weigh-ins under another week's label.
-  const shownWeekEndRef = useRef(weekEnd);
-  useEffect(() => {
-    shownWeekEndRef.current = weekEnd;
-  }, [weekEnd]);
+  const [showMonth, setShowMonth] = useState(false);
 
   /**
-   * Profile and weight history, which describe the user rather than the week on screen. Kept out
-   * of the week-dependent loader so paging back through months doesn't refetch them per arrow.
-   *
-   * The whole history is fetched once and windowed client-side rather than re-fetched per range.
-   * Smoothing needs the readings *before* a window to enter it warm — a range-scoped fetch would
-   * restart the trend at whatever the first day in view happened to read — and weigh-in rows are
-   * small enough that one row per day for years is a cheaper payload than a refetch per chip.
+   * Profile and the whole weight history, fetched once and windowed client-side: smoothing needs
+   * the readings before a window to enter it warm, and weigh-in rows are small.
    */
   const loadProfile = useCallback(async () => {
     try {
@@ -78,76 +47,21 @@ export default function ProgressPage() {
       setLatestMeasurements(profileData.measurements);
       setWeightHistory(weightData.measurements);
     } catch (e) {
-      setError(e instanceof ApiError && e.status === 401 ? 'Not signed in' : String(e));
+      setError(e instanceof ApiError && e.status === 401 ? NOT_SIGNED_IN : String(e));
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const loadWeeklyMeals = useCallback(async () => {
-    const requestedWeekEnd = weekEnd;
-    try {
-      const data = await apiFetch<{ meals: MealLog[] }>('/api/calories/meals', {
-        query: { dateFrom: weekStart, dateTo: requestedWeekEnd },
-      });
-      if (shownWeekEndRef.current === requestedWeekEnd) setWeeklyMeals(data.meals);
-    } catch {
-      // ignore — stale weekly totals are acceptable on a silent refresh
-    }
-  }, [weekEnd, weekStart]);
-
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
 
-  useEffect(() => {
-    void loadWeeklyMeals();
-  }, [loadWeeklyMeals]);
+  if (loading) return <PageLoading />;
+  if (error) return <PageError error={error} />;
 
-  useEffect(() => {
-    mealEvents.on('changed', loadWeeklyMeals);
-    return () => mealEvents.off('changed', loadWeeklyMeals);
-  }, [loadWeeklyMeals]);
-
-  if (loading) {
-    return (
-      <main className="mx-auto max-w-2xl space-y-4 py-6">
-        <div className="text-[var(--muted)]">Loading…</div>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="mx-auto max-w-2xl space-y-4 py-6">
-        <p className="text-[var(--red)]">{error}</p>
-        {error === 'Not signed in' && (
-          <Link href="/auth/signin" className="mt-2 inline-block text-[var(--accent)] underline">
-            Sign in
-          </Link>
-        )}
-      </main>
-    );
-  }
-
-  const weightKg = latestWeightKg(latestMeasurements);
   const today = dateToString(new Date());
-
-  // Targets are resolved per day so training days carry their bonus, matching the weekly menu
-  // and the Today page rather than judging every day against one flat number.
-  const weeklyData = weekDays.map(({ date, label }) => {
-    const { target, min } = dayCalorieTargets(profile, weightKg, date);
-    return {
-      date,
-      label,
-      kcal: weeklyMeals.filter(m => m.date === date).reduce((sum, m) => sum + (m.kcal ?? 0), 0),
-      target,
-      min,
-    };
-  });
-
   const weightSamples = weightHistory.map(m => ({ date: m.date, value: m.value }));
-
   const trendDays = WEIGHT_RANGE_OPTIONS.find(o => o.key === trendRange)?.days ?? null;
   const trendFrom = trendDays === null ? null : shiftDateStr(today, -trendDays);
   const trendSamples = trendFrom === null ? weightSamples : weightSamples.filter(s => s.date >= trendFrom);
@@ -167,35 +81,32 @@ export default function ProgressPage() {
   };
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4">
-      <PeriodNav
-        compact
-        label={isCurrentWeek ? 'This week' : weekLabel(weekStartUtc)}
-        isCurrent={isCurrentWeek}
-        onPrev={() => setWeekStart(shiftWeekStr(weekStart, -1))}
-        onNext={() => setWeekStart(shiftWeekStr(weekStart, 1))}
-      />
+    <main className="mx-auto max-w-3xl space-y-4">
+      <MonthSummary profile={profile} />
+      <LastSevenDays proteinGoalG={profile?.goalProtein ?? null} onOpenMonth={() => setShowMonth(true)} />
+      {showMonth && <MonthCalendarModal profile={profile} onClose={() => setShowMonth(false)} />}
 
-      <WeeklyChart data={weeklyData} />
-
-      <GoalProgressCard
-        weightHistory={weightSamples}
-        goalType={profile?.goalType ?? null}
-        goalWeeklyRateKg={profile?.goalWeeklyRateKg ?? null}
-        goalStartDate={profile?.goalStartDate ?? null}
-        goalStartWeightKg={profile?.goalStartWeightKg ?? null}
-        goalTargetWeightKg={profile?.goalTargetWeightKg ?? null}
-        onResetBaseline={resetGoalBaseline}
-        canReset={weightSamples.length > 0}
-      />
-
-      <WeightChart
-        data={trendSamples}
-        from={trendFrom ?? weightSamples[weightSamples.length - 1]?.date ?? today}
-        to={today}
-        range={trendRange}
-        onRangeChange={setTrendRange}
-      />
+      {/* One weight chart: against the goal line when a goal is set, the plain trend otherwise. */}
+      {profile?.goalType ? (
+        <GoalProgressCard
+          weightHistory={weightSamples}
+          goalType={profile.goalType}
+          goalWeeklyRateKg={profile.goalWeeklyRateKg ?? null}
+          goalStartDate={profile.goalStartDate ?? null}
+          goalStartWeightKg={profile.goalStartWeightKg ?? null}
+          goalTargetWeightKg={profile.goalTargetWeightKg ?? null}
+          onResetBaseline={resetGoalBaseline}
+          canReset={weightSamples.length > 0}
+        />
+      ) : (
+        <WeightChart
+          data={trendSamples}
+          from={trendFrom ?? weightSamples[weightSamples.length - 1]?.date ?? today}
+          to={today}
+          range={trendRange}
+          onRangeChange={setTrendRange}
+        />
+      )}
 
       <MeasurementsSection
         latestMeasurements={latestMeasurements}

@@ -29,6 +29,16 @@ pnpm ui:sandbox --stop                               # from the repo root; never
   or third parties. It starts local PostgreSQL itself. Where `pg_isready`/`su postgres` are missing (WSL), point it
   at a scratch DB: `pnpm db:scratch exec -- sh -c 'SANDBOX_DATABASE_URL="$DATABASE_URL" pnpm ui:sandbox'`.
 
+## Windows (Git Bash)
+
+- `pnpm ui:sandbox` fails at its first `pnpm` call (`spawnSync` cannot run `pnpm.cmd` without a shell), and
+  `next dev` refuses a second dev server from the same `packages/hub` while the user's is running. Seed the
+  sandbox user into the running server's database instead: `cd packages/e2e && DATABASE_URL=<its url>
+pnpm exec tsx scripts/setup-sandbox-db.ts` — it only touches `sandbox@test.local`'s data.
+- Prefix `shoot.mjs` with `MSYS_NO_PATHCONV=1`, or Git Bash rewrites `/calories` into a Windows path.
+- Deleting a source file while `next dev` runs can leave Tailwind failing on the missing path (500 on every
+  page, even after a restart): stop the server, delete `packages/hub/.next`, start it again.
+
 ## Interactions beyond screenshots
 
 Write a throwaway `.mjs` driver in `packages/e2e` (so `@playwright/test` resolves; `.ts` there compiles as CJS, so

@@ -5,12 +5,12 @@ import { Sidebar, Button } from '@/components';
 import type { SidebarNavItem } from '@/components';
 import { MealModal } from './MealModal';
 import { mealEvents } from './mealEvents';
+import { useCaloriesSelectedDate } from './selectedDate';
 import { dateToString } from '@my-hub/shared/utils';
 
 const NAV_ITEMS: SidebarNavItem[] = [
   { id: 'today', label: 'Today', icon: '◉', path: '/calories', exact: true },
   { id: 'progress', label: 'Progress', icon: '▲', path: '/calories/progress' },
-  { id: 'calendar', label: 'Calendar', icon: '📅', path: '/calories/calendar' },
   { id: 'menu', label: 'Weekly Menu', icon: '🗓', path: '/calories/menu' },
   { id: 'reports', label: 'Reports', icon: '▦', path: '/calories/reports' },
   { id: 'settings', label: 'Settings', icon: '⚙', path: '/calories/settings' },
@@ -18,12 +18,14 @@ const NAV_ITEMS: SidebarNavItem[] = [
 
 export function CaloriesSidebar() {
   const [showAddMeal, setShowAddMeal] = useState(false);
+  // Logs to the day the Today page is showing, so a forgotten meal lands on the right date.
+  const selectedDate = useCaloriesSelectedDate();
 
   return (
     <>
       {showAddMeal && (
         <MealModal
-          date={dateToString(new Date())}
+          date={selectedDate ?? dateToString(new Date())}
           onClose={() => setShowAddMeal(false)}
           onSaved={() => {
             setShowAddMeal(false);

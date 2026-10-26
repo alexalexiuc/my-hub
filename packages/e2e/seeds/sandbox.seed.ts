@@ -14,6 +14,11 @@ import {
   upsertCalorieProfile,
   logMeasurementsBatch,
   logMeal,
+  addFavouriteMeal,
+  createWeeklyMenu,
+  logMenuMeal,
+  deleteAllUserWeeklyMenus,
+  deleteAllUserFavouriteMeals,
   deleteAllUserMeasurements,
   deleteAllUserMeals,
   deleteAllUserCalorieProfiles,
@@ -28,9 +33,10 @@ import {
   GoalTypes,
   MealTypes,
   Sexes,
+  type DayOfWeek,
   TransactionTypes,
 } from '@my-hub/shared/constants';
-import { shiftDateStr, shiftMonthStr } from '@my-hub/shared/utils';
+import { dateToString, daysBetweenDateStr, shiftDateStr, shiftMonthStr, startOfWeekMonday } from '@my-hub/shared/utils';
 import { SANDBOX_USER, SANDBOX_BUDGET_NAME } from '../constants';
 
 /**
@@ -153,7 +159,7 @@ async function seedVacationFixtures(userId: string): Promise<void> {
 
 /**
  * Calorie-tracker demo data: a weight-loss goal roughly ten weeks in, with a daily weigh-in
- * history and two weeks of meals.
+ * history, six weeks of meals and a few pinned favourites.
  *
  * The weigh-ins are deliberately noisy around a clean underlying trend, including one heavy
  * weekend, because that is the case the Progress page exists to read correctly — a smooth series
@@ -163,10 +169,14 @@ async function seedCaloriesFixtures(userId: string): Promise<void> {
   // Rebuilt from scratch each run, matching how the budget above is dropped and recreated —
   // otherwise repeated `pnpm ui:sandbox` runs would stack duplicate weigh-ins on the same dates.
   await deleteAllUserMeals(userId);
+  await deleteAllUserFavouriteMeals(userId);
+  await deleteAllUserWeeklyMenus(userId);
   await deleteAllUserMeasurements(userId);
   await deleteAllUserCalorieProfiles(userId);
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Local date, not UTC: the Hub judges "today" in local time, and a UTC date seeds tomorrow's
+  // meals for anyone east of Greenwich after midnight.
+  const today = dateToString(new Date());
   const days = 80;
   const startDate = shiftDateStr(today, -(days - 1));
 
@@ -222,6 +232,9 @@ async function seedCaloriesFixtures(userId: string): Promise<void> {
     // Roughly two thirds of the way in, so the journey bar and the finish-date estimate both have
     // something to show without the goal being nearly done.
     goalTargetWeightKg: Math.round((weighIns[0]!.value - 9.5) * 10) / 10,
+    // A floor and a protein goal, so Progress can show "under minimum" days and the protein tile.
+    goalMinCalories: 1600,
+    goalProtein: 140,
     gymDays: [0, 2, 4],
     gymTime: 'evening',
   });
@@ -233,26 +246,88 @@ async function seedCaloriesFixtures(userId: string): Promise<void> {
     { mealType: MealTypes.Snack, description: 'Protein shake and an apple', kcal: 280, p: 26, c: 32, f: 4 },
   ];
 
-  for (let daysAgo = 13; daysAgo >= 0; daysAgo--) {
+  // Six weeks so the Progress month grid is filled and the previous month has history too. Each
+  // day gets a scale on the menu above, chosen so every status shows up: mostly on target, a few
+  // heavy days over the ceiling, a couple of light ones under the floor, and two days with nothing
+  // logged. The last five finished days are on target, so the streak card has a streak to show.
+  const dayScale = (daysAgo: number): number | null => {
+    if (daysAgo === 9 || daysAgo === 23) return null; // forgot to log
+    if (daysAgo <= 5) return 0.95;
+    if (daysAgo % 7 === 6) return 1.4; // a heavy weekend day
+    if (daysAgo % 11 === 0) return 0.55; // a light, skipped-meal day
+    return [0.9, 0.97, 1.02, 0.93][daysAgo % 4]!;
+  };
+
+  // This week has a weekly menu of the same four dishes, so the next-meal card and the day's planned
+  // meals have something to show. Its days so far are logged through the menu, which also marks
+  // each slot as eaten — the grid shows them as "menu logged" rather than "missed".
+  const weekStart = dateToString(startOfWeekMonday(new Date()));
+  const { menuId } = await createWeeklyMenu({
+    userId,
+    weekStart,
+    title: 'Sandbox week',
+    meals: Array.from({ length: 7 }, (_, day) =>
+      menu.map(meal => ({
+        dayOfWeek: day as DayOfWeek,
+        mealType: meal.mealType,
+        description: meal.description,
+        kcal: meal.kcal,
+        protein: meal.p,
+        carbs: meal.c,
+        fat: meal.f,
+      })),
+    ).flat(),
+  });
+
+  for (let daysAgo = 41; daysAgo >= 0; daysAgo--) {
     const date = shiftDateStr(today, -daysAgo);
-    // A couple of heavier days so the weekly chart is not a flat row of identical bars.
-    const swing = daysAgo % 5 === 0 ? 1.18 : daysAgo % 3 === 0 ? 0.88 : 1;
+    const scale = dayScale(daysAgo);
+    if (scale === null) continue;
     for (const [index, meal] of menu.entries()) {
       // The last day is still in progress — dinner and the snack have not happened yet.
       if (daysAgo === 0 && index >= 2) continue;
+      if (date >= weekStart) {
+        await logMenuMeal(userId, menuId, daysBetweenDateStr(weekStart, date) as DayOfWeek, meal.mealType, date, {
+          description: meal.description,
+          kcal: Math.round(meal.kcal * scale),
+          protein: Math.round(meal.p * scale),
+          carbs: Math.round(meal.c * scale),
+          fat: Math.round(meal.f * scale),
+        });
+        continue;
+      }
       await logMeal({
         userId,
         mealId: `sandbox-${date}-${meal.mealType}`,
         date,
         mealType: meal.mealType,
         description: meal.description,
-        kcal: Math.round(meal.kcal * swing),
-        protein: Math.round(meal.p * swing),
-        carbs: Math.round(meal.c * swing),
-        fat: Math.round(meal.f * swing),
+        kcal: Math.round(meal.kcal * scale),
+        protein: Math.round(meal.p * scale),
+        carbs: Math.round(meal.c * scale),
+        fat: Math.round(meal.f * scale),
       });
     }
   }
+
+  // Pinned favourites lead the add-meal quick-pick row: one already eaten (so it is deduplicated
+  // out of the recent list) and one never logged (so only pinning puts it there).
+  await addFavouriteMeal(userId, {
+    description: 'Protein shake and an apple',
+    mealType: MealTypes.Snack,
+    kcal: 280,
+    protein: 26,
+    carbs: 32,
+    fat: 4,
+  });
+  await addFavouriteMeal(userId, {
+    description: 'Overnight oats with peanut butter',
+    mealType: MealTypes.Breakfast,
+    kcal: 510,
+    protein: 24,
+    carbs: 62,
+    fat: 18,
+  });
 }
 
 /**

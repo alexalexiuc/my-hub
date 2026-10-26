@@ -51,7 +51,7 @@ export function WeightChart({ data, from, to, range, onRangeChange }: WeightChar
 
   if (points.length < 2) {
     return (
-      <Card className="p-5">
+      <Card compact className="p-5">
         {header}
         <p className="text-xs text-[var(--subtle)]">Not enough weigh-ins in this range to draw a trend.</p>
       </Card>
@@ -64,7 +64,7 @@ export function WeightChart({ data, from, to, range, onRangeChange }: WeightChar
   const padding = Math.max((max - min) * 0.15, 0.5);
 
   return (
-    <Card className="p-5">
+    <Card compact className="p-5">
       {header}
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">

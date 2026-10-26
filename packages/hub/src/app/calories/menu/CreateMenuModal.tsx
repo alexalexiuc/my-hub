@@ -275,7 +275,7 @@ export function CreateMenuModal({
     >
       <div className="flex flex-col gap-4 overflow-y-auto p-4 md:p-6 flex-1">
         {error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+          <div className="rounded-lg border border-[var(--red)] bg-[var(--red-d)] px-3 py-2 text-sm text-[var(--red)]">
             {error}
           </div>
         )}
@@ -317,7 +317,7 @@ export function CreateMenuModal({
         {copiedExtras && <p className="-mt-1 text-[11px] text-[var(--subtle)]">{copiedExtras}</p>}
 
         {replacesExisting && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
+          <div className="rounded-lg border border-[var(--amber)] bg-[var(--amber-d)] px-3 py-2 text-xs text-[var(--amber)]">
             {formatWeekRangeStr(weekStart)} already has a menu. Creating one here <strong>replaces</strong> it — its
             shopping list and logged meals are removed too. To change a single meal, close this and use the pencil on
             that meal instead.
@@ -357,20 +357,20 @@ export function CreateMenuModal({
       {/* Validation summary — always visible above the footer regardless of scroll position */}
       <div className="shrink-0 px-4 pb-2 md:px-6">
         {duplicateSlotDays.length > 0 && (
-          <p className="text-xs text-red-400">
+          <p className="text-xs text-[var(--red)]">
             Duplicate meal types on: {duplicateSlotDays.map(d => DAY_LABELS[d].slice(0, 3)).join(', ')} — each type can
             appear once per day
           </p>
         )}
         {totalMeals === 0 ? (
-          <p className="text-xs text-amber-400">Add at least one meal to create the menu</p>
+          <p className="text-xs text-[var(--amber)]">Add at least one meal to create the menu</p>
         ) : missingDays.length > 0 ? (
           /* Stated, not enforced — a partly planned week is a normal thing to save. */
           <p className="text-xs text-[var(--subtle)]">
             No meals planned for {missingDays.map(d => DAY_LABELS[d].slice(0, 3)).join(', ')} — you can add them later
           </p>
         ) : duplicateSlotDays.length === 0 ? (
-          <p className="text-xs text-green-400">All days have at least one meal ✓</p>
+          <p className="text-xs text-[var(--green)]">All days have at least one meal ✓</p>
         ) : null}
       </div>
     </Modal>
