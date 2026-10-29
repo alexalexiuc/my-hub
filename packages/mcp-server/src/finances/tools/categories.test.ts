@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CategoryIcons } from '@my-hub/shared/constants';
-import { createCategory, createGroup, getGroups, getUserActiveBudget } from '@my-hub/shared/services';
+import {
+  createCategory,
+  createGroup,
+  getCategoryById,
+  getGroups,
+  getUserActiveBudget,
+  updateCategory,
+} from '@my-hub/shared/services';
 import { UpsertCategorySchema, upsertCategoryTool } from './categories';
 import { financesContext, parseToolPayload } from './test-utils';
 
@@ -18,12 +25,10 @@ vi.mock('@my-hub/shared/services', () => ({
 }));
 
 describe('UpsertCategorySchema', () => {
-  it('requires icon and color', () => {
-    const parsed = UpsertCategorySchema.safeParse({
-      name: 'Groceries',
-    });
+  it('accepts an update without icon and color', () => {
+    const parsed = UpsertCategorySchema.safeParse({ id: 14, monthlyTarget: 16000 });
 
-    expect(parsed.success).toBe(false);
+    expect(parsed.success).toBe(true);
   });
 
   it('accepts only known category icons', () => {
@@ -81,5 +86,34 @@ describe('upsertCategoryTool', () => {
 
     const payload = parseToolPayload(result) as { group: string | null };
     expect(payload.group).toBe('Auto Group');
+  });
+
+  it('requires icon and color when creating', async () => {
+    await expect(
+      upsertCategoryTool({ name: 'Groceries' } as Parameters<typeof upsertCategoryTool>[0], financesContext),
+    ).rejects.toThrow('name, icon and color are required when creating a category');
+    expect(createCategory).not.toHaveBeenCalled();
+  });
+
+  it('leaves icon and color untouched when updating other fields', async () => {
+    vi.mocked(getCategoryById).mockResolvedValue({ id: 14 } as never);
+    vi.mocked(updateCategory).mockResolvedValue({
+      id: 14,
+      name: 'Grocery',
+      groupId: null,
+      monthlyTarget: 16000,
+    } as never);
+
+    await upsertCategoryTool(
+      { id: 14, monthlyTarget: 16000 } as Parameters<typeof upsertCategoryTool>[0],
+      financesContext,
+    );
+
+    expect(updateCategory).toHaveBeenCalledWith(
+      'user-1',
+      1,
+      14,
+      expect.objectContaining({ icon: undefined, color: undefined, monthlyTarget: 16000 }),
+    );
   });
 });

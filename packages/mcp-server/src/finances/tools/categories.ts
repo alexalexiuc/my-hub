@@ -27,8 +27,10 @@ const colorCodeSchema = z
 export const UpsertCategorySchema = z.object({
   id: z.number().int().positive().optional().describe('Omit to create a new category.'),
   name: z.string().trim().min(1).optional().describe('Category name. Required when creating.'),
-  icon: z.enum(CategoryIcons).describe('Category icon key. Required.'),
-  color: colorCodeSchema.describe('Category color code. Required; accepts any valid CSS color code.'),
+  icon: z.enum(CategoryIcons).optional().describe('Category icon key. Required when creating.'),
+  color: colorCodeSchema
+    .optional()
+    .describe('Category color code. Required when creating; accepts any valid CSS color code.'),
   groupName: z
     .string()
     .min(1)
@@ -85,7 +87,9 @@ export const upsertCategoryTool: ToolHandler<typeof UpsertCategorySchema.shape> 
       monthlyTarget: input.monthlyTarget,
     });
   } else {
-    if (!input.name) throw new HandledError('name is required when creating a category');
+    if (!input.name || !input.icon || !input.color) {
+      throw new HandledError('name, icon and color are required when creating a category');
+    }
 
     category = await createCategory(userId, budget.id, {
       name: input.name,

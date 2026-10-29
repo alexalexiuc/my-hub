@@ -65,7 +65,7 @@ const financeTools = [
   defineTool({
     name: 'finances_list_context',
     description:
-      'Returns all accounts, categories, and groups in a single call. ' +
+      'Returns all accounts, categories (with icon and color), and groups in a single call. ' +
       'Call this first before using any other finances tool that requires an accountId or categoryId. ' +
       'Use account IDs for transaction tools and category IDs for budget tools. ' +
       'Archived accounts are excluded by default; pass includeArchived: true to include them.',
@@ -115,7 +115,7 @@ const financeTools = [
     description:
       'Create a new spending category or update an existing one. ' +
       'Omit id to create; provide id to update only the fields you supply. ' +
-      'icon and color are required. ' +
+      'name, icon and color are required when creating; on update omitted fields are left unchanged. ' +
       'Use groupName to assign the category to a group (the "parent" section visible in the Hub); ' +
       'if the group does not exist, it is created automatically. ' +
       'Set monthlyTarget to define a monthly spending limit; pass null to remove it. ' +
