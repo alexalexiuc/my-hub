@@ -65,6 +65,8 @@ export const listContextTool: ToolHandler<typeof ListContextSchema.shape> = asyn
       id: c.id,
       name: c.name,
       group: c.groupId != null ? (groupMap.get(c.groupId) ?? null) : null,
+      icon: c.icon ?? null,
+      color: c.color ?? null,
       monthlyTarget: c.monthlyTarget ?? null,
     })),
     groups: groups.map(g => ({

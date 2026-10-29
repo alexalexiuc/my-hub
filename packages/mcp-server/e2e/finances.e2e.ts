@@ -16,6 +16,8 @@ interface CategoryEntry {
   id: number;
   name: string;
   group: string | null;
+  icon: string | null;
+  color: string | null;
   monthlyTarget: number | null;
 }
 
@@ -365,14 +367,20 @@ describe('finances — upsert_category lifecycle', () => {
       arguments: {
         id: createdCategoryId,
         monthlyTarget: 3000,
-        icon: 'tag',
-        color: '#6ee7b7',
       },
     });
 
     const data = parseToolResult<UpsertCategoryResult>(result);
     expect(data.id).toBe(createdCategoryId);
     expect(data.monthlyTarget).toBe(3000);
+
+    // icon and color were omitted, so the update must leave them untouched
+    const context = parseToolResult<ListContextResult>(
+      await client.callTool({ name: 'finances_list_context', arguments: {} }),
+    );
+    const category = context.categories.find(c => c.id === createdCategoryId);
+    expect(category?.icon).toBe('tag');
+    expect(category?.color).toBe('#6ee7b7');
   });
 
   it('removes the monthly target by setting it to null', async () => {
@@ -383,8 +391,6 @@ describe('finances — upsert_category lifecycle', () => {
       arguments: {
         id: createdCategoryId,
         monthlyTarget: null,
-        icon: 'tag',
-        color: '#6ee7b7',
       },
     });
 
@@ -405,8 +411,6 @@ describe('finances — upsert_category lifecycle', () => {
       arguments: {
         id: createdCategoryId,
         groupName: testGroupName,
-        icon: 'tag',
-        color: '#6ee7b7',
       },
     });
 
@@ -435,8 +439,6 @@ describe('finances — upsert_category lifecycle', () => {
       arguments: {
         id: createdCategoryId,
         groupName: newGroupName,
-        icon: 'tag',
-        color: '#6ee7b7',
       },
     });
 
