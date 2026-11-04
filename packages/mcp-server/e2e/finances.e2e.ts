@@ -86,6 +86,7 @@ interface AddTransactionResult {
   fromAccountBalanceAfter?: number;
   resolvedAccount?: string;
   resolvedPayee?: string | null;
+  duplicate?: { warning: string; matchedTransactionId: number; matchedPayee: string | null };
   error?: string;
 }
 
@@ -725,6 +726,74 @@ describe('finances — add_transactions with createPayee flag', () => {
 
     expect(upsertData.name).toBe(newPayeeName);
     expect(upsertData.message).toContain('already exists');
+  });
+});
+
+// ─── finances_add_transactions duplicate warning ──────────────────────────────
+
+describe('finances — add_transactions duplicate warning', () => {
+  let client: McpClient;
+  let testAccountId: number | undefined;
+  const createdIds: number[] = [];
+  const runId = Date.now().toString(36);
+  const payeeA = `[e2e:${runId}] Dup Payee A`;
+  const payeeB = `[e2e:${runId}] Dup Payee B`;
+  // A far-future date and odd amount keep these rows clear of any other data in the budget.
+  const date = '2099-03-07';
+  const amount = 13.37;
+
+  /** Adds one expense and returns its result, remembering the id for cleanup. */
+  async function addExpense(payeeName?: string): Promise<AddTransactionResult> {
+    const result = await client.callTool({
+      name: 'finances_add_transactions',
+      arguments: {
+        accountId: testAccountId,
+        createPayee: true,
+        transactions: [{ type: 'expense', amount, date, payeeName, notes: `[e2e:${runId}] duplicate check` }],
+      },
+    });
+    const row = parseToolResult<AddTransactionsResult>(result).results[0]!;
+    if (row.transactionId !== undefined) createdIds.push(row.transactionId);
+    return row;
+  }
+
+  beforeAll(async () => {
+    const { baseUrl } = getE2eEnv();
+    const token = await generateToken();
+    client = await createMcpClient(baseUrl, '/finances/mcp', token);
+    const context = parseToolResult<ListContextResult>(
+      await client.callTool({ name: 'finances_list_context', arguments: {} }),
+    );
+    testAccountId = context.accounts[0]?.id;
+  });
+
+  afterAll(async () => {
+    for (const transactionId of createdIds) {
+      await client.callTool({ name: 'finances_delete_transaction', arguments: { transactionId } });
+    }
+    await client.close();
+  });
+
+  it('flags a repeat whose payee is missing on one side, but not one with a different payee', async () => {
+    if (!testAccountId) {
+      console.log('No accounts found, skipping test');
+      return;
+    }
+
+    const first = await addExpense(payeeA);
+    expect(first.error).toBeUndefined();
+    expect(first.duplicate).toBeUndefined();
+
+    const differentPayee = await addExpense(payeeB);
+    expect(differentPayee.duplicate).toBeUndefined();
+
+    const noPayee = await addExpense();
+    expect(noPayee.duplicate).toMatchObject({ warning: 'possible_duplicate' });
+    expect([first.transactionId, differentPayee.transactionId]).toContain(noPayee.duplicate!.matchedTransactionId);
+
+    const samePayee = await addExpense(payeeA);
+    expect(samePayee.duplicate?.warning).toBe('possible_duplicate');
+    expect([first.transactionId, noPayee.transactionId]).toContain(samePayee.duplicate!.matchedTransactionId);
   });
 });
 

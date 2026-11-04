@@ -178,7 +178,7 @@ const financeTools = [
       'If payeeName matches an existing canonical payee alias, the existing payee is reused instead of creating a duplicate. ' +
       'Each item is processed independently — a duplicate warning on one does not block the others. ' +
       'Only populate the notes field when you have meaningful information to add. ' +
-      'The tool automatically detects possible duplicates and includes a warning in the result if found. ' +
+      'The tool automatically detects possible duplicates (same account, date and amount; payee equal unless either side has none) and includes a warning in the result if found. ' +
       'categoryId is optional for all transaction types including transfers. ' +
       'For loan repayments and other categorised transfers, set categoryId to track the spending. ' +
       '\n\nCurrencies: every account has its own currency and the stored amount is always in it. ' +
