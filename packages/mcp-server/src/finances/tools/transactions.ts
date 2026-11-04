@@ -516,7 +516,7 @@ export const addTransactionsTool: ToolHandler<typeof AddTransactionsSchema.shape
           matchedTransactionId: duplicate.id,
           matchedDate: duplicate.date,
           matchedAmount: duplicate.amount,
-          matchedPayee: item.payeeName ?? null,
+          matchedPayee: duplicate.payeeId === payeeId ? (item.payeeName ?? null) : null,
         };
       }
 

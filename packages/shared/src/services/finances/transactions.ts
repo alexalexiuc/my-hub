@@ -11,7 +11,7 @@
  * - getTransactionById(userId, budgetId, transactionId) — single transaction with access check
  * - updateTransaction(userId, budgetId, transactionId, data) — partial update; re-resolves money only when type/accounts/amount/currency/rate/toAmount/date change (reporting value otherwise stays frozen); recomputes account balances
  * - deleteTransaction(userId, budgetId, transactionId) — hard delete; reverses account balance effects; decrements payee stats
- * - checkDuplicateTransaction(userId, budgetId, opts) — checks for existing transaction matching (accountId, date, amount in account currency, payeeId), optionally excluding one id
+ * - checkDuplicateTransaction(userId, budgetId, opts) — checks for existing transaction matching (accountId, date, amount in account currency) whose payee is the same or missing on either side, optionally excluding one id
  * Types: TransactionInsert, TransactionUpdate, GetTransactionsOpts, DuplicateCheckOpts, TransactionListItem, CorrectionInsert, CorrectionResult
  */
 import { and, desc, eq, gte, ilike, isNull, lte, ne, or, sql, type SQL } from 'drizzle-orm';
@@ -579,6 +579,10 @@ export async function countTransactions(
   return row?.count ?? 0;
 }
 
+/**
+ * Finds a transaction in the budget that looks like a repeat of the given one: same account, date and stored
+ * (account-currency) amount. Payees must be equal unless either side has none. Used to warn, never to block.
+ */
 export async function checkDuplicateTransaction(
   userId: string,
   budgetId: number,
@@ -596,10 +600,10 @@ export async function checkDuplicateTransaction(
     eq(financeTransactions.amount, normalizedAmount),
   ];
 
-  if (opts.payeeId === null) {
-    conditions.push(isNull(financeTransactions.payeeId));
-  } else {
-    conditions.push(eq(financeTransactions.payeeId, opts.payeeId));
+  // A missing payee on either side matches any payee: a repeat logged once with a payee and once without is still
+  // flagged. Two different payees never match.
+  if (opts.payeeId !== null) {
+    conditions.push(or(eq(financeTransactions.payeeId, opts.payeeId), isNull(financeTransactions.payeeId)) as SQL);
   }
   if (opts.excludeTransactionId !== undefined) {
     conditions.push(ne(financeTransactions.id, opts.excludeTransactionId));
