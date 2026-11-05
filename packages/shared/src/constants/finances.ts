@@ -176,7 +176,8 @@ export const ACCOUNT_TYPE_DESCRIPTIONS: Record<AccountType, string> = {
   [AccountTypes.Loan]:
     'Mortgage, car loan, or instalment plan. Tracks remaining principal and generates a repayment schedule.',
   [AccountTypes.Goal]: 'Savings pot with a target amount. Progress bar shows how close you are to your goal.',
-  [AccountTypes.Tracking]: 'Read-only account for assets you want to include in net worth (e.g. a car or property).',
+  [AccountTypes.Tracking]:
+    'Savings or assets you want to follow in net worth (e.g. a reserve, a car or property). Transfers in and out count as savings.',
   [AccountTypes.BorrowedLent]: 'Tracks money you lent to or borrowed from someone, with optional due date.',
 };
 

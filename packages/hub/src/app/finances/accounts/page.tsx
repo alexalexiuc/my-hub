@@ -83,8 +83,6 @@ function AccountCard({
         <AccountProgressBar value={acc.balance} max={acc.targetAmount} currency={acc.currency} color="var(--green)" />
       )}
 
-      {acc.type === 'tracking' && <SubText className="block">Manually tracked value · read-only</SubText>}
-
       {acc.type === 'borrowed_lent' && <BorrowedLentDetails acc={acc} onSettle={onSettle} />}
     </div>
   );
