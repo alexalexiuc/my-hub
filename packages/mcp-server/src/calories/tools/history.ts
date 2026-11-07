@@ -17,6 +17,6 @@ export const getHistoryTool: ToolHandler<typeof GetHistorySchema.shape> = async 
   const startDate = input.startDate ?? currentDate;
   const endDate = input.endDate ?? currentDate;
 
-  const data = await buildHistoryPeriod(userId, startDate, endDate);
+  const data = await buildHistoryPeriod(userId, startDate, endDate, currentDate);
   return toolResponse(data);
 };

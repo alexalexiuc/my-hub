@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { MealTypesValues, DaysOfWeek, GymTimesValues } from '@my-hub/shared/constants';
 import { hasDuplicateMealSlot } from '@my-hub/shared/utils';
+import type { DayCalorieTargets } from '@my-hub/shared/utils';
 import { isoDateSchema } from '@/lib/schemas/common';
 
 // Re-exported for CreateMenuModal's live duplicate hint — the rule itself lives in
@@ -125,13 +126,22 @@ export const UpdateMenuDetailsSchema = z.object({
 
 export const UpdateMenuDetailsResponseSchema = z.object({ menu: WeeklyMenuWithoutMealsSchema });
 
+/** One weekday's range — the shared `DayCalorieTargets`, so a field added there fails here until it is sent. */
+export const DayTargetSchema = z.object({
+  target: z.number().nullable(),
+  min: z.number().nullable(),
+  isGymDay: z.boolean(),
+  gymDayBonus: z.number(),
+}) satisfies z.ZodType<DayCalorieTargets>;
+
 export const GetMenusResponseSchema = z.object({
   menus: z.array(WeeklyMenuWithoutMealsSchema),
   gymDays: z.array(DayOfWeekSchema),
-  /** Daily calorie target from the user's profile (goalCalories), or null if the profile is incomplete. */
-  goalCalories: z.number().nullable(),
-  /** Extra kcal added to the daily target on gym days. */
-  gymDayCalorieBonus: z.number(),
+  /**
+   * Each weekday's calorie range, indexed 0=Mon … 6=Sun, resolved by the shared
+   * `weekdayCalorieTargets` so the menu never re-derives the gym-day bonus itself.
+   */
+  dayTargets: z.array(DayTargetSchema).length(7),
   /** When the user trains — drives where the pre/post-workout meals sit in each day's order. */
   gymTime: GymTimeSchema,
 });

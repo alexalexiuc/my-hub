@@ -382,3 +382,82 @@ describe('calories — weekly menu lifecycle', () => {
     menuId = '';
   });
 });
+
+interface ProfileSnapshot {
+  profile: {
+    goalMinCalories?: number;
+    goalMaxCalories?: number;
+    gymDays?: number[];
+    gymDayCalorieBonus?: number;
+  };
+}
+
+/**
+ * plan_week's calorie warnings hold each day against its own range: a gym day's ceiling and floor
+ * both rise by the bonus, so a well-planned training day must not be flagged for clearing the
+ * base max, while a recovery day above it must be.
+ *
+ * Sets explicit min/max overrides (so the targets don't depend on TDEE) and a known gym schedule,
+ * then restores the profile's previous values.
+ */
+describe('calories — plan_week warnings follow each day’s range', () => {
+  let client: McpClient;
+  let saved: ProfileSnapshot['profile'] = {};
+  const weekStart = '2099-01-19';
+  const tag = `[e2e:${Date.now().toString(36)}]`;
+
+  beforeAll(async () => {
+    const { baseUrl } = getE2eEnv();
+    const token = await generateToken();
+    client = await createMcpClient(baseUrl, '/calories/mcp', token);
+    saved = parseToolResult<ProfileSnapshot>(
+      await client.callTool({ name: 'calories_get_profile', arguments: {} }),
+    ).profile;
+    await client.callTool({
+      name: 'calories_update_profile',
+      arguments: { goalMinCalories: 1500, goalMaxCalories: 2000, gymDays: [0], gymDayCalorieBonus: 400 },
+    });
+  });
+
+  afterAll(async () => {
+    try {
+      const { menu } = parseToolResult<GetMenuResult>(
+        await client.callTool({ name: 'calories_get_weekly_menu', arguments: { weekStart } }),
+      );
+      if (menu) await client.callTool({ name: 'calories_delete_weekly_menu', arguments: { menuId: menu.menuId } });
+      await client.callTool({
+        name: 'calories_update_profile',
+        arguments: {
+          goalMinCalories: saved.goalMinCalories ?? null,
+          goalMaxCalories: saved.goalMaxCalories ?? null,
+          gymDays: saved.gymDays ?? null,
+          gymDayCalorieBonus: saved.gymDayCalorieBonus ?? null,
+        },
+      });
+    } catch {
+      // best-effort cleanup — never fail the run on it
+    }
+    await client.close();
+  });
+
+  it('warns about a recovery day over the base max, not a gym day inside its raised range', async () => {
+    const data = parseToolResult<PlanWeekResult & { warnings: string[] | null }>(
+      await client.callTool({
+        name: 'calories_plan_week',
+        arguments: {
+          weekStart,
+          meals: [
+            // Monday is a gym day: 1,900–2,400, so 2,300 is on plan.
+            { dayOfWeek: 0, mealType: 'lunch', description: `${tag} Gym day lunch`, kcal: 2300 },
+            // Tuesday is a recovery day: 1,500–2,000, so 2,300 is over.
+            { dayOfWeek: 1, mealType: 'lunch', description: `${tag} Rest day lunch`, kcal: 2300 },
+          ],
+        },
+      }),
+    );
+
+    expect(data.warnings).not.toBeNull();
+    expect(data.warnings!.some(w => w.startsWith('Day 1:') && w.includes('2000 kcal'))).toBe(true);
+    expect(data.warnings!.some(w => w.startsWith('Day 0:'))).toBe(false);
+  });
+});

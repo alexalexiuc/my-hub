@@ -4,6 +4,7 @@ import {
   calculateCalorieTargets,
   calculateMacroKcal,
   dayCalorieTargets,
+  weekdayCalorieTargets,
   dayTargetStatus,
   defaultMealTypeForHour,
   summariseTargetAdherence,
@@ -223,6 +224,21 @@ describe('dayCalorieTargets', () => {
       isGymDay: false,
       gymDayBonus: 300,
     });
+  });
+});
+
+describe('weekdayCalorieTargets', () => {
+  it('applies the same rule as the date form, keyed by weekday', () => {
+    const profile = { goalMaxCalories: 3000, goalMinCalories: 2900, gymDays: [0, 2], gymDayCalorieBonus: 300 };
+    // 2026-11-09 is a Monday (0), 2026-11-10 a Tuesday (1).
+    expect(weekdayCalorieTargets(profile, null, 0)).toEqual(dayCalorieTargets(profile, null, '2026-11-09'));
+    expect(weekdayCalorieTargets(profile, null, 1)).toEqual({
+      target: 3000,
+      min: 2900,
+      isGymDay: false,
+      gymDayBonus: 300,
+    });
+    expect(weekdayCalorieTargets(profile, null, 2)).toMatchObject({ target: 3300, min: 3200, isGymDay: true });
   });
 });
 

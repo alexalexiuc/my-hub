@@ -15,9 +15,9 @@ export interface BodyProfile {
   goalTargetWeightKg?: number; // optional finish line for the goal, in kg
   goalMinCalories?: number; // explicit daily minimum floor
   goalMaxCalories?: number; // explicit daily maximum ceiling
-  goalProtein?: number; // daily protein target in grams
-  goalCarbs?: number; // daily carbohydrate target in grams
-  goalFat?: number; // daily fat target in grams
+  goalProteinG?: number; // daily protein target in grams
+  goalCarbsG?: number; // daily carbohydrate target in grams
+  goalFatG?: number; // daily fat target in grams
   gymDays?: DayOfWeek[]; // days of week the user goes to the gym: 0=Mon … 6=Sun
   gymDayCalorieBonus?: number; // extra kcal the daily target rises by on a gym day
   gymTime?: GymTime; // when training happens: morning | midday | evening

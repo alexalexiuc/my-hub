@@ -2,43 +2,56 @@
 
 import { DaysOfWeekValues, DAY_LABELS_SHORT } from '@my-hub/shared/constants';
 import type { DayOfWeek } from '@my-hub/shared/constants';
+import { DumbbellIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
+import { planStatusLabel } from './menu.utils';
+import type { DayPlan } from './menu.utils';
 
 type DayJumpChipsProps = {
-  /** Planned meal count per day — drives the badge and the "nothing here" dimming. */
-  mealCounts: Record<DayOfWeek, number>;
+  /** Each day's plan — drives the gym mark, the status dot and the "nothing planned" dimming. */
+  plans: Record<DayOfWeek, DayPlan>;
   todayIndex: DayOfWeek | undefined;
-  /** The day currently shown by `MobileDayView` — gets a ring so the chip row stays in sync with the arrows. */
+  /** The day currently shown by `MobileDayView` — gets a ring. */
   selectedDay: DayOfWeek;
   onSelect: (day: DayOfWeek) => void;
 };
 
 /**
  * Phone-only day selector. `MobileDayView` shows one day at a time; these chips pick which one,
- * alongside the prev/next-day arrows above them.
+ * and each also reads as a week overview: a dumbbell on training days and a dot coloured by
+ * whether that day's plan sits in its range.
  */
-export function DayJumpChips({ mealCounts, todayIndex, selectedDay, onSelect }: DayJumpChipsProps) {
+export function DayJumpChips({ plans, todayIndex, selectedDay, onSelect }: DayJumpChipsProps) {
   // Equal-width, never scrolling: all seven have to be reachable in one tap, or the row is just
-  // another thing to scroll past. The meal count sits under the label rather than beside it,
-  // since side-by-side would not fit seven chips across a phone.
+  // another thing to scroll past.
   //
   // No `md:hidden` of its own: this component only ever renders inside `MobileDayView`, which is
   // already wrapped in a `data-layout="mobile"` / `md:hidden` container by its caller.
   return (
     <div className="flex gap-1">
       {DaysOfWeekValues.map(day => {
-        const count = mealCounts[day];
+        const plan = plans[day];
+        const count = plan.mealCount;
         const isToday = day === todayIndex;
         const isSelected = day === selectedDay;
+        const status = planStatusLabel(plan);
+        const label = [
+          `Jump to ${DAY_LABELS_SHORT[day]}`,
+          plan.kind === 'gym' ? 'gym day' : null,
+          count > 0 ? `${count} meals` : 'no meals',
+          status,
+        ]
+          .filter(Boolean)
+          .join(', ');
         return (
           <button
             key={day}
             type="button"
             onClick={() => onSelect(day)}
-            aria-label={`Jump to ${DAY_LABELS_SHORT[day]}`}
+            aria-label={label}
             aria-current={isSelected ? 'true' : undefined}
             className={cn(
-              'flex flex-1 flex-col items-center rounded-lg border px-0.5 py-1 text-[11px] font-medium leading-tight transition-colors',
+              'flex min-h-14 flex-1 flex-col items-center justify-center gap-1 rounded-lg border px-0.5 py-1.5 text-xs font-semibold leading-tight transition-colors',
               isToday
                 ? 'border-[var(--green)] bg-[var(--green-d)] text-[var(--green)]'
                 : count > 0
@@ -48,8 +61,9 @@ export function DayJumpChips({ mealCounts, todayIndex, selectedDay, onSelect }: 
             )}
           >
             {DAY_LABELS_SHORT[day]}
-            <span className={cn('text-[10px] font-semibold', count > 0 ? 'text-[var(--accent)]' : 'opacity-0')}>
-              {count}
+            <span className="flex h-3 items-center gap-1" aria-hidden="true">
+              {plan.kind === 'gym' && <DumbbellIcon className="size-3 text-[var(--accent)]" />}
+              {count > 0 && <span className="size-1.5 rounded-full" style={{ backgroundColor: plan.color }} />}
             </span>
           </button>
         );

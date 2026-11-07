@@ -59,6 +59,13 @@ const FULL_ROW: CalorieProfile = {
  */
 const NOT_EXPOSED: (keyof CalorieProfile)[] = ['id', 'userId', 'createdAt', 'automationApiKey'];
 
+/** Columns exposed under the name `calories_update_profile` takes them by, so reads and writes match. */
+const EXPOSED_AS: Partial<Record<keyof CalorieProfile, string>> = {
+  goalProtein: 'goalProteinG',
+  goalCarbs: 'goalCarbsG',
+  goalFat: 'goalFatG',
+};
+
 describe('rowToProfile', () => {
   // This is the drift guard. Adding a column forces it into the fixtures above (the type check
   // fails otherwise), and from there this test fails unless the column is either exposed or
@@ -66,7 +73,7 @@ describe('rowToProfile', () => {
   it('exposes every profile column except the ones deliberately withheld', () => {
     const exposed = new Set(Object.keys(rowToProfile(FULL_ROW)));
     const missing = (Object.keys(FULL_ROW) as (keyof CalorieProfile)[]).filter(
-      key => !NOT_EXPOSED.includes(key) && !exposed.has(key),
+      key => !NOT_EXPOSED.includes(key) && !exposed.has(EXPOSED_AS[key] ?? key),
     );
 
     expect(missing).toEqual([]);
@@ -78,9 +85,9 @@ describe('rowToProfile', () => {
 
   it('reports the macro targets used to plan meals', () => {
     const profile = rowToProfile(FULL_ROW);
-    expect(profile.goalProtein).toBe(160);
-    expect(profile.goalCarbs).toBe(220);
-    expect(profile.goalFat).toBe(70);
+    expect(profile.goalProteinG).toBe(160);
+    expect(profile.goalCarbsG).toBe(220);
+    expect(profile.goalFatG).toBe(70);
   });
 
   it('drops columns the user has not filled in', () => {

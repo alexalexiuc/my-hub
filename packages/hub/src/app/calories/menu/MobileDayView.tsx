@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, NavRow } from '@/components';
-import { DaysOfWeekValues, DAY_LABELS } from '@my-hub/shared/constants';
+import { Card } from '@/components';
+import { DaysOfWeekValues } from '@my-hub/shared/constants';
 import type { DayOfWeek, GymTime, MealType } from '@my-hub/shared/constants';
 import { DayJumpChips } from './DayJumpChips';
 import { DayCard } from './DayCard';
-import type { LoggedMeals } from './menu.utils';
+import type { DayPlan, LoggedMeals } from './menu.utils';
 import type { WeeklyMenuMeal } from './types';
 
 type MobileDayViewProps = {
@@ -17,11 +17,8 @@ type MobileDayViewProps = {
   byDay: Record<number, WeeklyMenuMeal[]>;
   todayIndex: DayOfWeek | undefined;
   loggedMeals: LoggedMeals;
-  gymDays: number[];
-  /** Daily calorie target from the user's profile (goalCalories), or null if the profile is incomplete. */
-  dailyTargetKcal: number | null;
-  /** Extra kcal added to the daily target on gym days. */
-  gymDayCalorieBonus: number;
+  /** Each day's plan against its own range, from `planWeek`. */
+  plans: Record<DayOfWeek, DayPlan>;
   /** When the user trains — decides where the pre/post-workout meals sit in each day's order. */
   gymTime: GymTime | null;
   onMealLogChanged: (day: DayOfWeek, mealType: MealType, logged: boolean) => void;
@@ -31,8 +28,7 @@ type MobileDayViewProps = {
 };
 
 /**
- * Phone view of the week: one day's card at a time, picked via the day-chip row or the
- * prev/next-day arrows below — both drive the same selection and stay in sync. Replaces stacking
+ * Phone view of the week: one day's card at a time, picked via the day-chip row. Replaces stacking
  * all seven cards (which the desktop grid still does) with paging through a single rendered day,
  * so an empty day costs nothing and no card is ever sized to match the fullest day of the week.
  */
@@ -44,9 +40,7 @@ export function MobileDayView({
   byDay,
   todayIndex,
   loggedMeals,
-  gymDays,
-  dailyTargetKcal,
-  gymDayCalorieBonus,
+  plans,
   gymTime,
   onMealLogChanged,
   onMealSwapped,
@@ -64,42 +58,13 @@ export function MobileDayView({
     setSelectedDay(todayIndex ?? monday);
   }, [menuId, todayIndex, monday]);
 
-  function step(delta: 1 | -1) {
-    const idx = DaysOfWeekValues.indexOf(selectedDay);
-    const next = DaysOfWeekValues[idx + delta];
-    if (next !== undefined) setSelectedDay(next);
-  }
-  const dayIdx = DaysOfWeekValues.indexOf(selectedDay);
-
-  const mealCounts = Object.fromEntries(DaysOfWeekValues.map(d => [d, byDay[d]?.length ?? 0])) as Record<
-    DayOfWeek,
-    number
-  >;
-
+  // The extra top padding and the wider gap keep the summary card, the chip row and the day card
+  // reading as three blocks rather than one run of cards.
   return (
-    <div className="flex flex-col gap-3">
-      <DayJumpChips
-        mealCounts={mealCounts}
-        todayIndex={todayIndex}
-        selectedDay={selectedDay}
-        onSelect={setSelectedDay}
-      />
+    <div className="flex flex-col gap-5 pt-2">
+      <DayJumpChips plans={plans} todayIndex={todayIndex} selectedDay={selectedDay} onSelect={setSelectedDay} />
 
-      <NavRow
-        prevLabel="Previous day"
-        nextLabel="Next day"
-        onPrev={() => step(-1)}
-        onNext={() => step(1)}
-        prevDisabled={dayIdx === 0}
-        nextDisabled={dayIdx === DaysOfWeekValues.length - 1}
-        label={
-          <span className="min-w-[100px] text-center text-sm font-medium text-[var(--text)]">
-            {DAY_LABELS[selectedDay]}
-          </span>
-        }
-      />
-
-      <Card className="!p-0 -mx-4 overflow-hidden md:mx-0">
+      <Card compact className="!p-0 overflow-hidden">
         <DayCard
           variant="flat"
           day={selectedDay}
@@ -109,9 +74,7 @@ export function MobileDayView({
           isCurrentWeek={isCurrentWeek}
           today={today}
           loggedMeals={loggedMeals}
-          isGymDay={gymDays.includes(selectedDay)}
-          dailyTargetKcal={dailyTargetKcal}
-          gymDayCalorieBonus={gymDayCalorieBonus}
+          plan={plans[selectedDay]}
           gymTime={gymTime}
           onMealLogChanged={(mealType, logged) => onMealLogChanged(selectedDay, mealType, logged)}
           onMealSwapped={onMealSwapped}

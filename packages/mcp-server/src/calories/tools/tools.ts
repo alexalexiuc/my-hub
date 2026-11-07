@@ -35,7 +35,9 @@ const caloriesTools = [
   defineTool({
     name: 'calories_log_meal',
     description:
-      'Log a meal and its calorie content. Use this after analyzing a food photo or when the user describes what they ate. The model should estimate calories and optionally macros before calling this tool. If the meal consists of multiple distinct foods (e.g. burger + fries), use the items array to log them all in a single call instead of calling this tool multiple times.',
+      'Log a meal and its calorie content. Use this after analyzing a food photo or when the user describes what they ate. The model should estimate calories and optionally macros before calling this tool. If the meal consists of multiple distinct foods (e.g. burger + fries), use the items array to log them all in a single call instead of calling this tool multiple times. ' +
+      "The remaining block reports the meal's date against its own range: isGymDay, dayTarget / dayMin " +
+      '(gym-day bonus included) and remainingCalories counted down from dayTarget.',
     inputSchema: LogMealSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: logMealTool,
@@ -97,6 +99,10 @@ const caloriesTools = [
     description:
       'Get a full calorie and macro summary for a specific date, broken down by meal type. ' +
       'Shows progress against daily targets and whether the goal was met. ' +
+      "Targets are this date's: isGymDay says whether it is a training day, dayTarget / dayMin are the " +
+      "day's ceiling and floor with the gym-day bonus (gymDayBonusApplied) already added, and " +
+      'remainingCalories counts down from dayTarget. goalCalories / minCalories / maxCalories are the ' +
+      'profile-level values before the bonus — judge the day by dayTarget / dayMin, not by those. ' +
       'Use this tool for a single date. For multi-day trends use calories_get_history.',
     inputSchema: GetDailySummarySchema.shape,
     annotations: { readOnlyHint: true },
@@ -107,6 +113,10 @@ const caloriesTools = [
     description:
       'Get a calorie and weight history for a date range. Returns per-day calorie and macro totals, ' +
       'weight logs, period totals and averages vs goal. ' +
+      'Each day carries its own isGymDay, dayTarget / dayMin (gym-day bonus included) and a status ' +
+      '(on_target, under, over, not_logged, no_target) judged against that range — null for today and later, which are not finished; periodTarget sums ' +
+      "the days' own dayTarget — each day's ceiling (max calories, or goal calories without a max, plus the gym-day " +
+      'bonus), not goalCalories × days, so periodRemaining is room under the ceilings, not under the goal. ' +
       'startDate and endDate both default to today when omitted. ' +
       'Use instead of the calories://history-7days and calories://history-30days resources when ' +
       'a custom date range is needed or when resources are not supported.',

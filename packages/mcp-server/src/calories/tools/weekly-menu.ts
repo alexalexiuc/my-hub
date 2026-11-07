@@ -18,7 +18,7 @@ import {
   MeasurementTypes,
   DEFAULT_GYM_DAY_CALORIE_BONUS,
 } from '@my-hub/shared/constants';
-import type { DayOfWeek, MealType } from '@my-hub/shared/constants';
+import type { MealType } from '@my-hub/shared/constants';
 import { toolResponse } from '../../shared/toolsUtils';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import type { ToolHandler } from '../../shared/types';
@@ -28,6 +28,7 @@ import {
   startOfWeekMonday,
   dateToString,
   dayOfWeekMon0,
+  weekdayCalorieTargets,
   hasDuplicateMealSlot,
   logger,
 } from '@my-hub/shared/utils';
@@ -159,15 +160,15 @@ export const planWeekTool: ToolHandler<typeof PlanWeekSchema.shape> = async (inp
 
     for (const [day, kcal] of Object.entries(dailyKcal)) {
       if (kcal === 0) continue;
-      // Gym days carry a higher target — same rule the Hub UI applies via dayTargetKcal,
+      // Each weekday's range from the shared rule the Hub menu uses too, gym-day bonus included,
       // so the tool never warns about a correctly-planned gym day.
-      const bonus = gymDays.includes(Number(day) as DayOfWeek) ? gymDayCalorieBonus : 0;
-      const gymNote = bonus > 0 ? ' (gym day — bonus included)' : '';
-      if (targets.maxCalories !== null && kcal > targets.maxCalories + bonus) {
-        warnings.push(`Day ${day}: ${kcal} kcal exceeds max target of ${targets.maxCalories + bonus} kcal${gymNote}`);
+      const { target, min, isGymDay } = weekdayCalorieTargets(profile, weightM?.value ?? null, Number(day));
+      const gymNote = isGymDay ? ' (gym day — bonus included)' : '';
+      if (target !== null && kcal > target) {
+        warnings.push(`Day ${day}: ${kcal} kcal exceeds max target of ${target} kcal${gymNote}`);
       }
-      if (targets.minCalories !== null && kcal < targets.minCalories + bonus) {
-        warnings.push(`Day ${day}: ${kcal} kcal is below min target of ${targets.minCalories + bonus} kcal${gymNote}`);
+      if (min !== null && kcal < min) {
+        warnings.push(`Day ${day}: ${kcal} kcal is below min target of ${min} kcal${gymNote}`);
       }
     }
   }
@@ -222,9 +223,9 @@ export const planWeekTool: ToolHandler<typeof PlanWeekSchema.shape> = async (inp
             max: targets.maxCalories,
           },
           macros: {
-            protein: profile.goalProtein ?? null,
-            carbs: profile.goalCarbs ?? null,
-            fat: profile.goalFat ?? null,
+            protein: profile.goalProteinG ?? null,
+            carbs: profile.goalCarbsG ?? null,
+            fat: profile.goalFatG ?? null,
           },
           gymDays: gymDays.length > 0 ? gymDays : null,
           gymDayCalorieBonus,

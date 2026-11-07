@@ -15,6 +15,7 @@ import { yyyyMmDdSchema } from '../../shared/schemas';
 import { ToolHandler } from '../../shared/types';
 import { omitNullish, localDateString, localHour } from '@my-hub/shared/utils';
 import { rowToMealEntry } from '../models/meals';
+import { dayTargetFields } from '../models/targets';
 import { MealEntry } from '../types';
 import { MealTypes, MeasurementTypes } from '@my-hub/shared/constants';
 
@@ -138,9 +139,9 @@ export const logMealTool: ToolHandler<typeof LogMealSchema.shape> = async (input
   const profile = profileRow ? rowToProfile(profileRow) : {};
   const weightM = latestMeasurements.find(m => m.typeKey === MeasurementTypes.Weight);
   const targets = profileToTargets(profile, weightM?.value);
-  const maxCal = targets.maxCalories;
+  const day = dayTargetFields(profile, weightM?.value, date);
   const caloriesConsumed = dayRows.reduce((s, r) => s + (r.kcal ?? 0), 0);
-  const remainingCalories = maxCal !== null ? maxCal - caloriesConsumed : null;
+  const remainingCalories = day.dayTarget !== null ? day.dayTarget - caloriesConsumed : null;
 
   const proteinConsumed = dayRows.reduce((s, r) => s + (r.protein ?? 0), 0);
   const carbsConsumed = dayRows.reduce((s, r) => s + (r.carbs ?? 0), 0);
@@ -154,7 +155,8 @@ export const logMealTool: ToolHandler<typeof LogMealSchema.shape> = async (input
     caloriesConsumed,
     goalCalories: targets.goalCalories,
     minCalories: targets.minCalories,
-    maxCalories: maxCal,
+    maxCalories: targets.maxCalories,
+    ...day,
     remainingCalories,
     overBudget: remainingCalories !== null ? remainingCalories < 0 : null,
     macros: {
