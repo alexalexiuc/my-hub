@@ -6,6 +6,6 @@ import { resourceResponse } from '../../shared/resourcesUtils';
 export const getTodayResource: ResourceHandler = async (uri, context) => {
   const { userId, timezone } = context;
   const date = currentDateString(timezone ?? null);
-  const summary = await buildDailySummary(userId, date);
+  const summary = await buildDailySummary(userId, date, date);
   return resourceResponse(uri, summary);
 };

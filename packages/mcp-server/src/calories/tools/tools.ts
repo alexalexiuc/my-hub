@@ -115,7 +115,8 @@ const caloriesTools = [
       'weight logs, period totals and averages vs goal. ' +
       'Each day carries its own isGymDay, dayTarget / dayMin (gym-day bonus included) and a status ' +
       '(on_target, under, over, not_logged, no_target) judged against that range — null for today and later, which are not finished; periodTarget sums ' +
-      "the days' own dayTarget. " +
+      "the days' own dayTarget — each day's ceiling (max calories, or goal calories without a max, plus the gym-day " +
+      'bonus), not goalCalories × days, so periodRemaining is room under the ceilings, not under the goal. ' +
       'startDate and endDate both default to today when omitted. ' +
       'Use instead of the calories://history-7days and calories://history-30days resources when ' +
       'a custom date range is needed or when resources are not supported.',

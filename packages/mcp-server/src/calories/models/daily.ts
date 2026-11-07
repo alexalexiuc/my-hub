@@ -29,29 +29,43 @@ export interface DailySummary extends DayTargetFields {
 
 /**
  * Whether a day's intake met the goal. Gaining: reached the day's floor — or, without one, the
- * goal calories plus the gym-day bonus — and going over is fine. Losing or maintaining: inside
- * the day's range, the verdict `calories_get_history` gives the same day. Null without a target.
+ * goal calories plus the gym-day bonus — and going over is fine. Losing or maintaining: within the
+ * day's ceiling and, once the day is over, at or above its floor.
+ *
+ * Null when there is nothing to judge: no target, or nothing logged (history calls that day
+ * `not_logged`). A day still in progress is never failed for being short — a 400 kcal breakfast
+ * hasn't missed a 1,600 floor yet — so it is judged only on what can no longer change: a loss day
+ * already over its ceiling is `false`, a gain day that reached its floor is `true`, and a gain day
+ * short of it is `null` until the day ends.
+ *
+ * @param isFinished - The day is before today in the user's timezone.
  */
 export function isDayGoalMet(
   goalType: GoalType | null | undefined,
-  calories: number,
+  intake: { calories: number; mealCount: number },
   day: Pick<DayTargetFields, 'dayTarget' | 'dayMin' | 'gymDayBonusApplied'>,
   goalCalories: number | null,
+  isFinished: boolean,
 ): boolean | null {
-  if (day.dayTarget === null) return null;
+  if (day.dayTarget === null || intake.mealCount === 0 || intake.calories === 0) return null;
+  const { calories } = intake;
   if (goalType === GoalTypes.WeightGain) {
     const gainFloor = day.dayMin ?? (goalCalories === null ? day.dayTarget : goalCalories + day.gymDayBonusApplied);
-    return calories >= gainFloor;
+    if (calories >= gainFloor) return true;
+    return isFinished ? false : null;
   }
-  return calories <= day.dayTarget && (day.dayMin === null || calories >= day.dayMin);
+  if (calories > day.dayTarget) return false;
+  return !isFinished || day.dayMin === null || calories >= day.dayMin;
 }
 
 /**
  * Fetches all data needed for a daily summary and computes totals, this date's targets (gym-day
  * bonus included), remaining calories, and goal status. Used by both the calories://today
  * resource and the calories_get_daily_summary tool to avoid duplication.
+ *
+ * @param today - YYYY-MM-DD in the user's timezone; `date` from it onwards is still in progress.
  */
-export async function buildDailySummary(userId: string, date: string): Promise<DailySummary> {
+export async function buildDailySummary(userId: string, date: string, today: string): Promise<DailySummary> {
   const [profileRow, dayRows, latestMeasurements] = await Promise.all([
     getCalorieProfile(userId),
     getMealsForDate(userId, date),
@@ -68,7 +82,13 @@ export async function buildDailySummary(userId: string, date: string): Promise<D
   const remaining = day.dayTarget !== null ? day.dayTarget - totals.calories : null;
 
   const goalType = 'goalType' in profile ? profile.goalType : null;
-  const goalMet = isDayGoalMet(goalType, totals.calories, day, targets.goalCalories);
+  const goalMet = isDayGoalMet(
+    goalType,
+    { calories: totals.calories, mealCount: meals.length },
+    day,
+    targets.goalCalories,
+    date < today,
+  );
 
   return {
     date,
