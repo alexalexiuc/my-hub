@@ -1,7 +1,7 @@
 import { route, created } from '@/lib/api/route';
 import { createWeeklyMenu, getWeeklyMenus, getCalorieProfile, getMeasurements } from '@my-hub/shared/services';
-import { profileToTargets } from '@my-hub/shared/utils';
-import { MeasurementTypes, DEFAULT_GYM_DAY_CALORIE_BONUS } from '@my-hub/shared/constants';
+import { weekdayCalorieTargets } from '@my-hub/shared/utils';
+import { MeasurementTypes, DaysOfWeekValues } from '@my-hub/shared/constants';
 import { CreateMenuSchema, CreateMenuResponseSchema, GetMenusResponseSchema } from './menu.schemas';
 
 export const GET = route({ response: GetMenusResponseSchema })(async ({ user }) => {
@@ -13,16 +13,12 @@ export const GET = route({ response: GetMenusResponseSchema })(async ({ user }) 
   const gymDays = profile?.gymDays ?? [];
   const weightKg = latestWeight[0]?.value ?? null;
 
-  const targets = profileToTargets(profile, weightKg);
-
   return {
     menus,
     gymDays,
-    // The ceiling, resolved the same way `dayCalorieTargets` resolves it for every other screen.
-    // Sending the bare `goalCalories` made the Weekly Menu judge days against a different number
-    // than Today and Progress whenever the profile set an explicit max.
-    goalCalories: targets.maxCalories ?? targets.goalCalories,
-    gymDayCalorieBonus: profile?.gymDayCalorieBonus ?? DEFAULT_GYM_DAY_CALORIE_BONUS,
+    // Finished ranges per weekday, from the same rule Today and Progress use per date — so the
+    // menu judges a day against the number every other screen shows for it.
+    dayTargets: DaysOfWeekValues.map(d => weekdayCalorieTargets(profile, weightKg, d)),
     gymTime: profile?.gymTime ?? null,
   };
 });

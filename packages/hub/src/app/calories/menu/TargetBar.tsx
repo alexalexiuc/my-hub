@@ -1,7 +1,7 @@
 type TargetBarProps = {
   /** Planned kcal as a percentage of target (from `targetPct`); null renders an empty bar. */
   pct: number | null;
-  /** Fill as a class pair from `targetColorClasses` or a CSS colour — the caller owns the palette. */
+  /** Fill as a class pair or a CSS colour — the caller owns the palette. */
   colors: { text: string; bg: string } | string;
   /** Bar thickness — `sm` (4px) for the per-day bar, `md` (6px) for the weekly summary bar. */
   size?: 'sm' | 'md';

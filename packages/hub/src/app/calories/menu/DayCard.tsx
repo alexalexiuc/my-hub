@@ -6,12 +6,12 @@ import { PlusOutlineIcon, DumbbellIcon } from '@/components/icons';
 import { DAY_LABELS } from '@my-hub/shared/constants';
 import type { DayOfWeek, GymTime, MealType } from '@my-hub/shared/constants';
 import { cn } from '@/lib/utils';
-import { mealOrder, dayTargetKcal } from '@my-hub/shared/utils';
+import { mealOrder } from '@my-hub/shared/utils';
 import { MealRow } from './MealRow';
 import { MealEditorModal } from './MealEditorModal';
-import { dateForDay, setDayLogged, targetPct, targetColorClasses, resolveDailyTarget } from './menu.utils';
-import { TargetBar } from './TargetBar';
-import type { LoggedMeals } from './menu.utils';
+import { dateForDay, formatKcalRange, planStatusLabel, setDayLogged } from './menu.utils';
+import { RangeBar } from './RangeBar';
+import type { DayPlan, LoggedMeals } from './menu.utils';
 import type { WeeklyMenuMeal } from './types';
 
 type DayCardProps = {
@@ -25,11 +25,8 @@ type DayCardProps = {
   isCurrentWeek: boolean;
   today: string;
   loggedMeals: LoggedMeals;
-  isGymDay: boolean;
-  /** Daily calorie target from the user's profile (goalCalories), or null if the profile is incomplete. */
-  dailyTargetKcal: number | null;
-  /** Extra kcal added to the daily target on gym days. */
-  gymDayCalorieBonus: number;
+  /** The day's plan against its own range, from `planWeek`. */
+  plan: DayPlan;
   /** When the user trains — decides where the pre/post-workout meals sit in the day's order. */
   gymTime: GymTime | null;
   onMealLogChanged: (mealType: MealType, logged: boolean) => void;
@@ -47,9 +44,7 @@ export function DayCard({
   isCurrentWeek,
   today,
   loggedMeals,
-  isGymDay,
-  dailyTargetKcal,
-  gymDayCalorieBonus,
+  plan,
   gymTime,
   onMealLogChanged,
   onMealSwapped,
@@ -59,17 +54,13 @@ export function DayCard({
   const [loggingAll, setLoggingAll] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const dayKcal = meals.reduce((s, m) => s + (m.kcal ?? 0), 0);
   const dayDate = dateForDay(weekStart, day);
   const isToday = isCurrentWeek && dayDate === today;
   const isFuture = dayDate > today;
   // Today counts as neither — the rest of the day is still plannable.
   const isPast = dayDate < today;
 
-  const { baseTarget, isEstimated: isTargetEstimated } = resolveDailyTarget(dailyTargetKcal);
-  const target = dayTargetKcal(baseTarget, isGymDay, gymDayCalorieBonus);
-  const targetPercent = targetPct(dayKcal, target);
-  const targetColors = targetColorClasses(targetPercent, isTargetEstimated);
+  const statusLabel = planStatusLabel(plan);
 
   // Both the rendered rows and the "add a meal" slot list follow the same order, so the modal
   // offers a morning trainer pre-workout first rather than buried under dinner.
@@ -125,33 +116,57 @@ export function DayCard({
             : cn(isFlat ? '' : 'border-[var(--border)]', 'bg-[var(--card2)]'),
       )}
     >
-      <div className={cn('flex flex-col gap-3', isFlat && 'border-b border-[var(--border)] px-4 py-3')}>
+      <div className={cn('flex flex-col gap-3', isFlat && 'border-b border-[var(--border)] px-4 py-4')}>
         {/* Day header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className={`text-sm font-bold ${isToday ? 'text-[var(--green)]' : 'text-[var(--text)]'}`}>
               {DAY_LABELS[day]}
             </span>
-            {isGymDay && <DumbbellIcon className="size-3.5 text-[var(--accent)]" title="Gym day" />}
-            {!isFuture && !allLogged && meals.length > 0 && (
-              <span className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-[var(--card3)] text-[var(--muted)]">
-                {loggedCount}/{meals.length}
+            {plan.kind === 'gym' ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-d)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
+                <DumbbellIcon className="size-3" />
+                Gym day
               </span>
+            ) : (
+              plan.kind === 'recovery' && (
+                <span className="rounded-full bg-[var(--card3)] px-2 py-0.5 text-[11px] font-semibold text-[var(--muted)]">
+                  Recovery
+                </span>
+              )
             )}
           </div>
-          {dayKcal > 0 && <span className="text-xs font-medium text-[var(--accent)]">{dayKcal} kcal</span>}
+          {!isFuture && meals.length > 0 && (
+            <span
+              className={cn(
+                'shrink-0 text-[11px] font-semibold',
+                allLogged ? 'text-[var(--green)]' : 'text-[var(--muted)]',
+              )}
+            >
+              {loggedCount}/{meals.length} logged
+            </span>
+          )}
         </div>
 
-        {/* Daily target bar */}
+        {/* The day's range: planned kcal, where it lands in the floor–ceiling band, and why. */}
         {meals.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <TargetBar pct={targetPercent} colors={targetColors} size="sm" />
-            <div className="flex items-center justify-between text-[10px] text-[var(--muted)]">
-              <span>
-                {target} target{isGymDay ? ' (gym)' : ''}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-xl font-bold" style={{ color: plan.color }}>
+                {plan.plannedKcal.toLocaleString()}{' '}
+                <span className="text-xs font-medium text-[var(--muted)]">kcal</span>
               </span>
-              {targetPercent !== null && <span className={`font-medium ${targetColors.text}`}>{targetPercent}%</span>}
+              {statusLabel && (
+                <span className="text-xs font-semibold" style={{ color: plan.color }}>
+                  {statusLabel}
+                </span>
+              )}
             </div>
+            <RangeBar plannedKcal={plan.plannedKcal} floor={plan.floor} ceiling={plan.ceiling} color={plan.color} />
+            <span className="text-[11px] text-[var(--muted)]">
+              {plan.isEstimated ? 'Estimated target' : 'Target'} {formatKcalRange(plan.floor, plan.ceiling)} kcal
+              {plan.bonusKcal > 0 && ` · incl. +${plan.bonusKcal} gym bonus`}
+            </span>
           </div>
         )}
       </div>

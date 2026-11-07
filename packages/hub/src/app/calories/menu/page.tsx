@@ -11,7 +11,7 @@ import { EmptyState } from './EmptyState';
 import { MenuDetail } from './MenuDetail';
 import { CreateMenuModal } from './CreateMenuModal';
 import { toLoggedMeals, nextMenuWeekStart, latestMenu, currentWeekMonday } from './menu.utils';
-import type { LoggedMeals } from './menu.utils';
+import type { DayTarget, LoggedMeals } from './menu.utils';
 import type { WeeklyMenu, WeeklyMenuSummary } from './types';
 
 export default function WeeklyMenuPage() {
@@ -19,8 +19,7 @@ export default function WeeklyMenuPage() {
   const [selectedMenu, setSelectedMenu] = useState<WeeklyMenu | null>(null);
   const [loggedMeals, setLoggedMeals] = useState<LoggedMeals>({});
   const [gymDays, setGymDays] = useState<number[]>([]);
-  const [dailyTargetKcal, setDailyTargetKcal] = useState<number | null>(null);
-  const [gymDayCalorieBonus, setGymDayCalorieBonus] = useState(0);
+  const [dayTargets, setDayTargets] = useState<DayTarget[]>([]);
   const [gymTime, setGymTime] = useState<GymTime | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +36,7 @@ export default function WeeklyMenuPage() {
       const data = await apiFetch('/api/calories/menu', { responseSchema: GetMenusResponseSchema });
       setMenus(data.menus);
       setGymDays(data.gymDays);
-      setDailyTargetKcal(data.goalCalories);
-      setGymDayCalorieBonus(data.gymDayCalorieBonus);
+      setDayTargets(data.dayTargets);
       setGymTime(data.gymTime);
       const toSelect = data.menus.find(m => m.weekStart === currentWeekStart) ?? latestMenu(data.menus);
       if (toSelect) {
@@ -157,8 +155,7 @@ export default function WeeklyMenuPage() {
               menu={selectedMenu}
               loggedMeals={loggedMeals}
               gymDays={gymDays}
-              dailyTargetKcal={dailyTargetKcal}
-              gymDayCalorieBonus={gymDayCalorieBonus}
+              dayTargets={dayTargets}
               gymTime={gymTime}
               onMetaUpdated={meta => {
                 setSelectedMenu(prev => (prev ? { ...prev, ...meta } : prev));

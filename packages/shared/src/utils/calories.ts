@@ -6,6 +6,7 @@
  * - hasDuplicateMealSlot(meals) — true if any (dayOfWeek, mealType) slot appears more than once in a weekly-menu meal list
  * - dayTargetKcal(baseTarget, isGymDay, gymDayBonus) — one day's calorie target, including the gym-day bonus
  * - dayCalorieTargets(profile, weightKg, date) — the whole per-day rule: ceiling, floor, gym-day flag and bonus
+ * - weekdayCalorieTargets(profile, weightKg, dayOfWeek) — the same rule for a day of the week (weekly menus)
  * - signedWeeklyRateKg(goalType, rateKg) — the weekly weight-change target signed by the goal direction
  * - goalDirection(goalType) — which way the goal wants the scale to move (-1, 0, 1), independent of the rate
  * - isTowardGoal(delta, direction, maintainToleranceKg) — whether a weight change moves the way the goal wants
@@ -231,9 +232,21 @@ export function dayCalorieTargets(
   weightKg: number | null,
   date: string,
 ): DayCalorieTargets {
+  return weekdayCalorieTargets(profile, weightKg, dayOfWeekMon0(date));
+}
+
+/**
+ * `dayCalorieTargets` for a day of the week (0=Mon … 6=Sun) rather than a date — for weekly
+ * menus, which plan by weekday. The rule lives here; the date form only converts and delegates.
+ */
+export function weekdayCalorieTargets(
+  profile: DayTargetProfileLike | null | undefined,
+  weightKg: number | null,
+  dayOfWeek: number,
+): DayCalorieTargets {
   const targets = profileToTargets(profile, weightKg);
   const base = targets.maxCalories ?? targets.goalCalories;
-  const isGymDay = (profile?.gymDays ?? []).includes(dayOfWeekMon0(date));
+  const isGymDay = (profile?.gymDays ?? []).includes(dayOfWeek);
   const gymDayBonus = profile?.gymDayCalorieBonus ?? DEFAULT_GYM_DAY_CALORIE_BONUS;
 
   return {

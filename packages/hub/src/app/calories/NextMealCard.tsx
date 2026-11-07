@@ -120,7 +120,7 @@ export function NextMealCard({ date, loggedMeals, remainingKcal }: NextMealCardP
   }
 
   return (
-    <Card className="-mx-4 flex flex-col gap-2 border-[var(--accent)]/25 bg-[var(--accent)]/5 md:mx-0 md:border-[var(--accent)]/25">
+    <Card compact className="flex flex-col gap-2 border-[var(--accent)]/25 bg-[var(--accent)]/5">
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-[var(--accent)]">
           <UtensilsOutlineIcon className="size-3.5" />

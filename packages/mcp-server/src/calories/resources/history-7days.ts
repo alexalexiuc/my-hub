@@ -6,6 +6,6 @@ import { buildHistoryPeriod } from '../models/history';
 export const getHistory7DaysResource: ResourceHandler = async (uri, context) => {
   const { userId, timezone } = context;
   const endDate = currentDateString(timezone);
-  const data = await buildHistoryPeriod(userId, dateStringDaysAgo(6, timezone), endDate);
+  const data = await buildHistoryPeriod(userId, dateStringDaysAgo(6, timezone), endDate, endDate);
   return resourceResponse(uri, data);
 };

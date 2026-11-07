@@ -2,28 +2,26 @@
 
 import { useState } from 'react';
 import { Card, IconButton, ConfirmModal } from '@/components';
-import { ListChecksOutlineIcon, ShareOutlineIcon, TrashOutlineIcon } from '@/components/icons';
+import { DumbbellIcon, ListChecksOutlineIcon, ShareOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 import { DaysOfWeekValues } from '@my-hub/shared/constants';
 import type { DayOfWeek, GymTime, MealType } from '@my-hub/shared/constants';
-import { dateToString, dayTargetKcal, formatWeekRangeStr } from '@my-hub/shared/utils';
+import { dateToString, formatWeekRangeStr } from '@my-hub/shared/utils';
 import { ShoppingListModal } from './ShoppingListModal';
 import { ShareMenuModal } from './ShareMenuModal';
 import { DayCard } from './DayCard';
 import { MenuMetaSection } from './MenuMetaSection';
 import { MobileDayView } from './MobileDayView';
-import { dateForDay, targetPct, targetColorClasses, resolveDailyTarget } from './menu.utils';
-import { TargetBar } from './TargetBar';
-import type { LoggedMeals } from './menu.utils';
+import { dateForDay, formatKcalRange, planStatusLabel, planWeek } from './menu.utils';
+import { RangeBar } from './RangeBar';
+import type { DayTarget, LoggedMeals } from './menu.utils';
 import type { WeeklyMenu, WeeklyMenuMeal } from './types';
 
 type MenuDetailProps = {
   menu: WeeklyMenu;
   loggedMeals: LoggedMeals;
   gymDays: number[];
-  /** Daily calorie target from the user's profile (goalCalories), or null if the profile is incomplete. */
-  dailyTargetKcal: number | null;
-  /** Extra kcal added to the daily target on gym days. */
-  gymDayCalorieBonus: number;
+  /** Each weekday's calorie range, 0=Mon … 6=Sun, as `GET /api/calories/menu` resolved it. */
+  dayTargets: DayTarget[];
   /** When the user trains — decides where the pre/post-workout meals sit in each day's order. */
   gymTime: GymTime | null;
   onMealLogChanged: (day: DayOfWeek, mealType: MealType, logged: boolean) => void;
@@ -40,8 +38,7 @@ export function MenuDetail({
   menu,
   loggedMeals,
   gymDays,
-  dailyTargetKcal,
-  gymDayCalorieBonus,
+  dayTargets,
   gymTime,
   onMealLogChanged,
   onMealSwapped,
@@ -85,21 +82,15 @@ export function MenuDetail({
   const { daysWithMealsCount, fullyLoggedDaysCount, creditSum } = adherenceStats;
   const adherencePct = daysWithMealsCount > 0 ? Math.round((creditSum / daysWithMealsCount) * 100) : 0;
 
-  // Weekly summary: planned kcal vs. target (macro breakdown deliberately omitted —
-  // that tracking already lives in the Today tab). The target is summed only over
-  // days that actually have meals planned: a menu created mid-week plans only the
-  // remaining days, and comparing those against a full 7-day target would always
-  // read as far under target.
-  const { baseTarget, isEstimated: isTargetEstimated } = resolveDailyTarget(dailyTargetKcal);
-  const plannedTotalKcal = menu.meals.reduce((s, m) => s + (m.kcal ?? 0), 0);
-  const weeklyTargetKcal = DaysOfWeekValues.reduce<number>(
-    (s, d) =>
-      (byDay[d]?.length ?? 0) > 0 ? s + dayTargetKcal(baseTarget, gymDays.includes(d), gymDayCalorieBonus) : s,
-    0,
-  );
-  const weeklyPct = targetPct(plannedTotalKcal, weeklyTargetKcal);
-  const weeklyColors = targetColorClasses(weeklyPct, isTargetEstimated);
-  const gymTargetKcal = dayTargetKcal(baseTarget, true, gymDayCalorieBonus);
+  // Weekly summary: planned kcal vs. target (macro breakdown deliberately omitted — that
+  // tracking already lives in the Today tab).
+  const { days: plans, week: weekPlan } = planWeek(byDay, dayTargets);
+  const weekStatusLabel = planStatusLabel(weekPlan);
+  // The two ranges a week can hold, for the "why do days differ" line. Every gym day carries
+  // the same range, and so does every recovery day.
+  const allPlans = DaysOfWeekValues.map(d => plans[d]);
+  const gymPlan = allPlans.find(p => p.kind === 'gym');
+  const recoveryPlan = allPlans.find(p => p.kind === 'recovery');
 
   async function confirmDelete() {
     await onDelete(menu.menuId);
@@ -165,18 +156,33 @@ export function MenuDetail({
 
       {/* One week summary: planned kcal against the target, and how much of the plan is logged. */}
       {menu.meals.length > 0 && (
-        <Card className="-mx-4 flex flex-col gap-2 md:mx-0">
-          <div className="flex items-center justify-between gap-3">
+        <Card compact className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <span className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">
               Week plan vs. target
             </span>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-2xl font-bold ${weeklyColors.text}`}>{plannedTotalKcal.toLocaleString()}</span>
-              <span className="text-sm text-[var(--subtle)]">/ {weeklyTargetKcal.toLocaleString()} kcal planned</span>
-              {weeklyPct !== null && <span className={`text-sm font-semibold ${weeklyColors.text}`}>{weeklyPct}%</span>}
-            </div>
+            {weekStatusLabel && (
+              <span className="text-xs font-semibold" style={{ color: weekPlan.color }}>
+                {weekStatusLabel}
+              </span>
+            )}
           </div>
-          <TargetBar pct={weeklyPct} colors={weeklyColors} size="md" />
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <span className="text-2xl font-bold" style={{ color: weekPlan.color }}>
+              {weekPlan.plannedKcal.toLocaleString()}
+            </span>
+            <span className="text-sm text-[var(--muted)]">
+              kcal planned · {weekPlan.isEstimated ? 'estimated ' : ''}range{' '}
+              {formatKcalRange(weekPlan.floor, weekPlan.ceiling)}
+            </span>
+          </div>
+          <RangeBar
+            plannedKcal={weekPlan.plannedKcal}
+            floor={weekPlan.floor}
+            ceiling={weekPlan.ceiling}
+            color={weekPlan.color}
+            size="md"
+          />
           {daysWithMealsCount > 0 && (
             <div className="mt-1 flex items-center gap-3">
               <span className="shrink-0 text-xs text-[var(--muted)]">Adherence</span>
@@ -197,10 +203,24 @@ export function MenuDetail({
               </span>
             </div>
           )}
-          {gymDays.length > 0 && (
-            <p className="text-xs text-[var(--subtle)]">
-              Target rises to {gymTargetKcal.toLocaleString()} kcal on gym days.
-            </p>
+          {gymPlan && recoveryPlan && !weekPlan.isEstimated && (
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
+              <span className="inline-flex items-center gap-1.5">
+                <DumbbellIcon className="size-3.5 text-[var(--accent)]" />
+                Gym days{' '}
+                <span className="font-semibold text-[var(--text)]">
+                  {formatKcalRange(gymPlan.floor, gymPlan.ceiling)}
+                </span>{' '}
+                kcal
+              </span>
+              <span>
+                Recovery{' '}
+                <span className="font-semibold text-[var(--text)]">
+                  {formatKcalRange(recoveryPlan.floor, recoveryPlan.ceiling)}
+                </span>{' '}
+                kcal
+              </span>
+            </div>
           )}
         </Card>
       )}
@@ -219,9 +239,7 @@ export function MenuDetail({
             isCurrentWeek={isCurrentWeek}
             today={today}
             loggedMeals={loggedMeals}
-            isGymDay={gymDays.includes(day)}
-            dailyTargetKcal={dailyTargetKcal}
-            gymDayCalorieBonus={gymDayCalorieBonus}
+            plan={plans[day]}
             gymTime={gymTime}
             onMealLogChanged={(mealType, logged) => onMealLogChanged(day, mealType, logged)}
             onMealSwapped={onMealSwapped}
@@ -243,9 +261,7 @@ export function MenuDetail({
           byDay={byDay}
           todayIndex={todayIndex}
           loggedMeals={loggedMeals}
-          gymDays={gymDays}
-          dailyTargetKcal={dailyTargetKcal}
-          gymDayCalorieBonus={gymDayCalorieBonus}
+          plans={plans}
           gymTime={gymTime}
           onMealLogChanged={onMealLogChanged}
           onMealSwapped={onMealSwapped}

@@ -6,10 +6,14 @@ import {
   shiftWeekStr,
   formatWeekRangeStr,
   mealOrder,
+  dayTargetKcal,
+  dayTargetStatus,
 } from '@my-hub/shared/utils';
-import { DaysOfWeekValues, DAY_LABELS } from '@my-hub/shared/constants';
-import type { DayOfWeek, GymTime, MealType } from '@my-hub/shared/constants';
+import type { DayCalorieTargets } from '@my-hub/shared/utils';
+import { DaysOfWeekValues, DAY_LABELS, DayTargetStatuses } from '@my-hub/shared/constants';
+import type { DayOfWeek, DayTargetStatus, GymTime, MealType } from '@my-hub/shared/constants';
 import { MEAL_LABEL } from '@/app/calories/constants';
+import { dayStatusColor } from '@/app/calories/calories.utils';
 import { apiFetch } from '@/lib/utils';
 import {
   DeleteMenuMealSchema,
@@ -20,6 +24,9 @@ import {
   WholeDayResponseSchema,
 } from '@/app/api/calories/menu/menu.schemas';
 import type { WeeklyMenu, WeeklyMenuMeal } from './types';
+
+/** One weekday's range as `GET /api/calories/menu` sends it — the shared rule's own output type. */
+export type DayTarget = DayCalorieTargets;
 
 /**
  * Meal types as `Select` options. Takes the types to offer, since the create editor lists them
@@ -100,6 +107,121 @@ export async function setDayLogged(
   });
 }
 
+/** Ceiling used to draw the bars when the profile can't produce a target — never judged against. */
+const FALLBACK_DAILY_TARGET_KCAL = 2000;
+
+/** A weekday with no range yet (before the menu list has loaded). */
+const NO_TARGET: DayTarget = { target: null, min: null, isGymDay: false, gymDayBonus: 0 };
+
+/** A plan (one day's or the week's) judged against its range. */
+export type DayPlan = {
+  plannedKcal: number;
+  mealCount: number;
+  /** `recovery` only when the user trains on some days; null for the week, or with no gym days set. */
+  kind: 'gym' | 'recovery' | null;
+  /** kcal the gym-day bonus adds to this range — 0 on a recovery day and for the week. */
+  bonusKcal: number;
+  ceiling: number;
+  floor: number | null;
+  /** True when `ceiling` is the fallback estimate, not the user's own target. */
+  isEstimated: boolean;
+  status: DayTargetStatus;
+  /** The verdict's colour, for the planned number and the bar. Neutral for an estimate. */
+  color: string;
+};
+
+/** The verdict and its colour — the one rule shared by day plans and the week plan. */
+function judgePlan(
+  plan: Pick<DayPlan, 'plannedKcal' | 'mealCount' | 'ceiling' | 'floor' | 'isEstimated'>,
+): Pick<DayPlan, 'status' | 'color'> {
+  if (plan.isEstimated) return { status: DayTargetStatuses.NoTarget, color: 'var(--muted)' };
+  const status = dayTargetStatus({
+    kcal: plan.plannedKcal,
+    mealCount: plan.mealCount,
+    target: plan.ceiling,
+    min: plan.floor,
+  });
+  return { status, color: dayStatusColor(status) };
+}
+
+/**
+ * Judges a week's plan, day by day and as a whole. Each day is held against its own range, as
+ * `GET /api/calories/menu` resolved it with the shared `weekdayCalorieTargets` — the bonus is
+ * never re-applied here — and the verdict comes from `dayTargetStatus`, so a planned day reads on
+ * target / under / over by the rule Today and Progress use for eaten days. The week sums only the
+ * days that have meals: a menu created mid-week plans the remaining days, and holding those
+ * against seven days of target would always read as far under.
+ */
+export function planWeek(
+  byDay: Record<number, WeeklyMenuMeal[]>,
+  dayTargets: DayTarget[],
+): { days: Record<DayOfWeek, DayPlan>; week: DayPlan } {
+  const hasGymDays = dayTargets.some(t => t.isGymDay);
+  const days = Object.fromEntries(
+    DaysOfWeekValues.map(d => {
+      const meals = byDay[d] ?? [];
+      const t = dayTargets[d] ?? NO_TARGET;
+      const base = {
+        plannedKcal: meals.reduce((s, m) => s + (m.kcal ?? 0), 0),
+        mealCount: meals.length,
+        kind: t.isGymDay ? ('gym' as const) : hasGymDays ? ('recovery' as const) : null,
+        bonusKcal: t.isGymDay ? t.gymDayBonus : 0,
+        ceiling: t.target ?? dayTargetKcal(FALLBACK_DAILY_TARGET_KCAL, t.isGymDay, t.gymDayBonus),
+        // An estimate has no real floor: the profile's min held against the fallback ceiling can
+        // land above it and draw the range backwards.
+        floor: t.target === null ? null : t.min,
+        isEstimated: t.target === null,
+      };
+      return [d, { ...base, ...judgePlan(base) }];
+    }),
+  ) as Record<DayOfWeek, DayPlan>;
+
+  const planned = DaysOfWeekValues.map(d => days[d]).filter(p => p.mealCount > 0);
+  const weekBase = {
+    plannedKcal: planned.reduce((s, p) => s + p.plannedKcal, 0),
+    mealCount: planned.reduce((s, p) => s + p.mealCount, 0),
+    kind: null,
+    bonusKcal: 0,
+    ceiling: planned.reduce((s, p) => s + p.ceiling, 0),
+    floor: planned.some(p => p.floor === null) ? null : planned.reduce((s, p) => s + (p.floor ?? 0), 0),
+    isEstimated: planned.some(p => p.isEstimated),
+  };
+  return { days, week: { ...weekBase, ...judgePlan(weekBase) } };
+}
+
+/**
+ * A plan's verdict in a few words — "On target", "120 under", "50 over" — or null when there is
+ * nothing to judge (no meals with calories, or no real target).
+ */
+export function planStatusLabel(plan: Pick<DayPlan, 'status' | 'plannedKcal' | 'floor' | 'ceiling'>): string | null {
+  if (plan.status === DayTargetStatuses.OnTarget) return 'On target';
+  if (plan.status === DayTargetStatuses.Over) return `${(plan.plannedKcal - plan.ceiling).toLocaleString()} over`;
+  if (plan.status === DayTargetStatuses.Under && plan.floor !== null) {
+    return `${(plan.floor - plan.plannedKcal).toLocaleString()} under`;
+  }
+  return null;
+}
+
+/** "2,900–3,000" for a floor–ceiling range, or just "3,000" when there is no floor. */
+export function formatKcalRange(floor: number | null, ceiling: number): string {
+  return floor === null ? ceiling.toLocaleString() : `${floor.toLocaleString()}–${ceiling.toLocaleString()}`;
+}
+
+/**
+ * Positions for a range bar, as percentages of its width: how far the planned fill reaches and
+ * where the floor and ceiling ticks sit. The scale starts at zero, so the bar reads like any
+ * progress bar, and runs 12% past the ceiling, so an over-planned day visibly overshoots its tick.
+ */
+export function rangeBarPositions(
+  planned: number,
+  floor: number | null,
+  ceiling: number,
+): { fill: number; floorTick: number | null; ceilingTick: number } {
+  const high = ceiling * 1.12;
+  const at = (v: number) => Math.max(0, Math.min(100, (v / high) * 100));
+  return { fill: at(planned), floorTick: floor === null ? null : at(floor), ceilingTick: at(ceiling) };
+}
+
 /** Returns YYYY-MM-DD for the given day of the week relative to a weekStart (Monday). */
 export function dateForDay(weekStart: string, dayOfWeek: DayOfWeek): string {
   return toUTCDateStr(addDays(new Date(weekStart), dayOfWeek));
@@ -142,30 +264,10 @@ export function nextMenuWeekStart(menus: { weekStart: string }[], currentWeekSta
   return anchor ? shiftWeekStr(anchor, 1) : currentWeekStart;
 }
 
-// ---------------------------------------------------------------------------
-// Planned-vs-target visual helpers, shared by DayCard's per-day bar and
-// MenuDetail's weekly summary card so both use identical thresholds.
-// ---------------------------------------------------------------------------
-
 /** Planned kcal as a percentage of target, rounded. Returns null if target is not a positive number. */
 export function targetPct(planned: number, target: number | null): number | null {
   if (target == null || target <= 0) return null;
   return Math.round((planned / target) * 100);
-}
-
-/**
- * Tailwind text/bg color pair for a planned-vs-target percentage.
- * Renders neutral gray when `pct` is null (no target to compare against) or when
- * `isEstimated` is true (target is a fallback default, not the user's real profile
- * target) — a fallback shouldn't imply the false precision of a color-banded verdict.
- * Bands are symmetric around 100%: within 10% → on track, within 30% → near, else off track.
- */
-export function targetColorClasses(pct: number | null, isEstimated = false): { text: string; bg: string } {
-  if (pct === null || isEstimated) return { text: 'text-[var(--muted)]', bg: 'bg-[var(--muted)]' };
-  const diff = Math.abs(pct - 100);
-  if (diff <= 10) return { text: 'text-[var(--green)]', bg: 'bg-[var(--green)]' };
-  if (diff <= 30) return { text: 'text-[var(--accent)]', bg: 'bg-[var(--accent)]' };
-  return { text: 'text-[var(--red)]', bg: 'bg-[var(--red)]' };
 }
 
 /**
@@ -240,18 +342,4 @@ export function formatDayAsText(menu: WeeklyMenu, day: DayOfWeek, gymDays: numbe
   ];
 
   return lines.join('\n');
-}
-
-/** Fallback daily target (kcal) used when the user's profile can't produce a real goalCalories value. */
-export const FALLBACK_DAILY_TARGET_KCAL = 2000;
-
-/**
- * Resolves the base daily target to use for target-bar math: the user's real profile target,
- * or the fallback estimate when the profile is incomplete (`dailyTargetKcal` is null) — plus
- * whether the result is a real target or an estimate, so callers can render it as such.
- */
-export function resolveDailyTarget(dailyTargetKcal: number | null): { baseTarget: number; isEstimated: boolean } {
-  return dailyTargetKcal == null
-    ? { baseTarget: FALLBACK_DAILY_TARGET_KCAL, isEstimated: true }
-    : { baseTarget: dailyTargetKcal, isEstimated: false };
 }
