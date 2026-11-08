@@ -25,6 +25,10 @@ import {
   applyVacationSetup,
   applyLeaveChanges,
   deleteAllUserVacationData,
+  createPortfolio,
+  getPositions,
+  addSupply,
+  upsertTickerPrices,
 } from '@my-hub/shared/services';
 import {
   AccountTypes,
@@ -341,6 +345,82 @@ async function seedCaloriesFixtures(userId: string): Promise<void> {
  * @param monthsOfHistory How many months back to generate, current month inclusive. Spanning more
  *   than 12 gives the Cashflow page's year carousel a previous year to page into.
  */
+// Made-up price-cache keys, so the sandbox never mixes with (or fetches) real tickers' prices.
+const DEMO_ETFS = [
+  { symbol: 'US500', name: 'Demo S&P 500', yahooSymbol: 'SANDBOX-US500', start: 14.4, drift: 0.0009, target: 70 },
+  { symbol: 'XUS', name: 'Demo World ex USA', yahooSymbol: 'SANDBOX-XUS', start: 34.5, drift: 0.0006, target: 20 },
+  { symbol: 'NDX', name: 'Demo Nasdaq 100', yahooSymbol: 'SANDBOX-NDX', start: 1250, drift: 0.0008, target: 10 },
+] as const;
+
+/**
+ * An ETF portfolio with a year of roughly monthly supplies and a deterministic daily price cache, so the
+ * portfolio page has positions, profit and charts without any price fetch.
+ */
+async function seedPortfolioFixtures(userId: string, budgetId: number): Promise<void> {
+  const monthlyContribution = 1000;
+  const today = dateToString(new Date());
+  const firstDate = shiftDateStr(today, -340);
+  const days = daysBetweenDateStr(firstDate, today);
+  const priceOn = (etfIndex: number, day: number) => {
+    const etf = DEMO_ETFS[etfIndex]!;
+    const wave = 0.05 * Math.sin(day / 37 + etfIndex) + 0.02 * dayJitter(day * 3 + etfIndex);
+    return Math.round(etf.start * (1 + etf.drift * day + wave) * 10000) / 10000;
+  };
+
+  await upsertTickerPrices(
+    DEMO_ETFS.flatMap((etf, i) =>
+      Array.from({ length: days + 1 }, (_, day) => ({
+        symbol: etf.yahooSymbol,
+        date: shiftDateStr(firstDate, day),
+        close: priceOn(i, day),
+        currency: 'EUR' as const,
+        source: 'yahoo' as const,
+      })),
+    ),
+  );
+
+  const portfolio = await createPortfolio(
+    userId,
+    budgetId,
+    {
+      name: 'ETF Portfolio',
+      plannedMonthlyContribution: monthlyContribution,
+      targetAmount: 1_000_000,
+      expectedAnnualReturnPct: 8.5,
+      pessimisticAnnualReturnPct: 5,
+      optimisticAnnualReturnPct: 12,
+    },
+    DEMO_ETFS.map(etf => ({
+      symbol: etf.symbol,
+      name: etf.name,
+      yahooSymbol: etf.yahooSymbol,
+      targetAllocationPct: etf.target,
+    })),
+  );
+  const positions = await getPositions(userId, budgetId, portfolio.id);
+
+  // ~Monthly buys with an uneven rhythm (one double month, one skipped), like real DCA.
+  const buyDays = [0, 19, 56, 84, 118, 152, 162, 217, 245, 248, 325];
+  for (const day of buyDays.filter(d => d <= days)) {
+    const amount = day === 248 ? monthlyContribution * 1.5 : monthlyContribution;
+    const fee = day === 248 ? 0 : 3;
+    const lines = positions.map((position, i) => {
+      const price = priceOn(i, day);
+      const units =
+        i === 2
+          ? Math.round(((amount * DEMO_ETFS[i]!.target) / 100 / price) * 10000) / 10000
+          : Math.floor((amount * DEMO_ETFS[i]!.target) / 100 / price);
+      return { positionId: position.id, units, pricePerUnit: price, fee };
+    });
+    const spent = lines.reduce((sum, l) => sum + l.units * l.pricePerUnit + l.fee, 0);
+    await addSupply(userId, budgetId, portfolio.id, {
+      date: shiftDateStr(firstDate, day),
+      totalAmount: Math.round(Math.max(spent, amount) * 100) / 100,
+      lines,
+    });
+  }
+}
+
 export async function seedSandboxFixtures(monthsOfHistory = 21): Promise<{ budgetId: number }> {
   let user = await findUserByEmail(SANDBOX_USER.email);
   if (!user) {
@@ -494,6 +574,7 @@ export async function seedSandboxFixtures(monthsOfHistory = 21): Promise<{ budge
     notes: 'Bought USD',
   });
 
+  await seedPortfolioFixtures(user.id, budget.id);
   await seedCaloriesFixtures(user.id);
   await seedVacationFixtures(user.id);
 

@@ -14,7 +14,10 @@ import { PortfolioSettingsModal } from './PortfolioSettingsModal';
 import { HistoryModal } from './HistoryModal';
 import { ProjectionModal } from './ProjectionModal';
 import { PositionPricesModal } from './PositionPricesModal';
+import { PortfolioCharts } from './PortfolioCharts';
 import type { PortfolioOverviewResponse } from '@/app/api/finances/portfolio/route';
+import type { SuppliesResponse } from '@/app/api/finances/portfolio/supplies/route';
+import type { SupplyWithLines } from '@my-hub/shared/services';
 
 type OpenModal = 'supply' | 'settings' | 'history' | 'projection' | 'prices' | null;
 
@@ -25,7 +28,7 @@ export default function PortfolioPage() {
   const [data, setData] = useState<PortfolioOverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState<OpenModal>(null);
-  const [suppliesRefreshKey, setSuppliesRefreshKey] = useState(0);
+  const [supplies, setSupplies] = useState<SupplyWithLines[] | null>(null);
 
   const fetchOverview = useCallback(() => {
     apiFetch<PortfolioOverviewResponse>('/api/finances/portfolio', { silentToast: true })
@@ -34,16 +37,26 @@ export default function PortfolioPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
+  const fetchSupplies = useCallback(() => {
+    apiFetch<SuppliesResponse>('/api/finances/portfolio/supplies', { silentToast: true })
+      .then(res => setSupplies(res.supplies))
+      .catch(() => setSupplies([]));
+  }, []);
+
+  const refreshAll = useCallback(() => {
     fetchOverview();
-  }, [fetchOverview]);
+    fetchSupplies();
+  }, [fetchOverview, fetchSupplies]);
+
+  useEffect(() => {
+    refreshAll();
+  }, [refreshAll]);
 
   const overview = data?.overview ?? null;
 
   function handleSaved() {
     setOpenModal(null);
-    fetchOverview();
-    setSuppliesRefreshKey(k => k + 1);
+    refreshAll();
   }
 
   return (
@@ -111,7 +124,8 @@ export default function PortfolioPage() {
             <ContributionCadenceCard cadence={overview.cadence} currency={overview.portfolio.baseCurrency} />
           )}
           <PositionsTable overview={overview} />
-          <SuppliesSection overview={overview} refreshKey={suppliesRefreshKey} onChanged={fetchOverview} />
+          {supplies && supplies.length > 0 && <PortfolioCharts overview={overview} supplies={supplies} />}
+          <SuppliesSection overview={overview} supplies={supplies} onChanged={refreshAll} />
         </>
       )}
 

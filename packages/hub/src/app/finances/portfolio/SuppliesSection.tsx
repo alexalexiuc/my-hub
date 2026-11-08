@@ -1,38 +1,27 @@
 'use client';
 
 import { formatMoney } from '@my-hub/shared/utils';
-import { Fragment, useCallback, useEffect, useState } from 'react';
+import { Fragment, useState } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { Card, ConfirmModal, IconButton, SectionLabel } from '@/components';
 import { PencilIcon, TrashIcon } from '@/components/icons';
 import { SupplyModal } from './SupplyModal';
 import type { PortfolioOverview, SupplyWithLines } from '@my-hub/shared/services';
-import type { SuppliesResponse } from '@/app/api/finances/portfolio/supplies/route';
 
 type SuppliesSectionProps = {
   overview: PortfolioOverview;
-  /** Bumped by the parent to trigger a refetch (e.g. after Add Supply). */
-  refreshKey: number;
+  /** Fetched by the page (shared with the charts); null while loading. */
+  supplies: SupplyWithLines[] | null;
+  /** Called after an edit or delete so the page refetches overview + supplies. */
   onChanged: () => void;
 };
 
-export function SuppliesSection({ overview, refreshKey, onChanged }: SuppliesSectionProps) {
-  const [supplies, setSupplies] = useState<SupplyWithLines[] | null>(null);
+export function SuppliesSection({ overview, supplies, onChanged }: SuppliesSectionProps) {
   const [editing, setEditing] = useState<SupplyWithLines | null>(null);
   const [deleting, setDeleting] = useState<SupplyWithLines | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const currency = overview.portfolio.baseCurrency;
-
-  const fetchSupplies = useCallback(() => {
-    apiFetch<SuppliesResponse>('/api/finances/portfolio/supplies', { silentToast: true })
-      .then(res => setSupplies(res.supplies))
-      .catch(() => setSupplies([]));
-  }, []);
-
-  useEffect(() => {
-    fetchSupplies();
-  }, [fetchSupplies, refreshKey]);
 
   async function confirmDelete() {
     if (!deleting) return;
@@ -40,7 +29,6 @@ export function SuppliesSection({ overview, refreshKey, onChanged }: SuppliesSec
     try {
       await apiFetch(`/api/finances/portfolio/supplies/${deleting.id}`, { method: 'DELETE' });
       setDeleting(null);
-      fetchSupplies();
       onChanged();
     } finally {
       setDeleteLoading(false);
@@ -127,7 +115,6 @@ export function SuppliesSection({ overview, refreshKey, onChanged }: SuppliesSec
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
-            fetchSupplies();
             onChanged();
           }}
         />
