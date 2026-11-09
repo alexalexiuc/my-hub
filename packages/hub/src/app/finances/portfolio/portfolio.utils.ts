@@ -1,5 +1,5 @@
 // Feature-scoped helpers for the Portfolio screen.
-import { addMonthsKeepDay, formatCompact, shiftDateStr, toUTCDateStr } from '@my-hub/shared/utils';
+import { addMonthsKeepDay, formatCompact, formatNumber, shiftDateStr, toUTCDateStr } from '@my-hub/shared/utils';
 
 export type SupplyLineDraft = {
   positionId: string;
@@ -159,37 +159,62 @@ export function niceAxisMax(value: number): number {
 
 /** Date ranges offered on the portfolio value chart. */
 export const HISTORY_RANGES = [
-  { key: '1W', label: '1W' },
-  { key: '1M', label: '1M' },
-  { key: '3M', label: '3M' },
-  { key: '6M', label: '6M' },
-  { key: 'YTD', label: 'YTD' },
-  { key: '1Y', label: '1Y' },
-  { key: 'ALL', label: 'All' },
+  { key: 'LAST_BUY', label: 'Last buy', title: 'Since the last buy' },
+  { key: '1W', label: '1W', title: 'Last week' },
+  { key: '1M', label: '1M', title: 'Last month' },
+  { key: '3M', label: '3M', title: 'Last 3 months' },
+  { key: '6M', label: '6M', title: 'Last 6 months' },
+  { key: 'YTD', label: 'YTD', title: 'Since 1 January' },
+  { key: '1Y', label: '1Y', title: 'Last year' },
+  { key: 'ALL', label: 'All', title: 'All time' },
 ] as const;
 export type HistoryRange = (typeof HISTORY_RANGES)[number]['key'];
 
 /** Type guard for a persisted range key. */
 export const isHistoryRange = (value: unknown): value is HistoryRange => HISTORY_RANGES.some(r => r.key === value);
 
+/** What the value chart plots: market value (with deposits), profit only (no deposit jumps), or deposits only. */
+export const HISTORY_SERIES = [
+  { key: 'value', label: 'Value' },
+  { key: 'profit', label: 'Profit' },
+  { key: 'invested', label: 'Invested' },
+] as const;
+export type HistorySeries = (typeof HISTORY_SERIES)[number]['key'];
+
+/** Type guard for a persisted series key. */
+export const isHistorySeries = (value: unknown): value is HistorySeries => HISTORY_SERIES.some(s => s.key === value);
+
 const RANGE_MONTHS: Partial<Record<HistoryRange, number>> = { '1M': 1, '3M': 3, '6M': 6, '1Y': 12 };
 
-/** First date (YYYY-MM-DD) covered by `range` when the chart ends on `today`; null for "All". */
-export function historyRangeStart(range: HistoryRange, today: string): string | null {
-  if (range === 'ALL') return null;
-  if (range === '1W') return shiftDateStr(today, -7);
-  if (range === 'YTD') return `${today.slice(0, 4)}-01-01`;
-  return toUTCDateStr(addMonthsKeepDay(new Date(`${today}T00:00:00Z`), -RANGE_MONTHS[range]!));
+type HistoryPoint = { date: string; value: number; invested: number };
+
+/** Date of the most recent point where cumulative invested cash went up (the first point when it never did). */
+export function lastBuyDate(points: HistoryPoint[]): string | null {
+  for (let i = points.length - 1; i > 0; i--) {
+    if (points[i]!.invested > points[i - 1]!.invested) return points[i]!.date;
+  }
+  return points[0]?.date ?? null;
 }
 
-type HistoryPoint = { date: string; value: number; invested: number };
+/**
+ * First date (YYYY-MM-DD) covered by `range` for a series ending on its last point; null for "All" or an empty
+ * series. "Last buy" starts on the buy day, so the money of that buy is in the baseline and not counted as gain.
+ */
+export function historyRangeStart(range: HistoryRange, points: HistoryPoint[]): string | null {
+  const end = points.at(-1)?.date;
+  if (range === 'ALL' || !end) return null;
+  if (range === 'LAST_BUY') return lastBuyDate(points);
+  if (range === '1W') return shiftDateStr(end, -7);
+  if (range === 'YTD') return `${end.slice(0, 4)}-01-01`;
+  return toUTCDateStr(addMonthsKeepDay(new Date(`${end}T00:00:00Z`), -RANGE_MONTHS[range]!));
+}
 
 /**
  * Daily points inside `range` (ascending input). Starts at the last point on or before the range start so the
  * change is measured from a real baseline; falls back to the whole series when history is shorter than the range.
  */
-export function sliceHistory<T extends HistoryPoint>(points: T[], range: HistoryRange, today: string): T[] {
-  const start = historyRangeStart(range, today);
+export function sliceHistory<T extends HistoryPoint>(points: T[], range: HistoryRange): T[] {
+  const start = historyRangeStart(range, points);
   if (!start) return points;
   let from = 0;
   for (let i = 0; i < points.length; i++) {
@@ -199,11 +224,20 @@ export function sliceHistory<T extends HistoryPoint>(points: T[], range: History
   return points.slice(from);
 }
 
+/** True when `range` reaches back before the first point, i.e. covers the whole history. */
+export function rangeCoversInception(points: HistoryPoint[], range: HistoryRange): boolean {
+  const start = historyRangeStart(range, points);
+  const first = points[0];
+  return !start || (first !== undefined && first.date > start);
+}
+
 export type HistorySummary = {
   endValue: number;
+  /** Cumulative cash invested at the end of the range. */
+  endInvested: number;
   /** Value change over the range, new money included. */
   change: number;
-  /** Market gain over the range: value change minus money put in during the range. */
+  /** Market gain over the range: value change minus money put in during the range (= change in profit). */
   gain: number;
   /** `gain` relative to the starting value plus new money; null when there is nothing to compare against. */
   gainPct: number | null;
@@ -228,6 +262,7 @@ export function summarizeHistory(points: HistoryPoint[], fromInception = false):
   const base = first.value + deposits;
   return {
     endValue: last.value,
+    endInvested: last.invested,
     change,
     gain,
     gainPct: base > 0 ? (gain / base) * 100 : null,
@@ -236,19 +271,49 @@ export function summarizeHistory(points: HistoryPoint[], fromInception = false):
   };
 }
 
-/** True when `range` reaches back to (or before) the first point, i.e. covers the whole history. */
-export function rangeCoversInception(points: HistoryPoint[], range: HistoryRange, today: string): boolean {
-  const start = historyRangeStart(range, today);
-  const first = points[0];
-  return !start || (first !== undefined && first.date > start);
-}
-
-/** X-axis label for a YYYY-MM-DD point: `9 Nov` for short ranges, `Nov '26` otherwise. */
-export function formatHistoryTick(date: string, range: HistoryRange): string {
+/** X-axis label for a YYYY-MM-DD point: `9 Nov` when the chart spans ≤ ~3 months, `Nov '26` otherwise. */
+export function formatHistoryTick(date: string, spanDays: number): string {
   const d = new Date(`${date}T00:00:00Z`);
-  if (range === '1W' || range === '1M' || range === '3M') {
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-  }
+  if (spanDays <= 100) return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
   const month = d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' });
   return `${month} '${String(d.getUTCFullYear()).slice(-2)}`;
+}
+
+/**
+ * Vertical gradient offset (0 = top, 1 = bottom) where a series crosses zero on a chart whose Y axis spans its
+ * min..max — used to colour a profit area green above zero and red below. 1 when all ≥ 0, 0 when all ≤ 0.
+ */
+export function zeroCrossOffset(values: number[]): number {
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  if (max <= 0) return 0;
+  if (min >= 0) return 1;
+  return max / (max - min);
+}
+
+/**
+ * Y axis for [min, max] that hugs the data: the domain is the data span plus 5% padding, and the ticks are round
+ * multiples of a readable step (niceAxisMax of span / `segments`) inside it.
+ */
+export function fitAxis(min: number, max: number, segments = 4): { domain: [number, number]; ticks: number[] } {
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return { domain: [0, 1], ticks: [0, 1] };
+  const span = max - min || Math.abs(max) * 0.1 || 1;
+  const pad = span * 0.05;
+  const domain: [number, number] = [min - pad, max + pad];
+  const step = niceAxisMax(span / segments);
+  const ticks: number[] = [];
+  for (let t = Math.ceil(domain[0] / step) * step; t <= domain[1]; t += step) ticks.push(Math.round(t * 1e6) / 1e6 + 0); // + 0 turns -0 into 0
+  return { domain, ticks };
+}
+
+/** Y tick label: compact (`12.5k`) when the tick step is ≥ 100, else the whole number (`1.250`) so ticks stay distinct. */
+export function formatAxisTick(value: number, step: number): string {
+  return step >= 100 ? formatCompact(value) : formatNumber(value, { decimals: 0 });
+}
+
+/** Dates (YYYY-MM-DD, ascending) where a new month starts, thinned to at most `maxTicks`, for long-range X axes. */
+export function monthStartDates(dates: string[], maxTicks = 6): string[] {
+  const starts = dates.filter((d, i) => (i === 0 ? d.endsWith('-01') : d.slice(0, 7) !== dates[i - 1]!.slice(0, 7)));
+  const step = Math.max(1, Math.ceil(starts.length / maxTicks));
+  return starts.filter((_, i) => i % step === 0);
 }
