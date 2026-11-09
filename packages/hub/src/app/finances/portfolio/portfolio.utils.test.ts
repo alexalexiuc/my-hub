@@ -4,8 +4,13 @@ import {
   buyPointsForPosition,
   costKey,
   dateStrToMs,
+  formatHistoryTick,
+  historyRangeStart,
   monthTicks,
   niceAxisMax,
+  rangeCoversInception,
+  sliceHistory,
+  summarizeHistory,
 } from './portfolio.utils';
 
 const supplies = [
@@ -58,5 +63,51 @@ describe('axis helpers', () => {
     expect(ticks[0]).toBe(dateStrToMs('2025-12-01'));
     expect(ticks.length).toBeLessThanOrEqual(6);
     expect(ticks.every(t => new Date(t).getUTCDate() === 1)).toBe(true);
+  });
+});
+
+describe('value history ranges', () => {
+  const pts = [
+    { date: '2026-01-01', value: 100, invested: 100 },
+    { date: '2026-10-01', value: 150, invested: 120 },
+    { date: '2026-11-01', value: 160, invested: 140 },
+    { date: '2026-11-09', value: 170, invested: 140 },
+  ];
+
+  it('computes range starts', () => {
+    expect(historyRangeStart('1W', '2026-11-09')).toBe('2026-11-02');
+    expect(historyRangeStart('1M', '2026-03-31')).toBe('2026-02-28');
+    expect(historyRangeStart('YTD', '2026-11-09')).toBe('2026-01-01');
+    expect(historyRangeStart('ALL', '2026-11-09')).toBeNull();
+  });
+
+  it('slices from the last point on or before the start', () => {
+    expect(sliceHistory(pts, '1W', '2026-11-09').map(p => p.date)).toEqual(['2026-11-01', '2026-11-09']);
+    expect(sliceHistory(pts, '1M', '2026-11-09')[0]!.date).toBe('2026-10-01');
+    expect(sliceHistory(pts, 'ALL', '2026-11-09')).toHaveLength(4);
+  });
+
+  it('separates new money from market gain', () => {
+    const s = summarizeHistory(sliceHistory(pts, '1M', '2026-11-09'))!;
+    expect(s.change).toBe(20);
+    expect(s.deposits).toBe(20);
+    expect(s.gain).toBe(0);
+    expect(s.totalGain).toBe(30);
+    expect(summarizeHistory([])).toBeNull();
+  });
+
+  it('measures from an empty portfolio when the range covers the whole history', () => {
+    const withFees = [{ date: '2026-01-01', value: 98, invested: 100 }, ...pts.slice(1)];
+    expect(rangeCoversInception(withFees, 'ALL', '2026-11-09')).toBe(true);
+    expect(rangeCoversInception(withFees, '1Y', '2026-11-09')).toBe(true);
+    expect(rangeCoversInception(withFees, '1M', '2026-11-09')).toBe(false);
+    const s = summarizeHistory(withFees, true)!;
+    expect(s.gain).toBe(s.totalGain);
+    expect(s.deposits).toBe(140);
+  });
+
+  it('formats ticks by range', () => {
+    expect(formatHistoryTick('2026-11-09', '1M')).toBe('9 Nov');
+    expect(formatHistoryTick('2026-11-09', '1Y')).toBe("Nov '26");
   });
 });
