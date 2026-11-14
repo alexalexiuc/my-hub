@@ -9,20 +9,27 @@
  * - deleteTrip(userId, tripId) — hard delete
  * - deleteAllUserTrips(userId) — bulk delete for account removal
  * - getNextTrip(userId, now?) — soonest upcoming non-cancelled trip (undated trips use their bookings' dates)
- * - getTripBookingRanges(userId) — min/max booking dates per trip (owned)
+ * - getTripBookingRanges(userId) — min/max booking dates and booking count per trip (owned)
  * - getTripBookingRangesByTripIds(tripIds) — same, for a specific set of trip IDs
+ * - listTripSummaries(userId, filters?) — owned + shared trips with dates inherited from bookings, booking count,
+ *   filtered by status and/or overlap with a date range
+ * - updateTripDetails(userId, tripId, data) — owner-only partial update that rejects an end before the start
  * - verifyTripOwnership(userId, tripId) — throws if user does not own the trip
  * - verifyTripAccess(userId, tripId) — throws if user has neither ownership nor a share
- * Types: TripInsert, TripUpdate, TripBookingRange, AccessibleTrip
+ * Types: TripInsert, TripUpdate, TripBookingRange, AccessibleTrip, TripSummary, TripSummaryFilters
+ * Errors: TripInputError
  */
 import { and, asc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { PromiseCacheX } from 'promise-cachex';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
 import { tripBookings, tripShares, trips } from '../../db/schema/travel';
-import { deriveTripStatus, inheritTripDates, omitUndefined } from '../../utils';
-import type { NewTrip, Trip, TripSharePermission, TripWithStatus } from '../../types';
+import { deriveTripStatus, inheritTripDates, omitUndefined, UserInputError } from '../../utils';
+import type { NewTrip, Trip, TripSharePermission, TripStatus, TripWithStatus } from '../../types';
 import { TripSharePermissions } from '../../constants';
+
+/** A trip that does not exist for the user, or an invalid trip change. */
+export class TripInputError extends UserInputError {}
 
 const tripAccessCache = new PromiseCacheX<boolean>({ ttl: 300_000 });
 
@@ -41,6 +48,7 @@ export interface TripBookingRange {
   tripId: number;
   fromAt: Date | null;
   toAt: Date | null;
+  bookingCount: number;
 }
 
 export interface AccessibleTrip {
@@ -202,8 +210,9 @@ export async function getTripBookingRanges(userId: string): Promise<TripBookingR
   return db
     .select({
       tripId: tripBookings.tripId,
-      fromAt: sql<Date | null>`min(${tripBookings.startAt})`,
-      toAt: sql<Date | null>`max(coalesce(${tripBookings.endAt}, ${tripBookings.startAt}))`,
+      fromAt: sql<Date | null>`min(${tripBookings.startAt})`.mapWith(trips.startAt),
+      toAt: sql<Date | null>`max(coalesce(${tripBookings.endAt}, ${tripBookings.startAt}))`.mapWith(trips.endAt),
+      bookingCount: sql<number>`count(*)`.mapWith(Number),
     })
     .from(tripBookings)
     .where(eq(tripBookings.userId, userId))
@@ -217,13 +226,98 @@ export async function getTripBookingRangesByTripIds(tripIds: number[]): Promise<
   return db
     .select({
       tripId: tripBookings.tripId,
-      fromAt: sql<Date | null>`min(${tripBookings.startAt})`,
-      toAt: sql<Date | null>`max(coalesce(${tripBookings.endAt}, ${tripBookings.startAt}))`,
+      fromAt: sql<Date | null>`min(${tripBookings.startAt})`.mapWith(trips.startAt),
+      toAt: sql<Date | null>`max(coalesce(${tripBookings.endAt}, ${tripBookings.startAt}))`.mapWith(trips.endAt),
+      bookingCount: sql<number>`count(*)`.mapWith(Number),
     })
     .from(tripBookings)
     .where(inArray(tripBookings.tripId, tripIds))
     .groupBy(tripBookings.tripId)
     .orderBy(asc(tripBookings.tripId));
+}
+
+export interface TripSummaryFilters {
+  /** Keep only trips with one of these statuses (computed after inheriting dates from bookings). */
+  statuses?: readonly TripStatus[];
+  /** Keep only trips that end on/after this moment (undated trips are dropped when a range is given). */
+  from?: Date;
+  /** Keep only trips that start on/before this moment (undated trips are dropped when a range is given). */
+  to?: Date;
+}
+
+export interface TripSummary {
+  id: number;
+  name: string;
+  destination: string | null;
+  startAt: Date | null;
+  endAt: Date | null;
+  /** True when startAt/endAt (or one of them) come from the bookings because the trip has none of its own. */
+  datesFromBookings: boolean;
+  status: TripStatus;
+  bookingCount: number;
+  accessRole: 'owner' | 'viewer';
+}
+
+/**
+ * Every trip the user owns or has been shared, ordered by start date (undated last), with dates inherited from
+ * bookings the way the Hub shows them, a booking count, and optional status / date-range filters.
+ */
+export async function listTripSummaries(userId: string, filters: TripSummaryFilters = {}): Promise<TripSummary[]> {
+  const now = new Date();
+  const accessible = await getAccessibleTrips(userId);
+  const ranges = await getTripBookingRangesByTripIds(accessible.map(item => item.trip.id));
+  const rangeByTrip = new Map(ranges.map(r => [r.tripId, r]));
+  const hasRange = filters.from !== undefined || filters.to !== undefined;
+
+  const summaries = accessible.map(({ trip, accessRole }): TripSummary => {
+    const range = rangeByTrip.get(trip.id);
+    const dated = inheritTripDates(trip, range);
+    return {
+      id: trip.id,
+      name: trip.name,
+      destination: trip.destination,
+      startAt: dated.startAt,
+      endAt: dated.endAt,
+      datesFromBookings: dated.startAt !== trip.startAt || dated.endAt !== trip.endAt,
+      status: deriveTripStatus(trip.cancelledAt, dated.startAt, dated.endAt, now),
+      bookingCount: range?.bookingCount ?? 0,
+      accessRole,
+    };
+  });
+
+  return summaries
+    .filter(t => !filters.statuses?.length || filters.statuses.includes(t.status))
+    .filter(t => {
+      if (!hasRange) return true;
+      const start = t.startAt ?? t.endAt;
+      const end = t.endAt ?? t.startAt;
+      if (!start || !end) return false;
+      return (!filters.from || end >= filters.from) && (!filters.to || start <= filters.to);
+    })
+    .sort(
+      (a, b) =>
+        (a.startAt?.getTime() ?? Number.POSITIVE_INFINITY) - (b.startAt?.getTime() ?? Number.POSITIVE_INFINITY) ||
+        a.id - b.id,
+    );
+}
+
+/**
+ * Owner-only partial trip update for tools: `undefined` leaves a field alone, `null` clears it. Throws
+ * `TripInputError` when the trip does not exist for the user or the resulting end is before the start.
+ */
+export async function updateTripDetails(userId: string, tripId: number, data: TripUpdate): Promise<TripWithStatus> {
+  const existing = await getTripById(userId, tripId);
+  if (!existing) throw new TripInputError(`Trip ${tripId} not found.`);
+
+  const startAt = data.startAt === undefined ? existing.startAt : data.startAt;
+  const endAt = data.endAt === undefined ? existing.endAt : data.endAt;
+  if (startAt && endAt && endAt < startAt) {
+    throw new TripInputError('The trip end must not be before its start.');
+  }
+
+  const updated = await updateTrip(userId, tripId, data);
+  if (!updated) throw new TripInputError(`Trip ${tripId} not found.`);
+  return updated;
 }
 
 export async function verifyTripOwnership(userId: string, tripId: number): Promise<boolean> {

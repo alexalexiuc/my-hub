@@ -35,6 +35,16 @@ import {
   travelPrepareTripChecklistTool,
   travelWhoIsTravelingTool,
 } from './tasks';
+import {
+  TravelDeleteTripSchema,
+  TravelListTripsSchema,
+  TravelManageChecklistSchema,
+  TravelUpdateTripSchema,
+  travelDeleteTripTool,
+  travelListTripsTool,
+  travelManageChecklistTool,
+  travelUpdateTripTool,
+} from './trips';
 
 const travelTools = [
   defineTool({
@@ -44,6 +54,35 @@ const travelTools = [
     inputSchema: TravelPlanTripSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: travelPlanTripTool,
+  }),
+  defineTool({
+    name: 'travel_list_trips',
+    description:
+      "List the user's trips (owned and shared) with id, name, destination, dates, status and booking count. " +
+      'Trips without their own dates show the dates of their bookings (datesFromBookings: true). ' +
+      'Filter by status and/or a date range. Use this to find a tripId before calling other travel tools.',
+    inputSchema: TravelListTripsSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: travelListTripsTool,
+  }),
+  defineTool({
+    name: 'travel_update_trip',
+    description:
+      'Change an existing trip: name, destination, start/end dates, notes, colour, or mark it cancelled / reinstated. ' +
+      'Only the fields you pass change; null clears a field. To create a trip use travel_plan_trip.',
+    inputSchema: TravelUpdateTripSchema.shape,
+    annotations: { idempotentHint: true, destructiveHint: false },
+    callback: travelUpdateTripTool,
+  }),
+  defineTool({
+    name: 'travel_delete_trip',
+    description:
+      'Permanently delete a trip with all its bookings, places, checklist, companions, day notes and documents. ' +
+      'Use only for duplicate or mistaken trips and confirm with the user first; ' +
+      'for a trip that will not happen prefer travel_update_trip with cancelled: true.',
+    inputSchema: TravelDeleteTripSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: true },
+    callback: travelDeleteTripTool,
   }),
   defineTool({
     name: 'travel_add_reservation_from_text',
@@ -80,8 +119,9 @@ const travelTools = [
   defineTool({
     name: 'travel_edit_booking',
     description:
-      'Correct or update details of an existing non-flight booking — title, times, confirmation number, notes, etc. ' +
-      'For flight bookings use travel_edit_flight instead.',
+      'Correct or update an existing non-flight booking — title, times, confirmation number, notes, cost, ' +
+      'structured details (deep-merged, e.g. details.extra.checkIn), or move it to another trip with tripId. ' +
+      'Keep details consistent with changed times/notes. For flight bookings use travel_edit_flight instead.',
     inputSchema: TravelEditBookingSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: travelEditBookingTool,
@@ -106,10 +146,20 @@ const travelTools = [
   defineTool({
     name: 'travel_prepare_trip_checklist',
     description:
-      'Prepare a trip checklist with default travel-readiness items. Use when user asks what to prepare before departure.',
+      'Prepare a trip checklist with default travel-readiness items. Use when user asks what to prepare before departure. ' +
+      'To add custom items, check items off, rename or remove them use travel_manage_checklist.',
     inputSchema: TravelPrepareTripChecklistSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: travelPrepareTripChecklistTool,
+  }),
+  defineTool({
+    name: 'travel_manage_checklist',
+    description:
+      'Add, rename, check off / un-check, or remove trip checklist items in one call. ' +
+      'Item IDs come from travel_get_trip_brief with include: ["checklist"]. Returns the full updated checklist.',
+    inputSchema: TravelManageChecklistSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: travelManageChecklistTool,
   }),
   defineTool({
     name: 'travel_who_is_traveling',
@@ -122,7 +172,8 @@ const travelTools = [
     name: 'travel_get_trip_brief',
     description:
       'Get a trip summary with counts for all sections (bookings, places, checklist, companions, documents, day notes). ' +
-      'Defaults to the next upcoming trip if tripId is omitted. ' +
+      "Defaults to the next upcoming trip if tripId is omitted (trips without dates use their bookings' dates); " +
+      'use travel_list_trips to find other trips. ' +
       'Pass include to retrieve full data for specific sections, e.g. include: ["bookings", "day_notes"]. ' +
       'Use travel_get_places for a standalone place list and travel_get_day_notes for enriched day notes.',
     inputSchema: TravelGetTripBriefSchema.shape,
