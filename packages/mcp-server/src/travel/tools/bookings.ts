@@ -19,7 +19,7 @@ import type {
 } from '@my-hub/shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
 import { transportBookingTypes, TripBookingTypes, tripBookingTypeValues } from '@my-hub/shared/constants';
-import { isTransportBookingType, omitUndefined } from '@my-hub/shared/utils';
+import { isTransportBookingType, mergeBookingDetails, omitUndefined } from '@my-hub/shared/utils';
 
 const BookingTypeSchema = z.enum(tripBookingTypeValues as [TripBookingType, ...TripBookingType[]]);
 
@@ -443,6 +443,29 @@ export const TravelEditBookingSchema = z.object({
     .nullable()
     .optional()
     .describe('Contact phone number for the property/provider. Pass null to clear.'),
+  costAmount: z.number().nonnegative().nullable().optional().describe('Total price of the booking. null clears it.'),
+  costCurrency: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{3}$/, 'Must be a 3-letter ISO currency code')
+    .transform(value => value.toUpperCase())
+    .optional()
+    .describe('ISO 4217 currency of costAmount, e.g. "EUR".'),
+  details: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe(
+      'Partial update of the structured booking details, deep-merged into the stored ones. ' +
+        'Nested objects merge key by key, arrays and values replace, null removes a key. ' +
+        'E.g. { "extra": { "checkIn": "after 14:30", "balanceDue": null } } changes checkIn and drops balanceDue, ' +
+        'leaving other extra fields as they are. The details "kind" cannot be changed.',
+    ),
+  tripId: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('Move the booking to this trip (one you own). See travel_list_trips for IDs.'),
 });
 
 export const travelEditBookingTool: ToolHandler<typeof TravelEditBookingSchema.shape> = async (input, context) => {
@@ -472,6 +495,10 @@ export const travelEditBookingTool: ToolHandler<typeof TravelEditBookingSchema.s
       contactName: input.contactName,
       contactEmail: input.contactEmail,
       contactPhone: input.contactPhone,
+      costAmount: input.costAmount,
+      costCurrency: input.costCurrency,
+      details: input.details ? mergeBookingDetails(existing.details, input.details) : undefined,
+      tripId: input.tripId,
     }),
   );
 

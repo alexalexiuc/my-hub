@@ -343,3 +343,163 @@ describe('travel — day note lifecycle', () => {
     expect(result.isError).toBe(true);
   });
 });
+
+interface TripSummary {
+  id: number;
+  name: string;
+  startAt: string | null;
+  endAt: string | null;
+  status: string;
+  bookingCount: number;
+  datesFromBookings: boolean;
+}
+
+interface BookingWithDetails extends Booking {
+  costAmount: number | null;
+  costCurrency: string;
+  details: { kind: string; extra?: Record<string, unknown> } | null;
+}
+
+interface ChecklistItem {
+  id: number;
+  title: string;
+  done: boolean;
+}
+
+/**
+ * Trip management: travel_list_trips → travel_update_trip → travel_edit_booking (details, cost, move)
+ * → travel_manage_checklist → travel_delete_trip (also the cleanup).
+ */
+describe('travel — trip management', () => {
+  let client: McpClient;
+  const tripIds: number[] = [];
+  let bookingId: number | undefined;
+
+  const runId = Date.now().toString(36);
+  const tripName = `[e2e:${runId}] Undated Lisbon`;
+
+  async function call<T>(name: string, args: Record<string, unknown>): Promise<T> {
+    const result = await client.callTool({ name, arguments: args });
+    expect(result.isError, JSON.stringify(result.content)).toBeFalsy();
+    return parseToolResult<T>(result);
+  }
+
+  beforeAll(async () => {
+    const { baseUrl } = getE2eEnv();
+    const token = await generateToken();
+    client = await createMcpClient(baseUrl, '/travel/mcp', token);
+  });
+
+  afterAll(async () => {
+    for (const tripId of tripIds) {
+      try {
+        await client.callTool({ name: 'travel_delete_trip', arguments: { tripId } });
+      } catch {
+        // Ignore
+      }
+    }
+    await client.close();
+  });
+
+  it("travel_list_trips shows an undated trip with its bookings' dates", async () => {
+    const { trip } = await call<PlanTripResult>('travel_plan_trip', {
+      name: tripName,
+      destination: 'Lisbon, Portugal',
+      autoPrepareChecklist: false,
+    });
+    tripIds.push(trip.id);
+    const { booking } = await call<AddReservationResult>('travel_add_reservation_from_text', {
+      tripId: trip.id,
+      bookingText: 'Your stay at Casa Azul, 24-27 Nov 2098. Check-in after 14:00. Balance due on arrival.',
+      bookingType: 'accommodation',
+      title: `[e2e:${runId}] Casa Azul`,
+      startAt: '2098-11-24T14:00:00Z',
+      endAt: '2098-11-27T10:00:00Z',
+      extra: { checkIn: 'after 14:00', balanceDue: '200 EUR' },
+    });
+    bookingId = booking.id;
+
+    const { trips } = await call<{ trips: TripSummary[] }>('travel_list_trips', {
+      status: ['planned'],
+      from: '2098-11-01',
+      to: '2098-11-30',
+    });
+    const found = trips.find(t => t.id === trip.id);
+    expect(found).toMatchObject({ bookingCount: 1, datesFromBookings: true, status: 'planned' });
+    expect(found!.startAt).toBe('2098-11-24T14:00:00.000Z');
+    expect(found!.endAt).toBe('2098-11-27T10:00:00.000Z');
+
+    const { trips: completed } = await call<{ trips: TripSummary[] }>('travel_list_trips', { status: ['completed'] });
+    expect(completed.some(t => t.id === trip.id)).toBe(false);
+  });
+
+  it('travel_update_trip sets dates and cancels / reinstates a trip', async () => {
+    const tripId = tripIds[0];
+    const { trip } = await call<{ trip: TripSummary & { cancelledAt: string | null } }>('travel_update_trip', {
+      tripId,
+      startAt: '2098-11-24T00:00:00Z',
+      endAt: '2098-11-28T00:00:00Z',
+      cancelled: true,
+    });
+    expect(trip.startAt).toBe('2098-11-24T00:00:00.000Z');
+    expect(trip.status).toBe('cancelled');
+
+    const reinstated = await call<{ trip: TripSummary }>('travel_update_trip', { tripId, cancelled: false });
+    expect(reinstated.trip.status).toBe('planned');
+
+    const invalid = await client.callTool({
+      name: 'travel_update_trip',
+      arguments: { tripId, endAt: '2098-11-01T00:00:00Z' },
+    });
+    expect(invalid.isError).toBe(true);
+  });
+
+  it('travel_edit_booking deep-merges details, sets cost and moves the booking', async () => {
+    const { booking } = await call<{ booking: BookingWithDetails }>('travel_edit_booking', {
+      bookingId,
+      costAmount: 412.5,
+      costCurrency: 'eur',
+      details: { extra: { checkIn: 'after 14:30', balanceDue: null } },
+    });
+    expect(booking.costAmount).toBe(412.5);
+    expect(booking.costCurrency).toBe('EUR');
+    expect(booking.details?.kind).toBe('accommodation');
+    expect(booking.details?.extra).toEqual({ checkIn: 'after 14:30' });
+
+    const { trip: other } = await call<PlanTripResult>('travel_plan_trip', {
+      name: `[e2e:${runId}] Other trip`,
+      destination: 'Porto, Portugal',
+      autoPrepareChecklist: false,
+    });
+    tripIds.push(other.id);
+    const moved = await call<{ booking: BookingWithDetails }>('travel_edit_booking', { bookingId, tripId: other.id });
+    expect(moved.booking.tripId).toBe(other.id);
+  });
+
+  it('travel_manage_checklist adds, checks off and removes items', async () => {
+    const tripId = tripIds[0];
+    const added = await call<{ checklist: ChecklistItem[] }>('travel_manage_checklist', {
+      tripId,
+      add: ['Book airport taxi', 'Print vouchers'],
+    });
+    expect(added.checklist).toHaveLength(2);
+    const [taxi, vouchers] = ['Book airport taxi', 'Print vouchers'].map(title =>
+      added.checklist.find(i => i.title === title)!,
+    );
+
+    const result = await call<{ checklist: ChecklistItem[]; remaining: number }>('travel_manage_checklist', {
+      tripId,
+      update: [{ id: taxi!.id, done: true }],
+      removeIds: [vouchers!.id],
+    });
+    expect(result.checklist).toEqual([expect.objectContaining({ id: taxi!.id, done: true })]);
+    expect(result.remaining).toBe(0);
+  });
+
+  it('travel_delete_trip removes the trip', async () => {
+    const tripId = tripIds.pop()!;
+    await call('travel_delete_trip', { tripId });
+    const { trips } = await call<{ trips: TripSummary[] }>('travel_list_trips', {});
+    expect(trips.some(t => t.id === tripId)).toBe(false);
+  });
+});

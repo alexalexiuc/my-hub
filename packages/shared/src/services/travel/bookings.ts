@@ -4,7 +4,8 @@
  * - getTripBookings(userId, tripId, opts?) — lists bookings, optionally filtered by bookingType
  * - getUpcomingTripBookings(userId, hoursAhead?, bookingType?) — bookings starting within the given window (default 48 h)
  * - getTripBookingById(userId, bookingId) — single booking with ownership check
- * - updateTripBooking(userId, bookingId, data) — partial update; re-validates coordinates if changed
+ * - updateTripBooking(userId, bookingId, data) — partial update; re-validates coordinates if changed; `tripId` moves
+ *   the booking to another trip the user owns
  * - deleteTripBooking(userId, bookingId) — hard delete
  * - deleteAllUserTripBookings(userId) — bulk delete for account removal
  * Types: TripBookingInsert, TripBookingUpdate (includes contactName/contactEmail/contactPhone), GetTripBookingsOpts
@@ -14,7 +15,7 @@ import { db } from '../../db/client';
 import { tripBookings } from '../../db/schema/travel';
 import type { NewTripBooking, TripBooking, TripBookingType } from '../../types';
 import { verifyTripOwnership } from './trips';
-import { validateCoords } from '../../utils';
+import { UserInputError, validateCoords } from '../../utils';
 
 export type TripBookingInsert = Omit<NewTripBooking, 'id' | 'userId' | 'tripId' | 'createdAt' | 'updatedAt'>;
 export type TripBookingUpdate = Partial<
@@ -40,7 +41,7 @@ export type TripBookingUpdate = Partial<
     | 'contactEmail'
     | 'contactPhone'
   >
->;
+> & { tripId?: number };
 
 export interface GetTripBookingsOpts {
   bookingType?: TripBookingType;
@@ -111,8 +112,11 @@ export async function updateTripBooking(
   if (data.lat !== undefined || data.lng !== undefined) {
     validateCoords({ lat: data.lat, lng: data.lng });
   }
+  if (data.tripId !== undefined && !(await verifyTripOwnership(userId, data.tripId))) {
+    throw new UserInputError(`Trip ${data.tripId} not found.`);
+  }
 
-  const updates: Partial<TripBookingInsert> & { updatedAt: Date } = {
+  const updates: TripBookingUpdate & { updatedAt: Date } = {
     updatedAt: new Date(),
   };
 

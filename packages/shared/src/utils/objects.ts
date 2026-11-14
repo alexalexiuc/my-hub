@@ -6,6 +6,7 @@
  * - extractEnvVars(keys, ignoreMissing) — extract specified env vars into an object, with optional missing key handling
  * - getEnvVar(key, defaultValue) — get an env var with optional default and error handling
  * - arrayfy(val) — ensure the value is an array, wrapping in an array if it's not already
+ * - deepMergePatch(base, patch) — deep-merge a partial patch into a JSON object; `null` in the patch deletes a key
  */
 
 /**
@@ -92,4 +93,34 @@ export function getEnvVar(key: string, defaultValue?: string): string {
  */
 export function arrayfy<T>(val: T | T[]): T[] {
   return Array.isArray(val) ? val : [val];
+}
+
+function isPlainObject(val: unknown): val is Record<string, unknown> {
+  return typeof val === 'object' && val !== null && !Array.isArray(val);
+}
+
+/**
+ * Deep-merge `patch` into `base` (JSON-style objects, e.g. a JSONB column) and return a new object.
+ * - nested plain objects are merged key by key;
+ * - arrays and primitives in the patch replace the base value;
+ * - a `null` value in the patch removes that key; `undefined` leaves it unchanged.
+ * Neither input is mutated.
+ */
+export function deepMergePatch(
+  base: Record<string, unknown> | null | undefined,
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...(base ?? {}) };
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) continue;
+    if (value === null) {
+      delete result[key];
+    } else if (isPlainObject(value)) {
+      const current = result[key];
+      result[key] = deepMergePatch(isPlainObject(current) ? current : {}, value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
 }

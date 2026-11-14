@@ -4,9 +4,12 @@
  * - isTransportBookingType(bookingType) — true if bookingType is in the transport booking types list
  * - bookingDateRange(bookings) — earliest booking start and latest booking end/start
  * - inheritTripDates(trip, range) — fills a trip's missing start/end from its bookings' date range
+ * - mergeBookingDetails(existing, patch) — deep-merges a partial details patch, keeping the stored `kind`
  */
 
 import { TripStatuses, type TripStatus, transportBookingTypes } from '../constants';
+import type { BookingDetails } from '../types/booking-details';
+import { deepMergePatch } from './objects';
 
 /**
  * Derive a trip status from timeline fields. Status is computed, not persisted.
@@ -58,4 +61,16 @@ export function inheritTripDates<T extends { startAt: Date | null; endAt: Date |
   range: BookingDateRange | null | undefined,
 ): T {
   return { ...trip, startAt: trip.startAt ?? range?.fromAt ?? null, endAt: trip.endAt ?? range?.toAt ?? null };
+}
+
+/**
+ * Apply a partial `trip_bookings.details` patch to the stored details: nested objects (e.g. `extra`) merge key by
+ * key, arrays and values replace, `null` removes a key. The stored `kind` discriminator always wins (a patch cannot
+ * turn accommodation details into transport ones); details without one become `kind: 'base'`.
+ */
+export function mergeBookingDetails(existing: unknown, patch: Record<string, unknown>): BookingDetails {
+  const base = existing && typeof existing === 'object' ? (existing as Record<string, unknown>) : {};
+  const { kind: _ignoredKind, ...rest } = patch;
+  const kind = typeof base.kind === 'string' ? base.kind : 'base';
+  return { ...deepMergePatch(base, rest), kind } as BookingDetails;
 }

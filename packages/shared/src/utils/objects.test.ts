@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { omitNullish, omitUndefined, trimOrNull, extractEnvVars, getEnvVar, arrayfy } from './objects';
+import { omitNullish, omitUndefined, trimOrNull, extractEnvVars, getEnvVar, arrayfy, deepMergePatch } from './objects';
 
 describe('omitNullish', () => {
   it('removes null values', () => {
@@ -178,5 +178,34 @@ describe('arrayfy', () => {
     expect(arrayfy('hello')).toEqual(['hello']);
     const obj = { a: 1 };
     expect(arrayfy(obj)).toEqual([obj]);
+  });
+});
+
+describe('deepMergePatch', () => {
+  it('merges nested objects and keeps untouched keys', () => {
+    const base = { kind: 'accommodation', extra: { checkIn: 'after 14:00', balanceDue: 100 }, source: 'email' };
+    expect(deepMergePatch(base, { extra: { checkIn: 'after 14:30' } })).toEqual({
+      kind: 'accommodation',
+      extra: { checkIn: 'after 14:30', balanceDue: 100 },
+      source: 'email',
+    });
+  });
+
+  it('removes keys set to null and ignores undefined', () => {
+    expect(deepMergePatch({ a: 1, b: { c: 2, d: 3 } }, { a: undefined, b: { c: null } })).toEqual({
+      a: 1,
+      b: { d: 3 },
+    });
+  });
+
+  it('replaces arrays and primitives, and handles a missing base', () => {
+    expect(deepMergePatch({ list: [1, 2], n: 1 }, { list: [3], n: 'x' })).toEqual({ list: [3], n: 'x' });
+    expect(deepMergePatch(null, { a: { b: 1 } })).toEqual({ a: { b: 1 } });
+  });
+
+  it('does not mutate its inputs', () => {
+    const base = { a: { b: 1 } };
+    deepMergePatch(base, { a: { b: 2 } });
+    expect(base).toEqual({ a: { b: 1 } });
   });
 });

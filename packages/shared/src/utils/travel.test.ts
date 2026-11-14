@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bookingDateRange, deriveTripStatus, inheritTripDates } from './travel';
+import { bookingDateRange, deriveTripStatus, inheritTripDates, mergeBookingDetails } from './travel';
 
 const d = (iso: string) => new Date(iso);
 
@@ -44,5 +44,22 @@ describe('inheritTripDates', () => {
   it('makes an undated trip active while its bookings are under way', () => {
     const trip = inheritTripDates({ startAt: null, endAt: null }, range);
     expect(deriveTripStatus(null, trip.startAt, trip.endAt, d('2026-11-25T12:00:00Z'))).toBe('active');
+  });
+});
+
+describe('mergeBookingDetails', () => {
+  it('merges extra fields, removes nulls and keeps the stored kind', () => {
+    const existing = {
+      kind: 'accommodation',
+      source: 'email',
+      extra: { checkIn: 'after 14:00', balanceDue: '120 EUR' },
+    };
+    expect(
+      mergeBookingDetails(existing, { kind: 'transport', extra: { checkIn: 'after 14:30', balanceDue: null } }),
+    ).toEqual({ kind: 'accommodation', source: 'email', extra: { checkIn: 'after 14:30' } });
+  });
+
+  it('starts from base details when nothing is stored', () => {
+    expect(mergeBookingDetails(null, { extra: { a: 1 } })).toEqual({ kind: 'base', extra: { a: 1 } });
   });
 });
