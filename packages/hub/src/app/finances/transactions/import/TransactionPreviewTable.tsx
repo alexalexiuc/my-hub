@@ -153,7 +153,7 @@ export function TransactionPreviewTable({
                     type="text"
                     value={row.notes}
                     onChange={e => onUpdateRow(row._key, { notes: e.target.value })}
-                    className="w-full bg-transparent text-xs text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+                    className="w-full bg-transparent text-xs text-[var(--text)] outline-hidden placeholder:text-[var(--muted)]"
                     placeholder="—"
                   />
                 </td>

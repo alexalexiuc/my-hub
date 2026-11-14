@@ -120,7 +120,7 @@ function DayCard({ dateStr, note, bookings, dayPlaces, canEdit, tripId, onChange
                     className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-full border border-[var(--amber)]/60 bg-[var(--amber-d)] px-2 py-0.5 text-xs text-[var(--amber)] transition-colors hover:opacity-80"
                   >
                     <PinIcon />
-                    <span className="max-w-[10rem] truncate">{place.name}</span>
+                    <span className="max-w-40 truncate">{place.name}</span>
                   </a>
                 ))}
               </div>
@@ -146,7 +146,7 @@ export function DayByDay({ trip, bookings, dayNotes, places, canEdit, onChanged 
   const placesById = new Map<number, TripPlace>(places.map(p => [p.id, p]));
 
   return (
-    <Card className="!p-0 overflow-hidden">
+    <Card className="p-0! overflow-hidden">
       <TravelSectionHeader title="Day by Day" />
       <div className="space-y-3 p-4">
         {days.map(dateStr => {

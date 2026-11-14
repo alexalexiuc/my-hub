@@ -97,7 +97,7 @@ export function MobileAmountKeypad({
         <Button type="button" variant="neutral" size="md" onClick={onCancel} className="flex-1">
           Cancel
         </Button>
-        <Button type="button" variant="accent" size="md" onClick={onDone} className="flex-[2] font-semibold">
+        <Button type="button" variant="accent" size="md" onClick={onDone} className="flex-2 font-semibold">
           Done
         </Button>
       </div>

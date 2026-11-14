@@ -143,10 +143,10 @@ export function TravelWidget() {
           >
             <div className="flex items-center gap-2">
               <div className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
-              <div className="h-3.5 w-32 bg-zinc-700 rounded" />
+              <div className="h-3.5 w-32 bg-zinc-700 rounded-sm" />
             </div>
-            <div className="mt-2 h-4 w-48 bg-zinc-700 rounded" />
-            <div className="mt-1.5 h-3 w-40 bg-zinc-700 rounded" />
+            <div className="mt-2 h-4 w-48 bg-zinc-700 rounded-sm" />
+            <div className="mt-1.5 h-3 w-40 bg-zinc-700 rounded-sm" />
           </div>
         </section>
       </FeatureTheme>
@@ -161,7 +161,7 @@ export function TravelWidget() {
         <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-3">Travel</h2>
         <Link
           href="/travel"
-          className="block rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm hover:bg-zinc-800 hover:border-zinc-700 transition"
+          className="block rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-xs hover:bg-zinc-800 hover:border-zinc-700 transition"
           style={{ borderLeftColor: travelFocus.color, borderLeftWidth: '4px' }}
         >
           <div className="flex items-center gap-2">

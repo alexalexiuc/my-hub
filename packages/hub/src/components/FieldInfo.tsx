@@ -137,7 +137,7 @@ export function FieldInfo({ children, label, className }: FieldInfoProps) {
         className={cn(
           'inline-flex -m-1 cursor-pointer items-center justify-center rounded-full p-1 align-middle transition-colors',
           'text-[var(--subtle,#71717a)] hover:text-[var(--accent,#818cf8)]',
-          'focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--accent,#818cf8)]',
+          'focus-visible:outline-solid focus-visible:outline-1 focus-visible:outline-[var(--accent,#818cf8)]',
           open && 'text-[var(--accent,#818cf8)]',
           className,
         )}
@@ -163,7 +163,7 @@ export function FieldInfo({ children, label, className }: FieldInfoProps) {
             }}
             className={cn(
               themeClassName,
-              'fixed z-[1200] max-w-[calc(100vw-16px)] rounded-lg border p-2.5 text-xs leading-relaxed shadow-lg',
+              'fixed z-1200 max-w-[calc(100vw-16px)] rounded-lg border p-2.5 text-xs leading-relaxed shadow-lg',
               'border-[var(--border,#27272a)] bg-[var(--card2,#27272a)] text-[var(--muted,#a1a1aa)]',
             )}
           >

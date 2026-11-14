@@ -34,7 +34,7 @@ function ResolutionDemo() {
       <div className="flex flex-wrap items-center gap-2">
         <label className="text-xs text-[var(--muted)]">Global</label>
         <select
-          className="rounded border border-[var(--border)] bg-[var(--card2)] px-2 py-1 text-xs text-[var(--text)]"
+          className="rounded-sm border border-[var(--border)] bg-[var(--card2)] px-2 py-1 text-xs text-[var(--text)]"
           value={themes.global}
           onChange={e => setTheme('global', e.target.value as ThemeKey)}
         >
@@ -45,7 +45,7 @@ function ResolutionDemo() {
           ))}
         </select>
         <button
-          className="rounded border border-[var(--border)] bg-[var(--card2)] px-2 py-1 text-xs text-[var(--muted)]"
+          className="rounded-sm border border-[var(--border)] bg-[var(--card2)] px-2 py-1 text-xs text-[var(--muted)]"
           onClick={() => {
             setTheme('travel', pinnedTravel ? null : 'lime-classic');
             setPinnedTravel(p => !p);

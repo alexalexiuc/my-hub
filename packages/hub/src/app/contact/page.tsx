@@ -16,7 +16,7 @@ export default function ContactPage() {
 
           <div className="space-y-3 pt-2">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
                 <ClockOutlineIcon className="text-indigo-400" />
               </div>
               <div>
@@ -36,7 +36,7 @@ export default function ContactPage() {
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
                 <MailOutlineIcon className="text-indigo-400" />
               </div>
               <div>

@@ -164,12 +164,12 @@ export function TransactionList({
       {/* Desktop column headers */}
       <div className="hidden md:flex items-center gap-3 pb-1.5 border-b border-[var(--border)]">
         <span className="size-6 shrink-0" />
-        <SectionLabel className="!mb-0 w-[110px] shrink-0">Category</SectionLabel>
-        <SectionLabel className="!mb-0 w-[88px] shrink-0 text-right">Date</SectionLabel>
-        <SectionLabel className="!mb-0 w-[140px] shrink-0">Payee</SectionLabel>
-        <SectionLabel className="!mb-0 flex-1">Memo</SectionLabel>
-        <SectionLabel className="!mb-0 w-[100px] shrink-0">Account</SectionLabel>
-        <SectionLabel className="!mb-0 w-[120px] shrink-0 text-right">Amount</SectionLabel>
+        <SectionLabel className="mb-0! w-[110px] shrink-0">Category</SectionLabel>
+        <SectionLabel className="mb-0! w-[88px] shrink-0 text-right">Date</SectionLabel>
+        <SectionLabel className="mb-0! w-[140px] shrink-0">Payee</SectionLabel>
+        <SectionLabel className="mb-0! flex-1">Memo</SectionLabel>
+        <SectionLabel className="mb-0! w-[100px] shrink-0">Account</SectionLabel>
+        <SectionLabel className="mb-0! w-[120px] shrink-0 text-right">Amount</SectionLabel>
         <span className="w-7 shrink-0" />
       </div>
 
@@ -328,7 +328,7 @@ export function TransactionList({
               </div>
 
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto">
-                <div className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--card)] px-1.5 py-1 shadow-sm">
+                <div className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--card)] px-1.5 py-1 shadow-xs">
                   <IconButton
                     label="Edit"
                     icon={<PencilIcon className="size-3.5" />}

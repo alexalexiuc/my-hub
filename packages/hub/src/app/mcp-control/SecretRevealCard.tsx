@@ -32,21 +32,21 @@ export function SecretRevealCard({ client, onDone }: SecretRevealCardProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className="w-32 shrink-0 text-[var(--muted,#a1a1aa)]">Client ID</span>
-          <code className="rounded border border-[var(--border,#3f3f46)] bg-[var(--card2,#27272a)] px-2 py-0.5 font-mono text-xs text-[var(--text,#d4d4d8)]">
+          <code className="rounded-sm border border-[var(--border,#3f3f46)] bg-[var(--card2,#27272a)] px-2 py-0.5 font-mono text-xs text-[var(--text,#d4d4d8)]">
             {client.clientId}
           </code>
           <CopyButton value={client.clientId} />
         </div>
         <div className="flex items-center gap-2">
           <span className="w-32 shrink-0 text-[var(--muted,#a1a1aa)]">Client secret</span>
-          <code className="rounded border border-[var(--amber,#fcd34d)]/40 bg-[var(--amber-d,rgba(252,211,77,0.08))] px-2 py-0.5 font-mono text-xs text-[var(--amber,#fcd34d)]">
+          <code className="rounded-sm border border-[var(--amber,#fcd34d)]/40 bg-[var(--amber-d,rgba(252,211,77,0.08))] px-2 py-0.5 font-mono text-xs text-[var(--amber,#fcd34d)]">
             {client.plainClientSecret}
           </code>
           <CopyButton value={client.plainClientSecret} />
         </div>
         <div className="flex items-center gap-2">
           <span className="w-32 shrink-0 text-[var(--muted,#a1a1aa)]">MCP URL</span>
-          <code className="rounded border border-[var(--border,#3f3f46)] bg-[var(--card2,#27272a)] px-2 py-0.5 font-mono text-xs text-[var(--text,#d4d4d8)]">
+          <code className="rounded-sm border border-[var(--border,#3f3f46)] bg-[var(--card2,#27272a)] px-2 py-0.5 font-mono text-xs text-[var(--text,#d4d4d8)]">
             {MCP_BASE_URL}
           </code>
           <CopyButton value={MCP_BASE_URL} />

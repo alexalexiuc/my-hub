@@ -26,7 +26,7 @@ export function ColumnSelect({
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="rounded-[8px] border border-[var(--border)] bg-[var(--card2)] px-2 py-1.5 text-xs text-[var(--text)] focus:outline-none"
+        className="rounded-[8px] border border-[var(--border)] bg-[var(--card2)] px-2 py-1.5 text-xs text-[var(--text)] focus:outline-hidden"
       >
         <option value="">{placeholder}</option>
         {headers.map(h => (

@@ -31,7 +31,7 @@ export default function VacationLayout({ children }: { children: React.ReactNode
         </div>
         {/* The accent wash fades into the theme's own background, so the page carries its colour
             whichever palette the user picks for Vacation. */}
-        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-[var(--accent-d)] to-transparent to-50% px-4 pb-20 pt-5 md:px-7 md:pb-12">
+        <div className="flex-1 overflow-y-auto bg-linear-to-b from-[var(--accent-d)] to-transparent to-50% px-4 pb-20 pt-5 md:px-7 md:pb-12">
           {children}
         </div>
       </div>

@@ -60,7 +60,7 @@ export function FinancesWidget() {
         title="Finances"
         titleHref="/finances"
         titleHoverClass="hover:text-[var(--accent)]"
-        className="border-[var(--border)] bg-gradient-to-br from-[var(--card2)] to-[var(--card)]"
+        className="border-[var(--border)] bg-linear-to-br from-[var(--card2)] to-[var(--card)]"
         action={
           data && (
             <div className="flex items-center gap-1.5">

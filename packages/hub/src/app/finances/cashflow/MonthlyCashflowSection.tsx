@@ -41,7 +41,7 @@ export function MonthlyCashflowSection({ cashflow, currency, year }: MonthlyCash
           <div className="mb-[14px] flex gap-4">
             {LEGEND.map(l => (
               <div key={l.label} className="flex items-center gap-[5px]">
-                <div className={cn('h-[10px] w-[10px] rounded-sm opacity-75', l.colorClass)} />
+                <div className={cn('h-[10px] w-[10px] rounded-xs opacity-75', l.colorClass)} />
                 <span className="text-[10px] text-[var(--muted)]">{l.label}</span>
               </div>
             ))}

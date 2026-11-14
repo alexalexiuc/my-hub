@@ -105,7 +105,10 @@ export function TripSwitcher() {
 
   async function handleDeleteTrip() {
     if (!deletingTrip) return;
-    await apiFetch(`/api/travel/trips/${deletingTrip.id}`, { method: 'DELETE' });
+    const deletedId = deletingTrip.id;
+    await apiFetch(`/api/travel/trips/${deletedId}`, { method: 'DELETE' });
+    // Drop it right away; the reload triggered below picks the next active trip.
+    setTrips(prev => prev.filter(t => t.id !== deletedId));
     setDeletingTrip(null);
     travelEvents.emit('changed');
   }
@@ -191,7 +194,7 @@ export function TripSwitcher() {
                   {trip.canEdit && (
                     <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                       <button
-                        className="rounded p-1 text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--text)]"
+                        className="rounded-sm p-1 text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--text)]"
                         onClick={e => {
                           e.stopPropagation();
                           setEditingTrip(trip);
@@ -203,7 +206,7 @@ export function TripSwitcher() {
                         <PencilIcon className="size-3.5" />
                       </button>
                       <button
-                        className="rounded p-1 text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--red)]"
+                        className="rounded-sm p-1 text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--red)]"
                         onClick={e => {
                           e.stopPropagation();
                           setDeletingTrip(trip);

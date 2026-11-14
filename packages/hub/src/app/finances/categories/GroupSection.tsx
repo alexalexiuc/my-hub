@@ -61,14 +61,14 @@ export function GroupSection({
           <button
             aria-label={`Edit group ${group.name}`}
             onClick={() => onEditGroup(group)}
-            className="cursor-pointer rounded p-0.5 text-[var(--subtle)] hover:bg-[var(--card2)] hover:text-[var(--text)]"
+            className="cursor-pointer rounded-sm p-0.5 text-[var(--subtle)] hover:bg-[var(--card2)] hover:text-[var(--text)]"
           >
             <PencilIcon className="size-[11px]" />
           </button>
           <button
             aria-label={`Delete group ${group.name}`}
             onClick={deleteGroup}
-            className="cursor-pointer rounded p-0.5 text-[var(--subtle)] hover:bg-[var(--card2)] hover:text-red-400"
+            className="cursor-pointer rounded-sm p-0.5 text-[var(--subtle)] hover:bg-[var(--card2)] hover:text-red-400"
           >
             <TrashOutlineIcon className="size-[11px]" />
           </button>

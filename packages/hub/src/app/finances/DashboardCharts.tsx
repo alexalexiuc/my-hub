@@ -81,9 +81,9 @@ export function CategoryPieChart({ categories, currency }: CategoryPieChartProps
         <div className="flex w-[148px] flex-col gap-1.5 overflow-y-auto py-0.5">
           {pieData.map((entry, i) => (
             <div key={i} className="flex min-w-0 items-center gap-1.5">
-              <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: entry.fill }} />
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: entry.fill }} />
               <span className="min-w-0 flex-1 truncate text-[10px] text-[var(--muted)]">{entry.name}</span>
-              <span className="flex-shrink-0 text-[10px] font-medium text-[var(--text)]">
+              <span className="shrink-0 text-[10px] font-medium text-[var(--text)]">
                 {formatMoney(entry.value, currency)}
               </span>
             </div>
@@ -106,7 +106,7 @@ export function CategoryPieChart({ categories, currency }: CategoryPieChartProps
       <div className="flex flex-wrap gap-x-3 gap-y-1.5">
         {pieData.map((entry, i) => (
           <div key={i} className="flex min-w-0 items-center gap-1.5">
-            <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: entry.fill }} />
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: entry.fill }} />
             <span className="truncate text-[10px] text-[var(--muted)]">{entry.name}</span>
           </div>
         ))}

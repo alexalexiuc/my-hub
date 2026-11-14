@@ -72,7 +72,7 @@ export function ChecklistSection({ activeTripId, canEdit, checklist, onChanged }
         />
       )}
 
-      <Card className="!p-0 overflow-hidden">
+      <Card className="p-0! overflow-hidden">
         <TravelSectionHeader title="Checklist" action={headerAction} />
         <div className="max-h-64 space-y-1.5 overflow-auto p-4">
           {checklist.map(item => (

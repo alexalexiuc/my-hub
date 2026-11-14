@@ -122,7 +122,7 @@ export function TransactionFilters({ typeFilter, extraValues, onTypeChange, onEx
           className={cn(
             'flex-1 cursor-pointer rounded-[7px] py-[7px] text-xs font-medium transition-colors',
             typeFilter === 'all'
-              ? 'bg-[var(--accent)]/15 text-[var(--accent)] outline outline-1 outline-[var(--accent)]/30'
+              ? 'bg-[var(--accent)]/15 text-[var(--accent)] outline-solid outline-1 outline-[var(--accent)]/30'
               : 'bg-transparent text-[var(--muted)]',
           )}
         >

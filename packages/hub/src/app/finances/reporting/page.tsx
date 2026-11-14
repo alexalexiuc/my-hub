@@ -268,11 +268,11 @@ export default function ReportingPage() {
                 <SectionLabel className="mb-0">Cashflow by Month</SectionLabel>
                 <div className="flex items-center gap-2 text-[9px] text-[var(--muted)]">
                   <span className="flex items-center gap-1">
-                    <span className="inline-block h-2 w-3 rounded-sm bg-[var(--green)] opacity-75" />
+                    <span className="inline-block h-2 w-3 rounded-xs bg-[var(--green)] opacity-75" />
                     Income
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="inline-block h-2 w-3 rounded-sm bg-[var(--red)] opacity-75" />
+                    <span className="inline-block h-2 w-3 rounded-xs bg-[var(--red)] opacity-75" />
                     Expenses
                   </span>
                 </div>

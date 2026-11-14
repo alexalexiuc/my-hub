@@ -42,7 +42,7 @@ export function RichTextEditor({ value, onChange, placeholder, className, minHei
 
   const toolBtn = (active: boolean) =>
     cn(
-      'flex h-6 min-w-[1.5rem] items-center justify-center rounded px-1 text-[11px] font-medium transition',
+      'flex h-6 min-w-6 items-center justify-center rounded-sm px-1 text-[11px] font-medium transition',
       active
         ? 'bg-[var(--accent-d)] text-[var(--accent)]'
         : 'text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--text)]',
@@ -144,7 +144,7 @@ export function RichTextEditor({ value, onChange, placeholder, className, minHei
       <EditorContent
         editor={editor}
         style={{ minHeight }}
-        className="rte-content cursor-text p-2.5 text-[13px] text-[var(--text)] focus-within:outline-none"
+        className="rte-content cursor-text p-2.5 text-[13px] text-[var(--text)] focus-within:outline-hidden"
         onClick={() => editor?.commands.focus()}
       />
     </div>

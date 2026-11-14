@@ -243,7 +243,7 @@ export function SearchableSelect({
               onChange(null);
               closeDropdown();
             }}
-            className="absolute right-0 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded p-0 text-[var(--red)] hover:bg-[var(--red-d)]"
+            className="absolute right-0 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-sm p-0 text-[var(--red)] hover:bg-[var(--red-d)]"
           >
             <XOutlineIcon className="size-3.5" />
           </Button>

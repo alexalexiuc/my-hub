@@ -68,7 +68,7 @@ export function Collapsible({
               onClick={toggle}
               variant="ghost"
               aria-expanded={isOpen}
-              className="shrink-0 rounded p-1 text-[var(--subtle)] hover:bg-[var(--card2)] hover:text-[var(--text)]"
+              className="shrink-0 rounded-sm p-1 text-[var(--subtle)] hover:bg-[var(--card2)] hover:text-[var(--text)]"
             />
           )}
           <span

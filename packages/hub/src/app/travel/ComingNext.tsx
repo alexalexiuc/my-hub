@@ -80,7 +80,7 @@ function ActionChip({ action, segmentLabel }: { action: SegmentAction; segmentLa
       className={`inline-flex min-w-0 max-w-full items-center gap-1 rounded-full border py-0.5 ${chipColorClass}`}
     >
       <Icon />
-      <span className="max-w-[8rem] truncate sm:max-w-[12rem]">{copied ? 'Copied!' : action.label}</span>
+      <span className="max-w-32 truncate sm:max-w-48">{copied ? 'Copied!' : action.label}</span>
     </Button>
   );
 }
@@ -161,17 +161,17 @@ function SegmentCard({ segment }: { segment: Segment }) {
           }`}
         >
           {isActive && (
-            <span className="absolute top-1.5 right-1.5 rounded bg-[var(--blue-d)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--sky)]">
+            <span className="absolute top-1.5 right-1.5 rounded-sm bg-[var(--blue-d)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--sky)]">
               Now
             </span>
           )}
           {isPast && !isActive && (
-            <span className="absolute top-1.5 right-1.5 rounded bg-[var(--card3)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--subtle)]">
+            <span className="absolute top-1.5 right-1.5 rounded-sm bg-[var(--card3)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--subtle)]">
               Past ↑ collapse
             </span>
           )}
           {timeBucket === 'imminent' && (
-            <span className="absolute top-1.5 right-1.5 rounded bg-[var(--red-d)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--red)] animate-pulse">
+            <span className="absolute top-1.5 right-1.5 rounded-sm bg-[var(--red-d)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--red)] animate-pulse">
               Soon!
             </span>
           )}
@@ -247,7 +247,7 @@ export function ComingNext({ bookings, documents }: ComingNextProps) {
   if (segments.length === 0) return null;
 
   return (
-    <Card className="!p-0 overflow-hidden">
+    <Card className="p-0! overflow-hidden">
       <TravelSectionHeader title="Itinerary" />
       <div className="p-4">
         <div className="min-w-0 flex flex-col gap-0 md:flex-row md:items-stretch md:gap-0 md:overflow-x-auto pb-2">

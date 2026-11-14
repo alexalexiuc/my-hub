@@ -37,11 +37,11 @@ export function AccountSection({ user }: AccountSectionProps) {
             <div className="flex items-center justify-end gap-2">
               <span className="font-medium">{user.email}</span>
               {user.emailVerified ? (
-                <span className="rounded border border-[var(--green,#6ee7b7)]/40 bg-[var(--green-d,rgba(110,231,183,0.1))] px-1.5 py-0.5 text-xs text-[var(--green,#6ee7b7)]">
+                <span className="rounded-sm border border-[var(--green,#6ee7b7)]/40 bg-[var(--green-d,rgba(110,231,183,0.1))] px-1.5 py-0.5 text-xs text-[var(--green,#6ee7b7)]">
                   Verified
                 </span>
               ) : (
-                <span className="rounded border border-[var(--amber,#fcd34d)]/40 bg-[var(--amber-d,rgba(252,211,77,0.1))] px-1.5 py-0.5 text-xs text-[var(--amber,#fcd34d)]">
+                <span className="rounded-sm border border-[var(--amber,#fcd34d)]/40 bg-[var(--amber-d,rgba(252,211,77,0.1))] px-1.5 py-0.5 text-xs text-[var(--amber,#fcd34d)]">
                   Unverified
                 </span>
               )}

@@ -16,7 +16,7 @@ function Controlled({ initialValue = '' }: { initialValue?: string }) {
   return (
     <div className="travel-theme rounded-xl border border-[var(--border)] bg-[var(--card)] p-1">
       <RichTextEditor value={value} onChange={setValue} placeholder="Write something…" />
-      <pre className="mt-3 rounded bg-zinc-900 p-2 text-xs text-zinc-400">{value || '(empty)'}</pre>
+      <pre className="mt-3 rounded-sm bg-zinc-900 p-2 text-xs text-zinc-400">{value || '(empty)'}</pre>
     </div>
   );
 }

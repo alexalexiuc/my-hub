@@ -28,7 +28,8 @@ import { pctToGrams, gramsToPct, computeMacroSummary } from './calories.utils';
 interface Props {
   profile: CalorieProfile | null;
   latestMeasurements: MeasurementWithType[];
-  onUpdated: () => void;
+  /** Reloads the profile; awaited before the card leaves edit mode so it never shows stale values. */
+  onUpdated: () => void | Promise<void>;
 }
 
 const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; description: string }[] = [
@@ -234,8 +235,10 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
     });
 
     await Promise.all([weightWrite, profileWrite]);
+    // Reload before leaving edit mode: reopening Edit straight away must start from the saved values,
+    // not from the profile prop as it was before the save.
+    await onUpdated();
     setEditing(false);
-    onUpdated();
   }
 
   function openEdit() {
@@ -248,7 +251,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
     const hasProfile = profile?.age && profile?.sex && profile?.heightCm;
 
     return (
-      <Card className="!p-0 overflow-hidden">
+      <Card className="p-0! overflow-hidden">
         <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
           <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Profile</h2>
           <Button
@@ -318,7 +321,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
 
   // Edit mode
   return (
-    <Card className="!p-0 overflow-hidden">
+    <Card className="p-0! overflow-hidden">
       <div className="flex items-center border-b border-[var(--border)] px-5 py-3">
         <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Profile</h2>
       </div>

@@ -59,7 +59,7 @@ export function DocumentsSection({ activeTripId, canEdit, documents, bookings, o
         />
       )}
 
-      <Card className="!p-0 overflow-hidden">
+      <Card className="p-0! overflow-hidden">
         <TravelSectionHeader title="Documents" action={headerAction} />
         <div className="max-h-64 space-y-1.5 overflow-auto p-4">
           {documents.map(document => (

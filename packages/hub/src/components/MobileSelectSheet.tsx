@@ -136,7 +136,7 @@ export function MobileSelectSheet({
           ref={overlayRef}
           className={cn(
             themeClassName,
-            'fixed inset-x-0 z-[1100] flex flex-col justify-end bg-[var(--overlay,rgba(0,0,0,0.6))]',
+            'fixed inset-x-0 z-1100 flex flex-col justify-end bg-[var(--overlay,rgba(0,0,0,0.6))]',
           )}
           style={{ top: vp.top, height: vp.height }}
           onClick={onClose}

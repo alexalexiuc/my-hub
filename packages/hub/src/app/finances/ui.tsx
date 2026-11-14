@@ -194,7 +194,7 @@ export function renderAccountOption(
     <span className="flex w-full items-center gap-2">
       {meta && (
         <span
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[11px]"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-[11px]"
           style={{ background: meta.color + '28' }}
         >
           {meta.icon}
@@ -202,7 +202,7 @@ export function renderAccountOption(
       )}
       <span className={cn('flex-1 truncate', acc?.archived && 'text-[var(--subtle)]')}>{String(item.value)}</span>
       {acc?.archived && (
-        <span className="shrink-0 rounded bg-[var(--card3)] px-1 text-[9px] uppercase tracking-wide text-[var(--subtle)]">
+        <span className="shrink-0 rounded-sm bg-[var(--card3)] px-1 text-[9px] uppercase tracking-wide text-[var(--subtle)]">
           archived
         </span>
       )}

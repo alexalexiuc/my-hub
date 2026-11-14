@@ -25,7 +25,7 @@ export function PayeesTableHeader({ sortBy, onSort }: PayeesTableHeaderProps) {
           onClick={() => onSort(key)}
           className={cn('cursor-pointer', key === 'name' ? 'text-left' : 'text-right')}
         >
-          <SectionLabel className={cn(sortBy === key ? '!text-[var(--accent)]' : '')}>
+          <SectionLabel className={cn(sortBy === key ? 'text-[var(--accent)]!' : '')}>
             {label} {sortBy === key && '↓'}
           </SectionLabel>
         </div>

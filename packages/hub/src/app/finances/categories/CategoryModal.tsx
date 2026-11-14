@@ -182,7 +182,7 @@ export function CategoryModal({
             {...register('notes')}
             rows={3}
             placeholder="Context, budgeting intent, or reminders"
-            className="resize-none bg-transparent border-0 px-0 py-0 rounded-none shadow-none text-[13px] text-[var(--text)] placeholder:text-[var(--subtle)] focus:ring-0 focus:outline-none w-full"
+            className="resize-none bg-transparent border-0 px-0 py-0 rounded-none shadow-none text-[13px] text-[var(--text)] placeholder:text-[var(--subtle)] focus:ring-0 focus:outline-hidden w-full"
           />
         </FinFieldCard>
 

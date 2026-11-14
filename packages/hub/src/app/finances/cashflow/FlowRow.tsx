@@ -39,7 +39,7 @@ export function FlowRow({ label, inflow, outflow, currency, divider = false }: F
     <div
       className={cn(
         'grid grid-cols-[2.75rem_repeat(3,minmax(0,1fr))] items-center gap-1.5 py-1.5',
-        divider && 'border-b border-[var(--border)]/[.13]',
+        divider && 'border-b border-[var(--border)]/13',
       )}
     >
       <span className="text-[11px] text-[var(--muted)] sm:text-xs">{label}</span>

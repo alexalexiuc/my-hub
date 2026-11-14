@@ -14,7 +14,7 @@ export function SectionCard({ title, titleHref, titleHoverClass, action, childre
   return (
     <section
       className={cn(
-        'rounded-xl border border-[var(--border,#27272a)] bg-[var(--card,#18181b)] p-5 shadow-sm',
+        'rounded-xl border border-[var(--border,#27272a)] bg-[var(--card,#18181b)] p-5 shadow-xs',
         className,
       )}
     >

@@ -172,7 +172,7 @@ export function CaloriesWidget() {
         title="Calories"
         titleHref="/calories"
         titleHoverClass="hover:text-[var(--accent)]"
-        className="border-[var(--border)] bg-gradient-to-br from-[var(--card2)] to-[var(--card)]"
+        className="border-[var(--border)] bg-linear-to-br from-[var(--card2)] to-[var(--card)]"
         action={
           <div className="flex items-center gap-1.5">
             <button
@@ -199,11 +199,11 @@ export function CaloriesWidget() {
         {loading ? (
           <div className="space-y-3 animate-pulse">
             <div className="mx-auto w-[140px] h-[140px] rounded-full bg-[var(--card2)]" />
-            <div className="h-4 w-24 mx-auto bg-[var(--card2)] rounded" />
+            <div className="h-4 w-24 mx-auto bg-[var(--card2)] rounded-sm" />
             <div className="flex gap-4 pt-3 border-t border-[var(--border)]">
-              <div className="flex-1 h-8 bg-[var(--card2)] rounded" />
-              <div className="flex-1 h-8 bg-[var(--card2)] rounded" />
-              <div className="flex-1 h-8 bg-[var(--card2)] rounded" />
+              <div className="flex-1 h-8 bg-[var(--card2)] rounded-sm" />
+              <div className="flex-1 h-8 bg-[var(--card2)] rounded-sm" />
+              <div className="flex-1 h-8 bg-[var(--card2)] rounded-sm" />
             </div>
           </div>
         ) : (

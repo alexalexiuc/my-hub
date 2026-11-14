@@ -14,7 +14,7 @@ export function DashboardHeader() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-[var(--text,#f4f4f5)]">My Hub</h1>
           {status === 'loading' ? (
-            <div className="mt-1 h-3.5 w-28 rounded bg-[var(--card2,#27272a)] animate-pulse" />
+            <div className="mt-1 h-3.5 w-28 rounded-sm bg-[var(--card2,#27272a)] animate-pulse" />
           ) : (
             fullName && <p className="text-sm text-[var(--muted,#a1a1aa)]">Welcome, {fullName}</p>
           )}

@@ -20,7 +20,7 @@ type TripOverviewCardsProps = {
 
 export function TripOverviewCards({ activeTrip, overview, loadingOverview }: TripOverviewCardsProps) {
   return (
-    <Card className="!p-0 overflow-hidden">
+    <Card className="p-0! overflow-hidden">
       <TravelSectionHeader title={activeTrip ? `${activeTrip.name} Overview` : 'Overview'} />
       <div className="p-4">
         {!activeTrip && <p className="text-sm text-[var(--muted)]">Select a trip to view details.</p>}

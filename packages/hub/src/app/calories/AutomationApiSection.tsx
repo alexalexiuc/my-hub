@@ -49,7 +49,7 @@ export function AutomationApiSection({ userId, initialKey }: AutomationApiSectio
   const exampleBody = JSON.stringify({ typeKey: 'weight', value: 75.5, date: '2026-04-30' }, null, 2);
 
   return (
-    <Card className="!p-0 overflow-hidden">
+    <Card className="p-0! overflow-hidden">
       <div className="flex items-center border-b border-[var(--border)] px-5 py-3">
         <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Automation API</h2>
       </div>
@@ -68,7 +68,7 @@ export function AutomationApiSection({ userId, initialKey }: AutomationApiSectio
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-[var(--muted)] shrink-0">API Key</span>
-              <code className="break-all select-all rounded border border-[var(--border)] bg-[var(--card2)] px-2 py-1 font-mono text-xs text-[var(--text)]">
+              <code className="break-all select-all rounded-sm border border-[var(--border)] bg-[var(--card2)] px-2 py-1 font-mono text-xs text-[var(--text)]">
                 {showKey ? automationKey : '•'.repeat(16)}
               </code>
               <button
