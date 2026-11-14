@@ -191,7 +191,7 @@ export function TripSwitcher() {
                   {trip.canEdit && (
                     <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                       <button
-                        className="rounded p-1 text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--text)]"
+                        className="rounded-sm p-1 text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--text)]"
                         onClick={e => {
                           e.stopPropagation();
                           setEditingTrip(trip);
@@ -203,7 +203,7 @@ export function TripSwitcher() {
                         <PencilIcon className="size-3.5" />
                       </button>
                       <button
-                        className="rounded p-1 text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--red)]"
+                        className="rounded-sm p-1 text-[var(--muted)] hover:bg-[var(--card3)] hover:text-[var(--red)]"
                         onClick={e => {
                           e.stopPropagation();
                           setDeletingTrip(trip);

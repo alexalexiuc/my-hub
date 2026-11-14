@@ -46,7 +46,7 @@ function MoreSheet({ items, onClose }: { items: BottomNavItem[]; onClose: () => 
     <div
       onClick={onClose}
       className={cn(
-        'fixed inset-0 z-[1000] flex items-end transition-[background-color] duration-300',
+        'fixed inset-0 z-1000 flex items-end transition-[background-color] duration-300',
         open ? 'bg-[var(--overlay)]' : 'bg-transparent',
       )}
     >
@@ -114,7 +114,7 @@ export function BottomNav({ leftItems, rightItems = [], moreItems = [], fab, cla
       {showMore && moreItems.length > 0 && <MoreSheet items={moreItems} onClose={() => setShowMore(false)} />}
       <div
         className={cn(
-          'fixed bottom-0 left-0 right-0 z-[900] flex border-t border-[var(--border)] bg-[var(--card)]',
+          'fixed bottom-0 left-0 right-0 z-900 flex border-t border-[var(--border)] bg-[var(--card)]',
           className,
         )}
       >

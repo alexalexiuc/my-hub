@@ -22,7 +22,7 @@ const TripMapInner = dynamic(() => import('./TripMapInner').then(m => ({ default
 export function TripMap({ mapData }: TripMapProps) {
   if (mapData.points.length < 2) {
     return (
-      <Card className="!p-0 overflow-hidden">
+      <Card className="p-0! overflow-hidden">
         <TravelSectionHeader title="Map" />
         <p className="px-4 py-4 text-sm text-[var(--muted)]">
           No location data yet. Bookings with IATA codes or place coordinates will appear here.
@@ -32,7 +32,7 @@ export function TripMap({ mapData }: TripMapProps) {
   }
 
   return (
-    <Card className="!p-0 overflow-hidden">
+    <Card className="p-0! overflow-hidden">
       <TravelSectionHeader title="Map" />
       <TripMapInner mapData={mapData} />
     </Card>

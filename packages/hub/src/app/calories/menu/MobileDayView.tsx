@@ -64,7 +64,7 @@ export function MobileDayView({
     <div className="flex flex-col gap-5 pt-2">
       <DayJumpChips plans={plans} todayIndex={todayIndex} selectedDay={selectedDay} onSelect={setSelectedDay} />
 
-      <Card compact className="!p-0 overflow-hidden">
+      <Card compact className="p-0! overflow-hidden">
         <DayCard
           variant="flat"
           day={selectedDay}

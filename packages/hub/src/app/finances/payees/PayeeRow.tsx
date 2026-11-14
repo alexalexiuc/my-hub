@@ -94,7 +94,7 @@ export function PayeeRow({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
               <Link href={`/finances/payees/${payee.id}`}>
-                <SectionLabel className="!mb-0 !text-[13px] !font-medium !normal-case !tracking-normal !text-[var(--accent)] p-0 hover:underline">
+                <SectionLabel className="mb-0! text-[13px]! font-medium! normal-case! tracking-normal! text-[var(--accent)]! p-0 hover:underline">
                   {payee.name}
                 </SectionLabel>
               </Link>
@@ -103,22 +103,22 @@ export function PayeeRow({
 
             <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-[var(--subtle)]">
               {reportItem?.categoryName && (
-                <SectionLabel className="!mb-0 !text-[10px] !font-normal !uppercase !tracking-widest !text-[var(--subtle)] p-0">
+                <SectionLabel className="mb-0! text-[10px]! font-normal! uppercase! tracking-widest! text-[var(--subtle)]! p-0">
                   {reportItem.categoryName}
                 </SectionLabel>
               )}
               {lastInRange && (
-                <SectionLabel className="!mb-0 !text-[10px] !font-normal !uppercase !tracking-widest !text-[var(--subtle)] p-0">
+                <SectionLabel className="mb-0! text-[10px]! font-normal! uppercase! tracking-widest! text-[var(--subtle)]! p-0">
                   Last: {lastInRange}
                 </SectionLabel>
               )}
               {payee.useCount > 0 && (
-                <SectionLabel className="!mb-0 !text-[10px] !font-normal !uppercase !tracking-widest !text-[var(--subtle)] p-0">
+                <SectionLabel className="mb-0! text-[10px]! font-normal! uppercase! tracking-widest! text-[var(--subtle)]! p-0">
                   Used {payee.useCount} time{payee.useCount === 1 ? '' : 's'}
                 </SectionLabel>
               )}
               {lastOverall && lastOverall !== lastInRange && (
-                <SectionLabel className="!mb-0 !text-[10px] !font-normal !uppercase !tracking-widest !text-[var(--subtle)] p-0">
+                <SectionLabel className="mb-0! text-[10px]! font-normal! uppercase! tracking-widest! text-[var(--subtle)]! p-0">
                   All-time last: {lastOverall}
                 </SectionLabel>
               )}
@@ -134,7 +134,7 @@ export function PayeeRow({
         </div>
 
         <div className="pointer-events-none absolute inset-y-0 right-[14px] flex items-center opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
-          <div className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--card)] px-1.5 py-1 shadow-sm">
+          <div className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--card)] px-1.5 py-1 shadow-xs">
             <IconButton
               label="Edit"
               icon={<PencilIcon className="size-3.5" />}

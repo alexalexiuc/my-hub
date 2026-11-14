@@ -40,7 +40,7 @@ export default function TravelCalendarPage() {
       {!activeTripId ? (
         <p className="text-sm text-[var(--muted)]">Select a trip to view the calendar.</p>
       ) : overview ? (
-        <Card className="!p-0 overflow-hidden">
+        <Card className="p-0! overflow-hidden">
           <TravelSectionHeader title="Calendar" />
           <div className="p-4">
             <BookingsCalendar bookings={overview.bookings} tripColor={overview.trip.color} trip={overview.trip} />

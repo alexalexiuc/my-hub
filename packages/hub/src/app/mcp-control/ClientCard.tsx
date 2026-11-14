@@ -70,7 +70,7 @@ export function ClientCard({ client, onToggle, onDelete }: ClientCardProps) {
       <div className="space-y-1.5 text-xs">
         <div className="flex items-center gap-2">
           <span className="w-24 shrink-0 text-[var(--subtle,#71717a)]">Client ID</span>
-          <code className="max-w-[200px] truncate rounded border border-[var(--border,#3f3f46)] bg-[var(--card2,#27272a)] px-1.5 py-0.5 font-mono text-[var(--text,#d4d4d8)]">
+          <code className="max-w-[200px] truncate rounded-sm border border-[var(--border,#3f3f46)] bg-[var(--card2,#27272a)] px-1.5 py-0.5 font-mono text-[var(--text,#d4d4d8)]">
             {client.clientId}
           </code>
           <CopyButton value={client.clientId} />
@@ -85,7 +85,7 @@ export function ClientCard({ client, onToggle, onDelete }: ClientCardProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className="w-24 shrink-0 text-[var(--subtle,#71717a)]">Last path</span>
-          <code className="max-w-[200px] truncate rounded border border-[var(--border,#3f3f46)] bg-[var(--card2,#27272a)] px-1.5 py-0.5 font-mono text-[var(--text,#d4d4d8)]">
+          <code className="max-w-[200px] truncate rounded-sm border border-[var(--border,#3f3f46)] bg-[var(--card2,#27272a)] px-1.5 py-0.5 font-mono text-[var(--text,#d4d4d8)]">
             {client.lastUsedPath ?? '—'}
           </code>
         </div>

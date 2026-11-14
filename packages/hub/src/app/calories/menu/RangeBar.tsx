@@ -19,7 +19,7 @@ type RangeBarProps = {
 export function RangeBar({ plannedKcal, floor, ceiling, color, size = 'sm' }: RangeBarProps) {
   const { fill, floorTick, ceilingTick } = rangeBarPositions(plannedKcal, floor, ceiling);
   const tick = cn(
-    'absolute w-0.5 -translate-x-1/2 rounded-sm bg-[var(--text)]',
+    'absolute w-0.5 -translate-x-1/2 rounded-xs bg-[var(--text)]',
     size === 'sm' ? '-top-1 h-3.5' : '-top-1 h-4',
   );
   return (

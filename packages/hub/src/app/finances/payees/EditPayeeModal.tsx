@@ -86,7 +86,7 @@ export function EditPayeeModal({ payee, onClose, onSaved }: EditPayeeModalProps)
             {...register('description')}
             rows={3}
             placeholder="Helpful context for matching this payee"
-            className="resize-none bg-transparent border-0 px-0 py-0 rounded-none shadow-none text-sm text-[var(--text)] placeholder:text-[var(--subtle)] focus:ring-0 focus:outline-none w-full"
+            className="resize-none bg-transparent border-0 px-0 py-0 rounded-none shadow-none text-sm text-[var(--text)] placeholder:text-[var(--subtle)] focus:ring-0 focus:outline-hidden w-full"
           />
         </Field>
       </form>

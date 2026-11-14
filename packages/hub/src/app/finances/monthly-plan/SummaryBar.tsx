@@ -77,7 +77,7 @@ export function SummaryBar({ availableAmount, incomeAccountId, summary, accounts
                     if (e.key === 'Enter') commit();
                     if (e.key === 'Escape') setEditing(false);
                   }}
-                  className="w-full rounded border border-[var(--accent)] bg-transparent px-2 py-0.5 text-[22px] font-bold text-[var(--text)] tabular-nums focus:outline-none md:w-36 md:text-[26px]"
+                  className="w-full rounded-sm border border-[var(--accent)] bg-transparent px-2 py-0.5 text-[22px] font-bold text-[var(--text)] tabular-nums focus:outline-hidden md:w-36 md:text-[26px]"
                 />
               ) : (
                 <span className="text-[24px] font-bold tabular-nums text-[var(--green)] md:text-[28px]">

@@ -119,7 +119,7 @@ export function MealsSection({
         />
       )}
 
-      <Card compact={compact} className="!p-0 overflow-hidden">
+      <Card compact={compact} className="p-0! overflow-hidden">
         {/* Meal list */}
         {meals.length === 0 ? (
           <div className="flex flex-col items-start gap-2 px-5 py-5">

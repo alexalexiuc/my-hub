@@ -59,7 +59,7 @@ export function SharingSection({ activeTrip, canEdit }: SharingSectionProps) {
         />
       )}
 
-      <Card className="!p-0 overflow-hidden">
+      <Card className="p-0! overflow-hidden">
         <TravelSectionHeader title="Sharing" action={headerAction} />
         <div className="p-4">
           {!activeTrip && <p className="text-sm text-[var(--muted)]">Select a trip to manage sharing.</p>}

@@ -26,7 +26,7 @@ export function VacationDayCell({ day, row, isToday, selected }: VacationDayCell
         'relative flex h-11 select-none flex-col justify-between rounded-md border border-[var(--border)] px-1 py-0.5 text-left sm:h-12',
         !day.inMonth && 'opacity-40',
         // Leave is outlined outside the cell, against the page background.
-        (taken || planned) && 'outline outline-2 outline-offset-1',
+        (taken || planned) && 'outline-solid outline-2 outline-offset-1',
         taken && 'outline-[var(--violet)]',
         planned && 'outline-dashed outline-[var(--blue)]',
         selected && 'ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--bg)]',
@@ -40,7 +40,7 @@ export function VacationDayCell({ day, row, isToday, selected }: VacationDayCell
         <span
           aria-label={taken ? 'Leave taken' : 'Leave planned'}
           className={cn(
-            'absolute right-0.5 top-0.5 rounded-sm px-0.5 text-[9px] font-bold leading-tight text-[var(--bg)]',
+            'absolute right-0.5 top-0.5 rounded-xs px-0.5 text-[9px] font-bold leading-tight text-[var(--bg)]',
             taken ? 'bg-[var(--violet)]' : 'bg-[var(--blue)]',
           )}
         >

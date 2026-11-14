@@ -247,7 +247,7 @@ function BuyPricePanel({
   return (
     <div className="min-w-0">
       <div className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-[var(--text)]">
-        <span className="inline-block size-2.5 rounded-sm" style={{ backgroundColor: color }} />
+        <span className="inline-block size-2.5 rounded-xs" style={{ backgroundColor: color }} />
         {position.symbol}
         <span className="ml-auto text-[10px] font-normal text-[var(--muted)]">
           avg {avg !== null ? formatMoney(avg, currency) : '—'} · now{' '}
@@ -319,7 +319,7 @@ function Legend({ items }: { items: { label: string; color: string; dot?: boolea
       {items.map(item => (
         <span key={item.label} className="flex items-center gap-1">
           <span
-            className={item.dot ? 'inline-block size-2 rounded-full' : 'inline-block size-2.5 rounded-sm'}
+            className={item.dot ? 'inline-block size-2 rounded-full' : 'inline-block size-2.5 rounded-xs'}
             style={{ backgroundColor: item.color }}
           />
           {item.label}

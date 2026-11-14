@@ -21,7 +21,7 @@ export function CaloriesDonut({ eaten, cap, min = null, innerRadius = 44, textSi
   const { isOver, isUnder, remaining, arcColor, chartData, overflowData } = calcCalorieDonutState(eaten, cap, min);
 
   return (
-    <div className="relative w-[140px] h-[140px] flex-shrink-0">
+    <div className="relative w-[140px] h-[140px] shrink-0">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           {isOver ? (

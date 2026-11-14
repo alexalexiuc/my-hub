@@ -248,7 +248,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
     const hasProfile = profile?.age && profile?.sex && profile?.heightCm;
 
     return (
-      <Card className="!p-0 overflow-hidden">
+      <Card className="p-0! overflow-hidden">
         <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
           <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Profile</h2>
           <Button
@@ -318,7 +318,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
 
   // Edit mode
   return (
-    <Card className="!p-0 overflow-hidden">
+    <Card className="p-0! overflow-hidden">
       <div className="flex items-center border-b border-[var(--border)] px-5 py-3">
         <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">Profile</h2>
       </div>

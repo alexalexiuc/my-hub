@@ -52,7 +52,7 @@ export default function TravelMorePage() {
           {overview && (
             <>
               <TripMap mapData={overview.mapData} tripId={activeTripId} />
-              <Card className="!p-0 overflow-hidden">
+              <Card className="p-0! overflow-hidden">
                 <TravelSectionHeader title="Calendar" />
                 <div className="p-4">
                   <BookingsCalendar bookings={overview.bookings} tripColor={overview.trip.color} trip={overview.trip} />

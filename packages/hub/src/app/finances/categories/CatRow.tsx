@@ -91,14 +91,14 @@ export function CatRow({
       <div data-layout="desktop" className="group relative hidden md:block">
         <CatRowContent cat={cat} currency={currency} onClick={onOpen ? () => onOpen(cat) : undefined} />
         <div className="pointer-events-none absolute inset-y-0 right-[14px] flex items-center opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
-          <div className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--card)] px-1.5 py-1 shadow-sm">
+          <div className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--card)] px-1.5 py-1 shadow-xs">
             <button
               aria-label={`Edit category ${cat.name}`}
               onClick={e => {
                 e.stopPropagation();
                 onEdit(cat);
               }}
-              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-[var(--muted)] transition-colors hover:bg-[var(--card2)] hover:text-[var(--text)]"
+              className="flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[11px] text-[var(--muted)] transition-colors hover:bg-[var(--card2)] hover:text-[var(--text)]"
             >
               <PencilIcon className="size-3" /> Edit
             </button>
@@ -109,7 +109,7 @@ export function CatRow({
                 e.stopPropagation();
                 onDelete(cat);
               }}
-              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-[var(--muted)] transition-colors hover:bg-[var(--red)]/10 hover:text-[var(--red)]"
+              className="flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[11px] text-[var(--muted)] transition-colors hover:bg-[var(--red)]/10 hover:text-[var(--red)]"
             >
               <TrashIcon className="size-3" /> Delete
             </button>

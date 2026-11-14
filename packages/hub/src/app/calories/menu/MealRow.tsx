@@ -124,7 +124,7 @@ export function MealRow({
                   onClick={() => setShowEditor(true)}
                   disabled={isPast}
                   variant="ghost"
-                  className="rounded px-1.5 py-0.5 border border-[var(--border)] text-[var(--subtle)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]"
+                  className="rounded-sm px-1.5 py-0.5 border border-[var(--border)] text-[var(--subtle)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]"
                 />
                 <IconButton
                   label="Remove this meal"
@@ -132,7 +132,7 @@ export function MealRow({
                   onClick={() => setShowDeleteConfirm(true)}
                   disabled={deleting || isPast}
                   variant="ghost"
-                  className="rounded px-1.5 py-0.5 border border-[var(--border)] text-[var(--subtle)] hover:border-[var(--red)] hover:text-[var(--red)]"
+                  className="rounded-sm px-1.5 py-0.5 border border-[var(--border)] text-[var(--subtle)] hover:border-[var(--red)] hover:text-[var(--red)]"
                 />
               </span>
             )}
@@ -146,7 +146,7 @@ export function MealRow({
                 disabled={logging}
                 title={logged ? "Undo — I didn't eat this" : 'Log this meal'}
                 className={cn(
-                  'shrink-0 rounded px-2 py-0.5 text-[10px] font-medium border',
+                  'shrink-0 rounded-sm px-2 py-0.5 text-[10px] font-medium border',
                   logged
                     ? 'border-[var(--green)] bg-[var(--green-d)] text-[var(--green)] hover:border-[var(--red)] hover:text-[var(--red)]'
                     : error

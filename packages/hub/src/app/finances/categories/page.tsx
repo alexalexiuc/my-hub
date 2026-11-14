@@ -131,7 +131,7 @@ export default function CategoriesPage() {
               </div>
               {data.totalSpent > 0 && (
                 <>
-                  <div className="flex h-2 gap-px overflow-hidden rounded">
+                  <div className="flex h-2 gap-px overflow-hidden rounded-sm">
                     {spentCategories.map(cat => {
                       const pct = (cat.spent / data.totalSpent) * 100;
                       return pct > 0.5 ? (
@@ -149,7 +149,7 @@ export default function CategoriesPage() {
                       return (
                         <div key={cat.id} className="flex items-center gap-1">
                           <div
-                            className="rounded-sm"
+                            className="rounded-xs"
                             style={{ width: 7, height: 7, background: cat.color ?? 'var(--muted)' }}
                           />
                           <span className="text-[10px] text-[var(--muted)]">

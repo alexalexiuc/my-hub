@@ -29,12 +29,12 @@ export function CategoryMappingPanel({
     : uniqueCategoryValues;
 
   return (
-    <div className="w-[260px] flex-shrink-0 rounded-[10px] border border-[var(--border)] bg-[var(--card2)] overflow-hidden">
+    <div className="w-[260px] shrink-0 rounded-[10px] border border-[var(--border)] bg-[var(--card2)] overflow-hidden">
       {/* Header */}
       <div className="border-b border-[var(--border)] px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <div className="text-xs font-semibold text-[var(--text)]">Category mapping</div>
-          <div className="flex gap-1.5 text-[10px] text-[var(--muted)] flex-shrink-0">
+          <div className="flex gap-1.5 text-[10px] text-[var(--muted)] shrink-0">
             <span>{matchedCount} matched</span>
             <span>·</span>
             <span>{uniqueCategoryValues.length - matchedCount} unmatched</span>
@@ -46,7 +46,7 @@ export function CategoryMappingPanel({
             type="button"
             onClick={() => setShowUnmatchedOnly(v => !v)}
             className={cn(
-              'flex-shrink-0 rounded-[5px] border px-1.5 py-0.5 text-[10px] transition-colors cursor-pointer',
+              'shrink-0 rounded-[5px] border px-1.5 py-0.5 text-[10px] transition-colors cursor-pointer',
               showUnmatchedOnly
                 ? 'border-[var(--accent)] bg-[var(--accent-d)] text-[var(--accent)] font-semibold'
                 : 'border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)]',
@@ -72,7 +72,7 @@ export function CategoryMappingPanel({
                 <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--text)]" title={csvValue}>
                   {csvValue}
                 </span>
-                {isMatched && <span className="flex-shrink-0 text-[9px] text-[var(--green)]">● matched</span>}
+                {isMatched && <span className="shrink-0 text-[9px] text-[var(--green)]">● matched</span>}
               </div>
               <FinancialDropdown
                 options={categoryOptions}

@@ -63,7 +63,7 @@ export function CompanionsSection({ activeTripId, canEdit, companions, onChanged
         />
       )}
 
-      <Card className="!p-0 overflow-hidden">
+      <Card className="p-0! overflow-hidden">
         <TravelSectionHeader title="Companions" action={headerAction} />
         <div className="max-h-64 space-y-1.5 overflow-auto p-4">
           {companions.map(companion => (

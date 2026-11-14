@@ -14,7 +14,7 @@ function StatusBadge({ code }: { code: number | null }) {
       : code < 400
         ? 'text-[var(--amber,#fcd34d)] bg-[var(--amber-d,rgba(252,211,77,0.1))]'
         : 'text-[var(--red,#f87171)] bg-[var(--red-d,rgba(248,113,113,0.1))]';
-  return <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-mono font-medium ${color}`}>{code}</span>;
+  return <span className={`inline-block rounded-sm px-1.5 py-0.5 text-xs font-mono font-medium ${color}`}>{code}</span>;
 }
 
 function MethodBadge({ method }: { method: string }) {
@@ -109,7 +109,7 @@ export function AuditLogSection() {
 
       {/* Results */}
       {loaded && (
-        <Card compact className="overflow-hidden !p-0">
+        <Card compact className="overflow-hidden p-0!">
           {logs.length === 0 ? (
             <p className="p-6 text-center text-sm text-[var(--subtle,#71717a)]">
               No logs found for the selected filters.

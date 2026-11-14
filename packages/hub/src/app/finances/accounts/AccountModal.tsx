@@ -99,7 +99,7 @@ function TypeSpecificFields({
                 />
               </FinFieldCard>
             </div>
-            <div className="flex-[2]">
+            <div className="flex-2">
               <FinFieldCard label="Card Name (optional)">
                 <Input
                   {...register('bankCardName')}
@@ -320,7 +320,7 @@ function AddAccountForm({
         </FinFieldCard>
 
         {type && ACCOUNT_TYPE_DESCRIPTIONS[type as keyof typeof ACCOUNT_TYPE_DESCRIPTIONS] && (
-          <SubText className="block -mt-0.5 leading-[1.5]">
+          <SubText className="block -mt-0.5 leading-normal">
             {ACCOUNT_TYPE_DESCRIPTIONS[type as keyof typeof ACCOUNT_TYPE_DESCRIPTIONS]}
           </SubText>
         )}
@@ -411,7 +411,7 @@ function EditAccountForm({ acc, onClose, onDone }: { acc: AccountItem; onClose: 
             className="w-full border-none bg-transparent px-0 py-0.5 text-[13px]"
           />
         </FinFieldCard>
-        <SubText className="block -mt-0.5 leading-[1.5]">
+        <SubText className="block -mt-0.5 leading-normal">
           Can only be changed while the account has no transactions.
         </SubText>
 

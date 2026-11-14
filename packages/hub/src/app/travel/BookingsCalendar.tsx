@@ -123,7 +123,7 @@ export function BookingsCalendar({ bookings, tripColor, trip }: BookingsCalendar
                 {dayBookings.slice(0, 3).map(booking => (
                   <div
                     key={booking.id}
-                    className="flex items-center gap-1 rounded bg-zinc-800/80 px-1 py-0.5 text-[10px] leading-tight text-zinc-200"
+                    className="flex items-center gap-1 rounded-sm bg-zinc-800/80 px-1 py-0.5 text-[10px] leading-tight text-zinc-200"
                     title={`${booking.title}${booking.provider ? ` · ${booking.provider}` : ''}`}
                     style={tripColor ? { borderLeft: `2px solid ${tripColor}` } : undefined}
                   >

@@ -15,7 +15,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3 py-1.5 text-[13px]">
       <span className="w-[140px] shrink-0 text-[var(--muted)]">{label}</span>
-      <span className="flex-1 text-[var(--text)] break-words">{value}</span>
+      <span className="flex-1 text-[var(--text)] wrap-break-word">{value}</span>
     </div>
   );
 }

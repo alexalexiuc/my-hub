@@ -160,15 +160,15 @@ export default function BudgetPage() {
                             <span className="text-[var(--subtle)]">/ {formatMoney(target, currency)}</span>
                           )}
                           {over && (
-                            <span className="rounded px-[5px] py-[1px] text-[10px] text-[var(--red)] bg-[var(--red-d)]">
+                            <span className="rounded-sm px-[5px] py-px text-[10px] text-[var(--red)] bg-[var(--red-d)]">
                               +{formatMoney(cat.spent - target, currency)}
                             </span>
                           )}
                         </div>
                       </div>
-                      <div className="relative h-2 overflow-hidden rounded bg-[var(--card2)]">
+                      <div className="relative h-2 overflow-hidden rounded-sm bg-[var(--card2)]">
                         <div
-                          className="h-full rounded"
+                          className="h-full rounded-sm"
                           style={{
                             width: `${Math.min(100, target > 0 ? pct : (cat.spent / maxBar) * 100)}%`,
                             background: barColor,

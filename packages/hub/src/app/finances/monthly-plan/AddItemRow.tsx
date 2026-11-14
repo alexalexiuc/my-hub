@@ -67,7 +67,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
           {...register('name')}
           autoFocus
           placeholder="Item name"
-          className="rounded border border-[var(--border)] bg-[var(--card3)] px-2 py-1.5 text-[13px] text-[var(--text)] placeholder:text-[var(--subtle)]"
+          className="rounded-sm border border-[var(--border)] bg-[var(--card3)] px-2 py-1.5 text-[13px] text-[var(--text)] placeholder:text-[var(--subtle)]"
         />
 
         <Input
@@ -75,7 +75,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
           type="number"
           step="0.01"
           placeholder="0"
-          className="rounded border border-[var(--border)] bg-[var(--card3)] px-2 py-1.5 text-right text-[13px] text-[var(--text)] placeholder:text-[var(--subtle)]"
+          className="rounded-sm border border-[var(--border)] bg-[var(--card3)] px-2 py-1.5 text-right text-[13px] text-[var(--text)] placeholder:text-[var(--subtle)]"
         />
 
         <Controller
@@ -88,7 +88,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
               value={field.value}
               onChange={item => field.onChange((item?.id as SupportedCurrency | undefined) ?? defaultCurrency)}
               placeholder="Currency"
-              inputClassName="rounded border border-[var(--border)] bg-[var(--card3)] px-2 py-1.5 text-center text-[11px] text-[var(--muted)]"
+              inputClassName="rounded-sm border border-[var(--border)] bg-[var(--card3)] px-2 py-1.5 text-center text-[11px] text-[var(--muted)]"
             />
           )}
         />
@@ -105,7 +105,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
                 onChange={item => field.onChange((item?.id as string | undefined) ?? '')}
                 placeholder="Account…"
                 clearable
-                inputClassName="rounded border border-[var(--border)] bg-[var(--card3)] px-2 py-1 text-[11px] text-[var(--muted)]"
+                inputClassName="rounded-sm border border-[var(--border)] bg-[var(--card3)] px-2 py-1 text-[11px] text-[var(--muted)]"
               />
             )}
           />
@@ -121,7 +121,7 @@ export function AddItemRow({ defaultCurrency, formData, onSave, onCancel }: AddI
                 onChange={item => field.onChange((item?.id as string | undefined) ?? '')}
                 placeholder="Category…"
                 clearable
-                inputClassName="rounded border border-[var(--border)] bg-[var(--card3)] px-2 py-1 text-[11px] text-[var(--muted)]"
+                inputClassName="rounded-sm border border-[var(--border)] bg-[var(--card3)] px-2 py-1 text-[11px] text-[var(--muted)]"
               />
             )}
           />

@@ -79,9 +79,9 @@ export function BookingsSection({
         />
       )}
 
-      <Card className="!p-0 overflow-hidden">
+      <Card className="p-0! overflow-hidden">
         <TravelSectionHeader title="Reservations" action={headerAction} />
-        <div className="max-h-[28rem] space-y-2 overflow-auto p-4">
+        <div className="max-h-112 space-y-2 overflow-auto p-4">
           {bookings.map(booking => (
             <div
               key={booking.id}

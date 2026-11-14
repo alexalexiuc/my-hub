@@ -1,25 +1,45 @@
-@import './finances-purple.css';
-@import './calories-orange.css';
-@import './travel-emerald.css';
-@import './graphite.css';
-@import './light.css';
-@import './themes.generated.css';
+@import './finances-purple.css' layer(base);
+@import './calories-orange.css' layer(base);
+@import './travel-emerald.css' layer(base);
+@import './graphite.css' layer(base);
+@import './light.css' layer(base);
+@import './themes.generated.css' layer(base);
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility input {
+  @apply w-full rounded-lg border border-[var(--border,#3f3f46)] bg-[var(--card2,#27272a)] px-3 py-2 text-sm
+           text-[var(--text,#f4f4f5)] placeholder:text-[var(--subtle,#71717a)] shadow-xs
+           focus:border-[var(--accent,#6366f1)] focus:outline-hidden focus:ring-1 focus:ring-[var(--accent,#6366f1)];
+}
 
 @layer base {
   html {
     color-scheme: dark;
   }
-}
 
-@layer components {
-  .input {
-    @apply w-full rounded-lg border border-[var(--border,#3f3f46)] bg-[var(--card2,#27272a)] px-3 py-2 text-sm
-           text-[var(--text,#f4f4f5)] placeholder:text-[var(--subtle,#71717a)] shadow-sm
-           focus:border-[var(--accent,#6366f1)] focus:outline-none focus:ring-1 focus:ring-[var(--accent,#6366f1)];
+  /* Tailwind v4 resets buttons to the default cursor; keep v3's pointer. */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
   }
 }
 

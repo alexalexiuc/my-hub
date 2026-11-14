@@ -48,7 +48,7 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
       ) : (
         <div className="flex items-center gap-4">
           {/* Donut */}
-          <div className="relative w-[130px] h-[130px] flex-shrink-0">
+          <div className="relative w-[130px] h-[130px] shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -94,7 +94,7 @@ export function MacroChart({ protein, carbs, fat, goalProtein, goalCarbs, goalFa
               const barColor = exceeded ? 'var(--red)' : reachedFloor ? 'var(--green)' : entry.color;
               return (
                 <div key={entry.name} className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: barColor }} />
+                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: barColor }} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between">
                       <span className="text-xs text-[var(--muted)]">{entry.name}</span>

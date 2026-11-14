@@ -92,7 +92,7 @@ export function Modal({
           ref={containerRef}
           className={cn(
             themeClassName,
-            'modal-shell fixed inset-x-0 top-0 h-[100dvh] z-[1000] flex flex-col bg-[var(--card)] md:inset-0 md:h-auto md:items-center md:justify-center md:bg-[var(--overlay)] md:p-4',
+            'modal-shell fixed inset-x-0 top-0 h-dvh z-1000 flex flex-col bg-[var(--card)] md:inset-0 md:h-auto md:items-center md:justify-center md:bg-[var(--overlay)] md:p-4',
           )}
         >
           {/* Desktop backdrop — absolute so it doesn't affect flex layout */}
@@ -153,7 +153,7 @@ export function Modal({
                   type="button"
                   size="sm"
                   variant="accent"
-                  className="flex-[2] py-2.5 text-[13px]"
+                  className="flex-2 py-2.5 text-[13px]"
                   disabled={submitDisabled}
                   loading={submitLoading}
                   onClick={onSubmit}
@@ -180,7 +180,7 @@ export function Modal({
                 type="button"
                 variant="accent"
                 size="sm"
-                className="flex-[2] py-2.5 text-[13px]"
+                className="flex-2 py-2.5 text-[13px]"
                 disabled={submitDisabled}
                 loading={submitLoading}
                 onClick={onSubmit}

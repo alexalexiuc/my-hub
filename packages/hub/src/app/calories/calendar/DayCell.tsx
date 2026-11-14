@@ -94,7 +94,7 @@ export function DayCell({ day, summary, isToday, isPast, onSelect }: DayCellProp
           instead of a tiny corner badge. */}
       <div
         data-layout="mobile"
-        className="flex aspect-[4/5] w-full flex-col items-center justify-between gap-0.5 py-1.5 md:hidden"
+        className="flex aspect-4/5 w-full flex-col items-center justify-between gap-0.5 py-1.5 md:hidden"
       >
         <span className={cn('text-[10px]', day.inMonth ? 'text-[var(--muted)]' : 'text-[var(--subtle)]')}>
           {dayNum}

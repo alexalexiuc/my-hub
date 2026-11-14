@@ -18,7 +18,7 @@ const appSections = [
     label: 'Calories',
     description: 'Track meals, body measurements & nutrition goals',
     color:
-      'bg-gradient-to-br from-orange-950/40 to-zinc-900 border-orange-800/50 hover:border-orange-500/70 hover:shadow-lg hover:shadow-orange-950/20 hover:-translate-y-0.5',
+      'bg-linear-to-br from-orange-950/40 to-zinc-900 border-orange-800/50 hover:border-orange-500/70 hover:shadow-lg hover:shadow-orange-950/20 hover:-translate-y-0.5',
     labelColor: 'text-orange-400',
     accentColor: 'bg-orange-500/20',
     icon: <UtensilsOutlineIcon className="size-5" />,
@@ -28,7 +28,7 @@ const appSections = [
     label: 'My Travels',
     description: 'Plan trips, track reservations, checklist, companions and documents',
     color:
-      'bg-gradient-to-br from-emerald-950/30 to-zinc-900 border-emerald-800/50 hover:border-emerald-600/70 hover:shadow-lg hover:shadow-emerald-950/20 hover:-translate-y-0.5',
+      'bg-linear-to-br from-emerald-950/30 to-zinc-900 border-emerald-800/50 hover:border-emerald-600/70 hover:shadow-lg hover:shadow-emerald-950/20 hover:-translate-y-0.5',
     labelColor: 'text-emerald-400',
     accentColor: 'bg-emerald-500/20',
     icon: <PlaneOutlineIcon className="size-5" />,
@@ -38,7 +38,7 @@ const appSections = [
     label: 'Finances',
     description: 'Track accounts, budgets, transactions & net worth',
     color:
-      'bg-gradient-to-br from-violet-950/40 to-zinc-900 border-violet-800/50 hover:border-violet-500/70 hover:shadow-lg hover:shadow-violet-950/20 hover:-translate-y-0.5',
+      'bg-linear-to-br from-violet-950/40 to-zinc-900 border-violet-800/50 hover:border-violet-500/70 hover:shadow-lg hover:shadow-violet-950/20 hover:-translate-y-0.5',
     labelColor: 'text-violet-400',
     accentColor: 'bg-violet-500/20',
     icon: <BarChartIcon className="size-5" />,
@@ -48,7 +48,7 @@ const appSections = [
     label: 'Vacation',
     description: 'See what each day off pays and find the best leave windows',
     color:
-      'bg-gradient-to-br from-sky-950/40 to-zinc-900 border-sky-800/50 hover:border-sky-500/70 hover:shadow-lg hover:shadow-sky-950/20 hover:-translate-y-0.5',
+      'bg-linear-to-br from-sky-950/40 to-zinc-900 border-sky-800/50 hover:border-sky-500/70 hover:shadow-lg hover:shadow-sky-950/20 hover:-translate-y-0.5',
     labelColor: 'text-sky-400',
     accentColor: 'bg-sky-500/20',
     icon: <CalendarIcon className="size-5" />,
@@ -78,7 +78,7 @@ export default function HomePage() {
             {appSections.map(({ href, label, description, color, labelColor, accentColor, icon }) => (
               <Link key={href} href={href} className={`rounded-xl border p-5 transition-all duration-200 ${color}`}>
                 <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-lg ${accentColor} flex items-center justify-center flex-shrink-0`}>
+                  <div className={`w-9 h-9 rounded-lg ${accentColor} flex items-center justify-center shrink-0`}>
                     <span className={labelColor}>{icon}</span>
                   </div>
                   <div>
@@ -97,10 +97,10 @@ export default function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link
               href="/mcp-control"
-              className="rounded-xl border border-zinc-700/50 bg-gradient-to-br from-zinc-800/50 to-zinc-900 p-4 shadow-sm hover:border-zinc-600 hover:-translate-y-0.5 transition-all duration-200"
+              className="rounded-xl border border-zinc-700/50 bg-linear-to-br from-zinc-800/50 to-zinc-900 p-4 shadow-xs hover:border-zinc-600 hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-zinc-700/60 flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-lg bg-zinc-700/60 flex items-center justify-center shrink-0">
                   <ServerOutlineIcon className="size-5 text-zinc-300" />
                 </div>
                 <div>
@@ -111,10 +111,10 @@ export default function HomePage() {
             </Link>
             <Link
               href="/invites"
-              className="rounded-xl border border-zinc-700/50 bg-gradient-to-br from-zinc-800/50 to-zinc-900 p-4 shadow-sm hover:border-zinc-600 hover:-translate-y-0.5 transition-all duration-200"
+              className="rounded-xl border border-zinc-700/50 bg-linear-to-br from-zinc-800/50 to-zinc-900 p-4 shadow-xs hover:border-zinc-600 hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-zinc-700/60 flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-lg bg-zinc-700/60 flex items-center justify-center shrink-0">
                   <UserPlusOutlineIcon className="size-5 text-zinc-300" />
                 </div>
                 <div>
