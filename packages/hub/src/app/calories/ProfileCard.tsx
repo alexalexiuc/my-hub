@@ -28,7 +28,8 @@ import { pctToGrams, gramsToPct, computeMacroSummary } from './calories.utils';
 interface Props {
   profile: CalorieProfile | null;
   latestMeasurements: MeasurementWithType[];
-  onUpdated: () => void;
+  /** Reloads the profile; awaited before the card leaves edit mode so it never shows stale values. */
+  onUpdated: () => void | Promise<void>;
 }
 
 const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; description: string }[] = [
@@ -234,8 +235,10 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
     });
 
     await Promise.all([weightWrite, profileWrite]);
+    // Reload before leaving edit mode: reopening Edit straight away must start from the saved values,
+    // not from the profile prop as it was before the save.
+    await onUpdated();
     setEditing(false);
-    onUpdated();
   }
 
   function openEdit() {

@@ -105,7 +105,10 @@ export function TripSwitcher() {
 
   async function handleDeleteTrip() {
     if (!deletingTrip) return;
-    await apiFetch(`/api/travel/trips/${deletingTrip.id}`, { method: 'DELETE' });
+    const deletedId = deletingTrip.id;
+    await apiFetch(`/api/travel/trips/${deletedId}`, { method: 'DELETE' });
+    // Drop it right away; the reload triggered below picks the next active trip.
+    setTrips(prev => prev.filter(t => t.id !== deletedId));
     setDeletingTrip(null);
     travelEvents.emit('changed');
   }
