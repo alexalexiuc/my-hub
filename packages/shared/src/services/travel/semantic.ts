@@ -1,11 +1,11 @@
 /**
  * Aggregated trip read queries (semantic layer)
  * - getTripOverview(userId, tripId) — full trip snapshot: bookings, places, checklist, companions, documents, day notes, map data
- * - getTripBrief(userId, tripId?) — overview for a specified trip or the next upcoming trip
+ * - getTripBrief(userId, tripId?) — overview for a specified trip or the next upcoming trip, missing trip dates inherited from bookings
  * - getTripTimeline(userId, tripId) — bookings in chronological order
  * - getUpcomingBookings(userId, hoursAhead?) — flight bookings starting within a time window (default 48 h)
  * - suggestChecklistTemplate(destination?) — pre-filled checklist suggestions based on destination
- * Types: TripBookingExtended, TripMapPoint, TripFlightArc, TripMapData, TripOverview
+ * Types: TripBookingExtended, TripMapPoint, TripFlightArc, TripMapData, TripOverview, TripBrief
  */
 import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm';
 import { db } from '../../db/client';
@@ -28,7 +28,9 @@ import type {
   TripDay,
   TripDocument,
   TripPlace,
+  TripWithStatus,
 } from '../../types';
+import { bookingDateRange, deriveTripStatus, inheritTripDates } from '../../utils';
 import { coordsFromIata, timezoneFromIata } from '../../server-only-utils/airports';
 import { getNextTrip, getTripByIdAccessible } from './trips';
 
@@ -159,13 +161,27 @@ export async function getTripOverview(userId: string, tripId: number): Promise<T
   };
 }
 
-export async function getTripBrief(userId: string, tripId?: number): Promise<TripOverview | null> {
-  if (tripId) return getTripOverview(userId, tripId);
+/** Trip overview for the MCP brief: an undated trip carries the dates its bookings span, as in the Hub. */
+export interface TripBrief extends TripOverview {
+  trip: TripWithStatus;
+  /** True when the trip's start and/or end were taken from its bookings rather than set on the trip. */
+  datesFromBookings: boolean;
+}
 
-  const next = await getNextTrip(userId);
-  if (!next) return null;
+export async function getTripBrief(userId: string, tripId?: number): Promise<TripBrief | null> {
+  const id = tripId ?? (await getNextTrip(userId))?.id;
+  if (!id) return null;
 
-  return getTripOverview(userId, next.id);
+  const overview = await getTripOverview(userId, id);
+  if (!overview) return null;
+
+  const own = overview.trip;
+  const dated = inheritTripDates(own, bookingDateRange(overview.bookings));
+  return {
+    ...overview,
+    trip: { ...dated, status: deriveTripStatus(dated.cancelledAt, dated.startAt, dated.endAt) },
+    datesFromBookings: dated.startAt !== own.startAt || dated.endAt !== own.endAt,
+  };
 }
 
 export async function getTripTimeline(userId: string, tripId: number): Promise<TripBooking[]> {
