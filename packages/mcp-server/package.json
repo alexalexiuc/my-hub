@@ -37,14 +37,14 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "^2.3.1",
-    "@types/node": "^24.13.6",
-    "@vitest/coverage-v8": "^5.0.1",
+    "@modelcontextprotocol/client": "^2.4.0",
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
     "nodemon": "^3.1.14",
-    "tsup": "^8.0.0",
+    "tsup": "^9.0.0",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
-    "vite": "^8.3.0",
-    "vitest": "^5.0.1"
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
   }
 }
