@@ -8,19 +8,19 @@
  * - updateTrip(userId, tripId, data) — partial update
  * - deleteTrip(userId, tripId) — hard delete
  * - deleteAllUserTrips(userId) — bulk delete for account removal
- * - getNextTrip(userId, now?) — soonest upcoming non-cancelled trip
+ * - getNextTrip(userId, now?) — soonest upcoming non-cancelled trip (undated trips use their bookings' dates)
  * - getTripBookingRanges(userId) — min/max booking dates per trip (owned)
  * - getTripBookingRangesByTripIds(tripIds) — same, for a specific set of trip IDs
  * - verifyTripOwnership(userId, tripId) — throws if user does not own the trip
  * - verifyTripAccess(userId, tripId) — throws if user has neither ownership nor a share
  * Types: TripInsert, TripUpdate, TripBookingRange, AccessibleTrip
  */
-import { and, asc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { PromiseCacheX } from 'promise-cachex';
 import { db } from '../../db/client';
 import { users } from '../../db/schema/users';
 import { tripBookings, tripShares, trips } from '../../db/schema/travel';
-import { deriveTripStatus, omitUndefined } from '../../utils';
+import { deriveTripStatus, inheritTripDates, omitUndefined } from '../../utils';
 import type { NewTrip, Trip, TripSharePermission, TripWithStatus } from '../../types';
 import { TripSharePermissions } from '../../constants';
 
@@ -166,14 +166,36 @@ export async function deleteAllUserTrips(userId: string): Promise<number> {
 }
 
 export async function getNextTrip(userId: string, now = new Date()): Promise<TripWithStatus | null> {
+  // A trip without its own dates inherits them from its bookings, as in the Hub.
+  const ranges = db
+    .select({
+      tripId: tripBookings.tripId,
+      fromAt: sql<Date | null>`min(${tripBookings.startAt})`.mapWith(trips.startAt).as('from_at'),
+      toAt: sql<Date | null>`max(coalesce(${tripBookings.endAt}, ${tripBookings.startAt}))`
+        .mapWith(trips.endAt)
+        .as('to_at'),
+    })
+    .from(tripBookings)
+    .groupBy(tripBookings.tripId)
+    .as('booking_ranges');
+  const effectiveStart = sql`coalesce(${trips.startAt}, ${ranges.fromAt})`;
+
   const [row] = await db
-    .select()
+    .select({ trip: trips, fromAt: ranges.fromAt, toAt: ranges.toAt })
     .from(trips)
-    .where(and(eq(trips.userId, userId), gte(trips.startAt, now), isNull(trips.cancelledAt)))
-    .orderBy(asc(trips.startAt), asc(trips.id))
+    .leftJoin(ranges, eq(ranges.tripId, trips.id))
+    .where(
+      and(
+        eq(trips.userId, userId),
+        isNull(trips.cancelledAt),
+        // timestamp columns store UTC ISO strings (drizzle's encoding), so compare against the same
+        sql`${effectiveStart} >= ${now.toISOString()}::timestamp`,
+      ),
+    )
+    .orderBy(asc(effectiveStart), asc(trips.id))
     .limit(1);
 
-  return row ? withStatus(row, now) : null;
+  return row ? withStatus(inheritTripDates(row.trip, row), now) : null;
 }
 
 export async function getTripBookingRanges(userId: string): Promise<TripBookingRange[]> {

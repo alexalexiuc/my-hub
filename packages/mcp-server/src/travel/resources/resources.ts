@@ -1,6 +1,6 @@
 import { ResourceHandler } from '../../shared/types';
 import { TripBookingTypes } from '@my-hub/shared/constants';
-import { getTrips, getUpcomingTripBookings } from '@my-hub/shared/services';
+import { getNextTrip, getTrips, getUpcomingTripBookings } from '@my-hub/shared/services';
 import { resourceResponse } from '../../shared/resourcesUtils';
 import { travelFilesConfig } from '../files-config';
 
@@ -16,16 +16,7 @@ export const getTravelTripsResource: ResourceHandler = async (uri, context) => {
 
 export const getTravelUpcomingResource: ResourceHandler = async (uri, context) => {
   const { userId } = context;
-  const trips = await getTrips(userId);
-
-  const nextTrip =
-    trips
-      .filter(trip => (trip.startAt ? trip.startAt.getTime() >= Date.now() : true))
-      .sort((a, b) => {
-        const aTime = a.startAt ? a.startAt.getTime() : Number.MAX_SAFE_INTEGER;
-        const bTime = b.startAt ? b.startAt.getTime() : Number.MAX_SAFE_INTEGER;
-        return aTime - bTime;
-      })[0] ?? null;
+  const nextTrip = await getNextTrip(userId);
 
   const upcomingFlights = await getUpcomingTripBookings(userId, 48, TripBookingTypes.Flight);
 

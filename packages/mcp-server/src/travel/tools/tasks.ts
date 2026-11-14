@@ -193,6 +193,7 @@ export const travelGetTripBriefTool: ToolHandler<typeof TravelGetTripBriefSchema
   const response: Record<string, unknown> = {
     message: 'Trip brief generated.',
     trip: overview.trip,
+    datesFromBookings: overview.datesFromBookings,
     counts: {
       bookings: overview.bookings.length,
       places: overview.places.length,
