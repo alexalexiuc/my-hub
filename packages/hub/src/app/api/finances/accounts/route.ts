@@ -355,6 +355,7 @@ export const POST = route({ body: accountCreateSchema, response: accountMutation
     const { type: _type, status: _status, ...rest } = details;
     const { account } = await openDeposit(user.id, budget.id, {
       name: body.name.trim(),
+      description: body.description,
       currency: body.currency,
       details: rest,
       sourceAccountId: body.fundingSourceAccountId,

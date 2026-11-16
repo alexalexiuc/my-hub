@@ -55,6 +55,8 @@ export class DepositError extends UserInputError {
 
 export type OpenDepositInput = {
   name: string;
+  /** Optional free-text description of the account. */
+  description?: string | null;
   currency: FinanceAccount['currency'];
   /** Deposit details; `status` is set to active. */
   details: Omit<DepositAccountDetails, 'type' | 'status'>;
@@ -219,6 +221,7 @@ export async function openDeposit(
 
   const account = await createAccount(userId, budgetId, {
     name: input.name,
+    description: input.description?.trim() || null,
     type: AccountTypes.Deposit,
     currency: input.currency,
     balance: 0,
