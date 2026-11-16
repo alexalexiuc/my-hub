@@ -1,6 +1,6 @@
-# Finances: `deposit` account type (draft v0.2)
+# Finances: `deposit` account type (v0.3, implemented)
 
-Status: **draft**. v0.1 (idea) plus an impact audit of the current code. Owner: Alex.
+Status: **implemented** (v1). v0.1 idea, v0.2 impact audit, v0.3 reflects what was built; deviations from the audit are listed in section 10. Owner: Alex.
 Area: Finances (shared services, MCP, Hub UI, worker, reports).
 
 ## 1. Problem
@@ -135,6 +135,16 @@ Order: shared → mcp-server → hub → worker → docs/e2e.
 
 None. Existing accounts (e.g. _Deposit MDL_, id 27) are left untouched; once the feature ships, new deposits are created as new accounts with `finances_add_deposit` so the funding transfer is real, and the old ones are handled separately.
 
+## 10. As built (deviations from the audit)
+
+- Added `finances_record_deposit_interest` (the audit only had add/close): logging interest through `finances_add_transactions` would not set `extras`, so `interestReceivedToDate` would be wrong.
+- Pure maths lives in `utils/deposit.ts` (not in a services file); DB-backed functions in `services/finances/deposits.ts`.
+- **Interest category:** not auto-created. A category named "Interest" is used when it exists (create "Venituri > Interest" once via `finances_upsert_category`); otherwise the income is uncategorized.
+- **Hub widget card:** not in v1 (open item). Deposits show on the Accounts list, detail page, Net Worth and the monthly/yearly reports.
+- **Net worth:** deposits appear under their own type at ledger balance; Available balance excludes them by default (per-user override still works).
+- Cross-currency funding/return need `sourceAmount` / `returnAmount` (the amount in the other account's currency), same rule as transfers.
+- Alerts fire exactly on day 14 before maturity (and once when a payout becomes overdue); a day the worker is down is not retried.
+
 ## 9. Acceptance (v1)
 
 - [ ] One `finances_add_deposit` call creates the MICB Maestro deposit (200,000 MDL, 8%, 12 months, monthly, 6% tax); the source account drops by 200k.
@@ -145,4 +155,5 @@ None. Existing accounts (e.g. _Deposit MDL_, id 27) are left untouched; once the
 - [ ] Monthly/yearly report and email show a deposits section.
 - [ ] Alert fires 14 days before maturity and on a missed payout.
 - [ ] Closing at maturity returns 200k to the return account and the deposit leaves active net worth.
-- [ ] Hub forms, account list/detail and mobile layout work; e2e specs pass.
+- [ ] Hub forms, account list/detail work.
+- [ ] Mobile layout (390px) and Playwright specs verified in the sandbox.

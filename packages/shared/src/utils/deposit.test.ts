@@ -3,6 +3,7 @@ import type { DepositAccountDetails } from '../types/account-details';
 import {
   buildDepositSchedule,
   calculateDepositSummary,
+  getDepositAlerts,
   getDepositMaturityDate,
   getOverdueDepositPayouts,
 } from './deposit';
@@ -122,5 +123,26 @@ describe('getOverdueDepositPayouts', () => {
   });
   it('is empty for closed deposits', () => {
     expect(getOverdueDepositPayouts({ ...micb, status: 'matured' }, 0, { asOfDate: '2027-12-01' })).toEqual([]);
+  });
+});
+
+describe('getDepositAlerts', () => {
+  it('alerts exactly 14 days before maturity', () => {
+    expect(getDepositAlerts(micb, 15_040, { asOfDate: '2027-11-03' })).toEqual([
+      { kind: 'maturity', maturityDate: '2027-11-17', daysToMaturity: 14 },
+    ]);
+    expect(getDepositAlerts(micb, 15_040, { asOfDate: '2027-11-04' })).toEqual([]);
+  });
+
+  it('alerts once on the day a payout becomes overdue', () => {
+    const alerts = getDepositAlerts(micb, 0, { asOfDate: '2026-12-21' });
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toMatchObject({ kind: 'missed_payout', daysOverdue: 4 });
+    expect(getDepositAlerts(micb, 0, { asOfDate: '2026-12-22' })).toEqual([]);
+  });
+
+  it('does not alert when the payout was logged or the deposit is closed', () => {
+    expect(getDepositAlerts(micb, 1253.33, { asOfDate: '2026-12-21' })).toEqual([]);
+    expect(getDepositAlerts({ ...micb, status: 'broken' }, 0, { asOfDate: '2026-12-21' })).toEqual([]);
   });
 });

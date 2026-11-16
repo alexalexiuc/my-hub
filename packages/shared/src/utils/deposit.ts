@@ -4,7 +4,8 @@
  * - buildDepositSchedule(details) — expected payouts (gross / tax / net per date) over the term
  * - calculateDepositSummary(details, opts?) — maturity, expected interest, next payout, yield, guarantee check
  * - getOverdueDepositPayouts(details, interestReceived, opts?) — scheduled payouts past due with no matching interest received
- * Types: DepositPayoutEntry, DepositSummary
+ * - getDepositAlerts(details, interestReceived, opts?) — alerts that fire today: maturity approaching, or a payout that just became overdue
+ * Types: DepositPayoutEntry, DepositSummary, DepositAlert
  *
  * Interest is simple (principal × rate × months / 12) except for `capitalized`, which compounds monthly.
  * Only `fixed` rates are exact; other rate types are computed at the stored rate and flagged `rateEstimated`.
@@ -162,4 +163,36 @@ export function getOverdueDepositPayouts(
     cumulative = round2(cumulative + entry.net);
     return daysBetweenDateStr(entry.date, asOf) > grace && cumulative - interestReceived > 0.01;
   });
+}
+
+/** An alert that fires on a given day for a deposit. */
+export type DepositAlert =
+  | { kind: 'maturity'; maturityDate: string; daysToMaturity: number }
+  | { kind: 'missed_payout'; payout: DepositPayoutEntry; daysOverdue: number };
+
+/**
+ * Returns the alerts that fire on `asOfDate`: one when maturity is exactly `maturityLeadDays` away
+ * (default 14), and one per scheduled payout that becomes overdue on that very day (the first day past
+ * the grace period, default 3 days) — so each condition alerts once, never daily. Empty for closed deposits.
+ */
+export function getDepositAlerts(
+  details: DepositAccountDetails,
+  interestReceived: number,
+  opts: { asOfDate?: string; maturityLeadDays?: number; graceDays?: number } = {},
+): DepositAlert[] {
+  if (details.status !== 'active') return [];
+  const asOf = opts.asOfDate ?? currentDateString();
+  const lead = opts.maturityLeadDays ?? 14;
+  const grace = opts.graceDays ?? 3;
+  const alerts: DepositAlert[] = [];
+
+  const maturityDate = getDepositMaturityDate(details);
+  const daysToMaturity = daysBetweenDateStr(asOf, maturityDate);
+  if (daysToMaturity === lead) alerts.push({ kind: 'maturity', maturityDate, daysToMaturity });
+
+  for (const payout of getOverdueDepositPayouts(details, interestReceived, { asOfDate: asOf, graceDays: grace })) {
+    const daysOverdue = daysBetweenDateStr(payout.date, asOf);
+    if (daysOverdue === grace + 1) alerts.push({ kind: 'missed_payout', payout, daysOverdue });
+  }
+  return alerts;
 }

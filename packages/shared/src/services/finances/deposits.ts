@@ -6,6 +6,7 @@
  * - openDeposit(userId, budgetId, input) — creates the deposit account and records the funding as a transfer from the source account
  * - recordDepositInterest(userId, budgetId, depositAccountId, input?) — logs one interest payout as net income (gross/tax/net kept in extras)
  * - closeDeposit(userId, budgetId, depositAccountId, input) — returns the principal by transfer, sets matured/broken status and archives the account
+ * - getDepositAlertsForBudget(userId, budgetId, asOfDate?) — alerts firing today for every active deposit in a budget
  * - findInterestCategoryId(userId, budgetId) — id of the budget's category named "Interest", if any
  * Types: OpenDepositInput, RecordDepositInterestInput, CloseDepositInput, DepositError
  */
@@ -17,10 +18,16 @@ import {
   type FinanceAccount,
   type FinanceTransaction,
 } from '../../types';
-import { buildDepositSchedule, calculateDepositSummary, type DepositSummary } from '../../utils/deposit';
+import {
+  buildDepositSchedule,
+  calculateDepositSummary,
+  getDepositAlerts,
+  type DepositAlert,
+  type DepositSummary,
+} from '../../utils/deposit';
 import { currentDateString, isIsoDateStr } from '../../utils/dates';
 import { UserInputError } from '../../utils/errors';
-import { getAccountById, createAccount, updateAccount } from './accounts';
+import { getAccountById, getAccounts, createAccount, updateAccount } from './accounts';
 import { getCategories } from './categories';
 import { addTransaction, getTransactions } from './transactions';
 
@@ -312,4 +319,31 @@ export async function closeDeposit(
     },
   });
   return { account: updated, returnedAmount, returnTransactionId: ret.id };
+}
+
+export interface DepositAlertGroup {
+  accountId: number;
+  accountName: string;
+  currency: string;
+  alerts: DepositAlert[];
+}
+
+/** Returns the alerts firing on `asOfDate` (default today) for each active deposit in the budget; deposits with none are omitted. */
+export async function getDepositAlertsForBudget(
+  userId: string,
+  budgetId: number,
+  asOfDate: string = currentDateString(),
+): Promise<DepositAlertGroup[]> {
+  const accounts = await getAccounts(userId, budgetId);
+  const groups: DepositAlertGroup[] = [];
+  for (const account of accounts) {
+    const details = getAccountDetails('deposit', account.details);
+    if (account.type !== AccountTypes.Deposit || !details || details.status !== DepositStatuses.Active) continue;
+    const received = await getDepositInterestReceived(userId, budgetId, account);
+    const alerts = getDepositAlerts(details, received, { asOfDate });
+    if (alerts.length > 0) {
+      groups.push({ accountId: account.id, accountName: account.name, currency: account.currency, alerts });
+    }
+  }
+  return groups;
 }
