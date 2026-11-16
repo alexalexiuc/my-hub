@@ -40,6 +40,14 @@ import {
   correctAccountBalanceTool,
 } from './accounts';
 import {
+  AddDepositSchema,
+  addDepositTool,
+  RecordDepositInterestSchema,
+  recordDepositInterestTool,
+  CloseDepositSchema,
+  closeDepositTool,
+} from './deposits';
+import {
   ListPayeesSchema,
   listPayeesTool,
   MergePayeesSchema,
@@ -80,7 +88,7 @@ const financeTools = [
       'Omit id to create; provide id to update only the fields you supply. ' +
       'Use openingBalance + openingDate to record a starting balance as a correction transaction — ' +
       'this does not overwrite existing transaction history. ' +
-      'To create a loan account use finances_add_loan instead.',
+      'To create a loan account use finances_add_loan instead; for a term deposit use finances_add_deposit.',
     inputSchema: UpsertAccountSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: upsertAccountTool,
@@ -109,6 +117,40 @@ const financeTools = [
     inputSchema: AddLoanSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: addLoanTool,
+  }),
+  defineTool({
+    name: 'finances_add_deposit',
+    description:
+      'Create a fixed-term deposit (or bond) account and fund it. ' +
+      'Money really moves: the principal is recorded as a transfer from sourceAccountId on startDate, ' +
+      'so do not also log the funding with finances_add_transactions. ' +
+      'One account can represent several identical bank deposits (tranches). ' +
+      'Returns depositSummary (maturity date, expected gross/tax/net interest, next payout) and the expected payout schedule. ' +
+      'Use finances_record_deposit_interest for each interest payout and finances_close_deposit at maturity.',
+    inputSchema: AddDepositSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: addDepositTool,
+  }),
+  defineTool({
+    name: 'finances_record_deposit_interest',
+    description:
+      'Record one interest payout of a deposit as income of the NET amount (after tax withheld) into its payout account ' +
+      '(or into the deposit itself when interest is capitalized). Gross, tax and net are kept on the transaction. ' +
+      'Omit net to record the next scheduled payout; pass net/tax to match what the bank actually paid. ' +
+      'Prefer this over finances_add_transactions for deposit interest so interestReceivedToDate stays correct.',
+    inputSchema: RecordDepositInterestSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: recordDepositInterestTool,
+  }),
+  defineTool({
+    name: 'finances_close_deposit',
+    description:
+      'Close a deposit at maturity or break it early: transfers the remaining balance back to the return account, ' +
+      'marks the deposit matured/broken and archives it so it leaves net worth. ' +
+      'For an early break pass clawbackAmount if the bank reclaimed interest already paid out.',
+    inputSchema: CloseDepositSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: true },
+    callback: closeDepositTool,
   }),
   defineTool({
     name: 'finances_upsert_category',

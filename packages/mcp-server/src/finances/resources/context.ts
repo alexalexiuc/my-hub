@@ -6,6 +6,7 @@ import {
   getCategories,
   getGroups,
   getLoanSummaryForAccount,
+  getDepositSummaryForAccount,
 } from '@my-hub/shared/services';
 import { AccountTypes } from '@my-hub/shared/constants';
 export const getFinancesContextResource: ResourceHandler = async (uri, context) => {
@@ -29,6 +30,8 @@ export const getFinancesContextResource: ResourceHandler = async (uri, context) 
       const details = acct.details as { cardLastFour?: string; cardName?: string; targetAmount?: number } | null;
       const loanSummary =
         acct.type === AccountTypes.Loan ? await getLoanSummaryForAccount(userId, budget.id, acct) : null;
+      const depositSummary =
+        acct.type === AccountTypes.Deposit ? await getDepositSummaryForAccount(userId, budget.id, acct) : null;
       return {
         id: acct.id,
         name: acct.name,
@@ -40,6 +43,7 @@ export const getFinancesContextResource: ResourceHandler = async (uri, context) 
         ...(details?.cardName ? { cardName: details.cardName } : {}),
         ...(details?.targetAmount != null ? { targetAmount: String(details.targetAmount) } : {}),
         ...(loanSummary ? { loanSummary } : {}),
+        ...(depositSummary ? { depositSummary } : {}),
       };
     }),
   );
