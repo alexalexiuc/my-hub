@@ -168,6 +168,26 @@ export const DepositPayouts = {
 } as const;
 export type DepositPayout = (typeof DepositPayouts)[keyof typeof DepositPayouts];
 
+/** How often a capitalized deposit credits its net interest to the balance. */
+export const DepositCapitalizationFrequencies = {
+  Monthly: 'monthly',
+  Quarterly: 'quarterly',
+  AtMaturity: 'at_maturity',
+} as const;
+export type DepositCapitalizationFrequency =
+  (typeof DepositCapitalizationFrequencies)[keyof typeof DepositCapitalizationFrequencies];
+
+/** Frequency used when a capitalized deposit does not name one. */
+export const DEFAULT_DEPOSIT_CAPITALIZATION_FREQUENCY: DepositCapitalizationFrequency =
+  DepositCapitalizationFrequencies.Monthly;
+
+/** Months between capitalizations per frequency (null = once, at the end of the mode's period). */
+export const DEPOSIT_CAPITALIZATION_INTERVAL_MONTHS: Record<DepositCapitalizationFrequency, number | null> = {
+  [DepositCapitalizationFrequencies.Monthly]: 1,
+  [DepositCapitalizationFrequencies.Quarterly]: 3,
+  [DepositCapitalizationFrequencies.AtMaturity]: null,
+};
+
 /** Lifecycle of a deposit; set to matured/broken by the close action. */
 export const DepositStatuses = { Active: 'active', Matured: 'matured', Broken: 'broken' } as const;
 export type DepositStatus = (typeof DepositStatuses)[keyof typeof DepositStatuses];

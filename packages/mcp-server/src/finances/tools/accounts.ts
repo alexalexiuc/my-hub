@@ -136,7 +136,10 @@ export const UpsertAccountSchema = z.object({
         rateType: z.enum(DepositRateTypes).optional(),
         fixedMonths: z.number().int().positive().optional(),
         termMonths: z.number().int().positive().optional(),
-        payout: z.enum(DepositPayouts).optional(),
+        payout: z
+          .enum(DepositPayouts)
+          .optional()
+          .describe('Not editable here — use finances_update_deposit to change payout mid-term.'),
         payoutAccountId: z.number().int().positive().optional(),
         returnAccountId: z.number().int().positive().optional(),
         taxRate: z.number().min(0).max(100).optional(),
@@ -187,6 +190,11 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
     if (input.details?.type === AccountTypes.Deposit) {
       const current = getAccountDetails('deposit', existing.details);
       if (!current) throw new HandledError('This account is not a deposit — details.type "deposit" does not apply.');
+      if (input.details.payout !== undefined) {
+        throw new HandledError(
+          'Change payout / capitalization with finances_update_deposit (it needs an effectiveDate and keeps earlier history).',
+        );
+      }
       // Partial edit: merge onto the stored deposit (principal, dates and status are not editable here).
       const merged = { ...current, ...omitUndefined(input.details) };
       await validateDepositDetails(userId, budget.id, merged);

@@ -3,30 +3,48 @@
  * - getDepositMaturityDate(details) — startDate + termMonths as YYYY-MM-DD
  * - buildDepositSchedule(details) — expected payouts (gross / tax / net per date) over the term
  * - calculateDepositSummary(details, opts?) — maturity, expected interest, next unreceived payout, yield, guarantee check
+ * - getDepositModeSegments(details) — the payout/capitalization modes over the term, with their date ranges
+ * - getDepositModeAt(details, date) — the mode in force on a date
  * - getOverdueDepositPayouts(details, interestReceived, opts?) — scheduled payouts past due with no matching interest received
  * - getDepositAlerts(details, interestReceived, opts?) — alerts that fire today: maturity approaching, or a payout that just became overdue
  * Types: DepositPayoutEntry, DepositSummary, DepositAlert
  *
- * Interest is simple (principal × rate × months / 12) except for `capitalized`, which compounds monthly.
- * Only `fixed` rates are exact; other rate types are computed at the stored rate and flagged `rateEstimated`.
- * The last payout absorbs rounding so the schedule sums exactly to the rounded term total.
+ * Interest accrues on the deposit balance (balance × rate × period). Paid-out interest leaves the balance
+ * unchanged; capitalized interest is credited NET of tax at every capitalization and earns interest from then on
+ * (final balance = principal × (1 + r·(1−tax)/n)^periods). A mid-term mode change splits the term into segments;
+ * earlier segments keep their mode. Only `fixed` rates are exact; other rate types use the stored rate and are
+ * flagged `rateEstimated`. The last paid-out entry absorbs rounding so payouts sum exactly to the rounded total.
  */
 import {
+  DEFAULT_DEPOSIT_CAPITALIZATION_FREQUENCY,
+  DEPOSIT_CAPITALIZATION_INTERVAL_MONTHS,
   DEPOSIT_PAYOUT_INTERVAL_MONTHS,
+  DepositCapitalizationFrequencies,
   DepositPayouts,
   DepositRateTypes,
   type DepositStatus,
 } from '../constants/finances';
-import type { DepositAccountDetails } from '../types/account-details';
+import type { DepositAccountDetails, DepositModeSegment } from '../types/account-details';
 import { addMonthsKeepDay, currentDateString, toUTCDateStr } from './dates';
 import { daysBetweenDateStr } from './weight-goal';
 
-/** One expected interest payout. All amounts are in the deposit's currency. */
+/** One schedule period: interest paid out, or credited to the deposit when `capitalized`. Amounts are in the deposit's currency. */
 export interface DepositPayoutEntry {
   date: string;
   gross: number;
   tax: number;
   net: number;
+  /** Net interest is credited to the deposit itself (not paid out). */
+  capitalized: boolean;
+  /** Deposit balance before this period's interest. */
+  openingBalance: number;
+  /** Deposit balance after this period (opening + net when capitalized, else unchanged). */
+  closingBalance: number;
+}
+
+/** A payout/capitalization mode and the date range it covers (`from` exclusive of earlier modes, `to` = next change or maturity). */
+export interface DepositModeRange extends DepositModeSegment {
+  to: string;
 }
 
 /** Derived view of a deposit used by the Hub, MCP context and reports. */
@@ -44,8 +62,16 @@ export interface DepositSummary {
   nextPayoutAmount: number | null;
   /** Net interest as an annualised % of principal over the term. */
   effectiveNetYield: number;
-  /** Principal plus capitalized interest exceeds `guaranteeLimit`. */
+  /** Balance at maturity according to the schedule: principal plus capitalized net interest. */
+  projectedMaturityBalance: number;
+  /** The projected maturity balance exceeds `guaranteeLimit`. */
   overGuarantee: boolean;
+  /** First schedule date on which the balance is over `guaranteeLimit` (the start date if the principal already is); null when never. */
+  guaranteeBreachDate: string | null;
+  /** Largest principal that stays within `guaranteeLimit` at maturity (limit ÷ growth factor); null without a limit. */
+  maxPrincipalWithinGuarantee: number | null;
+  /** Extra net interest from capitalizing compared with paying interest out at the same cadence (after reinvesting payouts at `reinvestRate`). */
+  capitalizationDelta: number;
   /** Rate is not fixed, so figures use the stored rate as an estimate. */
   rateEstimated: boolean;
   status: DepositStatus;
@@ -60,48 +86,139 @@ export function getDepositMaturityDate(details: Pick<DepositAccountDetails, 'sta
   return toUTCDateStr(addMonthsKeepDay(new Date(details.startDate), details.termMonths));
 }
 
-/** Gross interest over `months` of the term: simple, or monthly-compounded for capitalized deposits. */
-function grossInterest(details: DepositAccountDetails, months: number): number {
-  const rate = details.interestRate / 100;
-  if (details.payout === DepositPayouts.Capitalized) {
-    return details.principal * (Math.pow(1 + rate / 12, months) - 1);
-  }
-  return (details.principal * rate * months) / 12;
+/**
+ * Year fraction between two dates: whole months / 12 when `to` is an exact month anniversary of `from`,
+ * otherwise days / 365 (a period cut short by a mode change or maturity).
+ */
+function yearFraction(from: string, to: string): number {
+  const a = new Date(from);
+  const b = new Date(to);
+  const months = (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth());
+  if (months > 0 && toUTCDateStr(addMonthsKeepDay(a, months)) === to) return months / 12;
+  return daysBetweenDateStr(from, to) / 365;
 }
 
 /**
- * Builds the expected payout schedule over the whole term: one entry per payout interval
- * (monthly/quarterly/semiannual), or a single entry at maturity for `at_maturity` and `capitalized`.
- * Tax is `taxRate` % of gross. Rounding is absorbed by the last entry.
+ * Returns the deposit's payout/capitalization modes in date order with the range each covers: earlier modes
+ * from `modeHistory`, then the current one from `modeEffectiveDate` (or the start date) to maturity.
+ */
+export function getDepositModeSegments(details: DepositAccountDetails): DepositModeRange[] {
+  const history = details.modeHistory ?? [];
+  const currentFrom = history.length > 0 ? (details.modeEffectiveDate ?? details.startDate) : details.startDate;
+  const modes: DepositModeSegment[] = [
+    ...history,
+    { from: currentFrom, payout: details.payout, capitalizationFrequency: details.capitalizationFrequency },
+  ];
+  const maturity = getDepositMaturityDate(details);
+  return modes.map((m, i) => ({ ...m, to: modes[i + 1]?.from ?? maturity })).filter(m => m.from < m.to);
+}
+
+/** Returns the mode in force for interest dated `date` (a payout on a change date still belongs to the earlier mode). */
+export function getDepositModeAt(details: DepositAccountDetails, date: string): DepositModeRange {
+  const segments = getDepositModeSegments(details);
+  return (
+    segments.find(seg => date > seg.from && date <= seg.to) ??
+    (date <= segments[0]!.from ? segments[0]! : segments.at(-1)!)
+  );
+}
+
+function modeIntervalMonths(seg: DepositModeSegment): number | null {
+  return seg.payout === DepositPayouts.Capitalized
+    ? DEPOSIT_CAPITALIZATION_INTERVAL_MONTHS[seg.capitalizationFrequency ?? DEFAULT_DEPOSIT_CAPITALIZATION_FREQUENCY]
+    : DEPOSIT_PAYOUT_INTERVAL_MONTHS[seg.payout];
+}
+
+/**
+ * Builds the expected schedule over the whole term. Each mode segment is cut into periods
+ * (monthly/quarterly/semiannual payout, or the capitalization frequency; one period per segment for
+ * `at_maturity`). Interest accrues on the running balance; tax is `taxRate` % of gross. Capitalized
+ * periods credit net interest to the balance; paid-out periods leave it unchanged. Each entry carries
+ * opening and closing balance. Rounding of paid-out entries is absorbed by the last one.
  */
 export function buildDepositSchedule(details: DepositAccountDetails): DepositPayoutEntry[] {
   const { termMonths, taxRate } = details;
   if (!(termMonths > 0) || !(details.principal > 0)) return [];
-  const start = new Date(details.startDate);
-  const interval = DEPOSIT_PAYOUT_INTERVAL_MONTHS[details.payout];
+  const rate = details.interestRate / 100;
+  const keep = 1 - taxRate / 100;
 
-  // Month offsets at which payouts fall due; the final one is always maturity.
-  const offsets: number[] = [];
-  if (interval) {
-    for (let m = interval; m < termMonths; m += interval) offsets.push(m);
+  const entries: DepositPayoutEntry[] = [];
+  let balance = details.principal;
+  let paidExactGross = 0;
+
+  for (const seg of getDepositModeSegments(details)) {
+    const interval = modeIntervalMonths(seg);
+    const capitalized = seg.payout === DepositPayouts.Capitalized;
+    const boundaries: string[] = [];
+    if (interval) {
+      for (let m = interval; ; m += interval) {
+        const d = toUTCDateStr(addMonthsKeepDay(new Date(seg.from), m));
+        if (d >= seg.to) break;
+        boundaries.push(d);
+      }
+    }
+    boundaries.push(seg.to);
+
+    let prev = seg.from;
+    for (const date of boundaries) {
+      const exactGross = balance * rate * yearFraction(prev, date);
+      const gross = round2(exactGross);
+      const net = round2(gross * keep);
+      const closing = capitalized ? round2(balance + net) : balance;
+      if (!capitalized) paidExactGross += exactGross;
+      entries.push({
+        date,
+        gross,
+        tax: round2(gross - net),
+        net,
+        capitalized,
+        openingBalance: balance,
+        closingBalance: closing,
+      });
+      balance = closing;
+      prev = date;
+    }
   }
-  offsets.push(termMonths);
 
-  const totalGross = round2(grossInterest(details, termMonths));
-  const totalNet = round2(totalGross * (1 - taxRate / 100));
-  let prevMonths = 0;
-  let sumGross = 0;
-  let sumNet = 0;
+  // Paid-out entries sum exactly to the rounded total: the last one absorbs rounding.
+  const last = entries.at(-1);
+  if (last && !last.capitalized) {
+    const paid = entries.filter(e => !e.capitalized);
+    const totalGross = round2(paidExactGross);
+    const totalNet = round2(totalGross * keep);
+    const others = paid.slice(0, -1);
+    last.gross = round2(totalGross - others.reduce((s, e) => s + e.gross, 0));
+    last.net = round2(totalNet - others.reduce((s, e) => s + e.net, 0));
+    last.tax = round2(last.gross - last.net);
+  }
+  return entries;
+}
 
-  return offsets.map((months, i) => {
-    const isLast = i === offsets.length - 1;
-    const gross = isLast ? round2(totalGross - sumGross) : round2(grossInterest(details, months - prevMonths));
-    const net = isLast ? round2(totalNet - sumNet) : round2(gross * (1 - taxRate / 100));
-    sumGross += gross;
-    sumNet += net;
-    prevMonths = months;
-    return { date: toUTCDateStr(addMonthsKeepDay(start, months)), gross, tax: round2(gross - net), net };
+/**
+ * Extra net interest the deposit would earn by capitalizing instead of paying interest out at the same
+ * cadence, over the whole term and ignoring mid-term mode changes. Paid-out interest is optionally
+ * reinvested at `reinvestRate` % until maturity (simple interest, taxed at the deposit's tax rate).
+ */
+function capitalizationDelta(details: DepositAccountDetails, reinvestRate: number): number {
+  const clean = { ...details, modeHistory: undefined, modeEffectiveDate: undefined };
+  const cadence =
+    details.payout === DepositPayouts.Capitalized
+      ? (details.capitalizationFrequency ?? DEFAULT_DEPOSIT_CAPITALIZATION_FREQUENCY)
+      : details.payout === DepositPayouts.Quarterly || details.payout === DepositPayouts.AtMaturity
+        ? details.payout
+        : DepositCapitalizationFrequencies.Monthly;
+  const capitalized = buildDepositSchedule({
+    ...clean,
+    payout: DepositPayouts.Capitalized,
+    capitalizationFrequency: cadence,
   });
+  const paidOut = buildDepositSchedule({ ...clean, payout: cadence, capitalizationFrequency: undefined });
+  const maturity = getDepositMaturityDate(details);
+  const sumNet = (entries: DepositPayoutEntry[]) => entries.reduce((s, e) => s + e.net, 0);
+  const reinvested = paidOut.reduce(
+    (s, e) => s + e.net * (reinvestRate / 100) * yearFraction(e.date, maturity) * (1 - details.taxRate / 100),
+    0,
+  );
+  return round2(sumNet(capitalized) - sumNet(paidOut) - reinvested);
 }
 
 /**
@@ -110,7 +227,7 @@ export function buildDepositSchedule(details: DepositAccountDetails): DepositPay
  */
 export function calculateDepositSummary(
   details: DepositAccountDetails,
-  opts: { asOfDate?: string; interestReceived?: number } = {},
+  opts: { asOfDate?: string; interestReceived?: number; reinvestRate?: number } = {},
 ): DepositSummary {
   const asOf = opts.asOfDate ?? currentDateString();
   const received = opts.interestReceived ?? 0;
@@ -132,7 +249,14 @@ export function calculateDepositSummary(
   const progress = totalDays > 0 ? Math.min(100, Math.max(0, (elapsedDays / totalDays) * 100)) : 0;
 
   const years = details.termMonths / 12;
-  const capitalized = details.payout === DepositPayouts.Capitalized ? expectedNet : 0;
+  const projectedBalance = schedule.at(-1)?.closingBalance ?? details.principal;
+  const limit = details.guaranteeLimit ?? null;
+  const breachDate =
+    limit == null
+      ? null
+      : details.principal > limit
+        ? details.startDate
+        : (schedule.find(e => e.closingBalance > limit)?.date ?? null);
 
   return {
     maturityDate,
@@ -146,7 +270,12 @@ export function calculateDepositSummary(
     nextPayoutDate: next?.date ?? null,
     nextPayoutAmount: next?.net ?? null,
     effectiveNetYield: details.principal > 0 && years > 0 ? round2((expectedNet / details.principal / years) * 100) : 0,
-    overGuarantee: details.guaranteeLimit != null && details.principal + capitalized > details.guaranteeLimit,
+    projectedMaturityBalance: projectedBalance,
+    overGuarantee: limit != null && projectedBalance > limit,
+    guaranteeBreachDate: breachDate,
+    maxPrincipalWithinGuarantee:
+      limit != null && projectedBalance > 0 ? round2((limit * details.principal) / projectedBalance) : null,
+    capitalizationDelta: capitalizationDelta(details, opts.reinvestRate ?? details.reinvestRate ?? 0),
     rateEstimated: details.rateType !== DepositRateTypes.Fixed,
     status: details.status,
   };

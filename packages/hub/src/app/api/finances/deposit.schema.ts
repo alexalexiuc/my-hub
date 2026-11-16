@@ -14,7 +14,11 @@ export const depositSummarySchema = z.object({
   nextPayoutDate: z.string().nullable(),
   nextPayoutAmount: z.number().nullable(),
   effectiveNetYield: z.number(),
+  projectedMaturityBalance: z.number(),
   overGuarantee: z.boolean(),
+  guaranteeBreachDate: z.string().nullable(),
+  maxPrincipalWithinGuarantee: z.number().nullable(),
+  capitalizationDelta: z.number(),
   rateEstimated: z.boolean(),
   status: z.enum(DepositStatuses),
 });
@@ -54,6 +58,7 @@ export const depositActionSchema = z.discriminatedUnion('action', [
     date: z.string().optional(),
     clawbackAmount: z.number().positive().optional(),
     returnAmount: z.number().positive().optional(),
+    forfeitedAmount: z.number().positive().optional(),
   }),
 ]);
 

@@ -83,6 +83,14 @@ export interface DepositInterestTransactionDetails extends TransactionDetails {
   net: number;
 }
 
+// Interest the bank kept when a deposit was broken early. An expense on the deposit account itself, so the
+// deposit balance reaches 0; amount is in the deposit's currency.
+export interface DepositForfeitedInterestTransactionDetails extends TransactionDetails {
+  readonly kind: 'deposit_forfeited_interest';
+  depositAccountId: number;
+  forfeited: number;
+}
+
 // Fallback — for entry types without a dedicated shape yet.
 export interface BaseTransactionDetails extends TransactionDetails {
   readonly kind: 'base';

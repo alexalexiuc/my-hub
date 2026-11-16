@@ -156,3 +156,18 @@ None. Existing accounts (e.g. _Deposit MDL_, id 27) are left untouched; once the
 - [ ] Alert fires 14 days before maturity and on a missed payout. (Rules unit-tested in `utils/deposit.test.ts`; the worker job and email were not run.)
 - [x] Closing at maturity returns 200k to the return account and the deposit leaves active net worth.
 - [x] Hub add form, account list/detail, Log interest and Close work (Playwright `finances-deposit.spec.ts`); 390px list and detail checked.
+
+## 11. Capitalization (v0.4, implemented in shared + MCP)
+
+The schedule and `depositSummary` are **forecast and graph data only**. Nothing is posted automatically: interest, mode changes and closing are explicit transactions, as with loans.
+
+- **Compounding:** `payout: capitalized` credits each period's **net** interest (gross − tax) to the deposit, which earns interest from then on. Final balance = principal × (1 + r·(1−tax)/n)^periods.
+- **`capitalizationFrequency`** (`monthly` default | `quarterly` | `at_maturity`) is separate from `payout` and only valid with `capitalized`.
+- **Schedule entries** carry `openingBalance`, `closingBalance` and `capitalized`. Paid-out entries still sum exactly to the rounded term total.
+- **Summary** adds `projectedMaturityBalance`, `guaranteeBreachDate`, `maxPrincipalWithinGuarantee` and `capitalizationDelta` (optional `reinvestRate` on the deposit). `overGuarantee` now uses the projected maturity balance. The reinvestment comparison uses simple interest taxed at the deposit's tax rate.
+- **Recording:** `finances_record_deposit_interest` lands in the deposit itself for capitalized periods (balance and net worth grow), otherwise in the payout account.
+- **Mode change:** `finances_update_deposit` (`payout`, `capitalizationFrequency`, `effectiveDate`). The earlier mode is kept in `modeHistory`; only periods after `modeEffectiveDate` are recomputed. A period cut short by the change accrues by days/365. `finances_upsert_account` no longer edits `payout`.
+- **Early break:** `finances_close_deposit` with `returnAmount` below the balance (same currency) books the difference as an expense on the deposit in the Interest category, so the balance reaches 0. Across currencies, pass `forfeitedAmount` alongside the credited `returnAmount`.
+
+Acceptance (unit-tested in `utils/deposit.test.ts`): 185,000 MDL → ≈199,400, `overGuarantee = false`; 200,000 MDL → ≈215,570, breach on the first capitalization, `maxPrincipalWithinGuarantee` ≈185,555 (the brief's 185,560 is rounded); mid-term switch keeps earlier periods.
+Not yet covered: MCP e2e for the new tools, Hub UI for the new fields.

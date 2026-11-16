@@ -9,7 +9,14 @@
 //
 // Use BaseAccountDetails for account types that carry no structured data yet.
 
-import type { DepositInstrument, DepositPayout, DepositRateType, DepositStatus, LentDirection } from '../constants';
+import type {
+  DepositCapitalizationFrequency,
+  DepositInstrument,
+  DepositPayout,
+  DepositRateType,
+  DepositStatus,
+  LentDirection,
+} from '../constants';
 
 /** Root shape shared by all account detail variants. */
 export interface BaseAccountDetails {
@@ -61,6 +68,13 @@ export interface LoanAccountDetails extends BaseAccountDetails {
   linkedItemName?: string;
 }
 
+/** An earlier payout/capitalization mode of a deposit and the date it took effect (kept when the mode changes). */
+export interface DepositModeSegment {
+  from: string; // YYYY-MM-DD, first day the mode applied
+  payout: DepositPayout;
+  capitalizationFrequency?: DepositCapitalizationFrequency;
+}
+
 /** A fixed-term deposit (or bond) — money placed at a known rate for a known term. */
 export interface DepositAccountDetails extends BaseAccountDetails {
   readonly type: 'deposit';
@@ -74,6 +88,10 @@ export interface DepositAccountDetails extends BaseAccountDetails {
   startDate: string; // YYYY-MM-DD
   termMonths: number; // maturity date is derived from startDate + termMonths
   payout: DepositPayout;
+  capitalizationFrequency?: DepositCapitalizationFrequency; // only when payout is capitalized; default monthly
+  modeEffectiveDate?: string; // date the current payout/capitalization mode began; defaults to startDate
+  modeHistory?: DepositModeSegment[]; // earlier modes, oldest first; empty until the mode is changed mid-term
+  reinvestRate?: number; // % — assumed rate on paid-out interest for the capitalization comparison
   payoutAccountId?: number; // required unless payout is capitalized; where net interest lands
   returnAccountId?: number; // where principal returns at maturity; defaults to payoutAccountId
   taxRate: number; // % withheld at source
