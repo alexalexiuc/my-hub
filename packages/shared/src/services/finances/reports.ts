@@ -6,7 +6,7 @@
  * getAccountFlows and getSavingsContributions).
  * - getMonthlyFinanceReport(userId, budgetId, month?) — MonthlyFinanceReport for one YYYY-MM month (defaults to last completed month)
  * - getYearlyFinanceReport(userId, budgetId, year?) — YearlyFinanceReport for one calendar year (defaults to last completed year)
- * Types: CategorySpike, LoanProgress, GoalProgress, MonthlyFinanceReport, LoanPayoffProgress, IbkrDcaProgress, YearlyFinanceReport
+ * Types: CategorySpike, LoanProgress, GoalProgress, DepositProgress, MonthlyFinanceReport, LoanPayoffProgress, IbkrDcaProgress, YearlyFinanceReport
  */
 import { AccountTypes } from '../../constants/finances';
 import { getAccountDetails, type FinanceAccount } from '../../types';
@@ -30,6 +30,7 @@ import {
   type ComparisonResult,
 } from './reporting';
 import { calculateLoanAmortizationSummary } from './loan-amortization';
+import { getDepositSummaryForAccount } from './deposits';
 import { getPortfolio, getSupplies } from './portfolio';
 
 const SPIKE_THRESHOLD_PCT = 40;
@@ -63,6 +64,18 @@ export interface GoalProgress {
   contributionThisPeriod: number;
 }
 
+/** Active deposit snapshot for a report: where it stands at the end of the reporting period. */
+export interface DepositProgress {
+  accountId: number;
+  accountName: string;
+  currency: string;
+  principal: number;
+  maturityDate: string;
+  daysToMaturity: number;
+  interestReceivedToDate: number;
+  expectedNetInterest: number;
+}
+
 export interface MonthlyFinanceReport {
   month: string; // YYYY-MM
   dateFrom: string;
@@ -80,6 +93,7 @@ export interface MonthlyFinanceReport {
     dataQualityFlags: { accountId: number; accountName: string }[];
     goals: GoalProgress[];
     loans: LoanProgress[];
+    deposits: DepositProgress[];
   };
 }
 
@@ -193,6 +207,35 @@ function computeLoanPayoffFigures(
   });
 }
 
+/** Deposit standing as of `asOfDate` for every active deposit account (shared by the monthly and yearly reports). */
+async function computeDepositProgress(
+  userId: string,
+  budgetId: number,
+  accounts: FinanceAccount[],
+  asOfDate: string,
+): Promise<DepositProgress[]> {
+  const rows = await Promise.all(
+    accounts
+      .filter(a => a.type === AccountTypes.Deposit)
+      .map(async account => {
+        const details = getAccountDetails('deposit', account.details);
+        const summary = await getDepositSummaryForAccount(userId, budgetId, account, { asOfDate });
+        if (!details || !summary) return null;
+        return {
+          accountId: account.id,
+          accountName: account.name,
+          currency: account.currency,
+          principal: details.principal,
+          maturityDate: summary.maturityDate,
+          daysToMaturity: summary.daysToMaturity,
+          interestReceivedToDate: summary.interestReceivedToDate,
+          expectedNetInterest: summary.expectedNetInterest,
+        };
+      }),
+  );
+  return rows.filter(r => r !== null);
+}
+
 function computeGoalProgress(
   accounts: FinanceAccount[],
   savingsContributions: SavingsContributionsResult,
@@ -249,6 +292,8 @@ export async function getMonthlyFinanceReport(
     dateTo,
   ).map(({ paidDown, ...rest }) => ({ ...rest, paidDownThisPeriod: paidDown }));
 
+  const deposits = await computeDepositProgress(userId, budgetId, accounts, dateTo);
+
   const dataQualityFlags = accountFlows.accounts
     .filter(a => !a.reconciles)
     .map(a => ({ accountId: a.accountId, accountName: a.accountName }));
@@ -261,7 +306,7 @@ export async function getMonthlyFinanceReport(
     accountFlows,
     savingsContributions,
     budgetProgress,
-    insights: { categorySpikes, newPayees, dataQualityFlags, goals, loans },
+    insights: { categorySpikes, newPayees, dataQualityFlags, goals, loans, deposits },
   };
 }
 
@@ -293,6 +338,7 @@ export interface YearlyFinanceReport {
   /** Null when no portfolio has been set up. */
   ibkrDca: IbkrDcaProgress | null;
   loans: LoanPayoffProgress[];
+  deposits: DepositProgress[];
   /** 12-month table per category (categoryId/name -> month -> total). */
   categoryByMonth: { categoryId: number | undefined; categoryName: string; months: Record<string, number> }[];
   /** Year-over-year comparison vs the prior calendar year, by category. */
@@ -401,6 +447,7 @@ export async function getYearlyFinanceReport(
     dateFrom,
     dateTo,
   ).map(({ paidDown, ...rest }) => ({ ...rest, paidDownThisYear: paidDown }));
+  const deposits = await computeDepositProgress(userId, budgetId, accounts, dateTo);
 
   const netWorthHistory = netWorthSummary.history.filter(h => h.month.startsWith(String(targetYear)));
   const netWorthDelta =
@@ -418,6 +465,7 @@ export async function getYearlyFinanceReport(
     savingsContributions,
     ibkrDca,
     loans,
+    deposits,
     categoryByMonth,
     yearOverYear,
   };

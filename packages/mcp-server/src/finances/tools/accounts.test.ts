@@ -289,4 +289,12 @@ describe('upsertAccountTool', () => {
     expect(payload.openingTransaction.type).toBe('expense');
     expect(payload.openingTransaction.amount).toBe(-500);
   });
+
+  it('refuses to create a deposit account (use finances_add_deposit)', async () => {
+    vi.mocked(getUserActiveBudget).mockResolvedValue({ id: 1, defaultCurrency: 'MDL' } as never);
+    await expect(upsertAccountTool({ ...baseInput, name: 'Term', type: 'deposit' }, financesContext)).rejects.toThrow(
+      /finances_add_deposit/,
+    );
+    expect(createAccount).not.toHaveBeenCalled();
+  });
 });

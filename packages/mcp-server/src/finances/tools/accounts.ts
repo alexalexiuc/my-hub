@@ -13,9 +13,19 @@ import {
   getMonthlyPayment,
   getLoanSummaryForAccount,
   buildLoanSummary,
+  validateDepositDetails,
+  getDepositSummaryForAccount,
 } from '@my-hub/shared/services';
 import { getAccountDetails } from '@my-hub/shared/types';
-import { AccountTypes, CARD_LAST_FOUR_PATTERN, LentDirections, TransactionTypes } from '@my-hub/shared/constants';
+import type { AccountDetails } from '@my-hub/shared/constants';
+import {
+  AccountTypes,
+  CARD_LAST_FOUR_PATTERN,
+  DepositPayouts,
+  DepositRateTypes,
+  LentDirections,
+  TransactionTypes,
+} from '@my-hub/shared/constants';
 import { omitUndefined, currentDateString } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../../shared/schemas';
 
@@ -28,7 +38,7 @@ export const UpsertAccountSchema = z.object({
     .enum(AccountTypes)
     .optional()
     .describe(
-      'Account type. Required when creating. One of: cash, bank, credit_card, investment, loan, borrowed_lent, tracking, goal.',
+      'Account type. Required when creating. One of: cash, bank, credit_card, investment, loan, deposit, borrowed_lent, tracking, goal.',
     ),
   currency: supportedCurrencySchema
     .optional()
@@ -118,10 +128,28 @@ export const UpsertAccountSchema = z.object({
       z.object({
         type: z.literal('tracking'),
       }),
+      z.object({
+        type: z.literal('deposit'),
+        institution: z.string().trim().min(1).optional(),
+        productName: z.string().optional(),
+        interestRate: z.number().min(0).optional().describe('Annual nominal rate, percent.'),
+        rateType: z.enum(DepositRateTypes).optional(),
+        fixedMonths: z.number().int().positive().optional(),
+        termMonths: z.number().int().positive().optional(),
+        payout: z.enum(DepositPayouts).optional(),
+        payoutAccountId: z.number().int().positive().optional(),
+        returnAccountId: z.number().int().positive().optional(),
+        taxRate: z.number().min(0).max(100).optional(),
+        tranches: z.number().int().positive().optional(),
+        earlyExitRule: z.string().optional(),
+        autoRenew: z.boolean().optional(),
+        guaranteeLimit: z.number().positive().optional(),
+      }),
     ])
     .optional()
     .describe(
       'Type-specific account details. The "type" field must match the account type. ' +
+        'Deposits: edit-only and partial (only the fields you pass change) — create with finances_add_deposit. ' +
         'Required for: loan (principal, interestRate, termMonths, firstPaymentDate), ' +
         'credit_card (creditLimit, statementDay), ' +
         'borrowed_lent (counterpartyName, direction), ' +
@@ -154,12 +182,23 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
     const existing = await getAccountById(userId, budget.id, input.id);
     if (!existing) throw new HandledError(`Account id ${input.id} not found`);
 
+    // A partial deposit variant is replaced by the merged full deposit below; all others are complete.
+    let details = input.details as AccountDetails | undefined;
+    if (input.details?.type === AccountTypes.Deposit) {
+      const current = getAccountDetails('deposit', existing.details);
+      if (!current) throw new HandledError('This account is not a deposit — details.type "deposit" does not apply.');
+      // Partial edit: merge onto the stored deposit (principal, dates and status are not editable here).
+      const merged = { ...current, ...omitUndefined(input.details) };
+      await validateDepositDetails(userId, budget.id, merged);
+      details = merged;
+    }
+
     account = await updateAccount(userId, budget.id, input.id, {
       name: input.name,
       type: input.type,
       currency: input.currency,
       archived: input.archived,
-      ...(input.details !== undefined ? { details: input.details } : {}),
+      ...(details !== undefined ? { details } : {}),
     });
   } else {
     if (!input.name) throw new HandledError('name is required when creating an account');
@@ -168,6 +207,12 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
       throw new HandledError(
         'Use the finances_add_loan tool to create loan accounts. ' +
           'It sets the opening balance from the principal automatically.',
+      );
+    }
+    if (input.type === AccountTypes.Deposit) {
+      throw new HandledError(
+        'Use the finances_add_deposit tool to create deposit accounts. ' +
+          'It records the funding transfer from the source account.',
       );
     }
     if (DETAILS_REQUIRED.includes(input.type) && !input.details) {
@@ -183,7 +228,7 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
       currency: input.currency ?? budget.defaultCurrency,
       balance: 0,
       archived: input.archived ?? false,
-      details: input.details ?? null,
+      details: (input.details ?? null) as AccountDetails | null, // deposit is rejected above
     });
   }
 
@@ -226,6 +271,11 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
   const loanSummary =
     finalAccount!.type === AccountTypes.Loan ? await getLoanSummaryForAccount(userId, budget.id, finalAccount!) : null;
 
+  const depositSummary =
+    finalAccount!.type === AccountTypes.Deposit
+      ? await getDepositSummaryForAccount(userId, budget.id, finalAccount!)
+      : null;
+
   return toolResponse({
     id: finalAccount!.id,
     name: finalAccount!.name,
@@ -235,6 +285,7 @@ export const upsertAccountTool: ToolHandler<typeof UpsertAccountSchema.shape> = 
     archived: finalAccount!.archived,
     ...(openingTx ? { openingTransaction: openingTx } : {}),
     ...(loanSummary ? { loanSummary } : {}),
+    ...(depositSummary ? { depositSummary } : {}),
   });
 };
 

@@ -103,6 +103,20 @@ function buildLoans(data: BuildFinanceYearlyReportHtmlData): string {
   <div class="block">${rows || '<div class="empty">No loan accounts.</div>'}</div>`;
 }
 
+function buildDeposits(data: BuildFinanceYearlyReportHtmlData): string {
+  if (data.report.deposits.length === 0) return '';
+  const rows = data.report.deposits
+    .map(
+      d =>
+        `<div class="list-item"><span>${d.accountName}</span><span class="mono">${fmt(d.principal, d.currency)}, ${fmt(d.interestReceivedToDate, d.currency)} of ${fmt(d.expectedNetInterest, d.currency)} interest, matures ${d.maturityDate}</span></div>`,
+    )
+    .join('');
+
+  return `
+  <div class="section-label">Deposits</div>
+  <div class="block">${rows}</div>`;
+}
+
 function buildCategoryByMonth(data: BuildFinanceYearlyReportHtmlData): string {
   const rows = data.report.categoryByMonth
     .map(c => ({ ...c, total: Object.values(c.months).reduce((s, v) => s + v, 0) }))
@@ -178,6 +192,7 @@ ${buildSummary(data)}
 ${buildNetWorth(data)}
 ${buildSavingsAndIbkr(data)}
 ${buildLoans(data)}
+${buildDeposits(data)}
 ${buildCategoryByMonth(data)}
 ${buildYoY(data)}
 ${data.urls ? buildFooter(data) : ''}

@@ -8,6 +8,10 @@ describe('isLiabilityAccount', () => {
     expect(isLiabilityAccount(AccountTypes.CreditCard)).toBe(true);
   });
 
+  it('treats deposits as assets', () => {
+    expect(isLiabilityAccount(AccountTypes.Deposit)).toBe(false);
+  });
+
   it('treats ordinary asset accounts as assets', () => {
     expect(isLiabilityAccount(AccountTypes.Bank)).toBe(false);
     expect(isLiabilityAccount(AccountTypes.Investment)).toBe(false);

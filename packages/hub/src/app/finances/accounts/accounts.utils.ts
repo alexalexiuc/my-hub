@@ -9,6 +9,7 @@ export const ACCOUNT_GROUPS = [
   { key: 'loan', label: 'Loans' },
   { key: 'borrowed_lent', label: 'Borrowed/Lent' },
   { key: 'investment', label: 'Investments' },
+  { key: 'deposit', label: 'Deposits' },
   { key: 'tracking', label: 'Tracking' },
 ] as const;
 

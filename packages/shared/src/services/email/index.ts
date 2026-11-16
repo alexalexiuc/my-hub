@@ -7,5 +7,6 @@ export * from './templates/finance-monthly-report/';
 export * from './templates/finance-monthly-report/types';
 export * from './templates/finance-yearly-report/';
 export * from './templates/finance-yearly-report/types';
+export * from './templates/finance-deposit-alerts/';
 export * from './templates/password-reset/';
 export * from './templates/email-verification/';

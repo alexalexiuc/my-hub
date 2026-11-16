@@ -8,6 +8,7 @@ export * from './exchangeRates';
 export * from './reporting';
 export * from './reports';
 export * from './loan-amortization';
+export * from './deposits';
 export * from './monthly-plans';
 export * from './import-batches';
 export * from './labels';

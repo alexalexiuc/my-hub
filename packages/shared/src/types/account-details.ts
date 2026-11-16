@@ -9,7 +9,7 @@
 //
 // Use BaseAccountDetails for account types that carry no structured data yet.
 
-import { LentDirection } from '../constants';
+import type { DepositInstrument, DepositPayout, DepositRateType, DepositStatus, LentDirection } from '../constants';
 
 /** Root shape shared by all account detail variants. */
 export interface BaseAccountDetails {
@@ -61,6 +61,29 @@ export interface LoanAccountDetails extends BaseAccountDetails {
   linkedItemName?: string;
 }
 
+/** A fixed-term deposit (or bond) — money placed at a known rate for a known term. */
+export interface DepositAccountDetails extends BaseAccountDetails {
+  readonly type: 'deposit';
+  institution: string;
+  productName?: string;
+  instrument: DepositInstrument;
+  principal: number; // account currency
+  interestRate: number; // annual nominal, %
+  rateType: DepositRateType;
+  fixedMonths?: number; // only for fixed_then_floating
+  startDate: string; // YYYY-MM-DD
+  termMonths: number; // maturity date is derived from startDate + termMonths
+  payout: DepositPayout;
+  payoutAccountId?: number; // required unless payout is capitalized; where net interest lands
+  returnAccountId?: number; // where principal returns at maturity; defaults to payoutAccountId
+  taxRate: number; // % withheld at source
+  tranches?: number; // identical bank deposits represented by this account (informational)
+  earlyExitRule?: string;
+  autoRenew?: boolean;
+  guaranteeLimit?: number;
+  status: DepositStatus;
+}
+
 export interface BorrowedLentAccountDetails extends BaseAccountDetails {
   readonly type: 'borrowed_lent';
   counterpartyName: string;
@@ -88,6 +111,7 @@ export type AccountDetails =
   | CreditCardAccountDetails
   | InvestmentAccountDetails
   | LoanAccountDetails
+  | DepositAccountDetails
   | BorrowedLentAccountDetails
   | GoalAccountDetails
   | TrackingAccountDetails;

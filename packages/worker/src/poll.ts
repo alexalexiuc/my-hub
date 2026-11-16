@@ -11,6 +11,7 @@ import { syncTickerPrices } from './ticker-price-sync.js';
 import { snapshotFinanceNetWorth } from './finance-networth-snapshot.js';
 import { sendFinanceMonthlyReports } from './finance-monthly-report.js';
 import { sendFinanceYearlyReports } from './finance-yearly-report.js';
+import { sendFinanceDepositAlerts } from './finance-deposit-alerts.js';
 
 interface Task {
   name: string;
@@ -73,6 +74,12 @@ export const tasks: Task[] = [
     name: 'finance-monthly-report',
     cron: '0 8 1 * *', // 1st of every month at 08:00
     fn: sendFinanceMonthlyReports,
+  },
+  {
+    // Only emails when a rule fires (maturity in 14 days, payout overdue) — no routine digest.
+    name: 'finance-deposit-alerts',
+    cron: '0 6 * * *', // every day at 06:00 UTC
+    fn: sendFinanceDepositAlerts,
   },
   {
     // Jan 5th, not Jan 1st — gives a buffer for late-posting December transactions and

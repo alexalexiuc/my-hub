@@ -46,6 +46,14 @@ function AccountCard({
           <div className="min-w-0">
             <div className="text-sm font-semibold text-[var(--text)] truncate">{acc.name}</div>
             {acc.cardLastFour && <SubText className="block">{formatCardLastFour(acc.cardLastFour)}</SubText>}
+            {acc.type === 'deposit' && acc.depositSummary && (
+              <SubText className="block">
+                {acc.interestRate}% ·{' '}
+                {acc.depositStatus === 'active'
+                  ? `matures ${acc.depositSummary.maturityDate} (${acc.depositSummary.daysToMaturity}d)`
+                  : acc.depositStatus}
+              </SubText>
+            )}
             {(acc.monthIncome != null || acc.monthExpenses != null) && (
               <div className="flex flex-wrap items-center gap-2 text-[10px] tabular-nums">
                 <span className="text-[var(--green)]">+{formatMoney(acc.monthIncome ?? 0, acc.currency)}</span>

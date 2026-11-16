@@ -95,6 +95,19 @@ export function InsightsSection({ report, currency }: Props) {
           ))
         )}
       </Card>
+
+      {insights.deposits.length > 0 && (
+        <Card compact className="p-4">
+          <SubText className="mb-2 block">Deposits</SubText>
+          {insights.deposits.map(d => (
+            <Row
+              key={d.accountId}
+              left={d.accountName}
+              right={`${formatMoney(d.principal, d.currency)}, ${formatMoney(d.interestReceivedToDate, d.currency)} interest received, matures ${d.maturityDate} (${d.daysToMaturity}d)`}
+            />
+          ))}
+        </Card>
+      )}
     </div>
   );
 }

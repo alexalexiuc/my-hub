@@ -73,6 +73,16 @@ export interface ReceiptLineItem {
   categoryHint?: string;
 }
 
+// Interest payout from a deposit account. Amounts are in the deposit's currency; the
+// transaction's own `amount` is the net interest in the receiving account's currency.
+export interface DepositInterestTransactionDetails extends TransactionDetails {
+  readonly kind: 'deposit_interest';
+  depositAccountId: number;
+  gross: number;
+  tax: number;
+  net: number;
+}
+
 // Fallback — for entry types without a dedicated shape yet.
 export interface BaseTransactionDetails extends TransactionDetails {
   readonly kind: 'base';

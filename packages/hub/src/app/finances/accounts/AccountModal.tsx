@@ -2,14 +2,20 @@
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { UseFormRegister, Control } from 'react-hook-form';
+import type { UseFormRegister, UseFormSetValue, Control } from 'react-hook-form';
 import { apiFetch } from '@/lib/utils';
 import type { AccountMutationResponse, AccountCreateData, AccountItem } from '@/app/api/finances/accounts/route';
 import { FinModalShell } from '../FinModalShell';
 import { Input, Select, SubText } from '@/components';
 import { FinancialDropdown } from '../FinancialDropdown';
 import { FinFieldCard } from '../ui';
-import { AccountTypes, ACCOUNT_TYPE_DESCRIPTIONS, SupportedCurrency } from '@my-hub/shared/constants';
+import {
+  AccountTypes,
+  ACCOUNT_TYPE_DESCRIPTIONS,
+  type DepositRateType,
+  type DepositStatus,
+  SupportedCurrency,
+} from '@my-hub/shared/constants';
 import {
   AddAccountSchema,
   EditAccountSchema,
@@ -21,6 +27,7 @@ import {
   type EditAccountValues,
 } from '../finances-form.schema';
 import { ACCOUNT_TYPE_OPTIONS, DIRECTION_OPTIONS } from './accountOptions';
+import { DepositFields } from './DepositFields';
 import {
   CURRENCY_SELECT_OPTIONS,
   finGhostInputClass as ghostInputClass,
@@ -36,10 +43,16 @@ function TypeSpecificFields({
   type,
   register,
   control,
+  setValue,
+  mode,
+  defaultCurrency,
 }: {
   type: string;
   register: UseFormRegister<AddAccountValues>;
   control: Control<AddAccountValues>;
+  setValue: UseFormSetValue<AddAccountValues>;
+  mode: 'add' | 'edit';
+  defaultCurrency: SupportedCurrency;
 }) {
   return (
     <>
@@ -192,6 +205,16 @@ function TypeSpecificFields({
         </>
       )}
 
+      {type === AccountTypes.Deposit && (
+        <DepositFields
+          register={register}
+          control={control}
+          setValue={setValue}
+          mode={mode}
+          defaultCurrency={defaultCurrency}
+        />
+      )}
+
       {type === AccountTypes.BorrowedLent && (
         <>
           <FinFieldCard label="Counterparty Name">
@@ -244,6 +267,7 @@ function AddAccountForm({
     handleSubmit,
     watch,
     control,
+    setValue,
     formState: { isSubmitting },
   } = useForm<AddAccountValues>({
     resolver: zodResolver(AddAccountSchema),
@@ -265,8 +289,16 @@ function AddAccountForm({
             ? parseFloat(values.principal) || 0
             : values.type === AccountTypes.Investment
               ? parseFloat(values.deposited) || 0
-              : parseFloat(values.openingBalance) || 0,
+              : values.type === AccountTypes.Deposit
+                ? 0
+                : parseFloat(values.openingBalance) || 0,
         details: formToAccountDetails(values),
+        ...(values.type === AccountTypes.Deposit
+          ? {
+              fundingSourceAccountId: parseInt(values.depFundingSourceId) || undefined,
+              fundingSourceAmount: parseFloat(values.depFundingAmount) || undefined,
+            }
+          : {}),
       },
     });
     onDone();
@@ -334,7 +366,7 @@ function AddAccountForm({
           />
         </FinFieldCard>
 
-        {type !== AccountTypes.Loan && type !== AccountTypes.Investment && (
+        {type !== AccountTypes.Loan && type !== AccountTypes.Investment && type !== AccountTypes.Deposit && (
           <FinFieldCard label="Opening Balance">
             <Input
               {...register('openingBalance')}
@@ -346,7 +378,14 @@ function AddAccountForm({
           </FinFieldCard>
         )}
 
-        <TypeSpecificFields type={type} register={register} control={control} />
+        <TypeSpecificFields
+          type={type}
+          register={register}
+          control={control}
+          setValue={setValue}
+          mode="add"
+          defaultCurrency={defaultCurrency}
+        />
       </form>
     </FinModalShell>
   );
@@ -359,6 +398,7 @@ function EditAccountForm({ acc, onClose, onDone }: { acc: AccountItem; onClose: 
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { isSubmitting },
   } = useForm<EditAccountValues>({
     resolver: zodResolver(EditAccountSchema),
@@ -366,7 +406,12 @@ function EditAccountForm({ acc, onClose, onDone }: { acc: AccountItem; onClose: 
   });
 
   async function onSubmit(values: EditAccountValues) {
-    const details = formToEditDetails(acc.type, values, { settled: acc.settled });
+    const details = formToEditDetails(acc.type, values, {
+      settled: acc.settled,
+      rateType: acc.rateType as DepositRateType | undefined,
+      autoRenew: acc.autoRenew,
+      status: acc.depositStatus as DepositStatus | undefined,
+    });
     await apiFetch(`/api/finances/accounts/${acc.id}`, {
       method: 'PATCH',
       body: {
@@ -419,6 +464,9 @@ function EditAccountForm({ acc, onClose, onDone }: { acc: AccountItem; onClose: 
           type={acc.type}
           register={register as unknown as UseFormRegister<AddAccountValues>}
           control={control as unknown as Control<AddAccountValues>}
+          setValue={setValue as unknown as UseFormSetValue<AddAccountValues>}
+          mode="edit"
+          defaultCurrency={acc.currency as SupportedCurrency}
         />
       </form>
     </FinModalShell>

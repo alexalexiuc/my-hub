@@ -81,6 +81,7 @@ export type {
   ReceiptTransactionDetails,
   ReceiptLineItem,
   BaseTransactionDetails,
+  DepositInterestTransactionDetails,
   TransactionConversionMeta,
 } from './transaction-details';
 
@@ -119,6 +120,7 @@ export type {
   CreditCardAccountDetails,
   InvestmentAccountDetails,
   LoanAccountDetails,
+  DepositAccountDetails,
   BorrowedLentAccountDetails,
   GoalAccountDetails,
   TrackingAccountDetails,

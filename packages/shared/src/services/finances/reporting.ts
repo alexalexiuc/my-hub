@@ -11,7 +11,7 @@
  * - getSpendingAggregates(userId, budgetId, opts) — flexible groupBy aggregation
  * - getComparison(userId, budgetId, opts) — side-by-side period comparison with absolute and percentage delta
  * - getAccountsCashflow(userId, budgetId, dateFrom, dateTo, accountIds?) — per-account income vs spending (expenses + categorized transfers into Loan accounts) for a date range, in each account's own currency
- * - getSavingsAndDebtFlows(userId, budgetId, dateFrom, dateTo) — net transfers (in minus out) into Goal/Tracking (savings), Investment, and Loan (debt repayment) accounts for a date range
+ * - getSavingsAndDebtFlows(userId, budgetId, dateFrom, dateTo) — net transfers (in minus out) into Goal/Tracking/Deposit (savings), Investment, and Loan (debt repayment) accounts for a date range
  * - getAccountFlows(userId, budgetId, dateFrom, dateTo, accountId?) — per-account opening/closing balance + inflows/outflows/net delta for a date range, with a reconciliation flag
  * - getMonthlyAccountFlows(userId, budgetId, monthFrom, monthTo) — per-account inflows/outflows/net for every calendar month in a window, zero-filled, in each account's own currency
  * - getCategorySpending(userId, budgetId, dateFrom, dateTo) — expense totals per category for a date range, with each category's icon/colour, highest spend first
@@ -350,7 +350,13 @@ export async function getSavingsAndDebtFlows(
     throw new Error('Budget not found');
   }
 
-  const trackedTypes = [AccountTypes.Goal, AccountTypes.Tracking, AccountTypes.Investment, AccountTypes.Loan];
+  const trackedTypes = [
+    AccountTypes.Goal,
+    AccountTypes.Tracking,
+    AccountTypes.Deposit,
+    AccountTypes.Investment,
+    AccountTypes.Loan,
+  ];
 
   const baseConditions = [
     eq(financeTransactions.budgetId, budgetId),
@@ -390,7 +396,10 @@ export async function getSavingsAndDebtFlows(
     netByType.set(row.accountType, (netByType.get(row.accountType) ?? 0) - parseFloat(row.total ?? '0'));
   }
 
-  const savings = (netByType.get(AccountTypes.Goal) ?? 0) + (netByType.get(AccountTypes.Tracking) ?? 0);
+  const savings =
+    (netByType.get(AccountTypes.Goal) ?? 0) +
+    (netByType.get(AccountTypes.Tracking) ?? 0) +
+    (netByType.get(AccountTypes.Deposit) ?? 0);
   const investments = netByType.get(AccountTypes.Investment) ?? 0;
   const debtRepayment = netByType.get(AccountTypes.Loan) ?? 0;
 
@@ -806,7 +815,12 @@ export interface SavingsContributionsResult {
 }
 
 /** Account types tracked as "savings/investment" for the net-contribution headline. Loan repayments are a separate concern (debt paydown), not savings. */
-const SAVINGS_TRACKED_TYPES: AccountType[] = [AccountTypes.Goal, AccountTypes.Tracking, AccountTypes.Investment];
+const SAVINGS_TRACKED_TYPES: AccountType[] = [
+  AccountTypes.Goal,
+  AccountTypes.Tracking,
+  AccountTypes.Deposit,
+  AccountTypes.Investment,
+];
 
 async function getSavingsContributionsForRange(
   budgetId: number,
@@ -903,7 +917,7 @@ async function getSavingsContributionsForRange(
 }
 
 /**
- * Net amount transferred into Goal/Tracking/Investment accounts during a date range ("did I
+ * Net amount transferred into Goal/Tracking/Deposit/Investment accounts during a date range ("did I
  * actually save something this period?"), per account plus a combined total, alongside the same
  * metric for the immediately preceding period of equal length for a quick delta. Each account's
  * contribution is reported both in its own currency and converted to the budget's default

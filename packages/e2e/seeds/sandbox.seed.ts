@@ -10,6 +10,8 @@ import {
   createGroup,
   createCategory,
   addTransaction,
+  openDeposit,
+  recordDepositInterest,
   upsertPayee,
   upsertCalorieProfile,
   logMeasurementsBatch,
@@ -573,6 +575,29 @@ export async function seedSandboxFixtures(monthsOfHistory = 21): Promise<{ budge
     toAccountId: usdCash.id,
     notes: 'Bought USD',
   });
+
+  // A 12-month term deposit opened two months ago, funded from the current account, with its
+  // first payout already received (the second is due, so "Log interest" has something to suggest).
+  const depositStart = `${shiftMonthStr(thisMonth, -2)}-05`;
+  const { account: termDeposit } = await openDeposit(user.id, budget.id, {
+    name: 'Term Deposit 4%',
+    currency: 'EUR',
+    sourceAccountId: current.id,
+    details: {
+      institution: 'Demo Bank',
+      productName: 'Fixed 12M',
+      instrument: 'bank_deposit',
+      principal: 5000,
+      interestRate: 4,
+      rateType: 'fixed',
+      startDate: depositStart,
+      termMonths: 12,
+      payout: 'monthly',
+      payoutAccountId: current.id,
+      taxRate: 6,
+    },
+  });
+  await recordDepositInterest(user.id, budget.id, termDeposit.id, { date: `${shiftMonthStr(thisMonth, -1)}-05` });
 
   await seedPortfolioFixtures(user.id, budget.id);
   await seedCaloriesFixtures(user.id);

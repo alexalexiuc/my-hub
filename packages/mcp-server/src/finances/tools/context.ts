@@ -11,6 +11,7 @@ import {
   getLoanBalanceSnapshotForAccount,
   getLoanDisplayBalance,
   getLoanSummaryForAccount,
+  getDepositSummaryForAccount,
 } from '@my-hub/shared/services';
 
 // ─── list_context ─────────────────────────────────────────────────────────────
@@ -46,6 +47,9 @@ export const listContextTool: ToolHandler<typeof ListContextSchema.shape> = asyn
             ])
           : [null, null];
 
+      const depositSummary =
+        account.type === AccountTypes.Deposit ? await getDepositSummaryForAccount(userId, budget.id, account) : null;
+
       return {
         id: account.id,
         name: account.name,
@@ -55,6 +59,7 @@ export const listContextTool: ToolHandler<typeof ListContextSchema.shape> = asyn
         archived: account.archived,
         ...(loanSnapshot ? { amortizationSummary: loanSnapshot.amortizationSummary } : {}),
         ...(loanSummary ? { loanSummary } : {}),
+        ...(depositSummary ? { depositSummary } : {}),
       };
     }),
   );
