@@ -46,6 +46,8 @@ import {
   recordDepositInterestTool,
   CloseDepositSchema,
   closeDepositTool,
+  UpdateDepositSchema,
+  updateDepositTool,
 } from './deposits';
 import {
   ListPayeesSchema,
@@ -125,8 +127,12 @@ const financeTools = [
       'Money really moves: the principal is recorded as a transfer from sourceAccountId on startDate, ' +
       'so do not also log the funding with finances_add_transactions. ' +
       'One account can represent several identical bank deposits (tranches). ' +
-      'Returns depositSummary (maturity date, expected gross/tax/net interest, next payout) and the expected payout schedule. ' +
-      'Use finances_record_deposit_interest for each interest payout and finances_close_deposit at maturity.',
+      'payout "capitalized" compounds: each period net interest (gross minus tax, withheld every period) is credited to the deposit ' +
+      'and earns interest; capitalizationFrequency is monthly (default), quarterly or at_maturity. ' +
+      'Returns depositSummary (maturity date, expected gross/tax/net interest, projectedMaturityBalance, guarantee check with ' +
+      'guaranteeBreachDate and maxPrincipalWithinGuarantee, capitalizationDelta) and the schedule (opening balance, gross, tax, net, closing balance per period). ' +
+      'Use finances_record_deposit_interest for each interest period, finances_update_deposit to switch payout/capitalization mid-term, ' +
+      'and finances_close_deposit at maturity.',
     inputSchema: AddDepositSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: addDepositTool,
@@ -135,7 +141,8 @@ const financeTools = [
     name: 'finances_record_deposit_interest',
     description:
       'Record one interest payout of a deposit as income of the NET amount (after tax withheld) into its payout account ' +
-      '(or into the deposit itself when interest is capitalized). Gross, tax and net are kept on the transaction. ' +
+      '(or into the deposit itself when that period is capitalized, so the deposit balance and net worth grow instead). ' +
+      'Gross, tax and net are kept on the transaction. ' +
       'Omit net to record the next scheduled payout; pass net/tax to match what the bank actually paid. ' +
       'Prefer this over finances_add_transactions for deposit interest so interestReceivedToDate stays correct.',
     inputSchema: RecordDepositInterestSchema.shape,
@@ -147,10 +154,23 @@ const financeTools = [
     description:
       'Close a deposit at maturity or break it early: transfers the remaining balance back to the return account, ' +
       'marks the deposit matured/broken and archives it so it leaves net worth. ' +
-      'For an early break pass clawbackAmount if the bank reclaimed interest already paid out.',
+      'For an early break pass clawbackAmount if the bank reclaimed interest already paid out. ' +
+      'If the bank keeps capitalized interest, pass returnAmount (what it actually returns, below the balance): the difference is ' +
+      'recorded as a forfeited-interest expense (category Interest) on the deposit so its balance reaches 0.',
     inputSchema: CloseDepositSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: true },
     callback: closeDepositTool,
+  }),
+  defineTool({
+    name: 'finances_update_deposit',
+    description:
+      'Turn capitalization on or off (or change its frequency) for an existing deposit from an effectiveDate, ' +
+      'e.g. payout "capitalized" or "monthly". Periods before effectiveDate keep their old mode and recorded history; ' +
+      'the schedule is recomputed from that date. Returns the new depositSummary and full schedule. ' +
+      'Switching to a paid-out mode needs a payout account (payoutAccountId).',
+    inputSchema: UpdateDepositSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: updateDepositTool,
   }),
   defineTool({
     name: 'finances_upsert_category',

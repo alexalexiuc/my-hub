@@ -82,6 +82,7 @@ export type {
   ReceiptLineItem,
   BaseTransactionDetails,
   DepositInterestTransactionDetails,
+  DepositForfeitedInterestTransactionDetails,
   TransactionConversionMeta,
 } from './transaction-details';
 

@@ -2,18 +2,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getUserActiveBudget,
   openDeposit,
+  updateDepositMode,
   recordDepositInterest,
   closeDeposit,
   getAccountById,
   getDepositSummaryForAccount,
 } from '@my-hub/shared/services';
-import { AddDepositSchema, addDepositTool, closeDepositTool, recordDepositInterestTool } from './deposits';
+import {
+  AddDepositSchema,
+  addDepositTool,
+  closeDepositTool,
+  recordDepositInterestTool,
+  UpdateDepositSchema,
+  updateDepositTool,
+} from './deposits';
 import { financesContext, parseToolPayload } from './test-utils';
 
 vi.mock('@my-hub/shared/services', () => ({
   getUserActiveBudget: vi.fn(),
   getAccountById: vi.fn(),
   openDeposit: vi.fn(),
+  updateDepositMode: vi.fn(),
   recordDepositInterest: vi.fn(),
   closeDeposit: vi.fn(),
   getDepositSummaryForAccount: vi.fn(),
@@ -87,6 +96,16 @@ describe('addDepositTool', () => {
     expect(result.depositSummary.expectedNetInterest).toBe(15_040);
   });
 
+  it('defaults a capitalized deposit to monthly capitalization', async () => {
+    vi.mocked(openDeposit).mockResolvedValue({ account: depositAccount, fundingTransactionId: 1 } as never);
+    await addDepositTool(AddDepositSchema.parse({ ...micb, payout: 'capitalized' }), financesContext);
+    expect(openDeposit).toHaveBeenCalledWith(
+      'user-1',
+      1,
+      expect.objectContaining({ details: expect.objectContaining({ capitalizationFrequency: 'monthly' }) }),
+    );
+  });
+
   it('uses zero tax by default for state bonds', async () => {
     vi.mocked(openDeposit).mockResolvedValue({ account: depositAccount, fundingTransactionId: 1 } as never);
     await addDepositTool(AddDepositSchema.parse({ ...micb, instrument: 'state_bond' }), financesContext);
@@ -129,5 +148,47 @@ describe('closeDepositTool', () => {
       await closeDepositTool({ depositAccountId: 9, reason: 'matured' }, financesContext),
     )) as { status: string; archived: boolean; returnedAmount: number };
     expect(result).toMatchObject({ status: 'matured', archived: true, returnedAmount: 200_000 });
+  });
+});
+
+describe('closeDepositTool forfeited interest', () => {
+  it('reports the forfeited amount and its transaction', async () => {
+    vi.mocked(closeDeposit).mockResolvedValue({
+      account: { ...depositAccount, archived: true, details: { ...depositAccount.details, status: 'broken' } },
+      returnedAmount: 185_000,
+      returnTransactionId: 88,
+      forfeitedAmount: 4_000,
+      forfeitedTransactionId: 89,
+    } as never);
+    const result = (await parseToolPayload(
+      await closeDepositTool({ depositAccountId: 9, reason: 'broken', returnAmount: 185_000 }, financesContext),
+    )) as Record<string, unknown>;
+    expect(closeDeposit).toHaveBeenCalledWith('user-1', 1, 9, { reason: 'broken', returnAmount: 185_000 });
+    expect(result).toMatchObject({ status: 'broken', forfeitedAmount: 4_000, forfeitedTransactionId: 89 });
+  });
+});
+
+describe('updateDepositTool', () => {
+  it('passes the new mode and effective date and returns the recomputed schedule', async () => {
+    vi.mocked(updateDepositMode).mockResolvedValue({
+      account: depositAccount,
+      effectiveDate: '2027-02-17',
+      summary: { projectedMaturityBalance: 210_000 },
+      schedule: [{ date: '2027-03-17' }],
+    } as never);
+    const input = UpdateDepositSchema.parse({
+      depositAccountId: 9,
+      payout: 'capitalized',
+      effectiveDate: '2027-02-17',
+    });
+    const result = (await parseToolPayload(await updateDepositTool(input, financesContext))) as Record<string, unknown>;
+    expect(updateDepositMode).toHaveBeenCalledWith('user-1', 1, 9, {
+      payout: 'capitalized',
+      effectiveDate: '2027-02-17',
+    });
+    expect(result).toMatchObject({
+      effectiveDate: '2027-02-17',
+      depositSummary: { projectedMaturityBalance: 210_000 },
+    });
   });
 });
