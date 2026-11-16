@@ -1,4 +1,11 @@
 import type { FastifyInstance } from 'fastify';
+import { toNodeHandler, toWebRequest } from '@modelcontextprotocol/node';
+import {
+  bearerAuthChallengeResponse,
+  createMcpHandler,
+  isLegacyRequest,
+  verifyBearerToken,
+} from '@modelcontextprotocol/server';
 import type { McpServer } from '@modelcontextprotocol/server';
 import FastifyMcpServer, { getMcpDecorator } from 'fastify-mcp-server';
 import type { McpServerName } from '@my-hub/shared/constants';
@@ -32,7 +39,34 @@ export function registerMcpSubServer(
   createMcpServer: () => McpServer,
 ): void {
   app.register(async child => {
+    const onerror = (err: Error) => logger.warn(`[mcp:${serverName}] ${err.message}`);
+    const verifier = createHubTokenVerifier(serverName);
+    const legacyHandler = createMcpHandler(createMcpServer, { legacy: 'stateless', onerror });
+    const legacyNodeHandler = toNodeHandler(legacyHandler);
+    child.addHook('onClose', async () => {
+      await legacyHandler.close();
+    });
+
     attachMcpRequestLogger(child, endpoint);
+
+    // Runs before the plugin route's own preHandler (scope hooks first), after Host/Origin validation (route onRequest).
+    child.addHook('preHandler', async (req, reply) => {
+      if (req.method !== 'POST' || req.routeOptions.url !== endpoint || req.body == null) return;
+      if (!(await isLegacyRequest(await toWebRequest(req.raw, req.body), req.body))) return;
+
+      try {
+        const auth = await verifyBearerToken(req.headers.authorization, { verifier });
+        Object.assign(req, { auth });
+        Object.assign(req.raw, { auth });
+      } catch (error) {
+        const response = bearerAuthChallengeResponse(error);
+        for (const [name, value] of response.headers) reply.header(name, value);
+        return reply.status(response.status).send(await response.json());
+      }
+
+      reply.hijack();
+      await legacyNodeHandler(req.raw, reply.raw, req.body);
+    });
 
     await child.register(FastifyMcpServer, {
       transport: 'http',
@@ -42,12 +76,10 @@ export function registerMcpSubServer(
       allowedOrigins: envConfig.MCP_ALLOWED_ORIGINS,
       authorization: {
         bearer: {
-          verifier: createHubTokenVerifier(serverName),
+          verifier,
         },
       },
-      handlerOptions: {
-        onerror: err => logger.warn(`[mcp:${serverName}] ${err.message}`),
-      },
+      handlerOptions: { onerror },
     });
 
     const mcp = getMcpDecorator(child);
