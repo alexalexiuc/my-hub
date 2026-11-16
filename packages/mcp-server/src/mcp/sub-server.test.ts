@@ -141,6 +141,67 @@ describe('registerMcpSubServer (MCP 2026-07-28, stateless)', () => {
   });
 });
 
+/** Raw 2025-era request: no per-request `_meta` envelope, as sent by claude.ai artifact pages. */
+function legacyPost(body: unknown, token: string | null = 'good-token') {
+  return fetch(new URL(ENDPOINT, baseUrl), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json, text/event-stream',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+describe('registerMcpSubServer (2025-era clients, stateless fallback)', () => {
+  it('answers a legacy initialize with serverInfo', async () => {
+    const res = await legacyPost({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'artifact', version: '1.0.0' } },
+    });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('"serverInfo"');
+  });
+
+  it('lists and calls tools with the verified Hub identity', async () => {
+    const list = await legacyPost({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
+    expect(list.status).toBe(200);
+    const listText = await list.text();
+    expect(listText).toContain('"echo"');
+    expect(listText).toContain('"fail"');
+
+    const call = await legacyPost({
+      jsonrpc: '2.0',
+      id: 3,
+      method: 'tools/call',
+      params: { name: 'echo', arguments: { text: 'hi' } },
+    });
+    expect(call.status).toBe(200);
+    expect(await call.text()).toContain('user-1');
+    await flushLogs();
+    expect(putLog).toHaveBeenCalledWith(
+      expect.objectContaining({ method: 'tools/call', path: `${ENDPOINT}#echo`, userId: 'user-1', statusCode: 200 }),
+    );
+  });
+
+  it.each([
+    ['no token', null],
+    ['a bad token', 'bad-token'],
+  ])('answers %s with 401 and a WWW-Authenticate challenge', async (_label, token) => {
+    const res = await legacyPost({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, token);
+    expect(res.status).toBe(401);
+    expect(res.headers.get('www-authenticate')).toContain('Bearer');
+  });
+
+  it('still answers legacy GET with 405', async () => {
+    const res = await fetch(new URL(ENDPOINT, baseUrl), { headers: { Authorization: 'Bearer good-token' } });
+    expect(res.status).toBe(405);
+  });
+});
+
 describe('attachMcpRequestLogger', () => {
   it('logs a successful tool call with tool path, identity, status and duration', async () => {
     const client = await connect();
