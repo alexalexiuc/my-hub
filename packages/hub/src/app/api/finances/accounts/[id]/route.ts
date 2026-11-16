@@ -12,11 +12,13 @@ import {
   isIncludedInAvailable,
   getUserActiveBudget,
   getLoanCardBalance,
+  getDepositSummaryForAccount,
+  validateDepositDetails,
   getAccountFlows,
 } from '@my-hub/shared/services';
 import { currentDateString } from '@my-hub/shared/utils';
 import { AccountTypes, TransactionTypes, type BorrowedLentAccountDetails } from '@my-hub/shared/constants';
-import type { LoanAccountDetails } from '@my-hub/shared/types';
+import { getAccountDetails, type LoanAccountDetails } from '@my-hub/shared/types';
 import type { AccountUpdate } from '@my-hub/shared/services';
 import { FinanceAccount } from '@my-hub/shared/types';
 import { categoryIconSchema, categoryColorSchema } from '../../shared.schema';
@@ -129,6 +131,11 @@ export const GET = route({
     }
   }
 
+  if (rawAccount.type === AccountTypes.Deposit) {
+    const depositSummary = await getDepositSummaryForAccount(user.id, budgetId, rawAccount);
+    if (depositSummary) account = { ...account, depositSummary, depositStatus: depositSummary.status };
+  }
+
   const transactions: AccountTransaction[] = txns.map(t => ({
     id: t.id,
     date: t.date,
@@ -201,7 +208,21 @@ export const PATCH = route({
     const patch: AccountUpdate = { name: body.name };
     if (body.currency !== undefined) patch.currency = body.currency;
     if (body.description !== undefined) patch.description = body.description ?? null;
-    if (body.details !== undefined) patch.details = body.details ?? null;
+    if (body.details?.type === AccountTypes.Deposit) {
+      const current = getAccountDetails('deposit', existing.details);
+      if (!current) routeHttpError(400, { error: 'This account is not a deposit' });
+      // Principal, start date and status are fixed once opened; everything else is editable.
+      const merged = {
+        ...body.details,
+        principal: current.principal,
+        startDate: current.startDate,
+        status: current.status,
+      };
+      await validateDepositDetails(user.id, budget.id, merged);
+      patch.details = merged;
+    } else if (body.details !== undefined) {
+      patch.details = body.details ?? null;
+    }
     const updated = await updateAccount(user.id, budget.id, accountId, patch);
     return { account: flattenAccount(updated, currentIncluded) };
   }

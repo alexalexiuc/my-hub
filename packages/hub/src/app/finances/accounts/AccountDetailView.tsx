@@ -10,6 +10,7 @@ import { FlowInOut, TYPE_META } from '../ui';
 import { FinModalShell } from '../FinModalShell';
 import { TransactionList } from '../transactions/TransactionList';
 import { AccountModal } from './AccountModal';
+import { DepositPanel } from './DepositPanel';
 import type { AccountItem } from '@/app/api/finances/accounts/route';
 import type { AccountDetailData } from '@/app/api/finances/accounts/[id]/route';
 import type { TransactionMutationResponse } from '@/app/api/finances/transactions/route';
@@ -447,6 +448,8 @@ export function AccountDetailView({ backPath }: AccountDetailViewProps) {
       </div>
 
       <AccountHeader acc={acc} monthToDateFlow={data.monthToDateFlow} />
+
+      {acc.type === 'deposit' && <DepositPanel acc={acc} onChanged={load} />}
 
       {acc.type === 'loan' && (
         <button

@@ -3,6 +3,7 @@ import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getMonthlyFinanceReport } from '@my-hub/shared/services';
 import { supportedCurrencySchema } from '../../currency.schema';
 import { moneyAmountSchema } from '../../money.schema';
+import { depositProgressSchema } from '../../deposit.schema';
 
 const monthCashflowSchema = z.object({ month: z.string(), income: z.number(), expenses: z.number(), net: z.number() });
 const cashflowSchema = z.object({
@@ -97,6 +98,7 @@ const monthlyReportSchema = z.object({
     dataQualityFlags: z.array(z.object({ accountId: z.number(), accountName: z.string() })),
     goals: z.array(goalProgressSchema),
     loans: z.array(loanProgressSchema),
+    deposits: z.array(depositProgressSchema),
   }),
 });
 

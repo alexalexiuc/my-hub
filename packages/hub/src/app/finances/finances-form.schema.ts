@@ -2,6 +2,15 @@ import { z } from 'zod';
 import {
   AccountDetails,
   AccountTypes,
+  DEFAULT_DEPOSIT_TAX_RATE,
+  DepositInstrument,
+  DepositInstruments,
+  DepositPayout,
+  DepositPayouts,
+  DepositRateType,
+  DepositRateTypes,
+  DepositStatus,
+  DepositStatuses,
   LentDirection,
   LentDirections,
   SupportedCurrencies,
@@ -133,6 +142,21 @@ export const AddAccountSchema = z.object({
   counterpartyName: z.string(),
   direction: z.enum(LentDirections),
   dueDate: z.string(),
+  // Deposit (principal / interestRate / termMonths are shared with Loan above)
+  depInstitution: z.string(),
+  depProductName: z.string(),
+  depInstrument: z.enum(DepositInstruments),
+  depStartDate: z.string(),
+  depPayout: z.enum(DepositPayouts),
+  depPayoutAccountId: z.string(),
+  depReturnAccountId: z.string(),
+  depTaxRate: z.string(),
+  depTranches: z.string(),
+  depGuaranteeLimit: z.string(),
+  depEarlyExitRule: z.string(),
+  // Deposit — funding (add mode only)
+  depFundingSourceId: z.string(),
+  depFundingAmount: z.string(),
 });
 
 export type AddAccountValues = z.infer<typeof AddAccountSchema>;
@@ -159,7 +183,49 @@ export const defaultAddAccountValues: AddAccountValues = {
   counterpartyName: '',
   direction: LentDirections.Gave,
   dueDate: '',
+  depInstitution: '',
+  depProductName: '',
+  depInstrument: DepositInstruments.BankDeposit,
+  depStartDate: '',
+  depPayout: DepositPayouts.Monthly,
+  depPayoutAccountId: '',
+  depReturnAccountId: '',
+  depTaxRate: String(DEFAULT_DEPOSIT_TAX_RATE[DepositInstruments.BankDeposit]),
+  depTranches: '',
+  depGuaranteeLimit: '',
+  depEarlyExitRule: '',
+  depFundingSourceId: '',
+  depFundingAmount: '',
 };
+
+/** Builds deposit details from the form; fixed fields (rate type, status) come from `preserved` when editing. */
+function depositDetailsFromForm(
+  values: AddAccountValues | EditAccountValues,
+  preserved: { rateType?: DepositRateType; autoRenew?: boolean; fixedMonths?: number; status?: DepositStatus } = {},
+): AccountDetails {
+  const optionalNumber = (v: string) => (v.trim() !== '' && !isNaN(parseFloat(v)) ? parseFloat(v) : undefined);
+  return {
+    type: AccountTypes.Deposit,
+    institution: values.depInstitution.trim(),
+    ...(values.depProductName.trim() ? { productName: values.depProductName.trim() } : {}),
+    instrument: values.depInstrument,
+    principal: parseFloat(values.principal) || 0,
+    interestRate: parseFloat(values.interestRate) || 0,
+    rateType: preserved.rateType ?? DepositRateTypes.Fixed,
+    ...(preserved.fixedMonths ? { fixedMonths: preserved.fixedMonths } : {}),
+    startDate: values.depStartDate || new Date().toISOString().slice(0, 10),
+    termMonths: parseInt(values.termMonths) || 0,
+    payout: values.depPayout,
+    ...(values.depPayoutAccountId ? { payoutAccountId: parseInt(values.depPayoutAccountId) } : {}),
+    ...(values.depReturnAccountId ? { returnAccountId: parseInt(values.depReturnAccountId) } : {}),
+    taxRate: optionalNumber(values.depTaxRate) ?? 0,
+    ...(optionalNumber(values.depTranches) ? { tranches: Math.round(optionalNumber(values.depTranches)!) } : {}),
+    ...(optionalNumber(values.depGuaranteeLimit) ? { guaranteeLimit: optionalNumber(values.depGuaranteeLimit) } : {}),
+    ...(values.depEarlyExitRule.trim() ? { earlyExitRule: values.depEarlyExitRule.trim() } : {}),
+    ...(preserved.autoRenew !== undefined ? { autoRenew: preserved.autoRenew } : {}),
+    status: preserved.status ?? DepositStatuses.Active,
+  };
+}
 
 export function formToAccountDetails(values: AddAccountValues): AccountDetails | null {
   switch (values.type) {
@@ -190,6 +256,8 @@ export function formToAccountDetails(values: AddAccountValues): AccountDetails |
         firstPaymentDate: values.loanFirstPaymentDate || new Date().toISOString().slice(0, 10),
         linkedItemName: values.linkedItemName,
       };
+    case AccountTypes.Deposit:
+      return depositDetailsFromForm(values);
     case AccountTypes.BorrowedLent:
       return {
         type: AccountTypes.BorrowedLent,
@@ -227,6 +295,17 @@ export function accountToEditValues(acc: {
   counterpartyName?: string;
   direction?: LentDirection;
   dueDate?: string;
+  institution?: string;
+  productName?: string;
+  instrument?: string;
+  startDate?: string;
+  payout?: string;
+  payoutAccountId?: number;
+  returnAccountId?: number;
+  taxRate?: number;
+  tranches?: number;
+  guaranteeLimit?: number;
+  earlyExitRule?: string;
 }): EditAccountValues {
   return {
     name: acc.name,
@@ -248,13 +327,32 @@ export function accountToEditValues(acc: {
     counterpartyName: acc.counterpartyName ?? '',
     direction: acc.direction ?? LentDirections.Gave,
     dueDate: acc.dueDate ?? '',
+    depInstitution: acc.institution ?? '',
+    depProductName: acc.productName ?? '',
+    depInstrument: (acc.instrument as DepositInstrument | undefined) ?? DepositInstruments.BankDeposit,
+    depStartDate: acc.startDate ?? '',
+    depPayout: (acc.payout as DepositPayout | undefined) ?? DepositPayouts.Monthly,
+    depPayoutAccountId: acc.payoutAccountId != null ? String(acc.payoutAccountId) : '',
+    depReturnAccountId: acc.returnAccountId != null ? String(acc.returnAccountId) : '',
+    depTaxRate: acc.taxRate != null ? String(acc.taxRate) : '',
+    depTranches: acc.tranches != null ? String(acc.tranches) : '',
+    depGuaranteeLimit: acc.guaranteeLimit != null ? String(acc.guaranteeLimit) : '',
+    depEarlyExitRule: acc.earlyExitRule ?? '',
+    depFundingSourceId: '',
+    depFundingAmount: '',
   };
 }
 
 export function formToEditDetails(
   type: string,
   values: EditAccountValues,
-  preserved: { settled?: boolean } = {},
+  preserved: {
+    settled?: boolean;
+    rateType?: DepositRateType;
+    autoRenew?: boolean;
+    fixedMonths?: number;
+    status?: DepositStatus;
+  } = {},
 ): AccountDetails | null {
   switch (type) {
     case AccountTypes.Bank:
@@ -284,6 +382,8 @@ export function formToEditDetails(
         firstPaymentDate: values.loanFirstPaymentDate || new Date().toISOString().slice(0, 10),
         ...(values.linkedItemName ? { linkedItemName: values.linkedItemName } : {}),
       };
+    case AccountTypes.Deposit:
+      return depositDetailsFromForm(values, preserved);
     case AccountTypes.BorrowedLent:
       return {
         type: AccountTypes.BorrowedLent,

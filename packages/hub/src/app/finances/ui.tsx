@@ -112,6 +112,7 @@ export const TYPE_META: Record<string, { label: string; color: string; icon: str
   investment: { label: 'Investment', color: 'var(--green)', icon: '📈' },
   credit_card: { label: 'Credit Card', color: 'var(--red)', icon: '💳' },
   loan: { label: 'Loan', color: 'var(--red)', icon: '🏷' },
+  deposit: { label: 'Deposit', color: 'var(--teal)', icon: '🔒' },
   goal: { label: 'Goal', color: 'var(--violet)', icon: '🎯' },
   cash: { label: 'Cash', color: 'var(--amber)', icon: '💵' },
   tracking: { label: 'Tracking', color: 'var(--muted)', icon: '👁' },

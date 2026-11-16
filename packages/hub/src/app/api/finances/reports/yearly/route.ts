@@ -3,6 +3,7 @@ import { route, routeHttpError } from '@/lib/api/route';
 import { getUserActiveBudget, getYearlyFinanceReport } from '@my-hub/shared/services';
 import { supportedCurrencySchema } from '../../currency.schema';
 import { moneyAmountSchema } from '../../money.schema';
+import { depositProgressSchema } from '../../deposit.schema';
 
 const monthCashflowSchema = z.object({ month: z.string(), income: z.number(), expenses: z.number(), net: z.number() });
 const cashflowSchema = z.object({
@@ -72,6 +73,7 @@ const yearlyReportSchema = z.object({
   savingsContributions: savingsContributionsSchema,
   ibkrDca: ibkrDcaSchema.nullable(),
   loans: z.array(loanPayoffProgressSchema),
+  deposits: z.array(depositProgressSchema),
   categoryByMonth: z.array(categoryByMonthSchema),
   yearOverYear: comparisonSchema,
 });

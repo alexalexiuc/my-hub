@@ -10,7 +10,7 @@ interface Props {
 }
 
 export function LoansAndCategories({ report, currency }: Props) {
-  const { loans, categoryByMonth, yearOverYear, year } = report;
+  const { loans, deposits, categoryByMonth, yearOverYear, year } = report;
 
   const topCategories = categoryByMonth
     .map(c => ({ ...c, total: Object.values(c.months).reduce((s, v) => s + v, 0) }))
@@ -43,6 +43,26 @@ export function LoansAndCategories({ report, currency }: Props) {
           )}
         </Card>
       </div>
+
+      {deposits.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <SectionLabel>Deposits</SectionLabel>
+          <Card compact className="p-4">
+            {deposits.map(d => (
+              <div
+                key={d.accountId}
+                className="flex justify-between gap-3 border-b border-[var(--border)] py-2 text-[12px] last:border-none"
+              >
+                <span className="text-[var(--text)]">{d.accountName}</span>
+                <span className="text-right text-[var(--muted)]">
+                  {formatMoney(d.principal, d.currency)} · {formatMoney(d.interestReceivedToDate, d.currency)} of{' '}
+                  {formatMoney(d.expectedNetInterest, d.currency)} interest · matures {d.maturityDate}
+                </span>
+              </div>
+            ))}
+          </Card>
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <SectionLabel>Category spend by month (top {topCategories.length || 0})</SectionLabel>

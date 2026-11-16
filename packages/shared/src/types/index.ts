@@ -120,6 +120,7 @@ export type {
   CreditCardAccountDetails,
   InvestmentAccountDetails,
   LoanAccountDetails,
+  DepositAccountDetails,
   BorrowedLentAccountDetails,
   GoalAccountDetails,
   TrackingAccountDetails,

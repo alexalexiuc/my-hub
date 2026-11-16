@@ -9,6 +9,8 @@ import {
   addTransaction,
   getUserActiveBudget,
   getLoanCardBalance,
+  getDepositSummaryForAccount,
+  openDeposit,
   getAccountsCashflow,
   convertBalanceToDefaultCurrency,
 } from '@my-hub/shared/services';
@@ -18,14 +20,17 @@ import {
   LentDirections,
   TransactionTypes,
   CASHFLOW_ACCOUNT_TYPES,
+  DepositStatuses,
 } from '@my-hub/shared/constants';
 import type { AccountType } from '@my-hub/shared/constants';
 import type {
+  AccountDetails as StoredAccountDetails,
   BankAccountDetails,
   CreditCardAccountDetails,
   GoalAccountDetails,
   InvestmentAccountDetails,
   LoanAccountDetails,
+  DepositAccountDetails,
   BorrowedLentAccountDetails,
   CashAccountDetails,
 } from '@my-hub/shared/types';
@@ -33,6 +38,7 @@ import { getAccountDetails } from '@my-hub/shared/types';
 import { monthToDateRange, dateToString, isLiabilityAccount } from '@my-hub/shared/utils';
 import { supportedCurrencySchema } from '../currency.schema';
 import { balanceConversionSchema } from '../money.schema';
+import { depositDetailsFields, depositSummarySchema } from '../deposit.schema';
 
 export const accountDetailsSchema = z.discriminatedUnion('type', [
   z.object({
@@ -58,6 +64,11 @@ export const accountDetailsSchema = z.discriminatedUnion('type', [
     termMonths: z.number().int(),
     firstPaymentDate: z.string(),
     linkedItemName: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal(AccountTypes.Deposit),
+    ...depositDetailsFields,
+    status: z.enum(DepositStatuses).optional(),
   }),
   z.object({
     type: z.literal(AccountTypes.BorrowedLent),
@@ -93,6 +104,21 @@ export const accountItemSchema = z
     termMonths: z.number().optional(),
     firstPaymentDate: z.string().optional(),
     linkedItemName: z.string().optional(),
+    institution: z.string().optional(),
+    productName: z.string().optional(),
+    instrument: z.string().optional(),
+    rateType: z.string().optional(),
+    startDate: z.string().optional(),
+    payout: z.string().optional(),
+    payoutAccountId: z.number().int().optional(),
+    returnAccountId: z.number().int().optional(),
+    taxRate: z.number().optional(),
+    tranches: z.number().int().optional(),
+    guaranteeLimit: z.number().optional(),
+    earlyExitRule: z.string().optional(),
+    autoRenew: z.boolean().optional(),
+    depositStatus: z.string().optional(),
+    depositSummary: depositSummarySchema.optional(),
     counterpartyName: z.string().optional(),
     direction: z.enum(LentDirections).optional(),
     dueDate: z.string().optional(),
@@ -124,6 +150,10 @@ export const accountCreateSchema = z.object({
   currency: supportedCurrencySchema,
   openingBalance: z.number().optional(),
   details: accountDetailsSchema.nullable().optional(),
+  /** Deposits only: the account the principal is moved from on the start date. */
+  fundingSourceAccountId: z.number().int().positive().optional(),
+  /** Deposits only: amount leaving the source account in its own currency (required when currencies differ). */
+  fundingSourceAmount: z.number().positive().optional(),
 });
 
 export const accountsListResponseSchema = z.object({
@@ -178,6 +208,28 @@ function flattenDetails(type: string, details: unknown): Partial<AccountItem> {
         linkedItemName: d.linkedItemName,
       };
     }
+    case AccountTypes.Deposit: {
+      const d = details as DepositAccountDetails;
+      return {
+        institution: d.institution,
+        productName: d.productName,
+        instrument: d.instrument,
+        principal: d.principal,
+        interestRate: d.interestRate,
+        rateType: d.rateType,
+        termMonths: d.termMonths,
+        startDate: d.startDate,
+        payout: d.payout,
+        payoutAccountId: d.payoutAccountId,
+        returnAccountId: d.returnAccountId,
+        taxRate: d.taxRate,
+        tranches: d.tranches,
+        guaranteeLimit: d.guaranteeLimit,
+        earlyExitRule: d.earlyExitRule,
+        autoRenew: d.autoRenew,
+        depositStatus: d.status,
+      };
+    }
     case AccountTypes.BorrowedLent: {
       const d = details as BorrowedLentAccountDetails;
       return { counterpartyName: d.counterpartyName, direction: d.direction, dueDate: d.dueDate, settled: d.settled };
@@ -216,6 +268,8 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
       rawAccounts.map(async account => {
         const isLoan = account.type === AccountTypes.Loan;
         const loanCard = isLoan ? await getLoanCardBalance(user.id, budgetId, account) : null;
+        const depositSummary =
+          account.type === AccountTypes.Deposit ? await getDepositSummaryForAccount(user.id, budgetId, account) : null;
         const direction = getAccountDetails(AccountTypes.BorrowedLent, account.details)?.direction;
         const isOtherLiability = !isLoan && isLiabilityAccount(account.type, direction);
         // Money borrowed is shown as the positive amount owed, like a loan's remaining principal.
@@ -256,6 +310,7 @@ export const GET = route({ response: accountsListResponseSchema })(async ({ user
           widgetSortOrder: account.widgetSortOrder,
           ...flattenDetails(account.type, account.details),
           ...(loanCard ? { amortizationSummary: loanCard.amortizationSummary } : {}),
+          ...(depositSummary ? { depositSummary } : {}),
         };
       }),
     ),
@@ -290,6 +345,24 @@ export const POST = route({ body: accountCreateSchema, response: accountMutation
   const budget = await getUserActiveBudget(user.id);
   if (!budget) routeHttpError(404, { error: 'No budget found' });
 
+  if (body.type === AccountTypes.Deposit) {
+    const details = body.details?.type === AccountTypes.Deposit ? body.details : null;
+    if (!details) routeHttpError(400, { error: 'Deposit details are required' });
+    if (body.fundingSourceAccountId == null) {
+      routeHttpError(400, { error: 'Pick the account the deposit is funded from' });
+    }
+
+    const { type: _type, status: _status, ...rest } = details;
+    const { account } = await openDeposit(user.id, budget.id, {
+      name: body.name.trim(),
+      currency: body.currency,
+      details: rest,
+      sourceAccountId: body.fundingSourceAccountId,
+      sourceAmount: body.fundingSourceAmount,
+    });
+    return created({ account });
+  }
+
   const isLoan = body.type === AccountTypes.Loan;
   const openingBal = isLoan ? -((body.details as LoanAccountDetails).principal ?? 0) : (body.openingBalance ?? 0);
 
@@ -300,7 +373,7 @@ export const POST = route({ body: accountCreateSchema, response: accountMutation
     currency: body.currency,
     balance: 0,
     archived: false,
-    details: body.details ?? null,
+    details: (body.details ?? null) as StoredAccountDetails | null, // deposits return above
   });
 
   if (openingBal !== 0) {
