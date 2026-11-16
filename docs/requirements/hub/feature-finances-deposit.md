@@ -133,7 +133,7 @@ Order: shared → mcp-server → hub → worker → docs/e2e.
 
 ## 8. Migration
 
-Convert **Deposit MDL** (id 27, `tracking`, balance 0): not convertible in place (type is fixed by `upsert_account`? verify). Default: archive it and create the MICB deposit via `finances_add_deposit` so the funding transfer is real.
+None. Existing accounts (e.g. _Deposit MDL_, id 27) are left untouched; once the feature ships, new deposits are created as new accounts with `finances_add_deposit` so the funding transfer is real, and the old ones are handled separately.
 
 ## 9. Acceptance (v1)
 

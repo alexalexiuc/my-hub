@@ -164,6 +164,20 @@ function buildInsights(data: BuildFinanceMonthlyReportHtmlData): string {
       )
       .join('') || '<div class="empty">No loan accounts.</div>';
 
+  const deposits = insights.deposits
+    .map(
+      d =>
+        `<div class="list-item"><span>${d.accountName}</span><span class="mono">${fmt(d.principal, d.currency)}, ${fmt(d.interestReceivedToDate, d.currency)} interest received, matures ${d.maturityDate} (${d.daysToMaturity} days)</span></div>`,
+    )
+    .join('');
+  const depositsBlock = deposits
+    ? `
+  <div class="block">
+    <div style="font-size:11px;color:#4b5a6b;margin-bottom:6px;">Deposits</div>
+    ${deposits}
+  </div>`
+    : '';
+
   return `
   <div class="section-label">Insights</div>
   <div class="block">
@@ -185,7 +199,7 @@ function buildInsights(data: BuildFinanceMonthlyReportHtmlData): string {
   <div class="block">
     <div style="font-size:11px;color:#4b5a6b;margin-bottom:6px;">Loans</div>
     ${loans}
-  </div>`;
+  </div>${depositsBlock}`;
 }
 
 function buildFooter(data: BuildFinanceMonthlyReportHtmlData): string {

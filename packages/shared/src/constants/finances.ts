@@ -5,6 +5,7 @@ export const AccountTypes = {
   Tracking: 'tracking',
   BorrowedLent: 'borrowed_lent',
   Loan: 'loan',
+  Deposit: 'deposit',
   CreditCard: 'credit_card',
   Goal: 'goal',
 } as const;
@@ -136,11 +137,55 @@ export type {
   CreditCardAccountDetails,
   InvestmentAccountDetails,
   LoanAccountDetails,
+  DepositAccountDetails,
   BorrowedLentAccountDetails,
   GoalAccountDetails,
   TrackingAccountDetails,
 } from '../types/account-details';
 export { getAccountDetails } from '../types/account-details';
+
+// ---- Deposit account constants ----
+
+/** What kind of instrument a deposit account represents. */
+export const DepositInstruments = { BankDeposit: 'bank_deposit', StateBond: 'state_bond' } as const;
+export type DepositInstrument = (typeof DepositInstruments)[keyof typeof DepositInstruments];
+
+/** How the deposit's rate behaves over its term. Only `fixed` is computed exactly in v1. */
+export const DepositRateTypes = {
+  Fixed: 'fixed',
+  FixedThenFloating: 'fixed_then_floating',
+  Floating: 'floating',
+} as const;
+export type DepositRateType = (typeof DepositRateTypes)[keyof typeof DepositRateTypes];
+
+/** When a deposit pays its interest out. */
+export const DepositPayouts = {
+  Monthly: 'monthly',
+  Quarterly: 'quarterly',
+  Semiannual: 'semiannual',
+  AtMaturity: 'at_maturity',
+  Capitalized: 'capitalized',
+} as const;
+export type DepositPayout = (typeof DepositPayouts)[keyof typeof DepositPayouts];
+
+/** Lifecycle of a deposit; set to matured/broken by the close action. */
+export const DepositStatuses = { Active: 'active', Matured: 'matured', Broken: 'broken' } as const;
+export type DepositStatus = (typeof DepositStatuses)[keyof typeof DepositStatuses];
+
+/** Months between interest payouts per payout mode (null = no periodic payout). */
+export const DEPOSIT_PAYOUT_INTERVAL_MONTHS: Record<DepositPayout, number | null> = {
+  [DepositPayouts.Monthly]: 1,
+  [DepositPayouts.Quarterly]: 3,
+  [DepositPayouts.Semiannual]: 6,
+  [DepositPayouts.AtMaturity]: null,
+  [DepositPayouts.Capitalized]: null,
+};
+
+/** Default withholding tax (%) on deposit interest for a Moldovan resident, by instrument. */
+export const DEFAULT_DEPOSIT_TAX_RATE: Record<DepositInstrument, number> = {
+  [DepositInstruments.BankDeposit]: 6,
+  [DepositInstruments.StateBond]: 0,
+};
 
 // ---- Account type metadata ----
 
@@ -152,6 +197,7 @@ export const ACCOUNT_TYPE_NAMES: Record<AccountType, string> = {
   [AccountTypes.Investment]: 'Investment',
   [AccountTypes.Goal]: 'Goal',
   [AccountTypes.Loan]: 'Loan',
+  [AccountTypes.Deposit]: 'Deposit',
   [AccountTypes.Tracking]: 'Tracking',
   [AccountTypes.BorrowedLent]: 'Borrowed/Lent',
 };
@@ -175,6 +221,8 @@ export const ACCOUNT_TYPE_DESCRIPTIONS: Record<AccountType, string> = {
   [AccountTypes.Investment]: 'Brokerage, pension, or crypto portfolio. Tracks current value vs. amount deposited.',
   [AccountTypes.Loan]:
     'Mortgage, car loan, or instalment plan. Tracks remaining principal and generates a repayment schedule.',
+  [AccountTypes.Deposit]:
+    'Term deposit or bond at a fixed rate. Tracks expected interest, tax, maturity date and the payout schedule.',
   [AccountTypes.Goal]: 'Savings pot with a target amount. Progress bar shows how close you are to your goal.',
   [AccountTypes.Tracking]:
     'Savings or assets you want to follow in net worth (e.g. a reserve, a car or property). Transfers in and out count as savings.',
