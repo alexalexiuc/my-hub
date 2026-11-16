@@ -147,13 +147,12 @@ None. Existing accounts (e.g. _Deposit MDL_, id 27) are left untouched; once the
 
 ## 9. Acceptance (v1)
 
-- [ ] One `finances_add_deposit` call creates the MICB Maestro deposit (200,000 MDL, 8%, 12 months, monthly, 6% tax); the source account drops by 200k.
-- [ ] `list_context` shows `depositSummary` with expected net interest about 15,040 MDL and maturity 2027-11-17.
-- [ ] Logging a payout adds about 1,253 MDL income to the payout account; `interestReceivedToDate` updates.
-- [ ] Funding and return transfers do not count as spending in dashboard, cashflow or reporting.
-- [ ] Net worth counts the deposit as an asset in a "Deposits" group (Hub, MCP summary, monthly snapshot).
-- [ ] Monthly/yearly report and email show a deposits section.
-- [ ] Alert fires 14 days before maturity and on a missed payout.
-- [ ] Closing at maturity returns 200k to the return account and the deposit leaves active net worth.
-- [ ] Hub forms, account list/detail work.
-- [ ] Mobile layout (390px) and Playwright specs verified in the sandbox.
+- [x] One `finances_add_deposit` call creates the MICB Maestro deposit (200,000 MDL, 8%, 12 months, monthly, 6% tax); the source account drops by 200k.
+- [x] `list_context` shows `depositSummary` with expected net interest about 15,040 MDL and maturity 2027-11-17.
+- [x] Logging a payout adds about 1,253 MDL income to the payout account; `interestReceivedToDate` updates.
+- [ ] Funding and return transfers do not count as spending in dashboard, cashflow or reporting. (By code: only transfers into loans count; no test yet.)
+- [x] Net worth counts the deposit as an asset (Hub Accounts and Net Worth totals, MCP summary); [ ] monthly snapshot not exercised.
+- [ ] Monthly/yearly report and email show a deposits section. (Implemented and typechecked; not rendered end to end.)
+- [ ] Alert fires 14 days before maturity and on a missed payout. (Rules unit-tested in `utils/deposit.test.ts`; the worker job and email were not run.)
+- [x] Closing at maturity returns 200k to the return account and the deposit leaves active net worth.
+- [x] Hub add form, account list/detail, Log interest and Close work (Playwright `finances-deposit.spec.ts`); 390px list and detail checked.

@@ -2,7 +2,7 @@
  * Fixed-term deposit maths (pure — no DB, no network)
  * - getDepositMaturityDate(details) — startDate + termMonths as YYYY-MM-DD
  * - buildDepositSchedule(details) — expected payouts (gross / tax / net per date) over the term
- * - calculateDepositSummary(details, opts?) — maturity, expected interest, next payout, yield, guarantee check
+ * - calculateDepositSummary(details, opts?) — maturity, expected interest, next unreceived payout, yield, guarantee check
  * - getOverdueDepositPayouts(details, interestReceived, opts?) — scheduled payouts past due with no matching interest received
  * - getDepositAlerts(details, interestReceived, opts?) — alerts that fire today: maturity approaching, or a payout that just became overdue
  * Types: DepositPayoutEntry, DepositSummary, DepositAlert
@@ -119,7 +119,13 @@ export function calculateDepositSummary(
 
   const expectedGross = round2(schedule.reduce((s, e) => s + e.gross, 0));
   const expectedNet = round2(schedule.reduce((s, e) => s + e.net, 0));
-  const next = schedule.find(e => e.date >= asOf) ?? null;
+  // First payout not yet covered by interest received — may already be past due (then it is overdue).
+  let cumulative = 0;
+  const next =
+    schedule.find(e => {
+      cumulative += e.net;
+      return cumulative - received > 0.01;
+    }) ?? null;
 
   const totalDays = daysBetweenDateStr(details.startDate, maturityDate);
   const elapsedDays = daysBetweenDateStr(details.startDate, asOf);

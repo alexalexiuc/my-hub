@@ -24,7 +24,7 @@ interface ListContextResult {
 
 /**
  * E2e: deposit lifecycle — open (funding transfer) → record interest → list_context summary → close.
- * Accounts are created with a unique run id and archived at the end (closing archives the deposit).
+ * All accounts use the budget's default currency (no FX rate is needed for far-future dates). Accounts are created with a unique run id and archived at the end (closing archives the deposit).
  */
 describe('finances — deposit lifecycle', () => {
   let client: McpClient;
@@ -43,7 +43,6 @@ describe('finances — deposit lifecycle', () => {
         arguments: {
           name: `[e2e:${runId}] Deposit source`,
           type: 'bank',
-          currency: 'MDL',
           openingBalance: 300_000,
           openingDate: '2099-01-01',
         },
@@ -53,7 +52,7 @@ describe('finances — deposit lifecycle', () => {
     const payout = parseToolResult<{ id: number }>(
       await client.callTool({
         name: 'finances_upsert_account',
-        arguments: { name: `[e2e:${runId}] Deposit payout`, type: 'bank', currency: 'MDL' },
+        arguments: { name: `[e2e:${runId}] Deposit payout`, type: 'bank' },
       }),
     );
     payoutId = payout.id;
@@ -72,7 +71,6 @@ describe('finances — deposit lifecycle', () => {
         name: 'finances_add_deposit',
         arguments: {
           name: `[e2e:${runId}] MICB Maestro`,
-          currency: 'MDL',
           institution: 'MICB',
           principal: 200_000,
           interestRate: 8,

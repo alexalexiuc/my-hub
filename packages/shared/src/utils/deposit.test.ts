@@ -85,6 +85,12 @@ describe('calculateDepositSummary', () => {
     expect(s.rateEstimated).toBe(false);
   });
 
+  it('points next payout at the first one not yet received, even when past due', () => {
+    const s = calculateDepositSummary(micb, { asOfDate: '2027-02-20', interestReceived: 1253.33 });
+    expect(s.nextPayoutDate).toBe('2027-01-17');
+    expect(s.nextPayoutAmount).toBe(1253.33);
+  });
+
   it('clamps progress and days after maturity and has no next payout', () => {
     const s = calculateDepositSummary(micb, { asOfDate: '2028-01-01', interestReceived: 15_040 });
     expect(s.daysToMaturity).toBe(0);
