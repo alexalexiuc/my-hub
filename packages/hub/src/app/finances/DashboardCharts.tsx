@@ -1,8 +1,8 @@
 'use client';
 
-import { formatMoney } from '@my-hub/shared/utils';
+import { formatCompact, formatMoney } from '@my-hub/shared/utils';
 import { useEffect, useState } from 'react';
-import { PieChart, Pie, ResponsiveContainer, Tooltip, LineChart, Line, XAxis } from 'recharts';
+import { PieChart, Pie, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { tooltipBoxStyle } from './ui';
 import type { DashboardCategory, DailySpendingPoint } from '@/app/api/finances/dashboard/route';
 import type { SupportedCurrency } from '@my-hub/shared/constants';
@@ -125,15 +125,35 @@ type SpendingTrendChartProps = {
 export function SpendingTrendChart({ dailySpending, currency, monthLabel, prevLabel }: SpendingTrendChartProps) {
   if (dailySpending.length === 0) return null;
 
+  // Evenly spaced day ticks (1, 5, 10, …) so labels never crowd or skip unevenly.
+  const lastDay = dailySpending[dailySpending.length - 1]?.day ?? 1;
+  const dayTicks = [1, ...Array.from({ length: Math.floor(lastDay / 5) }, (_, i) => (i + 1) * 5)].filter(
+    (d, i, arr) => d <= lastDay && arr.indexOf(d) === i,
+  );
+
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={dailySpending} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+      <LineChart data={dailySpending} margin={{ top: 14, right: 8, bottom: 0, left: 8 }}>
+        <CartesianGrid horizontal vertical={false} stroke="var(--border)" strokeOpacity={0.5} />
         <XAxis
           dataKey="day"
           axisLine={false}
           tickLine={false}
-          tick={{ fill: 'var(--subtle)', fontSize: 9 }}
-          interval="preserveStartEnd"
+          tick={{ fill: 'var(--subtle)', fontSize: 10 }}
+          ticks={dayTicks}
+          interval={0}
+          padding={{ left: 4, right: 4 }}
+        />
+        <YAxis
+          mirror
+          orientation="left"
+          width={40}
+          axisLine={false}
+          tickLine={false}
+          tickCount={4}
+          domain={[0, 'auto']}
+          tick={{ fill: 'var(--subtle)', fontSize: 10, dy: -6, textAnchor: 'start' }}
+          tickFormatter={(v: number) => formatCompact(v)}
         />
         <Tooltip
           content={({ active, payload, label }) => {
