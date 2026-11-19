@@ -1,4 +1,5 @@
 import { formatMoney } from '@my-hub/shared/utils';
+import { pct as pctLabel } from '../ui';
 import type { HistorySeries, HistorySummary } from './portfolio.utils';
 
 type HistoryHeadlineProps = {
@@ -15,7 +16,7 @@ const signColor = (v: number) => (v >= 0 ? 'var(--green)' : 'var(--red)');
 /** Big number + range change above the portfolio value chart; what it leads with follows the plotted series. */
 export function HistoryHeadline({ summary, series, currency, rangeLabel, targetAmount }: HistoryHeadlineProps) {
   const big = series === 'value' ? summary.endValue : series === 'profit' ? summary.totalGain : summary.endInvested;
-  const pct = summary.gainPct !== null ? ` (${summary.gainPct >= 0 ? '+' : ''}${summary.gainPct.toFixed(2)}%)` : '';
+  const pct = summary.gainPct !== null ? ` (${pctLabel(summary.gainPct, true)})` : '';
 
   return (
     <div className="mb-3">
@@ -24,6 +25,9 @@ export function HistoryHeadline({ summary, series, currency, rangeLabel, targetA
         style={{ color: series === 'profit' ? signColor(big) : 'var(--text)' }}
       >
         {formatMoney(big, currency, { signed: series === 'profit' })}
+        {series === 'profit' && summary.totalGainPct !== null && (
+          <span className="ml-2 text-[16px] font-semibold">{pctLabel(summary.totalGainPct, true)}</span>
+        )}
       </div>
       {series === 'invested' ? (
         <div className="mt-0.5 text-[12px] text-[var(--muted)]">
@@ -46,6 +50,7 @@ export function HistoryHeadline({ summary, series, currency, rangeLabel, targetA
             Total gain{' '}
             <span style={{ color: signColor(summary.totalGain) }}>
               {formatMoney(summary.totalGain, currency, { signed: true })}
+              {summary.totalGainPct !== null && ` (${pctLabel(summary.totalGainPct, true)})`}
             </span>
           </span>
         )}

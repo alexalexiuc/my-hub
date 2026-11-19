@@ -12,6 +12,7 @@ import {
   lastBuyDate,
   monthTicks,
   niceAxisMax,
+  profitPct,
   rangeCoversInception,
   sliceHistory,
   summarizeHistory,
@@ -111,6 +112,13 @@ describe('value history ranges', () => {
     expect(s.endInvested).toBe(140);
     expect(summarizeHistory(sliceHistory(pts, 'LAST_BUY'))!.deposits).toBe(0);
     expect(summarizeHistory([])).toBeNull();
+  });
+
+  it('expresses profit as a percentage of money put in', () => {
+    expect(profitPct(30, 120)).toBe(25);
+    expect(profitPct(-10, 200)).toBe(-5);
+    expect(profitPct(5, 0)).toBeNull();
+    expect(summarizeHistory(sliceHistory(pts, '1M'))!.totalGainPct).toBeCloseTo((30 / 140) * 100);
   });
 
   it('measures from an empty portfolio when the range covers the whole history', () => {
