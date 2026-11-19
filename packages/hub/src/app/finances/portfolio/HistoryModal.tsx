@@ -15,7 +15,7 @@ import {
 } from 'recharts';
 import { apiFetch, cn, readLocalCache, writeLocalCache } from '@/lib/utils';
 import { FinModalShell } from '../FinModalShell';
-import { tooltipBoxStyle } from '../ui';
+import { pct, tooltipBoxStyle } from '../ui';
 import type { PortfolioHistoryPoint } from '@my-hub/shared/services';
 import type { PortfolioHistoryResponse } from '@/app/api/finances/portfolio/history/route';
 import { HistoryHeadline } from './HistoryHeadline';
@@ -26,6 +26,7 @@ import {
   formatAxisTick,
   monthStartDates,
   formatHistoryTick,
+  profitPct,
   isHistoryRange,
   isHistorySeries,
   rangeCoversInception,
@@ -42,7 +43,7 @@ type HistoryModalProps = {
   onClose: () => void;
 };
 
-type ChartPoint = PortfolioHistoryPoint & { profit: number };
+type ChartPoint = PortfolioHistoryPoint & { profit: number; profitPct: number | null };
 
 const RANGE_CACHE_KEY = 'portfolio-history-range';
 const SERIES_CACHE_KEY = 'portfolio-history-series';
@@ -58,7 +59,14 @@ export function HistoryModal({ currency, targetAmount, onClose }: HistoryModalPr
 
   useEffect(() => {
     apiFetch<PortfolioHistoryResponse>('/api/finances/portfolio/history', { silentToast: true })
-      .then(res => setPoints(res.points.map(p => ({ ...p, profit: Math.round((p.value - p.invested) * 100) / 100 }))))
+      .then(res =>
+        setPoints(
+          res.points.map(p => {
+            const profit = Math.round((p.value - p.invested) * 100) / 100;
+            return { ...p, profit, profitPct: profitPct(profit, p.invested) };
+          }),
+        ),
+      )
       .catch(() => setPoints([]));
   }, []);
 
@@ -185,6 +193,7 @@ export function HistoryModal({ currency, targetAmount, onClose }: HistoryModalPr
                         }}
                       >
                         Profit: {formatMoney(p.profit, currency, { signed: true })}
+                        {p.profitPct !== null && ` (${pct(p.profitPct, true)})`}
                       </div>
                     </div>
                   );

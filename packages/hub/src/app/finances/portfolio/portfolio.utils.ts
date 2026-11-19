@@ -245,7 +245,14 @@ export type HistorySummary = {
   deposits: number;
   /** Total unrealised gain at the end of the range (value − everything invested). */
   totalGain: number;
+  /** `totalGain` relative to everything invested; null when nothing is invested. */
+  totalGainPct: number | null;
 };
+
+/** Profit as a percentage of the money put in; null when nothing is invested. */
+export function profitPct(profit: number, invested: number): number | null {
+  return invested > 0 ? (profit / invested) * 100 : null;
+}
 
 /**
  * Headline numbers for a (sliced) value series; null when empty. With `fromInception` (the range reaches back
@@ -268,6 +275,7 @@ export function summarizeHistory(points: HistoryPoint[], fromInception = false):
     gainPct: base > 0 ? (gain / base) * 100 : null,
     deposits,
     totalGain: last.value - last.invested,
+    totalGainPct: profitPct(last.value - last.invested, last.invested),
   };
 }
 
