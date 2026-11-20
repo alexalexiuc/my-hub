@@ -9,6 +9,7 @@ import { PortfolioSummaryCards } from './PortfolioSummaryCards';
 import { ContributionCadenceCard } from './ContributionCadenceCard';
 import { PositionsTable } from './PositionsTable';
 import { SuppliesSection } from './SuppliesSection';
+import { NotesSection } from './NotesSection';
 import { SupplyModal } from './SupplyModal';
 import { PortfolioSettingsModal } from './PortfolioSettingsModal';
 import { HistoryModal } from './HistoryModal';
@@ -152,6 +153,7 @@ export default function PortfolioPage() {
             <PortfolioCharts overview={overview} supplies={supplies} drawdown={drawdown} />
           )}
           <SuppliesSection overview={overview} supplies={supplies} onChanged={refreshAll} />
+          <NotesSection />
         </>
       )}
 

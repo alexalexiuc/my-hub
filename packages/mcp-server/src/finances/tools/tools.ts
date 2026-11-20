@@ -69,6 +69,12 @@ import {
   updatePortfolioTool,
   DeletePortfolioSupplySchema,
   deletePortfolioSupplyTool,
+  GetPortfolioNotesSchema,
+  getPortfolioNotesTool,
+  SavePortfolioNoteSchema,
+  savePortfolioNoteTool,
+  DeletePortfolioNoteSchema,
+  deletePortfolioNoteTool,
 } from './portfolio';
 
 const financeTools = [
@@ -419,7 +425,9 @@ const financeTools = [
       'pricesAsOf indicates how fresh the cached EOD prices are. ' +
       'cadence measures contributed cash against the planned monthly contribution — use it to answer ' +
       '"am I ahead of schedule?" (status, difference, monthsAhead) and "when is my next buy due?" ' +
-      '(coveredThroughMonth, nextContributionMonth, dueNow, amountDueNow); it is null when no monthly plan is set.',
+      '(coveredThroughMonth, nextContributionMonth, dueNow, amountDueNow); it is null when no monthly plan is set. ' +
+      "recentNotes holds the user's latest journal entries (why they bought, lessons learned) — take them into account " +
+      'when advising and search the rest with finances_get_portfolio_notes.',
     inputSchema: GetPortfolioSchema.shape,
     annotations: { readOnlyHint: true },
     callback: getPortfolioTool,
@@ -455,6 +463,35 @@ const financeTools = [
     inputSchema: DeletePortfolioSupplySchema.shape,
     annotations: { idempotentHint: false, destructiveHint: true },
     callback: deletePortfolioSupplyTool,
+  }),
+  defineTool({
+    name: 'finances_get_portfolio_notes',
+    description:
+      "Search the user's portfolio journal: notes about buys, skipped buys, market events and lessons, newest first. " +
+      'Call it when the user asks whether to buy now, how a past buy went, or what they decided earlier — ' +
+      'past decisions and lessons ("I bought before the scheduled date during a dip but should have waited") are ' +
+      'context for the answer. Filter by text, kind (note/decision/lesson/idea) and date range.',
+    inputSchema: GetPortfolioNotesSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: getPortfolioNotesTool,
+  }),
+  defineTool({
+    name: 'finances_save_portfolio_note',
+    description:
+      "Save a note to the user's portfolio journal, or edit one by passing noteId. Use it when the user wants to " +
+      'remember a decision, a regret, a market observation or an idea about their investments. Write the body in ' +
+      "the user's own words with the reasoning and outcome, and set kind: decision, lesson, idea or plain note. " +
+      'date is the day the note is about and defaults to today.',
+    inputSchema: SavePortfolioNoteSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: false },
+    callback: savePortfolioNoteTool,
+  }),
+  defineTool({
+    name: 'finances_delete_portfolio_note',
+    description: 'Delete a portfolio journal note by id (from finances_get_portfolio_notes).',
+    inputSchema: DeletePortfolioNoteSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: true },
+    callback: deletePortfolioNoteTool,
   }),
 ];
 

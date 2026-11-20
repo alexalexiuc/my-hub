@@ -24,6 +24,7 @@ import type {
   ImportBatchStatus,
   SupportedCurrency,
   PortfolioSupplyLineType,
+  PortfolioNoteKind,
   TickerPriceSource,
 } from '../../constants/finances';
 import type { TransactionDetails } from '../../types/transaction-details';
@@ -547,6 +548,26 @@ export const financePortfolioSupplyLines = pgTable(
     index('idx_finance_portfolio_supply_lines_supply').on(table.supplyId),
     index('idx_finance_portfolio_supply_lines_position').on(table.positionId),
   ],
+);
+
+// Free-form journal entries about the portfolio (decisions, lessons, market context).
+// Read by the MCP so the assistant can recall them when the user asks about the portfolio.
+
+export const financePortfolioNotes = pgTable(
+  'finance_portfolio_notes',
+  {
+    id: serial('id').primaryKey(),
+    portfolioId: integer('portfolio_id')
+      .notNull()
+      .references(() => financePortfolios.id, { onDelete: 'cascade' }),
+    date: date('date').notNull(), // YYYY-MM-DD the note is about
+    kind: text('kind').$type<PortfolioNoteKind>().notNull().default('note'),
+    title: text('title'),
+    body: text('body').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  table => [index('idx_finance_portfolio_notes_portfolio_date').on(table.portfolioId, table.date)],
 );
 
 // ─── Ticker EOD price cache ───────────────────────────────────────────────
