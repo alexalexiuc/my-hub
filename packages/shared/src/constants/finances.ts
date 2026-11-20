@@ -292,3 +292,29 @@ export const TickerPriceSources = {
   Stooq: 'stooq',
 } as const;
 export type TickerPriceSource = (typeof TickerPriceSources)[keyof typeof TickerPriceSources];
+
+// ─── Portfolio drawdown ("Dip gauge") ──────────────────────────────────────
+
+/** Chart ranges for the drawdown series, in calendar days (`null` = from the first supply). */
+export const DrawdownRanges = {
+  '1M': 30,
+  '3M': 91,
+  '6M': 182,
+  '1Y': 365,
+  All: null,
+} as const;
+export type DrawdownRange = keyof typeof DrawdownRanges;
+
+/** Short rolling-peak window (calendar days) behind the headline drawdown. */
+export const DRAWDOWN_SHORT_WINDOW_DAYS = 30;
+/** Long rolling-peak window (calendar days), the 52-week drawdown. */
+export const DRAWDOWN_LONG_WINDOW_DAYS = 365;
+/** Price history needed before the first shown day so the long window is full from day one. */
+export const DRAWDOWN_HISTORY_BUFFER_DAYS = DRAWDOWN_LONG_WINDOW_DAYS + DRAWDOWN_SHORT_WINDOW_DAYS;
+
+/** Drawdown thresholds as fractions of the peak (negative). Amber = "pull the DCA forward". */
+export const DrawdownThresholds = {
+  amber: -0.05,
+  red: -0.08,
+} as const;
+export type DrawdownLevel = 'neutral' | 'amber' | 'red';

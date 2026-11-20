@@ -5,6 +5,7 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  Cell,
   ReferenceDot,
   ReferenceLine,
   ResponsiveContainer,
@@ -16,9 +17,10 @@ import {
   ZAxis,
 } from 'recharts';
 import { Card, SectionLabel } from '@/components';
-import { formatCompact, formatMoney } from '@my-hub/shared/utils';
-import type { PortfolioOverview, PositionOverview, SupplyWithLines } from '@my-hub/shared/services';
+import { drawdownLevel, formatCompact, formatMoney } from '@my-hub/shared/utils';
+import type { PortfolioDrawdown, PortfolioOverview, PositionOverview, SupplyWithLines } from '@my-hub/shared/services';
 import { tooltipBoxStyle } from '../ui';
+import { drawdownColor, formatDrawdown } from './drawdown.utils';
 import {
   buildCostBuildup,
   buyPointsForPosition,
@@ -35,13 +37,15 @@ import {
 type PortfolioChartsProps = {
   overview: PortfolioOverview;
   supplies: SupplyWithLines[];
+  /** When present, buy dots are tinted by the basket drawdown on their date. */
+  drawdown?: PortfolioDrawdown | null;
 };
 
 const AXIS_TICK = { fill: 'var(--subtle)', fontSize: 9 };
 const DAY_MS = 86_400_000;
 
 /** Stacked cost build-up and per-position buy prices, drawn from the recorded supplies. */
-export function PortfolioCharts({ overview, supplies }: PortfolioChartsProps) {
+export function PortfolioCharts({ overview, supplies, drawdown = null }: PortfolioChartsProps) {
   const today = new Date().toISOString().slice(0, 10);
   const endDate = overview.pricesAsOf && overview.pricesAsOf > today ? overview.pricesAsOf : today;
   // Shared time domain so the cost chart and every buy panel line up.
@@ -54,7 +58,7 @@ export function PortfolioCharts({ overview, supplies }: PortfolioChartsProps) {
   return (
     <>
       <CostBuildupCard overview={overview} supplies={supplies} endDate={endDate} domain={domain} ticks={ticks} />
-      <BuyPricesCard overview={overview} supplies={supplies} domain={domain} ticks={ticks} />
+      <BuyPricesCard overview={overview} supplies={supplies} drawdown={drawdown} domain={domain} ticks={ticks} />
     </>
   );
 }
@@ -200,9 +204,10 @@ function CostBuildupCard({
 function BuyPricesCard({
   overview,
   supplies,
+  drawdown,
   domain,
   ticks,
-}: TimeAxisProps & { overview: PortfolioOverview; supplies: SupplyWithLines[] }) {
+}: TimeAxisProps & { overview: PortfolioOverview; supplies: SupplyWithLines[]; drawdown: PortfolioDrawdown | null }) {
   return (
     <Card className="p-[14px]">
       <SectionLabel>Where each buy landed</SectionLabel>
@@ -213,6 +218,7 @@ function BuyPricesCard({
             position={p}
             color={positionColor(i)}
             buys={buyPointsForPosition(supplies, p.positionId)}
+            drawdown={drawdown}
             currency={overview.portfolio.baseCurrency}
             domain={domain}
             ticks={ticks}
@@ -221,6 +227,7 @@ function BuyPricesCard({
       </div>
       <p className="mt-2 text-[10px] text-[var(--muted)]">
         Dot size is the amount of the buy. Dashed line is average cost, solid line is the latest price.
+        {drawdown && ' Amber and red dots were bought during a dip (basket drawdown of 5% or 8%).'}
       </p>
     </Card>
   );
@@ -230,10 +237,23 @@ function BuyPricePanel({
   position,
   color,
   buys,
+  drawdown,
   currency,
   domain,
   ticks,
-}: TimeAxisProps & { position: PositionOverview; color: string; buys: BuyPoint[]; currency: string }) {
+}: TimeAxisProps & {
+  position: PositionOverview;
+  color: string;
+  buys: BuyPoint[];
+  drawdown: PortfolioDrawdown | null;
+  currency: string;
+}) {
+  const dipOn = (date: string) => drawdown?.buys.find(b => b.date === date)?.dd30 ?? null;
+  const dotColor = (date: string) => {
+    const dd = dipOn(date);
+    const level = dd !== null && drawdown ? drawdownLevel(dd, drawdown.thresholds) : 'neutral';
+    return level === 'neutral' ? color : drawdownColor(level);
+  };
   // Latest price in the base currency (the price cache may be in another currency).
   const nowPrice = position.currentValue !== null && position.units > 0 ? position.currentValue / position.units : null;
   const avg = position.avgUnitCost;
@@ -298,13 +318,22 @@ function BuyPricePanel({
                         {formatMoney(b.price, currency)}
                       </div>
                       <div style={{ fontWeight: 600 }}>{formatMoney(b.amount, currency)}</div>
+                      {dipOn(b.date) !== null && (
+                        <div style={{ color: 'var(--muted)', fontSize: 10, marginTop: 2 }}>
+                          dd {formatDrawdown(dipOn(b.date))}
+                        </div>
+                      )}
                     </div>
                   );
                 }}
               />
               {avg !== null && <ReferenceLine y={avg} stroke="var(--muted)" strokeDasharray="4 3" />}
               {nowPrice !== null && <ReferenceLine y={nowPrice} stroke={color} strokeWidth={1.5} />}
-              <Scatter data={buys} fill={color} fillOpacity={0.55} stroke={color} isAnimationActive={false} />
+              <Scatter data={buys} fill={color} fillOpacity={0.55} stroke={color} isAnimationActive={false}>
+                {buys.map(b => (
+                  <Cell key={`${b.date}-${b.price}`} fill={dotColor(b.date)} stroke={dotColor(b.date)} />
+                ))}
+              </Scatter>
             </ScatterChart>
           </ResponsiveContainer>
         </div>

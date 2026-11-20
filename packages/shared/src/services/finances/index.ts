@@ -13,4 +13,5 @@ export * from './monthly-plans';
 export * from './import-batches';
 export * from './labels';
 export * from './portfolio';
+export * from './drawdown';
 export * from './tickerPrices';
