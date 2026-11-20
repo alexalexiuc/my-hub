@@ -15,9 +15,12 @@ import { HistoryModal } from './HistoryModal';
 import { ProjectionModal } from './ProjectionModal';
 import { PositionPricesModal } from './PositionPricesModal';
 import { PortfolioCharts } from './PortfolioCharts';
+import { DipGaugeCard } from './DipGaugeCard';
 import type { PortfolioOverviewResponse } from '@/app/api/finances/portfolio/route';
 import type { SuppliesResponse } from '@/app/api/finances/portfolio/supplies/route';
-import type { SupplyWithLines } from '@my-hub/shared/services';
+import type { PortfolioDrawdown, SupplyWithLines } from '@my-hub/shared/services';
+import type { DrawdownRange } from '@my-hub/shared/constants';
+import type { PortfolioDrawdownResponse } from '@/app/api/finances/portfolio/drawdown/route';
 
 type OpenModal = 'supply' | 'settings' | 'history' | 'projection' | 'prices' | null;
 
@@ -29,6 +32,8 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState<OpenModal>(null);
   const [supplies, setSupplies] = useState<SupplyWithLines[] | null>(null);
+  const [drawdown, setDrawdown] = useState<PortfolioDrawdown | null>(null);
+  const [drawdownRange, setDrawdownRange] = useState<DrawdownRange>('3M');
 
   const fetchOverview = useCallback(() => {
     apiFetch<PortfolioOverviewResponse>('/api/finances/portfolio', { silentToast: true })
@@ -43,10 +48,21 @@ export default function PortfolioPage() {
       .catch(() => setSupplies([]));
   }, []);
 
+  // Keeps the previous drawdown on screen while a new range loads, so the card does not flash.
+  const fetchDrawdown = useCallback(() => {
+    apiFetch<PortfolioDrawdownResponse>('/api/finances/portfolio/drawdown', {
+      query: { range: drawdownRange },
+      silentToast: true,
+    })
+      .then(res => setDrawdown(res.drawdown))
+      .catch(() => setDrawdown(null));
+  }, [drawdownRange]);
+
   const refreshAll = useCallback(() => {
     fetchOverview();
     fetchSupplies();
-  }, [fetchOverview, fetchSupplies]);
+    fetchDrawdown();
+  }, [fetchOverview, fetchSupplies, fetchDrawdown]);
 
   useEffect(() => {
     refreshAll();
@@ -124,7 +140,17 @@ export default function PortfolioPage() {
             <ContributionCadenceCard cadence={overview.cadence} currency={overview.portfolio.baseCurrency} />
           )}
           <PositionsTable overview={overview} />
-          {supplies && supplies.length > 0 && <PortfolioCharts overview={overview} supplies={supplies} />}
+          {drawdown && (
+            <DipGaugeCard
+              drawdown={drawdown}
+              range={drawdownRange}
+              onRangeChange={setDrawdownRange}
+              currency={overview.portfolio.baseCurrency}
+            />
+          )}
+          {supplies && supplies.length > 0 && (
+            <PortfolioCharts overview={overview} supplies={supplies} drawdown={drawdown} />
+          )}
           <SuppliesSection overview={overview} supplies={supplies} onChanged={refreshAll} />
         </>
       )}

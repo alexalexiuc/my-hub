@@ -5,6 +5,7 @@ export * from './finances';
 export * from './format';
 export * from './dates';
 export * from './deposit';
+export * from './drawdown';
 export * from './logger';
 export * from './objects';
 export * from './portfolio';
