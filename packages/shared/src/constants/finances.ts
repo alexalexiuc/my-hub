@@ -287,6 +287,14 @@ export const PortfolioSupplyLineTypes = {
 } as const;
 export type PortfolioSupplyLineType = (typeof PortfolioSupplyLineTypes)[keyof typeof PortfolioSupplyLineTypes];
 
+export const PortfolioNoteKinds = {
+  Note: 'note',
+  Decision: 'decision',
+  Lesson: 'lesson',
+  Idea: 'idea',
+} as const;
+export type PortfolioNoteKind = (typeof PortfolioNoteKinds)[keyof typeof PortfolioNoteKinds];
+
 export const TickerPriceSources = {
   Yahoo: 'yahoo',
   Stooq: 'stooq',

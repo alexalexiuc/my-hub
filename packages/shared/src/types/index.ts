@@ -105,6 +105,7 @@ import type {
   financePortfolioPositions,
   financePortfolioSupplies,
   financePortfolioSupplyLines,
+  financePortfolioNotes,
   financeTickerPrices,
 } from '../db/schema/finances';
 export type FinanceBudget = InferSelectModel<typeof financeBudgets>;
@@ -155,6 +156,8 @@ export type FinancePortfolioSupply = InferSelectModel<typeof financePortfolioSup
 export type NewFinancePortfolioSupply = InferInsertModel<typeof financePortfolioSupplies>;
 export type FinancePortfolioSupplyLine = InferSelectModel<typeof financePortfolioSupplyLines>;
 export type NewFinancePortfolioSupplyLine = InferInsertModel<typeof financePortfolioSupplyLines>;
+export type FinancePortfolioNote = InferSelectModel<typeof financePortfolioNotes>;
+export type NewFinancePortfolioNote = InferInsertModel<typeof financePortfolioNotes>;
 export type FinanceTickerPrice = InferSelectModel<typeof financeTickerPrices>;
 export type NewFinanceTickerPrice = InferInsertModel<typeof financeTickerPrices>;
 

@@ -2,26 +2,42 @@ import { z } from 'zod';
 import { ToolHandler } from '../../shared/types';
 import { toolResponse } from '../../shared/toolsUtils';
 import {
+  addPortfolioNote,
   addSupply,
   createPortfolio,
+  deletePortfolioNote,
   deleteSupply,
   getPortfolio,
+  getPortfolioNotes,
   getPortfolioOverview,
   getPositions,
   getSupplies,
   getUserActiveBudget,
+  updatePortfolioNote,
   updatePortfolioSettings,
   upsertPositions,
   type PositionUpsert,
 } from '@my-hub/shared/services';
-import { SupportedCurrencies } from '@my-hub/shared/constants';
-import { allocationsSumTo100, sumAllocations } from '@my-hub/shared/utils';
+import { PortfolioNoteKinds, SupportedCurrencies, type PortfolioNoteKind } from '@my-hub/shared/constants';
+import { allocationsSumTo100, currentDateString, sumAllocations } from '@my-hub/shared/utils';
+import { yyyyMmDdSchema } from '../../shared/schemas';
 import { HandledError } from '../../shared/errors';
 
 async function requireActiveBudget(userId: string) {
   const budget = await getUserActiveBudget(userId);
   if (!budget) throw new HandledError('No active budget. Set an active budget in the Hub first.');
   return budget;
+}
+
+async function requirePortfolio(userId: string) {
+  const budget = await requireActiveBudget(userId);
+  const portfolio = await getPortfolio(userId, budget.id);
+  if (!portfolio) throw new HandledError('No portfolio yet. Create one with finances_update_portfolio first.');
+  return { budget, portfolio };
+}
+
+function noteView(note: { id: number; date: string; kind: string; title: string | null; body: string }) {
+  return { id: note.id, date: note.date, kind: note.kind, title: note.title, body: note.body };
 }
 
 // ─── finances_get_portfolio ────────────────────────────────────────────────
@@ -34,6 +50,15 @@ export const GetPortfolioSchema = z.object({
     .max(50)
     .default(5)
     .describe('How many of the most recent supply events to include (0 to omit them).'),
+  recentNotesLimit: z
+    .number()
+    .int()
+    .min(0)
+    .max(50)
+    .default(5)
+    .describe(
+      "How many of the user's most recent portfolio notes to include (0 to omit them). Use finances_get_portfolio_notes to search all notes.",
+    ),
 });
 
 export const getPortfolioTool: ToolHandler<typeof GetPortfolioSchema.shape> = async (input, context) => {
@@ -48,6 +73,11 @@ export const getPortfolioTool: ToolHandler<typeof GetPortfolioSchema.shape> = as
   const supplies =
     input.recentSuppliesLimit > 0
       ? (await getSupplies(userId, budget.id, overview.portfolio.id)).slice(0, input.recentSuppliesLimit)
+      : [];
+
+  const notes =
+    input.recentNotesLimit > 0
+      ? await getPortfolioNotes(userId, budget.id, overview.portfolio.id, { limit: input.recentNotesLimit })
       : [];
 
   return toolResponse({
@@ -70,6 +100,8 @@ export const getPortfolioTool: ToolHandler<typeof GetPortfolioSchema.shape> = as
     pricesAsOf: overview.pricesAsOf,
     // Contribution schedule adherence — answers "am I ahead, and when is the next buy due?"
     cadence: overview.cadence,
+    // The user's own journal: why they bought, what they learned — weigh it when advising.
+    recentNotes: notes.map(noteView),
     recentSupplies: supplies.map(s => ({
       id: s.id,
       date: s.date,
@@ -296,4 +328,82 @@ export const deletePortfolioSupplyTool: ToolHandler<typeof DeletePortfolioSupply
   const budget = await requireActiveBudget(userId);
   await deleteSupply(userId, budget.id, input.supplyId);
   return toolResponse({ deleted: true, supplyId: input.supplyId });
+};
+
+// ─── finances_get_portfolio_notes ──────────────────────────────────────────
+
+const NoteKindSchema = z.enum(Object.values(PortfolioNoteKinds) as [string, ...string[]]);
+
+export const GetPortfolioNotesSchema = z.object({
+  query: z.string().trim().min(1).optional().describe('Text to look for in note titles and bodies (case-insensitive).'),
+  kind: NoteKindSchema.optional().describe('Only notes of this kind: note, decision, lesson or idea.'),
+  from: yyyyMmDdSchema.optional().describe('Only notes dated on or after this day (YYYY-MM-DD).'),
+  to: yyyyMmDdSchema.optional().describe('Only notes dated on or before this day (YYYY-MM-DD).'),
+  limit: z.number().int().min(1).max(100).default(20).describe('Maximum notes to return, newest first.'),
+});
+
+export const getPortfolioNotesTool: ToolHandler<typeof GetPortfolioNotesSchema.shape> = async (input, context) => {
+  const { budget, portfolio } = await requirePortfolio(context.userId);
+  const notes = await getPortfolioNotes(context.userId, budget.id, portfolio.id, {
+    ...input,
+    kind: input.kind as PortfolioNoteKind | undefined,
+  });
+  return toolResponse({ count: notes.length, notes: notes.map(noteView) });
+};
+
+// ─── finances_save_portfolio_note ──────────────────────────────────────────
+
+export const SavePortfolioNoteSchema = z.object({
+  noteId: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('Id of an existing note to edit (from finances_get_portfolio_notes). Omit to create a new note.'),
+  body: z.string().trim().min(1).optional().describe('The note text. Required when creating a note.'),
+  date: yyyyMmDdSchema
+    .optional()
+    .describe('The day the note is about (YYYY-MM-DD). Defaults to today when creating; unchanged when editing.'),
+  kind: NoteKindSchema.optional().describe(
+    'note (default), decision (a buy/skip choice and why), lesson (what to do differently next time) or idea.',
+  ),
+  title: z.string().nullable().optional().describe('Optional short headline. Pass null when editing to clear it.'),
+});
+
+export const savePortfolioNoteTool: ToolHandler<typeof SavePortfolioNoteSchema.shape> = async (input, context) => {
+  const { userId, timezone } = context;
+  const { budget, portfolio } = await requirePortfolio(userId);
+  const kind = input.kind as PortfolioNoteKind | undefined;
+
+  if (input.noteId) {
+    const note = await updatePortfolioNote(userId, budget.id, input.noteId, {
+      body: input.body,
+      date: input.date,
+      kind,
+      title: input.title,
+    });
+    return toolResponse({ saved: 'updated', note: noteView(note) });
+  }
+
+  if (!input.body) throw new HandledError('body is required to create a note.');
+  const note = await addPortfolioNote(userId, budget.id, portfolio.id, {
+    body: input.body,
+    date: input.date ?? currentDateString(timezone),
+    kind,
+    title: input.title,
+  });
+  return toolResponse({ saved: 'created', note: noteView(note) });
+};
+
+// ─── finances_delete_portfolio_note ────────────────────────────────────────
+
+export const DeletePortfolioNoteSchema = z.object({
+  noteId: z.number().int().positive().describe('Note id, as returned by finances_get_portfolio_notes.'),
+});
+
+export const deletePortfolioNoteTool: ToolHandler<typeof DeletePortfolioNoteSchema.shape> = async (input, context) => {
+  const { userId } = context;
+  const budget = await requireActiveBudget(userId);
+  await deletePortfolioNote(userId, budget.id, input.noteId);
+  return toolResponse({ deleted: true, noteId: input.noteId });
 };

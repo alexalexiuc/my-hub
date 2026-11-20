@@ -235,7 +235,7 @@ export async function getPositions(
     .orderBy(asc(financePortfolioPositions.sortOrder), asc(financePortfolioPositions.id));
 }
 
-async function enforcePortfolioInBudget(budgetId: number, portfolioId: number): Promise<void> {
+export async function enforcePortfolioInBudget(budgetId: number, portfolioId: number): Promise<void> {
   const [row] = await db
     .select({ id: financePortfolios.id })
     .from(financePortfolios)
