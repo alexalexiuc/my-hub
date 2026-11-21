@@ -4,7 +4,7 @@ import { logger } from '@my-hub/shared/utils';
 export type Db = pg.Pool;
 
 /** Bumped when the table layout changes. The index is disposable, so a mismatch rebuilds it from the files. */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export interface DbOptions {
   connectionString: string;
@@ -89,6 +89,8 @@ export async function ensureSchema(db: Db, embedding: { model: string; dimension
         aliases        text[] NOT NULL DEFAULT '{}',
         names          text NOT NULL,
         name_embedding vector(${dim}),
+        reviewed       boolean NOT NULL DEFAULT true,
+        fm_updated     date,
         content_hash   text NOT NULL,
         updated_at     timestamptz NOT NULL,
         UNIQUE (user_id, path)

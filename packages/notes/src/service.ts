@@ -1,8 +1,9 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { UserInputError, logger } from '@my-hub/shared/utils';
+import { UserInputError, logger, omitUndefined } from '@my-hub/shared/utils';
 import { ensureSchema, type Db } from './db';
 import { type EmbeddingProvider } from './embeddings';
+import { fetchHeaders, type HeaderFilter, type NoteHeader } from './headers';
 import { Indexer, type IndexResult } from './indexer';
 import {
   ENTRY_TYPES,
@@ -17,9 +18,9 @@ import {
   setFrontmatterKey,
   setFrontmatterList,
 } from './markdown';
-import { DEFAULT_RESOLVE_CONFIG, decide, findCandidates, type Candidate, type ResolveConfig } from './resolve';
+import { findExactNote } from './resolve';
 import { DEFAULT_RRF_K } from './rrf';
-import { searchNotes, type SearchOptions, type SearchResult } from './search';
+import { searchNotes, type SearchHit, type SearchOptions, type SearchResult } from './search';
 import { slugify } from './slug';
 import { NoteStore, assertNotePath } from './store';
 
@@ -30,15 +31,14 @@ export interface NotesRuntimeConfig {
   root: string;
   gitRemote?: string;
   rrfK?: number;
-  resolve?: Partial<ResolveConfig>;
 }
 
 export interface RememberInput {
-  /** What the note is about, e.g. "Carpet cleaning" or "Engine oil". Resolved to an existing note when similar. */
+  /** What the note is about, e.g. "Carpet cleaning". Appended to the note with exactly this title or alias, else a new note. */
   subject: string;
   text: string;
   type: string;
-  /** Skips subject resolution: append to (or create) exactly this note. */
+  /** Skips subject matching: append to (or create) exactly this note. */
   path?: string;
   /** Folder for a newly created note (default `misc`). */
   category?: string;
@@ -48,17 +48,16 @@ export interface RememberInput {
   date?: string;
 }
 
-export type RememberResult =
-  | {
-      status: 'saved';
-      path: string;
-      title: string;
-      created: boolean;
-      entryId: string;
-      matchedScore: number | null;
-      timings: { totalMs: number };
-    }
-  | { status: 'ambiguous'; candidates: Candidate[] };
+export interface RememberResult {
+  status: 'saved';
+  path: string;
+  title: string;
+  created: boolean;
+  /** How an existing note was found: its file slug, its title/alias, or the explicit `path`. Null when created. */
+  matchedBy: 'path' | 'name' | null;
+  entryId: string;
+  timings: { totalMs: number };
+}
 
 export interface RecentEntry {
   path: string;
@@ -69,15 +68,43 @@ export interface RecentEntry {
   text: string;
 }
 
-export interface NoteListItem {
-  path: string;
-  title: string;
-  category: string;
-  entryCount: number;
+export interface BrowseOptions extends Pick<HeaderFilter, 'category' | 'tag' | 'updatedSince' | 'unreviewedOnly'> {
+  /** 1-5 phrasings; when given, notes are ranked by hybrid search instead of ordered by category and title. */
+  queries?: string[];
+  /** Default 50, max 200. */
+  limit?: number;
+}
+
+export interface ReviewQueue {
+  items: { note: NoteHeader; similar: NoteHeader[] }[];
+  /** Unreviewed notes beyond this page. */
+  remaining: number;
+}
+
+export interface MergeResult {
+  into: string;
+  from: string;
+  movedEntries: number;
+  /** The aliases `into` has after the merge. */
+  aliases: string[];
 }
 
 const safeUserDir = (userId: string) => userId.replace(/[^A-Za-z0-9_-]/g, '_');
 const today = () => new Date().toISOString().slice(0, 10);
+
+/** `existing` plus the `extra` values not already in it (case-insensitive, trimmed). */
+function mergeUnique(existing: string[], extra: string[]): string[] {
+  const seen = new Set(existing.map(v => v.toLowerCase()));
+  const merged = [...existing];
+  for (const raw of extra) {
+    const v = raw.trim();
+    if (v && !seen.has(v.toLowerCase())) {
+      seen.add(v.toLowerCase());
+      merged.push(v);
+    }
+  }
+  return merged;
+}
 
 /** Shared state for all users: database, embedder, config. Create once with `createNotesRuntime`. */
 export class NotesRuntime {
@@ -136,10 +163,6 @@ export class NotesService {
     this.indexer = new Indexer(rt.db, this.store, rt.embedder, userId);
   }
 
-  private get resolveConfig(): ResolveConfig {
-    return { ...DEFAULT_RESOLVE_CONFIG, ...this.rt.config.resolve };
-  }
-
   /** Indexes files that changed outside the app (Obsidian, git pull). Runs once; later calls reuse it. */
   sync(opts: { full?: boolean } = {}): Promise<{ files: number; embedded: number; removedNotes: number }> {
     const run = this.store.serialize(() => this.indexer.syncAll(opts));
@@ -163,10 +186,14 @@ export class NotesService {
     await this.store.init();
     const content = await this.store.read(path);
     if (content === null)
-      throw new UserInputError(`No note at "${path}". Use notes_search or notes_list to find the path.`);
+      throw new UserInputError(`No note at "${path}". Use notes_search or notes_browse to find the path.`);
     return { path, content };
   }
 
+  /**
+   * Appends an entry to the note whose title/alias/slug equals `subject` exactly, or creates a new (unreviewed)
+   * note. Never guesses: near-duplicates are left for the review pass (`reviewQueue` + `merge`).
+   */
   async remember(input: RememberInput): Promise<RememberResult> {
     const t0 = performance.now();
     await this.ready();
@@ -178,21 +205,18 @@ export class NotesService {
     return this.store.serialize(async () => {
       let path: string;
       let created = false;
-      let matchedScore: number | null = null;
+      let matchedBy: RememberResult['matchedBy'] = null;
 
       if (input.path) {
         assertNotePath(input.path);
         path = input.path;
         created = !(await this.store.exists(path));
+        if (!created) matchedBy = 'path';
       } else {
-        const res = decide(
-          await findCandidates(this.rt.db, this.rt.embedder, this.userId, subject, this.resolveConfig),
-          this.resolveConfig,
-        );
-        if (res.kind === 'ambiguous') return { status: 'ambiguous' as const, candidates: res.candidates };
-        if (res.kind === 'match') {
-          path = res.candidate.path;
-          matchedScore = Math.round(res.candidate.score * 1000) / 1000;
+        const exact = await findExactNote(this.rt.db, this.userId, subject);
+        if (exact) {
+          path = exact.path;
+          matchedBy = exact.matchedBy;
         } else {
           path = await this.freshPath(input.category ?? 'misc', subject);
           created = true;
@@ -207,25 +231,14 @@ export class NotesService {
           tags: [],
           aliases: [],
           updated: date,
+          reviewed: false,
         });
       const note = parseNote(source);
       const fm = readFrontmatter(note, { title: subject, category: path.slice(0, path.indexOf('/')) });
 
-      const addUnique = (existing: string[], extra: string[] | undefined) => {
-        const seen = new Set(existing.map(s => s.toLowerCase()));
-        const merged = [...existing];
-        for (const s of extra ?? []) {
-          const v = s.trim();
-          if (v && !seen.has(v.toLowerCase())) {
-            seen.add(v.toLowerCase());
-            merged.push(v);
-          }
-        }
-        return merged;
-      };
-      const aliases = addUnique(fm.aliases, input.aliases);
+      const aliases = mergeUnique(fm.aliases, input.aliases ?? []);
       if (aliases.length !== fm.aliases.length) setFrontmatterList(note, 'aliases', aliases);
-      const tags = addUnique(fm.tags, input.tags);
+      const tags = mergeUnique(fm.tags, input.tags ?? []);
       if (tags.length !== fm.tags.length) setFrontmatterList(note, 'tags', tags);
 
       const entryId = appendEntry(note, { date, type: input.type, text: input.text });
@@ -239,8 +252,8 @@ export class NotesService {
         path,
         title: fm.title,
         created,
+        matchedBy,
         entryId,
-        matchedScore,
         timings: { totalMs: Math.round((performance.now() - t0) * 100) / 100 },
       };
     });
@@ -297,16 +310,135 @@ export class NotesService {
     }));
   }
 
-  async list(category?: string): Promise<NoteListItem[]> {
+  /** Note headers, filtered, and ranked by hybrid search when `queries` are given. */
+  async browse(opts: BrowseOptions = {}): Promise<NoteHeader[]> {
     await this.ready();
-    const res = await this.rt.db.query<{ path: string; title: string; category: string; n: string }>(
-      `SELECT n.path, n.title, n.category, count(e.id) FILTER (WHERE e.entry_key <> '_body')::text AS n
-       FROM notes n LEFT JOIN entries e ON e.note_id = n.id
-       WHERE n.user_id = $1 AND ($2::text IS NULL OR n.category = $2)
-       GROUP BY n.id ORDER BY n.category, n.title`,
-      [this.userId, category ?? null],
+    const limit = Math.min(Math.max(opts.limit ?? 50, 1), 200);
+    const filter: HeaderFilter = omitUndefined({
+      category: opts.category,
+      tag: opts.tag,
+      updatedSince: opts.updatedSince,
+      unreviewedOnly: opts.unreviewedOnly,
+    });
+    if (!opts.queries?.length) return fetchHeaders(this.rt.db, this.userId, filter, { limit });
+
+    // The search takes the category; the other filters are applied to its (widened) result list.
+    const postFilters = filter.tag !== undefined || filter.updatedSince !== undefined || filter.unreviewedOnly;
+    const { hits } = await searchNotes(this.rt.db, this.rt.embedder, this.userId, {
+      k: this.rt.config.rrfK ?? DEFAULT_RRF_K,
+      queries: opts.queries,
+      category: opts.category,
+      limit: postFilters ? 200 : limit,
+    });
+    return (await this.rankedHeaders(hits, filter)).slice(0, limit);
+  }
+
+  /** Unreviewed notes (oldest first), each with the existing notes most similar to it. */
+  async reviewQueue({
+    limit = 10,
+    suggestions = 5,
+  }: { limit?: number; suggestions?: number } = {}): Promise<ReviewQueue> {
+    await this.ready();
+    const pageSize = Math.min(Math.max(limit, 1), 50);
+    const unreviewed = await fetchHeaders(
+      this.rt.db,
+      this.userId,
+      { unreviewedOnly: true },
+      { limit: 100000, oldestFirst: true },
     );
-    return res.rows.map(r => ({ path: r.path, title: r.title, category: r.category, entryCount: Number(r.n) }));
+    const items: ReviewQueue['items'] = [];
+    for (const note of unreviewed.slice(0, pageSize)) {
+      const { hits } = await searchNotes(this.rt.db, this.rt.embedder, this.userId, {
+        k: this.rt.config.rrfK ?? DEFAULT_RRF_K,
+        queries: [note.title, ...note.aliases.slice(0, 4)],
+        limit: suggestions + 1,
+      });
+      const similar = (
+        await this.rankedHeaders(
+          hits.filter(h => h.path !== note.path),
+          {},
+        )
+      ).slice(0, suggestions);
+      items.push({ note, similar });
+    }
+    return { items, remaining: unreviewed.length - items.length };
+  }
+
+  /**
+   * Folds note `from` into `into` as one commit: entries (with their dates and types), aliases (including `from`'s
+   * title), tags and free body text move over, then `from` is deleted.
+   */
+  async merge(from: string, into: string): Promise<MergeResult> {
+    assertNotePath(from);
+    assertNotePath(into);
+    if (from === into) throw new UserInputError('Cannot merge a note into itself.');
+    await this.ready();
+    return this.store.serialize(async () => {
+      const [fromSource, intoSource] = await Promise.all([this.store.read(from), this.store.read(into)]);
+      if (fromSource === null) throw new UserInputError(`No note at "${from}".`);
+      if (intoSource === null) throw new UserInputError(`No note at "${into}".`);
+      const src = parseNote(fromSource);
+      const dst = parseNote(intoSource);
+      const srcFm = readFrontmatter(src, { title: from, category: from.slice(0, from.indexOf('/')) });
+      const dstFm = readFrontmatter(dst, { title: into, category: into.slice(0, into.indexOf('/')) });
+
+      const moved = listEntries(src);
+      for (const e of moved) appendEntry(dst, { date: e.date, type: e.type, text: e.text });
+
+      const dstTitle = dstFm.title.trim().toLowerCase();
+      const aliases = mergeUnique(
+        dstFm.aliases,
+        [srcFm.title, ...srcFm.aliases].filter(a => a.trim().toLowerCase() !== dstTitle),
+      );
+      if (aliases.length !== dstFm.aliases.length) setFrontmatterList(dst, 'aliases', aliases);
+      const tags = mergeUnique(dstFm.tags, srcFm.tags);
+      if (tags.length !== dstFm.tags.length) setFrontmatterList(dst, 'tags', tags);
+
+      const freeText = src.body.filter(l => l.kind === 'text').map(l => l.raw);
+      while (freeText.length && freeText[0]!.trim() === '') freeText.shift();
+      while (freeText.length && freeText.at(-1)!.trim() === '') freeText.pop();
+      if (freeText.length) {
+        dst.body.push(...['', ...freeText].map(raw => ({ kind: 'text' as const, raw })));
+        dst.trailingNewline = true;
+      }
+
+      const updated = [srcFm.updated, dstFm.updated]
+        .filter((d): d is string => !!d)
+        .sort()
+        .at(-1);
+      if (updated) setFrontmatterKey(dst, 'updated', updated);
+
+      await this.store.write(into, serializeNote(dst));
+      await this.store.remove(from);
+      await this.store.commit(`notes: merge ${from} into ${into}`);
+      await this.indexer.indexFile(from);
+      await this.indexer.indexFile(into);
+      return { into, from, movedEntries: moved.length, aliases };
+    });
+  }
+
+  /** Marks notes as checked by a review pass (`reviewed: true`), in one commit. */
+  async markReviewed(paths: string[]): Promise<{ reviewed: string[] }> {
+    const unique = [...new Set(paths)];
+    if (unique.length < 1 || unique.length > 50) throw new UserInputError('Pass 1-50 note paths.');
+    unique.forEach(assertNotePath);
+    await this.ready();
+    return this.store.serialize(async () => {
+      const notes = new Map<string, ReturnType<typeof parseNote>>();
+      for (const path of unique) {
+        const source = await this.store.read(path);
+        if (source === null) throw new UserInputError(`No note at "${path}".`);
+        notes.set(path, parseNote(source));
+      }
+      for (const [path, note] of notes) {
+        if (readFrontmatter(note, { title: path, category: '' }).reviewed) continue;
+        setFrontmatterKey(note, 'reviewed', 'true');
+        await this.store.write(path, serializeNote(note));
+      }
+      await this.store.commit(`notes: reviewed ${unique.length} notes`);
+      for (const path of unique) await this.indexer.indexFile(path);
+      return { reviewed: unique };
+    });
   }
 
   /** Rebuilds this user's index from the files (re-embedding everything when `full`). */
@@ -342,6 +474,17 @@ export class NotesService {
     return listEntries(parseNote(content));
   }
 
+  /** Headers for search hits, in rank order, with score and matchedBy; the filter drops the rest. */
+  private async rankedHeaders(hits: SearchHit[], filter: HeaderFilter): Promise<NoteHeader[]> {
+    if (hits.length === 0) return [];
+    const headers = await fetchHeaders(this.rt.db, this.userId, { ...filter, paths: hits.map(h => h.path) });
+    const byPath = new Map(headers.map(h => [h.path, h]));
+    return hits.flatMap(h => {
+      const header = byPath.get(h.path);
+      return header ? [{ ...header, score: h.score, matchedBy: h.matchedBy }] : [];
+    });
+  }
+
   private async mutate(path: string, what: string, fn: (note: ReturnType<typeof parseNote>) => void) {
     assertNotePath(path);
     await this.ready();
@@ -370,7 +513,6 @@ export class NotesService {
 }
 
 export { ENTRY_TYPES };
-export type { Candidate };
 
 /** Logs a warning-level line; kept here so callers do not import the logger just for this. */
 export function warnNotes(message: string): void {

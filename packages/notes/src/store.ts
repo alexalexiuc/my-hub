@@ -86,6 +86,11 @@ export class NoteStore {
     await rename(tmp, abs);
   }
 
+  /** Deletes one note file (no error when it is already gone). Does not commit. */
+  async remove(path: string): Promise<void> {
+    await rm(this.resolveNote(path), { force: true });
+  }
+
   /** Commits everything pending with one message. A no-op commit is skipped. */
   async commit(message: string): Promise<void> {
     await this.git(['add', '-A']);

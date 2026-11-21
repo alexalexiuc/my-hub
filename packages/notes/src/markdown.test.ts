@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   appendEntry,
   bodyText,
+  createNoteText,
   listEntries,
   newEntryId,
   parseNote,
@@ -52,6 +53,7 @@ describe('markdown parser', () => {
       tags: ['home', 'cleaning'],
       aliases: ['rug cleaning', 'covoare', 'curățare covoare', 'химчистка ковров'],
       updated: '2026-11-21',
+      reviewed: true,
     });
   });
 
@@ -128,5 +130,27 @@ describe('markdown parser', () => {
     const taken = new Set<string>();
     for (let i = 0; i < 200; i++) taken.add(newEntryId(taken));
     expect(taken.size).toBe(200);
+  });
+
+  it('treats a note as reviewed unless the frontmatter says `reviewed: false`', () => {
+    const reviewedOf = (line: string) =>
+      readFrontmatter(parseNote(['---', 'title: T', ...(line ? [line] : []), '---', ''].join('\n')), {
+        title: 'x',
+        category: 'y',
+      }).reviewed;
+    expect(reviewedOf('')).toBe(true);
+    expect(reviewedOf('reviewed: true')).toBe(true);
+    expect(reviewedOf('reviewed: yes')).toBe(true);
+    expect(reviewedOf('reviewed: false')).toBe(false);
+    expect(readFrontmatter(parseNote(SAMPLE), { title: 'x', category: 'y' }).reviewed).toBe(true);
+  });
+
+  it('createNoteText writes `reviewed: false` after `updated` only when asked', () => {
+    const base = { title: 'Engine oil', category: 'car', tags: [], aliases: [], updated: '2026-11-21' };
+    const unreviewed = createNoteText({ ...base, reviewed: false });
+    expect(unreviewed).toContain('updated: 2026-11-21\nreviewed: false\n---');
+    expect(readFrontmatter(parseNote(unreviewed), { title: 'x', category: 'y' }).reviewed).toBe(false);
+    expect(createNoteText(base)).not.toContain('reviewed');
+    expect(createNoteText({ ...base, reviewed: true })).not.toContain('reviewed');
   });
 });

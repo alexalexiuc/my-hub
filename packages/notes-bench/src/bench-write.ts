@@ -4,7 +4,7 @@ import { parseCorpus } from './build-fixtures';
 import { FIXTURES_DIR, flagNum, rng, stats, timed, type Args, type Harness } from './lib';
 import { copySeedNotes } from './seed';
 
-/** `remember` end to end (resolve + file write + git commit + embed + upsert), half appends, half new notes. */
+/** `remember` end to end (exact-name lookup + file write + git commit + embed + upsert), half appends, half new notes. */
 export async function benchWrite(args: Args, h: Harness): Promise<Record<string, unknown>> {
   await copySeedNotes(h);
   await h.svc.reindex({ full: true });
@@ -29,10 +29,8 @@ export async function benchWrite(args: Args, h: Harness): Promise<Record<string,
       }),
     );
     wall.push(ms);
-    if (value.status === 'saved') {
-      server.push(value.timings.totalMs);
-      if (value.created) created++;
-    }
+    server.push(value.timings.totalMs);
+    if (value.created) created++;
   }
   return { writes: n, createdNotes: created, wallMs: stats(wall), serverMs: stats(server) };
 }

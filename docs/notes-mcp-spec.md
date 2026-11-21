@@ -337,13 +337,13 @@ packages/notes-bench/
 
 ### What exists
 
-| Piece                                                                                                                                                                     | Where                                                                                                                                |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Core library: parser (byte-exact round trip), git store + write queue, embeddings (e5 / ollama / fake), schema, indexer, hybrid search, subject resolution, CLI           | `packages/notes`                                                                                                                     |
-| MCP tools (`notes_search`, `notes_read`, `notes_remember`, `notes_edit_entry`, `notes_delete_entry`, `notes_add_alias`, `notes_recent`, `notes_list`) on `/api/notes/mcp` | `packages/mcp-server/src/notes`                                                                                                      |
-| Benchmarks + fixtures (95 notes, 53 golden queries)                                                                                                                       | `packages/notes-bench`                                                                                                               |
-| Compose (`notes-db`, volumes, limits), mcp Dockerfile, CI pgvector service, e2e spec                                                                                      | `infra/`, `packages/mcp-server/Dockerfile`, `.github/workflows/ci.yml`, `packages/mcp-server/e2e/notes.e2e.ts`                       |
-| Docs                                                                                                                                                                      | `packages/notes/README.md`, `packages/notes-bench/README.md`, `docs/notes-mcp-hetzner.md`, `docs/requirements/mcps/feature-notes.md` |
+| Piece                                                                                                                                                         | Where                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Core library: parser (byte-exact round trip), git store + write queue, embeddings (e5 / ollama / fake), schema, indexer, hybrid search, exact-name match, CLI | `packages/notes`                                                                                                                     |
+| MCP tools (11: search, read, remember, edit/delete entry, add alias, recent, browse, review duplicates, merge, mark reviewed) on `/api/notes/mcp`             | `packages/mcp-server/src/notes`                                                                                                      |
+| Benchmarks + fixtures (95 notes, 53 golden queries)                                                                                                           | `packages/notes-bench`                                                                                                               |
+| Compose (`notes-db`, volumes, limits), mcp Dockerfile, CI pgvector service, e2e spec                                                                          | `infra/`, `packages/mcp-server/Dockerfile`, `.github/workflows/ci.yml`, `packages/mcp-server/e2e/notes.e2e.ts`                       |
+| Docs                                                                                                                                                          | `packages/notes/README.md`, `packages/notes-bench/README.md`, `docs/notes-mcp-hetzner.md`, `docs/requirements/mcps/feature-notes.md` |
 
 ### Deviations from this handover (and why)
 
@@ -359,11 +359,11 @@ packages/notes-bench/
 5. **A fourth search leg: trigram on entry text.** Section 7 only had trigram on note names, but the spec's own typo example
    ("clenpro" -> CleanPro, which is a vendor named inside an entry, not in the title) needs it. Legs are switchable per request
    (`legs`) so the benchmark can compare. Entry score per note = sum of its best 3 entries' RRF scores, plus the note-name RRF score.
-6. **`remember` matching** compares the subject against each name (title / each alias) with whole-string trigram
-   `similarity` and against the name embedding (scaled above a floor, default cosine 0.8). Word-level similarity against the
-   concatenated aliases merged "Engine oil mobil" into "Engine oil castrol", so it is not used. Two exact name matches, or two
-   scores within 0.05 above the threshold, return `ambiguous` with candidates and write nothing. Optional `path` skips matching;
-   optional `category` names the folder of a new note (default `misc`).
+6. **`remember` matches exactly, never fuzzily** (changed on 2026-11-21, see "Raw writes and a review pass" below). It appends to the
+   note whose path slug, title or alias equals the subject after case and accent folding (most recently updated wins); otherwise it
+   creates a new note marked `reviewed: false`. Near-duplicates are allowed and merged later by Claude in an explicit review pass
+   (`notes_review_duplicates` -> `notes_merge` -> `notes_mark_reviewed`). Optional `path` writes to exactly that note; optional
+   `category` names the folder of a new note (default `misc`). The fuzzy matcher (trigram + name embedding, `NOTES_MATCH_*`) is gone.
 7. **Debian base image for mcp** (`node:26-bookworm-slim`) because onnxruntime-node ships glibc binaries only. `pnpm-workspace.yaml`
    sets `onnxruntime-node: false` in `allowBuilds` (its postinstall only fetches optional CUDA libraries; the CPU binaries ship in the package).
 8. **Benchmark modes.** Direct mode (isolated schema + temp dir) covers everything; `--target` mode covers `search` and `relevance`
@@ -414,7 +414,7 @@ One user rarely sends parallel searches, but Claude does send several phrasings 
 the next piece of work; it is not needed for a personal corpus of a few hundred to a few thousand entries (1k: p95 76 ms).
 
 - **Relevance and `remember` matching**: identical to the dev box (both deterministic): hybrid 0.81 / 0.94 / 0.86, hybrid-multi 0.93 / 0.98 / 0.95,
-  with 5,000 filler entries hybrid 0.60 / 0.83 / 0.71; resolve at the new defaults 45 correct, 0 wrong merges, 17 missed, 1 ambiguous.
+  with 5,000 filler entries hybrid 0.60 / 0.83 / 0.71; the old fuzzy resolver at 0.75 / 0.6 45 correct, 0 wrong merges, 17 missed, 1 ambiguous (since replaced, see below).
 - **Prod baseline before Notes**: `my-hub-mcp-1` idles at 89 MB. After deploy expect roughly +500-650 MB once the model is loaded (`NOTES_WARM_ON_BOOT`).
 
 ### Real e5 numbers (dev box: i7-12700H, 20 threads, 16 GB, no container limits, Postgres 18 in Docker Desktop)
@@ -448,7 +448,7 @@ Same shape as the sandbox: fine one at a time, and the DB part (≥ 85% of serve
 The real model lifts hybrid from 0.53 / 0.83 / 0.66 (fake) to 0.81 / 0.94 / 0.86, and multiple phrasings still add the most (recall@1 0.81 -> 0.93).
 Noise hurts every leg; the filler is synthetic and shares vocabulary with the corpus on purpose, so it is a pessimistic case.
 
-- **`remember` subject matching** (`bench:resolve`, 63 labelled subjects: 40 that must merge, incl. typos and RU/RO names; 23 that must be new,
+- **Old fuzzy `remember` subject matching (superseded, kept for the record)** (`bench:resolve`, 63 labelled subjects: 40 that must merge, incl. typos and RU/RO names; 23 that must be new,
   14 of them near misses such as "Summer tires" vs. Winter tires, "Gearbox oil" vs. Engine oil). e5 cosines between short names sit in
   0.82-0.93 for related **and** unrelated pairs: the best wrong note for a near miss reaches 0.91 (Fuel filter -> Air filter) while some right
   answers score 0.86. No cosine cut separates them, so names need trigram or a very high cosine. Sweeping floor 0.6-0.88 x threshold 0.4-0.8:
@@ -464,6 +464,49 @@ Threshold 0.75 has zero wrong merges at **every** floor, while the cells with mo
 1-6 wrong merges: with 63 cases they would be overfit. A wrong merge silently mixes two subjects; a missed merge only makes a second note that
 search still finds and an alias can fix later, so the conservative side is the right one. Better recall here needs a relative signal
 (margin over the runner-up) or Claude confirming, not a different absolute cut.
+
+### Raw writes and a review pass (2026-11-21, replaces fuzzy matching)
+
+The fuzzy resolver above looked safe on single subjects, but `bench:lists` (three lists of 12-20 items: places in Chișinău, foods,
+cities, each saved either as one list note or as one note per item) showed what it does to lists: at 0.6 / 0.75 it made **7 wrong merges**
+(Budapest into Bucharest, Sala cu Orgă into Arcul de Triumf, ...). Short, related names are exactly where name embeddings are least
+discriminative. So writes no longer guess:
+
+- `remember` appends only on an exact name match, else creates a new note with `reviewed: false`. Raw notes, predictable writes.
+- `notes_browse` returns note **headers** (title, category, aliases, tags, entry count, first line), filtered by category / tag /
+  `updatedSince` / unreviewed, optionally ranked by queries, up to 200. "Give me my whole list" = browse, pick headers, `notes_read`.
+- `notes_review_duplicates` (only when the user asks to tidy) returns unreviewed notes with their 5 most similar notes (hybrid search on
+  title + aliases); Claude merges true duplicates with `notes_merge` and marks the rest with `notes_mark_reviewed`. Notes without the
+  `reviewed` key count as reviewed. Index `SCHEMA_VERSION` 3 adds `reviewed` and the frontmatter `updated` date.
+
+`bench:resolve` now measures review suggestions (e5, same 63 subjects): every case either appends on an exact name or becomes a new note,
+and for new notes the right existing note is in `similar`:
+
+| kind         | cases | appended (exact) | wrong append | new note | similar @1 | @<=3  | @<=5  |
+| ------------ | ----- | ---------------- | ------------ | -------- | ---------- | ----- | ----- |
+| exact        | 4     | 4                | 0            | 0        | -          | -     | -     |
+| variant      | 25    | 1                | 0            | 24       | 17/24      | 21/24 | 24/24 |
+| crosslang    | 4     | 0                | 0            | 4        | 4/4        | 4/4   | 4/4   |
+| paraphrase   | 4     | 0                | 0            | 4        | 3/4        | 3/4   | 4/4   |
+| typo         | 3     | 0                | 0            | 3        | 3/3        | 3/3   | 3/3   |
+| all positive | 40    | 5                | 0            | 35       | 27/35      | 31/35 | 35/35 |
+
+The 23 must-be-new subjects all became new notes (0 wrong appends); their top suggestions score 0.04-0.11 RRF (Gearbox oil -> Engine oil,
+Coffee grinder -> Coffee machine), which Claude sees and leaves alone. The duplicate is always within the top 5 for the review pass.
+
+`bench:lists` (e5), items of the list that reach Claude:
+
+| shape | list            | notes | search 5 | search 20 | search 5 + read | search 20 + read | browse q (50) + read | browse category |
+| ----- | --------------- | ----- | -------- | --------- | --------------- | ---------------- | -------------------- | --------------- |
+| list  | chisinau-places | 1     | 3/20     | 3/20      | 20/20           | 20/20            | 20/20                | 1/20 (1 header) |
+| list  | foods-to-try    | 1     | 3/15     | 3/15      | 15/15           | 15/15            | 15/15                | 1/15 (1 header) |
+| list  | cities-to-visit | 1     | 3/12     | 3/12      | 12/12           | 12/12            | 12/12                | 1/12 (1 header) |
+| notes | chisinau-places | 20    | 4/20     | 13/20     | 4/20            | 13/20            | 20/20                | 20/20           |
+| notes | foods-to-try    | 15    | 4/15     | 13/15     | 4/15            | 13/15            | 15/15                | 15/15           |
+| notes | cities-to-visit | 12    | 0/12     | 4/12      | 0/12            | 4/12             | 12/12                | 12/12           |
+
+With browse, both shapes return the whole list, and no saves were merged wrongly. Search alone was never enough for lists. The tool
+descriptions still steer collections into one list note (fewest calls), but one-note-per-item no longer loses items.
 
 - Everything in the next section is from the sandbox with `FakeProvider`: it excludes real model inference, and the host (4 vCPU Xeon @ 2.1 GHz, 16 GB, no container limits, bench client and Postgres 16 / pgvector 0.6.0 sharing the cores) is not the VPS.
 
@@ -495,6 +538,5 @@ search still finds and an alias can fix later, so the conservative side is the r
 
 - The vector legs always return the nearest neighbours, even for a query that matches nothing, so `search` has no "found nothing" signal other than `matchedBy`
   and low scores. The tool description tells Claude to say so; a similarity cut-off should be calibrated on real e5 scores (section 13).
-- Resolution is the delicate part of `remember`: near-identical subjects ("Engine oil castrol" / "Engine oil mobil") must stay separate, while aliases must merge.
-  Thresholds are now tuned on e5 (see "Real e5 numbers" above: 0.75 / 0.6, ambiguity margin 0.05 unchanged); re-run `bench:resolve` when the
-  model changes or the labelled cases grow.
+- `remember` no longer resolves fuzzily (see "Raw writes and a review pass"): a wrong merge silently mixes two subjects, while a duplicate
+  note is visible and cheap to merge later. Re-run `bench:resolve` (review-suggestion recall) and `bench:lists` when the model or search changes.

@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { slugify, type SearchHit } from '@my-hub/notes';
+import type { SearchHit } from '@my-hub/notes';
 import { FIXTURES_DIR, createHarness, printTable, type Args, type Harness } from './lib';
 import { copySeedNotes } from './seed';
 
@@ -32,7 +32,7 @@ function itemsInHits(items: ListItem[], hits: SearchHit[]): number {
 /** Saves every list through `remember`, the way Claude would, in one of the two shapes. */
 async function store(h: Harness, lists: ListCase[], shape: Shape) {
   const notesCreated: Record<string, number> = {};
-  /** Saves that came back "ambiguous" (Claude must then pick a path) or landed in another item's note. */
+  /** Saves that landed in another item's note (exact title/alias collisions). */
   const incidents: string[] = [];
   for (const l of lists) {
     const paths = new Map<string, string>();
@@ -41,13 +41,7 @@ async function store(h: Harness, lists: ListCase[], shape: Shape) {
         shape === 'list'
           ? { subject: l.title, text: `${i.name}: ${i.text}`, type: 'fact', category: l.category, aliases: l.aliases }
           : { subject: i.name, text: `Want to try / visit: ${i.text}`, type: 'fact', category: l.category };
-      let res = await h.svc.remember(input);
-      if (res.status === 'ambiguous') {
-        incidents.push(`ambiguous: "${i.name}" vs ${res.candidates.map(c => c.title).join(', ')}`);
-        // What Claude does next: it is a new subject, so give it its own path.
-        res = await h.svc.remember({ ...input, path: `${l.category}/${slugify(i.name)}.md` });
-      }
-      if (res.status !== 'saved') throw new Error(`remember "${i.name}" returned ${res.status}`);
+      const res = await h.svc.remember(input);
       if (shape === 'notes' && !res.created && paths.has(res.path)) {
         incidents.push(`wrong merge: "${i.name}" into "${res.title}"`);
       }
@@ -60,7 +54,8 @@ async function store(h: Harness, lists: ListCase[], shape: Shape) {
 
 /**
  * "Give me the whole list" questions (places to visit, foods to try): how many of a list's items reach Claude from
- * notes_search alone (limit 5 and 20), from search + notes_read of the hits, and from notes_list, for each storage shape.
+ * notes_search alone (limit 5 and 20), from search + notes_read of the hits, from notes_browse (ranked by the list's
+ * queries, limit 50, then notes_read of the headers in the list's category; and by category alone), for each shape.
  */
 export async function benchLists(args: Args, shared: Harness): Promise<Record<string, unknown>> {
   const { lists } = JSON.parse(await readFile(join(FIXTURES_DIR, 'list-cases.json'), 'utf8')) as { lists: ListCase[] };
@@ -92,8 +87,15 @@ export async function benchLists(args: Args, shared: Harness): Promise<Record<st
             if (label === 'multi') r[`categoryHitsIn${limit}`] = listHits.length;
           }
         }
-        const listed = await h.svc.list(l.category);
-        r.listCategory = l.items.filter(i => listed.some(x => has(x.title, i.key))).length;
+        const browsed = await h.svc.browse({ queries: [...l.queries], limit: 50 });
+        const browsedRead = await Promise.all(
+          browsed.filter(x => x.category === l.category).map(x => h.svc.read(x.path)),
+        );
+        r.browseQueryRead = l.items.filter(i => browsedRead.some(x => has(x.content, i.key))).length;
+        const byCategory = await h.svc.browse({ category: l.category, limit: 200 });
+        r.browseCategory = l.items.filter(i =>
+          byCategory.some(x => has(x.title, i.key) || (x.firstLine !== null && has(x.firstLine, i.key))),
+        ).length;
         out[`${shape}/${l.id}`] = r;
         rows.push([
           shape,
@@ -104,7 +106,8 @@ export async function benchLists(args: Args, shared: Harness): Promise<Record<st
           `${r.read_multi_5}/${n}`,
           `${r.read_multi_20}/${n}`,
           `${r.read_single_5}/${n}`,
-          `${r.listCategory}/${n}`,
+          `${r.browseQueryRead}/${n}`,
+          `${r.browseCategory}/${n}`,
         ]);
       }
     } finally {
@@ -123,7 +126,8 @@ export async function benchLists(args: Args, shared: Harness): Promise<Record<st
       'search 5 + read',
       'search 20 + read',
       '1 query 5 + read',
-      'notes_list',
+      'browse q (50) + read',
+      'browse cat',
     ],
     rows,
   );

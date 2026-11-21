@@ -11,7 +11,7 @@ export interface SearchOptions {
   /** 1–5 phrasings of the same question (synonyms, RO/RU/EN translations). */
   queries: string[];
   category?: string;
-  /** Notes to return (default 5, max 20). */
+  /** Notes to return (default 5, max 200; the notes_search tool caps it at 20). */
   limit?: number;
   /** RRF constant. */
   k?: number;
@@ -89,7 +89,7 @@ export async function searchNotes(
   const t0 = performance.now();
   const queries = [...new Set(opts.queries.map(q => q.trim()).filter(Boolean))].slice(0, 5);
   if (queries.length === 0) return { hits: [], timings: { embedMs: 0, dbMs: 0, totalMs: 0 } };
-  const limit = Math.min(Math.max(opts.limit ?? 5, 1), 20);
+  const limit = Math.min(Math.max(opts.limit ?? 5, 1), 200);
   const on = (leg: SearchLeg) => opts.legs?.[leg] !== false;
   const category = opts.category ?? null;
 

@@ -31,7 +31,7 @@ Commands
   search              search latency per tier and concurrency   (--tier 1k,10k,50k,100k)
   relevance           recall@1 / recall@5 / MRR per config      (--config fts,trigram,vector,hybrid,hybrid-multi)
   lists               whole-list questions (places, foods): items reaching Claude per storage shape
-  resolve             remember subject matching: sweep match threshold x vector floor (--verbose: raw scores)
+  resolve             review suggestions: does the review queue show the note a new near-duplicate repeats (--verbose: per case)
   seed --target URL   load the seed corpus into the token's user through notes_remember (WRITES DATA)
   compare A.json B.json   diff two result files, flag regressions
 

@@ -1,34 +1,33 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { DEFAULT_RESOLVE_CONFIG, decide, findCandidates, type Candidate, type ResolveConfig } from '@my-hub/notes';
 import { FIXTURES_DIR, printTable, type Args, type Harness } from './lib';
 import { copySeedNotes } from './seed';
 
 interface ResolveCase {
   subject: string;
-  /** Note path the subject must merge into, or null when it must become a new note. */
+  /** Note the subject names (a duplicate of it when it is not an exact title/alias), or null for a new subject. */
   expect: string | null;
   kind: string;
 }
 
-type Outcome = 'correct' | 'wrongMerge' | 'missedMerge' | 'ambiguous';
-
-const FLOORS = [0.6, 0.65, 0.7, 0.72, 0.75, 0.78, 0.8, 0.82, 0.85, 0.88];
-const THRESHOLDS = [0.4, 0.45, 0.5, 0.55, 0.6, 0.625, 0.65, 0.675, 0.7, 0.75, 0.8];
-const AMBIGUITY_MARGIN = DEFAULT_RESOLVE_CONFIG.ambiguityMargin;
-const r3 = (n: number) => Math.round(n * 1000) / 1000;
-
-function outcome(c: ResolveCase, candidates: Candidate[], config: ResolveConfig): Outcome {
-  const r = decide(candidates, config);
-  if (r.kind === 'ambiguous') return 'ambiguous';
-  if (r.kind === 'none') return c.expect === null ? 'correct' : 'missedMerge';
-  return r.candidate.path === c.expect ? 'correct' : 'wrongMerge';
+interface CaseResult {
+  subject: string;
+  kind: string;
+  expect: string | null;
+  /** `remember` appended to an existing note (exact title/alias/slug match) instead of creating one. */
+  appendedTo: string | null;
+  /** 1-based rank of `expect` among the review suggestions of the note `remember` created; null when absent. */
+  rank: number | null;
+  topSuggestion: string | null;
+  topScore: number | null;
 }
 
+const r3 = (n: number) => Math.round(n * 1000) / 1000;
+
 /**
- * `remember` subject resolution against the seed corpus: sweeps NOTES_MATCH_VECTOR_FLOOR x NOTES_MATCH_THRESHOLD and
- * counts wrong merges (two subjects mixed into one note, the costly error), missed merges (a duplicate note) and
- * ambiguous answers (Claude has to ask). Also reports the raw cosine of the right note vs. the best wrong one.
+ * Review suggestions against the seed corpus. `remember` no longer guesses, so a near-duplicate subject becomes a new
+ * unreviewed note; this measures whether the review queue then shows the note it duplicates among its `similar`
+ * notes (rank 1 / within 3 / within 5) and how many positive subjects were already caught by the exact match.
  */
 export async function benchResolve(args: Args, harness: Harness): Promise<Record<string, unknown>> {
   await copySeedNotes(harness);
@@ -45,97 +44,98 @@ export async function benchResolve(args: Args, harness: Harness): Promise<Record
   if (unknown.length)
     throw new Error(`resolve-cases.json names missing notes: ${unknown.map(c => c.expect).join(', ')}`);
 
-  // Candidate lists depend on the floor only through their LIMIT ordering, so fetch them once per floor.
-  const byFloor = new Map<number, Candidate[][]>();
-  for (const vectorFloor of FLOORS) {
-    const config = { threshold: 0, vectorFloor, ambiguityMargin: AMBIGUITY_MARGIN };
-    const lists: Candidate[][] = [];
-    for (const c of cases) lists.push(await findCandidates(harness.db, harness.embedder, 'bench', c.subject, config));
-    byFloor.set(vectorFloor, lists);
-  }
-
-  const grid: Record<string, unknown>[] = [];
-  for (const vectorFloor of FLOORS) {
-    const lists = byFloor.get(vectorFloor)!;
-    for (const threshold of THRESHOLDS) {
-      const config = { threshold, vectorFloor, ambiguityMargin: AMBIGUITY_MARGIN };
-      const counts: Record<Outcome, number> = { correct: 0, wrongMerge: 0, missedMerge: 0, ambiguous: 0 };
-      const wrong: string[] = [];
-      cases.forEach((c, i) => {
-        const o = outcome(c, lists[i]!, config);
-        counts[o]++;
-        if (o === 'wrongMerge') wrong.push(c.subject);
-      });
-      grid.push({ vectorFloor, threshold, ...counts, wrongMerges: wrong });
-    }
-  }
-  // Best = fewest wrong merges, then most correct, then fewest ambiguous.
-  const ranked = [...grid].sort(
-    (a, b) =>
-      (a.wrongMerge as number) - (b.wrongMerge as number) ||
-      (b.correct as number) - (a.correct as number) ||
-      (a.ambiguous as number) - (b.ambiguous as number),
-  );
-
-  // Raw cosine: the right note's similarity (positives) vs. the best similarity to any note (negatives).
-  const lists = byFloor.get(FLOORS[0]!)!;
-  const perCase = cases.map((c, i) => {
-    const cands = lists[i]!;
-    const right = c.expect ? cands.find(x => x.path === c.expect) : undefined;
-    const bestOther = cands.filter(x => x.path !== c.expect).sort((a, b) => b.cosine - a.cosine)[0];
-    return {
+  const results: CaseResult[] = [];
+  for (const c of cases) {
+    const res = await harness.svc.remember({
+      subject: c.subject,
+      text: 'Bench entry: checked it, works fine',
+      type: 'fact',
+      category: 'bench',
+      date: '2026-11-21',
+    });
+    const result: CaseResult = {
       subject: c.subject,
       kind: c.kind,
       expect: c.expect,
-      rightCosine: right ? r3(right.cosine) : null,
-      rightTrigram: right ? r3(right.trigram) : null,
-      bestOtherCosine: bestOther ? r3(bestOther.cosine) : null,
-      bestOther: bestOther?.path ?? null,
+      appendedTo: res.created ? null : res.path,
+      rank: null,
+      topSuggestion: null,
+      topScore: null,
     };
-  });
-
-  printTable(
-    `resolve: best 10 of ${grid.length} (floor x threshold), ${cases.length} cases, margin ${AMBIGUITY_MARGIN}`,
-    ['floor', 'threshold', 'correct', 'wrong merge', 'missed merge', 'ambiguous'],
-    ranked
-      .slice(0, 10)
-      .map(g => [
-        g.vectorFloor as number,
-        g.threshold as number,
-        g.correct as number,
-        g.wrongMerge as number,
-        g.missedMerge as number,
-        g.ambiguous as number,
-      ]),
-  );
-  const { vectorFloor: df, threshold: dt } = DEFAULT_RESOLVE_CONFIG;
-  const current = grid.find(g => g.vectorFloor === df && g.threshold === dt);
-  if (current) {
-    process.stdout.write(
-      `defaults (floor ${df}, threshold ${dt}): correct ${current.correct}, wrong merge ${current.wrongMerge} ` +
-        `(${(current.wrongMerges as string[]).join(', ') || '-'}), missed ${current.missedMerge}, ambiguous ${current.ambiguous}\n`,
-    );
+    if (res.created) {
+      // Everything created earlier was marked reviewed below, so the queue holds just this note.
+      const queue = await harness.svc.reviewQueue({ limit: 1, suggestions: 5 });
+      const item = queue.items.find(i => i.note.path === res.path);
+      const similar = item?.similar ?? [];
+      const idx = c.expect ? similar.findIndex(s => s.path === c.expect) : -1;
+      result.rank = idx === -1 ? null : idx + 1;
+      result.topSuggestion = similar[0]?.title ?? null;
+      result.topScore = similar[0]?.score === undefined ? null : r3(similar[0].score);
+      await harness.svc.markReviewed([res.path]);
+    }
+    results.push(result);
   }
+
+  const kinds = [...new Set(cases.filter(c => c.expect !== null).map(c => c.kind))];
+  const rows: (string | number)[][] = [];
+  const summarize = (label: string, rs: CaseResult[]) => {
+    const created = rs.filter(r => r.appendedTo === null);
+    const within = (n: number) => created.filter(r => r.rank !== null && r.rank <= n).length;
+    rows.push([
+      label,
+      rs.length,
+      rs.filter(r => r.appendedTo !== null && r.appendedTo === r.expect).length,
+      rs.filter(r => r.appendedTo !== null && r.appendedTo !== r.expect).length,
+      created.length,
+      `${within(1)}/${created.length}`,
+      `${within(3)}/${created.length}`,
+      `${within(5)}/${created.length}`,
+    ]);
+  };
+  for (const kind of kinds)
+    summarize(
+      kind,
+      results.filter(r => r.kind === kind && r.expect !== null),
+    );
+  summarize(
+    'all positive',
+    results.filter(r => r.expect !== null),
+  );
+  printTable(
+    `review suggestions: ${cases.length} subjects through remember, then reviewQueue similar (top 5)`,
+    ['kind', 'cases', 'appended (exact)', 'appended wrong', 'new note', 'similar @1', '@<=3', '@<=5'],
+    rows,
+  );
+
+  const negatives = results.filter(r => r.expect === null);
+  const negativeRows = negatives.map(r => [
+    r.subject,
+    r.kind,
+    r.appendedTo === null ? 'new note' : `APPENDED to ${r.appendedTo}`,
+    r.topSuggestion ?? '-',
+    r.topScore ?? '-',
+  ]);
+  printTable(
+    'review suggestions: subjects that are new things (expect null), top suggestion shown for information',
+    ['subject', 'kind', 'remember', 'top suggestion', 'score'],
+    negativeRows,
+  );
+
   if (args.flags.has('verbose')) {
     printTable(
-      'resolve: raw scores per case',
-      ['subject', 'expect', 'right cos', 'right trgm', 'best other cos', 'best other'],
-      perCase.map(p => [
-        p.subject,
-        p.expect ?? '(new)',
-        p.rightCosine ?? '-',
-        p.rightTrigram ?? '-',
-        p.bestOtherCosine ?? '-',
-        p.bestOther ?? '-',
-      ]),
+      'review suggestions: every positive case',
+      ['subject', 'expect', 'remember', 'rank', 'top suggestion', 'score'],
+      results
+        .filter(r => r.expect !== null)
+        .map(r => [
+          r.subject,
+          r.expect!,
+          r.appendedTo === null ? 'new note' : `appended ${r.appendedTo}`,
+          r.rank ?? '-',
+          r.topSuggestion ?? '-',
+          r.topScore ?? '-',
+        ]),
     );
   }
-  return {
-    cases: cases.length,
-    ambiguityMargin: AMBIGUITY_MARGIN,
-    defaults: current,
-    best: ranked.slice(0, 10),
-    grid,
-    perCase,
-  };
+  return { cases: cases.length, results };
 }

@@ -35,6 +35,8 @@ export interface Frontmatter {
   tags: string[];
   aliases: string[];
   updated: string | null;
+  /** False only when the file says `reviewed: false` (a note created by `remember` that no review pass has seen). */
+  reviewed: boolean;
 }
 
 /**
@@ -149,6 +151,7 @@ export function readFrontmatter(note: ParsedNote, fallback: { title: string; cat
     tags: list('tags'),
     aliases: list('aliases'),
     updated: unquote(data.get('updated') ?? '') || null,
+    reviewed: unquote(data.get('reviewed') ?? '') !== 'false',
   };
 }
 
@@ -263,6 +266,8 @@ export function createNoteText(meta: {
   tags: string[];
   aliases: string[];
   updated: string;
+  /** Pass false to mark the note as awaiting a duplicate review. */
+  reviewed?: boolean;
 }): string {
   const lines = [
     '---',
@@ -271,6 +276,7 @@ export function createNoteText(meta: {
     `tags: [${meta.tags.map(quoteIfNeeded).join(', ')}]`,
     `aliases: [${meta.aliases.map(quoteIfNeeded).join(', ')}]`,
     `updated: ${meta.updated}`,
+    ...(meta.reviewed === false ? ['reviewed: false'] : []),
     '---',
     '',
   ];

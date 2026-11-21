@@ -3,18 +3,24 @@ import { defineTool, registerTools } from '../../shared/toolsUtils';
 import {
   AddAliasSchema,
   addAliasTool,
+  BrowseNotesSchema,
+  browseNotesTool,
   DeleteEntrySchema,
   deleteEntryTool,
   EditEntrySchema,
   editEntryTool,
-  ListNotesSchema,
-  listNotesTool,
+  MarkReviewedSchema,
+  markReviewedTool,
+  MergeNotesSchema,
+  mergeNotesTool,
   ReadNoteSchema,
   readNoteTool,
   RecentSchema,
   recentNotesTool,
   RememberSchema,
   rememberTool,
+  ReviewDuplicatesSchema,
+  reviewDuplicatesTool,
   SearchNotesSchema,
   searchNotesTool,
 } from './notes';
@@ -34,7 +40,8 @@ const notesTools = [
       'fine. Returns the best notes (path, title, category, score) each with its best matching entry lines ' +
       '(id, date, type, text) - usually enough to answer without notes_read. `matchedBy` shows which search ' +
       'legs hit; a hit matched only by "vec"/"namesVec" with a low score may be unrelated, so say when nothing ' +
-      'convincing was found instead of guessing. `timings` is server-side latency.',
+      'convincing was found instead of guessing. `timings` is server-side latency. For one specific fact only; for ' +
+      '"what is on my list / all my places / what do I have about X" use notes_browse, then notes_read.',
     inputSchema: SearchNotesSchema.shape,
     annotations: { readOnlyHint: true },
     callback: searchNotesTool,
@@ -55,11 +62,13 @@ const notesTools = [
       'WHEN: the user explicitly asks ("remember", "note that", "add to my notes", "save this"). When the user ' +
       'merely states a durable practical fact (vendor used, product verdict, price paid, oil grade, filter size), ' +
       'offer to save it in ONE short line and wait; never save silently. ' +
-      'HOW: the server resolves `subject` to an existing note when one is similar (so "rugs cleaning" lands in ' +
-      '"Carpet cleaning") and appends; otherwise it creates a note. It is fine to notes_search first to avoid ' +
-      'duplicates. Give `aliases` in RO/RU/EN for new subjects, and `category` for new notes. One fact per call. ' +
-      'If the answer is status "ambiguous", nothing was saved: pick the right candidate and call again with ' +
-      '`path`. After a call with created: true, tell the user the new note title. ' +
+      'HOW: appends to the note whose title or alias is exactly `subject` (case and accents ignored); otherwise ' +
+      'creates a new note. It does not guess: near-duplicates are fine and get cleaned up in a review pass, so ' +
+      'reuse the exact existing title when you know it (notes_search / notes_browse first if unsure). ' +
+      'Collections the user wants back as a list (places to visit, foods to try, books, gift ideas) go in ONE list ' +
+      'note: subject = the list ("Places to visit in Chișinău"), one entry per item. ' +
+      'Give `aliases` in RO/RU/EN for new subjects, and `category` for new notes. One fact per call. ' +
+      '`path` = write to exactly this note. After a call with created: true, tell the user the new note title. ' +
       'Example: subject "Carpet cleaning", type "contact", text "CleanPro, 069123456, picked up from the flat", ' +
       'category "services", aliases ["rug cleaning", "covoare", "химчистка ковров"].',
     inputSchema: RememberSchema.shape,
@@ -101,13 +110,44 @@ const notesTools = [
     callback: recentNotesTool,
   }),
   defineTool({
-    name: 'notes_list',
+    name: 'notes_browse',
     description:
-      'List notes (path, title, category, entry count), optionally for one category. For browsing; ' +
-      'use notes_search to find something specific.',
-    inputSchema: ListNotesSchema.shape,
+      'Note headers (title, category, aliases, tags, entry count, first line), filtered by category, tag, ' +
+      'updatedSince, unreviewedOnly, and ranked by `queries` when given (up to 200). For "what is on my list / ' +
+      'all my places / what do I have about X": browse, pick the relevant headers, then notes_read them.',
+    inputSchema: BrowseNotesSchema.shape,
     annotations: { readOnlyHint: true },
-    callback: listNotesTool,
+    callback: browseNotesTool,
+  }),
+  defineTool({
+    name: 'notes_review_duplicates',
+    description:
+      'Only when the user asks to tidy, dedupe or review notes. Returns unreviewed notes, each with similar ' +
+      'existing notes. For each: merge true duplicates with notes_merge (into the older, better-named note), leave ' +
+      'distinct subjects alone, then notes_mark_reviewed the notes you checked that still exist (not the ones ' +
+      'merged away). Tell the user what you merged. ' +
+      'Call again while `remaining` > 0.',
+    inputSchema: ReviewDuplicatesSchema.shape,
+    annotations: { readOnlyHint: true },
+    callback: reviewDuplicatesTool,
+  }),
+  defineTool({
+    name: 'notes_merge',
+    description:
+      'Fold a duplicate note into another: its entries (with dates and types), name and aliases, tags and free text ' +
+      'move to `into`, and `from` is deleted. Use during notes_review_duplicates for true duplicates only.',
+    inputSchema: MergeNotesSchema.shape,
+    annotations: { idempotentHint: false, destructiveHint: true },
+    callback: mergeNotesTool,
+  }),
+  defineTool({
+    name: 'notes_mark_reviewed',
+    description:
+      'Mark notes as checked so notes_review_duplicates stops returning them. Call it for every note you looked ' +
+      'at that still exists, including the ones that received a merge; a note merged away is already gone.',
+    inputSchema: MarkReviewedSchema.shape,
+    annotations: { idempotentHint: true, destructiveHint: false },
+    callback: markReviewedTool,
   }),
 ];
 

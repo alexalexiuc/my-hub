@@ -109,17 +109,24 @@ export class Indexer {
 
   private async upsertNote(
     path: string,
-    fm: { title: string; category: string; tags: string[]; aliases: string[] },
+    fm: {
+      title: string;
+      category: string;
+      tags: string[];
+      aliases: string[];
+      reviewed: boolean;
+      updated: string | null;
+    },
     hash: string,
     existingId: string | undefined,
     nameVector: number[],
   ): Promise<string> {
     const res = await this.db.query<{ id: string }>(
-      `INSERT INTO notes (user_id, path, title, category, tags, aliases, names, name_embedding, content_hash, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::vector, $9, now())
+      `INSERT INTO notes (user_id, path, title, category, tags, aliases, names, name_embedding, reviewed, fm_updated, content_hash, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::vector, $9, $10, $11, now())
        ON CONFLICT (user_id, path) DO UPDATE
          SET title = EXCLUDED.title, category = EXCLUDED.category, tags = EXCLUDED.tags,
-             aliases = EXCLUDED.aliases, names = EXCLUDED.names, name_embedding = EXCLUDED.name_embedding,
+             aliases = EXCLUDED.aliases, names = EXCLUDED.names, name_embedding = EXCLUDED.name_embedding, reviewed = EXCLUDED.reviewed, fm_updated = EXCLUDED.fm_updated,
              content_hash = EXCLUDED.content_hash, updated_at = now()
        RETURNING id`,
       [
@@ -131,6 +138,8 @@ export class Indexer {
         fm.aliases,
         namesText(fm.title, fm.aliases),
         toVectorLiteral(nameVector),
+        fm.reviewed,
+        fm.updated && /^\d{4}-\d{2}-\d{2}$/.test(fm.updated) ? fm.updated : null,
         hash,
       ],
     );

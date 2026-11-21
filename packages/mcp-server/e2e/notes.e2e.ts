@@ -13,15 +13,24 @@ interface Saved {
   status: 'saved';
   path: string;
   created: boolean;
+  matchedBy: 'path' | 'name' | null;
   entryId: string;
+}
+interface Header {
+  path: string;
+  title: string;
+  aliases: string[];
+  entryCount: number;
+  reviewed: boolean;
 }
 
 /**
  * E2e tests for the notes MCP sub-server (staging runs it with EMBEDDINGS_PROVIDER=fake, so only lexical
  * relevance is asserted here; semantic quality is measured by packages/notes-bench with the real model).
  *
- *   notes_remember → notes_search → notes_read → notes_edit_entry → notes_add_alias → notes_list
- *   → notes_recent → notes_delete_entry
+ *   notes_remember → notes_search → notes_read → notes_edit_entry → notes_add_alias → notes_browse
+ *   → notes_recent → notes_delete_entry, plus the duplicate flow: remember a near name → notes_review_duplicates
+ *   → notes_merge → notes_mark_reviewed
  *
  * Every note carries the run id in its subject, so runs cannot collide with each other or with real notes.
  */
@@ -59,10 +68,13 @@ describe('notes — remember, search and edit', () => {
         'notes_add_alias',
         'notes_delete_entry',
         'notes_edit_entry',
-        'notes_list',
+        'notes_browse',
+        'notes_mark_reviewed',
+        'notes_merge',
         'notes_read',
         'notes_recent',
         'notes_remember',
+        'notes_review_duplicates',
         'notes_search',
       ].sort(),
     );
@@ -125,11 +137,47 @@ describe('notes — remember, search and edit', () => {
     expect(aliases).toContain(`химчистка zq${runId}`);
   });
 
-  it('notes_list and notes_recent include the note', async () => {
-    const { notes } = await call<{ notes: { path: string; entryCount: number }[] }>('notes_list', { category: 'e2e' });
+  it('notes_browse and notes_recent include the note', async () => {
+    const { notes } = await call<{ notes: Header[] }>('notes_browse', { category: 'e2e' });
     expect(notes.find(n => n.path === created[0]!.path)?.entryCount).toBeGreaterThanOrEqual(2);
+    const ranked = await call<{ notes: Header[] }>('notes_browse', { queries: [subject], category: 'e2e', limit: 5 });
+    expect(ranked.notes.map(n => n.path)).toContain(created[0]!.path);
     const { entries } = await call<{ entries: { path: string }[] }>('notes_recent', { limit: 20 });
     expect(entries.some(e => e.path === created[0]!.path)).toBe(true);
+  });
+
+  it('a near-duplicate subject is saved apart, then reviewed and merged', async () => {
+    const dupSubject = `${subject} extra`;
+    const dup = await call<Saved>('notes_remember', {
+      subject: dupSubject,
+      text: `Second vendor (${runId})`,
+      type: 'fact',
+      category: 'e2e',
+    });
+    expect(dup).toMatchObject({ created: true, matchedBy: null });
+    expect(dup.path).not.toBe(created[0]!.path);
+
+    const queue = await call<{
+      items: { note: Header; similar: Header[] }[];
+      remaining: number;
+    }>('notes_review_duplicates', { limit: 20 });
+    expect(queue.items.find(i => i.note.path === dup.path)?.note.reviewed).toBe(false);
+
+    const merged = await call<{ movedEntries: number; into: string; from: string }>('notes_merge', {
+      from: dup.path,
+      into: created[0]!.path,
+    });
+    expect(merged).toMatchObject({ movedEntries: 1, into: created[0]!.path, from: dup.path });
+    const { content } = await call<{ content: string }>('notes_read', { path: created[0]!.path });
+    expect(content).toContain(`Second vendor (${runId})`);
+    expect(content).toContain(dupSubject);
+    const gone = await client.callTool({ name: 'notes_read', arguments: { path: dup.path } });
+    expect(gone.isError).toBe(true);
+
+    const reviewed = await call<{ reviewed: string[] }>('notes_mark_reviewed', { paths: [created[0]!.path] });
+    expect(reviewed.reviewed).toEqual([created[0]!.path]);
+    const after = await call<{ notes: Header[] }>('notes_browse', { category: 'e2e', unreviewedOnly: true });
+    expect(after.notes.map(n => n.path)).not.toContain(created[0]!.path);
   });
 
   it('rejects an unknown note path with a tool error', async () => {

@@ -33,7 +33,6 @@ export function getNotesRuntime(): Promise<NotesRuntime> {
       root: notesEnv.NOTES_ROOT,
       gitRemote: notesEnv.NOTES_GIT_REMOTE,
       rrfK: notesEnv.NOTES_RRF_K,
-      resolve: { threshold: notesEnv.NOTES_MATCH_THRESHOLD, vectorFloor: notesEnv.NOTES_MATCH_VECTOR_FLOOR },
     });
     await rt.start();
     logger.info(`[notes] ready in ${Date.now() - t0} ms (embeddings: ${embedder.name}/${embedder.model})`);

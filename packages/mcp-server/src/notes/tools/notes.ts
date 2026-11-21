@@ -9,7 +9,7 @@ import { notesFor } from '../runtime';
 const pathSchema = z
   .string()
   .trim()
-  .describe('Note path as returned by notes_search / notes_list, e.g. "services/carpet-cleaning.md".');
+  .describe('Note path as returned by notes_search / notes_browse, e.g. "services/carpet-cleaning.md".');
 const entryIdSchema = z
   .string()
   .trim()
@@ -51,7 +51,10 @@ export const RememberSchema = z.object({
     .string()
     .trim()
     .min(1)
-    .describe('What the note is about, as a short title: "Carpet cleaning", "Engine oil", "Washing detergent".'),
+    .describe(
+      'What the note is about, as a short title: "Carpet cleaning", "Engine oil". For a list the user wants back ' +
+        '(places to visit, foods to try, books, gift ideas) use the list itself: "Places to visit in Chișinău".',
+    ),
   text: z
     .string()
     .trim()
@@ -62,7 +65,7 @@ export const RememberSchema = z.object({
     .string()
     .trim()
     .optional()
-    .describe('Skip subject matching and write to exactly this note. Use it after an "ambiguous" answer.'),
+    .describe('Write to exactly this note (appends, or creates it) instead of matching `subject`.'),
   category: z
     .string()
     .trim()
@@ -79,19 +82,7 @@ export const RememberSchema = z.object({
 
 export const rememberTool: ToolHandler<typeof RememberSchema.shape> = async (input, { userId, timezone }) => {
   const notes = await notesFor(userId);
-  const result = await notes.remember({ ...input, date: input.date ?? currentDateString(timezone) });
-  if (result.status === 'ambiguous') {
-    return toolResponse({
-      status: 'ambiguous',
-      message: 'Several existing notes fit this subject. Nothing was saved. Retry with `path` set to the right one.',
-      candidates: result.candidates.map(c => ({
-        path: c.path,
-        title: c.title,
-        score: Math.round(c.score * 100) / 100,
-      })),
-    });
-  }
-  return toolResponse(result);
+  return toolResponse(await notes.remember({ ...input, date: input.date ?? currentDateString(timezone) }));
 };
 
 // ---- notes_edit_entry / notes_delete_entry / notes_add_alias --------------------
@@ -124,7 +115,7 @@ export const AddAliasSchema = z.object({
 export const addAliasTool: ToolHandler<typeof AddAliasSchema.shape> = async ({ path, alias }, { userId }) =>
   toolResponse(await (await notesFor(userId)).addAlias(path, alias));
 
-// ---- notes_recent / notes_list --------------------------------------------------
+// ---- notes_recent / notes_browse -------------------------------------------------
 
 export const RecentSchema = z.object({
   limit: z.number().int().min(1).max(50).optional().describe('How many entries. Default 10.'),
@@ -133,9 +124,45 @@ export const RecentSchema = z.object({
 export const recentNotesTool: ToolHandler<typeof RecentSchema.shape> = async ({ limit }, { userId }) =>
   toolResponse({ entries: await (await notesFor(userId)).recent(limit ?? 10) });
 
-export const ListNotesSchema = z.object({
+export const BrowseNotesSchema = z.object({
+  queries: z
+    .array(z.string().trim().min(1))
+    .min(1)
+    .max(5)
+    .optional()
+    .describe('1-5 phrasings (RO/RU/EN) to rank the headers by relevance. Omit to list by category and title.'),
   category: z.string().trim().optional().describe('Only this category folder.'),
+  tag: z.string().trim().optional().describe('Only notes with this tag.'),
+  updatedSince: yyyyMmDdSchema.optional().describe('Only notes updated on or after this date (YYYY-MM-DD).'),
+  unreviewedOnly: z.boolean().optional().describe('Only notes not yet checked by a duplicate review.'),
+  limit: z.number().int().min(1).max(200).optional().describe('Headers to return. Default 50.'),
 });
 
-export const listNotesTool: ToolHandler<typeof ListNotesSchema.shape> = async ({ category }, { userId }) =>
-  toolResponse({ notes: await (await notesFor(userId)).list(category) });
+export const browseNotesTool: ToolHandler<typeof BrowseNotesSchema.shape> = async (input, { userId }) => {
+  const notes = await (await notesFor(userId)).browse(input);
+  return toolResponse({ count: notes.length, notes });
+};
+
+// ---- notes_review_duplicates / notes_merge / notes_mark_reviewed -------------------
+
+export const ReviewDuplicatesSchema = z.object({
+  limit: z.number().int().min(1).max(20).optional().describe('Unreviewed notes per call. Default 5.'),
+});
+
+export const reviewDuplicatesTool: ToolHandler<typeof ReviewDuplicatesSchema.shape> = async ({ limit }, { userId }) =>
+  toolResponse(await (await notesFor(userId)).reviewQueue({ limit: limit ?? 5, suggestions: 5 }));
+
+export const MergeNotesSchema = z.object({
+  from: pathSchema.describe('The duplicate note to fold in and delete.'),
+  into: pathSchema.describe('The note that keeps everything (the older, better-named one).'),
+});
+
+export const mergeNotesTool: ToolHandler<typeof MergeNotesSchema.shape> = async ({ from, into }, { userId }) =>
+  toolResponse(await (await notesFor(userId)).merge(from, into));
+
+export const MarkReviewedSchema = z.object({
+  paths: z.array(pathSchema).min(1).max(50).describe('Notes that were checked (merged away notes need not be listed).'),
+});
+
+export const markReviewedTool: ToolHandler<typeof MarkReviewedSchema.shape> = async ({ paths }, { userId }) =>
+  toolResponse(await (await notesFor(userId)).markReviewed(paths));

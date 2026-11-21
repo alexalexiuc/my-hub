@@ -10,15 +10,8 @@ export {
 } from './embeddings';
 export { Indexer, namesText } from './indexer';
 export * from './markdown';
-export {
-  DEFAULT_RESOLVE_CONFIG,
-  decide,
-  findCandidates,
-  scaleCosine,
-  type Candidate,
-  type ResolveConfig,
-  type Resolution,
-} from './resolve';
+export { fetchHeaders, type HeaderFilter, type NoteHeader } from './headers';
+export { findExactNote, type ExactNote } from './resolve';
 export { DEFAULT_RRF_K, reciprocalRankFusion, type FusedScore, type Ranking } from './rrf';
 export {
   SEARCH_LEGS,
@@ -33,7 +26,9 @@ export {
   NotesRuntime,
   NotesService,
   createNotesRuntime,
-  type NoteListItem,
+  type BrowseOptions,
+  type MergeResult,
+  type ReviewQueue,
   type NotesRuntimeConfig,
   type RecentEntry,
   type RememberInput,

@@ -20,14 +20,15 @@ spike plan live in [`docs/notes-mcp-spec.md`](../../notes-mcp-spec.md).
 
 ## Functional Requirements
 
-| ID    | Requirement                                                                                                                                                                  |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FR-01 | `notes_search` takes 1-5 query phrasings and returns the best notes with their best matching entry lines and server timings.                                                 |
-| FR-02 | `notes_remember` appends one dated entry to the note its `subject` resolves to, or creates a note. Ambiguous subjects return candidates and write nothing; `path` overrides. |
-| FR-03 | `notes_edit_entry` / `notes_delete_entry` change exactly one entry line by its `^id`; `notes_add_alias` adds a name to a note's frontmatter.                                 |
-| FR-04 | `notes_read`, `notes_list` and `notes_recent` browse notes. All tools are per user: one user never sees another's notes.                                                     |
-| FR-05 | Every write is one git commit in the user's notes repo (`notes(<path>): +entry ^id`). Files edited by hand are picked up at startup or by `reindex`.                         |
-| FR-06 | The server never saves silently: tool descriptions tell Claude to offer in one line unless the user asked to save.                                                           |
+| ID    | Requirement                                                                                                                                                                                                                                |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FR-01 | `notes_search` takes 1-5 query phrasings and returns the best notes with their best matching entry lines and server timings.                                                                                                               |
+| FR-02 | `notes_remember` appends one dated entry to the note whose title, alias or slug equals `subject` exactly (case and accents ignored), else creates a note marked `reviewed: false`. No fuzzy matching; `path` writes to exactly that note.  |
+| FR-03 | `notes_edit_entry` / `notes_delete_entry` change exactly one entry line by its `^id`; `notes_add_alias` adds a name to a note's frontmatter.                                                                                               |
+| FR-04 | `notes_read`, `notes_browse` (headers filtered by category / tag / date / unreviewed, optionally ranked, up to 200) and `notes_recent` browse notes. All tools are per user: one user never sees another's notes.                          |
+| FR-05 | Every write is one git commit in the user's notes repo (`notes(<path>): +entry ^id`). Files edited by hand are picked up at startup or by `reindex`.                                                                                       |
+| FR-06 | The server never saves silently: tool descriptions tell Claude to offer in one line unless the user asked to save.                                                                                                                         |
+| FR-07 | Duplicates are cleaned up only when the user asks: `notes_review_duplicates` lists unreviewed notes with similar notes, `notes_merge` folds one note into another (entries, aliases, tags; one commit), `notes_mark_reviewed` clears them. |
 
 ---
 
@@ -48,9 +49,9 @@ spike plan live in [`docs/notes-mcp-spec.md`](../../notes-mcp-spec.md).
 
 ## Open Questions
 
-- [ ] Real e5 relevance and latency numbers (the sandbox could not download the model): run `packages/notes-bench` on the VPS.
+- [x] Real e5 relevance and latency numbers (dev box and VPS, spec section 15).
 - [ ] HNSW index: needed above ~20k entries? (vector leg is a sequential scan today.)
-- [ ] `remember` match threshold / vector floor; RRF `k` and per-leg weights.
+- [ ] RRF `k` and per-leg weights.
 - [ ] Vector legs always return nearest neighbours: add a minimum-similarity cut-off once real score distributions are known.
 - [ ] Hub "Delete all my data" does not yet remove notes (`notes-cli purge <userId>` does).
 - [ ] Notes backup push scheduling (`notes-cli push` exists; no scheduler yet).
@@ -59,7 +60,7 @@ spike plan live in [`docs/notes-mcp-spec.md`](../../notes-mcp-spec.md).
 
 ## Acceptance Criteria
 
-- `pnpm --filter @my-hub/mcp-server list-tools notes` lists 8 tools.
+- `pnpm --filter @my-hub/mcp-server list-tools notes` lists 11 tools.
 - `packages/notes` unit + integration tests pass (integration needs `NOTES_TEST_DATABASE_URL`).
 - `packages/mcp-server/e2e/notes.e2e.ts` passes against a server with a notes backend.
 - `pnpm --filter @my-hub/notes-bench bench:relevance` prints recall@1 / recall@5 / MRR for fts, trigram, vector, hybrid and hybrid-multi.
