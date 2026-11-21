@@ -1,0 +1,122 @@
+{
+  "_comment": "Lists the user wants back whole (places, foods, cities). Each list is stored two ways: shape 'list' = one note (subject = the list title) with one entry per item; shape 'notes' = one note per item (subject = item name). `key` is how the bench recognises an item in search output (case-insensitive substring of a title or entry line). Queries are the phrasings Claude would send.",
+  "lists": [
+    {
+      "id": "chisinau-places",
+      "title": "Places to visit in Chișinău",
+      "category": "places",
+      "aliases": ["Chișinău sightseeing", "locuri de vizitat în Chișinău", "что посмотреть в Кишинёве"],
+      "queries": [
+        "places I want to visit in Chișinău",
+        "Chișinău sightseeing wishlist",
+        "locuri de vizitat în Chișinău",
+        "что посмотреть в Кишинёве"
+      ],
+      "items": [
+        {
+          "key": "Valea Morilor",
+          "name": "Valea Morilor park",
+          "text": "walk around the lake and the cascade stairs at sunset"
+        },
+        {
+          "key": "Arcul de Triumf",
+          "name": "Arcul de Triumf",
+          "text": "see it lit up at night, next to the cathedral"
+        },
+        {
+          "key": "Muzeul Național de Istorie",
+          "name": "Muzeul Național de Istorie",
+          "text": "the Roman wolf statue and the WWII diorama"
+        },
+        { "key": "Catedrala", "name": "Catedrala Nașterea Domnului", "text": "Sunday service, bell tower view" },
+        {
+          "key": "Ștefan cel Mare park",
+          "name": "Ștefan cel Mare park",
+          "text": "chess players and the alley of classics"
+        },
+        { "key": "Piața Centrală", "name": "Piața Centrală", "text": "early morning market, buy brânză and honey" },
+        {
+          "key": "Teatrul Național",
+          "name": "Teatrul Național Mihai Eminescu",
+          "text": "book a play with English subtitles"
+        },
+        { "key": "Sala cu Orgă", "name": "Sala cu Orgă", "text": "organ concert, tickets sell out fast" },
+        { "key": "Etnografie", "name": "Muzeul de Etnografie", "text": "the dinosaur skeleton and folk costumes" },
+        { "key": "Grădina Botanică", "name": "Grădina Botanică", "text": "go in May when the lilacs bloom" },
+        { "key": "Ghidighici", "name": "Lacul Ghidighici", "text": "swimming and kayak rental in summer" },
+        { "key": "Turnul de apă", "name": "Turnul de apă", "text": "old water tower, city history museum inside" },
+        { "key": "Valea Trandafirilor", "name": "Valea Trandafirilor", "text": "rose park with the amusement rides" },
+        { "key": "Eternitate", "name": "Memorialul Eternitate", "text": "war memorial, quiet and impressive" },
+        { "key": "Cricova", "name": "Cricova winery", "text": "underground wine city tour, book ahead" },
+        {
+          "key": "Mileștii Mici",
+          "name": "Mileștii Mici winery",
+          "text": "largest wine collection, drive through the cellars"
+        },
+        { "key": "Pușkin", "name": "Casa-muzeu Pușkin", "text": "small house museum where Pushkin lived in exile" },
+        { "key": "Eugen Doga", "name": "Strada Eugen Doga", "text": "pedestrian street with cafes in the evening" },
+        {
+          "key": "Circul",
+          "name": "Circul din Chișinău",
+          "text": "the huge Soviet circus building, check if a show runs"
+        },
+        { "key": "Casa Herța", "name": "Casa Herța", "text": "old mansion, art exhibitions on weekends" }
+      ]
+    },
+    {
+      "id": "foods-to-try",
+      "title": "Foods to try",
+      "category": "food",
+      "aliases": ["dishes to try", "mâncăruri de încercat", "блюда попробовать"],
+      "queries": [
+        "foods I want to try",
+        "dishes to try list",
+        "mâncăruri de încercat",
+        "блюда которые хочу попробовать"
+      ],
+      "items": [
+        { "key": "Plăcinte", "name": "Plăcinte cu brânză", "text": "the ones from the market, still warm" },
+        { "key": "Mămăligă", "name": "Mămăligă cu brânză și smântână", "text": "the proper way, with fried eggs" },
+        { "key": "Zeamă", "name": "Zeamă", "text": "chicken soup with homemade noodles and lovage" },
+        { "key": "Sarmale", "name": "Sarmale", "text": "in vine leaves, not cabbage" },
+        { "key": "Răcituri", "name": "Răcituri", "text": "the cold meat jelly, at a winter feast" },
+        { "key": "Borș", "name": "Borș roșu", "text": "beetroot soup with a spoon of smântână" },
+        { "key": "Pelmeni", "name": "Pelmeni", "text": "Siberian style with butter and vinegar" },
+        { "key": "Plov", "name": "Plov", "text": "Uzbek lamb plov cooked in a kazan" },
+        { "key": "Khachapuri", "name": "Khachapuri", "text": "Adjarian boat with the egg in the middle" },
+        { "key": "Chebureki", "name": "Chebureki", "text": "fried with meat, from a street stall" },
+        { "key": "Cozonac", "name": "Cozonac", "text": "Easter sweet bread with walnuts" },
+        { "key": "Colțunași", "name": "Colțunași", "text": "dumplings with cherries in summer" },
+        { "key": "Tochitură", "name": "Tochitură", "text": "pork stew with mămăligă and an egg" },
+        { "key": "Vărzări", "name": "Vărzări", "text": "cabbage pies baked in the oven" },
+        { "key": "Shuba", "name": "Shuba salad", "text": "herring under a fur coat at New Year" }
+      ]
+    },
+    {
+      "id": "cities-to-visit",
+      "title": "Cities to visit",
+      "category": "travel",
+      "aliases": ["travel wishlist", "orașe de vizitat", "города посетить"],
+      "queries": [
+        "cities I want to visit",
+        "travel destinations wishlist",
+        "orașe de vizitat",
+        "города которые хочу посетить"
+      ],
+      "items": [
+        { "key": "Iași", "name": "Iași", "text": "Palace of Culture and the old university" },
+        { "key": "Odesa", "name": "Odesa", "text": "Potemkin stairs and the opera house" },
+        { "key": "Lviv", "name": "Lviv", "text": "coffee houses and the old town" },
+        { "key": "Bucharest", "name": "Bucharest", "text": "Palace of the Parliament tour" },
+        { "key": "Brașov", "name": "Brașov", "text": "Black Church and the cable car up Tâmpa" },
+        { "key": "Sibiu", "name": "Sibiu", "text": "Christmas market and the houses with eyes" },
+        { "key": "Cluj", "name": "Cluj-Napoca", "text": "Salina Turda salt mine day trip" },
+        { "key": "Tbilisi", "name": "Tbilisi", "text": "sulfur baths and Georgian wine" },
+        { "key": "Kraków", "name": "Kraków", "text": "Wieliczka salt mine and the main square" },
+        { "key": "Budapest", "name": "Budapest", "text": "thermal baths and the parliament at night" },
+        { "key": "Vienna", "name": "Vienna", "text": "Schönbrunn palace and a concert" },
+        { "key": "Istanbul", "name": "Istanbul", "text": "Hagia Sophia and a Bosphorus ferry" }
+      ]
+    }
+  ]
+}

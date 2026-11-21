@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { benchEmbed } from './bench-embed';
 import { benchRelevance } from './bench-relevance';
+import { benchLists } from './bench-lists';
 import { benchResolve } from './bench-resolve';
 import { benchSearch } from './bench-search';
 import { benchWrite } from './bench-write';
@@ -29,6 +30,7 @@ Commands
   write               remember end to end
   search              search latency per tier and concurrency   (--tier 1k,10k,50k,100k)
   relevance           recall@1 / recall@5 / MRR per config      (--config fts,trigram,vector,hybrid,hybrid-multi)
+  lists               whole-list questions (places, foods): items reaching Claude per storage shape
   resolve             remember subject matching: sweep match threshold x vector floor (--verbose: raw scores)
   seed --target URL   load the seed corpus into the token's user through notes_remember (WRITES DATA)
   compare A.json B.json   diff two result files, flag regressions
@@ -93,7 +95,7 @@ async function main() {
   let dbVersion: string | undefined;
 
   try {
-    if (target && ['write', 'embed', 'resolve'].includes(command)) {
+    if (target && ['write', 'embed', 'resolve', 'lists'].includes(command)) {
       throw new Error(
         `"${command}" measures the local process; run it without --target (inside the server container).`,
       );
@@ -134,9 +136,10 @@ async function main() {
       });
     }
     if (command === 'resolve' && harness) await run('resolve', () => benchResolve(args, harness!));
+    if (command === 'lists' && harness) await run('lists', () => benchLists(args, harness!));
     if (all || command === 'search')
       await run('search', () => benchSearch(args, { client: client!, harness: target ? undefined : harness }));
-    if (!['all', 'embed', 'write', 'search', 'relevance', 'resolve'].includes(command))
+    if (!['all', 'embed', 'write', 'search', 'relevance', 'resolve', 'lists'].includes(command))
       throw new Error(`Unknown command "${command}"\n\n${HELP}`);
 
     metrics.resources = sampler.stop();

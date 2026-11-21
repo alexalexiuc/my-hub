@@ -27,6 +27,7 @@ pnpm --filter @my-hub/notes-bench bench:write -- --writes 200    # remember end 
 pnpm --filter @my-hub/notes-bench bench:search -- --tier 10k     # tiers: 1k 10k 50k 100k; concurrency 1,5,10
 pnpm --filter @my-hub/notes-bench bench:relevance -- --config hybrid
 pnpm --filter @my-hub/notes-bench bench:resolve -- --verbose  # remember subject matching: threshold x floor sweep
+pnpm --filter @my-hub/notes-bench bench:lists     # "give me the whole list": items reaching Claude, list note vs. note per item
 pnpm --filter @my-hub/notes-bench bench:compare results/a.json results/b.json   # flags regressions (--fail: exit 2)
 
 # against a deployed server (credentials: OAuth client of a bench account, or a bearer token)

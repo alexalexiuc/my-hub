@@ -1,3 +1,4 @@
+import { omitUndefined } from '@my-hub/shared/utils';
 import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { cpus, hostname, tmpdir, totalmem } from 'node:os';
@@ -215,7 +216,10 @@ export async function createHarness(args: Args, shared?: EmbeddingProvider): Pro
   // `shared` reuses an already loaded model, so one run never holds two copies in memory.
   const embedder =
     shared ?? createEmbeddingProvider(args.flags.get('provider') ?? process.env.EMBEDDINGS_PROVIDER ?? 'e5');
-  const runtime = await createNotesRuntime({ db, embedder, root });
+  // --match-threshold / --match-floor override the remember subject-matching defaults (NOTES_MATCH_* in production).
+  const optionalNum = (name: string) => (args.flags.has(name) ? Number(args.flags.get(name)) : undefined);
+  const resolve = omitUndefined({ threshold: optionalNum('match-threshold'), vectorFloor: optionalNum('match-floor') });
+  const runtime = await createNotesRuntime({ db, embedder, root, resolve });
   const svc = runtime.forUser('bench');
   const dbVersion = (await db.query<{ v: string }>('SHOW server_version')).rows[0]!.v;
   return {
