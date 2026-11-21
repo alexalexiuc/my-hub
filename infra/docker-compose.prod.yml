@@ -25,6 +25,29 @@ services:
       retries: 5
 
   # ---------------------------------------------------------------------------
+  # Notes index — PostgreSQL 18 + pgvector. Disposable: rebuilt from the Markdown files by `reindex`.
+  # ---------------------------------------------------------------------------
+  notes-db:
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: notes
+      POSTGRES_USER: notes
+      POSTGRES_PASSWORD: ${NOTES_DB_PASSWORD:?NOTES_DB_PASSWORD is required}
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - notes_db_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    ports:
+      - '127.0.0.1:5433:5432' # loopback only: psql and the benchmarks on the VPS
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U notes -d notes']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
   # DB Migrations (Drizzle) — runs once per deploy then exits
   # ---------------------------------------------------------------------------
   migrate:
@@ -103,10 +126,21 @@ services:
       TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
       TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
+      # Notes MCP: Markdown repo on a volume + pgvector index + local embeddings (docs/notes-mcp-spec.md).
+      NOTES_DATABASE_URL: postgresql://notes:${NOTES_DB_PASSWORD}@notes-db:5432/notes
+      NOTES_ROOT: /app/data/notes
+      EMBEDDINGS_PROVIDER: ${EMBEDDINGS_PROVIDER:-e5}
+      EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL:-}
+      EMBEDDINGS_DIMENSIONS: ${EMBEDDINGS_DIMENSIONS:-}
+      EMBEDDINGS_CACHE_DIR: /app/data/model-cache
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      NOTES_GIT_REMOTE: ${NOTES_GIT_REMOTE:-}
       SES_FROM_EMAIL: ${SES_FROM_EMAIL:?SES_FROM_EMAIL is required}
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
       EMAIL_VERIFICATION_SECRET: ${EMAIL_VERIFICATION_SECRET:?EMAIL_VERIFICATION_SECRET is required}
     depends_on:
+      notes-db:
+        condition: service_healthy
       db:
         condition: service_healthy
       migrate:
@@ -122,6 +156,11 @@ services:
         read_only: true
         volume:
           nocopy: true
+      - notes_data:/app/data/notes
+      - notes_model_cache:/app/data/model-cache
+    # Mirrors the VPS so benchmark numbers from a dev box and from the server are comparable.
+    cpus: ${MCP_CPUS:-2}
+    mem_limit: ${MCP_MEM_LIMIT:-2g}
     networks:
       - internal
       - proxy
@@ -195,6 +234,14 @@ volumes:
     name: my-hub_db_data
   travel_docs_data:
     external: false
+  # Notes Markdown repo: the source of truth for notes. External so `down -v` can never delete it; create once with
+  #   docker volume create my-hub_notes_data
+  notes_data:
+    external: true
+    name: my-hub_notes_data
+  # Disposable: the search index (rebuilt by reindex) and the downloaded embedding model.
+  notes_db_data:
+  notes_model_cache:
 
 networks:
   internal:

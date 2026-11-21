@@ -1,0 +1,60 @@
+# kind | lang | query [~ variant ; variant ; ...] => expected note title (must exist in corpus.txt)
+# Variants are what Claude would add as extra phrasings (synonyms, RO/RU/EN); used by the multi-query configs.
+# exact: words that literally appear in the note
+exact | en | CleanPro phone => Carpet cleaning
+exact | en | Castrol Edge 5W-30 => Engine oil
+exact | en | Mann HU 7008 => Oil filter
+exact | en | Starnet 500 Mbps => Internet provider
+exact | en | Roborock S8 brush => Robot vacuum
+exact | en | Varta Blue Dynamic => Car battery
+exact | ro | Ariel pe apă rece => Washing detergent
+exact | ro | Inima de Bou => Tomato seeds
+exact | ru | Fairy средство => Dish soap
+exact | en | Brita Maxtra cartridge => Water filter
+# vague: describes the thing instead of naming it
+vague | en | who washed our rugs ~ carpet cleaning company ; curățare covoare ; химчистка ковров => Carpet cleaning
+vague | en | which company cleans carpets and picks them up ~ rug washing ; curățare covoare ; химчистка ковров => Carpet cleaning
+vague | en | that guy who fixed the kitchen tap ~ instalator ; сантехник ; pipe repair => Plumber
+vague | en | how much did the lawyer thing for the power of attorney cost ~ notar procură ; нотариус доверенность ; document certification => Notary
+vague | en | what do I put in the engine ~ ulei motor ; моторное масло ; oil change => Engine oil
+vague | en | which powder is better for washing clothes ~ detergent rufe ; стиральный порошок ; washing powder => Washing detergent
+vague | en | where do I get my tyres changed ~ vulcanizare ; шиномонтаж ; tyre change => Tire shop
+vague | en | the cheap way to remove limescale from the kettle ~ anticalcar ; средство от накипи ; citric acid => Descaler
+vague | en | who delivers dry wood for the stove ~ lemne de foc ; дрова ; dry oak => Firewood
+vague | en | what is the best noise cancelling headset ~ căști ; наушники ; noise cancelling => Headphones
+vague | ro | cine mi-a spălat geamurile => Window cleaning
+vague | ru | кто делал ремонт розеток => Electrician
+vague | ro | unde pot găsi miere bună => Honey
+# typo: misspelled names and words
+typo | en | clenpro => Carpet cleaning
+typo | en | rorborock => Robot vacuum
+typo | en | castrol edje => Engine oil
+typo | en | startnet internet => Internet provider
+typo | en | bosh dishwasher => Dishwasher
+typo | en | lenorr softener => Fabric softener
+typo | en | dyson vacum => Vacuum cleaner
+typo | ro | vulcanizre => Tire shop
+# crosslang: query language differs from the note text
+crosslang | ro | ulei motor => Engine oil
+crosslang | ru | порошок => Washing detergent
+crosslang | ru | химчистка ковров => Carpet cleaning
+crosslang | ro | instalator => Plumber
+crosslang | ru | шиномонтаж => Tire shop
+crosslang | ro | frizerie => Barber
+crosslang | ru | зимняя резина => Winter tires
+crosslang | ro | asigurare auto => Car insurance
+crosslang | ru | стоматолог => Dentist
+crosslang | ro | aer condiționat service => Air conditioner
+crosslang | ru | кофемашина => Coffee machine
+crosslang | ro | veterinar => Veterinarian
+crosslang | en | rubber wiper blades ~ ștergătoare ; дворники ; wiper blades => Wiper blades
+crosslang | ru | корм для собак => Dog food
+crosslang | ro | mașină de spălat rufe => Washing machine
+# paraphrase: same meaning, different wording, no shared keywords
+paraphrase | en | something to stop the windscreen freezing in winter ~ lichid parbriz ; омывайка ; windshield => Windshield washer fluid
+paraphrase | en | how do I know when the car needs to go for the compulsory check ~ ITP ; техосмотр ; inspecția tehnică => Technical inspection
+paraphrase | en | my back hurts, who helped last time ~ kinetoterapeut ; массажист ; back pain => Physiotherapist
+paraphrase | en | what should I give the puppy for breakfast ~ hrană pentru câini ; корм для собак ; kibble => Dog food
+paraphrase | en | company that brings workers and a truck to carry furniture ~ mutări ; перевозка ; moving company => Moving company
+paraphrase | ru | кому звонить если захлопнулась дверь ~ lăcătuș ; слесарь ; open the door => Locksmith
+paraphrase | ro | cum scap de gândaci ~ deratizare ; дезинсекция ; cockroaches => Pest control

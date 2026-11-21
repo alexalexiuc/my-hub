@@ -19,6 +19,22 @@ jobs:
     name: Lint / Type-check / Test
     runs-on: ubuntu-latest
 
+    # pgvector Postgres for the notes integration tests (they skip when NOTES_TEST_DATABASE_URL is unset).
+    services:
+      notes-db:
+        image: pgvector/pgvector:pg18
+        env:
+          POSTGRES_USER: notes
+          POSTGRES_PASSWORD: notes
+          POSTGRES_DB: notes_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U notes -d notes_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -52,6 +68,8 @@ jobs:
       # single shared-package build, instead of three sequential runs.
       - name: Type-check / Lint / Test
         run: pnpm turbo run typecheck lint test:unit
+        env:
+          NOTES_TEST_DATABASE_URL: postgres://notes:notes@localhost:5432/notes_test
 
       - name: Palette drift check
         run: pnpm --filter @my-hub/hub gen:palettes:check

@@ -1,0 +1,132 @@
+import { describe, expect, it } from 'vitest';
+import {
+  appendEntry,
+  bodyText,
+  listEntries,
+  newEntryId,
+  parseNote,
+  readFrontmatter,
+  removeEntry,
+  replaceEntry,
+  serializeNote,
+  setFrontmatterKey,
+  setFrontmatterList,
+} from './markdown';
+
+const SAMPLE = `---
+title: Carpet cleaning
+category: services
+tags: [home, cleaning]
+aliases: [rug cleaning, covoare, "curățare covoare", химчистка ковров]
+updated: 2026-11-21
+custom_key: keep me
+---
+Short description of the vendor search.
+<!-- a comment -->
+
+- 2026-11-21 [contact] CleanPro, 069xxxxxx, picked up from the flat ^k3f9
+- 2026-11-21 [price] 450 MDL for 3 rugs #cheap ^p2a1
+- 2026-11-28 [verdict] Good result, smell gone, would use again ^v8c4
+`;
+
+describe('markdown parser', () => {
+  it('round-trips an untouched file exactly', () => {
+    expect(serializeNote(parseNote(SAMPLE))).toBe(SAMPLE);
+  });
+
+  it.each([
+    ['CRLF line endings', SAMPLE.replace(/\n/g, '\r\n')],
+    ['no trailing newline', SAMPLE.trimEnd()],
+    ['no frontmatter', '- 2026-01-01 [fact] plain ^ab12\n'],
+    ['empty file', ''],
+    ['odd whitespace and unknown bullets', '---\ntitle: X\n---\n\n\n- not an entry\n  - 2026-01-01 [fact] indented\n'],
+  ])('round-trips %s', (_name, text) => {
+    expect(serializeNote(parseNote(text))).toBe(text);
+  });
+
+  it('parses frontmatter, including quoted and unicode aliases', () => {
+    const fm = readFrontmatter(parseNote(SAMPLE), { title: 'x', category: 'y' });
+    expect(fm).toEqual({
+      title: 'Carpet cleaning',
+      category: 'services',
+      tags: ['home', 'cleaning'],
+      aliases: ['rug cleaning', 'covoare', 'curățare covoare', 'химчистка ковров'],
+      updated: '2026-11-21',
+    });
+  });
+
+  it('parses YAML block lists', () => {
+    const note = parseNote('---\ntitle: T\naliases:\n  - one\n  - "two, three"\n---\n');
+    expect(readFrontmatter(note, { title: '', category: '' }).aliases).toEqual(['one', 'two, three']);
+  });
+
+  it('parses entries with ids, tags and types', () => {
+    const entries = listEntries(parseNote(SAMPLE));
+    expect(entries.map(e => [e.key, e.date, e.type])).toEqual([
+      ['k3f9', '2026-11-21', 'contact'],
+      ['p2a1', '2026-11-21', 'price'],
+      ['v8c4', '2026-11-28', 'verdict'],
+    ]);
+    expect(entries[1]!.tags).toEqual(['cheap']);
+    expect(entries[1]!.text).toBe('450 MDL for 3 rugs #cheap');
+  });
+
+  it('keeps description text out of entries and returns it as body text', () => {
+    expect(bodyText(parseNote(SAMPLE))).toBe('Short description of the vendor search.\n<!-- a comment -->');
+  });
+
+  it('gives id-less hand-written lines stable distinct keys', () => {
+    const note = parseNote('- 2026-01-01 [fact] same\n- 2026-01-01 [fact] same\n');
+    const [a, b] = listEntries(note);
+    expect(a!.id).toBeNull();
+    expect(a!.key).not.toBe(b!.key);
+    expect(listEntries(parseNote('- 2026-01-01 [fact] same\n- 2026-01-01 [fact] same\n')).map(e => e.key)).toEqual([
+      a!.key,
+      b!.key,
+    ]);
+  });
+
+  it('appends one entry line and changes nothing else', () => {
+    const note = parseNote(SAMPLE);
+    const id = appendEntry(note, { date: '2026-12-01', type: 'fact', text: 'Opens at 9\nsharp' });
+    const out = serializeNote(note);
+    expect(out).toBe(`${SAMPLE}- 2026-12-01 [fact] Opens at 9 sharp ^${id}\n`);
+    expect(id).toMatch(/^[a-z0-9]{4}$/);
+  });
+
+  it('edits and removes a single entry by id', () => {
+    const note = parseNote(SAMPLE);
+    expect(replaceEntry(note, 'p2a1', { text: '500 MDL for 3 rugs' })).toBe(true);
+    expect(removeEntry(note, 'k3f9')).toBe(true);
+    expect(removeEntry(note, 'nope')).toBe(false);
+    const out = serializeNote(note);
+    expect(out).toContain('- 2026-11-21 [price] 500 MDL for 3 rugs ^p2a1');
+    expect(out).not.toContain('k3f9');
+    expect(out).toContain('custom_key: keep me');
+    expect(out).toContain('<!-- a comment -->');
+  });
+
+  it('assigns an id when editing an id-less line', () => {
+    const note = parseNote('- 2026-01-01 [fact] old\n');
+    const [e] = listEntries(note);
+    replaceEntry(note, e!.key, { text: 'new' });
+    expect(serializeNote(note)).toMatch(/^- 2026-01-01 \[fact\] new \^[a-z0-9]{4}\n$/);
+  });
+
+  it('updates frontmatter keys in place, preserving unknown keys', () => {
+    const note = parseNote(SAMPLE);
+    setFrontmatterKey(note, 'updated', '2027-01-01');
+    setFrontmatterList(note, 'aliases', ['a', 'b, c']);
+    const out = serializeNote(note);
+    expect(out).toContain('updated: 2027-01-01\n');
+    expect(out).toContain('aliases: [a, "b, c"]\n');
+    expect(out).toContain('custom_key: keep me');
+    expect(out.split('\n').filter(l => l.startsWith('aliases:'))).toHaveLength(1);
+  });
+
+  it('generates ids that avoid collisions', () => {
+    const taken = new Set<string>();
+    for (let i = 0; i < 200; i++) taken.add(newEntryId(taken));
+    expect(taken.size).toBe(200);
+  });
+});

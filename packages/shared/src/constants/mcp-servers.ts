@@ -4,6 +4,7 @@
 export const McpServerNames = {
   Calories: 'calories',
   Finances: 'finances',
+  Notes: 'notes',
   Products: 'products',
   Travel: 'travel',
   Vacation: 'vacation',

@@ -11,6 +11,7 @@ MCP sub-servers currently available:
 - **Travel** — trip planning, reservation capture, checklist preparation, companions, and document links
 - **Finances** — accounts, transactions, budgets, monthly plans, net worth, and portfolios
 - **Vacation** — Moldovan leave pay per day, best leave windows, and leave balance by rule-set bucket
+- **Notes** — a personal "remember this" index of small practical facts (vendors, products, prices, verdicts): Markdown files in git, hybrid full-text / trigram / vector search (`docs/requirements/mcps/feature-notes.md`)
 - **Products Manager** _(planned)_ — home inventory, shopping lists, product catalog
 
 The former **Todo** and **Apiary** sub-servers were proofs of concept and have been removed, including their
@@ -59,17 +60,18 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 
 **Key tables (current):**
 
-| Table               | Purpose                                                                                                    |
-| ------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `users`             | Platform accounts (Google OAuth, provisioned on first Hub login)                                           |
-| `oauth_clients`     | OAuth 2.1 credentials for MCP clients                                                                      |
-| `mcp_servers`       | Per-user enable/disable flags for each MCP sub-server                                                      |
-| `calorie_profiles`  | Dietary profile: age, sex, activity level, calorie goal override                                           |
-| `meal_logs`         | Time-stamped meal entries with kcal and macros                                                             |
-| `body_measurements` | Time-series body measurements (weight, height, waist, etc.) per user; metadata comes from shared constants |
-| `trips` + `trip_*`  | Travel domain tables for reservations, places, checklist, companions, and documents                        |
-| `vacation_*`        | Vacation planner: profile, leave-law rule sets, tax regimes, monthly salaries, holidays, leave periods     |
-| `api_request_logs`  | HTTP request/response audit log (`service`=app, `server`=MCP sub-server) with trigram-indexed error field  |
+| Table                     | Purpose                                                                                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`                   | Platform accounts (Google OAuth, provisioned on first Hub login)                                                                                     |
+| `oauth_clients`           | OAuth 2.1 credentials for MCP clients                                                                                                                |
+| `mcp_servers`             | Per-user enable/disable flags for each MCP sub-server                                                                                                |
+| `calorie_profiles`        | Dietary profile: age, sex, activity level, calorie goal override                                                                                     |
+| `meal_logs`               | Time-stamped meal entries with kcal and macros                                                                                                       |
+| `body_measurements`       | Time-series body measurements (weight, height, waist, etc.) per user; metadata comes from shared constants                                           |
+| `trips` + `trip_*`        | Travel domain tables for reservations, places, checklist, companions, and documents                                                                  |
+| `vacation_*`              | Vacation planner: profile, leave-law rule sets, tax regimes, monthly salaries, holidays, leave periods                                               |
+| _(notes: not in this DB)_ | The notes server keeps Markdown files on a volume and a disposable search index in its own pgvector Postgres (`notes-db`), not in the Drizzle schema |
+| `api_request_logs`        | HTTP request/response audit log (`service`=app, `server`=MCP sub-server) with trigram-indexed error field                                            |
 
 ---
 
@@ -78,9 +80,9 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 - Replace Cloudflare Worker HTTP layer with a Fastify app
 - Expose MCP over stateless Streamable HTTP, protocol `2026-07-28` as the main protocol (`fastify-mcp-server` 1.x on MCP TypeScript SDK v2, `@modelcontextprotocol/server`). No sessions: the SDK builds a fresh `McpServer` per HTTP request, so tool definitions and their JSON Schemas are prebuilt once at module load (`defineTool`). 2025-era clients (claude.ai artifact pages) are served statelessly through the SDK `legacy: 'stateless'` fallback, since the plugin always rejects them.
 - MCP endpoints validate the `Host` header against `MCP_ALLOWED_HOSTS` (and browser `Origin` against `MCP_ALLOWED_ORIGINS`)
-- Endpoint pattern: `/api/<domain>/mcp` (for example: `/api/calories/mcp`, `/api/travel/mcp`, `/api/finances/mcp`, `/api/vacation/mcp`)
+- Endpoint pattern: `/api/<domain>/mcp` (for example: `/api/calories/mcp`, `/api/travel/mcp`, `/api/finances/mcp`, `/api/vacation/mcp`, `/api/notes/mcp`)
 - OAuth 2.0 stays — adapt existing implementation from `src/http/`
-- Each MCP sub-server remains its own module (calories, travel, finances, vacation, ...)
+- Each MCP sub-server remains its own module (calories, travel, finances, vacation, notes, ...)
 - Future MCPs are added as new modules without touching infrastructure
 
 ---

@@ -1,4 +1,6 @@
-FROM node:26-alpine AS base
+# Debian (glibc), not Alpine: the notes server's embedding model runs on onnxruntime-node, which ships
+# glibc-only native binaries. Keep builder and runner on the same libc so installed native deps match.
+FROM node:26-bookworm-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 # Node 25+ no longer bundles Corepack; install it to keep pnpm pinned by package.json "packageManager".
@@ -20,6 +22,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 # Keep everything from the top through this shared build identical across the service
 # Dockerfiles: docker-bake.hcl builds them together and BuildKit runs it only once.
 RUN pnpm --filter @my-hub/shared build
+RUN pnpm --filter @my-hub/notes build
 RUN pnpm --filter @my-hub/mcp-server build
 
 RUN pnpm --filter @my-hub/mcp-server deploy --prod --legacy /prod/mcp-server
@@ -34,7 +37,14 @@ COPY --from=builder /prod/mcp-server/node_modules ./node_modules
 COPY --from=builder /prod/mcp-server/package.json ./package.json
 COPY --from=builder /app/packages/mcp-server/scripts ./scripts
 
-RUN mkdir -p /app/data/travel-documents && chown node:node /app/data/travel-documents
+# git: the notes server keeps each user's Markdown files in a git repo (one commit per write, optional backup push).
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends git ca-certificates openssh-client \
+  && rm -rf /var/lib/apt/lists/*
+
+# Owned by `node` so fresh named volumes mounted here are writable (notes repo, embedding model cache).
+RUN mkdir -p /app/data/travel-documents /app/data/notes /app/data/model-cache \
+  && chown node:node /app/data/travel-documents /app/data/notes /app/data/model-cache
 
 EXPOSE 3001
 USER node

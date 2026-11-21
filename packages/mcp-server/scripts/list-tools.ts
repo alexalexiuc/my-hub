@@ -20,12 +20,14 @@ const { registerTravelResources } = await import('../src/travel/resources/index'
 const { registerFinancesTools } = await import('../src/finances/tools/tools');
 const { registerFinancesResources } = await import('../src/finances/resources/resources');
 const { registerVacationTools } = await import('../src/vacation/tools/tools');
+const { registerNotesTools } = await import('../src/notes/tools/tools');
 
 const DOMAINS: Record<string, Register[]> = {
   calories: [registerCaloriesTools, registerCaloriesResources],
   travel: [registerTravelTools, registerTravelResources],
   finances: [registerFinancesTools, registerFinancesResources],
   vacation: [registerVacationTools],
+  notes: [registerNotesTools],
 };
 
 const args = process.argv.slice(2);

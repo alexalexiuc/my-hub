@@ -1,0 +1,338 @@
+[
+  {
+    "query": "CleanPro phone",
+    "expected_path": "services/carpet-cleaning.md",
+    "lang": "en",
+    "kind": "exact"
+  },
+  {
+    "query": "Castrol Edge 5W-30",
+    "expected_path": "car/engine-oil.md",
+    "lang": "en",
+    "kind": "exact"
+  },
+  {
+    "query": "Mann HU 7008",
+    "expected_path": "car/oil-filter.md",
+    "lang": "en",
+    "kind": "exact"
+  },
+  {
+    "query": "Starnet 500 Mbps",
+    "expected_path": "services/internet-provider.md",
+    "lang": "en",
+    "kind": "exact"
+  },
+  {
+    "query": "Roborock S8 brush",
+    "expected_path": "appliances/robot-vacuum.md",
+    "lang": "en",
+    "kind": "exact"
+  },
+  {
+    "query": "Varta Blue Dynamic",
+    "expected_path": "car/car-battery.md",
+    "lang": "en",
+    "kind": "exact"
+  },
+  {
+    "query": "Ariel pe apă rece",
+    "expected_path": "home/washing-detergent.md",
+    "lang": "ro",
+    "kind": "exact"
+  },
+  {
+    "query": "Inima de Bou",
+    "expected_path": "garden/tomato-seeds.md",
+    "lang": "ro",
+    "kind": "exact"
+  },
+  {
+    "query": "Fairy средство",
+    "expected_path": "home/dish-soap.md",
+    "lang": "ru",
+    "kind": "exact"
+  },
+  {
+    "query": "Brita Maxtra cartridge",
+    "expected_path": "home/water-filter.md",
+    "lang": "en",
+    "kind": "exact"
+  },
+  {
+    "query": "who washed our rugs",
+    "variants": ["carpet cleaning company", "curățare covoare", "химчистка ковров"],
+    "expected_path": "services/carpet-cleaning.md",
+    "lang": "en",
+    "kind": "vague"
+  },
+  {
+    "query": "which company cleans carpets and picks them up",
+    "variants": ["rug washing", "curățare covoare", "химчистка ковров"],
+    "expected_path": "services/carpet-cleaning.md",
+    "lang": "en",
+    "kind": "vague"
+  },
+  {
+    "query": "that guy who fixed the kitchen tap",
+    "variants": ["instalator", "сантехник", "pipe repair"],
+    "expected_path": "services/plumber.md",
+    "lang": "en",
+    "kind": "vague"
+  },
+  {
+    "query": "how much did the lawyer thing for the power of attorney cost",
+    "variants": ["notar procură", "нотариус доверенность", "document certification"],
+    "expected_path": "services/notary.md",
+    "lang": "en",
+    "kind": "vague"
+  },
+  {
+    "query": "what do I put in the engine",
+    "variants": ["ulei motor", "моторное масло", "oil change"],
+    "expected_path": "car/engine-oil.md",
+    "lang": "en",
+    "kind": "vague"
+  },
+  {
+    "query": "which powder is better for washing clothes",
+    "variants": ["detergent rufe", "стиральный порошок", "washing powder"],
+    "expected_path": "home/washing-detergent.md",
+    "lang": "en",
+    "kind": "vague"
+  },
+  {
+    "query": "where do I get my tyres changed",
+    "variants": ["vulcanizare", "шиномонтаж", "tyre change"],
+    "expected_path": "services/tire-shop.md",
+    "lang": "en",
+    "kind": "vague"
+  },
+  {
+    "query": "the cheap way to remove limescale from the kettle",
+    "variants": ["anticalcar", "средство от накипи", "citric acid"],
+    "expected_path": "home/descaler.md",
+    "lang": "en",
+    "kind": "vague"
+  },
+  {
+    "query": "who delivers dry wood for the stove",
+    "variants": ["lemne de foc", "дрова", "dry oak"],
+    "expected_path": "garden/firewood.md",
+    "lang": "en",
+    "kind": "vague"
+  },
+  {
+    "query": "what is the best noise cancelling headset",
+    "variants": ["căști", "наушники", "noise cancelling"],
+    "expected_path": "electronics/headphones.md",
+    "lang": "en",
+    "kind": "vague"
+  },
+  {
+    "query": "cine mi-a spălat geamurile",
+    "expected_path": "services/window-cleaning.md",
+    "lang": "ro",
+    "kind": "vague"
+  },
+  {
+    "query": "кто делал ремонт розеток",
+    "expected_path": "services/electrician.md",
+    "lang": "ru",
+    "kind": "vague"
+  },
+  {
+    "query": "unde pot găsi miere bună",
+    "expected_path": "food/honey.md",
+    "lang": "ro",
+    "kind": "vague"
+  },
+  {
+    "query": "clenpro",
+    "expected_path": "services/carpet-cleaning.md",
+    "lang": "en",
+    "kind": "typo"
+  },
+  {
+    "query": "rorborock",
+    "expected_path": "appliances/robot-vacuum.md",
+    "lang": "en",
+    "kind": "typo"
+  },
+  {
+    "query": "castrol edje",
+    "expected_path": "car/engine-oil.md",
+    "lang": "en",
+    "kind": "typo"
+  },
+  {
+    "query": "startnet internet",
+    "expected_path": "services/internet-provider.md",
+    "lang": "en",
+    "kind": "typo"
+  },
+  {
+    "query": "bosh dishwasher",
+    "expected_path": "appliances/dishwasher.md",
+    "lang": "en",
+    "kind": "typo"
+  },
+  {
+    "query": "lenorr softener",
+    "expected_path": "home/fabric-softener.md",
+    "lang": "en",
+    "kind": "typo"
+  },
+  {
+    "query": "dyson vacum",
+    "expected_path": "appliances/vacuum-cleaner.md",
+    "lang": "en",
+    "kind": "typo"
+  },
+  {
+    "query": "vulcanizre",
+    "expected_path": "services/tire-shop.md",
+    "lang": "ro",
+    "kind": "typo"
+  },
+  {
+    "query": "ulei motor",
+    "expected_path": "car/engine-oil.md",
+    "lang": "ro",
+    "kind": "crosslang"
+  },
+  {
+    "query": "порошок",
+    "expected_path": "home/washing-detergent.md",
+    "lang": "ru",
+    "kind": "crosslang"
+  },
+  {
+    "query": "химчистка ковров",
+    "expected_path": "services/carpet-cleaning.md",
+    "lang": "ru",
+    "kind": "crosslang"
+  },
+  {
+    "query": "instalator",
+    "expected_path": "services/plumber.md",
+    "lang": "ro",
+    "kind": "crosslang"
+  },
+  {
+    "query": "шиномонтаж",
+    "expected_path": "services/tire-shop.md",
+    "lang": "ru",
+    "kind": "crosslang"
+  },
+  {
+    "query": "frizerie",
+    "expected_path": "services/barber.md",
+    "lang": "ro",
+    "kind": "crosslang"
+  },
+  {
+    "query": "зимняя резина",
+    "expected_path": "car/winter-tires.md",
+    "lang": "ru",
+    "kind": "crosslang"
+  },
+  {
+    "query": "asigurare auto",
+    "expected_path": "car/car-insurance.md",
+    "lang": "ro",
+    "kind": "crosslang"
+  },
+  {
+    "query": "стоматолог",
+    "expected_path": "services/dentist.md",
+    "lang": "ru",
+    "kind": "crosslang"
+  },
+  {
+    "query": "aer condiționat service",
+    "expected_path": "appliances/air-conditioner.md",
+    "lang": "ro",
+    "kind": "crosslang"
+  },
+  {
+    "query": "кофемашина",
+    "expected_path": "appliances/coffee-machine.md",
+    "lang": "ru",
+    "kind": "crosslang"
+  },
+  {
+    "query": "veterinar",
+    "expected_path": "pets/veterinarian.md",
+    "lang": "ro",
+    "kind": "crosslang"
+  },
+  {
+    "query": "rubber wiper blades",
+    "variants": ["ștergătoare", "дворники", "wiper blades"],
+    "expected_path": "car/wiper-blades.md",
+    "lang": "en",
+    "kind": "crosslang"
+  },
+  {
+    "query": "корм для собак",
+    "expected_path": "pets/dog-food.md",
+    "lang": "ru",
+    "kind": "crosslang"
+  },
+  {
+    "query": "mașină de spălat rufe",
+    "expected_path": "appliances/washing-machine.md",
+    "lang": "ro",
+    "kind": "crosslang"
+  },
+  {
+    "query": "something to stop the windscreen freezing in winter",
+    "variants": ["lichid parbriz", "омывайка", "windshield"],
+    "expected_path": "car/windshield-washer-fluid.md",
+    "lang": "en",
+    "kind": "paraphrase"
+  },
+  {
+    "query": "how do I know when the car needs to go for the compulsory check",
+    "variants": ["ITP", "техосмотр", "inspecția tehnică"],
+    "expected_path": "car/technical-inspection.md",
+    "lang": "en",
+    "kind": "paraphrase"
+  },
+  {
+    "query": "my back hurts, who helped last time",
+    "variants": ["kinetoterapeut", "массажист", "back pain"],
+    "expected_path": "services/physiotherapist.md",
+    "lang": "en",
+    "kind": "paraphrase"
+  },
+  {
+    "query": "what should I give the puppy for breakfast",
+    "variants": ["hrană pentru câini", "корм для собак", "kibble"],
+    "expected_path": "pets/dog-food.md",
+    "lang": "en",
+    "kind": "paraphrase"
+  },
+  {
+    "query": "company that brings workers and a truck to carry furniture",
+    "variants": ["mutări", "перевозка", "moving company"],
+    "expected_path": "services/moving-company.md",
+    "lang": "en",
+    "kind": "paraphrase"
+  },
+  {
+    "query": "кому звонить если захлопнулась дверь",
+    "variants": ["lăcătuș", "слесарь", "open the door"],
+    "expected_path": "services/locksmith.md",
+    "lang": "ru",
+    "kind": "paraphrase"
+  },
+  {
+    "query": "cum scap de gândaci",
+    "variants": ["deratizare", "дезинсекция", "cockroaches"],
+    "expected_path": "services/pest-control.md",
+    "lang": "ro",
+    "kind": "paraphrase"
+  }
+]
