@@ -63,7 +63,7 @@ describe.skipIf(!url)('NotesService (integration, FakeProvider)', () => {
   it('appends when the subject equals an existing title exactly', async () => {
     await remember('Carpet cleaning', 'CleanPro');
     const res = await remember('CARPET CLEANING', 'second visit was fine');
-    expect(res).toMatchObject({ created: false, path: 'services/carpet-cleaning.md', matchedBy: 'path' });
+    expect(res).toMatchObject({ created: false, path: 'services/carpet-cleaning.md', matchedBy: 'name' });
     expect(await svc().entries('services/carpet-cleaning.md')).toHaveLength(2);
   });
 

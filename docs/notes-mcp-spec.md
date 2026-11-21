@@ -360,7 +360,7 @@ packages/notes-bench/
    ("clenpro" -> CleanPro, which is a vendor named inside an entry, not in the title) needs it. Legs are switchable per request
    (`legs`) so the benchmark can compare. Entry score per note = sum of its best 3 entries' RRF scores, plus the note-name RRF score.
 6. **`remember` matches exactly, never fuzzily** (changed on 2026-11-21, see "Raw writes and a review pass" below). It appends to the
-   note whose path slug, title or alias equals the subject after case and accent folding (most recently updated wins); otherwise it
+   note whose title or an alias equals the subject after case and accent folding (most recently updated wins); otherwise it
    creates a new note marked `reviewed: false`. Near-duplicates are allowed and merged later by Claude in an explicit review pass
    (`notes_review_duplicates` -> `notes_merge` -> `notes_mark_reviewed`). Optional `path` writes to exactly that note; optional
    `category` names the folder of a new note (default `misc`). The fuzzy matcher (trigram + name embedding, `NOTES_MATCH_*`) is gone.

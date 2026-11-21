@@ -7,6 +7,12 @@ import { UserInputError, logger } from '@my-hub/shared/utils';
 
 const run = promisify(execFile);
 
+const pathExists = (path: string): Promise<boolean> =>
+  stat(path).then(
+    () => true,
+    () => false,
+  );
+
 export function sha1(text: string): string {
   return createHash('sha1').update(text).digest('hex');
 }
@@ -43,11 +49,7 @@ export class NoteStore {
   init(): Promise<void> {
     this.initialised ??= (async () => {
       await mkdir(this.dir, { recursive: true });
-      const hasGit = await stat(join(this.dir, '.git')).then(
-        () => true,
-        () => false,
-      );
-      if (!hasGit) {
+      if (!(await pathExists(join(this.dir, '.git')))) {
         await this.git(['init', '-b', 'main']);
         if (this.gitRemote) await this.git(['remote', 'add', 'origin', this.gitRemote]);
       }
@@ -63,10 +65,7 @@ export class NoteStore {
   }
 
   async exists(path: string): Promise<boolean> {
-    return stat(this.resolveNote(path)).then(
-      () => true,
-      () => false,
-    );
+    return pathExists(this.resolveNote(path));
   }
 
   /** File contents, or null when the note does not exist. */

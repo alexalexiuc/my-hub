@@ -1,4 +1,4 @@
-import { bodyText, listEntries, parseNote, readFrontmatter } from './markdown';
+import { bodyText, listEntries, parseNote, readFrontmatter, type Frontmatter } from './markdown';
 import { toVectorLiteral, type Db } from './db';
 import type { EmbeddingProvider } from './embeddings';
 import { normalizeForMatch } from './slug';
@@ -109,14 +109,7 @@ export class Indexer {
 
   private async upsertNote(
     path: string,
-    fm: {
-      title: string;
-      category: string;
-      tags: string[];
-      aliases: string[];
-      reviewed: boolean;
-      updated: string | null;
-    },
+    fm: Frontmatter,
     hash: string,
     existingId: string | undefined,
     nameVector: number[],

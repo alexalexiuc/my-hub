@@ -10,7 +10,7 @@ src/store.ts      per-user git repo of .md files, write queue, one commit per wr
 src/db.ts         pool + schema (rebuilt automatically when model, dimension or schema version changes)
 src/indexer.ts    file -> index rows, re-embeds only changed lines
 src/search.ts     hybrid search: fts + trigram + vector legs, RRF fusion
-src/resolve.ts    findExactNote: the note whose slug, title or alias equals the subject (remember does no fuzzy matching)
+src/resolve.ts    findExactNote: the note whose title or an alias equals the subject (remember does no fuzzy matching)
 src/headers.ts    NoteHeader + header queries (browse, review queue)
 src/service.ts    NotesRuntime / NotesService: search, read, remember, edit, delete, alias, recent, browse, reviewQueue,
                   merge, markReviewed, reindex
@@ -22,7 +22,7 @@ src/cli.ts        notes-cli: download-model | reindex | push | purge
 
 | Method                                                                          | What it does                                                                                                                                                                       |
 | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `remember(input)`                                                               | Appends to the note whose path slug, title or alias equals `subject` (case/accents ignored), else creates a note with `reviewed: false`. `path` forces the target.                 |
+| `remember(input)`                                                               | Appends to the note whose title or an alias equals `subject` (case/accents ignored), else creates a note with `reviewed: false`. `path` forces the target.                         |
 | `search({ queries, category, limit })`                                          | Hybrid search (fts + trigram + vector, RRF). Up to 200 notes here; the `notes_search` tool caps at 20.                                                                             |
 | `browse({ queries?, category?, tag?, updatedSince?, unreviewedOnly?, limit? })` | `NoteHeader`s (title, aliases, tags, entry count, first line, `reviewed`). With `queries`: ranked, with `score`/`matchedBy`; else ordered by category, title. Default 50, max 200. |
 | `reviewQueue({ limit, suggestions })`                                           | Unreviewed notes, oldest first, each with `similar` existing notes (search by title + aliases), plus `remaining`.                                                                  |

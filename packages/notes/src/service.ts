@@ -1,6 +1,6 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { UserInputError, logger, omitUndefined } from '@my-hub/shared/utils';
+import { UserInputError, dedupeTrimmed, logger, omitUndefined } from '@my-hub/shared/utils';
 import { ensureSchema, type Db } from './db';
 import { type EmbeddingProvider } from './embeddings';
 import { fetchHeaders, type HeaderFilter, type NoteHeader } from './headers';
@@ -93,18 +93,10 @@ const safeUserDir = (userId: string) => userId.replace(/[^A-Za-z0-9_-]/g, '_');
 const today = () => new Date().toISOString().slice(0, 10);
 
 /** `existing` plus the `extra` values not already in it (case-insensitive, trimmed). */
-function mergeUnique(existing: string[], extra: string[]): string[] {
-  const seen = new Set(existing.map(v => v.toLowerCase()));
-  const merged = [...existing];
-  for (const raw of extra) {
-    const v = raw.trim();
-    if (v && !seen.has(v.toLowerCase())) {
-      seen.add(v.toLowerCase());
-      merged.push(v);
-    }
-  }
-  return merged;
-}
+const mergeUnique = (existing: string[], extra: string[]): string[] => [
+  ...existing,
+  ...dedupeTrimmed(extra, new Set(existing.map(v => v.toLowerCase()))),
+];
 
 /** Shared state for all users: database, embedder, config. Create once with `createNotesRuntime`. */
 export class NotesRuntime {
@@ -191,7 +183,7 @@ export class NotesService {
   }
 
   /**
-   * Appends an entry to the note whose title/alias/slug equals `subject` exactly, or creates a new (unreviewed)
+   * Appends an entry to the note whose title or an alias equals `subject` exactly, or creates a new (unreviewed)
    * note. Never guesses: near-duplicates are left for the review pass (`reviewQueue` + `merge`).
    */
   async remember(input: RememberInput): Promise<RememberResult> {
@@ -277,7 +269,7 @@ export class NotesService {
     let aliases: string[] = [];
     await this.mutate(path, `+alias ${value}`, note => {
       const fm = readFrontmatter(note, { title: path, category: '' });
-      aliases = fm.aliases.some(a => a.toLowerCase() === value.toLowerCase()) ? fm.aliases : [...fm.aliases, value];
+      aliases = mergeUnique(fm.aliases, [value]);
       setFrontmatterList(note, 'aliases', aliases);
     });
     return { path, aliases };
@@ -286,28 +278,14 @@ export class NotesService {
   /** Newest entries across all notes, by entry date. */
   async recent(limit = 10): Promise<RecentEntry[]> {
     await this.ready();
-    const res = await this.rt.db.query<{
-      path: string;
-      title: string;
-      entry_key: string;
-      entry_date: string | null;
-      type: string;
-      text: string;
-    }>(
-      `SELECT n.path, n.title, e.entry_key, e.entry_date::text, e.type, e.text
+    const res = await this.rt.db.query<RecentEntry>(
+      `SELECT n.path, n.title, e.entry_key AS id, e.entry_date::text AS date, e.type, e.text
        FROM entries e JOIN notes n ON n.id = e.note_id
        WHERE n.user_id = $1 AND e.entry_key <> '_body'
        ORDER BY e.entry_date DESC NULLS LAST, e.id DESC LIMIT $2`,
       [this.userId, Math.min(Math.max(limit, 1), 50)],
     );
-    return res.rows.map(r => ({
-      path: r.path,
-      title: r.title,
-      id: r.entry_key,
-      date: r.entry_date,
-      type: r.type,
-      text: r.text,
-    }));
+    return res.rows;
   }
 
   /** Note headers, filtered, and ranked by hybrid search when `queries` are given. */
