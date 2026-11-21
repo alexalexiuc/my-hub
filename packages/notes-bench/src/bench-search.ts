@@ -3,7 +3,7 @@ import { directClient, type SearchClient } from './clients';
 import { flagNum, printTable, rng, stats, type Args, type Harness, type Stats } from './lib';
 import { countEntries, growTo, writeSeedNotes } from './seed';
 
-export const TIERS: Record<string, number> = { '1k': 1_000, '10k': 10_000, '50k': 50_000, '100k': 100_000 };
+const TIERS: Record<string, number> = { '1k': 1_000, '10k': 10_000, '50k': 50_000, '100k': 100_000 };
 
 interface Load {
   wall: Stats;

@@ -37,7 +37,7 @@ pnpm --filter @my-hub/notes-bench bench:relevance -- --target https://mcp.alexiu
 pnpm --filter @my-hub/notes-bench bench:search -- --target https://mcp.alexiuc.dev
 ```
 
-Flags: `--provider e5|ollama|fake`, `--tier`, `--config fts,trigram,vector,hybrid,hybrid-multi`, `--requests N`,
+Flags: `--provider e5|fake`, `--tier`, `--config fts,trigram,vector,hybrid,hybrid-multi`, `--requests N`,
 `--concurrency 1,5,10`, `--n N` (embed samples), `--filler N` (relevance with N synthetic entries as noise),
 `--docker-container NAME` (also sample that container's memory), `--out DIR`, `--no-save`.
 
@@ -60,5 +60,5 @@ close to the server's. For the real container use `--docker-container my-hub-mcp
 ## Reading results
 
 - **With `--provider fake` only the lexical legs (`fts`, `trigram`) mean anything.** The output says so. Real vector and
-  hybrid numbers need `e5` (or Ollama).
+  hybrid numbers need `e5`.
 - `results/` is gitignored except `.gitkeep`; commit a result file deliberately when it is a reference.

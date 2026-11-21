@@ -21,7 +21,6 @@ import {
   setFrontmatterList,
 } from './markdown';
 import { findExactNote } from './resolve';
-import { DEFAULT_RRF_K } from './rrf';
 import { searchNotes, type SearchHit, type SearchOptions, type SearchResult } from './search';
 import { slugify } from './slug';
 import { NoteStore, assertNotePath, categoryOf } from './store';
@@ -32,7 +31,6 @@ export interface NotesRuntimeConfig {
   /** Root directory; each user gets `<root>/<userId>/`. */
   root: string;
   gitRemote?: string;
-  rrfK?: number;
 }
 
 export interface RememberInput {
@@ -200,7 +198,7 @@ export class NotesService {
 
   async search(opts: SearchOptions): Promise<SearchResult> {
     await this.ready();
-    return searchNotes(this.rt.db, this.rt.embedder, this.userId, { k: this.rt.config.rrfK ?? DEFAULT_RRF_K, ...opts });
+    return searchNotes(this.rt.db, this.rt.embedder, this.userId, opts);
   }
 
   async read(path: string): Promise<{ path: string; content: string }> {
@@ -349,7 +347,6 @@ export class NotesService {
     // The search takes the category; the other filters are applied to its (widened) result list.
     const postFilters = filter.tag !== undefined || filter.updatedSince !== undefined || filter.unreviewedOnly;
     const { hits } = await searchNotes(this.rt.db, this.rt.embedder, this.userId, {
-      k: this.rt.config.rrfK ?? DEFAULT_RRF_K,
       queries: opts.queries,
       category: opts.category,
       limit: postFilters ? 200 : limit,
@@ -373,7 +370,6 @@ export class NotesService {
     const items: ReviewQueue['items'] = [];
     for (const note of unreviewed.slice(0, pageSize)) {
       const { hits } = await searchNotes(this.rt.db, this.rt.embedder, this.userId, {
-        k: this.rt.config.rrfK ?? DEFAULT_RRF_K,
         queries: [note.title, ...note.aliases.slice(0, 4)],
         limit: suggestions + 1,
       });
@@ -546,8 +542,3 @@ export class NotesService {
 }
 
 export { ENTRY_TYPES };
-
-/** Logs a warning-level line; kept here so callers do not import the logger just for this. */
-export function warnNotes(message: string): void {
-  logger.warn(`[notes] ${message}`);
-}

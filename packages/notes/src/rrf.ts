@@ -14,7 +14,7 @@ export interface FusedScore {
 }
 
 /** Standard Reciprocal Rank Fusion constant. */
-export const DEFAULT_RRF_K = 60;
+const DEFAULT_RRF_K = 60;
 
 /**
  * Reciprocal Rank Fusion: `score(id) = Σ weight / (k + rank)` over every ranking the id appears in (rank is 1-based).

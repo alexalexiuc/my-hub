@@ -1,6 +1,6 @@
 /** Turns text into fixed-size, L2-normalised vectors. Passages (stored text) and queries are embedded differently. */
 export interface EmbeddingProvider {
-  /** `e5`, `ollama` or `fake`. Recorded in benchmark output. */
+  /** `e5` or `fake`. Recorded in benchmark output. */
   readonly name: string;
   readonly model: string;
   readonly dimensions: number;

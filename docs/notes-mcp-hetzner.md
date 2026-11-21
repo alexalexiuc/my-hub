@@ -19,8 +19,6 @@ Everything below is for the VPS. Sandbox numbers (FakeProvider, 4 vCPU) are in `
 3. `docker compose logs mcp | grep "\[notes\] ready"` shows the boot time and provider.
 4. In the Hub (`/mcp-control`) enable the **Notes** server for yourself, then add `https://mcp.alexiuc.dev/api/notes/mcp` as a custom connector in claude.ai (OAuth, same as the others).
 
-If `onnxruntime-node` fails to load in the container, fall back to `EMBEDDINGS_PROVIDER=ollama` (plus an `ollama` service) and tell me.
-
 ## 2. Benchmarks
 
 The mcp image ships only the production build and the host has no Node, so run the bench in a throwaway Node container
@@ -51,8 +49,7 @@ The 2026-11-21 run of exactly this is in `docs/notes-mcp-spec.md` section 15. In
 cannot reach the Docker CLI; take `docker stats --no-stream` on the host instead.
 
 `--docker-container` also samples the running mcp container's memory (the bench process hosts a second copy of the
-model, so its own RSS is the model-in-process cost). To compare against Ollama later: `--provider ollama` with
-`EMBEDDINGS_MODEL=bge-m3 EMBEDDINGS_DIMENSIONS=1024 OLLAMA_URL=...`, then `bench:compare` the two files.
+model, so its own RSS is the model-in-process cost).
 
 Then the transport view through the real endpoint, with a **bench account's** OAuth client (notes are per user, so the
 bench account's notes are separate from yours):

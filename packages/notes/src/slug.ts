@@ -39,7 +39,7 @@ const CYRILLIC: Record<string, string> = {
 };
 
 /** Transliterates Cyrillic and strips Latin diacritics (Romanian ăâîșț included) to plain ASCII. */
-export function toAscii(input: string): string {
+function toAscii(input: string): string {
   let out = '';
   for (const ch of input.toLowerCase()) out += CYRILLIC[ch] ?? ch;
   return out.normalize('NFKD').replace(/[̀-ͯ]/g, '');

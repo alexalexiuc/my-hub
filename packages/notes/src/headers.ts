@@ -29,7 +29,7 @@ export interface HeaderFilter {
 }
 
 /** SQL for a note's last-update day: the frontmatter date, else the day it was indexed. */
-export const UPDATED_DAY_SQL = 'COALESCE(n.fm_updated, n.updated_at::date)';
+const UPDATED_DAY_SQL = 'COALESCE(n.fm_updated, n.updated_at::date)';
 
 interface Row {
   path: string;

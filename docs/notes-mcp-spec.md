@@ -73,9 +73,9 @@ Design for this:
 
 - **`EmbeddingProvider` interface** with implementations:
   - `E5LocalProvider`: real model, Transformers.js.
-  - `OllamaProvider`: optional, for comparison.
+  - (`OllamaProvider` was built for comparison, never benchmarked, and removed; e5 runs fine in the image.)
   - `FakeProvider`: deterministic hash-based vectors for unit tests/CI and for environments without model access. Clearly marked: relevance numbers from it are meaningless.
-- Select via env (`EMBEDDINGS_PROVIDER=e5|ollama|fake`). The benchmark output must record which provider was used.
+- Select via env (`EMBEDDINGS_PROVIDER=e5|fake`). The benchmark output must record which provider was used.
 - **Model weights:** download at Docker image build time or into a cached volume on first boot (`TRANSFORMERS_CACHE` / `env.cacheDir`), never on every start. Support a local model path env var so weights can be pre-seeded.
 - If the real model can't be loaded in the session, still build and test everything with `FakeProvider`, and make sure `pnpm bench` runs end-to-end on Hetzner with `e5`.
 
@@ -247,7 +247,7 @@ You decide sequencing and granularity. This is the intended shape.
 - Read the existing my-hub MCP apps; mirror their conventions.
 - `apps/notes-mcp` (or whatever the repo's naming convention is) + compose service + Postgres with pgvector.
 - Markdown parser/serializer with round-trip tests.
-- `EmbeddingProvider` interface + `e5` / `fake` (+ optional `ollama`) providers.
+- `EmbeddingProvider` interface + `e5` / `fake` providers.
 - Migrations, indexer, reindex command.
 - MCP tools from §8 over streamable HTTP. Auth stubbed locally, following the existing pattern.
 - Unit tests (parser, slugging, RRF fusion, remember resolution) + integration tests against real Postgres.
@@ -331,7 +331,7 @@ packages/notes-bench/
 - Hub UI: a simple browse/search page at hub.alexiuc.dev later? Not in the spike.
 - (from the spike) HNSW index and its filter interaction (`user_id`, `category` are post-filters); batch inserts for reindex.
 - (from the spike) Minimum similarity for the vector legs; `remember` thresholds; RRF `k` and leg weights; per-leg timings in `notes_search` output.
-- (from the spike) Schedule the backup push; add an `ollama` compose service when benchmarking it.
+- (from the spike) Schedule the backup push.
 
 ## 14. Definition of done for this session
 
@@ -346,13 +346,13 @@ packages/notes-bench/
 
 ### What exists
 
-| Piece                                                                                                                                                         | Where                                                                                                                                |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Core library: parser (byte-exact round trip), git store + write queue, embeddings (e5 / ollama / fake), schema, indexer, hybrid search, exact-name match, CLI | `packages/notes`                                                                                                                     |
-| MCP tools (11: search, read, remember, edit/delete entry, add alias, recent, browse, review duplicates, merge, mark reviewed) on `/api/notes/mcp`             | `packages/mcp-server/src/notes`                                                                                                      |
-| Benchmarks + fixtures (95 notes, 53 golden queries)                                                                                                           | `packages/notes-bench`                                                                                                               |
-| Compose (`notes-db`, volumes, limits), mcp Dockerfile, CI pgvector service, e2e spec                                                                          | `infra/`, `packages/mcp-server/Dockerfile`, `.github/workflows/ci.yml`, `packages/mcp-server/e2e/notes.e2e.ts`                       |
-| Docs                                                                                                                                                          | `packages/notes/README.md`, `packages/notes-bench/README.md`, `docs/notes-mcp-hetzner.md`, `docs/requirements/mcps/feature-notes.md` |
+| Piece                                                                                                                                                | Where                                                                                                                                |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Core library: parser (byte-exact round trip), git store + write queue, embeddings (e5 / fake), schema, indexer, hybrid search, exact-name match, CLI | `packages/notes`                                                                                                                     |
+| MCP tools (11: search, read, remember, edit/delete entry, add alias, recent, browse, review duplicates, merge, mark reviewed) on `/api/notes/mcp`    | `packages/mcp-server/src/notes`                                                                                                      |
+| Benchmarks + fixtures (95 notes, 53 golden queries)                                                                                                  | `packages/notes-bench`                                                                                                               |
+| Compose (`notes-db`, volumes, limits), mcp Dockerfile, CI pgvector service, e2e spec                                                                 | `infra/`, `packages/mcp-server/Dockerfile`, `.github/workflows/ci.yml`, `packages/mcp-server/e2e/notes.e2e.ts`                       |
+| Docs                                                                                                                                                 | `packages/notes/README.md`, `packages/notes-bench/README.md`, `docs/notes-mcp-hetzner.md`, `docs/requirements/mcps/feature-notes.md` |
 
 ### Deviations from this handover (and why)
 

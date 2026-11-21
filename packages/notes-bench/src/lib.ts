@@ -13,9 +13,9 @@ import {
   type NotesService,
 } from '@my-hub/notes';
 
-export const PACKAGE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
+const PACKAGE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const FIXTURES_DIR = join(PACKAGE_DIR, 'fixtures');
-export const RESULTS_DIR = join(PACKAGE_DIR, 'results');
+const RESULTS_DIR = join(PACKAGE_DIR, 'results');
 
 export interface Args {
   command: string;

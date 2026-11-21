@@ -9,7 +9,7 @@ const only = (...on: SearchLeg[]): Legs =>
   Object.fromEntries(['fts', 'trgm', 'vec', 'namesTrgm', 'namesVec'].map(l => [l, on.includes(l as SearchLeg)]));
 
 /** Search configurations compared by the relevance benchmark. Only `hybrid*` work through `--target`. */
-export const CONFIGS: Record<string, { legs?: Legs; multi: boolean; remote: boolean }> = {
+const CONFIGS: Record<string, { legs?: Legs; multi: boolean; remote: boolean }> = {
   fts: { legs: only('fts'), multi: false, remote: false },
   trigram: { legs: only('trgm', 'namesTrgm'), multi: false, remote: false },
   vector: { legs: only('vec', 'namesVec'), multi: false, remote: false },

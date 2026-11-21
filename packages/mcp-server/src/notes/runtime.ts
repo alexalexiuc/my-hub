@@ -32,7 +32,6 @@ export function getNotesRuntime(): Promise<NotesRuntime> {
       embedder,
       root: notesEnv.NOTES_ROOT,
       gitRemote: notesEnv.NOTES_GIT_REMOTE,
-      rrfK: notesEnv.NOTES_RRF_K,
     });
     await rt.start();
     logger.info(`[notes] ready in ${Date.now() - t0} ms (embeddings: ${embedder.name}/${embedder.model})`);
@@ -46,7 +45,7 @@ export function getNotesRuntime(): Promise<NotesRuntime> {
 
 /** Starts loading the notes runtime in the background at boot. Failures are logged, not fatal. */
 export function warmNotesRuntime(): void {
-  if (!notesConfigured() || !notesEnv.NOTES_WARM_ON_BOOT) return;
+  if (!notesConfigured()) return;
   getNotesRuntime().catch((err: unknown) => {
     logger.error(`[notes] startup failed: ${err instanceof Error ? err.message : String(err)}`);
   });

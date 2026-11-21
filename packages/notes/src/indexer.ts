@@ -5,7 +5,7 @@ import type { EmbeddingProvider } from './embeddings';
 import { normalizeForMatch } from './slug';
 import { categoryOf, sha1, type NoteStore } from './store';
 
-export const BODY_KEY = '_body';
+const BODY_KEY = '_body';
 
 export interface IndexResult {
   path: string;
@@ -16,12 +16,12 @@ export interface IndexResult {
 }
 
 /** `title` + aliases, accent-stripped, as stored in `notes.names` for trigram matching. */
-export function namesText(title: string, aliases: string[]): string {
+function namesText(title: string, aliases: string[]): string {
   return normalizeForMatch([title, ...aliases].join(' | '));
 }
 
 /** Text embedded for the note-level (name) vector. */
-export function nameEmbeddingText(title: string, aliases: string[]): string {
+function nameEmbeddingText(title: string, aliases: string[]): string {
   return [title, ...aliases].join('. ');
 }
 

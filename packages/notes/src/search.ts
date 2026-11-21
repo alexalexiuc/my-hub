@@ -1,7 +1,7 @@
 import { performance } from 'node:perf_hooks';
 import { toVectorLiteral, type Db } from './db';
 import type { EmbeddingProvider } from './embeddings';
-import { DEFAULT_RRF_K, reciprocalRankFusion, type Ranking } from './rrf';
+import { reciprocalRankFusion, type Ranking } from './rrf';
 import { normalizeForMatch } from './slug';
 
 export const SEARCH_LEGS = ['fts', 'trgm', 'vec', 'namesTrgm', 'namesVec'] as const;
@@ -13,8 +13,6 @@ export interface SearchOptions {
   category?: string;
   /** Notes to return (default 5, max 200; the notes_search tool caps it at 20). */
   limit?: number;
-  /** RRF constant. */
-  k?: number;
   /** Legs to run; all by default. Used by the benchmark to compare configurations. */
   legs?: Partial<Record<SearchLeg, boolean>>;
 }
@@ -179,9 +177,8 @@ export async function searchNotes(
   await Promise.all(jobs);
   const dbMs = performance.now() - tDb;
 
-  const k = opts.k ?? DEFAULT_RRF_K;
-  const fusedEntries = reciprocalRankFusion(entryRankings, k);
-  const fusedNames = reciprocalRankFusion(nameRankings, k);
+  const fusedEntries = reciprocalRankFusion(entryRankings);
+  const fusedNames = reciprocalRankFusion(nameRankings);
 
   interface NoteAgg {
     score: number;

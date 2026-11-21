@@ -14,7 +14,7 @@ src/resolve.ts    findExactNote: the note whose title or an alias equals the sub
 src/headers.ts    NoteHeader + header queries (browse, review queue)
 src/service.ts    NotesRuntime / NotesService: search, read, remember, edit, delete, alias, recent, browse, reviewQueue,
                   merge, markReviewed, reindex
-src/embeddings/   e5 (Transformers.js), ollama, fake providers
+src/embeddings/   e5 (Transformers.js) and fake providers
 src/cli.ts        notes-cli: download-model | reindex | push | purge
 ```
 
@@ -52,26 +52,20 @@ Without `NOTES_DATABASE_URL` the server still boots; the notes tools answer with
 
 ## Environment
 
-| Variable                      | Default               | Meaning                                                                                   |
-| ----------------------------- | --------------------- | ----------------------------------------------------------------------------------------- |
-| `NOTES_DATABASE_URL`          | -                     | Postgres with pgvector. Required for the notes tools.                                     |
-| `NOTES_ROOT`                  | `./data/notes`        | One git repo per user: `<NOTES_ROOT>/<userId>/`.                                          |
-| `EMBEDDINGS_PROVIDER`         | `e5`                  | `e5`, `ollama` or `fake`. Recorded in every benchmark result.                             |
-| `EMBEDDINGS_MODEL`            | per provider          | e5: `Xenova/multilingual-e5-small`; ollama: `bge-m3`.                                     |
-| `EMBEDDINGS_DIMENSIONS`       | e5 384 / fake 384     | Required for ollama (bge-m3 = 1024, embeddinggemma = 768).                                |
-| `EMBEDDINGS_CACHE_DIR`        | `./data/model-cache`  | Where weights are cached (a volume in compose). Never downloaded per start.               |
-| `EMBEDDINGS_LOCAL_MODEL_PATH` | -                     | Directory with pre-seeded weights (`<dir>/Xenova/multilingual-e5-small/...`); no network. |
-| `OLLAMA_URL`                  | `http://ollama:11434` | Ollama server for `EMBEDDINGS_PROVIDER=ollama`.                                           |
-| `NOTES_WARM_ON_BOOT`          | `true`                | Load the model and index changed files at boot, not on first use.                         |
-| `NOTES_GIT_REMOTE`            | -                     | Private backup repo; `notes-cli push` pushes `main` there.                                |
-| `NOTES_RRF_K`                 | `60`                  | Reciprocal Rank Fusion constant.                                                          |
+| Variable                      | Default              | Meaning                                                                                   |
+| ----------------------------- | -------------------- | ----------------------------------------------------------------------------------------- |
+| `NOTES_DATABASE_URL`          | -                    | Postgres with pgvector. Required for the notes tools.                                     |
+| `NOTES_ROOT`                  | `./data/notes`       | One git repo per user: `<NOTES_ROOT>/<userId>/`.                                          |
+| `EMBEDDINGS_PROVIDER`         | `e5`                 | `e5` or `fake` (tests only). Recorded in every benchmark result.                          |
+| `EMBEDDINGS_CACHE_DIR`        | `./data/model-cache` | Where weights are cached (a volume in compose). Never downloaded per start.               |
+| `EMBEDDINGS_LOCAL_MODEL_PATH` | -                    | Directory with pre-seeded weights (`<dir>/Xenova/multilingual-e5-small/...`); no network. |
+| `NOTES_GIT_REMOTE`            | -                    | Private backup repo; `notes-cli push` pushes `main` there.                                |
 
 ## Switching embedding providers
 
-Change `EMBEDDINGS_PROVIDER` (and model/dimensions) and restart. The index records the model and dimension; when they
-differ it drops its tables and re-embeds every file at startup. Files are never touched. Ollama example:
-`EMBEDDINGS_PROVIDER=ollama EMBEDDINGS_MODEL=bge-m3 EMBEDDINGS_DIMENSIONS=1024 OLLAMA_URL=http://ollama:11434`
-(the `ollama` service itself is not in compose yet; add it only to benchmark).
+The index records the model and dimension; when they differ from the running provider it drops its tables and
+re-embeds every file at startup. Files are never touched. To try another model, implement `EmbeddingProvider`
+(`src/embeddings/types.ts`) and add it to `createEmbeddingProvider`.
 
 ## Model weights
 

@@ -1,11 +1,10 @@
 import { l2Normalize, type EmbeddingProvider } from './types';
 
-export const E5_DEFAULT_MODEL = 'Xenova/multilingual-e5-small';
-export const E5_DIMENSIONS = 384;
+const E5_MODEL = 'Xenova/multilingual-e5-small';
+const E5_DIMENSIONS = 384;
 const BATCH_SIZE = 32;
 
 export interface E5Options {
-  model?: string;
   cacheDir?: string;
   /** Directory with pre-seeded weights; disables remote downloads when set. */
   localModelPath?: string;
@@ -19,13 +18,11 @@ type Extractor = (texts: string[], opts: { pooling: 'mean'; normalize: boolean }
  */
 export class E5LocalProvider implements EmbeddingProvider {
   readonly name = 'e5';
-  readonly model: string;
+  readonly model = E5_MODEL;
   readonly dimensions = E5_DIMENSIONS;
   private extractor: Promise<Extractor> | null = null;
 
-  constructor(private readonly options: E5Options = {}) {
-    this.model = options.model || E5_DEFAULT_MODEL;
-  }
+  constructor(private readonly options: E5Options = {}) {}
 
   /** Loads the pipeline once; concurrent callers share the same promise. */
   ready(): Promise<void> {

@@ -4,7 +4,7 @@ import { logger } from '@my-hub/shared/utils';
 export type Db = pg.Pool;
 
 /** Bumped when the table layout changes. The index is disposable, so a mismatch rebuilds it from the files. */
-export const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 3;
 
 export interface DbOptions {
   connectionString: string;

@@ -33,7 +33,7 @@ Commands
   compare A.json B.json   diff two result files, flag regressions
 
 Flags
-  --provider e5|ollama|fake     embedding provider (direct mode; default $EMBEDDINGS_PROVIDER or e5)
+  --provider e5|fake            embedding provider (direct mode; default $EMBEDDINGS_PROVIDER or e5)
   --target https://mcp.example  run search/relevance through the MCP endpoint of a deployed server
   --token T | --client-id I --client-secret S   credentials for --target (or NOTES_BENCH_* env vars)
   --docker-container NAME       also sample that container's memory while running

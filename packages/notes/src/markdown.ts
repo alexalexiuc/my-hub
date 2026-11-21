@@ -226,7 +226,7 @@ export function bodyText(note: ParsedNote): string {
 }
 
 /** Formats an entry line. `text` must be a single line. */
-export function formatEntryLine(entry: { date: string; type: string; text: string; id: string }): string {
+function formatEntryLine(entry: { date: string; type: string; text: string; id: string }): string {
   return `- ${entry.date} [${entry.type}] ${entry.text.replace(/\s*\n\s*/g, ' ').trim()} ^${entry.id}`;
 }
 
