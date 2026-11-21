@@ -4,10 +4,11 @@ Everything below is for the VPS. Sandbox numbers (FakeProvider, 4 vCPU) are in `
 
 ## 0. Before merging (it changes prod compose and the mcp image)
 
-- [ ] `NOTES_DB_PASSWORD` is set in the server's `.env` (prod compose **requires** it; without it `compose up` aborts).
-- [ ] `docker volume create my-hub_notes_data` (external volume that holds the Markdown repos; `down -v` can never delete it).
-- [ ] The mcp image is now Debian (`node:26-bookworm-slim`) and larger (~+350 MB: onnxruntime, transformers). CI's
-      "build-and-push" / e2e job is the first real build of it; watch it.
+- [x] `NOTES_DB_PASSWORD` is set in the server's `.env` (prod compose **requires** it; without it `compose up` aborts). Done 2026-11-21
+      (random hex, so it needs no URL escaping in `NOTES_DATABASE_URL`).
+- [x] `docker volume create my-hub_notes_data` (external volume that holds the Markdown repos; `down -v` can never delete it). Done 2026-11-21.
+- [ ] The mcp image is now Debian (`node:26-bookworm-slim`), 1.06 GB built locally (onnxruntime, transformers). It builds and
+      `download-model` works in it; CI's "build-and-push" / e2e job is its first CI build, watch it.
 - [ ] Optional now, needed for backup: `NOTES_GIT_REMOTE` (private repo) plus an SSH key or token the container can use.
 
 ## 1. Deploy
@@ -22,19 +23,32 @@ If `onnxruntime-node` fails to load in the container, fall back to `EMBEDDINGS_P
 
 ## 2. Benchmarks
 
-The mcp image ships only the production build, so run the bench from a checkout on the VPS. `notes-db` listens on
-`127.0.0.1:5433` (loopback only). The bench builds its own schema (`bench_<ts>`) and temp directory and drops them at
-the end, so the real notes repo and index are untouched.
+The mcp image ships only the production build and the host has no Node, so run the bench in a throwaway Node container
+from a copy of the branch (no push needed). Before the merge use a throwaway pgvector on another port; after it, prod
+`notes-db` on `127.0.0.1:5433` works too. The bench builds its own schema (`bench_<ts>`) and temp directory and drops
+them at the end, so the real notes repo and index are untouched. The prod mcp container is `my-hub-mcp-1`.
 
 ```bash
-git clone <repo> && cd my-hub && pnpm install
-export NOTES_BENCH_DATABASE_URL=postgresql://notes:$NOTES_DB_PASSWORD@127.0.0.1:5433/notes
-export EMBEDDINGS_PROVIDER=e5 EMBEDDINGS_CACHE_DIR=$PWD/.model-cache      # downloads the model once
-pnpm --filter @my-hub/notes-bench bench -- --tier 1k,10k,50k --docker-container my-hub-prod-mcp-1
-pnpm --filter @my-hub/notes-bench bench:search -- --tier 100k            # slow to seed; optional
-pnpm --filter @my-hub/notes-bench bench:embed -- --provider e5
-pnpm --filter @my-hub/notes-bench bench:resolve -- --provider e5               # remember matching; defaults 0.75 / 0.6 were tuned on a dev box
+# from a checkout on your machine
+git archive --format=tar HEAD | ssh myhub 'rm -rf /opt/notes-bench-src && mkdir -p /opt/notes-bench-src && tar -x -C /opt/notes-bench-src'
+# on the VPS: throwaway index DB (skip after the merge and use 5433 + $NOTES_DB_PASSWORD instead)
+docker run -d --name notes-bench-db -p 127.0.0.1:5434:5432 -e POSTGRES_DB=notes -e POSTGRES_USER=notes -e POSTGRES_PASSWORD=benchpw pgvector/pgvector:pg18
+# build once without limits (turbo needs .git, which git archive drops, so build the two packages directly)
+docker run --rm -v /opt/notes-bench-src:/work -w /work node:26-bookworm-slim bash -c   'npm i -g corepack@0.36.0 && corepack enable && export CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 &&
+   pnpm install --frozen-lockfile && pnpm --filter @my-hub/shared build && pnpm --filter @my-hub/notes build'
+# run with the mcp service's limits; git is required (the notes store commits every write)
+docker run --rm --network host --cpus 2 --memory 2g -v /opt/notes-bench-src:/work -w /work node:26-bookworm-slim bash -c   'apt-get update -qq && apt-get install -y -qq --no-install-recommends git ca-certificates >/dev/null &&
+   git config --global user.email bench@localhost && git config --global user.name bench &&
+   npm i -g corepack@0.36.0 && corepack enable && export COREPACK_ENABLE_DOWNLOAD_PROMPT=0 &&
+   export NOTES_BENCH_DATABASE_URL=postgresql://notes:benchpw@127.0.0.1:5434/notes EMBEDDINGS_PROVIDER=e5 EMBEDDINGS_CACHE_DIR=/work/.model-cache &&
+   pnpm --filter @my-hub/notes-bench bench -- --tier 1k,10k,50k &&
+   pnpm --filter @my-hub/notes-bench bench:resolve &&
+   pnpm --filter @my-hub/notes-bench bench:relevance -- --filler 5000'
+# afterwards: scp the results/*.json back, then docker rm -f notes-bench-db && rm -rf /opt/notes-bench-src
 ```
+
+The 2026-11-21 run of exactly this is in `docs/notes-mcp-spec.md` section 15. Inside a container `--docker-container`
+cannot reach the Docker CLI; take `docker stats --no-stream` on the host instead.
 
 `--docker-container` also samples the running mcp container's memory (the bench process hosts a second copy of the
 model, so its own RSS is the model-in-process cost). To compare against Ollama later: `--provider ollama` with

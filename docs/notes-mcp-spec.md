@@ -388,8 +388,34 @@ packages/notes-bench/
 
 ### NOT verified yet
 
-- **Hetzner** (`docs/notes-mcp-hetzner.md`): VPS numbers with container limits, `--target` runs through the real endpoint, idle RAM of `mcp` + `notes-db`.
+- **Hetzner after deploy**: `--target` runs through the real endpoint, idle RAM of the `mcp` (with the model) and `notes-db` containers.
+  The direct-mode VPS run is done (next section).
 - **CI changes** (pgvector service container, staging compose with the fake provider) and **the prod compose** have not run.
+
+### Real e5 numbers on the Hetzner VPS (2026-11-21)
+
+Host: 2 vCPU AMD EPYC Genoa, 3.8 GB RAM, shared with the running prod stack. The bench ran in a `node:26-bookworm-slim` container capped
+like the mcp service (`--cpus 2 --memory 2g`), against a throwaway `pgvector/pgvector:pg18` on loopback, before the merge, so prod was not touched.
+
+- **Embedding**: cold load 1.4 s from cache; single line p50 5.6 ms / p95 7.3 ms; 303 lines/s in batches of 32. Bench process RSS 112 MB idle,
+  **734 MB peak** with the model loaded and 50k entries indexed: fits the 2 GB mcp limit, but it is most of the box's ~2.6 GB of free RAM.
+- **`remember`** end to end: p50 72 ms / p95 81 ms / p99 91 ms (target p95 < 300 ms: met easily).
+- **Indexing**: 1k entries 6.3 s, 10k 57 s, 50k 300 s (~170 entries/s).
+- **`search`** (4 phrasings per request), wall ms:
+
+| Entries | conc. 1 p50 / p95 | conc. 5 p95 | conc. 10 p95 |
+| ------- | ----------------- | ----------- | ------------ |
+| 1k      | 56 / 76           | 338         | 599          |
+| 10k     | 124 / **173**     | 792         | 1259         |
+| 50k     | 270 / 370         | 1981        | 3602         |
+
+**The target p95 < 150 ms at 10k is missed even one request at a time** (173 ms), and concurrency scales almost linearly with 2 cores.
+One user rarely sends parallel searches, but Claude does send several phrasings at once. This makes the HNSW / fewer-legs decision (section 13)
+the next piece of work; it is not needed for a personal corpus of a few hundred to a few thousand entries (1k: p95 76 ms).
+
+- **Relevance and `remember` matching**: identical to the dev box (both deterministic): hybrid 0.81 / 0.94 / 0.86, hybrid-multi 0.93 / 0.98 / 0.95,
+  with 5,000 filler entries hybrid 0.60 / 0.83 / 0.71; resolve at the new defaults 45 correct, 0 wrong merges, 17 missed, 1 ambiguous.
+- **Prod baseline before Notes**: `my-hub-mcp-1` idles at 89 MB. After deploy expect roughly +500-650 MB once the model is loaded (`NOTES_WARM_ON_BOOT`).
 
 ### Real e5 numbers (dev box: i7-12700H, 20 threads, 16 GB, no container limits, Postgres 18 in Docker Desktop)
 
