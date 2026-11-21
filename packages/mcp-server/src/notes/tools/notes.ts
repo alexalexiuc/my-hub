@@ -48,10 +48,7 @@ export const RememberSchema = z.object({
     .string()
     .trim()
     .min(1)
-    .describe(
-      'What the note is about, as a short title naming the product, service or topic. For a list the user ' +
-        'wants back (places to visit, foods to try, books, gift ideas) use the list itself as the title.',
-    ),
+    .describe('What the note is about, as a short title: the thing the user will ask about later.'),
   text: z.string().trim().min(1).describe('One line: the fact itself. No newlines.'),
   type: z.enum(ENTRY_TYPES).describe('fact | verdict (was it good?) | contact | price | how-to.'),
   path: z

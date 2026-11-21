@@ -505,8 +505,8 @@ Coffee grinder -> Coffee machine), which Claude sees and leaves alone. The dupli
 | notes | foods-to-try    | 15    | 4/15     | 13/15     | 4/15            | 13/15            | 15/15                | 15/15           |
 | notes | cities-to-visit | 12    | 0/12     | 4/12      | 0/12            | 4/12             | 12/12                | 12/12           |
 
-With browse, both shapes return the whole list, and no saves were merged wrongly. Search alone was never enough for lists. The tool
-descriptions still steer collections into one list note (fewest calls), but one-note-per-item no longer loses items.
+With browse, both shapes return the whole list, and no saves were merged wrongly. Search alone was never enough for lists. So the tool
+descriptions no longer give collections a special shape: Claude picks the subject, and browse finds the items either way.
 
 - Everything in the next section is from the sandbox with `FakeProvider`: it excludes real model inference, and the host (4 vCPU Xeon @ 2.1 GHz, 16 GB, no container limits, bench client and Postgres 16 / pgvector 0.6.0 sharing the cores) is not the VPS.
 

@@ -40,7 +40,7 @@ const notesTools = [
       '(id, date, type, text) - usually enough to answer without notes_read. `matchedBy` shows which search ' +
       'legs hit; a hit matched only by "vec"/"namesVec" with a low score may be unrelated, so say when nothing ' +
       'convincing was found instead of guessing. `timings` is server-side latency. For one specific fact only; for ' +
-      '"what is on my list / all my places / what do I have about X" use notes_browse, then notes_read.',
+      '"what is on my list / what do I have about X" use notes_browse, then notes_read.',
     inputSchema: SearchNotesSchema.shape,
     annotations: { readOnlyHint: true },
     callback: searchNotesTool,
@@ -64,8 +64,6 @@ const notesTools = [
       'HOW: appends to the note whose title or alias is exactly `subject` (case and accents ignored); otherwise ' +
       'creates a new note. It does not guess: near-duplicates are fine and get cleaned up in a review pass, so ' +
       'reuse the exact existing title when you know it (notes_search / notes_browse first if unsure). ' +
-      'Collections the user wants back as a list (places to visit, foods to try, books, gift ideas) go in ONE list ' +
-      'note: subject = the list itself, one entry per item. ' +
       'Give `aliases` in RO/RU/EN for new subjects, and `category` for new notes. One fact per call. ' +
       '`path` = write to exactly this note. After a call with created: true, tell the user the new note title.',
     inputSchema: RememberSchema.shape,
@@ -111,7 +109,7 @@ const notesTools = [
     description:
       'Note headers (title, category, aliases, tags, entry count, first line), filtered by category, tag, ' +
       'updatedSince, unreviewedOnly, and ranked by `queries` when given (up to 200). For "what is on my list / ' +
-      'all my places / what do I have about X": browse, pick the relevant headers, then notes_read them.',
+      'what do I have about X": browse, pick the relevant headers, then notes_read them.',
     inputSchema: BrowseNotesSchema.shape,
     annotations: { readOnlyHint: true },
     callback: browseNotesTool,
