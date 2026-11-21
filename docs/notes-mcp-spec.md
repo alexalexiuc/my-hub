@@ -376,11 +376,69 @@ packages/notes-bench/
 - `packages/mcp-server/e2e/notes.e2e.ts` (8 tests) passes over the real MCP protocol with OAuth against a locally started server; `notes-bench` direct and `--target` modes run end to end.
 - Compose files validate with `docker compose config`.
 
-### NOT verified (environment limits)
+### Verified locally (2026-11-21, Windows 11 dev box, real e5)
 
-- **The real model.** `huggingface.co` returns 403 from the sandbox proxy, so `E5LocalProvider` (Transformers.js pipeline, `q8`, prefixes, mean pooling) has never produced a vector here: its load path is only exercised up to the download error. All vector / cross-language relevance numbers must come from Hetzner.
-- **Docker image build and run** (Docker Hub rate-limited the sandbox): the Debian Dockerfile, `git` in the image, volume ownership, onnxruntime-node loading in the container.
+- **The real model works**: `E5LocalProvider` downloads `Xenova/multilingual-e5-small` (q8, ~120 MB) and produces 384-dim vectors, on Windows and in the Linux image.
+- **The mcp image builds** (`docker build -f packages/mcp-server/Dockerfile .`, 1.06 GB) and `node node_modules/@my-hub/notes/dist/cli.js download-model`
+  works inside it on a fresh named volume as user `node`: 48.4 s with the download, 764 ms once cached. onnxruntime-node loads on bookworm-slim.
+- Unit + integration tests (50) pass against `pgvector/pgvector:pg18`.
+- Fixed on the way: `CREATE EXTENSION` now pins `SCHEMA public`. Unpinned, the extensions landed in the first schema on the search path
+  (a bench schema), so a second bench schema could not see `unaccent`, and the bench's `DROP SCHEMA ... CASCADE` dropped the extensions again.
+  `.model-cache` is now gitignored and dockerignored.
+
+### NOT verified yet
+
+- **Hetzner** (`docs/notes-mcp-hetzner.md`): VPS numbers with container limits, `--target` runs through the real endpoint, idle RAM of `mcp` + `notes-db`.
 - **CI changes** (pgvector service container, staging compose with the fake provider) and **the prod compose** have not run.
+
+### Real e5 numbers (dev box: i7-12700H, 20 threads, 16 GB, no container limits, Postgres 18 in Docker Desktop)
+
+Not the VPS: no CPU limit, a much faster CPU, Docker Desktop's VM in between. Re-run on Hetzner before deciding anything about capacity.
+
+- **Embedding**: cold load 0.8 s from cache (42.7 s with the first download); single line p50 3.4 ms / p95 4.9 ms; 746 lines/s in batches of 32.
+  Process RSS 98-113 MB idle before the model, **~640 MB peak** with the model loaded (vs. 155 MB with the fake provider).
+- **`remember`** end to end: p50 153 ms / p95 168 ms / p99 459 ms over 100 writes (target p95 < 300 ms; git on Windows is part of this).
+- **Indexing**: 1k entries 6.0 s, 10k 63 s, 50k 334 s (~150 entries/s, now embedding-bound instead of insert-bound).
+- **`search`** (4 phrasings per request, embedding ~8 ms of it):
+
+| Entries | conc. 1 p50 / p95 | conc. 5 p95 | conc. 10 p95 | req/s at conc. 1 |
+| ------- | ----------------- | ----------- | ------------ | ---------------- |
+| 1k      | 30.5 / 50.7       | 148         | 255          | 30.5             |
+| 10k     | 51.4 / 74.1       | 267         | 507          | 19.2             |
+| 50k     | 95.7 / 150.0      | 693         | 1026         | 9.6              |
+
+Same shape as the sandbox: fine one at a time, and the DB part (≥ 85% of server time) grows with concurrency. HNSW is still the open decision.
+
+- **Relevance** (53 golden queries, recall@1 / recall@5 / MRR):
+
+| Config       | seed corpus only   | + 5,000 filler entries |
+| ------------ | ------------------ | ---------------------- |
+| fts          | 0.30 / 0.38 / 0.35 | 0.17 / 0.25 / 0.21     |
+| trigram      | 0.60 / 0.68 / 0.64 | 0.53 / 0.62 / 0.57     |
+| vector       | 0.45 / 0.85 / 0.62 | 0.40 / 0.66 / 0.50     |
+| hybrid       | 0.81 / 0.94 / 0.86 | 0.60 / 0.83 / 0.71     |
+| hybrid-multi | 0.93 / 0.98 / 0.95 | 0.74 / 0.87 / 0.80     |
+
+The real model lifts hybrid from 0.53 / 0.83 / 0.66 (fake) to 0.81 / 0.94 / 0.86, and multiple phrasings still add the most (recall@1 0.81 -> 0.93).
+Noise hurts every leg; the filler is synthetic and shares vocabulary with the corpus on purpose, so it is a pessimistic case.
+
+- **`remember` subject matching** (`bench:resolve`, 63 labelled subjects: 40 that must merge, incl. typos and RU/RO names; 23 that must be new,
+  14 of them near misses such as "Summer tires" vs. Winter tires, "Gearbox oil" vs. Engine oil). e5 cosines between short names sit in
+  0.82-0.93 for related **and** unrelated pairs: the best wrong note for a near miss reaches 0.91 (Fuel filter -> Air filter) while some right
+  answers score 0.86. No cosine cut separates them, so names need trigram or a very high cosine. Sweeping floor 0.6-0.88 x threshold 0.4-0.8:
+
+| Floor / threshold            | correct | wrong merge | missed merge (new duplicate note) | ambiguous |
+| ---------------------------- | ------- | ----------- | --------------------------------- | --------- |
+| 0.8 / 0.6 (old guess)        | 42      | 1           | 20                                | 0         |
+| **0.6 / 0.75 (new default)** | 45      | 0           | 17                                | 1         |
+| 0.7 / 0.6 (best single cell) | 52      | 0           | 4                                 | 7         |
+
+Chosen: `NOTES_MATCH_THRESHOLD` 0.75, `NOTES_MATCH_VECTOR_FLOOR` 0.6, i.e. a match needs trigram >= 0.75 on a name or cosine >= 0.9.
+Threshold 0.75 has zero wrong merges at **every** floor, while the cells with more correct answers (e.g. 0.7 / 0.6) sit next to cells with
+1-6 wrong merges: with 63 cases they would be overfit. A wrong merge silently mixes two subjects; a missed merge only makes a second note that
+search still finds and an alias can fix later, so the conservative side is the right one. Better recall here needs a relative signal
+(margin over the runner-up) or Claude confirming, not a different absolute cut.
+
 - Everything in the next section is from the sandbox with `FakeProvider`: it excludes real model inference, and the host (4 vCPU Xeon @ 2.1 GHz, 16 GB, no container limits, bench client and Postgres 16 / pgvector 0.6.0 sharing the cores) is not the VPS.
 
 ### Sandbox numbers (FakeProvider, 384-dim vectors, Postgres 16, sequential-scan vector legs, no HNSW)
@@ -412,4 +470,5 @@ packages/notes-bench/
 - The vector legs always return the nearest neighbours, even for a query that matches nothing, so `search` has no "found nothing" signal other than `matchedBy`
   and low scores. The tool description tells Claude to say so; a similarity cut-off should be calibrated on real e5 scores (section 13).
 - Resolution is the delicate part of `remember`: near-identical subjects ("Engine oil castrol" / "Engine oil mobil") must stay separate, while aliases must merge.
-  Thresholds (`NOTES_MATCH_THRESHOLD`, `NOTES_MATCH_VECTOR_FLOOR`, ambiguity margin 0.05) are untuned guesses; e5 cosine scores sit high (0.7-0.9 for unrelated text), hence the floor.
+  Thresholds are now tuned on e5 (see "Real e5 numbers" above: 0.75 / 0.6, ambiguity margin 0.05 unchanged); re-run `bench:resolve` when the
+  model changes or the labelled cases grow.

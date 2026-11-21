@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createEmbeddingProvider, type EmbeddingProvider } from '@my-hub/notes';
 import { parseCorpus } from './build-fixtures';
-import { FIXTURES_DIR, flagNum, providerMeta, stats, timed, type Args } from './lib';
+import { FIXTURES_DIR, flagNum, printTable, providerMeta, stats, timed, type Args } from './lib';
 
 /** Cold load, single-line latency and batch throughput of the embedding provider. */
 export async function benchEmbed(args: Args, shared?: EmbeddingProvider): Promise<Record<string, unknown>> {
@@ -28,11 +28,22 @@ export async function benchEmbed(args: Args, shared?: EmbeddingProvider): Promis
     await embedder.embedPassages(Array.from({ length: batchSize }, (_, i) => line(b * batchSize + i)));
   }
   const linesPerSec = Math.round(((batches * batchSize) / (performance.now() - t)) * 1000);
+  const singleLineMs = stats(single);
+
+  printTable(
+    `embed (${embedder.name})`,
+    ['metric', 'value'],
+    [
+      ['cold load (ms)', Math.round(cold.ms)],
+      ['single line p50 / p95 (ms)', `${singleLineMs.p50} / ${singleLineMs.p95}`],
+      ['batch of 32 (lines/s)', linesPerSec],
+    ],
+  );
 
   return {
     ...providerMeta(embedder),
     coldLoadMs: Math.round(cold.ms),
-    singleLineMs: stats(single),
+    singleLineMs,
     batch32LinesPerSec: linesPerSec,
   };
 }

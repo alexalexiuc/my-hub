@@ -13,6 +13,7 @@
     "bench:write": "tsx src/cli.ts write",
     "bench:search": "tsx src/cli.ts search",
     "bench:relevance": "tsx src/cli.ts relevance",
+    "bench:resolve": "tsx src/cli.ts resolve",
     "bench:seed": "tsx src/cli.ts seed",
     "bench:compare": "tsx src/cli.ts compare"
   },

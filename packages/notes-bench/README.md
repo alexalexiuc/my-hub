@@ -26,6 +26,7 @@ pnpm --filter @my-hub/notes-bench bench:embed                    # cold load, 10
 pnpm --filter @my-hub/notes-bench bench:write -- --writes 200    # remember end to end p50/p95
 pnpm --filter @my-hub/notes-bench bench:search -- --tier 10k     # tiers: 1k 10k 50k 100k; concurrency 1,5,10
 pnpm --filter @my-hub/notes-bench bench:relevance -- --config hybrid
+pnpm --filter @my-hub/notes-bench bench:resolve -- --verbose  # remember subject matching: threshold x floor sweep
 pnpm --filter @my-hub/notes-bench bench:compare results/a.json results/b.json   # flags regressions (--fail: exit 2)
 
 # against a deployed server (credentials: OAuth client of a bench account, or a bearer token)
@@ -46,6 +47,8 @@ close to the server's. For the real container use `--docker-container my-hub-pro
 ## Fixtures
 
 - `fixtures/corpus.txt` -> `fixtures/seed-notes/` (95 hand-written notes, ~230 entries, mixed RO / RU / EN, no real personal data)
+- `fixtures/resolve-cases.json` (63 `remember` subjects labelled with the note they must merge into, or `null` = new note;
+  near misses like "Summer tires" vs. Winter tires). Used by `resolve` to tune `NOTES_MATCH_THRESHOLD` / `NOTES_MATCH_VECTOR_FLOOR`.
 - `fixtures/golden.txt` -> `fixtures/golden-queries.json` (53 queries: `exact`, `vague`, `typo`, `crosslang`, `paraphrase`;
   18 carry the extra phrasings Claude would add, used by `hybrid-multi`)
 - Edit the `.txt` sources and run `pnpm --filter @my-hub/notes-bench fixtures` to regenerate (both outputs are committed).

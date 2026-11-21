@@ -24,7 +24,7 @@ describe('decide', () => {
   });
 
   it('is ambiguous when two candidates are close above the threshold', () => {
-    const r = decide([cand('a', 0.72), cand('b', 0.7)], DEFAULT_RESOLVE_CONFIG);
+    const r = decide([cand('a', 0.82), cand('b', 0.8)], DEFAULT_RESOLVE_CONFIG);
     expect(r.kind).toBe('ambiguous');
   });
 

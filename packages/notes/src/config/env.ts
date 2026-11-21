@@ -46,11 +46,11 @@ export const notesEnv = {
     return getEnvVar('NOTES_GIT_REMOTE', '');
   },
   get NOTES_MATCH_THRESHOLD() {
-    return num('NOTES_MATCH_THRESHOLD', 0.6);
+    return num('NOTES_MATCH_THRESHOLD', 0.75);
   },
   /** Cosine similarity below which the vector leg does not count towards a `remember` match (e5 sits high). */
   get NOTES_MATCH_VECTOR_FLOOR() {
-    return num('NOTES_MATCH_VECTOR_FLOOR', 0.8);
+    return num('NOTES_MATCH_VECTOR_FLOOR', 0.6);
   },
   get NOTES_RRF_K() {
     return num('NOTES_RRF_K', 60);

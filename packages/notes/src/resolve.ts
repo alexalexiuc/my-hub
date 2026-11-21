@@ -24,7 +24,9 @@ export interface ResolveConfig {
   ambiguityMargin: number;
 }
 
-export const DEFAULT_RESOLVE_CONFIG: ResolveConfig = { threshold: 0.6, vectorFloor: 0.8, ambiguityMargin: 0.05 };
+// Tuned on real e5 (multilingual-e5-small) with `pnpm --filter @my-hub/notes-bench bench:resolve`: e5 cosines bunch up in
+// 0.82-0.93, so a match needs trigram >= 0.75 or cosine >= 0.9 (floor + threshold * (1 - floor)). See spec section 15.
+export const DEFAULT_RESOLVE_CONFIG: ResolveConfig = { threshold: 0.75, vectorFloor: 0.6, ambiguityMargin: 0.05 };
 
 /** Maps a cosine similarity to 0–1 above `floor`. */
 export function scaleCosine(cosine: number, floor: number): number {

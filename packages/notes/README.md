@@ -35,20 +35,20 @@ Without `NOTES_DATABASE_URL` the server still boots; the notes tools answer with
 
 ## Environment
 
-| Variable                                             | Default               | Meaning                                                                                   |
-| ---------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------- |
-| `NOTES_DATABASE_URL`                                 | -                     | Postgres with pgvector. Required for the notes tools.                                     |
-| `NOTES_ROOT`                                         | `./data/notes`        | One git repo per user: `<NOTES_ROOT>/<userId>/`.                                          |
-| `EMBEDDINGS_PROVIDER`                                | `e5`                  | `e5`, `ollama` or `fake`. Recorded in every benchmark result.                             |
-| `EMBEDDINGS_MODEL`                                   | per provider          | e5: `Xenova/multilingual-e5-small`; ollama: `bge-m3`.                                     |
-| `EMBEDDINGS_DIMENSIONS`                              | e5 384 / fake 384     | Required for ollama (bge-m3 = 1024, embeddinggemma = 768).                                |
-| `EMBEDDINGS_CACHE_DIR`                               | `./data/model-cache`  | Where weights are cached (a volume in compose). Never downloaded per start.               |
-| `EMBEDDINGS_LOCAL_MODEL_PATH`                        | -                     | Directory with pre-seeded weights (`<dir>/Xenova/multilingual-e5-small/...`); no network. |
-| `OLLAMA_URL`                                         | `http://ollama:11434` | Ollama server for `EMBEDDINGS_PROVIDER=ollama`.                                           |
-| `NOTES_WARM_ON_BOOT`                                 | `true`                | Load the model and index changed files at boot, not on first use.                         |
-| `NOTES_GIT_REMOTE`                                   | -                     | Private backup repo; `notes-cli push` pushes `main` there.                                |
-| `NOTES_MATCH_THRESHOLD` / `NOTES_MATCH_VECTOR_FLOOR` | `0.6` / `0.8`         | `remember` subject matching (tune with real data).                                        |
-| `NOTES_RRF_K`                                        | `60`                  | Reciprocal Rank Fusion constant.                                                          |
+| Variable                                             | Default               | Meaning                                                                                               |
+| ---------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------- |
+| `NOTES_DATABASE_URL`                                 | -                     | Postgres with pgvector. Required for the notes tools.                                                 |
+| `NOTES_ROOT`                                         | `./data/notes`        | One git repo per user: `<NOTES_ROOT>/<userId>/`.                                                      |
+| `EMBEDDINGS_PROVIDER`                                | `e5`                  | `e5`, `ollama` or `fake`. Recorded in every benchmark result.                                         |
+| `EMBEDDINGS_MODEL`                                   | per provider          | e5: `Xenova/multilingual-e5-small`; ollama: `bge-m3`.                                                 |
+| `EMBEDDINGS_DIMENSIONS`                              | e5 384 / fake 384     | Required for ollama (bge-m3 = 1024, embeddinggemma = 768).                                            |
+| `EMBEDDINGS_CACHE_DIR`                               | `./data/model-cache`  | Where weights are cached (a volume in compose). Never downloaded per start.                           |
+| `EMBEDDINGS_LOCAL_MODEL_PATH`                        | -                     | Directory with pre-seeded weights (`<dir>/Xenova/multilingual-e5-small/...`); no network.             |
+| `OLLAMA_URL`                                         | `http://ollama:11434` | Ollama server for `EMBEDDINGS_PROVIDER=ollama`.                                                       |
+| `NOTES_WARM_ON_BOOT`                                 | `true`                | Load the model and index changed files at boot, not on first use.                                     |
+| `NOTES_GIT_REMOTE`                                   | -                     | Private backup repo; `notes-cli push` pushes `main` there.                                            |
+| `NOTES_MATCH_THRESHOLD` / `NOTES_MATCH_VECTOR_FLOOR` | `0.75` / `0.6`        | `remember` subject matching, tuned on e5 (`bench:resolve`); match = trigram >= 0.75 or cosine >= 0.9. |
+| `NOTES_RRF_K`                                        | `60`                  | Reciprocal Rank Fusion constant.                                                                      |
 
 ## Switching embedding providers
 

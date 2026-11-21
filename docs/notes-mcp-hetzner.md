@@ -33,6 +33,7 @@ export EMBEDDINGS_PROVIDER=e5 EMBEDDINGS_CACHE_DIR=$PWD/.model-cache      # down
 pnpm --filter @my-hub/notes-bench bench -- --tier 1k,10k,50k --docker-container my-hub-prod-mcp-1
 pnpm --filter @my-hub/notes-bench bench:search -- --tier 100k            # slow to seed; optional
 pnpm --filter @my-hub/notes-bench bench:embed -- --provider e5
+pnpm --filter @my-hub/notes-bench bench:resolve -- --provider e5               # remember matching; defaults 0.75 / 0.6 were tuned on a dev box
 ```
 
 `--docker-container` also samples the running mcp container's memory (the bench process hosts a second copy of the
@@ -54,4 +55,4 @@ files back).
 
 ## 3. What to send back
 
-The result JSON files (all of `all-e5`, the `--target` relevance and search runs), plus `docker stats` idle RAM of the `mcp` and `notes-db` containers.
+The result JSON files (`all-e5`, `resolve-e5`, the `--target` relevance and search runs), plus `docker stats` idle RAM of the `mcp` and `notes-db` containers.

@@ -10,7 +10,15 @@ export {
 } from './embeddings';
 export { Indexer, namesText } from './indexer';
 export * from './markdown';
-export { decide, scaleCosine, type Candidate, type ResolveConfig, type Resolution } from './resolve';
+export {
+  DEFAULT_RESOLVE_CONFIG,
+  decide,
+  findCandidates,
+  scaleCosine,
+  type Candidate,
+  type ResolveConfig,
+  type Resolution,
+} from './resolve';
 export { DEFAULT_RRF_K, reciprocalRankFusion, type FusedScore, type Ranking } from './rrf';
 export {
   SEARCH_LEGS,

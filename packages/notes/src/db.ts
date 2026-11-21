@@ -45,9 +45,11 @@ export async function ensureSchema(db: Db, embedding: { model: string; dimension
   const client = await db.connect();
   try {
     await client.query('SELECT pg_advisory_lock(727001)');
-    await client.query('CREATE EXTENSION IF NOT EXISTS vector');
-    await client.query('CREATE EXTENSION IF NOT EXISTS pg_trgm');
-    await client.query('CREATE EXTENSION IF NOT EXISTS unaccent');
+    // Pinned to public: unpinned, they land in the first search_path schema, which an isolated bench schema
+    // would then hide from other schemas and drop on cleanup (DROP SCHEMA ... CASCADE).
+    await client.query('CREATE EXTENSION IF NOT EXISTS vector SCHEMA public');
+    await client.query('CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA public');
+    await client.query('CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA public');
     await client.query(`
       CREATE TABLE IF NOT EXISTS notes_meta (key text PRIMARY KEY, value text NOT NULL)`);
 
