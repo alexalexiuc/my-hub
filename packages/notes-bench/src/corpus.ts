@@ -1,16 +1,13 @@
 /**
- * Generates fixtures from the compact sources:
- *   fixtures/corpus.txt -> fixtures/seed-notes/<category>/<slug>.md   (Markdown, deterministic ids)
- *   fixtures/golden.txt -> fixtures/golden-queries.json
- * Run with `pnpm --filter @my-hub/notes-bench fixtures`. Both outputs are committed.
+ * The hand-written bench data, parsed in memory on every run (nothing generated is committed):
+ *   fixtures/corpus.txt -> seed notes (`<category>/<slug>.md`, deterministic entry ids)
+ *   fixtures/golden.txt -> golden queries (query -> expected note path)
  */
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { slugify } from '@my-hub/notes';
-
-const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
+import { FIXTURES_DIR } from './lib';
 
 export interface CorpusNote {
   category: string;
@@ -108,22 +105,12 @@ export function parseGolden(source: string, notes: CorpusNote[]): GoldenQuery[] 
   return out;
 }
 
-async function main() {
-  const notes = parseCorpus(await readFile(join(FIXTURES, 'corpus.txt'), 'utf8'));
-  await rm(join(FIXTURES, 'seed-notes'), { recursive: true, force: true });
-  for (const n of notes) {
-    const file = join(FIXTURES, 'seed-notes', n.path);
-    await mkdir(dirname(file), { recursive: true });
-    await writeFile(file, renderNote(n));
-  }
-  const golden = parseGolden(await readFile(join(FIXTURES, 'golden.txt'), 'utf8'), notes);
-  await writeFile(join(FIXTURES, 'golden-queries.json'), `${JSON.stringify(golden, null, 2)}\n`);
-  process.stdout.write(`${notes.length} notes, ${golden.length} golden queries\n`);
+/** Parses `fixtures/corpus.txt`. */
+export async function loadCorpus(): Promise<CorpusNote[]> {
+  return parseCorpus(await readFile(join(FIXTURES_DIR, 'corpus.txt'), 'utf8'));
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  main().catch(err => {
-    process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
-    process.exit(1);
-  });
+/** Parses `fixtures/golden.txt`, resolving each expected title to its corpus note path. */
+export async function loadGolden(): Promise<GoldenQuery[]> {
+  return parseGolden(await readFile(join(FIXTURES_DIR, 'golden.txt'), 'utf8'), await loadCorpus());
 }

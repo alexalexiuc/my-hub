@@ -287,8 +287,8 @@ Lives apart from the app so it can be run any time against local or production:
 ```
 packages/notes-bench/
   fixtures/
-    golden-queries.json      # { query, expected_path, lang, kind }
-    seed-notes/              # realistic corpus (Markdown)
+    corpus.txt               # realistic corpus, one compact file; turned into Markdown notes at run time
+    golden.txt               # query => expected note title (+ lang, kind, extra phrasings)
   src/
     seed.ts                  # build scale tiers (1k/10k/50k/100k entries)
     bench-embed.ts           # embed latency + throughput

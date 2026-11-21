@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { FIXTURES_DIR, printTable, type Args, type Harness } from './lib';
-import { copySeedNotes } from './seed';
+import { writeSeedNotes } from './seed';
 
 interface ResolveCase {
   subject: string;
@@ -30,7 +30,7 @@ const r3 = (n: number) => Math.round(n * 1000) / 1000;
  * notes (rank 1 / within 3 / within 5) and how many positive subjects were already caught by the exact match.
  */
 export async function benchResolve(args: Args, harness: Harness): Promise<Record<string, unknown>> {
-  await copySeedNotes(harness);
+  await writeSeedNotes(harness);
   await harness.svc.reindex({ full: true });
   const { cases } = JSON.parse(await readFile(join(FIXTURES_DIR, 'resolve-cases.json'), 'utf8')) as {
     cases: ResolveCase[];

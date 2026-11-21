@@ -1,6 +1,7 @@
+import { loadGolden } from './corpus';
 import { directClient, type SearchClient } from './clients';
-import { flagNum, loadGolden, printTable, rng, stats, type Args, type Harness, type Stats } from './lib';
-import { growTo, copySeedNotes } from './seed';
+import { flagNum, printTable, rng, stats, type Args, type Harness, type Stats } from './lib';
+import { growTo, writeSeedNotes } from './seed';
 
 export const TIERS: Record<string, number> = { '1k': 1_000, '10k': 10_000, '50k': 50_000, '100k': 100_000 };
 
@@ -67,7 +68,7 @@ export async function benchSearch(
   const results: Record<string, unknown> = {};
   const rows: (string | number)[][] = [];
 
-  if (harness) await copySeedNotes(harness);
+  if (harness) await writeSeedNotes(harness);
   for (const name of tierNames) {
     let seedingMs = 0;
     let entries: number | null = null;

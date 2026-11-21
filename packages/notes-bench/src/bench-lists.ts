@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { SearchHit } from '@my-hub/notes';
 import { FIXTURES_DIR, createHarness, printTable, type Args, type Harness } from './lib';
-import { copySeedNotes } from './seed';
+import { writeSeedNotes } from './seed';
 
 interface ListItem {
   key: string;
@@ -65,7 +65,7 @@ export async function benchLists(args: Args, shared: Harness): Promise<Record<st
   for (const shape of ['list', 'notes'] as Shape[]) {
     const h = await createHarness(args, shared.embedder);
     try {
-      await copySeedNotes(h);
+      await writeSeedNotes(h);
       await h.svc.reindex({ full: true });
       const { notesCreated, incidents } = await store(h, lists, shape);
       out[`${shape}/incidents`] = incidents;

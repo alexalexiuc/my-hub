@@ -1,14 +1,12 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { parseCorpus } from './build-fixtures';
-import { FIXTURES_DIR, flagNum, rng, stats, timed, type Args, type Harness } from './lib';
-import { copySeedNotes } from './seed';
+import { loadCorpus } from './corpus';
+import { flagNum, rng, stats, timed, type Args, type Harness } from './lib';
+import { writeSeedNotes } from './seed';
 
 /** `remember` end to end (exact-name lookup + file write + git commit + embed + upsert), half appends, half new notes. */
 export async function benchWrite(args: Args, h: Harness): Promise<Record<string, unknown>> {
-  await copySeedNotes(h);
+  await writeSeedNotes(h);
   await h.svc.reindex({ full: true });
-  const corpus = parseCorpus(await readFile(join(FIXTURES_DIR, 'corpus.txt'), 'utf8'));
+  const corpus = await loadCorpus();
   const n = flagNum(args, 'writes', 100);
   const rand = rng(7);
   const word = () => Array.from({ length: 9 }, () => String.fromCharCode(97 + Math.floor(rand() * 26))).join('');

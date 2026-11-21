@@ -1,16 +1,13 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { benchEmbed } from './bench-embed';
 import { benchRelevance } from './bench-relevance';
 import { benchLists } from './bench-lists';
 import { benchResolve } from './bench-resolve';
 import { benchSearch } from './bench-search';
 import { benchWrite } from './bench-write';
-import { parseCorpus } from './build-fixtures';
+import { loadCorpus } from './corpus';
 import { callJson, directClient, mcpClient, type SearchClient } from './clients';
 import { compare } from './compare';
 import {
-  FIXTURES_DIR,
   ResourceSampler,
   collectMeta,
   createHarness,
@@ -53,7 +50,7 @@ async function seedRemote(args: Args): Promise<void> {
     throw new Error('seed WRITES ~230 entries into the notes of the account behind the token. Re-run with --yes.');
   }
   const client = await mcpClient(target, args);
-  const corpus = parseCorpus(await readFile(join(FIXTURES_DIR, 'corpus.txt'), 'utf8'));
+  const corpus = await loadCorpus();
   let n = 0;
   for (const note of corpus) {
     for (const e of note.entries) {

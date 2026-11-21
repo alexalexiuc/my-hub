@@ -12,7 +12,6 @@ import {
   type NotesRuntime,
   type NotesService,
 } from '@my-hub/notes';
-import type { GoldenQuery } from './build-fixtures';
 
 export const PACKAGE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const FIXTURES_DIR = join(PACKAGE_DIR, 'fixtures');
@@ -89,10 +88,6 @@ export function rng(seed: number): () => number {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-}
-
-export async function loadGolden(): Promise<GoldenQuery[]> {
-  return JSON.parse(await readFile(join(FIXTURES_DIR, 'golden-queries.json'), 'utf8')) as GoldenQuery[];
 }
 
 /** One result file per run. Metrics are nested objects of numbers; `meta` describes the environment. */

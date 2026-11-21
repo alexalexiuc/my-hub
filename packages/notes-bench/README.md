@@ -47,12 +47,13 @@ close to the server's. For the real container use `--docker-container my-hub-pro
 
 ## Fixtures
 
-- `fixtures/corpus.txt` -> `fixtures/seed-notes/` (95 hand-written notes, ~230 entries, mixed RO / RU / EN, no real personal data)
+- `fixtures/corpus.txt`: 95 hand-written notes, ~230 entries, mixed RO / RU / EN, no real personal data. Written out
+  as Markdown notes into each run's temp directory.
 - `fixtures/resolve-cases.json` (63 `remember` subjects labelled with the note they repeat, or `null` = new subject;
   near misses like "Summer tires" vs. Winter tires). Used by `resolve` to measure the review suggestions (`remember` itself only matches exact titles/aliases).
-- `fixtures/golden.txt` -> `fixtures/golden-queries.json` (53 queries: `exact`, `vague`, `typo`, `crosslang`, `paraphrase`;
+- `fixtures/golden.txt`: 53 queries (`exact`, `vague`, `typo`, `crosslang`, `paraphrase`;
   18 carry the extra phrasings Claude would add, used by `hybrid-multi`)
-- Edit the `.txt` sources and run `pnpm --filter @my-hub/notes-bench fixtures` to regenerate (both outputs are committed).
+- Both `.txt` files are parsed on every run (`src/corpus.ts`); nothing generated is committed.
 - Scale tiers use deterministic synthetic filler (`bench-filler-*` categories), never the golden notes.
 - The seed corpus is ~95 notes, not the ~200 the spec asked for; extend `corpus.txt` as real notes accumulate.
 

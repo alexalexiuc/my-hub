@@ -1,8 +1,8 @@
 import { directClient, type SearchClient } from './clients';
-import { loadGolden, printTable, providerMeta, type Args, type Harness } from './lib';
-import { copySeedNotes, growTo } from './seed';
+import { printTable, providerMeta, type Args, type Harness } from './lib';
+import { writeSeedNotes, growTo } from './seed';
 import type { SearchLeg } from '@my-hub/notes';
-import type { GoldenQuery } from './build-fixtures';
+import { loadGolden, type GoldenQuery } from './corpus';
 
 type Legs = Partial<Record<SearchLeg, boolean>>;
 const only = (...on: SearchLeg[]): Legs =>
@@ -44,7 +44,7 @@ export async function benchRelevance(
 ): Promise<Record<string, unknown>> {
   const { client, harness } = target;
   if (harness) {
-    await copySeedNotes(harness);
+    await writeSeedNotes(harness);
     await harness.svc.reindex({ full: true });
     const filler = args.flags.get('filler');
     if (filler) await growTo(harness, Number(filler));

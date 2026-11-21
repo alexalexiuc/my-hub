@@ -1,6 +1,7 @@
-import { cp, mkdir, readdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { FIXTURES_DIR, rng, type Harness } from './lib';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { loadCorpus, renderNote } from './corpus';
+import { rng, type Harness } from './lib';
 
 const SUBJECTS = [
   'cleaning',
@@ -60,10 +61,13 @@ const ADJ_RO = ['bun', 'ieftin', 'zgomotos', 'silențios', 'fragil', 'fiabil', '
 const ADJ_RU = ['хороший', 'дешёвый', 'шумный', 'тихий', 'хрупкий', 'надёжный', 'дорогой', 'компактный', 'тяжёлый'];
 const TYPES = ['fact', 'verdict', 'contact', 'price', 'how-to'] as const;
 
-/** Copies the committed seed notes (≈95 notes, ≈230 entries) into the harness user's directory. */
-export async function copySeedNotes(h: Harness): Promise<void> {
-  await mkdir(h.userDir, { recursive: true });
-  await cp(join(FIXTURES_DIR, 'seed-notes'), h.userDir, { recursive: true });
+/** Writes the seed corpus (≈95 notes, ≈230 entries) as Markdown files into the harness user's directory. */
+export async function writeSeedNotes(h: Harness): Promise<void> {
+  for (const note of await loadCorpus()) {
+    const file = join(h.userDir, note.path);
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, renderNote(note));
+  }
 }
 
 /** Deterministic synthetic entry line text in mixed EN / RO / RU. */
@@ -135,13 +139,4 @@ export async function growTo(h: Harness, targetEntries: number, seedOffset = 0):
   }
   await h.svc.reindex({ full: false });
   return added;
-}
-
-/** Number of seed note files (for reporting). */
-export async function seedNoteCount(): Promise<number> {
-  let n = 0;
-  for (const cat of await readdir(join(FIXTURES_DIR, 'seed-notes'))) {
-    n += (await readdir(join(FIXTURES_DIR, 'seed-notes', cat))).length;
-  }
-  return n;
 }
