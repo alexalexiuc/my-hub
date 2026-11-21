@@ -34,7 +34,7 @@ export interface NotesRuntimeConfig {
 }
 
 export interface RememberInput {
-  /** What the note is about, e.g. "Carpet cleaning". Appended to the note with exactly this title or alias, else a new note. */
+  /** What the note is about (a product, service or topic). Appended to the note with exactly this title or alias, else a new note. */
   subject: string;
   text: string;
   type: string;

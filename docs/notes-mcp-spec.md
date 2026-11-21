@@ -6,7 +6,7 @@
 
 ## 0. TL;DR
 
-Build a new **Notes MCP server** inside the `my-hub` monorepo: a personal "remember this" index for small practical facts Alex keeps forgetting (which carpet-cleaning company he used, which engine oil, which washing detergent was better). Claude writes/searches it remotely from claude.ai on his phone.
+Build a new **Notes MCP server** inside the `my-hub` monorepo: a personal "remember this" index for small practical facts that are easy to forget (which vendor or product was used and how it turned out, a price paid, a how-to). Claude writes/searches it remotely from claude.ai on the phone.
 
 - **Plain Markdown files** are the source of truth (git repo on a volume).
 - **Postgres + pgvector + pg_trgm + unaccent** is a disposable search index.
@@ -219,10 +219,10 @@ e5 conventions: `passage: ` prefix for stored text, `query: ` for search text, m
 ### Draft tool-description policy (to be refined after real use)
 
 - Write when the user explicitly asks ("remember", "note that", "add to my notes", "save this").
-- When the user states a durable practical fact (a vendor used, a product verdict, a price paid, a consumable spec like oil grade or filter size), **offer in one short line** to save it. Never save silently.
+- When the user states a durable practical fact (a vendor used, a product verdict, a price paid, a part spec or size), **offer in one short line** to save it. Never save silently.
 - Scope: facts about things and services, not personal or biographical facts about the user.
 - Before `remember`, it's fine to `search` first to avoid duplicates. Prefer appending to an existing note.
-- Always pass 2–4 query variants to `search`, including RO/RU/EN translations and synonyms when relevant (e.g. `["carpet cleaning", "rug washing", "curățare covoare", "химчистка ковров"]`).
+- Always pass 2–4 query variants to `search`, including RO/RU/EN translations and synonyms when relevant.
 - After `remember` with `created: true`, tell the user the new note's title.
 
 Tool descriptions matter as much as code here. Write them carefully, with an example in each.

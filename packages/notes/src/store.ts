@@ -21,8 +21,7 @@ export function sha1(text: string): string {
 export function assertNotePath(path: string): void {
   const ok =
     /^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*)*\.md$/i.test(path) && !path.includes('..') && !path.startsWith('.');
-  if (!ok)
-    throw new UserInputError(`Invalid note path "${path}". Expected something like "services/carpet-cleaning.md".`);
+  if (!ok) throw new UserInputError(`Invalid note path "${path}". Expected "<category>/<slug>.md".`);
 }
 
 /**

@@ -9,7 +9,7 @@ import { notesFor } from '../runtime';
 const pathSchema = z
   .string()
   .trim()
-  .describe('Note path as returned by notes_search / notes_browse, e.g. "services/carpet-cleaning.md".');
+  .describe('Note path as returned by notes_search / notes_browse ("<category>/<slug>.md").');
 const entryIdSchema = z
   .string()
   .trim()
@@ -23,11 +23,8 @@ export const SearchNotesSchema = z.object({
     .array(z.string().trim().min(1))
     .min(1)
     .max(5)
-    .describe(
-      '2-4 phrasings of the same question: synonyms plus Romanian / Russian / English translations, ' +
-        'e.g. ["carpet cleaning", "rug washing", "curățare covoare", "химчистка ковров"].',
-    ),
-  category: z.string().trim().optional().describe('Restrict to one category folder, e.g. "car".'),
+    .describe('2-4 phrasings of the same question: synonyms plus Romanian / Russian / English translations.'),
+  category: z.string().trim().optional().describe('Restrict to one category folder.'),
   limit: z.number().int().min(1).max(20).optional().describe('Notes to return. Default 5.'),
 });
 
@@ -52,14 +49,10 @@ export const RememberSchema = z.object({
     .trim()
     .min(1)
     .describe(
-      'What the note is about, as a short title: "Carpet cleaning", "Engine oil". For a list the user wants back ' +
-        '(places to visit, foods to try, books, gift ideas) use the list itself: "Places to visit in Chișinău".',
+      'What the note is about, as a short title naming the product, service or topic. For a list the user ' +
+        'wants back (places to visit, foods to try, books, gift ideas) use the list itself as the title.',
     ),
-  text: z
-    .string()
-    .trim()
-    .min(1)
-    .describe('One line: the fact itself, e.g. "CleanPro, 069123456, picked up from the flat". No newlines.'),
+  text: z.string().trim().min(1).describe('One line: the fact itself. No newlines.'),
   type: z.enum(ENTRY_TYPES).describe('fact | verdict (was it good?) | contact | price | how-to.'),
   path: z
     .string()
@@ -109,7 +102,7 @@ export const deleteEntryTool: ToolHandler<typeof DeleteEntrySchema.shape> = asyn
 
 export const AddAliasSchema = z.object({
   path: pathSchema,
-  alias: z.string().trim().min(1).describe('Another name for the note, e.g. "химчистка ковров".'),
+  alias: z.string().trim().min(1).describe('Another name for the note, e.g. its Romanian or Russian name.'),
 });
 
 export const addAliasTool: ToolHandler<typeof AddAliasSchema.shape> = async ({ path, alias }, { userId }) =>

@@ -10,8 +10,8 @@
 
 ## Summary
 
-A personal "remember this" index of small practical facts about things and services (which carpet-cleaning company,
-which engine oil, which detergent was better), written and searched by Claude from claude.ai on the phone. Plain
+A personal "remember this" index of small practical facts about things and services (which vendor or product was
+used and how it turned out, a price paid, a how-to), written and searched by Claude from claude.ai on the phone. Plain
 Markdown files in git are the source of truth; a disposable Postgres index (pgvector + pg_trgm + unaccent) makes
 vague, misspelled and cross-language (RO / RU / EN) queries find the right note. The full design, decisions and
 spike plan live in [`docs/notes-mcp-spec.md`](../../notes-mcp-spec.md).

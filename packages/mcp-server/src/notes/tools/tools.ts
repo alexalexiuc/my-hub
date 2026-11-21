@@ -27,17 +27,16 @@ import {
 
 const SCOPE =
   "The user's personal 'remember this' index of small practical facts about THINGS and SERVICES: which vendor " +
-  'was used, which product or oil or detergent was better, a price paid, a how-to. Not for biographical or ' +
-  'personal facts about the user. Notes are mixed Romanian / Russian / English.';
+  'or product was used and how it turned out, a price paid, a how-to. Not for biographical or personal facts ' +
+  'about the user. Notes are mixed Romanian / Russian / English.';
 
 const notesTools = [
   defineTool({
     name: 'notes_search',
     description:
       `${SCOPE} Search it before answering "which X did I use / what was that company / how much did it cost". ` +
-      'Pass 2-4 query variants of the same question: synonyms and RO/RU/EN translations ' +
-      '(["carpet cleaning", "rug washing", "curățare covoare", "химчистка ковров"]). Typos and vague wording are ' +
-      'fine. Returns the best notes (path, title, category, score) each with its best matching entry lines ' +
+      'Pass 2-4 query variants of the same question: synonyms and RO/RU/EN translations. Typos and vague ' +
+      'wording are fine. Returns the best notes (path, title, category, score) each with its best matching entry lines ' +
       '(id, date, type, text) - usually enough to answer without notes_read. `matchedBy` shows which search ' +
       'legs hit; a hit matched only by "vec"/"namesVec" with a low score may be unrelated, so say when nothing ' +
       'convincing was found instead of guessing. `timings` is server-side latency. For one specific fact only; for ' +
@@ -50,7 +49,7 @@ const notesTools = [
     name: 'notes_read',
     description:
       'Read one whole note (Markdown with frontmatter and every dated entry line). Use after notes_search when ' +
-      'the snippets are not enough, e.g. to compare all verdicts for a subject. Example path: "car/engine-oil.md".',
+      'the snippets are not enough, e.g. to compare all verdicts for a subject.',
     inputSchema: ReadNoteSchema.shape,
     annotations: { readOnlyHint: true },
     callback: readNoteTool,
@@ -60,17 +59,15 @@ const notesTools = [
     description:
       `Save one fact as a dated entry. ${SCOPE} ` +
       'WHEN: the user explicitly asks ("remember", "note that", "add to my notes", "save this"). When the user ' +
-      'merely states a durable practical fact (vendor used, product verdict, price paid, oil grade, filter size), ' +
+      'merely states a durable practical fact (vendor used, product verdict, price paid, a part spec or size), ' +
       'offer to save it in ONE short line and wait; never save silently. ' +
       'HOW: appends to the note whose title or alias is exactly `subject` (case and accents ignored); otherwise ' +
       'creates a new note. It does not guess: near-duplicates are fine and get cleaned up in a review pass, so ' +
       'reuse the exact existing title when you know it (notes_search / notes_browse first if unsure). ' +
       'Collections the user wants back as a list (places to visit, foods to try, books, gift ideas) go in ONE list ' +
-      'note: subject = the list ("Places to visit in Chișinău"), one entry per item. ' +
+      'note: subject = the list itself, one entry per item. ' +
       'Give `aliases` in RO/RU/EN for new subjects, and `category` for new notes. One fact per call. ' +
-      '`path` = write to exactly this note. After a call with created: true, tell the user the new note title. ' +
-      'Example: subject "Carpet cleaning", type "contact", text "CleanPro, 069123456, picked up from the flat", ' +
-      'category "services", aliases ["rug cleaning", "covoare", "химчистка ковров"].',
+      '`path` = write to exactly this note. After a call with created: true, tell the user the new note title.',
     inputSchema: RememberSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: rememberTool,
@@ -97,7 +94,7 @@ const notesTools = [
     name: 'notes_add_alias',
     description:
       'Teach the index another name for a note (e.g. a Russian or Romanian name), when a search needed several ' +
-      'tries to find it. Example: path "services/carpet-cleaning.md", alias "химчистка ковров".',
+      'tries to find it.',
     inputSchema: AddAliasSchema.shape,
     annotations: { idempotentHint: true, destructiveHint: false },
     callback: addAliasTool,
