@@ -58,8 +58,10 @@ describe('planStatusLabel', () => {
 
 describe('formatKcalRange', () => {
   it('prints a range, or the ceiling alone without a floor', () => {
-    expect(formatKcalRange(2900, 3000)).toBe('2,900–3,000');
-    expect(formatKcalRange(null, 3000)).toBe('3,000');
+    // toLocaleString follows the machine's locale (2,900 / 2.900), so compare against it.
+    const n = (x: number) => x.toLocaleString();
+    expect(formatKcalRange(2900, 3000)).toBe(`${n(2900)}–${n(3000)}`);
+    expect(formatKcalRange(null, 3000)).toBe(n(3000));
   });
 });
 
