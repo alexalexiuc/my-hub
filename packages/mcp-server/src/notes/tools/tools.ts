@@ -26,15 +26,16 @@ import {
 } from './notes';
 
 const SCOPE =
-  "The user's personal 'remember this' index of small practical facts about THINGS and SERVICES: which vendor " +
-  'or product was used and how it turned out, a price paid, a how-to. Not for biographical or personal facts ' +
-  'about the user. Notes are mixed Romanian / Russian / English.';
+  "The user's personal notebook: anything they want written down and found again later, such as practical " +
+  'facts, vendors and verdicts, prices, how-tos, part sizes, ideas and short notes on any topic. Notes are mixed ' +
+  'Romanian / Russian / English.';
 
 const notesTools = [
   defineTool({
     name: 'notes_search',
     description:
-      `${SCOPE} Search it before answering "which X did I use / what was that company / how much did it cost". ` +
+      `${SCOPE} Search it before answering recall questions ("what was…", "did I note…", "what did I write ` +
+      'about…", "which X did I use…", "how much did it cost"); never say you don\'t know before searching. ' +
       'Pass 2-4 query variants of the same question: synonyms and RO/RU/EN translations. Typos and vague ' +
       'wording are fine. Returns the best notes (path, title, category, score) each with its best matching entry lines ' +
       '(id, date, type, text) - usually enough to answer without notes_read. `matchedBy` shows which search ' +
@@ -58,14 +59,14 @@ const notesTools = [
     name: 'notes_remember',
     description:
       `Save one fact as a dated entry. ${SCOPE} ` +
-      'WHEN: the user explicitly asks ("remember", "note that", "add to my notes", "save this"). When the user ' +
-      'merely states a durable practical fact (vendor used, product verdict, price paid, a part spec or size), ' +
-      'offer to save it in ONE short line and wait; never save silently. ' +
+      'WHEN: the user explicitly asks ("note", "remember", "save", "add to my notes", "write down"): save. When ' +
+      'the user states something they would plausibly want to look up later but did not ask to save it, offer ' +
+      'in ONE short line and wait; never save silently. Never save passwords, card numbers or other secrets. ' +
       'HOW: appends to the note whose title or alias is exactly `subject` (case and accents ignored); otherwise ' +
       'creates a new note. It does not guess: near-duplicates are fine and get cleaned up in a review pass, so ' +
       'reuse the exact existing title when you know it (notes_search / notes_browse first if unsure). ' +
       'Give `aliases` in RO/RU/EN for new subjects, and `category` for new notes: reuse an existing one (call ' +
-      'notes_browse to see them with counts) rather than inventing a new one. One fact per call. ' +
+      'notes_browse to see them with counts) rather than inventing a new one. One fact or note per call. ' +
       '`path` = write to exactly this note. After a call with created: true, tell the user the new note title. ' +
       'A result with newCategory: true created a new category folder and lists the `existingCategories`; there is ' +
       'no tool to move a note, so tell the user the new category was created (and name it).',

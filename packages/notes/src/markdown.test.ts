@@ -202,6 +202,13 @@ describe('markdown parser', () => {
     expect(oneLine('  Acme\n---\t x ')).toBe('Acme --- x');
   });
 
+  it('appends and re-parses a general `note` entry', () => {
+    const note = parseNote(SAMPLE);
+    const id = appendEntry(note, { date: '2026-11-22', type: 'note', text: 'Idea for the bee game' });
+    const entry = listEntries(parseNote(serializeNote(note))).find(e => e.id === id);
+    expect(entry).toMatchObject({ type: 'note', text: 'Idea for the bee game', date: '2026-11-22' });
+  });
+
   it('does not treat a line with an impossible calendar date as an entry', () => {
     const note = parseNote('---\ntitle: X\n---\n- 2026-02-30 [fact] nope\n- 2026-02-28 [fact] ok\n');
     expect(listEntries(note).map(e => e.date)).toEqual(['2026-02-28']);

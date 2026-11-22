@@ -10,8 +10,9 @@
 
 ## Summary
 
-A personal "remember this" index of small practical facts about things and services (which vendor or product was
-used and how it turned out, a price paid, a how-to), written and searched by Claude from claude.ai on the phone. Plain
+The user's personal notebook: anything worth writing down and finding again later (practical facts, vendors and how
+they went, prices, how-tos, part sizes, ideas and short notes on any topic), written and searched by Claude from
+claude.ai on the phone. Plain
 Markdown files (one directory per user) are the source of truth; a disposable Postgres index (pgvector + pg_trgm + unaccent) makes
 vague, misspelled and cross-language (RO / RU / EN) queries find the right note. The full design, decisions and
 spike plan live in [`docs/notes-mcp-spec.md`](../../notes-mcp-spec.md).
@@ -31,6 +32,7 @@ spike plan live in [`docs/notes-mcp-spec.md`](../../notes-mcp-spec.md).
 | FR-07 | Duplicates are cleaned up only when the user asks: `notes_review_duplicates` lists unreviewed notes with similar notes, `notes_merge` folds one note into another (entries, aliases, tags; one commit), `notes_mark_reviewed` clears them.                                                                                                                                                     |
 | FR-08 | Hub "Delete all my data" deletes the user's notes directory (files) and index rows through the mcp-server's internal `POST /api/notes/delete-all` (JWT signed with `NEXTAUTH_SECRET`); it fails if the mcp-server cannot be reached.                                                                                                                                                           |
 | FR-09 | The worker's daily `notes-backup` job (02:00 UTC) uploads a tar.gz of all notes to `S3_BACKUP_BUCKET` under `notes/`. Restore: untar into the notes volume, then `notes-cli reindex <userId>`.                                                                                                                                                                                                 |
+| FR-10 | The server returns `instructions` in the MCP `initialize` result (shown to Claude in every session, even before the tools load): Notes vs Claude's built-in memory, search Notes before answering recall questions, never save secrets. Entry types: `note` (default) \| `idea` \| `fact` \| `verdict` \| `contact` \| `price` \| `how-to`.                                                    |
 
 ---
 
