@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { formatKcalRange, planStatusLabel, planWeek, rangeBarPositions } from './menu.utils';
+import {
+  formatKcalRange,
+  initialMenuWeek,
+  planStatusLabel,
+  planWeek,
+  rangeBarPositions,
+  weekNavBounds,
+} from './menu.utils';
 import type { DayTarget } from './menu.utils';
 import type { WeeklyMenuMeal } from './types';
 
@@ -77,5 +84,36 @@ describe('rangeBarPositions', () => {
   it('clamps an overshoot to the full bar and leaves out a missing floor', () => {
     expect(rangeBarPositions(99999, 2900, 3000).fill).toBe(100);
     expect(rangeBarPositions(1000, null, 3000).floorTick).toBeNull();
+  });
+});
+
+describe('weekNavBounds', () => {
+  const thisWeek = '2026-11-02';
+
+  it('always reaches next week, even with nothing saved', () => {
+    expect(weekNavBounds([], thisWeek)).toEqual({ min: '2026-11-02', max: '2026-11-09' });
+  });
+
+  it('stretches to the earliest and latest saved menus', () => {
+    const menus = [{ weekStart: '2026-10-19' }, { weekStart: '2026-11-23' }];
+    expect(weekNavBounds(menus, thisWeek)).toEqual({ min: '2026-10-19', max: '2026-11-23' });
+  });
+});
+
+describe('initialMenuWeek', () => {
+  const thisWeek = '2026-11-02';
+
+  it("opens on this week's menu when there is one", () => {
+    expect(initialMenuWeek([{ weekStart: '2026-11-09' }, { weekStart: thisWeek }], thisWeek)).toBe(thisWeek);
+  });
+
+  it('otherwise opens on the nearest upcoming menu, ahead of older ones', () => {
+    const menus = [{ weekStart: '2026-11-23' }, { weekStart: '2026-10-19' }, { weekStart: '2026-11-09' }];
+    expect(initialMenuWeek(menus, thisWeek)).toBe('2026-11-09');
+  });
+
+  it('falls back to the most recent menu, then to this week', () => {
+    expect(initialMenuWeek([{ weekStart: '2026-10-12' }, { weekStart: '2026-10-19' }], thisWeek)).toBe('2026-10-19');
+    expect(initialMenuWeek([], thisWeek)).toBe(thisWeek);
   });
 });

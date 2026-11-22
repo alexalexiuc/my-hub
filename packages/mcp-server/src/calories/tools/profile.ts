@@ -112,6 +112,7 @@ export const UpdateProfileSchema = z.object({
     ),
   gymDayCalorieBonus: z
     .number()
+    .int()
     .nonnegative()
     .optional()
     .nullable()

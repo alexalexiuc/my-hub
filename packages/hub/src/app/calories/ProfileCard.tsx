@@ -3,27 +3,27 @@
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import type { CalorieProfile } from '@my-hub/shared/types';
 import { apiFetch } from '@/lib/utils';
 import type { MeasurementWithType } from '@my-hub/shared/services';
-import { profileToTargets, calculateBMR, dateToString, latestWeightKg } from '@my-hub/shared/utils';
-import {
-  MeasurementTypes,
-  ActivityLevel,
-  ActivityLevels,
-  GoalType,
-  GoalTypes,
-  Sexes,
-  DaysOfWeek,
-  DaysOfWeekValues,
-  DAY_LABELS,
-  DAY_LABELS_SHORT,
-  GymTimesValues,
-  GYM_TIME_LABELS,
-} from '@my-hub/shared/constants';
+import { dateToString, latestWeightKg } from '@my-hub/shared/utils';
+import { MeasurementTypes, GoalTypes, Sexes } from '@my-hub/shared/constants';
 import { Card, Field, Button, Input, Select, Textarea } from '@/components';
 import { pctToGrams, gramsToPct, computeMacroSummary } from './calories.utils';
+import {
+  ACTIVITY_DESCRIPTIONS,
+  ACTIVITY_OPTIONS,
+  FIELD_INFO,
+  GOAL_OPTIONS,
+  ProfileFormSchema,
+  buildFormValues,
+  formToProfileBody,
+  type MacroMode,
+  type ProfileFormValues,
+} from './profile-form.schema';
+import { ProfileSummary } from './ProfileSummary';
+import { MacroGoalField } from './MacroGoalField';
+import { GymFields } from './GymFields';
 
 interface Props {
   profile: CalorieProfile | null;
@@ -32,108 +32,9 @@ interface Props {
   onUpdated: () => void | Promise<void>;
 }
 
-const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; description: string }[] = [
-  { value: ActivityLevels.Sedentary, label: 'Sedentary', description: 'Little or no exercise, desk job' },
-  { value: ActivityLevels.LightlyActive, label: 'Lightly active', description: 'Light exercise 1-3 days/week' },
-  {
-    value: ActivityLevels.ModeratelyActive,
-    label: 'Moderately active',
-    description: 'Moderate exercise 3-5 days/week',
-  },
-  { value: ActivityLevels.VeryActive, label: 'Very active', description: 'Hard exercise 6-7 days/week' },
-  { value: ActivityLevels.ExtraActive, label: 'Extra active', description: 'Very hard exercise, physical job' },
-];
-
-const ACTIVITY_LABELS: Record<string, string> = Object.fromEntries(ACTIVITY_OPTIONS.map(o => [o.value, o.label]));
-const ACTIVITY_DESCRIPTIONS: Record<string, string> = Object.fromEntries(
-  ACTIVITY_OPTIONS.map(o => [o.value, o.description]),
-);
-
-const GYM_TIME_OPTIONS = GymTimesValues.map(value => ({ value, label: GYM_TIME_LABELS[value] }));
-
-const GOAL_LABELS: Record<GoalType, string> = {
-  [GoalTypes.WeightLoss]: 'Lose weight',
-  [GoalTypes.Maintain]: 'Maintain',
-  [GoalTypes.WeightGain]: 'Gain weight',
-};
-
-/**
- * Field explanations shown behind the info icon on each `Field`.
- *
- * These used to be placeholders, which does not work: a placeholder disappears the moment the user
- * types, is clipped by the width of the input, and reads like a value rather than guidance. Goal
- * weight was the clearest case — its explanation was far wider than the field could ever show.
- */
-const FIELD_INFO = {
-  weight:
-    "Saved as today's weigh-in rather than a profile field, so it feeds the weight history and trend. Every calorie target needs it — without a weigh-in the feature reports no goal set. Re-saving the form only writes a new entry when the number actually changed.",
-  gymDayCalorieBonus: 'Extra calories allowed on the days marked above, on top of your normal target.',
-  gymTime:
-    'A rough band, not a clock time. It only decides which meals count as before or after the session when planning a day.',
-  goalWeeklyRate:
-    'How fast you intend to move, in kg per week. This is what sets the size of the daily deficit or surplus.',
-  goalTargetWeight:
-    'Optional finish line. With one, the Progress card shows how far through the run you are and estimates a finish date from the rate you are actually achieving. Leave it blank to track the rate alone, with no progress bar or estimate.',
-  goalMinCalories:
-    'A floor the calculated target will not drop below, however aggressive the goal rate is. Leave blank for no floor.',
-  goalMaxCalories:
-    'A ceiling for the daily target. It is also the total that macro percentages are worked out against, so % mode needs it.',
-} as const;
-
-const ProfileFormSchema = z.object({
-  age: z.string(),
-  sex: z.string(),
-  heightCm: z.string(),
-  /**
-   * Weight is not a profile column — it is the latest `weight` measurement, and saving the form
-   * writes a new one. It lives here anyway because every calorie target depends on it: without a
-   * weight the whole feature reports "no goal set", and the only place to enter one used to be a
-   * modal on another tab, which this card's own "Set up profile" link did not lead to.
-   */
-  weightKg: z.string(),
-  activityLevel: z.string(),
-  goalType: z.string(),
-  goalWeeklyRateKg: z.string(),
-  /** Optional finish line. Blank leaves the goal an open-ended rate with no progress bar or ETA. */
-  goalTargetWeightKg: z.string(),
-  goalMinCalories: z.string(),
-  goalMaxCalories: z.string(),
-  goalProtein: z.string(),
-  goalCarbs: z.string(),
-  goalFat: z.string(),
-  gymDays: z.nativeEnum(DaysOfWeek).array(), // Using deprecated `nativeEnum` because `enum` does not support number values
-  gymDayCalorieBonus: z.string(),
-  gymTime: z.string(), // '' = not set; the Select's blank option
-  notes: z.string(),
-});
-
-type ProfileFormValues = z.infer<typeof ProfileFormSchema>;
-
-function buildFormValues(profile: Props['profile'], weightKg: number | undefined): ProfileFormValues {
-  return {
-    age: profile?.age?.toString() ?? '',
-    sex: profile?.sex ?? '',
-    heightCm: profile?.heightCm?.toString() ?? '',
-    weightKg: weightKg?.toString() ?? '',
-    activityLevel: profile?.activityLevel ?? '',
-    goalType: profile?.goalType ?? '',
-    goalWeeklyRateKg: profile?.goalWeeklyRateKg?.toString() ?? '',
-    goalTargetWeightKg: profile?.goalTargetWeightKg?.toString() ?? '',
-    goalMinCalories: profile?.goalMinCalories?.toString() ?? '',
-    goalMaxCalories: profile?.goalMaxCalories?.toString() ?? '',
-    goalProtein: profile?.goalProtein?.toString() ?? '',
-    goalCarbs: profile?.goalCarbs?.toString() ?? '',
-    goalFat: profile?.goalFat?.toString() ?? '',
-    gymDays: profile?.gymDays ?? [],
-    gymDayCalorieBonus: profile?.gymDayCalorieBonus?.toString() ?? '',
-    gymTime: profile?.gymTime ?? '',
-    notes: profile?.notes ?? '',
-  };
-}
-
 export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
   const [editing, setEditing] = useState(false);
-  const [macroMode, setMacroMode] = useState<'g' | '%'>('g');
+  const [macroMode, setMacroMode] = useState<MacroMode>('g');
   const currentWeight = latestWeightKg(latestMeasurements) ?? undefined;
 
   const {
@@ -143,7 +44,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
     setValue,
     control,
     reset,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(ProfileFormSchema),
     defaultValues: buildFormValues(profile, currentWeight),
@@ -156,34 +57,19 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
   const goalCarbs = watch('goalCarbs');
   const goalFat = watch('goalFat');
 
-  const targets = profileToTargets(profile, currentWeight);
-
-  const bmr = calculateBMR(
-    profile?.age ?? null,
-    profile?.sex ?? null,
-    profile?.heightCm ?? null,
-    currentWeight ?? null,
-  );
-  const activeEnergy = targets.tdee !== null && bmr !== null ? targets.tdee - Math.round(bmr) : null;
-
   const showRate = goalType === GoalTypes.WeightLoss || goalType === GoalTypes.WeightGain;
   const maxCalNum = goalMaxCalories ? Math.round(Number(goalMaxCalories)) : null;
   const macroSummary = computeMacroSummary(macroMode, goalProtein, goalCarbs, goalFat, maxCalNum);
 
   const macroWarning = macroSummary?.isOver ?? null;
 
-  function switchMacroMode(next: 'g' | '%') {
+  function switchMacroMode(next: MacroMode) {
     if (next === macroMode) return;
     const curMaxCal = maxCalNum ?? 0;
-    if (next === '%') {
-      setValue('goalProtein', gramsToPct(goalProtein, 4, curMaxCal));
-      setValue('goalCarbs', gramsToPct(goalCarbs, 4, curMaxCal));
-      setValue('goalFat', gramsToPct(goalFat, 9, curMaxCal));
-    } else {
-      setValue('goalProtein', pctToGrams(goalProtein, 4, curMaxCal));
-      setValue('goalCarbs', pctToGrams(goalCarbs, 4, curMaxCal));
-      setValue('goalFat', pctToGrams(goalFat, 9, curMaxCal));
-    }
+    const convert = next === '%' ? gramsToPct : pctToGrams;
+    setValue('goalProtein', convert(goalProtein, 4, curMaxCal));
+    setValue('goalCarbs', convert(goalCarbs, 4, curMaxCal));
+    setValue('goalFat', convert(goalFat, 9, curMaxCal));
     setMacroMode(next);
   }
 
@@ -205,33 +91,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
     // in series when the user is waiting on the save.
     const profileWrite = apiFetch('/api/calories/profile', {
       method: 'PUT',
-      body: {
-        age: values.age ? Number(values.age) : undefined,
-        sex: values.sex || undefined,
-        heightCm: values.heightCm ? Number(values.heightCm) : undefined,
-        activityLevel: values.activityLevel || undefined,
-        // Null rather than undefined, so picking "— no goal —" and saving actually clears it
-        // instead of being silently ignored as "leave unchanged".
-        goalType: values.goalType || null,
-        goalWeeklyRateKg: values.goalWeeklyRateKg ? Number(values.goalWeeklyRateKg) : null,
-        // Null rather than undefined, so clearing the field actually removes the finish line.
-        goalTargetWeightKg: values.goalTargetWeightKg ? Number(values.goalTargetWeightKg) : null,
-        goalMinCalories: values.goalMinCalories ? Math.round(Number(values.goalMinCalories)) : null,
-        goalMaxCalories: values.goalMaxCalories ? Math.round(Number(values.goalMaxCalories)) : null,
-        goalProtein: values.goalProtein
-          ? Number(macroMode === '%' ? pctToGrams(values.goalProtein, 4, maxCalNum ?? 0) : values.goalProtein)
-          : null,
-        goalCarbs: values.goalCarbs
-          ? Number(macroMode === '%' ? pctToGrams(values.goalCarbs, 4, maxCalNum ?? 0) : values.goalCarbs)
-          : null,
-        goalFat: values.goalFat
-          ? Number(macroMode === '%' ? pctToGrams(values.goalFat, 9, maxCalNum ?? 0) : values.goalFat)
-          : null,
-        gymDays: values.gymDays.length > 0 ? values.gymDays : null,
-        gymDayCalorieBonus: values.gymDayCalorieBonus ? Number(values.gymDayCalorieBonus) : null,
-        gymTime: values.gymTime || null,
-        notes: values.notes.trim() || null,
-      },
+      body: formToProfileBody(values, macroMode, maxCalNum),
     });
 
     await Promise.all([weightWrite, profileWrite]);
@@ -248,8 +108,6 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
   }
 
   if (!editing) {
-    const hasProfile = profile?.age && profile?.sex && profile?.heightCm;
-
     return (
       <Card className="p-0! overflow-hidden">
         <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
@@ -264,56 +122,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
           </Button>
         </div>
         <div className="p-5">
-          {!hasProfile ? (
-            <p className="text-sm text-[var(--subtle)]">Set up your profile to get personalized calorie targets.</p>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-                <Stat label="Age" value={`${profile!.age}`} />
-                <Stat label="Sex" value={profile!.sex === Sexes.Male ? 'Male' : 'Female'} />
-                <Stat label="Height" value={`${profile!.heightCm} cm`} />
-                {currentWeight != null && <Stat label="Weight" value={`${currentWeight} kg`} />}
-                {profile!.activityLevel && (
-                  <Stat
-                    label="Activity"
-                    value={ACTIVITY_LABELS[profile!.activityLevel!] ?? profile!.activityLevel!}
-                    hint={ACTIVITY_DESCRIPTIONS[profile!.activityLevel!]}
-                  />
-                )}
-                {profile.gymDays && profile.gymDays.length > 0 && (
-                  <Stat label="Gym days" value={profile.gymDays.map(d => DAY_LABELS[d]).join(', ')} />
-                )}
-                {profile.gymDays && profile.gymDays.length > 0 && profile.gymDayCalorieBonus != null && (
-                  <Stat label="Gym day bonus" value={`+${profile.gymDayCalorieBonus} kcal`} />
-                )}
-                {profile.gymDays && profile.gymDays.length > 0 && profile.gymTime && (
-                  <Stat label="Training time" value={GYM_TIME_LABELS[profile.gymTime]} />
-                )}
-              </div>
-
-              {targets.tdee && (
-                <div className="flex flex-wrap gap-3">
-                  {bmr !== null && <TargetPill label="Resting (BMR)" value={`${Math.round(bmr)}`} unit="kcal" />}
-                  {activeEnergy !== null && <TargetPill label="Active energy" value={`${activeEnergy}`} unit="kcal" />}
-                  <TargetPill label="TDEE" value={`${targets.tdee}`} unit="kcal" />
-                  {targets.goalCalories && targets.goalCalories !== targets.tdee && (
-                    <TargetPill
-                      label={profile?.goalType ? (GOAL_LABELS[profile.goalType] ?? 'Goal') : 'Goal'}
-                      value={`${targets.goalCalories}`}
-                      unit="kcal"
-                      accent
-                    />
-                  )}
-                  {targets.minCalories && <TargetPill label="Min" value={`${targets.minCalories}`} unit="kcal" />}
-                  {targets.maxCalories && targets.maxCalories !== targets.goalCalories && (
-                    <TargetPill label="Max" value={`${targets.maxCalories}`} unit="kcal" />
-                  )}
-                </div>
-              )}
-
-              {profile?.notes && <p className="text-xs text-[var(--subtle)]">{profile.notes}</p>}
-            </div>
-          )}
+          <ProfileSummary profile={profile} currentWeight={currentWeight} />
         </div>
       </Card>
     );
@@ -361,49 +170,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
             <p className="text-xs text-[var(--subtle)] -mt-1 px-1">{ACTIVITY_DESCRIPTIONS[activityLevel]}</p>
           )}
 
-          <div>
-            <p className="text-xs font-semibold text-[var(--subtle)] uppercase tracking-wide pt-1 pb-1.5">Gym days</p>
-            <Controller
-              control={control}
-              name="gymDays"
-              render={({ field }) => (
-                <div className="flex gap-1.5 flex-wrap">
-                  {DaysOfWeekValues.map(value => {
-                    const active = field.value.includes(value);
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => {
-                          const next = active
-                            ? field.value.filter(d => d !== value)
-                            : [...field.value, value].sort((a, b) => a - b);
-                          field.onChange(next);
-                        }}
-                        className={`rounded-md border px-2.5 py-1 text-xs transition-colors ${
-                          active
-                            ? 'border-[var(--accent)] bg-[var(--accent-d)] text-[var(--accent)]'
-                            : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--muted)]'
-                        }`}
-                      >
-                        {DAY_LABELS_SHORT[value]}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            />
-            <div className="mt-2 flex flex-wrap gap-3">
-              <Field label="Gym day calorie bonus" className="max-w-[160px]" info={FIELD_INFO.gymDayCalorieBonus}>
-                <Input type="number" step="any" min="0" placeholder="e.g. 300" {...register('gymDayCalorieBonus')} />
-              </Field>
-              <Field label="Training time" className="max-w-[160px]" info={FIELD_INFO.gymTime}>
-                <Select {...register('gymTime')} options={GYM_TIME_OPTIONS}>
-                  <option value="">Not set</option>
-                </Select>
-              </Field>
-            </div>
-          </div>
+          <GymFields control={control} register={register} />
 
           <p className="text-xs font-semibold text-[var(--subtle)] uppercase tracking-wide pt-1">Goal</p>
           <div className="grid grid-cols-2 gap-3">
@@ -414,11 +181,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
                 render={({ field }) => (
                   <Select
                     {...field}
-                    options={[
-                      { value: GoalTypes.WeightLoss, label: 'Lose weight' },
-                      { value: GoalTypes.Maintain, label: 'Maintain' },
-                      { value: GoalTypes.WeightGain, label: 'Gain weight' },
-                    ]}
+                    options={GOAL_OPTIONS}
                     onChange={e => {
                       field.onChange(e);
                       setValue('goalWeeklyRateKg', '');
@@ -456,6 +219,11 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
             )}
             <Field label="Min calories/day" info={FIELD_INFO.goalMinCalories}>
               <Input type="number" step="1" min="0" placeholder="Optional" {...register('goalMinCalories')} />
+              {errors.goalMinCalories && (
+                <p role="alert" className="mt-0.5 text-xs text-[var(--red)]">
+                  {errors.goalMinCalories.message}
+                </p>
+              )}
             </Field>
             <Field label="Max calories/day" info={FIELD_INFO.goalMaxCalories}>
               <Controller
@@ -513,69 +281,30 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
               </p>
             )}
 
-            <Field label={macroMode === 'g' ? 'Protein (g/day)' : 'Protein (%)'}>
-              <Input
-                type="number"
-                step="1"
-                min="0"
-                max={macroMode === '%' ? 100 : undefined}
-                placeholder="Optional"
-                {...register('goalProtein')}
-              />
-              {macroMode === '%' && goalProtein && maxCalNum && (
-                <p className="text-xs text-[var(--subtle)] mt-0.5">
-                  ≈ {pctToGrams(goalProtein, 4, maxCalNum)}g ·{' '}
-                  {Math.round(Number(pctToGrams(goalProtein, 4, maxCalNum)) * 4)} kcal
-                </p>
-              )}
-              {macroMode === 'g' && goalProtein && maxCalNum && (
-                <p className="text-xs text-[var(--subtle)] mt-0.5">
-                  ≈ {gramsToPct(goalProtein, 4, maxCalNum)}% · {Math.round(Number(goalProtein) * 4)} kcal
-                </p>
-              )}
-            </Field>
-            <Field label={macroMode === 'g' ? 'Carbs (g/day)' : 'Carbs (%)'}>
-              <Input
-                type="number"
-                step="1"
-                min="0"
-                max={macroMode === '%' ? 100 : undefined}
-                placeholder="Optional"
-                {...register('goalCarbs')}
-              />
-              {macroMode === '%' && goalCarbs && maxCalNum && (
-                <p className="text-xs text-[var(--subtle)] mt-0.5">
-                  ≈ {pctToGrams(goalCarbs, 4, maxCalNum)}g ·{' '}
-                  {Math.round(Number(pctToGrams(goalCarbs, 4, maxCalNum)) * 4)} kcal
-                </p>
-              )}
-              {macroMode === 'g' && goalCarbs && maxCalNum && (
-                <p className="text-xs text-[var(--subtle)] mt-0.5">
-                  ≈ {gramsToPct(goalCarbs, 4, maxCalNum)}% · {Math.round(Number(goalCarbs) * 4)} kcal
-                </p>
-              )}
-            </Field>
-            <Field label={macroMode === 'g' ? 'Fat (g/day)' : 'Fat (%)'}>
-              <Input
-                type="number"
-                step="1"
-                min="0"
-                max={macroMode === '%' ? 100 : undefined}
-                placeholder="Optional"
-                {...register('goalFat')}
-              />
-              {macroMode === '%' && goalFat && maxCalNum && (
-                <p className="text-xs text-[var(--subtle)] mt-0.5">
-                  ≈ {pctToGrams(goalFat, 9, maxCalNum)}g · {Math.round(Number(pctToGrams(goalFat, 9, maxCalNum)) * 9)}{' '}
-                  kcal
-                </p>
-              )}
-              {macroMode === 'g' && goalFat && maxCalNum && (
-                <p className="text-xs text-[var(--subtle)] mt-0.5">
-                  ≈ {gramsToPct(goalFat, 9, maxCalNum)}% · {Math.round(Number(goalFat) * 9)} kcal
-                </p>
-              )}
-            </Field>
+            <MacroGoalField
+              label="Protein"
+              kcalPerGram={4}
+              value={goalProtein}
+              macroMode={macroMode}
+              maxCalNum={maxCalNum}
+              registration={register('goalProtein')}
+            />
+            <MacroGoalField
+              label="Carbs"
+              kcalPerGram={4}
+              value={goalCarbs}
+              macroMode={macroMode}
+              maxCalNum={maxCalNum}
+              registration={register('goalCarbs')}
+            />
+            <MacroGoalField
+              label="Fat"
+              kcalPerGram={9}
+              value={goalFat}
+              macroMode={macroMode}
+              maxCalNum={maxCalNum}
+              registration={register('goalFat')}
+            />
           </div>
 
           <Field label="Notes" className="col-span-2">
@@ -593,31 +322,5 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
         </form>
       </div>
     </Card>
-  );
-}
-
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <span className="text-[var(--muted)]">
-      {label}: <span className="font-medium text-[var(--text)]">{value}</span>
-      {hint && <span className="text-[var(--subtle)] ml-1">({hint})</span>}
-    </span>
-  );
-}
-
-function TargetPill({ label, value, unit, accent }: { label: string; value: string; unit: string; accent?: boolean }) {
-  return (
-    <div
-      className={`rounded-lg px-3 py-2 text-sm ${
-        accent
-          ? 'bg-[var(--accent-d)] border border-[var(--accent)]'
-          : 'bg-[var(--card2)] border border-[var(--border)]'
-      }`}
-    >
-      <span className="text-xs text-[var(--subtle)]">{label}</span>
-      <p className={`font-bold ${accent ? 'text-[var(--accent)]' : 'text-[var(--text)]'}`}>
-        {value} <span className="text-xs font-normal text-[var(--subtle)]">{unit}</span>
-      </p>
-    </div>
   );
 }

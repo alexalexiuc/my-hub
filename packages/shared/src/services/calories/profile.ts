@@ -9,13 +9,17 @@
  *   generateCaloriesAutomationKey  — generate and persist a new automation API key
  */
 import { randomBytes } from 'crypto';
-import { and, desc, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { calorieProfiles } from '../../db/schema/calories';
-import { bodyMeasurements } from '../../db/schema/measurements';
 import type { CalorieProfile } from '../../types';
 import { GoalTypes } from '../../constants/calories';
 import { currentDateString } from '../../utils/dates';
+import { UserInputError } from '../../utils/errors';
+import { freezeDayTargets, queryLatestWeightKg } from './day-targets';
+
+/** Thrown for a profile update that contradicts itself, such as a minimum above the maximum. */
+export class CalorieProfileError extends UserInputError {}
 
 // Excludes body measurement fields — those live in body_measurements table
 export type ProfileUpdates = Partial<Omit<typeof calorieProfiles.$inferInsert, 'id' | 'userId' | 'createdAt'>>;
@@ -40,20 +44,6 @@ export async function deleteAllUserCalorieProfiles(userId: string): Promise<numb
     .where(eq(calorieProfiles.userId, userId))
     .returning({ id: calorieProfiles.id });
   return rows.length;
-}
-
-/**
- * The user's most recent `weight` measurement in kg, or null if they have never logged one. One-row query,
- * same-day ties broken by id; the `latestWeightKg` util picks from an already-loaded measurement list instead.
- */
-async function queryLatestWeightKg(userId: string): Promise<number | null> {
-  const [row] = await db
-    .select({ value: bodyMeasurements.value })
-    .from(bodyMeasurements)
-    .where(and(eq(bodyMeasurements.userId, userId), eq(bodyMeasurements.typeKey, 'weight')))
-    .orderBy(desc(bodyMeasurements.date), desc(bodyMeasurements.id))
-    .limit(1);
-  return row?.value ?? null;
 }
 
 /**
@@ -99,6 +89,19 @@ export async function upsertCalorieProfile(userId: string, updates: ProfileUpdat
   const existing = await db.query.calorieProfiles.findFirst({
     where: eq(calorieProfiles.userId, userId),
   });
+
+  // Checked against the merged result (an update may send only one of the two), but only when the
+  // update touches them: a profile saved before this rule must still accept unrelated edits.
+  if (updates.goalMinCalories !== undefined || updates.goalMaxCalories !== undefined) {
+    const min = updates.goalMinCalories !== undefined ? updates.goalMinCalories : (existing?.goalMinCalories ?? null);
+    const max = updates.goalMaxCalories !== undefined ? updates.goalMaxCalories : (existing?.goalMaxCalories ?? null);
+    if (min != null && max != null && min > max) {
+      throw new CalorieProfileError(`Minimum calories (${min}) can't be above the maximum (${max})`);
+    }
+  }
+
+  // Past days keep the range they had before this change.
+  await freezeDayTargets(userId);
 
   const patch = { ...updates, ...(await goalBaselinePatch(userId, updates, existing)), updatedAt: new Date() };
 

@@ -7,7 +7,7 @@ import { apiFetch, cn } from '@/lib/utils';
 import { Button, Card } from '@/components';
 import { AnimatedCheckIcon, UtensilsOutlineIcon } from '@/components/icons';
 import { TodayPlanResponseSchema } from '@/app/api/calories/menu/menu.schemas';
-import { mealOrder } from '@my-hub/shared/utils';
+import { dateToString, mealOrder } from '@my-hub/shared/utils';
 import type { GymTime } from '@my-hub/shared/constants';
 import type { MealLog } from '@my-hub/shared/types';
 import { MEAL_LABEL } from './constants';
@@ -47,6 +47,8 @@ export function NextMealCard({ date, loggedMeals, remainingKcal }: NextMealCardP
   const [frozen, setFrozen] = useState<{ meal: PlannedMeal; remaining: number } | null>(null);
   // Bumped once the hold ends, so the swap-in animation on the content block replays via `key`.
   const [animKey, setAnimKey] = useState(0);
+  // Logging is silent (the card animates instead of toasting), so a failure needs saying here.
+  const [logFailed, setLogFailed] = useState(false);
 
   // The date this component is currently showing. Two rapid clicks on the date arrows leave two
   // requests in flight, and without this the slower one wins — the card would show one day's plan
@@ -75,6 +77,7 @@ export function NextMealCard({ date, loggedMeals, remainingKcal }: NextMealCardP
 
   useEffect(() => {
     shownDateRef.current = date;
+    setLogFailed(false);
     load();
   }, [date, load]);
 
@@ -106,25 +109,38 @@ export function NextMealCard({ date, loggedMeals, remainingKcal }: NextMealCardP
   // defined after it is still typed against the widened state.
   async function logNext(id: string, loggedMeal: PlannedMeal, remainingAtClick: number) {
     setLogging(true);
+    setLogFailed(false);
     try {
       await setMealLogged(id, date, loggedMeal.dayOfWeek, loggedMeal, true, { silentToast: true });
-      mealEvents.emit('changed');
-      setLogging(false);
-      setFrozen({ meal: loggedMeal, remaining: remainingAtClick });
-      await new Promise(resolve => setTimeout(resolve, CHECK_HOLD_MS));
-      setFrozen(null);
-      setAnimKey(k => k + 1);
+    } catch {
+      setLogFailed(true);
+      return;
     } finally {
       setLogging(false);
     }
+    mealEvents.emit('changed');
+    setFrozen({ meal: loggedMeal, remaining: remainingAtClick });
+    await new Promise(resolve => setTimeout(resolve, CHECK_HOLD_MS));
+    setFrozen(null);
+    setAnimKey(k => k + 1);
   }
+
+  const isToday = date === dateToString(new Date());
+  const dayWord = isToday ? 'today' : 'that day';
+  const heading = meal
+    ? isToday
+      ? 'Next planned meal'
+      : 'Planned, not logged yet'
+    : isToday
+      ? "Today's plan"
+      : "The day's plan";
 
   return (
     <Card compact className="flex flex-col gap-2 border-[var(--accent)]/25 bg-[var(--accent)]/5">
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-[var(--accent)]">
           <UtensilsOutlineIcon className="size-3.5" />
-          {meal ? 'Next planned meal' : "Today's plan"}
+          {heading}
         </span>
         <Link href="/calories/menu" className="text-[11px] text-[var(--subtle)] hover:text-[var(--accent)]">
           Weekly menu →
@@ -149,7 +165,7 @@ export function NextMealCard({ date, loggedMeals, remainingKcal }: NextMealCardP
                         : ` · ${meal.kcal - remainingKcal} over what's left`}
                     </span>
                   )}
-                  {displayRemaining > 1 && ` · ${displayRemaining - 1} more planned today`}
+                  {displayRemaining > 1 && ` · ${displayRemaining - 1} more planned ${dayWord}`}
                 </p>
               )}
             </div>
@@ -171,9 +187,10 @@ export function NextMealCard({ date, loggedMeals, remainingKcal }: NextMealCardP
             ) : null}
           </div>
         ) : (
-          <p className="text-sm text-[var(--green)]">✓ Everything planned for today is logged.</p>
+          <p className="text-sm text-[var(--green)]">✓ Everything planned for {dayWord} is logged.</p>
         )}
       </div>
+      {logFailed && <p className="text-xs text-[var(--red)]">Couldn&apos;t log it — try again.</p>}
     </Card>
   );
 }

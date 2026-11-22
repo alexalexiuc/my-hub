@@ -17,6 +17,7 @@ import {
   DAY_LABELS_SHORT,
   MeasurementTypes,
   DEFAULT_GYM_DAY_CALORIE_BONUS,
+  DayTargetStatuses,
 } from '@my-hub/shared/constants';
 import type { MealType } from '@my-hub/shared/constants';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -29,6 +30,7 @@ import {
   dateToString,
   dayOfWeekMon0,
   weekdayCalorieTargets,
+  dayTargetStatus,
   hasDuplicateMealSlot,
   logger,
 } from '@my-hub/shared/utils';
@@ -109,6 +111,31 @@ export const GetWeeklyMenuSchema = z.object({
 // Handlers
 // ---------------------------------------------------------------------------
 
+/**
+ * The closing note for `calories_plan_week` when some days miss their range, naming which way —
+ * a note that called every miss "exceeds" sent the model off trimming days that were short.
+ * Empty when every day is in range.
+ */
+export function calorieWarningNote(misses: Pick<CalorieMiss, 'status'>[]): string {
+  const over = misses.some(m => m.status === DayTargetStatuses.Over);
+  const under = misses.some(m => m.status === DayTargetStatuses.Under);
+  if (over && under) {
+    return " Note: some days are above the user's calorie target and some below their minimum — consider revising.";
+  }
+  if (over) return " Note: some days are above the user's calorie target — consider revising.";
+  if (under) return " Note: some days are below the user's minimum calories — consider revising.";
+  return '';
+}
+
+/** A planned day outside its range, and the limit it crossed. */
+type CalorieMiss = {
+  day: number;
+  kcal: number;
+  status: typeof DayTargetStatuses.Over | typeof DayTargetStatuses.Under;
+  limit: number;
+  isGymDay: boolean;
+};
+
 export const planWeekTool: ToolHandler<typeof PlanWeekSchema.shape> = async (input, context) => {
   const { userId } = context;
 
@@ -149,29 +176,23 @@ export const planWeekTool: ToolHandler<typeof PlanWeekSchema.shape> = async (inp
   // Which meals fall either side of training — drives pre_workout / post_workout placement.
   const gymTime = profile.gymTime ?? null;
 
-  // Validate that planned meals respect the user's daily calorie targets
-  const warnings: string[] = [];
-  if (targets.maxCalories !== null || targets.minCalories !== null) {
-    // Group meals by day and sum kcal
-    const dailyKcal: Record<number, number> = {};
-    for (const m of input.meals) {
-      dailyKcal[m.dayOfWeek] = (dailyKcal[m.dayOfWeek] ?? 0) + (m.kcal ?? 0);
-    }
-
-    for (const [day, kcal] of Object.entries(dailyKcal)) {
-      if (kcal === 0) continue;
-      // Each weekday's range from the shared rule the Hub menu uses too, gym-day bonus included,
-      // so the tool never warns about a correctly-planned gym day.
-      const { target, min, isGymDay } = weekdayCalorieTargets(profile, weightM?.value ?? null, Number(day));
-      const gymNote = isGymDay ? ' (gym day — bonus included)' : '';
-      if (target !== null && kcal > target) {
-        warnings.push(`Day ${day}: ${kcal} kcal exceeds max target of ${target} kcal${gymNote}`);
-      }
-      if (min !== null && kcal < min) {
-        warnings.push(`Day ${day}: ${kcal} kcal is below min target of ${min} kcal${gymNote}`);
-      }
-    }
+  // Judge each planned day against its own range — the shared weekday rule and `dayTargetStatus`
+  // the Hub menu uses too, gym-day bonus included, so a correctly planned gym day is never flagged.
+  const dailyKcal: Record<number, number> = {};
+  for (const m of input.meals) {
+    dailyKcal[m.dayOfWeek] = (dailyKcal[m.dayOfWeek] ?? 0) + (m.kcal ?? 0);
   }
+  const misses = Object.entries(dailyKcal).flatMap(([day, kcal]): CalorieMiss[] => {
+    const { target, min, isGymDay } = weekdayCalorieTargets(profile, weightM?.value ?? null, Number(day));
+    const status = dayTargetStatus({ kcal, mealCount: 1, target, min });
+    const limit = status === DayTargetStatuses.Over ? target : status === DayTargetStatuses.Under ? min : null;
+    return limit === null ? [] : [{ day: Number(day), kcal, status: status as CalorieMiss['status'], limit, isGymDay }];
+  });
+  const warnings = misses.map(m => {
+    const crossed = m.status === DayTargetStatuses.Over ? 'exceeds max' : 'is below min';
+    const gymNote = m.isGymDay ? ' (gym day — bonus included)' : '';
+    return `Day ${m.day}: ${m.kcal} kcal ${crossed} target of ${m.limit} kcal${gymNote}`;
+  });
 
   // Meals, prep notes and the shopping list are written as one unit, so the whole
   // week either lands or it doesn't.
@@ -235,7 +256,7 @@ export const planWeekTool: ToolHandler<typeof PlanWeekSchema.shape> = async (inp
     warnings: warnings.length > 0 ? warnings : null,
     message: !profileRow
       ? `Weekly menu saved for ${menu.weekStart} as a balanced default — no calorie profile is set so meals were not tailored to specific targets. Suggest the user sets up their profile under Calories → Settings.`
-      : `Weekly menu saved for ${menu.weekStart}. The user can view it in the hub under Calories → Weekly Menu.${isCurrentWeek && planFromDayOfWeek > 0 ? ` Only planned from ${DAY_LABELS_SHORT[planFromDayOfWeek]} (today) onwards — past days were skipped.` : ''}${gymDays.length > 0 ? ` Gym days (${gymDays.map(d => DAY_LABELS_SHORT[d]).join(', ')}) have been taken into account — plan higher calories/carbs on those days.${gymTime ? ` Training happens in the ${gymTime}, so place the lighter pre-workout and the recovery meal accordingly.` : ' No training time is set — ask the user when they train so pre/post-workout meals can be placed.'}` : ''}${warnings.length > 0 ? " Note: some days exceed the user's calorie targets — consider revising." : ''}`,
+      : `Weekly menu saved for ${menu.weekStart}. The user can view it in the hub under Calories → Weekly Menu.${isCurrentWeek && planFromDayOfWeek > 0 ? ` Only planned from ${DAY_LABELS_SHORT[planFromDayOfWeek]} (today) onwards — past days were skipped.` : ''}${gymDays.length > 0 ? ` Gym days (${gymDays.map(d => DAY_LABELS_SHORT[d]).join(', ')}) have been taken into account — plan higher calories/carbs on those days.${gymTime ? ` Training happens in the ${gymTime}, so place the lighter pre-workout and the recovery meal accordingly.` : ' No training time is set — ask the user when they train so pre/post-workout meals can be placed.'}` : ''}${calorieWarningNote(misses)}`,
   });
 };
 

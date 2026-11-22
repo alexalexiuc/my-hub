@@ -83,6 +83,26 @@ export const mealLogs = pgTable(
   ],
 );
 
+// One finished day's calorie range, frozen once the day is over. Without it every past day was
+// judged against the *current* profile and latest weight, so changing the goal (or losing 5 kg)
+// silently rewrote last month's verdicts, streaks and reports.
+export const calorieDayTargets = pgTable(
+  'calorie_day_targets',
+  {
+    id: serial('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    date: date('date').notNull(),
+    target: integer('target'), // the day's ceiling, gym-day bonus included; null = no target
+    min: integer('min'), // the day's floor, gym-day bonus included; null = no floor
+    isGymDay: boolean('is_gym_day').notNull(),
+    gymDayBonus: integer('gym_day_bonus').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  table => [unique('uq_calorie_day_targets_user_date').on(table.userId, table.date)],
+);
+
 // A dish the user pinned for one-tap logging. Kept apart from meal_logs: a favourite outlives the
 // logs it came from, and pinning one must not depend on still having that history.
 export const favouriteMeals = pgTable(

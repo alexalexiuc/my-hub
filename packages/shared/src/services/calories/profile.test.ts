@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { deleteCalorieProfile, generateCaloriesAutomationKey, upsertCalorieProfile } from './profile';
+import {
+  CalorieProfileError,
+  deleteCalorieProfile,
+  generateCaloriesAutomationKey,
+  upsertCalorieProfile,
+} from './profile';
 
 vi.mock('../../db/client.js', () => ({
   db: {
@@ -12,7 +17,14 @@ vi.mock('../../db/client.js', () => ({
   },
 }));
 
+// Freezing past days is day-targets' own concern (and test); the weight query stays real, on the mocked db.
+vi.mock('./day-targets', async importOriginal => ({
+  ...(await importOriginal<typeof import('./day-targets')>()),
+  freezeDayTargets: vi.fn().mockResolvedValue(0),
+}));
+
 import { db } from '../../db/client.js';
+import { freezeDayTargets } from './day-targets';
 
 // `vi.mocked` only re-types the top level, and `db.query.calorieProfiles.findFirst` keeps its real
 // Drizzle signature — which has no `mockResolvedValueOnce`. Alias the mock once, typed as one.
@@ -231,5 +243,45 @@ describe('generateCaloriesAutomationKey', () => {
     const second = await generateCaloriesAutomationKey('user-1');
 
     expect(first).not.toBe(second);
+  });
+});
+
+describe('upsertCalorieProfile calorie range', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('refuses a minimum above the maximum sent in the same update', async () => {
+    findFirst.mockResolvedValueOnce(PROFILE);
+    await expect(upsertCalorieProfile('user-1', { goalMinCalories: 2200, goalMaxCalories: 1800 })).rejects.toThrow(
+      CalorieProfileError,
+    );
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('checks a lone minimum against the saved maximum', async () => {
+    findFirst.mockResolvedValueOnce({ ...PROFILE, goalMaxCalories: 1800 });
+    await expect(upsertCalorieProfile('user-1', { goalMinCalories: 2000 })).rejects.toThrow(
+      "Minimum calories (2000) can't be above the maximum (1800)",
+    );
+  });
+
+  it('accepts an unrelated edit to a profile saved with min above max', async () => {
+    findFirst.mockResolvedValueOnce({ ...PROFILE, goalMinCalories: 2200, goalMaxCalories: 1800 });
+    mockUpdate([PROFILE]);
+    await expect(upsertCalorieProfile('user-1', { notes: 'new notes' })).resolves.toEqual(PROFILE);
+  });
+
+  it('freezes past days before writing, so they keep the range they had', async () => {
+    findFirst.mockResolvedValueOnce(PROFILE);
+    mockUpdate([PROFILE]);
+    await upsertCalorieProfile('user-1', { goalMaxCalories: 2100 });
+    expect(vi.mocked(freezeDayTargets).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(db).update.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it('lets a cleared maximum through whatever the minimum', async () => {
+    findFirst.mockResolvedValueOnce({ ...PROFILE, goalMinCalories: 2000, goalMaxCalories: 2500 });
+    mockUpdate([PROFILE]);
+    await expect(upsertCalorieProfile('user-1', { goalMaxCalories: null })).resolves.toEqual(PROFILE);
   });
 });

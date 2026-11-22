@@ -3,14 +3,15 @@ import {
   getLatestMeasurementsPerType,
   getMealsForDateRange,
   getMeasurements,
+  getDayTargetsForRange,
 } from '@my-hub/shared/services';
-import { dayTargetStatus } from '@my-hub/shared/utils';
-import type { DayTargetProfileLike } from '@my-hub/shared/utils';
+import { dayTargetStatus, latestWeightKg } from '@my-hub/shared/utils';
+import type { DayCalorieTargets } from '@my-hub/shared/utils';
 import type { MealEntry } from '../types';
 import { rowToProfile, profileToTargets } from './profile';
 import { rowToMealEntry } from './meals';
 import { sumMeals } from './summary';
-import { dayTargetFields } from './targets';
+import { toDayTargetFields } from './targets';
 import { MeasurementTypes } from '@my-hub/shared/constants';
 
 /**
@@ -23,14 +24,13 @@ import { MeasurementTypes } from '@my-hub/shared/constants';
  *   max is set, plus the gym-day bonus) — the same number every Hub screen holds a day against —
  *   and null when the profile can't produce one.
  *
- * @param meals    - Every meal in the range, any order.
- * @param weightKg - Latest weight, for TDEE-derived targets.
- * @param today    - YYYY-MM-DD in the user's timezone.
+ * @param meals      - Every meal in the range, any order.
+ * @param dayTargets - Every date's range, from `getDayTargetsForRange` (finished days frozen).
+ * @param today      - YYYY-MM-DD in the user's timezone.
  */
 export function summariseHistoryDays(
   meals: MealEntry[],
-  profile: DayTargetProfileLike,
-  weightKg: number | null | undefined,
+  dayTargets: Map<string, DayCalorieTargets>,
   startDate: string,
   endDate: string,
   today: string,
@@ -45,17 +45,17 @@ export function summariseHistoryDays(
     const dateStr = cur.toISOString().split('T')[0]!;
     const dayMeals = mealsByDate.get(dateStr) ?? [];
     const totals = sumMeals(dayMeals);
-    const dayTargets = dayTargetFields(profile, weightKg, dateStr);
+    const range = toDayTargetFields(dayTargets.get(dateStr)!);
     const status =
       dateStr < today
         ? dayTargetStatus({
             kcal: totals.calories,
             mealCount: dayMeals.length,
-            target: dayTargets.dayTarget,
-            min: dayTargets.dayMin,
+            target: range.dayTarget,
+            min: range.dayMin,
           })
         : null;
-    days.push({ date: dateStr, ...totals, mealCount: dayMeals.length, ...dayTargets, status });
+    days.push({ date: dateStr, ...totals, mealCount: dayMeals.length, ...range, status });
     cur.setUTCDate(cur.getUTCDate() + 1);
   }
 
@@ -86,15 +86,15 @@ export async function buildHistoryPeriod(userId: string, startDate: string, endD
     getCalorieProfile(userId),
     getLatestMeasurementsPerType(userId),
   ]);
+  const weightKg = latestWeightKg(latestMeasurements);
+  const dayTargets = await getDayTargetsForRange(userId, startDate, endDate, { profile: profileRow, weightKg });
 
   const weightLogs = allMeasurements.filter(m => m.typeKey === MeasurementTypes.Weight);
   const profile = profileRow ? rowToProfile(profileRow) : {};
-  const weightM = latestMeasurements.find(m => m.typeKey === MeasurementTypes.Weight);
-  const targets = profileToTargets(profile, weightM?.value);
+  const targets = profileToTargets(profile, weightKg ?? undefined);
   const { days, totalCalories, averageDailyCalories, periodTarget, periodRemaining } = summariseHistoryDays(
     mealRows.map(rowToMealEntry),
-    profile,
-    weightM?.value,
+    dayTargets,
     startDate,
     endDate,
     today,

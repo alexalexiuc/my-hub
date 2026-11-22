@@ -1,10 +1,16 @@
-import { getCalorieProfile, getMealsForDate, getLatestMeasurementsPerType } from '@my-hub/shared/services';
+import {
+  getCalorieProfile,
+  getMealsForDate,
+  getLatestMeasurementsPerType,
+  getDayTargets,
+} from '@my-hub/shared/services';
 import type { MealEntry } from '../types';
 import { rowToProfile, profileToTargets } from './profile';
 import { rowToMealEntry } from './meals';
 import { sumMeals } from './summary';
-import { dayTargetFields, type DayTargetFields } from './targets';
-import { GoalTypes, MeasurementTypes } from '@my-hub/shared/constants';
+import { toDayTargetFields, type DayTargetFields } from './targets';
+import { GoalTypes } from '@my-hub/shared/constants';
+import { latestWeightKg } from '@my-hub/shared/utils';
 import type { GoalType } from '@my-hub/shared/constants';
 
 export interface DailySummary extends DayTargetFields {
@@ -71,11 +77,13 @@ export async function buildDailySummary(userId: string, date: string, today: str
     getMealsForDate(userId, date),
     getLatestMeasurementsPerType(userId),
   ]);
+  const weightKg = latestWeightKg(latestMeasurements);
+  // A finished day is read against the range it had, not today's profile.
+  const dayRange = await getDayTargets(userId, date, { profile: profileRow, weightKg });
 
   const profile = profileRow ? rowToProfile(profileRow) : {};
-  const weightM = latestMeasurements.find(m => m.typeKey === MeasurementTypes.Weight);
-  const targets = profileToTargets(profile, weightM?.value);
-  const day = dayTargetFields(profile, weightM?.value, date);
+  const targets = profileToTargets(profile, weightKg ?? undefined);
+  const day = toDayTargetFields(dayRange);
 
   const meals = dayRows.map(rowToMealEntry);
   const totals = sumMeals(meals);

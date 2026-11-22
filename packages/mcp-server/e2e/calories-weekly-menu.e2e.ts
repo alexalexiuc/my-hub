@@ -451,6 +451,8 @@ describe('calories — plan_week warnings follow each day’s range', () => {
             { dayOfWeek: 0, mealType: 'lunch', description: `${tag} Gym day lunch`, kcal: 2300 },
             // Tuesday is a recovery day: 1,500–2,000, so 2,300 is over.
             { dayOfWeek: 1, mealType: 'lunch', description: `${tag} Rest day lunch`, kcal: 2300 },
+            // Wednesday is a recovery day too: 1,200 is under its 1,500 minimum.
+            { dayOfWeek: 2, mealType: 'lunch', description: `${tag} Light day lunch`, kcal: 1200 },
           ],
         },
       }),
@@ -458,6 +460,10 @@ describe('calories — plan_week warnings follow each day’s range', () => {
 
     expect(data.warnings).not.toBeNull();
     expect(data.warnings!.some(w => w.startsWith('Day 1:') && w.includes('2000 kcal'))).toBe(true);
+    expect(data.warnings!.some(w => w.startsWith('Day 2:') && w.includes('below min target of 1500'))).toBe(true);
     expect(data.warnings!.some(w => w.startsWith('Day 0:'))).toBe(false);
+    // The closing note names both directions, not just "exceed".
+    expect(data.message).toContain('above');
+    expect(data.message).toContain('below');
   });
 });

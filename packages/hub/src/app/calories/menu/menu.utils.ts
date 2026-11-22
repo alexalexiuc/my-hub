@@ -242,16 +242,32 @@ export function currentWeekMonday(): string {
 }
 
 /**
- * The menu closest to `week` on the given side (`-1` = closest earlier, `1` = closest later).
- * Compares weekStart values instead of array positions, so a change in the service's sort
- * order can never silently invert prev/next navigation.
+ * The weeks the Weekly Menu can page through, as Monday strings: from the earlier of the first
+ * saved menu and this week, to the later of the last saved menu and next week.
+ *
+ * Paging walks calendar weeks rather than jumping between saved menus, so an empty week is a
+ * place you can land on (and plan). Next week is always reachable, since menus are mostly
+ * planned ahead; going further only makes sense up to a menu that exists.
  */
-export function closestMenu<T extends { weekStart: string }>(menus: T[], week: string, dir: -1 | 1): T | null {
-  return menus.reduce<T | null>((best, m) => {
-    const isOnSide = dir < 0 ? m.weekStart < week : m.weekStart > week;
-    const isCloser = !best || (dir < 0 ? m.weekStart > best.weekStart : m.weekStart < best.weekStart);
-    return isOnSide && isCloser ? m : best;
-  }, null);
+export function weekNavBounds(menus: { weekStart: string }[], currentWeekStart: string): { min: string; max: string } {
+  const nextWeek = shiftWeekStr(currentWeekStart, 1);
+  const latest = latestMenu(menus)?.weekStart;
+  return {
+    min: menus.reduce((min, m) => (m.weekStart < min ? m.weekStart : min), currentWeekStart),
+    max: latest && latest > nextWeek ? latest : nextWeek,
+  };
+}
+
+/**
+ * The week the Weekly Menu opens on: this week when it has a menu, else the nearest upcoming
+ * menu (a plan Claude just made for next week), else the most recent one, else this week.
+ */
+export function initialMenuWeek(menus: { weekStart: string }[], currentWeekStart: string): string {
+  const upcoming = menus
+    .map(m => m.weekStart)
+    .filter(w => w >= currentWeekStart)
+    .sort()[0];
+  return upcoming ?? latestMenu(menus)?.weekStart ?? currentWeekStart;
 }
 
 /**

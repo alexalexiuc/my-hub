@@ -9,6 +9,28 @@ import type { CalendarDay } from './types';
 /** Either a whole month or an explicit range, as `GET /api/calories/calendar` accepts. */
 export type CalendarRange = { month: string } | { dateFrom: string; dateTo: string };
 
+// Hooks that ask for the same range at once (Today's day range and its seven-day strip, both
+// refreshing on `changed`) share one request. Every `changed` starts a new generation, so a request
+// already in flight from before a meal change is never reused for the refresh that follows it. This
+// listener is registered at import, ahead of any hook's, so the bump lands first.
+let generation = 0;
+mealEvents.on('changed', () => {
+  generation++;
+});
+const inFlight = new Map<string, Promise<CalendarDay[]>>();
+
+function fetchCalendarDays(query: { month?: string; dateFrom?: string; dateTo?: string }): Promise<CalendarDay[]> {
+  const key = `${generation}:${query.month}:${query.dateFrom}:${query.dateTo}`;
+  let request = inFlight.get(key);
+  if (!request) {
+    request = apiFetch('/api/calories/calendar', { query, responseSchema: CalendarResponseSchema, silentToast: true })
+      .then(data => data.days)
+      .finally(() => inFlight.delete(key));
+    inFlight.set(key, request);
+  }
+  return request;
+}
+
 /**
  * Per-day totals and targets for a month or range, refetched whenever a meal changes anywhere
  * (`mealEvents`). `days` is null until the first response, so callers can tell "loading" from
@@ -25,13 +47,9 @@ export function useCalendarDays(range: CalendarRange): { days: CalendarDay[] | n
     // months quickly) can't land after the current one and overwrite it.
     let cancelled = false;
     const load = (isFirst: boolean) =>
-      apiFetch('/api/calories/calendar', {
-        query: { month, dateFrom, dateTo },
-        responseSchema: CalendarResponseSchema,
-        silentToast: true,
-      })
-        .then(data => {
-          if (!cancelled) setDays(data.days);
+      fetchCalendarDays({ month, dateFrom, dateTo })
+        .then(loaded => {
+          if (!cancelled) setDays(loaded);
         })
         .catch(() => {
           // A failed refresh keeps the totals already shown; a failed first load shows none.

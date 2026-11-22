@@ -14,12 +14,15 @@ import { TargetBar } from '../menu/TargetBar';
 import { MacroChart } from '../MacroChart';
 import { MealRow } from '../menu/MealRow';
 import { MealsSection } from '../MealsSection';
-import { relogMeals } from '../relogMeals';
 import { mealEvents } from '../mealEvents';
+import { copyMeals } from '../copyMeals';
 import type { WeeklyMenuMeal } from '../menu/types';
 import type { CalendarDay } from './types';
 
 type PlannedMeal = WeeklyMenuMeal & { logged: boolean };
+
+/** One day's logged meals and its weekly-menu plan, loaded together. */
+type DayData = { meals: MealLog[]; menuId: string | null; plannedMeals: PlannedMeal[]; gymTime: GymTime | null };
 
 type DayDetailProps = {
   date: string;
@@ -46,19 +49,17 @@ export function DayDetail({ date, summary, profile }: DayDetailProps) {
   const today = dateToString(new Date());
   const isFuture = date > today;
   const isToday = date === today;
-  const [meals, setMeals] = useState<MealLog[]>([]);
-  const [menuId, setMenuId] = useState<string | null>(null);
-  const [plannedMeals, setPlannedMeals] = useState<PlannedMeal[]>([]);
-  const [gymTime, setGymTime] = useState<GymTime | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Everything one load brings, set together — or where that load stands.
+  const [day, setDay] = useState<DayData | 'loading' | 'error'>('loading');
   // Bumped after a mutation here to re-run the day-scoped fetch below.
   const [reloadKey, setReloadKey] = useState(0);
   const [relogging, setRelogging] = useState(false);
-  const [relogNote, setRelogNote] = useState<string | null>(null);
+  // The outcome of "Log this day again today": copied, or failed with nothing copied.
+  const [relog, setRelog] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    setDay('loading');
     Promise.all([
       apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date, limit: 100 }, silentToast: true }),
       apiFetch<{ menuId: string | null; meals: PlannedMeal[]; gymTime: GymTime | null }>('/api/calories/menu/today', {
@@ -68,13 +69,15 @@ export function DayDetail({ date, summary, profile }: DayDetailProps) {
     ])
       .then(([mealsData, planData]) => {
         if (cancelled) return;
-        setMeals(mealsData.meals);
-        setMenuId(planData.menuId);
-        setPlannedMeals(planData.meals);
-        setGymTime(planData.gymTime);
+        setDay({
+          meals: mealsData.meals,
+          menuId: planData.menuId,
+          plannedMeals: planData.meals,
+          gymTime: planData.gymTime,
+        });
       })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+      .catch(() => {
+        if (!cancelled) setDay('error');
       });
     return () => {
       cancelled = true;
@@ -93,14 +96,24 @@ export function DayDetail({ date, summary, profile }: DayDetailProps) {
   /** Copies this past day's meals onto today — for the days you eat the same as some day before. */
   async function relogToToday() {
     setRelogging(true);
+    setRelog(null);
     try {
-      await relogMeals(meals, today);
-      setRelogNote(`Logged ${meals.length} meal${meals.length === 1 ? '' : 's'} to today.`);
+      const copied = await copyMeals(date, today);
+      setRelog({ ok: true, text: `Logged ${copied.length} meal${copied.length === 1 ? '' : 's'} to today.` });
       mealEvents.emit('changed');
+    } catch {
+      // One transaction server-side: a failure copied nothing, so trying again is safe.
+      setRelog({ ok: false, text: "Couldn't log them — nothing was copied." });
     } finally {
       setRelogging(false);
     }
   }
+
+  const loaded = typeof day === 'object' ? day : null;
+  const meals = loaded?.meals ?? [];
+  const menuId = loaded?.menuId ?? null;
+  const plannedMeals = loaded?.plannedMeals ?? [];
+  const gymTime = loaded?.gymTime ?? null;
 
   const kcal = summary?.kcal ?? 0;
   const target = summary?.target ?? null;
@@ -166,22 +179,25 @@ export function DayDetail({ date, summary, profile }: DayDetailProps) {
             <button
               type="button"
               onClick={() => void relogToToday()}
-              disabled={relogging || relogNote !== null}
+              disabled={relogging || relog?.ok === true}
               className="rounded-md border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
             >
               {relogging ? 'Logging…' : 'Log this day again today'}
             </button>
-            {relogNote && (
+            {relog?.ok && (
               <Link href="/calories" className="text-xs text-[var(--accent)] underline-offset-2 hover:underline">
-                {relogNote} See Today →
+                {relog.text} See Today →
               </Link>
             )}
+            {relog && !relog.ok && <span className="text-xs text-[var(--red)]">{relog.text}</span>}
           </div>
         )}
       </Card>
 
-      {loading ? (
+      {day === 'loading' ? (
         <p className="text-xs text-[var(--muted)]">Loading…</p>
+      ) : day === 'error' ? (
+        <p className="text-xs text-[var(--red)]">Couldn&apos;t load this day&apos;s meals — close it and try again.</p>
       ) : (
         <>
           {!isFuture && (

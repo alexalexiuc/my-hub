@@ -1,13 +1,21 @@
-export function EmptyState() {
+import type { ReactNode } from 'react';
+
+type EmptyStateProps = {
+  title: string;
+  hint: ReactNode;
+  /** Shown under the text, e.g. a "Plan this week" button. */
+  action?: ReactNode;
+};
+
+/** The Weekly Menu's empty card: no menus at all, or no menu for the week on screen. */
+export function EmptyState({ title, hint, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-[var(--border)] p-12 text-center">
-      <span className="text-4xl">🗓️</span>
       <div>
-        <p className="font-semibold text-[var(--text)]">No weekly menus yet</p>
-        <p className="mt-1 text-sm text-[var(--subtle)]">
-          Ask Claude: <span className="italic">"Plan my meals for next week"</span> or use the Create button above.
-        </p>
+        <p className="font-semibold text-[var(--text)]">{title}</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">{hint}</p>
       </div>
+      {action}
     </div>
   );
 }

@@ -1,44 +1,47 @@
 'use client';
 
 import { NavRow } from '@/components';
-import { formatWeekRangeStr } from '@my-hub/shared/utils';
-import { closestMenu } from './menu.utils';
+import { formatWeekRangeStr, shiftWeekStr } from '@my-hub/shared/utils';
+import { weekNavBounds } from './menu.utils';
 import type { WeeklyMenuSummary } from './types';
 
 type WeekNavigatorProps = {
   menus: WeeklyMenuSummary[];
-  selectedMenu: WeeklyMenuSummary | null;
-  onSelect: (menu: WeeklyMenuSummary) => void;
+  /** Monday (YYYY-MM-DD) of the week on screen — with or without a menu. */
+  selectedWeek: string;
+  currentWeekStart: string;
+  onSelectWeek: (weekStart: string) => void;
 };
 
-export function WeekNavigator({ menus, selectedMenu, onSelect }: WeekNavigatorProps) {
-  // Order-independent navigation: compare weekStart values instead of array positions,
-  // so a change in the service's sort order can never silently invert prev/next.
-  const selectedWeek = selectedMenu?.weekStart;
-  const prevMenu = selectedWeek ? closestMenu(menus, selectedWeek, -1) : null;
-  const nextMenu = selectedWeek ? closestMenu(menus, selectedWeek, 1) : null;
-  const position = selectedWeek ? menus.filter(m => m.weekStart <= selectedWeek).length : 0;
+/**
+ * Pages through calendar weeks, one at a time, within `weekNavBounds`. The counter shows the
+ * week's place among saved menus when it has one, and is left out for an empty week.
+ */
+export function WeekNavigator({ menus, selectedWeek, currentWeekStart, onSelectWeek }: WeekNavigatorProps) {
+  const { min, max } = weekNavBounds(menus, currentWeekStart);
+  const hasMenu = menus.some(m => m.weekStart === selectedWeek);
+  const position = menus.filter(m => m.weekStart <= selectedWeek).length;
 
   return (
     <NavRow
       prevLabel="Previous week"
       nextLabel="Next week"
-      onPrev={() => prevMenu && onSelect(prevMenu)}
-      onNext={() => nextMenu && onSelect(nextMenu)}
-      prevDisabled={!prevMenu}
-      nextDisabled={!nextMenu}
+      onPrev={() => onSelectWeek(shiftWeekStr(selectedWeek, -1))}
+      onNext={() => onSelectWeek(shiftWeekStr(selectedWeek, 1))}
+      prevDisabled={selectedWeek <= min}
+      nextDisabled={selectedWeek >= max}
       label={
         // data-week-start lets tests assert the selected week without re-deriving the label format
         <span
-          data-week-start={selectedMenu?.weekStart}
+          data-week-start={selectedWeek}
           className="text-sm font-medium text-[var(--text)] min-w-[160px] text-center"
         >
-          {selectedMenu ? formatWeekRangeStr(selectedMenu.weekStart) : '—'}
+          {formatWeekRangeStr(selectedWeek)}
         </span>
       }
       trailing={
-        <span className="text-xs text-[var(--subtle)] ml-1">
-          {position} / {menus.length}
+        <span className="text-xs text-[var(--muted)] ml-1">
+          {hasMenu ? `${position} / ${menus.length}` : 'No menu'}
         </span>
       }
     />

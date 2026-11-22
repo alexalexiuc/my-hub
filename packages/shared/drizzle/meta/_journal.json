@@ -218,6 +218,13 @@
       "when": 1795182754885,
       "tag": "0030_chief_maverick",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1795365321550,
+      "tag": "0031_modern_night_thrasher",
+      "breakpoints": true
     }
   ]
 }
