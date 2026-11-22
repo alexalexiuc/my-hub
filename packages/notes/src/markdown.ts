@@ -2,8 +2,10 @@ import { randomInt } from 'node:crypto';
 import { isIsoDateStr } from '@my-hub/shared/utils';
 
 /** Entry kinds the MCP tools accept. Hand-edited files may use others; the parser keeps them as-is. */
-export const ENTRY_TYPES = ['fact', 'verdict', 'contact', 'price', 'how-to'] as const;
+export const ENTRY_TYPES = ['note', 'idea', 'fact', 'verdict', 'contact', 'price', 'how-to'] as const;
 export type EntryType = (typeof ENTRY_TYPES)[number];
+/** The type the tools use when none fits better. */
+export const DEFAULT_ENTRY_TYPE: EntryType = 'note';
 
 const ENTRY_RE = /^- (\d{4}-\d{2}-\d{2}) \[([^\]\s]+)\] (.*?)(?: \^([a-z0-9]{2,16}))?\s*$/;
 const TAG_RE = /(?:^|\s)#([\p{L}\p{N}_-]+)/gu;

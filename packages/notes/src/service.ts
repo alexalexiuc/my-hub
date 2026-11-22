@@ -6,6 +6,7 @@ import { type EmbeddingProvider } from './embeddings';
 import { fetchCategories, fetchHeaders, type CategoryCount, type HeaderFilter, type NoteHeader } from './headers';
 import { Indexer, type IndexResult } from './indexer';
 import {
+  DEFAULT_ENTRY_TYPE,
   ENTRY_TYPES,
   appendEntry,
   bodyText,
@@ -36,7 +37,8 @@ export interface RememberInput {
   /** What the note is about (a product, service or topic). Appended to the note with exactly this title or alias, else a new note. */
   subject: string;
   text: string;
-  type: string;
+  /** Entry type; defaults to `note`. */
+  type?: string;
   /** Skips subject matching: append to (or create) exactly this note. */
   path?: string;
   /** Folder for a newly created note (default `misc`). */
@@ -306,7 +308,7 @@ export class NotesService {
       const tags = mergeUnique(fm.tags, input.tags ?? []);
       if (tags.length !== fm.tags.length) setFrontmatterList(note, 'tags', tags);
 
-      const entryId = appendEntry(note, { date, type: input.type, text: input.text });
+      const entryId = appendEntry(note, { date, type: input.type ?? DEFAULT_ENTRY_TYPE, text: input.text });
       // A back-dated entry must not make the note look stale.
       setFrontmatterKey(note, 'updated', laterDate(fm.updated, date));
       await this.store.write(path, serializeNote(note));

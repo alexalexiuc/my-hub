@@ -72,6 +72,10 @@ describe('notes — remember, search and edit', () => {
     }
   });
 
+  it('sends server instructions that route notes away from built-in memory', () => {
+    expect(client.getInstructions()).toContain('notes_remember');
+  });
+
   it('exposes the notes tools', async () => {
     const { tools } = await client.listTools();
     expect(tools.map(t => t.name).sort()).toEqual(
@@ -113,6 +117,11 @@ describe('notes — remember, search and edit', () => {
     });
     expect(second).toMatchObject({ status: 'saved', created: false, path: first.path });
     created.push(second);
+
+    // No type given: a general note, saved as `note`.
+    const third = await call<Saved>('notes_remember', { subject, text: `Ask about stain protection (${runId})` });
+    expect(third).toMatchObject({ status: 'saved', created: false, path: first.path });
+    created.push(third);
   });
 
   it('notes_search finds the note by an exact word and by a typo', async () => {
@@ -129,11 +138,12 @@ describe('notes — remember, search and edit', () => {
     expect(typoHit?.matchedBy.some(leg => leg.toLowerCase().includes('trgm'))).toBe(true);
   });
 
-  it('notes_read returns the Markdown file with both entries', async () => {
+  it('notes_read returns the Markdown file with every entry', async () => {
     const { content } = await call<{ content: string }>('notes_read', { path: created[0]!.path });
     expect(content).toContain(`title: ${subject}`);
     expect(content).toContain(`^${created[0]!.entryId}`);
     expect(content).toContain(`^${created[1]!.entryId}`);
+    expect(content).toContain(`[note] Ask about stain protection (${runId}) ^${created[2]!.entryId}`);
   });
 
   it('notes_edit_entry fixes one line and notes_add_alias teaches another name', async () => {

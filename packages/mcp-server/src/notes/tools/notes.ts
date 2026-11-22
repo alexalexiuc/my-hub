@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ENTRY_TYPES } from '@my-hub/notes';
+import { DEFAULT_ENTRY_TYPE, ENTRY_TYPES } from '@my-hub/notes';
 import { currentDateString, isIsoDateStr } from '@my-hub/shared/utils';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import { toolResponse } from '../../shared/toolsUtils';
@@ -15,6 +15,8 @@ const entryIdSchema = z
   .trim()
   .min(1)
   .describe('Entry id (the ^id of the line, without the caret), as returned in search results.');
+
+const ENTRY_TYPE_HELP = 'note (anything general) | idea | fact | verdict (was it good?) | contact | price | how-to.';
 
 // ---- notes_search -------------------------------------------------------------
 
@@ -50,7 +52,7 @@ export const RememberSchema = z.object({
     .min(1)
     .describe('What the note is about, as a short title: the thing the user will ask about later.'),
   text: z.string().trim().min(1).describe('One line: the fact itself. No newlines.'),
-  type: z.enum(ENTRY_TYPES).describe('fact | verdict (was it good?) | contact | price | how-to.'),
+  type: z.enum(ENTRY_TYPES).optional().describe(`${ENTRY_TYPE_HELP} Default "${DEFAULT_ENTRY_TYPE}" when unsure.`),
   path: z
     .string()
     .trim()
@@ -62,7 +64,8 @@ export const RememberSchema = z.object({
     .optional()
     .describe(
       'Folder for a NEW note. Reuse an existing category (notes_browse returns them with counts); create a new ' +
-        'one only when none fits. Lowercase, one word, e.g. services, home, car, garden. Default "misc".',
+        'one only when none fits. Lowercase, one word, e.g. ideas, personal, work, reference, services, home, car, ' +
+        'garden. Default "misc".',
     ),
   tags: z.array(z.string().trim().min(1)).max(10).optional().describe('Note-level tags.'),
   aliases: z
@@ -87,7 +90,7 @@ export const EditEntrySchema = z.object({
   path: pathSchema,
   entryId: entryIdSchema,
   text: z.string().trim().min(1).optional().describe('New text for the line (one line).'),
-  type: z.enum(ENTRY_TYPES).optional().describe('New type.'),
+  type: z.enum(ENTRY_TYPES).optional().describe(`New type. ${ENTRY_TYPE_HELP}`),
 });
 
 // The service throws a UserInputError (a tool error) when neither text nor type is given.

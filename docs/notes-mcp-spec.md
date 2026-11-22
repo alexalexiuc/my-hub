@@ -6,7 +6,7 @@
 
 ## 0. TL;DR
 
-Build a new **Notes MCP server** inside the `my-hub` monorepo: a personal "remember this" index for small practical facts that are easy to forget (which vendor or product was used and how it turned out, a price paid, a how-to). Claude writes/searches it remotely from claude.ai on the phone.
+Build a new **Notes MCP server** inside the `my-hub` monorepo: the user's personal notebook for anything worth writing down and finding again later (practical facts such as which vendor or product was used and how it turned out, a price paid, a how-to; also ideas and short notes on any topic). Claude writes/searches it remotely from claude.ai on the phone.
 
 - **Plain Markdown files** are the source of truth (a directory per user on a volume).
 - **Postgres + pgvector + pg_trgm + unaccent** is a disposable search index.
@@ -46,7 +46,7 @@ Alex Alexiuc — software engineer / team lead, 10+ years. Main stack: TypeScrip
 | Query expansion  | Done by Claude, not the server: `search` takes `queries: string[]`                               | The calling LLM is a better query expander than anything we'd build.                                 |
 | Writes           | Explicit by default; Claude may offer to save (draft policy §8)                                  | Fully automatic writes would fill the store with noise.                                              |
 | Backup           | Daily tar.gz of the notes volume to S3 (worker `notes-backup` job)                               | Tiny data, cheap. DB not backed up (rebuildable).                                                    |
-| Scope of content | Practical facts about _things and services_                                                      | Not personal/biographical facts about Alex. Claude's own built-in memory covers those.               |
+| Scope of content | Anything the user wants written down and found again (facts, verdicts, prices, ideas, notes)     | The Notes vs built-in-memory split lives in the server `instructions` (lookup info → Notes).         |
 
 ### Rejected alternatives (don't re-litigate without new evidence)
 
@@ -107,7 +107,7 @@ updated: 2026-11-21
 Rules:
 
 - Entry line: `- YYYY-MM-DD [type] text #optional-tags ^id`
-- `type` ∈ `fact | verdict | contact | price | how-to` (fixed list for now, see §13).
+- `type` ∈ `note | idea | fact | verdict | contact | price | how-to` (fixed list for now, see §13; `note` is the default).
 - `^id` = short stable random ID (Obsidian block-ref style), unique within the file, so entries can be edited/deleted precisely.
 - Free-form text between frontmatter and entries (e.g. a short description) is allowed and should be preserved and indexed, but Claude only appends or edits single entry lines. It never rewrites a whole file.
 - Slugs: lowercase, ASCII, hyphenated (transliterate RO/RU titles for the filename; keep the original in `title`/`aliases`).
@@ -221,9 +221,9 @@ e5 conventions: `passage: ` prefix for stored text, `query: ` for search text, m
 
 ### Draft tool-description policy (to be refined after real use)
 
-- Write when the user explicitly asks ("remember", "note that", "add to my notes", "save this").
-- When the user states a durable practical fact (a vendor used, a product verdict, a price paid, a part spec or size), **offer in one short line** to save it. Never save silently.
-- Scope: facts about things and services, not personal or biographical facts about the user.
+- Write when the user explicitly asks ("note", "remember", "save", "add to my notes", "write down").
+- When the user states something they'd plausibly want to look up later, **offer in one short line** to save it. Never save silently.
+- Scope: a general notebook. The server's `instructions` tell Claude when "remember X" goes to Notes (lookup info) and when to its built-in memory (context about the user, their people, how Claude should behave). Never secrets.
 - Before `remember`, it's fine to `search` first to avoid duplicates. Prefer appending to an existing note.
 - Always pass 2–4 query variants to `search`, including RO/RU/EN translations and synonyms when relevant.
 - After `remember` with `created: true`, tell the user the new note's title.
