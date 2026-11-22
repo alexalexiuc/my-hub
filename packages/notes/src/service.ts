@@ -312,16 +312,22 @@ export class NotesService {
       await this.indexAfterWrite(path);
 
       const isNewCategory = before !== null && !before.some(c => c.name === categoryOf(path));
-      return {
-        status: 'saved' as const,
+      const result: RememberResult = {
+        status: 'saved',
         path,
         title: fm.title,
         created,
         matchedBy,
         entryId,
-        ...(isNewCategory ? { newCategory: true as const, existingCategories: before!.map(c => c.name) } : {}),
         timings: { totalMs: Math.round((performance.now() - t0) * 100) / 100 },
       };
+      return Object.assign(
+        result,
+        omitUndefined({
+          newCategory: isNewCategory ? (true as const) : undefined,
+          existingCategories: isNewCategory ? before?.map(c => c.name) : undefined,
+        }),
+      );
     });
   }
 
