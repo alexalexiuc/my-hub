@@ -11,6 +11,10 @@ export const notesEnv = {
   get NOTES_DATABASE_URL() {
     return getEnvVar('NOTES_DATABASE_URL');
   },
+  /** True when NOTES_DATABASE_URL is set; servers that host notes optionally check this before using it. */
+  get notesConfigured() {
+    return getEnvVar('NOTES_DATABASE_URL', '') !== '';
+  },
   /** Directory holding one git repo of Markdown files per user: `<NOTES_ROOT>/<userId>/`. */
   get NOTES_ROOT() {
     return getEnvVar('NOTES_ROOT', './data/notes');

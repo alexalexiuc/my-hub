@@ -18,6 +18,7 @@ import { createFinancesServer } from './finances/server.js';
 import { createVacationServer } from './vacation/server.js';
 import { createNotesServer } from './notes/server.js';
 import { warmNotesRuntime } from './notes/runtime.js';
+import { notesInternalRoutes } from './notes/routes.js';
 import { envConfig } from './config/env.js';
 
 export async function buildServer() {
@@ -84,6 +85,9 @@ export async function buildServer() {
   registerMcpSubServer(app, '/api/finances/mcp', McpServerNames.Finances, createFinancesServer);
   registerMcpSubServer(app, '/api/vacation/mcp', McpServerNames.Vacation, createVacationServer);
   registerMcpSubServer(app, '/api/notes/mcp', McpServerNames.Notes, createNotesServer);
+
+  // Internal, Hub-only: POST /api/notes/delete-all ("Delete all my data").
+  await app.register(notesInternalRoutes);
 
   // Load the embedding model in the background (when notes are configured) so the first search is fast.
   warmNotesRuntime();

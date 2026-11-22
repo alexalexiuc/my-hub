@@ -24,6 +24,12 @@ export function assertNotePath(path: string): void {
   if (!ok) throw new UserInputError(`Invalid note path "${path}". Expected "<category>/<slug>.md".`);
 }
 
+/** The category of a note path: its first folder, or `misc` for a file at the repo root. */
+export function categoryOf(path: string): string {
+  const slash = path.indexOf('/');
+  return slash > 0 ? path.slice(0, slash) : 'misc';
+}
+
 /**
  * The Markdown files of one user: a git repo directory. Every write is one commit. Writes are serialised through
  * a promise chain so concurrent tool calls cannot race on files, git's index lock or the search index.

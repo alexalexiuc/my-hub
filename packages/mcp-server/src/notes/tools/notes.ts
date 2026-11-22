@@ -84,26 +84,29 @@ export const EditEntrySchema = z.object({
   type: z.enum(ENTRY_TYPES).optional().describe('New type.'),
 });
 
+// The service throws a UserInputError (a tool error) when neither text nor type is given.
 export const editEntryTool: ToolHandler<typeof EditEntrySchema.shape> = async (
   { path, entryId, text, type },
-  { userId },
-) => {
-  if (text === undefined && type === undefined) return toolResponse({ error: 'Pass text and/or type.' });
-  return toolResponse(await (await notesFor(userId)).editEntry(path, entryId, { text, type }));
-};
+  { userId, timezone },
+) =>
+  toolResponse(
+    await (await notesFor(userId)).editEntry(path, entryId, { text, type }, { today: currentDateString(timezone) }),
+  );
 
 export const DeleteEntrySchema = z.object({ path: pathSchema, entryId: entryIdSchema });
 
-export const deleteEntryTool: ToolHandler<typeof DeleteEntrySchema.shape> = async ({ path, entryId }, { userId }) =>
-  toolResponse(await (await notesFor(userId)).deleteEntry(path, entryId));
+export const deleteEntryTool: ToolHandler<typeof DeleteEntrySchema.shape> = async (
+  { path, entryId },
+  { userId, timezone },
+) => toolResponse(await (await notesFor(userId)).deleteEntry(path, entryId, { today: currentDateString(timezone) }));
 
 export const AddAliasSchema = z.object({
   path: pathSchema,
   alias: z.string().trim().min(1).describe('Another name for the note, e.g. its Romanian or Russian name.'),
 });
 
-export const addAliasTool: ToolHandler<typeof AddAliasSchema.shape> = async ({ path, alias }, { userId }) =>
-  toolResponse(await (await notesFor(userId)).addAlias(path, alias));
+export const addAliasTool: ToolHandler<typeof AddAliasSchema.shape> = async ({ path, alias }, { userId, timezone }) =>
+  toolResponse(await (await notesFor(userId)).addAlias(path, alias, { today: currentDateString(timezone) }));
 
 // ---- notes_recent / notes_browse -------------------------------------------------
 

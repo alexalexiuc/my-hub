@@ -6,13 +6,13 @@ import {
   type NotesRuntime,
   type NotesService,
 } from '@my-hub/notes';
-import { getEnvVar, logger, UserInputError } from '@my-hub/shared/utils';
+import { logger, UserInputError } from '@my-hub/shared/utils';
 
 let runtime: Promise<NotesRuntime> | null = null;
 
 /** True when the notes backend is configured (a database URL is set). */
 export function notesConfigured(): boolean {
-  return getEnvVar('NOTES_DATABASE_URL', '') !== '';
+  return notesEnv.notesConfigured;
 }
 
 /**

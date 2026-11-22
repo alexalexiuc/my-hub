@@ -1,7 +1,7 @@
 import { loadGolden } from './corpus';
 import { directClient, type SearchClient } from './clients';
 import { flagNum, printTable, rng, stats, type Args, type Harness, type Stats } from './lib';
-import { growTo, writeSeedNotes } from './seed';
+import { countEntries, growTo, writeSeedNotes } from './seed';
 
 export const TIERS: Record<string, number> = { '1k': 1_000, '10k': 10_000, '50k': 50_000, '100k': 100_000 };
 
@@ -64,7 +64,11 @@ export async function benchSearch(
   const { client, harness } = target;
   const requests = flagNum(args, 'requests', 200);
   const levels = (args.flags.get('concurrency') ?? '1,5,10').split(',').map(Number);
-  const tierNames = harness ? (args.flags.get('tier') ?? '1k,10k').split(',') : ['target'];
+  // Smallest first: the harness only grows, so a larger tier measured first would leave nothing to measure at
+  // the smaller one.
+  const tierNames = harness
+    ? (args.flags.get('tier') ?? '1k,10k').split(',').sort((a, b) => (TIERS[a] ?? 0) - (TIERS[b] ?? 0))
+    : ['target'];
   const results: Record<string, unknown> = {};
   const rows: (string | number)[][] = [];
 
@@ -78,7 +82,10 @@ export async function benchSearch(
       const t = performance.now();
       await growTo(harness, goal);
       seedingMs = Math.round(performance.now() - t);
-      entries = goal;
+      // Record what was actually measured, and refuse a tier the harness has already outgrown.
+      entries = await countEntries(harness);
+      if (entries > goal * 1.1)
+        throw new Error(`Tier "${name}" needs ~${goal} entries but the index already holds ${entries}.`);
     }
     await load(client, 20, 1, 1); // warm up
     const perLevel: Record<string, Load> = {};

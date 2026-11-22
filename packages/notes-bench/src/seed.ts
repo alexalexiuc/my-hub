@@ -95,14 +95,16 @@ function fillerText(rand: () => number, brand: string, subject: string): string 
  * then indexes them. Returns the number of entries added. Filler lives under `bench-filler-*` categories so it
  * can never be mistaken for the golden notes.
  */
-export async function growTo(h: Harness, targetEntries: number, seedOffset = 0): Promise<number> {
-  const current = Number(
-    (
-      await h.db.query<{ n: string }>(
-        `SELECT count(*)::text AS n FROM entries e JOIN notes n ON n.id = e.note_id WHERE n.user_id = 'bench'`,
-      )
-    ).rows[0]!.n,
+/** Entries currently indexed for the bench user. */
+export async function countEntries(h: Harness): Promise<number> {
+  const res = await h.db.query<{ n: string }>(
+    `SELECT count(*)::text AS n FROM entries e JOIN notes n ON n.id = e.note_id WHERE n.user_id = 'bench'`,
   );
+  return Number(res.rows[0]!.n);
+}
+
+export async function growTo(h: Harness, targetEntries: number, seedOffset = 0): Promise<number> {
+  const current = await countEntries(h);
   let missing = targetEntries - current;
   if (missing <= 0) return 0;
   const rand = rng(1000 + seedOffset + current);

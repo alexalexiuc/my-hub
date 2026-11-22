@@ -24,12 +24,17 @@ import {
   deleteAllUserThemePreferences,
   deleteAllUserVacationData,
 } from '@my-hub/shared/services';
+import { deleteAllUserNotes } from '@/lib/notes';
 
 /**
  * DELETE all data for the authenticated user across every feature.
  * Useful for e2e test cleanup and for the "nuke everything" UI action.
  */
 export const POST = route(async ({ user }) => {
+  // First: notes live on the mcp-server, and if it cannot be reached the request fails before anything else is
+  // deleted, so a retry starts from a clean state.
+  const notes = await deleteAllUserNotes(user.id);
+
   // Before the menus themselves — running it concurrently with deleteAllUserWeeklyMenus
   // would race the FK cascade on the same rows.
   const shoppingListItems = await deleteAllUserShoppingListItems(user.id);
@@ -107,6 +112,7 @@ export const POST = route(async ({ user }) => {
       shoppingListItems,
       themePreferences,
       vacation,
+      notes,
     },
   };
 });

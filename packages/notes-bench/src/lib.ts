@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { cpus, hostname, tmpdir, totalmem } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -153,20 +153,24 @@ export class ResourceSampler {
   constructor(private readonly dockerContainer?: string) {}
 
   start(intervalMs = 250): void {
+    let dockerBusy = false;
     const tick = () => {
       this.rss.push(process.memoryUsage().rss / 1048576);
-      if (this.dockerContainer) {
-        try {
-          const out = execFileSync(
-            'docker',
-            ['stats', '--no-stream', '--format', '{{.MemUsage}}', this.dockerContainer],
-            { timeout: 5000 },
-          ).toString();
-          const m = /([\d.]+)\s*(MiB|GiB|KiB)/.exec(out);
-          if (m) this.container.push(Number(m[1]) * ({ KiB: 1 / 1024, MiB: 1, GiB: 1024 }[m[2]!] ?? 1));
-        } catch {
-          /* container stats are best effort */
-        }
+      // `docker stats --no-stream` takes 1-2 s: run it asynchronously, one at a time, so it never blocks the
+      // event loop that issues and times the requests being measured.
+      if (this.dockerContainer && !dockerBusy) {
+        dockerBusy = true;
+        execFile(
+          'docker',
+          ['stats', '--no-stream', '--format', '{{.MemUsage}}', this.dockerContainer],
+          { timeout: 5000 },
+          (err, stdout) => {
+            dockerBusy = false;
+            if (err) return; // container stats are best effort
+            const m = /([\d.]+)\s*(MiB|GiB|KiB)/.exec(stdout);
+            if (m) this.container.push(Number(m[1]) * ({ KiB: 1 / 1024, MiB: 1, GiB: 1024 }[m[2]!] ?? 1));
+          },
+        );
       }
     };
     tick();

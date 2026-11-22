@@ -52,6 +52,13 @@ export const hubEnvConfig = {
   get MCP_SERVER_URL() {
     return getEnvVar('NEXT_PUBLIC_MCP_URL');
   },
+  /**
+   * Base URL the Hub server uses to call the mcp-server directly (e.g. `http://mcp:3001` on the Docker network).
+   * Falls back to NEXT_PUBLIC_MCP_URL; empty when neither is set (the UI sandbox), and the calls are skipped.
+   */
+  get MCP_INTERNAL_URL() {
+    return getEnvVar('MCP_INTERNAL_URL', '') || getEnvVar('NEXT_PUBLIC_MCP_URL', '');
+  },
   /** Public Hub URL, used for building report links and unsubscribe URLs. */
   get HUB_URL() {
     return getEnvVar('HUB_URL');

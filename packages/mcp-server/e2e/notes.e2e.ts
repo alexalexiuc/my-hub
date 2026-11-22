@@ -46,16 +46,27 @@ describe('notes — remember, search and edit', () => {
     return parseToolResult<T>(result);
   }
 
+  /** Deletes every entry of a note; deleting the last one deletes the file. Best effort (cleanup only). */
+  async function purgeNote(path: string): Promise<void> {
+    const read = await client.callTool({ name: 'notes_read', arguments: { path } });
+    if (read.isError) return;
+    const { content } = parseToolResult<{ content: string }>(read);
+    for (const [, entryId] of content.matchAll(/ \^([a-z0-9]{2,16})\s*$/gm)) {
+      await client.callTool({ name: 'notes_delete_entry', arguments: { path, entryId } });
+    }
+  }
+
   beforeAll(async () => {
     const { baseUrl } = getE2eEnv();
     client = await createMcpClient(baseUrl, '/notes/mcp', await generateToken());
+    // Leftovers of an aborted run (on a persistent stack) would push this run's notes out of the paged lists.
+    const { notes } = await call<{ notes: Header[] }>('notes_browse', { category: 'e2e', limit: 200 });
+    for (const n of notes) await purgeNote(n.path);
   });
 
   afterAll(async () => {
     try {
-      for (const e of created) {
-        await client.callTool({ name: 'notes_delete_entry', arguments: { path: e.path, entryId: e.entryId } });
-      }
+      for (const path of new Set(created.map(e => e.path))) await purgeNote(path);
     } finally {
       await client.close();
     }
@@ -109,8 +120,10 @@ describe('notes — remember, search and edit', () => {
     expect(exact.hits[0]?.entries.some(e => e.text.includes(`CleanPro-${runId}`))).toBe(true);
     expect(exact.timings.totalMs).toBeGreaterThan(0);
 
+    // The run id alone would match through full-text search, so also require a trigram leg to have matched.
     const typo = await call<{ hits: Hit[] }>('notes_search', { queries: [`cleanpr0-${runId}`, `unrelated words`] });
-    expect(typo.hits.map(h => h.path)).toContain(created[0]!.path);
+    const typoHit = typo.hits.find(h => h.path === created[0]!.path);
+    expect(typoHit?.matchedBy.some(leg => leg.toLowerCase().includes('trgm'))).toBe(true);
   });
 
   it('notes_read returns the Markdown file with both entries', async () => {
@@ -186,9 +199,26 @@ describe('notes — remember, search and edit', () => {
   });
 
   it('notes_delete_entry removes a single line', async () => {
-    const entry = created.pop()!;
-    await call('notes_delete_entry', { path: entry.path, entryId: entry.entryId });
+    const entry = created.at(-1)!;
+    const res = await call<{ noteDeleted: boolean }>('notes_delete_entry', {
+      path: entry.path,
+      entryId: entry.entryId,
+    });
+    expect(res.noteDeleted).toBe(false);
     const { content } = await call<{ content: string }>('notes_read', { path: entry.path });
     expect(content).not.toContain(`^${entry.entryId}`);
+  });
+
+  it('notes_delete_entry deletes the note with its last entry', async () => {
+    const { content } = await call<{ content: string }>('notes_read', { path: created[0]!.path });
+    const ids = [...content.matchAll(/ \^([a-z0-9]{2,16})\s*$/gm)].map(m => m[1]!);
+    expect(ids.length).toBeGreaterThan(0);
+    let last = { noteDeleted: false };
+    for (const entryId of ids) {
+      last = await call('notes_delete_entry', { path: created[0]!.path, entryId });
+    }
+    expect(last.noteDeleted).toBe(true);
+    const gone = await client.callTool({ name: 'notes_read', arguments: { path: created[0]!.path } });
+    expect(gone.isError).toBe(true);
   });
 });

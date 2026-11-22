@@ -32,7 +32,7 @@ pnpm --filter @my-hub/notes-bench bench:compare results/a.json results/b.json   
 
 # against a deployed server (credentials: OAuth client of a bench account, or a bearer token)
 export NOTES_BENCH_CLIENT_ID=hub_xxx NOTES_BENCH_CLIENT_SECRET=...
-pnpm --filter @my-hub/notes-bench bench:seed -- --target https://mcp.alexiuc.dev --yes      # writes ~230 entries
+pnpm --filter @my-hub/notes-bench bench:seed -- --target https://mcp.alexiuc.dev --yes      # writes ~230 entries; dedicated account only
 pnpm --filter @my-hub/notes-bench bench:relevance -- --target https://mcp.alexiuc.dev
 pnpm --filter @my-hub/notes-bench bench:search -- --target https://mcp.alexiuc.dev
 ```
@@ -42,7 +42,7 @@ Flags: `--provider e5|ollama|fake`, `--tier`, `--config fts,trigram,vector,hybri
 `--docker-container NAME` (also sample that container's memory), `--out DIR`, `--no-save`.
 
 **RAM:** the process RSS in the output is the bench process itself, which in direct mode hosts the model, so it is
-close to the server's. For the real container use `--docker-container my-hub-prod-mcp-1` on the VPS or watch
+close to the server's. For the real container use `--docker-container my-hub-mcp-1` on the VPS (deploy uses `--project-name my-hub`) or watch
 `docker stats` while a `--target` run is going.
 
 ## Fixtures

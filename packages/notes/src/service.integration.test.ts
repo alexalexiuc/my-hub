@@ -2,13 +2,15 @@ import { execFileSync } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDb } from './db';
 import { FakeProvider } from './embeddings';
 import { NotesRuntime, createNotesRuntime } from './service';
 
 /** Needs Postgres with pgvector, pg_trgm and unaccent: NOTES_TEST_DATABASE_URL=postgres://user:pass@host/db */
 const url = process.env.NOTES_TEST_DATABASE_URL;
+// CI provides the database: a missing URL there is a broken pipeline, not a reason to skip silently.
+if (!url && process.env.CI) throw new Error('NOTES_TEST_DATABASE_URL is not set in CI (check turbo.json env).');
 
 describe.skipIf(!url)('NotesService (integration, FakeProvider)', () => {
   let root: string;
@@ -119,9 +121,94 @@ describe.skipIf(!url)('NotesService (integration, FakeProvider)', () => {
     expect((await svc().search({ queries: ['500'] })).hits[0]?.entries[0]?.text).toContain('500');
     expect((await svc().search({ queries: ['450'], legs: { vec: false, namesVec: false } })).hits).toHaveLength(0);
 
-    await svc().deleteEntry(r.path, r.entryId);
-    expect(await svc().entries(r.path)).toHaveLength(0);
-    await expect(svc().deleteEntry(r.path, r.entryId)).rejects.toThrow(/No entry/);
+    const second = await remember('Carpet cleaning', 'second');
+    expect(await svc().deleteEntry(r.path, second.entryId)).toEqual({ path: r.path, noteDeleted: false });
+    expect(await svc().entries(r.path)).toHaveLength(1);
+    await expect(svc().deleteEntry(r.path, second.entryId)).rejects.toThrow(/No entry/);
+    await expect(svc().editEntry(r.path, r.entryId, {})).rejects.toThrow(/Pass text and\/or type/);
+  });
+
+  it('deletes a note together with its last entry', async () => {
+    const r = await remember('Carpet cleaning', 'CleanPro');
+    expect(await svc().deleteEntry(r.path, r.entryId)).toEqual({ path: r.path, noteDeleted: true });
+    await expect(svc().read(r.path)).rejects.toThrow(/No note/);
+    expect((await svc().browse()).map(n => n.path)).not.toContain(r.path);
+    expect(gitLog()[0]).toBe(`notes(services/carpet-cleaning): -entry ^${r.entryId}`);
+  });
+
+  it('keeps a note with free text when its last entry is deleted', async () => {
+    await mkdir(join(root, user, 'home'), { recursive: true });
+    await writeFile(
+      join(root, user, 'home/boiler.md'),
+      '# Boiler\n\nVaillant, serviced yearly.\n\n- 2026-01-01 [fact] x ^ab12\n',
+    );
+    await svc().reindex();
+    expect(await svc().deleteEntry('home/boiler.md', 'ab12')).toMatchObject({ noteDeleted: false });
+    expect((await svc().read('home/boiler.md')).content).toContain('Vaillant');
+  });
+
+  it('matches a subject with quotes and backslashes on the next remember', async () => {
+    const subject = 'Restaurant "La Placinte" \\ centru';
+    const a = await remember(subject, 'good placinte');
+    const b = await remember(subject, 'second visit');
+    expect(b).toMatchObject({ created: false, path: a.path, matchedBy: 'name' });
+  });
+
+  it('collapses newlines in subjects, aliases and tags so the frontmatter stays intact', async () => {
+    const r = await remember('Acme\n---', 'x', { aliases: ['other\nname'], tags: ['a\nb'] });
+    const { content } = await svc().read(r.path);
+    expect(content).toMatch(/^---\ntitle: Acme ---\n/);
+    expect(content).toContain('aliases: [other name]');
+    expect(content).toContain('reviewed: false');
+    const [header] = await svc().browse({ unreviewedOnly: true });
+    expect(header).toMatchObject({ title: 'Acme ---', aliases: ['other name'], reviewed: false });
+    expect(await remember('Acme ---', 'y')).toMatchObject({ created: false, path: r.path });
+  });
+
+  it('never moves `updated` backwards and stamps edits with the given local date', async () => {
+    const r = await remember('Carpet cleaning', 'today', { date: '2026-11-21' });
+    await remember('Carpet cleaning', 'back-dated', { date: '2025-03-01' });
+    expect((await svc().read(r.path)).content).toContain('updated: 2026-11-21\n');
+
+    await svc().addAlias(r.path, 'covoare', { today: '2026-12-01' });
+    expect((await svc().read(r.path)).content).toContain('updated: 2026-12-01\n');
+    await svc().editEntry(r.path, r.entryId, { text: 'edited' }, { today: '2026-11-30' });
+    expect((await svc().read(r.path)).content).toContain('updated: 2026-12-01\n');
+  });
+
+  it('files a folder-less explicit path under misc', async () => {
+    const r = await remember('Plumber', 'Ion, 069xxxxxx', { path: 'plumber.md' });
+    expect(r).toMatchObject({ created: true, path: 'plumber.md' });
+    expect((await svc().read('plumber.md')).content).toContain('category: misc\n');
+    expect((await svc().browse()).find(n => n.path === 'plumber.md')?.category).toBe('misc');
+  });
+
+  describe('when indexing fails after the commit', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    const failNextEmbed = () =>
+      vi.spyOn(rt.embedder, 'embedPassages').mockRejectedValueOnce(new Error('embedder timed out'));
+
+    it('reports the write as saved and does not create a duplicate on retry', async () => {
+      failNextEmbed();
+      const first = await remember('Plumber', 'Ion, 069xxxxxx');
+      expect(first).toMatchObject({ status: 'saved', created: true });
+      // Nothing half-written: the note row is absent until the re-sync.
+      const rows = await rt.db.query('SELECT 1 FROM notes WHERE user_id = $1 AND path = $2', [user, first.path]);
+      expect(rows.rowCount).toBe(0);
+
+      const retry = await remember('Plumber', 'Ion, 069xxxxxx');
+      expect(retry).toMatchObject({ created: false, path: first.path, matchedBy: 'name' });
+      expect((await svc().search({ queries: ['plumber'] })).hits[0]?.path).toBe(first.path);
+    });
+
+    it('keeps the old hash so the next sync re-indexes an edited note', async () => {
+      const r = await remember('Carpet cleaning', 'CleanPro, 450 MDL');
+      failNextEmbed();
+      await svc().editEntry(r.path, r.entryId, { text: 'CleanPro, 500 MDL' });
+      const { hits } = await svc().search({ queries: ['500'], legs: { vec: false, namesVec: false } });
+      expect(hits[0]?.entries[0]?.text).toContain('500 MDL');
+    });
   });
 
   it('adds an alias without duplicating it', async () => {

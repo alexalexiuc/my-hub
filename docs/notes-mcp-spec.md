@@ -203,6 +203,10 @@ e5 conventions: `passage: ` prefix for stored text, `query: ` for search text, m
 
 ## 8. MCP tools
 
+> **Superseded by §15.** This is the original design. The shipped tools are named `notes_*`, `remember` matches
+> exact titles/aliases only (no fuzzy resolution), and duplicates go through `notes_review_duplicates` /
+> `notes_merge` / `notes_mark_reviewed`. See §15 and `docs/requirements/mcps/feature-notes.md`.
+
 | Tool                                                    | Purpose                                                                                                                                                                                                    |
 | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `search(queries[], category?, limit?)`                  | Hybrid search (§7)                                                                                                                                                                                         |
@@ -290,12 +294,17 @@ packages/notes-bench/
     corpus.txt               # realistic corpus, one compact file; turned into Markdown notes at run time
     golden.txt               # query => expected note title (+ lang, kind, extra phrasings)
   src/
+    cli.ts                   # command entry point (all, embed, write, search, relevance, resolve, lists, seed, compare)
+    clients.ts               # in-process and MCP-endpoint (`--target`) clients
+    corpus.ts                # turns the fixtures into notes and golden queries
+    lib.ts                   # harness, stats, resource sampler (process RSS + optional docker container)
     seed.ts                  # build scale tiers (1k/10k/50k/100k entries)
     bench-embed.ts           # embed latency + throughput
     bench-write.ts           # remember end-to-end
     bench-search.ts          # search latency per tier + concurrency
     bench-relevance.ts       # recall@k, MRR per config
-    sample-resources.ts      # memory/CPU sampler during runs
+    bench-resolve.ts         # review suggestions for near-duplicate subjects
+    bench-lists.ts           # "give me my whole list" recall via browse
     compare.ts               # diff two result files, flag regressions
   results/                   # committed or gitignored, Alex's call; keep a .gitkeep
 ```
@@ -322,7 +331,7 @@ packages/notes-bench/
 - Hub UI: a simple browse/search page at hub.alexiuc.dev later? Not in the spike.
 - (from the spike) HNSW index and its filter interaction (`user_id`, `category` are post-filters); batch inserts for reindex.
 - (from the spike) Minimum similarity for the vector legs; `remember` thresholds; RRF `k` and leg weights; per-leg timings in `notes_search` output.
-- (from the spike) Wire notes into Hub "Delete all my data"; schedule the backup push; add an `ollama` compose service when benchmarking it.
+- (from the spike) Schedule the backup push; add an `ollama` compose service when benchmarking it.
 
 ## 14. Definition of done for this session
 
@@ -368,7 +377,7 @@ packages/notes-bench/
    sets `onnxruntime-node: false` in `allowBuilds` (its postinstall only fetches optional CUDA libraries; the CPU binaries ship in the package).
 8. **Benchmark modes.** Direct mode (isolated schema + temp dir) covers everything; `--target` mode covers `search` and `relevance`
    through the real MCP endpoint. `embed` and `write` are in-process by nature.
-9. **Hub "Delete all my data" does not yet remove notes** (the notes live outside the Drizzle DB). `notes-cli purge <userId>` does it by hand; wiring is listed in section 13.
+9. **Hub "Delete all my data" removes notes** through the mcp-server's internal `POST /api/notes/delete-all` (a one-minute JWT signed with `NEXTAUTH_SECRET`; the Hub reaches it at `MCP_INTERNAL_URL`). A copy already pushed to `NOTES_GIT_REMOTE` is not touched. `notes-cli purge <userId>` still works by hand.
 
 ### Verified in the sandbox
 

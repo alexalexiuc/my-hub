@@ -8,8 +8,10 @@ import { Indexer, type IndexResult } from './indexer';
 import {
   ENTRY_TYPES,
   appendEntry,
+  bodyText,
   createNoteText,
   listEntries,
+  oneLine,
   parseNote,
   readFrontmatter,
   removeEntry,
@@ -22,7 +24,7 @@ import { findExactNote } from './resolve';
 import { DEFAULT_RRF_K } from './rrf';
 import { searchNotes, type SearchHit, type SearchOptions, type SearchResult } from './search';
 import { slugify } from './slug';
-import { NoteStore, assertNotePath } from './store';
+import { NoteStore, assertNotePath, categoryOf } from './store';
 
 export interface NotesRuntimeConfig {
   db: Db;
@@ -46,6 +48,11 @@ export interface RememberInput {
   aliases?: string[];
   /** YYYY-MM-DD; defaults to today. */
   date?: string;
+}
+
+export interface WriteOptions {
+  /** The user's local date (YYYY-MM-DD), stamped as `updated`. Defaults to the UTC date. */
+  today?: string;
 }
 
 export interface RememberResult {
@@ -90,12 +97,14 @@ export interface MergeResult {
 }
 
 const safeUserDir = (userId: string) => userId.replace(/[^A-Za-z0-9_-]/g, '_');
-const today = () => new Date().toISOString().slice(0, 10);
+const utcToday = () => new Date().toISOString().slice(0, 10);
+/** The later of two YYYY-MM-DD dates, so `updated` never moves backwards. */
+const laterDate = (a: string | null, b: string): string => (a && /^\d{4}-\d{2}-\d{2}$/.test(a) && a > b ? a : b);
 
-/** `existing` plus the `extra` values not already in it (case-insensitive, trimmed). */
+/** `existing` plus the `extra` values not already in it (case-insensitive, whitespace collapsed to one line). */
 const mergeUnique = (existing: string[], extra: string[]): string[] => [
   ...existing,
-  ...dedupeTrimmed(extra, new Set(existing.map(v => v.toLowerCase()))),
+  ...dedupeTrimmed(extra.map(oneLine), new Set(existing.map(v => v.toLowerCase()))),
 ];
 
 /** Shared state for all users: database, embedder, config. Create once with `createNotesRuntime`. */
@@ -165,7 +174,28 @@ export class NotesService {
   private async ready(): Promise<void> {
     await this.store.init();
     this.synced ??= this.sync().then(() => undefined);
-    await this.synced;
+    try {
+      await this.synced;
+    } catch (err) {
+      this.synced = null; // retry on the next call instead of failing until restart
+      throw err;
+    }
+  }
+
+  /**
+   * Indexes files after their commit. The files are already the source of truth, so an index failure (embedder
+   * timeout, database hiccup) must not fail the write: the caller would retry and save the fact twice. It is
+   * logged, and the next call re-syncs this user from the files.
+   */
+  private async indexAfterCommit(...paths: string[]): Promise<void> {
+    try {
+      for (const path of paths) await this.indexer.indexFile(path);
+    } catch (err) {
+      logger.warn(
+        `[notes] indexing ${paths.join(', ')} failed; will re-sync on next use: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      this.synced = null;
+    }
   }
 
   async search(opts: SearchOptions): Promise<SearchResult> {
@@ -189,10 +219,10 @@ export class NotesService {
   async remember(input: RememberInput): Promise<RememberResult> {
     const t0 = performance.now();
     await this.ready();
-    const subject = input.subject.trim();
+    const subject = oneLine(input.subject);
     if (!subject) throw new UserInputError('subject must not be empty');
     if (!input.text.trim()) throw new UserInputError('text must not be empty');
-    const date = input.date ?? today();
+    const date = input.date ?? utcToday();
 
     return this.store.serialize(async () => {
       let path: string;
@@ -219,14 +249,14 @@ export class NotesService {
         (await this.store.read(path)) ??
         createNoteText({
           title: subject,
-          category: path.slice(0, path.indexOf('/')),
+          category: categoryOf(path),
           tags: [],
           aliases: [],
           updated: date,
           reviewed: false,
         });
       const note = parseNote(source);
-      const fm = readFrontmatter(note, { title: subject, category: path.slice(0, path.indexOf('/')) });
+      const fm = readFrontmatter(note, { title: subject, category: categoryOf(path) });
 
       const aliases = mergeUnique(fm.aliases, input.aliases ?? []);
       if (aliases.length !== fm.aliases.length) setFrontmatterList(note, 'aliases', aliases);
@@ -234,10 +264,11 @@ export class NotesService {
       if (tags.length !== fm.tags.length) setFrontmatterList(note, 'tags', tags);
 
       const entryId = appendEntry(note, { date, type: input.type, text: input.text });
-      setFrontmatterKey(note, 'updated', date);
+      // A back-dated entry must not make the note look stale.
+      setFrontmatterKey(note, 'updated', laterDate(fm.updated, date));
       await this.store.write(path, serializeNote(note));
       await this.store.commit(`notes(${path.replace(/\.md$/, '')}): +entry ^${entryId}`);
-      await this.indexer.indexFile(path);
+      await this.indexAfterCommit(path);
 
       return {
         status: 'saved' as const,
@@ -251,23 +282,38 @@ export class NotesService {
     });
   }
 
-  async editEntry(path: string, entryId: string, patch: { text?: string; type?: string }): Promise<{ path: string }> {
-    return this.mutate(path, `~entry ^${entryId}`, note => {
+  async editEntry(
+    path: string,
+    entryId: string,
+    patch: { text?: string; type?: string },
+    opts: WriteOptions = {},
+  ): Promise<{ path: string }> {
+    if (patch.text === undefined && patch.type === undefined) throw new UserInputError('Pass text and/or type.');
+    return this.mutate(path, `~entry ^${entryId}`, opts, note => {
       if (!replaceEntry(note, entryId, patch)) throw new UserInputError(`No entry ^${entryId} in ${path}.`);
     });
   }
 
-  async deleteEntry(path: string, entryId: string): Promise<{ path: string }> {
-    return this.mutate(path, `-entry ^${entryId}`, note => {
+  /** Deletes one entry. A note left with no entries and no free text is deleted too (`noteDeleted`). */
+  async deleteEntry(
+    path: string,
+    entryId: string,
+    opts: WriteOptions = {},
+  ): Promise<{ path: string; noteDeleted: boolean }> {
+    let noteDeleted = false;
+    await this.mutate(path, `-entry ^${entryId}`, opts, note => {
       if (!removeEntry(note, entryId)) throw new UserInputError(`No entry ^${entryId} in ${path}.`);
+      noteDeleted = listEntries(note).length === 0 && bodyText(note) === '';
+      return noteDeleted ? 'remove' : 'write';
     });
+    return { path, noteDeleted };
   }
 
-  async addAlias(path: string, alias: string): Promise<{ path: string; aliases: string[] }> {
-    const value = alias.trim();
+  async addAlias(path: string, alias: string, opts: WriteOptions = {}): Promise<{ path: string; aliases: string[] }> {
+    const value = oneLine(alias);
     if (!value) throw new UserInputError('alias must not be empty');
     let aliases: string[] = [];
-    await this.mutate(path, `+alias ${value}`, note => {
+    await this.mutate(path, `+alias ${value}`, opts, note => {
       const fm = readFrontmatter(note, { title: path, category: '' });
       aliases = mergeUnique(fm.aliases, [value]);
       setFrontmatterList(note, 'aliases', aliases);
@@ -357,8 +403,8 @@ export class NotesService {
       if (intoSource === null) throw new UserInputError(`No note at "${into}".`);
       const src = parseNote(fromSource);
       const dst = parseNote(intoSource);
-      const srcFm = readFrontmatter(src, { title: from, category: from.slice(0, from.indexOf('/')) });
-      const dstFm = readFrontmatter(dst, { title: into, category: into.slice(0, into.indexOf('/')) });
+      const srcFm = readFrontmatter(src, { title: from, category: categoryOf(from) });
+      const dstFm = readFrontmatter(dst, { title: into, category: categoryOf(into) });
 
       const moved = listEntries(src);
       for (const e of moved) appendEntry(dst, { date: e.date, type: e.type, text: e.text });
@@ -389,8 +435,7 @@ export class NotesService {
       await this.store.write(into, serializeNote(dst));
       await this.store.remove(from);
       await this.store.commit(`notes: merge ${from} into ${into}`);
-      await this.indexer.indexFile(from);
-      await this.indexer.indexFile(into);
+      await this.indexAfterCommit(from, into);
       return { into, from, movedEntries: moved.length, aliases };
     });
   }
@@ -414,7 +459,7 @@ export class NotesService {
         await this.store.write(path, serializeNote(note));
       }
       await this.store.commit(`notes: reviewed ${unique.length} notes`);
-      for (const path of unique) await this.indexer.indexFile(path);
+      await this.indexAfterCommit(...unique);
       return { reviewed: unique };
     });
   }
@@ -463,18 +508,28 @@ export class NotesService {
     });
   }
 
-  private async mutate(path: string, what: string, fn: (note: ReturnType<typeof parseNote>) => void) {
+  private async mutate(
+    path: string,
+    what: string,
+    opts: WriteOptions,
+    /** Edits the note in place; returning `'remove'` deletes the file instead of writing it. */
+    fn: (note: ReturnType<typeof parseNote>) => 'write' | 'remove' | void,
+  ) {
     assertNotePath(path);
     await this.ready();
     return this.store.serialize(async () => {
       const source = await this.store.read(path);
       if (source === null) throw new UserInputError(`No note at "${path}".`);
       const note = parseNote(source);
-      fn(note);
-      setFrontmatterKey(note, 'updated', today());
-      await this.store.write(path, serializeNote(note));
+      if (fn(note) === 'remove') {
+        await this.store.remove(path);
+      } else {
+        const { updated } = readFrontmatter(note, { title: path, category: categoryOf(path) });
+        setFrontmatterKey(note, 'updated', laterDate(updated, opts.today ?? utcToday()));
+        await this.store.write(path, serializeNote(note));
+      }
       await this.store.commit(`notes(${path.replace(/\.md$/, '')}): ${what}`);
-      await this.indexer.indexFile(path);
+      await this.indexAfterCommit(path);
       return { path };
     });
   }

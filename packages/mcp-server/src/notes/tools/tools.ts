@@ -83,7 +83,8 @@ const notesTools = [
     name: 'notes_delete_entry',
     description:
       'Delete one entry line by its id. Confirm with the user first unless they asked for it explicitly. ' +
-      'Take path and entryId from notes_search results.',
+      'Take path and entryId from notes_search results. Deleting the last entry of a note that has no other ' +
+      'text deletes the note itself (noteDeleted: true).',
     inputSchema: DeleteEntrySchema.shape,
     annotations: { idempotentHint: false, destructiveHint: true },
     callback: deleteEntryTool,

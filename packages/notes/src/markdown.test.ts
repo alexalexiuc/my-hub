@@ -5,6 +5,7 @@ import {
   createNoteText,
   listEntries,
   newEntryId,
+  oneLine,
   parseNote,
   readFrontmatter,
   removeEntry,
@@ -152,5 +153,52 @@ describe('markdown parser', () => {
     expect(readFrontmatter(parseNote(unreviewed), { title: 'x', category: 'y' }).reviewed).toBe(false);
     expect(createNoteText(base)).not.toContain('reviewed');
     expect(createNoteText({ ...base, reviewed: true })).not.toContain('reviewed');
+  });
+
+  it('edits the right one of two identical id-less lines', () => {
+    const note = parseNote('- 2026-01-01 [fact] same\n- 2026-01-01 [fact] same\n');
+    const [, second] = listEntries(note);
+    expect(second!.index).toBe(1);
+    expect(replaceEntry(note, second!.key, { text: 'changed' })).toBe(true);
+    expect(serializeNote(note)).toMatch(/^- 2026-01-01 \[fact\] same\n- 2026-01-01 \[fact\] changed \^[a-z0-9]{4}\n$/);
+
+    const other = parseNote('- 2026-01-01 [fact] same\n- 2026-01-01 [fact] same\nend\n');
+    expect(removeEntry(other, listEntries(other)[1]!.key)).toBe(true);
+    expect(serializeNote(other)).toBe('- 2026-01-01 [fact] same\nend\n');
+  });
+
+  it('round-trips quotes, backslashes and commas in frontmatter values', () => {
+    const tricky = ['Restaurant "La Placinte"', 'C:\\path\\x', 'a, b', "it's", '[x]'];
+    const note = parseNote(
+      createNoteText({ title: tricky[0]!, category: 'food', tags: tricky, aliases: tricky, updated: '2026-01-01' }),
+    );
+    const fm = readFrontmatter(note, { title: 'x', category: 'y' });
+    expect(fm.title).toBe(tricky[0]);
+    expect(fm.tags).toEqual(tricky);
+    expect(fm.aliases).toEqual(tricky);
+
+    setFrontmatterList(note, 'aliases', fm.aliases);
+    expect(readFrontmatter(parseNote(serializeNote(note)), { title: 'x', category: 'y' }).aliases).toEqual(tricky);
+  });
+
+  it("reads hand-written YAML single-quoted values ('' is a quote)", () => {
+    const note = parseNote("---\ntitle: 'Bob''s shop'\naliases: ['it''s', \"x\"]\n---\n");
+    const fm = readFrontmatter(note, { title: 'x', category: 'y' });
+    expect(fm.title).toBe("Bob's shop");
+    expect(fm.aliases).toEqual(["it's", 'x']);
+  });
+
+  it('never writes a raw newline into the frontmatter', () => {
+    const text = createNoteText({
+      title: 'Acme\n---',
+      category: 'misc',
+      tags: ['a\nb'],
+      aliases: [],
+      updated: '2026-01-01',
+      reviewed: false,
+    });
+    const fm = readFrontmatter(parseNote(text), { title: 'x', category: 'y' });
+    expect(fm).toMatchObject({ title: 'Acme\n---', tags: ['a\nb'], reviewed: false, updated: '2026-01-01' });
+    expect(oneLine('  Acme\n---\t x ')).toBe('Acme --- x');
   });
 });

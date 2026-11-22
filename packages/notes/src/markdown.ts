@@ -57,35 +57,61 @@ export interface ParsedNote {
 /** A derived key for an entry: its `^id`, or a stable content hash key for lines that have none. */
 export interface KeyedEntry extends EntryLine {
   key: string;
+  /** Position of the line in `ParsedNote.body`, so identical lines can be told apart. */
+  index: number;
 }
 
+/** Splits an inline `[a, "b, c", 'd']` list. Quoted items keep their escapes until `unquote` decodes them. */
 function splitList(value: string): string[] {
   const inner = value.trim().replace(/^\[/, '').replace(/\]$/, '');
   const out: string[] = [];
   let cur = '';
   let quote: string | null = null;
-  for (const ch of inner) {
+  for (let i = 0; i < inner.length; i++) {
+    const ch = inner[i]!;
+    cur += ch;
     if (quote) {
-      if (ch === quote) quote = null;
-      else cur += ch;
+      if (quote === '"' && ch === '\\' && i + 1 < inner.length) cur += inner[++i];
+      else if (ch === quote) quote = null;
     } else if (ch === '"' || ch === "'") quote = ch;
     else if (ch === ',') {
-      out.push(cur.trim());
+      out.push(unquote(cur.slice(0, -1)));
       cur = '';
-    } else cur += ch;
+    }
   }
-  out.push(cur.trim());
+  out.push(unquote(cur));
   return out.filter(Boolean);
 }
 
+/**
+ * Decodes a scalar written by `quoteIfNeeded` (JSON-style `"..."`) or by hand (YAML `'...'` with `''` for a
+ * quote). Unquoted values are only trimmed.
+ */
 function unquote(value: string): string {
   const v = value.trim();
-  if (v.length >= 2 && (v[0] === '"' || v[0] === "'") && v.at(-1) === v[0]) return v.slice(1, -1);
+  if (v.length < 2 || v.at(-1) !== v[0]) return v;
+  if (v[0] === '"') {
+    try {
+      return String(JSON.parse(v));
+    } catch {
+      return v.slice(1, -1);
+    }
+  }
+  if (v[0] === "'") return v.slice(1, -1).replace(/''/g, "'");
   return v;
 }
 
+/** Quotes a frontmatter scalar when YAML would misread it. Control characters are escaped, never written raw. */
 function quoteIfNeeded(value: string): string {
-  return /[,\]\[:#"']/.test(value) || value !== value.trim() ? JSON.stringify(value) : value;
+  return /[,\]\[:#"'\\\u0000-\u001f]/.test(value) || value !== value.trim() ? JSON.stringify(value) : value;
+}
+
+/**
+ * Collapses whitespace runs (newlines included) to one space and trims. Titles, aliases and tags go through it
+ * before they are written, so a value can never span lines and break the frontmatter.
+ */
+export function oneLine(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
 }
 
 /** Splits a markdown file into frontmatter lines and body lines, classifying entry lines. */
@@ -179,14 +205,14 @@ export function setFrontmatterList(note: ParsedNote, key: string, items: string[
 export function listEntries(note: ParsedNote): KeyedEntry[] {
   const seen = new Map<string, number>();
   const out: KeyedEntry[] = [];
-  for (const line of note.body) {
-    if (line.kind !== 'entry') continue;
+  note.body.forEach((line, index) => {
+    if (line.kind !== 'entry') return;
     let key = line.id ?? `h${shortHash(line.raw)}`;
     const n = seen.get(key) ?? 0;
     seen.set(key, n + 1);
     if (n > 0) key = `${key}-${n}`;
-    out.push({ ...line, key });
-  }
+    out.push({ ...line, key, index });
+  });
   return out;
 }
 
@@ -235,10 +261,8 @@ export function replaceEntry(note: ParsedNote, key: string, patch: { text?: stri
   const entries = listEntries(note);
   const target = entries.find(e => e.key === key);
   if (!target) return false;
-  const pos = note.body.findIndex(l => l.kind === 'entry' && l.raw === target.raw);
-  if (pos === -1) return false;
   const id = target.id ?? newEntryId(entries.map(e => e.id ?? e.key));
-  note.body[pos] = parseBodyLine(
+  note.body[target.index] = parseBodyLine(
     formatEntryLine({
       date: target.date,
       type: patch.type ?? target.type,
@@ -253,9 +277,7 @@ export function replaceEntry(note: ParsedNote, key: string, patch: { text?: stri
 export function removeEntry(note: ParsedNote, key: string): boolean {
   const target = listEntries(note).find(e => e.key === key);
   if (!target) return false;
-  const pos = note.body.findIndex(l => l.kind === 'entry' && l.raw === target.raw);
-  if (pos === -1) return false;
-  note.body.splice(pos, 1);
+  note.body.splice(target.index, 1);
   return true;
 }
 
