@@ -331,7 +331,7 @@ packages/notes-bench/
 - Hub UI: a simple browse/search page at hub.alexiuc.dev later? Not in the spike.
 - (from the spike) HNSW index and its filter interaction (`user_id`, `category` are post-filters); batch inserts for reindex.
 - (from the spike) Minimum similarity for the vector legs; `remember` thresholds; RRF `k` and leg weights; per-leg timings in `notes_search` output.
-- (from the spike) Schedule the backup push.
+- (from the spike) ~~Schedule the backup push.~~ Done: see "Git removed" in §15.
 
 ## 14. Definition of done for this session
 
@@ -377,7 +377,7 @@ packages/notes-bench/
    sets `onnxruntime-node: false` in `allowBuilds` (its postinstall only fetches optional CUDA libraries; the CPU binaries ship in the package).
 8. **Benchmark modes.** Direct mode (isolated schema + temp dir) covers everything; `--target` mode covers `search` and `relevance`
    through the real MCP endpoint. `embed` and `write` are in-process by nature.
-9. **Hub "Delete all my data" removes notes** through the mcp-server's internal `POST /api/notes/delete-all` (a one-minute JWT signed with `NEXTAUTH_SECRET`; the Hub reaches it at `MCP_INTERNAL_URL`). A copy already pushed to `NOTES_GIT_REMOTE` is not touched. `notes-cli purge <userId>` still works by hand.
+9. **Hub "Delete all my data" removes notes** through the mcp-server's internal `POST /api/notes/delete-all` (a one-minute JWT signed with `NEXTAUTH_SECRET`; the Hub reaches it at `MCP_INTERNAL_URL`). `notes-cli purge <userId>` still works by hand.
 
 ### Verified in the sandbox
 
@@ -518,6 +518,12 @@ With browse, both shapes return the whole list, and no saves were merged wrongly
 descriptions no longer give collections a special shape: Claude picks the subject, and browse finds the items either way.
 
 - Everything in the next section is from the sandbox with `FakeProvider`: it excludes real model inference, and the host (4 vCPU Xeon @ 2.1 GHz, 16 GB, no container limits, bench client and Postgres 16 / pgvector 0.6.0 sharing the cores) is not the VPS.
+
+### Git removed (2026-11-22)
+
+Git removed: nothing read the per-write history; backups are a daily tar.gz of `NOTES_ROOT` to S3 by the worker
+(`notes-backup` job). Restore = untar into the volume, then `notes-cli reindex <userId>`. The git remote setting and
+the `push` command are gone; the earlier git sections above are historical.
 
 ### Sandbox numbers (FakeProvider, 384-dim vectors, Postgres 16, sequential-scan vector legs, no HNSW)
 

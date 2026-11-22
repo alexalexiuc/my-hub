@@ -30,7 +30,6 @@ export interface NotesRuntimeConfig {
   embedder: EmbeddingProvider;
   /** Root directory; each user gets `<root>/<userId>/`. */
   root: string;
-  gitRemote?: string;
 }
 
 export interface RememberInput {
@@ -148,7 +147,7 @@ export async function createNotesRuntime(config: NotesRuntimeConfig): Promise<No
   return runtime;
 }
 
-/** All note operations for one user. Writes are serialised, committed to git and indexed before returning. */
+/** All note operations for one user. Writes are serialised, indexed before returning. */
 export class NotesService {
   readonly store: NoteStore;
   private readonly indexer: Indexer;
@@ -158,11 +157,11 @@ export class NotesService {
     private readonly rt: NotesRuntime,
     readonly userId: string,
   ) {
-    this.store = new NoteStore(join(rt.config.root, safeUserDir(userId)), rt.config.gitRemote);
+    this.store = new NoteStore(join(rt.config.root, safeUserDir(userId)));
     this.indexer = new Indexer(rt.db, this.store, rt.embedder, userId);
   }
 
-  /** Indexes files that changed outside the app (Obsidian, git pull). Runs once; later calls reuse it. */
+  /** Indexes files that changed outside the app (Obsidian, a restored backup). Runs once; later calls reuse it. */
   sync(opts: { full?: boolean } = {}): Promise<{ files: number; embedded: number; removedNotes: number }> {
     const run = this.store.serialize(() => this.indexer.syncAll(opts));
     this.synced = run.then(() => undefined);
@@ -181,11 +180,11 @@ export class NotesService {
   }
 
   /**
-   * Indexes files after their commit. The files are already the source of truth, so an index failure (embedder
+   * Indexes files after they are written. The files are already the source of truth, so an index failure (embedder
    * timeout, database hiccup) must not fail the write: the caller would retry and save the fact twice. It is
    * logged, and the next call re-syncs this user from the files.
    */
-  private async indexAfterCommit(...paths: string[]): Promise<void> {
+  private async indexAfterWrite(...paths: string[]): Promise<void> {
     try {
       for (const path of paths) await this.indexer.indexFile(path);
     } catch (err) {
@@ -265,8 +264,7 @@ export class NotesService {
       // A back-dated entry must not make the note look stale.
       setFrontmatterKey(note, 'updated', laterDate(fm.updated, date));
       await this.store.write(path, serializeNote(note));
-      await this.store.commit(`notes(${path.replace(/\.md$/, '')}): +entry ^${entryId}`);
-      await this.indexAfterCommit(path);
+      await this.indexAfterWrite(path);
 
       return {
         status: 'saved' as const,
@@ -385,7 +383,7 @@ export class NotesService {
   }
 
   /**
-   * Folds note `from` into `into` as one commit: entries (with their dates and types), aliases (including `from`'s
+   * Folds note `from` into `into` in one write: entries (with their dates and types), aliases (including `from`'s
    * title), tags and free body text move over, then `from` is deleted.
    */
   async merge(from: string, into: string): Promise<MergeResult> {
@@ -430,13 +428,12 @@ export class NotesService {
 
       await this.store.write(into, serializeNote(dst));
       await this.store.remove(from);
-      await this.store.commit(`notes: merge ${from} into ${into}`);
-      await this.indexAfterCommit(from, into);
+      await this.indexAfterWrite(from, into);
       return { into, from, movedEntries: moved.length, aliases };
     });
   }
 
-  /** Marks notes as checked by a review pass (`reviewed: true`), in one commit. */
+  /** Marks notes as checked by a review pass (`reviewed: true`). */
   async markReviewed(paths: string[]): Promise<{ reviewed: string[] }> {
     const unique = [...new Set(paths)];
     if (unique.length < 1 || unique.length > 50) throw new UserInputError('Pass 1-50 note paths.');
@@ -454,8 +451,7 @@ export class NotesService {
         setFrontmatterKey(note, 'reviewed', 'true');
         await this.store.write(path, serializeNote(note));
       }
-      await this.store.commit(`notes: reviewed ${unique.length} notes`);
-      await this.indexAfterCommit(...unique);
+      await this.indexAfterWrite(...unique);
       return { reviewed: unique };
     });
   }
@@ -480,11 +476,6 @@ export class NotesService {
       await this.store.destroy();
     });
     this.synced = null;
-  }
-
-  /** Pushes the notes repo to its backup remote. Never throws. */
-  push() {
-    return this.store.push();
   }
 
   /** Entries of a note, for tests and tooling. */
@@ -524,8 +515,7 @@ export class NotesService {
         setFrontmatterKey(note, 'updated', laterDate(updated, opts.today ?? utcToday()));
         await this.store.write(path, serializeNote(note));
       }
-      await this.store.commit(`notes(${path.replace(/\.md$/, '')}): ${what}`);
-      await this.indexAfterCommit(path);
+      await this.indexAfterWrite(path);
       return { path };
     });
   }

@@ -1,12 +1,12 @@
 # @my-hub/notes
 
-Core of the **Notes MCP** (`/api/notes/mcp`): a personal "remember this" index. Markdown files in git are the source of
-truth; Postgres (pgvector + pg_trgm + unaccent) is a disposable search index. Design and decisions:
+Core of the **Notes MCP** (`/api/notes/mcp`): a personal "remember this" index. Markdown files (one directory per user) are the
+source of truth; Postgres (pgvector + pg_trgm + unaccent) is a disposable search index. Design and decisions:
 [`docs/notes-mcp-spec.md`](../../docs/notes-mcp-spec.md). The MCP tools live in `packages/mcp-server/src/notes`.
 
 ```
 src/markdown.ts   parse / serialize (byte-exact round trip), entry add / edit / remove
-src/store.ts      per-user git repo of .md files, write queue, one commit per write
+src/store.ts      per-user directory of .md files, write queue
 src/db.ts         pool + schema (rebuilt automatically when model, dimension or schema version changes)
 src/indexer.ts    file -> index rows, re-embeds only changed lines
 src/search.ts     hybrid search: fts + trigram + vector legs, RRF fusion
@@ -15,7 +15,7 @@ src/headers.ts    NoteHeader + header queries (browse, review queue)
 src/service.ts    NotesRuntime / NotesService: search, read, remember, edit, delete, alias, recent, browse, reviewQueue,
                   merge, markReviewed, reindex
 src/embeddings/   e5 (Transformers.js) and fake providers
-src/cli.ts        notes-cli: download-model | reindex | push | purge
+src/cli.ts        notes-cli: download-model | reindex | purge
 ```
 
 ## API (`NotesService`, one per user)
@@ -26,8 +26,8 @@ src/cli.ts        notes-cli: download-model | reindex | push | purge
 | `search({ queries, category, limit })`                                          | Hybrid search (fts + trigram + vector, RRF). Up to 200 notes here; the `notes_search` tool caps at 20.                                                                             |
 | `browse({ queries?, category?, tag?, updatedSince?, unreviewedOnly?, limit? })` | `NoteHeader`s (title, aliases, tags, entry count, first line, `reviewed`). With `queries`: ranked, with `score`/`matchedBy`; else ordered by category, title. Default 50, max 200. |
 | `reviewQueue({ limit, suggestions })`                                           | Unreviewed notes, oldest first, each with `similar` existing notes (search by title + aliases), plus `remaining`.                                                                  |
-| `merge(from, into)`                                                             | Moves entries, aliases (incl. `from`'s title), tags and free text into `into`, deletes `from`; one commit.                                                                         |
-| `markReviewed(paths)`                                                           | Sets `reviewed: true` on 1-50 notes; one commit.                                                                                                                                   |
+| `merge(from, into)`                                                             | Moves entries, aliases (incl. `from`'s title), tags and free text into `into`, deletes `from`.                                                                                     |
+| `markReviewed(paths)`                                                           | Sets `reviewed: true` on 1-50 notes.                                                                                                                                               |
 | `editEntry`, `deleteEntry`, `addAlias`, `recent`, `read`, `reindex`             | As named.                                                                                                                                                                          |
 
 `reviewed` is a frontmatter key: `false` only when the value is `false`; absent means reviewed, so existing notes
@@ -55,11 +55,10 @@ Without `NOTES_DATABASE_URL` the server still boots; the notes tools answer with
 | Variable                      | Default              | Meaning                                                                                   |
 | ----------------------------- | -------------------- | ----------------------------------------------------------------------------------------- |
 | `NOTES_DATABASE_URL`          | -                    | Postgres with pgvector. Required for the notes tools.                                     |
-| `NOTES_ROOT`                  | `./data/notes`       | One git repo per user: `<NOTES_ROOT>/<userId>/`.                                          |
+| `NOTES_ROOT`                  | `./data/notes`       | One directory of Markdown files per user: `<NOTES_ROOT>/<userId>/`.                       |
 | `EMBEDDINGS_PROVIDER`         | `e5`                 | `e5` or `fake` (tests only). Recorded in every benchmark result.                          |
 | `EMBEDDINGS_CACHE_DIR`        | `./data/model-cache` | Where weights are cached (a volume in compose). Never downloaded per start.               |
 | `EMBEDDINGS_LOCAL_MODEL_PATH` | -                    | Directory with pre-seeded weights (`<dir>/Xenova/multilingual-e5-small/...`); no network. |
-| `NOTES_GIT_REMOTE`            | -                    | Private backup repo; `notes-cli push` pushes `main` there.                                |
 
 ## Switching embedding providers
 
@@ -78,16 +77,18 @@ docker compose exec mcp node node_modules/@my-hub/notes/dist/cli.js download-mod
 On a host that cannot reach huggingface.co, copy the model folder (`config.json`, `tokenizer*.json`,
 `onnx/model_quantized.onnx`) to `<dir>/Xenova/multilingual-e5-small/` and set `EMBEDDINGS_LOCAL_MODEL_PATH=<dir>`.
 
-## Reindex, backup, purge
+## Reindex, purge
 
 ```bash
 docker compose exec mcp node node_modules/@my-hub/notes/dist/cli.js reindex <userId>   # rebuild index from files
-docker compose exec mcp node node_modules/@my-hub/notes/dist/cli.js push <userId>      # push to NOTES_GIT_REMOTE
 docker compose exec mcp node node_modules/@my-hub/notes/dist/cli.js purge <userId>     # delete notes + index rows
 ```
 
-`<userId>` is the folder name under `NOTES_ROOT`. Files edited by hand (Obsidian, `git pull`) are indexed at startup
+`<userId>` is the folder name under `NOTES_ROOT`. Files edited by hand (Obsidian, a restored backup) are indexed at startup
 or by `reindex`.
+
+Backup: the worker's daily `notes-backup` job uploads a tar.gz of `NOTES_ROOT` to S3. Restore by untarring into the
+volume, then `reindex <userId>` (or restart: changed files are re-indexed at startup).
 
 ## Tests
 

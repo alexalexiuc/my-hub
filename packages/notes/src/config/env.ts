@@ -10,7 +10,7 @@ export const notesEnv = {
   get notesConfigured() {
     return getEnvVar('NOTES_DATABASE_URL', '') !== '';
   },
-  /** Directory holding one git repo of Markdown files per user: `<NOTES_ROOT>/<userId>/`. */
+  /** Directory holding one directory of Markdown files per user: `<NOTES_ROOT>/<userId>/`. */
   get NOTES_ROOT() {
     return getEnvVar('NOTES_ROOT', './data/notes');
   },
@@ -25,9 +25,5 @@ export const notesEnv = {
   /** Directory with pre-seeded model weights (`<dir>/<model id>/...`). When set, no network access is needed. */
   get EMBEDDINGS_LOCAL_MODEL_PATH() {
     return getEnvVar('EMBEDDINGS_LOCAL_MODEL_PATH', '');
-  },
-  /** Optional git remote of the private backup repo, e.g. `git@github.com:me/notes-backup.git`. */
-  get NOTES_GIT_REMOTE() {
-    return getEnvVar('NOTES_GIT_REMOTE', '');
   },
 };

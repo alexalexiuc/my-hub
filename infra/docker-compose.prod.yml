@@ -84,6 +84,7 @@ services:
       SES_FROM_EMAIL: ${SES_FROM_EMAIL:?SES_FROM_EMAIL is required}
       S3_LOGS_BUCKET: ${S3_LOGS_BUCKET:-}
       DOCKER_LOGS_DIR: /host/containers
+      NOTES_DIR: /host/notes
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
       EMAIL_VERIFICATION_SECRET: ${EMAIL_VERIFICATION_SECRET:?EMAIL_VERIFICATION_SECRET is required}
     depends_on:
@@ -93,6 +94,7 @@ services:
         condition: service_completed_successfully
     volumes:
       - /var/lib/docker/containers:/host/containers:ro
+      - notes_data:/host/notes:ro
     networks:
       - internal
     logging:
@@ -131,7 +133,6 @@ services:
       NOTES_ROOT: /app/data/notes
       EMBEDDINGS_PROVIDER: ${EMBEDDINGS_PROVIDER:-e5}
       EMBEDDINGS_CACHE_DIR: /app/data/model-cache
-      NOTES_GIT_REMOTE: ${NOTES_GIT_REMOTE:-}
       SES_FROM_EMAIL: ${SES_FROM_EMAIL:?SES_FROM_EMAIL is required}
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
       EMAIL_VERIFICATION_SECRET: ${EMAIL_VERIFICATION_SECRET:?EMAIL_VERIFICATION_SECRET is required}

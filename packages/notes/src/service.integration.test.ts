@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -39,12 +38,6 @@ describe.skipIf(!url)('NotesService (integration, FakeProvider)', () => {
   const remember = (subject: string, text: string, extra: Record<string, unknown> = {}) =>
     svc().remember({ subject, text, type: 'fact', date: '2026-11-21', category: 'services', ...extra });
 
-  const gitLog = () =>
-    execFileSync('git', ['log', '--format=%s'], { cwd: join(root, user) })
-      .toString()
-      .trim()
-      .split('\n');
-
   it('creates a note on first remember and appends on the second', async () => {
     const first = await remember('Carpet cleaning', 'CleanPro, 069xxxxxx', {
       aliases: ['covoare', 'химчистка ковров'],
@@ -73,14 +66,6 @@ describe.skipIf(!url)('NotesService (integration, FakeProvider)', () => {
     await remember('Carpet cleaning', 'CleanPro', { aliases: ['Curățare covoare'] });
     const res = await remember('curatare COVOARE', 'second visit was fine');
     expect(res).toMatchObject({ created: false, path: 'services/carpet-cleaning.md', matchedBy: 'name' });
-  });
-
-  it('makes one git commit per write', async () => {
-    const a = await remember('Engine oil', '5W-30 Castrol', { category: 'car' });
-    await remember('Engine oil', 'changed at 120000 km', { category: 'car' });
-    const log = gitLog();
-    expect(log).toHaveLength(2);
-    expect(log[1]).toBe(`notes(car/engine-oil): +entry ^${a.entryId}`);
   });
 
   it('finds notes by exact words, by typo and by alias', async () => {
@@ -133,7 +118,6 @@ describe.skipIf(!url)('NotesService (integration, FakeProvider)', () => {
     expect(await svc().deleteEntry(r.path, r.entryId)).toEqual({ path: r.path, noteDeleted: true });
     await expect(svc().read(r.path)).rejects.toThrow(/No note/);
     expect((await svc().browse()).map(n => n.path)).not.toContain(r.path);
-    expect(gitLog()[0]).toBe(`notes(services/carpet-cleaning): -entry ^${r.entryId}`);
   });
 
   it('keeps a note with free text when its last entry is deleted', async () => {
@@ -183,7 +167,7 @@ describe.skipIf(!url)('NotesService (integration, FakeProvider)', () => {
     expect((await svc().browse()).find(n => n.path === 'plumber.md')?.category).toBe('misc');
   });
 
-  describe('when indexing fails after the commit', () => {
+  describe('when indexing fails after the write', () => {
     afterEach(() => vi.restoreAllMocks());
 
     const failNextEmbed = () =>
@@ -331,7 +315,7 @@ describe.skipIf(!url)('NotesService (integration, FakeProvider)', () => {
     expect(page.remaining).toBe(1);
   });
 
-  it('merges a note into another in one commit', async () => {
+  it('merges a note into another', async () => {
     await remember('Engine oil castrol', 'castrol 5W-30', { category: 'car', date: '2026-01-01', tags: ['car'] });
     await remember('Engine oil mobil', 'mobil 0W-40', {
       category: 'car',
@@ -342,7 +326,6 @@ describe.skipIf(!url)('NotesService (integration, FakeProvider)', () => {
     });
     const from = 'car/engine-oil-mobil.md';
     const into = 'car/engine-oil-castrol.md';
-    const before = gitLog().length;
 
     const res = await svc().merge(from, into);
     expect(res).toMatchObject({ into, from, movedEntries: 1, aliases: ['Engine oil mobil', 'Motor oil'] });
@@ -361,10 +344,6 @@ describe.skipIf(!url)('NotesService (integration, FakeProvider)', () => {
     expect(rows.rowCount).toBe(0);
     expect((await svc().browse()).map(n => n.path)).toEqual([into]);
     expect((await svc().search({ queries: ['mobil'] })).hits[0]?.path).toBe(into);
-
-    const log = gitLog();
-    expect(log).toHaveLength(before + 1);
-    expect(log[0]).toBe(`notes: merge ${from} into ${into}`);
 
     await expect(svc().merge(into, into)).rejects.toThrow(/itself/);
     await expect(svc().merge('car/none.md', into)).rejects.toThrow(/No note at/);

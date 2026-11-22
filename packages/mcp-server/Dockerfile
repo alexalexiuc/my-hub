@@ -37,12 +37,12 @@ COPY --from=builder /prod/mcp-server/node_modules ./node_modules
 COPY --from=builder /prod/mcp-server/package.json ./package.json
 COPY --from=builder /app/packages/mcp-server/scripts ./scripts
 
-# git: the notes server keeps each user's Markdown files in a git repo (one commit per write, optional backup push).
+# ca-certificates: the embedding model download needs it.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git ca-certificates openssh-client \
+  && apt-get install -y --no-install-recommends ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-# Owned by `node` so fresh named volumes mounted here are writable (notes repo, embedding model cache).
+# Owned by `node` so fresh named volumes mounted here are writable (notes, embedding model cache).
 RUN mkdir -p /app/data/travel-documents /app/data/notes /app/data/model-cache \
   && chown node:node /app/data/travel-documents /app/data/notes /app/data/model-cache
 

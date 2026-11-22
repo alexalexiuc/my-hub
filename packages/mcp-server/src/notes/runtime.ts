@@ -31,7 +31,6 @@ export function getNotesRuntime(): Promise<NotesRuntime> {
       db,
       embedder,
       root: notesEnv.NOTES_ROOT,
-      gitRemote: notesEnv.NOTES_GIT_REMOTE,
     });
     await rt.start();
     logger.info(`[notes] ready in ${Date.now() - t0} ms (embeddings: ${embedder.name}/${embedder.model})`);

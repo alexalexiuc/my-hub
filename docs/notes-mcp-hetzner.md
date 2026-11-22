@@ -9,7 +9,7 @@ Everything below is for the VPS. Sandbox numbers (FakeProvider, 4 vCPU) are in `
 - [x] `docker volume create my-hub_notes_data` (external volume that holds the Markdown repos; `down -v` can never delete it). Done 2026-11-21.
 - [ ] The mcp image is now Debian (`node:26-bookworm-slim`), 1.06 GB built locally (onnxruntime, transformers). It builds and
       `download-model` works in it; CI's "build-and-push" / e2e job is its first CI build, watch it.
-- [ ] Optional now, needed for backup: `NOTES_GIT_REMOTE` (private repo) plus an SSH key or token the container can use.
+- [ ] Backup: the worker's `notes-backup` job needs `S3_BACKUP_BUCKET` / `AWS_REGION` (already used by `db-backup`).
 
 ## 1. Deploy
 
@@ -34,9 +34,8 @@ docker run -d --name notes-bench-db -p 127.0.0.1:5434:5432 -e POSTGRES_DB=notes 
 # build once without limits (turbo needs .git, which git archive drops, so build the two packages directly)
 docker run --rm -v /opt/notes-bench-src:/work -w /work node:26-bookworm-slim bash -c   'npm i -g corepack@0.36.0 && corepack enable && export CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 &&
    pnpm install --frozen-lockfile && pnpm --filter @my-hub/shared build && pnpm --filter @my-hub/notes build'
-# run with the mcp service's limits; git is required (the notes store commits every write)
-docker run --rm --network host --cpus 2 --memory 2g -v /opt/notes-bench-src:/work -w /work node:26-bookworm-slim bash -c   'apt-get update -qq && apt-get install -y -qq --no-install-recommends git ca-certificates >/dev/null &&
-   git config --global user.email bench@localhost && git config --global user.name bench &&
+# run with the mcp service's limits
+docker run --rm --network host --cpus 2 --memory 2g -v /opt/notes-bench-src:/work -w /work node:26-bookworm-slim bash -c   'apt-get update -qq && apt-get install -y -qq --no-install-recommends ca-certificates >/dev/null &&
    npm i -g corepack@0.36.0 && corepack enable && export COREPACK_ENABLE_DOWNLOAD_PROMPT=0 &&
    export NOTES_BENCH_DATABASE_URL=postgresql://notes:benchpw@127.0.0.1:5434/notes EMBEDDINGS_PROVIDER=e5 EMBEDDINGS_CACHE_DIR=/work/.model-cache &&
    pnpm --filter @my-hub/notes-bench bench -- --tier 1k,10k,50k &&
