@@ -99,9 +99,10 @@ describe('notes — remember, search and edit', () => {
       category: 'e2e',
       aliases: [`rugs zq${runId}`],
     });
-    // beforeAll purged the "e2e" category, so this create opens it.
-    expect(first).toMatchObject({ status: 'saved', created: true, newCategory: true });
-    expect(Array.isArray((first as { existingCategories?: unknown }).existingCategories)).toBe(true);
+    expect(first).toMatchObject({ status: 'saved', created: true });
+    // Usually opens "e2e" (beforeAll purges it), but another run on a shared stack may have created it first.
+    const opened = first as { newCategory?: true; existingCategories?: string[] };
+    if (opened.newCategory) expect(opened.existingCategories).not.toContain('e2e');
     expect(first.path).toMatch(/^e2e\/e2e-carpet-cleaning-zq/);
     created.push(first);
 
