@@ -100,6 +100,9 @@ describe('notes — remember, search and edit', () => {
       aliases: [`rugs zq${runId}`],
     });
     expect(first).toMatchObject({ status: 'saved', created: true });
+    // Usually opens "e2e" (beforeAll purges it), but another run on a shared stack may have created it first.
+    const opened = first as { newCategory?: true; existingCategories?: string[] };
+    if (opened.newCategory) expect(opened.existingCategories).not.toContain('e2e');
     expect(first.path).toMatch(/^e2e\/e2e-carpet-cleaning-zq/);
     created.push(first);
 
@@ -151,8 +154,12 @@ describe('notes — remember, search and edit', () => {
   });
 
   it('notes_browse and notes_recent include the note', async () => {
-    const { notes } = await call<{ notes: Header[] }>('notes_browse', { category: 'e2e' });
+    const { notes, categories } = await call<{ notes: Header[]; categories: { name: string; notes: number }[] }>(
+      'notes_browse',
+      { category: 'e2e' },
+    );
     expect(notes.find(n => n.path === created[0]!.path)?.entryCount).toBeGreaterThanOrEqual(2);
+    expect(categories.find(c => c.name === 'e2e')?.notes).toBeGreaterThanOrEqual(1);
     const ranked = await call<{ notes: Header[] }>('notes_browse', { queries: [subject], category: 'e2e', limit: 5 });
     expect(ranked.notes.map(n => n.path)).toContain(created[0]!.path);
     const { entries } = await call<{ entries: { path: string }[] }>('notes_recent', { limit: 20 });

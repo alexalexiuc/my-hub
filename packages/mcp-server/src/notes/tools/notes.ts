@@ -60,7 +60,10 @@ export const RememberSchema = z.object({
     .string()
     .trim()
     .optional()
-    .describe('Folder for a NEW note: services, home, car, appliances, garden, shops... Default "misc".'),
+    .describe(
+      'Folder for a NEW note. Reuse an existing category (notes_browse returns them with counts); create a new ' +
+        'one only when none fits. Lowercase, one word, e.g. services, home, car, garden. Default "misc".',
+    ),
   tags: z.array(z.string().trim().min(1)).max(10).optional().describe('Note-level tags.'),
   aliases: z
     .array(z.string().trim().min(1))
@@ -135,8 +138,9 @@ export const BrowseNotesSchema = z.object({
 });
 
 export const browseNotesTool: ToolHandler<typeof BrowseNotesSchema.shape> = async (input, { userId }) => {
-  const notes = await (await notesFor(userId)).browse(input);
-  return toolResponse({ count: notes.length, notes });
+  const service = await notesFor(userId);
+  const [notes, categories] = await Promise.all([service.browse(input), service.categories()]);
+  return toolResponse({ count: notes.length, notes, categories });
 };
 
 // ---- notes_review_duplicates / notes_merge / notes_mark_reviewed -------------------

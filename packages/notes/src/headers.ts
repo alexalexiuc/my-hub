@@ -1,4 +1,5 @@
 import type { Db } from './db';
+import { categoryOf } from './store';
 
 /** One note without its entries: enough to decide which notes to read. */
 export interface NoteHeader {
@@ -41,6 +42,27 @@ interface Row {
   updated: string | null;
   first_line: string | null;
   reviewed: boolean;
+}
+
+/** A category folder with the number of notes in it. */
+export interface CategoryCount {
+  name: string;
+  notes: number;
+}
+
+/** The user's categories with note counts, most used first, then by name. */
+export async function fetchCategories(db: Db, userId: string): Promise<CategoryCount[]> {
+  // Counted by folder, not the frontmatter `category` column: the folder is what notes_remember writes to, and a
+  // hand-edited note may carry a different frontmatter value.
+  const res = await db.query<{ path: string }>('SELECT path FROM notes WHERE user_id = $1', [userId]);
+  const counts = new Map<string, number>();
+  for (const { path } of res.rows) {
+    const name = categoryOf(path);
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return [...counts]
+    .map(([name, notes]) => ({ name, notes }))
+    .sort((a, b) => b.notes - a.notes || a.name.localeCompare(b.name));
 }
 
 /** Fetches note headers matching the filter, ordered by category then title (or oldest-update first). */

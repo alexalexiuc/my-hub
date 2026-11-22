@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { UserInputError, dedupeTrimmed, isIsoDateStr, logger, omitUndefined } from '@my-hub/shared/utils';
 import { ensureSchema, type Db } from './db';
 import { type EmbeddingProvider } from './embeddings';
-import { fetchHeaders, type HeaderFilter, type NoteHeader } from './headers';
+import { fetchCategories, fetchHeaders, type CategoryCount, type HeaderFilter, type NoteHeader } from './headers';
 import { Indexer, type IndexResult } from './indexer';
 import {
   ENTRY_TYPES,
@@ -60,6 +60,10 @@ export interface RememberResult {
   /** How an existing note was found: its file slug, its title/alias, or the explicit `path`. Null when created. */
   matchedBy: 'path' | 'name' | null;
   entryId: string;
+  /** Set only when this call created the first note of a category. */
+  newCategory?: true;
+  /** Set with `newCategory`: the categories that existed before this write (the new one is not in it). */
+  existingCategories?: string[];
   timings: { totalMs: number };
 }
 
@@ -280,6 +284,10 @@ export class NotesService {
         }
       }
 
+      // Categories before this write, only when creating: a new folder is reported with the ones that existed.
+      const existing = created ? (await fetchCategories(this.rt.db, this.userId)).map(c => c.name) : [];
+      const opensCategory = created && !existing.includes(categoryOf(path));
+
       const source =
         (await this.store.read(path)) ??
         createNoteText({
@@ -304,8 +312,8 @@ export class NotesService {
       await this.store.write(path, serializeNote(note));
       await this.indexAfterWrite(path);
 
-      return {
-        status: 'saved' as const,
+      const result: RememberResult = {
+        status: 'saved',
         path,
         title: fm.title,
         created,
@@ -313,6 +321,13 @@ export class NotesService {
         entryId,
         timings: { totalMs: Math.round((performance.now() - t0) * 100) / 100 },
       };
+      return Object.assign(
+        result,
+        omitUndefined({
+          newCategory: opensCategory ? (true as const) : undefined,
+          existingCategories: opensCategory ? existing : undefined,
+        }),
+      );
     });
   }
 
@@ -366,6 +381,12 @@ export class NotesService {
       [this.userId, Math.min(Math.max(limit, 1), 50)],
     );
     return res.rows;
+  }
+
+  /** All of the user's categories with their note counts, most used first, then by name. */
+  async categories(): Promise<CategoryCount[]> {
+    await this.ready();
+    return fetchCategories(this.rt.db, this.userId);
   }
 
   /** Note headers, filtered, and ranked by hybrid search when `queries` are given. */

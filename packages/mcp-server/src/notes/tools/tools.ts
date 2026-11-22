@@ -64,8 +64,11 @@ const notesTools = [
       'HOW: appends to the note whose title or alias is exactly `subject` (case and accents ignored); otherwise ' +
       'creates a new note. It does not guess: near-duplicates are fine and get cleaned up in a review pass, so ' +
       'reuse the exact existing title when you know it (notes_search / notes_browse first if unsure). ' +
-      'Give `aliases` in RO/RU/EN for new subjects, and `category` for new notes. One fact per call. ' +
-      '`path` = write to exactly this note. After a call with created: true, tell the user the new note title.',
+      'Give `aliases` in RO/RU/EN for new subjects, and `category` for new notes: reuse an existing one (call ' +
+      'notes_browse to see them with counts) rather than inventing a new one. One fact per call. ' +
+      '`path` = write to exactly this note. After a call with created: true, tell the user the new note title. ' +
+      'A result with newCategory: true created a new category folder and lists the `existingCategories`; there is ' +
+      'no tool to move a note, so tell the user the new category was created (and name it).',
     inputSchema: RememberSchema.shape,
     annotations: { idempotentHint: false, destructiveHint: false },
     callback: rememberTool,
@@ -110,7 +113,9 @@ const notesTools = [
     description:
       'Note headers (title, category, aliases, tags, entry count, first line), filtered by category, tag, ' +
       'updatedSince, unreviewedOnly, and ranked by `queries` when given (up to 200). For "what is on my list / ' +
-      'what do I have about X": browse, pick the relevant headers, then notes_read them.',
+      'what do I have about X": browse, pick the relevant headers, then notes_read them. The result also has ' +
+      '`categories` ({name, notes}: every category with its note count, unfiltered): check it before choosing a ' +
+      '`category` for notes_remember.',
     inputSchema: BrowseNotesSchema.shape,
     annotations: { readOnlyHint: true },
     callback: browseNotesTool,
