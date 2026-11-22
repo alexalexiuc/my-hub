@@ -267,7 +267,6 @@ export class NotesService {
       let path: string;
       let created = false;
       let matchedBy: RememberResult['matchedBy'] = null;
-      let before: CategoryCount[] | null = null;
 
       if (input.path) {
         assertNotePath(input.path);
@@ -285,7 +284,9 @@ export class NotesService {
         }
       }
 
-      if (created) before = await fetchCategories(this.rt.db, this.userId);
+      // Categories before this write, only when creating: a new folder is reported with the ones that existed.
+      const existing = created ? (await fetchCategories(this.rt.db, this.userId)).map(c => c.name) : [];
+      const opensCategory = created && !existing.includes(categoryOf(path));
 
       const source =
         (await this.store.read(path)) ??
@@ -311,7 +312,6 @@ export class NotesService {
       await this.store.write(path, serializeNote(note));
       await this.indexAfterWrite(path);
 
-      const isNewCategory = before !== null && !before.some(c => c.name === categoryOf(path));
       const result: RememberResult = {
         status: 'saved',
         path,
@@ -324,8 +324,8 @@ export class NotesService {
       return Object.assign(
         result,
         omitUndefined({
-          newCategory: isNewCategory ? (true as const) : undefined,
-          existingCategories: isNewCategory ? before?.map(c => c.name) : undefined,
+          newCategory: opensCategory ? (true as const) : undefined,
+          existingCategories: opensCategory ? existing : undefined,
         }),
       );
     });

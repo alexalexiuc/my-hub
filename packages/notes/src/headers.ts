@@ -51,12 +51,12 @@ export interface CategoryCount {
 
 /** The user's categories with note counts, most used first, then by name. */
 export async function fetchCategories(db: Db, userId: string): Promise<CategoryCount[]> {
-  const res = await db.query<{ category: string; n: string }>(
-    `SELECT category, count(*)::text AS n FROM notes WHERE user_id = $1
-     GROUP BY category ORDER BY count(*) DESC, category`,
+  const res = await db.query<CategoryCount>(
+    `SELECT category AS name, count(*)::int AS notes FROM notes WHERE user_id = $1
+     GROUP BY category ORDER BY notes DESC, name`,
     [userId],
   );
-  return res.rows.map(r => ({ name: r.category, notes: Number(r.n) }));
+  return res.rows;
 }
 
 /** Fetches note headers matching the filter, ordered by category then title (or oldest-update first). */
