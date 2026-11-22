@@ -169,7 +169,10 @@ jobs:
           script: |
             set -e
             cd /opt/my-hub
-            docker compose --project-name my-hub-staging               -f infra/docker-compose.staging.yml exec -T               -e EMBEDDINGS_PROVIDER=e5               mcp node node_modules/@my-hub/notes/dist/cli.js download-model
+            docker compose --project-name my-hub-staging \
+              -f infra/docker-compose.staging.yml exec -T \
+              -e EMBEDDINGS_PROVIDER=e5 \
+              mcp node node_modules/@my-hub/notes/dist/cli.js download-model
 
       - name: Run E2E tests
         run: pnpm test:e2e
