@@ -185,8 +185,10 @@ services:
       - /app/data/notes
       - /app/data/model-cache
     networks:
-      - internal-staging
-      - proxy
+      internal-staging:
+        # Hub reaches mcp through this alias: plain `mcp` also resolves over the shared proxy network to the other stack.
+        aliases: [mcp-internal]
+      proxy: {}
     logging:
       driver: json-file
       options:
@@ -224,7 +226,7 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
       NEXT_PUBLIC_MCP_URL: ${NEXT_PUBLIC_MCP_URL:?NEXT_PUBLIC_MCP_URL is required}
-      MCP_INTERNAL_URL: http://mcp:3001
+      MCP_INTERNAL_URL: http://mcp-internal:3001
       TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
       TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}

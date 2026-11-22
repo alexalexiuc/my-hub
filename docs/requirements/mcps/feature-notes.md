@@ -55,7 +55,6 @@ spike plan live in [`docs/notes-mcp-spec.md`](../../notes-mcp-spec.md).
 - [ ] HNSW index: needed above ~20k entries? (vector leg is a sequential scan today.)
 - [ ] RRF `k` and per-leg weights.
 - [ ] Vector legs always return nearest neighbours: add a minimum-similarity cut-off once real score distributions are known.
-- [ ] Hub "Delete all my data" does not yet remove notes (`notes-cli purge <userId>` does).
 
 ---
 

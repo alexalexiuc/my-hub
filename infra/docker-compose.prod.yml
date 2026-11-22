@@ -162,8 +162,10 @@ services:
     cpus: ${MCP_CPUS:-2}
     mem_limit: ${MCP_MEM_LIMIT:-2g}
     networks:
-      - internal
-      - proxy
+      internal:
+        # Hub reaches mcp through this alias: plain `mcp` also resolves over the shared proxy network to the other stack.
+        aliases: [mcp-internal]
+      proxy: {}
     logging:
       driver: json-file
       options:
@@ -195,7 +197,7 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub}
       NEXT_PUBLIC_MCP_URL: ${NEXT_PUBLIC_MCP_URL:?NEXT_PUBLIC_MCP_URL is required}
-      MCP_INTERNAL_URL: http://mcp:3001
+      MCP_INTERNAL_URL: http://mcp-internal:3001
       TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
       TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}

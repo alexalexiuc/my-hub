@@ -11,7 +11,7 @@ MCP sub-servers currently available:
 - **Travel** — trip planning, reservation capture, checklist preparation, companions, and document links
 - **Finances** — accounts, transactions, budgets, monthly plans, net worth, and portfolios
 - **Vacation** — Moldovan leave pay per day, best leave windows, and leave balance by rule-set bucket
-- **Notes** — a personal "remember this" index of small practical facts (vendors, products, prices, verdicts): Markdown files in git, hybrid full-text / trigram / vector search (`docs/requirements/mcps/feature-notes.md`)
+- **Notes** — a personal "remember this" index of small practical facts (vendors, products, prices, verdicts): Markdown files on a volume (backed up daily to S3), hybrid full-text / trigram / vector search (`docs/requirements/mcps/feature-notes.md`)
 - **Products Manager** _(planned)_ — home inventory, shopping lists, product catalog
 
 The former **Todo** and **Apiary** sub-servers were proofs of concept and have been removed, including their

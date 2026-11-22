@@ -2,8 +2,8 @@
 #
 # Why bake instead of one `docker build` per image:
 #   - Targets build in parallel.
-#   - The Dockerfiles share an identical prefix (fetch -> install -> shared build),
-#     which BuildKit runs once and reuses across all targets.
+#   - The Alpine Dockerfiles share an identical prefix (fetch -> install -> shared build),
+#     which BuildKit runs once and reuses across them. The mcp-server image is Debian and builds its own.
 #   - Each image gets its own GitHub Actions cache scope. With a single default
 #     scope every image's cache export overwrites the previous one's.
 #

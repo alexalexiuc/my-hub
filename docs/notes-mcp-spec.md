@@ -8,7 +8,7 @@
 
 Build a new **Notes MCP server** inside the `my-hub` monorepo: a personal "remember this" index for small practical facts that are easy to forget (which vendor or product was used and how it turned out, a price paid, a how-to). Claude writes/searches it remotely from claude.ai on the phone.
 
-- **Plain Markdown files** are the source of truth (git repo on a volume).
+- **Plain Markdown files** are the source of truth (a directory per user on a volume).
 - **Postgres + pgvector + pg_trgm + unaccent** is a disposable search index.
 - **Local embedding model** in-process (`multilingual-e5-small`, int8 ONNX, via Transformers.js). No external embedding API.
 - **Hybrid search** (full-text + trigram + vector, fused with RRF) so vague, typo'd, or cross-language queries still find the right note.
@@ -39,13 +39,13 @@ Alex Alexiuc — software engineer / team lead, 10+ years. Main stack: TypeScrip
 | Area             | Decision                                                                                         | Why                                                                                                  |
 | ---------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | Hosting          | Remote MCP on Hetzner, in my-hub                                                                 | Must work from claude.ai on the phone. Nothing runs on Alex's laptop. Reuses existing OAuth/Traefik. |
-| Source of truth  | Markdown files, git repo on a Docker volume                                                      | Human-readable, editable in Obsidian or any editor, diffable, free history.                          |
+| Source of truth  | Markdown files on a Docker volume                                                                | Human-readable, editable in Obsidian or any editor, diffable.                                        |
 | Index            | Postgres with `pgvector`, `pg_trgm`, `unaccent`                                                  | One DB for FTS + fuzzy + vectors → hybrid ranking in one place. Index is rebuildable from files.     |
 | Embeddings       | `Xenova/multilingual-e5-small`, int8 ONNX, in-process via `@huggingface/transformers` (384 dims) | Free, private, multilingual (RO/RU/EN), ~120 MB, fast on CPU, no extra container.                    |
 | Search           | Hybrid: FTS + trigram + vector, fused with RRF                                                   | "Google-like": finds things not literally in the query, survives typos and language mixing.          |
 | Query expansion  | Done by Claude, not the server: `search` takes `queries: string[]`                               | The calling LLM is a better query expander than anything we'd build.                                 |
 | Writes           | Explicit by default; Claude may offer to save (draft policy §8)                                  | Fully automatic writes would fill the store with noise.                                              |
-| Backup           | Daily `git push` of the notes repo to a private GitHub repo                                      | Tiny data, free, versioned. DB not backed up.                                                        |
+| Backup           | Daily tar.gz of the notes volume to S3 (worker `notes-backup` job)                               | Tiny data, cheap. DB not backed up (rebuildable).                                                    |
 | Scope of content | Practical facts about _things and services_                                                      | Not personal/biographical facts about Alex. Claude's own built-in memory covers those.               |
 
 ### Rejected alternatives (don't re-litigate without new evidence)
@@ -111,7 +111,6 @@ Rules:
 - `^id` = short stable random ID (Obsidian block-ref style), unique within the file, so entries can be edited/deleted precisely.
 - Free-form text between frontmatter and entries (e.g. a short description) is allowed and should be preserved and indexed, but Claude only appends or edits single entry lines. It never rewrites a whole file.
 - Slugs: lowercase, ASCII, hyphenated (transliterate RO/RU titles for the filename; keep the original in `title`/`aliases`).
-- Every write = one git commit, e.g. `notes(services/carpet-cleaning): +entry ^v8c4`.
 - Parser must round-trip: parse → serialize must not change a file it didn't edit (whitespace, unknown frontmatter keys, comments).
 
 ## 5. Architecture
@@ -119,7 +118,7 @@ Rules:
 ```
 docker compose
 ├── notes-mcp   NestJS + MCP (streamable HTTP) + embedding provider
-│               volume: notes repo (git)
+│               volume: notes files
 │               model cache volume
 └── postgres    image: pgvector/pgvector (pg18; pg19 when the image is available)
 ```
@@ -127,7 +126,7 @@ docker compose
 - Match the existing my-hub MCP apps for transport, OAuth, and Traefik routing. OAuth can be stubbed/disabled locally for the spike but must be wired before connecting to claude.ai.
 - Set compose resource limits that mirror the VPS (e.g. `cpus: 2`, `mem_limit: 2g` for notes-mcp) so local and remote numbers are comparable. Check the actual VPS size and existing services' footprint first.
 - Load the embedding pipeline once at boot (singleton). Report readiness only after the model is loaded.
-- Serialize writes per file (simple mutex/queue) to avoid git/index races.
+- Serialize writes per file (simple mutex/queue) to avoid file/index races.
 
 ## 6. Database schema (starting point)
 
@@ -233,10 +232,10 @@ Tool descriptions matter as much as code here. Write them carefully, with an exa
 
 ## 9. Indexing
 
-- **On write:** update file → git commit → upsert the note row → embed and upsert only changed entries (`line_hash`) → delete removed entries.
+- **On write:** update file → upsert the note row → embed and upsert only changed entries (`line_hash`) → delete removed entries.
 - **On startup:** walk the notes dir, compare `content_hash`, reindex changed files, drop rows for deleted files.
-- **Manual edits** (Obsidian, `git pull`): picked up on startup or via `reindex`. A file watcher is optional and can come later.
-- **Notes repo init:** if the volume is empty, `git init` it. A remote (private GitHub repo) is configured via env. The push job is a separate concern (cron/systemd timer or an in-app scheduler); a failed push must not block writes.
+- **Manual edits** (Obsidian, a restored backup): picked up on startup or via `reindex`. A file watcher is optional and can come later.
+- **Backup:** the worker's daily `notes-backup` job uploads a tar.gz of the notes volume to S3 (§15).
 
 ## 10. Work plan
 
@@ -346,13 +345,13 @@ packages/notes-bench/
 
 ### What exists
 
-| Piece                                                                                                                                                | Where                                                                                                                                |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Core library: parser (byte-exact round trip), git store + write queue, embeddings (e5 / fake), schema, indexer, hybrid search, exact-name match, CLI | `packages/notes`                                                                                                                     |
-| MCP tools (11: search, read, remember, edit/delete entry, add alias, recent, browse, review duplicates, merge, mark reviewed) on `/api/notes/mcp`    | `packages/mcp-server/src/notes`                                                                                                      |
-| Benchmarks + fixtures (95 notes, 53 golden queries)                                                                                                  | `packages/notes-bench`                                                                                                               |
-| Compose (`notes-db`, volumes, limits), mcp Dockerfile, CI pgvector service, e2e spec                                                                 | `infra/`, `packages/mcp-server/Dockerfile`, `.github/workflows/ci.yml`, `packages/mcp-server/e2e/notes.e2e.ts`                       |
-| Docs                                                                                                                                                 | `packages/notes/README.md`, `packages/notes-bench/README.md`, `docs/notes-mcp-hetzner.md`, `docs/requirements/mcps/feature-notes.md` |
+| Piece                                                                                                                                                 | Where                                                                                                                                |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Core library: parser (byte-exact round trip), file store + write queue, embeddings (e5 / fake), schema, indexer, hybrid search, exact-name match, CLI | `packages/notes`                                                                                                                     |
+| MCP tools (11: search, read, remember, edit/delete entry, add alias, recent, browse, review duplicates, merge, mark reviewed) on `/api/notes/mcp`     | `packages/mcp-server/src/notes`                                                                                                      |
+| Benchmarks + fixtures (95 notes, 53 golden queries)                                                                                                   | `packages/notes-bench`                                                                                                               |
+| Compose (`notes-db`, volumes, limits), mcp Dockerfile, CI pgvector service, e2e spec                                                                  | `infra/`, `packages/mcp-server/Dockerfile`, `.github/workflows/ci.yml`, `packages/mcp-server/e2e/notes.e2e.ts`                       |
+| Docs                                                                                                                                                  | `packages/notes/README.md`, `packages/notes-bench/README.md`, `docs/notes-mcp-hetzner.md`, `docs/requirements/mcps/feature-notes.md` |
 
 ### Deviations from this handover (and why)
 

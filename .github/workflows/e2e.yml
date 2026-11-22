@@ -157,6 +157,20 @@ jobs:
           E2E_HUB_USER_EMAIL: ${{ vars.E2E_HUB_USER_EMAIL }}
           IMAGE_OWNER: ${{ env.IMAGE_OWNER }}
 
+      # Staging runs with fake embeddings (deterministic E2E), so nothing else would catch a broken e5 path in the
+      # image (onnxruntime binaries, model download, cache volume permissions). Runs as `node`, like the server.
+      - name: Smoke-test the e5 model download
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 15m
+          script: |
+            set -e
+            cd /opt/my-hub
+            docker compose --project-name my-hub-staging               -f infra/docker-compose.staging.yml exec -T               -e EMBEDDINGS_PROVIDER=e5               mcp node node_modules/@my-hub/notes/dist/cli.js download-model
+
       - name: Run E2E tests
         run: pnpm test:e2e
         env:
