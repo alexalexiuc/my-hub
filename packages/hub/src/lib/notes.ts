@@ -5,10 +5,10 @@ import { hubEnvConfig } from '@/config/env';
 export type DeleteAllNotesResult = { deleted: boolean; reason?: string };
 
 /**
- * Deletes the user's notes (Markdown files, their git history and index rows). They live only on the mcp-server,
+ * Deletes the user's notes (Markdown files and index rows). They live only on the mcp-server,
  * so this calls its internal endpoint with a one-minute token. Throws when the server cannot be reached or
- * refuses, so "Delete all my data" never reports success while notes survive. Skipped only when no MCP server
- * URL is configured at all (the UI sandbox).
+ * refuses, so "Delete all my data" never reports success while notes survive. Skipped only when `MCP_INTERNAL_URL`
+ * is not set (the UI sandbox).
  */
 export async function deleteAllUserNotes(userId: string): Promise<DeleteAllNotesResult> {
   const base = hubEnvConfig.MCP_INTERNAL_URL;

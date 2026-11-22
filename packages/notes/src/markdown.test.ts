@@ -201,4 +201,9 @@ describe('markdown parser', () => {
     expect(fm).toMatchObject({ title: 'Acme\n---', tags: ['a\nb'], reviewed: false, updated: '2026-01-01' });
     expect(oneLine('  Acme\n---\t x ')).toBe('Acme --- x');
   });
+
+  it('does not treat a line with an impossible calendar date as an entry', () => {
+    const note = parseNote('---\ntitle: X\n---\n- 2026-02-30 [fact] nope\n- 2026-02-28 [fact] ok\n');
+    expect(listEntries(note).map(e => e.date)).toEqual(['2026-02-28']);
+  });
 });

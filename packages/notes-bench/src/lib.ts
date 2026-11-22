@@ -12,6 +12,7 @@ import {
   type NotesRuntime,
   type NotesService,
 } from '@my-hub/notes';
+import { benchEnv } from './config/env';
 
 const PACKAGE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const FIXTURES_DIR = join(PACKAGE_DIR, 'fixtures');
@@ -206,14 +207,13 @@ export interface Harness {
  * index are never touched. `cleanup()` drops both.
  */
 export async function createHarness(args: Args, shared?: EmbeddingProvider): Promise<Harness> {
-  const url = process.env.NOTES_BENCH_DATABASE_URL ?? process.env.NOTES_DATABASE_URL;
+  const url = benchEnv.DATABASE_URL;
   if (!url) throw new Error('Set NOTES_BENCH_DATABASE_URL (or NOTES_DATABASE_URL): Postgres with pgvector.');
   const schema = `bench_${Date.now().toString(36)}`;
   const root = await mkdtemp(join(tmpdir(), 'notes-bench-'));
   const db = await createDb({ connectionString: url, schema, max: 16 });
   // `shared` reuses an already loaded model, so one run never holds two copies in memory.
-  const embedder =
-    shared ?? createEmbeddingProvider(args.flags.get('provider') ?? process.env.EMBEDDINGS_PROVIDER ?? 'e5');
+  const embedder = shared ?? createEmbeddingProvider(args.flags.get('provider') ?? benchEnv.EMBEDDINGS_PROVIDER);
   const runtime = await createNotesRuntime({ db, embedder, root });
   const svc = runtime.forUser('bench');
   const dbVersion = (await db.query<{ v: string }>('SHOW server_version')).rows[0]!.v;

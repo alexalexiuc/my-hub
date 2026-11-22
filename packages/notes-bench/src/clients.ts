@@ -1,6 +1,7 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import type { SearchLeg } from '@my-hub/notes';
 import type { Args, Harness } from './lib';
+import { benchEnv } from './config/env';
 
 /** The server only speaks MCP 2026-07-28 (stateless), so the client pins it. */
 const MCP_PROTOCOL_VERSION = '2026-07-28';
@@ -34,10 +35,10 @@ export function directClient(h: Harness): SearchClient {
 }
 
 async function accessToken(target: string, args: Args): Promise<string> {
-  const direct = args.flags.get('token') ?? process.env.NOTES_BENCH_TOKEN;
+  const direct = args.flags.get('token') || benchEnv.TOKEN;
   if (direct) return direct;
-  const clientId = args.flags.get('client-id') ?? process.env.NOTES_BENCH_CLIENT_ID;
-  const clientSecret = args.flags.get('client-secret') ?? process.env.NOTES_BENCH_CLIENT_SECRET;
+  const clientId = args.flags.get('client-id') || benchEnv.CLIENT_ID;
+  const clientSecret = args.flags.get('client-secret') || benchEnv.CLIENT_SECRET;
   if (!clientId || !clientSecret) {
     throw new Error('--target needs --token, or --client-id and --client-secret (or NOTES_BENCH_* env vars).');
   }

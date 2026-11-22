@@ -33,14 +33,15 @@ describe('deleteAllUserNotes', () => {
     expect(await verifyToken(token, SECRET)).toMatchObject({ userId: 'user-1', purpose: NOTES_DELETE_ALL_PURPOSE });
   });
 
-  it('falls back to the public MCP URL', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ deleted: false })));
+  it('skips the call when MCP_INTERNAL_URL is not set, even if the public MCP URL is', async () => {
+    const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    await deleteAllUserNotes('user-1');
-    expect(String(fetchMock.mock.calls[0]![0])).toBe('https://mcp.example.test/api/notes/delete-all');
+    await expect(deleteAllUserNotes('user-1')).resolves.toMatchObject({ deleted: false });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('throws when the mcp-server refuses, so the Hub never reports a partial delete as success', async () => {
+    vi.stubEnv('MCP_INTERNAL_URL', 'http://mcp:3001');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('nope', { status: 401 })));
     await expect(deleteAllUserNotes('user-1')).rejects.toThrow(/401/);
   });

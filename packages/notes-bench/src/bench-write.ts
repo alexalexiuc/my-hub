@@ -2,7 +2,7 @@ import { loadCorpus } from './corpus';
 import { flagNum, rng, stats, timed, type Args, type Harness } from './lib';
 import { writeSeedNotes } from './seed';
 
-/** `remember` end to end (exact-name lookup + file write + git commit + embed + upsert), half appends, half new notes. */
+/** `remember` end to end (exact-name lookup + file write + embed + upsert), half appends, half new notes. */
 export async function benchWrite(args: Args, h: Harness): Promise<Record<string, unknown>> {
   await writeSeedNotes(h);
   await h.svc.reindex({ full: true });

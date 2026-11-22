@@ -1,10 +1,11 @@
 import { createEmbeddingProvider, type EmbeddingProvider } from '@my-hub/notes';
 import { loadCorpus } from './corpus';
 import { flagNum, printTable, providerMeta, stats, timed, type Args } from './lib';
+import { benchEnv } from './config/env';
 
 /** Cold load, single-line latency and batch throughput of the embedding provider. */
 export async function benchEmbed(args: Args, shared?: EmbeddingProvider): Promise<Record<string, unknown>> {
-  const kind = args.flags.get('provider') ?? process.env.EMBEDDINGS_PROVIDER ?? 'e5';
+  const kind = args.flags.get('provider') ?? benchEnv.EMBEDDINGS_PROVIDER;
   const embedder = shared ?? createEmbeddingProvider(kind);
   const corpus = await loadCorpus();
   const lines = corpus.flatMap(n => n.entries.map(e => e.text));
