@@ -17,7 +17,6 @@ const entryIdSchema = z
   .describe('Entry id (the ^id of the line, without the caret), as returned in search results.');
 
 const ENTRY_TYPE_HELP = 'note (anything general) | idea | fact | verdict (was it good?) | contact | price | how-to.';
-const entryTypeSchema = z.enum(ENTRY_TYPES);
 
 // ---- notes_search -------------------------------------------------------------
 
@@ -53,7 +52,7 @@ export const RememberSchema = z.object({
     .min(1)
     .describe('What the note is about, as a short title: the thing the user will ask about later.'),
   text: z.string().trim().min(1).describe('One line: the fact itself. No newlines.'),
-  type: entryTypeSchema.optional().describe(`${ENTRY_TYPE_HELP} Default "${DEFAULT_ENTRY_TYPE}" when unsure.`),
+  type: z.enum(ENTRY_TYPES).optional().describe(`${ENTRY_TYPE_HELP} Default "${DEFAULT_ENTRY_TYPE}" when unsure.`),
   path: z
     .string()
     .trim()
@@ -82,13 +81,7 @@ export const RememberSchema = z.object({
 
 export const rememberTool: ToolHandler<typeof RememberSchema.shape> = async (input, { userId, timezone }) => {
   const notes = await notesFor(userId);
-  return toolResponse(
-    await notes.remember({
-      ...input,
-      type: input.type ?? DEFAULT_ENTRY_TYPE,
-      date: input.date ?? currentDateString(timezone),
-    }),
-  );
+  return toolResponse(await notes.remember({ ...input, date: input.date ?? currentDateString(timezone) }));
 };
 
 // ---- notes_edit_entry / notes_delete_entry / notes_add_alias --------------------
@@ -97,7 +90,7 @@ export const EditEntrySchema = z.object({
   path: pathSchema,
   entryId: entryIdSchema,
   text: z.string().trim().min(1).optional().describe('New text for the line (one line).'),
-  type: entryTypeSchema.optional().describe(`New type. ${ENTRY_TYPE_HELP}`),
+  type: z.enum(ENTRY_TYPES).optional().describe(`New type. ${ENTRY_TYPE_HELP}`),
 });
 
 // The service throws a UserInputError (a tool error) when neither text nor type is given.
