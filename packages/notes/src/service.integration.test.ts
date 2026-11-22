@@ -38,6 +38,23 @@ describe.skipIf(!url)('NotesService (integration, FakeProvider)', () => {
   const remember = (subject: string, text: string, extra: Record<string, unknown> = {}) =>
     svc().remember({ subject, text, type: 'fact', date: '2026-11-21', category: 'services', ...extra });
 
+  it('lists categories with counts and flags a newly created category on remember', async () => {
+    expect(await svc().categories()).toEqual([]);
+    const first = await remember('Carpet cleaning', 'CleanPro');
+    expect(first).toMatchObject({ created: true, newCategory: true, existingCategories: [] });
+    const append = await remember('Carpet cleaning', 'again');
+    expect(append).not.toHaveProperty('newCategory');
+    expect(append).not.toHaveProperty('existingCategories');
+    await remember('Barber', 'Figaro');
+    const home = await remember('Detergent', 'Ariel', { category: 'home' });
+    expect(home).toMatchObject({ newCategory: true, existingCategories: ['services'] });
+    expect(await remember('Soap', 'Dove', { category: 'home' })).not.toHaveProperty('newCategory');
+    expect(await svc().categories()).toEqual([
+      { name: 'home', notes: 2 },
+      { name: 'services', notes: 2 },
+    ]);
+  });
+
   it('creates a note on first remember and appends on the second', async () => {
     const first = await remember('Carpet cleaning', 'CleanPro, 069xxxxxx', {
       aliases: ['covoare', 'химчистка ковров'],

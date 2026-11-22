@@ -99,7 +99,9 @@ describe('notes — remember, search and edit', () => {
       category: 'e2e',
       aliases: [`rugs zq${runId}`],
     });
-    expect(first).toMatchObject({ status: 'saved', created: true });
+    // beforeAll purged the "e2e" category, so this create opens it.
+    expect(first).toMatchObject({ status: 'saved', created: true, newCategory: true });
+    expect(Array.isArray((first as { existingCategories?: unknown }).existingCategories)).toBe(true);
     expect(first.path).toMatch(/^e2e\/e2e-carpet-cleaning-zq/);
     created.push(first);
 
@@ -151,8 +153,12 @@ describe('notes — remember, search and edit', () => {
   });
 
   it('notes_browse and notes_recent include the note', async () => {
-    const { notes } = await call<{ notes: Header[] }>('notes_browse', { category: 'e2e' });
+    const { notes, categories } = await call<{ notes: Header[]; categories: { name: string; notes: number }[] }>(
+      'notes_browse',
+      { category: 'e2e' },
+    );
     expect(notes.find(n => n.path === created[0]!.path)?.entryCount).toBeGreaterThanOrEqual(2);
+    expect(categories.find(c => c.name === 'e2e')?.notes).toBeGreaterThanOrEqual(1);
     const ranked = await call<{ notes: Header[] }>('notes_browse', { queries: [subject], category: 'e2e', limit: 5 });
     expect(ranked.notes.map(n => n.path)).toContain(created[0]!.path);
     const { entries } = await call<{ entries: { path: string }[] }>('notes_recent', { limit: 20 });

@@ -43,6 +43,22 @@ interface Row {
   reviewed: boolean;
 }
 
+/** A category folder with the number of notes in it. */
+export interface CategoryCount {
+  name: string;
+  notes: number;
+}
+
+/** The user's categories with note counts, most used first, then by name. */
+export async function fetchCategories(db: Db, userId: string): Promise<CategoryCount[]> {
+  const res = await db.query<{ category: string; n: string }>(
+    `SELECT category, count(*)::text AS n FROM notes WHERE user_id = $1
+     GROUP BY category ORDER BY count(*) DESC, category`,
+    [userId],
+  );
+  return res.rows.map(r => ({ name: r.category, notes: Number(r.n) }));
+}
+
 /** Fetches note headers matching the filter, ordered by category then title (or oldest-update first). */
 export async function fetchHeaders(
   db: Db,
