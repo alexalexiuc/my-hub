@@ -2,6 +2,7 @@ import { Cron } from 'croner';
 import { logger } from '@my-hub/shared/utils';
 import { syncDueFlights } from './flight-sync.js';
 import { backupDbToS3 } from './db-backup.js';
+import { backupNotesToS3 } from './notes-backup.js';
 import { backupDockerLogsToS3 } from './docker-log-backup.js';
 import { cleanupOldDbLogs } from './db-log-cleanup.js';
 import { sendCaloriesWeeklyReports } from './calories-weekly-report.js';
@@ -29,6 +30,11 @@ export const tasks: Task[] = [
     name: 'db-backup',
     cron: '0 0 1 * * *', // every day at 1:00 AM
     fn: backupDbToS3,
+  },
+  {
+    name: 'notes-backup',
+    cron: '0 0 2 * * *', // every day at 2:00 AM
+    fn: backupNotesToS3,
   },
   {
     name: 'docker-log-backup',

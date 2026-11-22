@@ -1,21 +1,23 @@
 # my-hub — agent guide
 
 Personal MCP hub. Claude.ai connects over OAuth 2.1 to MCP sub-servers (`calories`, `travel`, `finances`,
-`vacation`) at `https://mcp.alexiuc.dev/api/<domain>/mcp`; a Next.js Hub (`hub.alexiuc.dev`) shows and edits the
+`vacation`, `notes`) at `https://mcp.alexiuc.dev/api/<domain>/mcp`; a Next.js Hub (`hub.alexiuc.dev`) shows and edits the
 same data; a worker runs scheduled jobs. pnpm 12 + turbo, TypeScript ESM everywhere. Keep changes small and
 package-scoped.
 
 ## Packages
 
-| Package                                         | Holds                                                                                                        |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `packages/shared`                               | Drizzle schema (`src/db/schema`), constants, types, **all DB queries** (`src/services/<domain>`), pure utils |
-| `packages/mcp-server`                           | Fastify + MCP sub-servers. No raw Drizzle — import `@my-hub/shared/services`                                 |
-| `packages/hub`                                  | Next.js App Router UI + `/api` routes, NextAuth. No raw Drizzle, no Fastify/MCP code                         |
-| `packages/worker`                               | Cron jobs (`src/poll.ts`) through shared services only — no DB, no HTTP routes                               |
-| `packages/e2e`                                  | Hub UI + REST Playwright specs (`tests/*.spec.ts`)                                                           |
-| `packages/mcp-server/e2e`                       | MCP tool E2E via the MCP protocol (vitest, `*.e2e.ts`). MCP tool tests go here, not `packages/e2e`           |
-| `infra`, `docker-bake.hcl`, `.github/workflows` | Deployment/CI only                                                                                           |
+| Package                                         | Holds                                                                                                                                                                   |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/shared`                               | Drizzle schema (`src/db/schema`), constants, types, **all DB queries** (`src/services/<domain>`), pure utils                                                            |
+| `packages/mcp-server`                           | Fastify + MCP sub-servers. No raw Drizzle — import `@my-hub/shared/services`                                                                                            |
+| `packages/notes`                                | Notes server core: Markdown parser, file store, embeddings, pgvector indexer, hybrid search. Own Postgres (`NOTES_DATABASE_URL`), not Drizzle; `docs/notes-mcp-spec.md` |
+| `packages/notes-bench`                          | Re-runnable latency / RAM / relevance benchmarks for the notes server (`pnpm --filter @my-hub/notes-bench bench:*`)                                                     |
+| `packages/hub`                                  | Next.js App Router UI + `/api` routes, NextAuth. No raw Drizzle, no Fastify/MCP code                                                                                    |
+| `packages/worker`                               | Cron jobs (`src/poll.ts`) through shared services only — no DB, no HTTP routes                                                                                          |
+| `packages/e2e`                                  | Hub UI + REST Playwright specs (`tests/*.spec.ts`)                                                                                                                      |
+| `packages/mcp-server/e2e`                       | MCP tool E2E via the MCP protocol (vitest, `*.e2e.ts`). MCP tool tests go here, not `packages/e2e`                                                                      |
+| `infra`, `docker-bake.hcl`, `.github/workflows` | Deployment/CI only                                                                                                                                                      |
 
 Change order for cross-layer work: shared → mcp-server → hub → worker → infra → workflows.
 

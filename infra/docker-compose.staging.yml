@@ -31,6 +31,27 @@ services:
       retries: 5
 
   # ---------------------------------------------------------------------------
+  # Notes index — PostgreSQL 18 + pgvector. Disposable: rebuilt from the Markdown files by `reindex`.
+  # ---------------------------------------------------------------------------
+  notes-db:
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: notes
+      POSTGRES_USER: notes
+      POSTGRES_PASSWORD: ${NOTES_DB_PASSWORD:-notes_staging} # internal network only
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - /var/lib/postgresql/data
+    networks:
+      - internal-staging
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U notes -d notes']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
   # DB Migrations (Drizzle) — runs once per deploy then exits
   # ---------------------------------------------------------------------------
   migrate:
@@ -133,10 +154,19 @@ services:
       TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
       TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
+      # Notes MCP: Markdown repo on a volume + pgvector index + local embeddings (docs/notes-mcp-spec.md).
+      NOTES_DATABASE_URL: postgresql://notes:${NOTES_DB_PASSWORD:-notes_staging}@notes-db:5432/notes
+      NOTES_ROOT: /app/data/notes
+      EMBEDDINGS_PROVIDER: ${EMBEDDINGS_PROVIDER:-fake}
+      EMBEDDINGS_CACHE_DIR: /app/data/model-cache
       SES_FROM_EMAIL: ${SES_FROM_EMAIL:?SES_FROM_EMAIL is required}
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
       EMAIL_VERIFICATION_SECRET: ${EMAIL_VERIFICATION_SECRET:?EMAIL_VERIFICATION_SECRET is required}
     depends_on:
+      # Not required: if notes-db is down, the other MCP servers still start and notes tools return an error.
+      notes-db:
+        condition: service_healthy
+        required: false
       db:
         condition: service_healthy
       migrate:
@@ -152,9 +182,13 @@ services:
         read_only: true
         volume:
           nocopy: true
+      - /app/data/notes
+      - /app/data/model-cache
     networks:
-      - internal-staging
-      - proxy
+      internal-staging:
+        # Hub reaches mcp through this alias: plain `mcp` also resolves over the shared proxy network to the other stack.
+        aliases: [mcp-internal]
+      proxy: {}
     logging:
       driver: json-file
       options:
@@ -192,6 +226,7 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
       DATABASE_URL: postgresql://${POSTGRES_USER:-myhub_staging}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-myhub_staging}
       NEXT_PUBLIC_MCP_URL: ${NEXT_PUBLIC_MCP_URL:?NEXT_PUBLIC_MCP_URL is required}
+      MCP_INTERNAL_URL: http://mcp-internal:3001
       TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
       TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}

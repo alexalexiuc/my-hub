@@ -25,6 +25,7 @@
     "@fastify/formbody": "^9.0.0",
     "@modelcontextprotocol/node": "^2.1.2",
     "@modelcontextprotocol/server": "^2.3.1",
+    "@my-hub/notes": "workspace:*",
     "@my-hub/shared": "workspace:*",
     "close-with-grace": "^2.0.0",
     "dotenv-mono": "^1.5.1",

@@ -27,3 +27,4 @@ packages/hub/public/maplibre
 docs
 .pnpm-store
 .tmp
+**/.model-cache

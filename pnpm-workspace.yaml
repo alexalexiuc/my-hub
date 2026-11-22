@@ -3,6 +3,9 @@ packages:
 allowBuilds:
   es5-ext: false
   esbuild: true
+  # Its postinstall only downloads optional CUDA libs; the CPU binaries ship in the package (used by @my-hub/notes).
+  onnxruntime-node: false
+  protobufjs: false # only needed for its own CLI
   sharp: false
 overrides:
   # airports-data is only used for its airports.json; these are its CLI deps (never run) and pull in

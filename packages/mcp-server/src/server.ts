@@ -16,6 +16,9 @@ import { createCaloriesServer } from './calories/server.js';
 import { createTravelServer } from './travel/server.js';
 import { createFinancesServer } from './finances/server.js';
 import { createVacationServer } from './vacation/server.js';
+import { createNotesServer } from './notes/server.js';
+import { warmNotesRuntime } from './notes/runtime.js';
+import { notesInternalRoutes } from './notes/routes.js';
 import { envConfig } from './config/env.js';
 
 export async function buildServer() {
@@ -74,13 +77,20 @@ export async function buildServer() {
   // Health check: /api/health
   await app.register(healthRoutes, { prefix: '/api' });
 
-  // MCP sub-servers: /api/calories/mcp  /api/travel/mcp  /api/finances/mcp  /api/vacation/mcp
+  // MCP sub-servers: /api/calories/mcp  /api/travel/mcp  /api/finances/mcp  /api/vacation/mcp  /api/notes/mcp
   // Registered directly on app (not via prefix plugin) because FastifyMcpServer
   // manages its own child scopes and fp()-based plugins bypass prefix inheritance.
   registerMcpSubServer(app, '/api/calories/mcp', McpServerNames.Calories, createCaloriesServer);
   registerMcpSubServer(app, '/api/travel/mcp', McpServerNames.Travel, createTravelServer);
   registerMcpSubServer(app, '/api/finances/mcp', McpServerNames.Finances, createFinancesServer);
   registerMcpSubServer(app, '/api/vacation/mcp', McpServerNames.Vacation, createVacationServer);
+  registerMcpSubServer(app, '/api/notes/mcp', McpServerNames.Notes, createNotesServer);
+
+  // Internal, Hub-only: POST /api/notes/delete-all ("Delete all my data").
+  await app.register(notesInternalRoutes);
+
+  // Load the embedding model in the background (when notes are configured) so the first search is fast.
+  warmNotesRuntime();
 
   // Monitor route: /api/monitor
   // Uses fp() so registered at root — path is set to /api/monitor directly in monitor.ts.

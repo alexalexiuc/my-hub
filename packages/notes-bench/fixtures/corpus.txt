@@ -1,0 +1,418 @@
+// Seed corpus for the notes benchmark. Hand-written, mixed RO / RU / EN, no real personal data.
+// Format: a line "# category | Title | alias; alias" starts a note; then one "YYYY-MM-DD type text" line per entry.
+
+# services | Carpet cleaning | rug cleaning; covoare; curățare covoare; химчистка ковров
+2026-03-02 contact CleanPro, 069xxxxxx, they pick up from the flat
+2026-03-02 price 450 MDL for 3 rugs, ready in 2 days
+2026-03-10 verdict Good result, smell gone, would use again
+
+# services | Dry cleaning | curățătorie chimică; химчистка одежды; clothes cleaning
+2026-01-14 contact Lux Clean on Pușkin street, 078xxxxxx
+2026-01-14 verdict Ruined the wool coat lining, never again
+2026-02-20 fact Pickup from 10:00 to 18:00, cash only
+
+# services | Barber | frizerie; tuns; парикмахер; стрижка; haircut
+2026-02-05 contact Mihai at Bro Barbershop, 060xxxxxx, book by Telegram
+2026-02-05 price 250 MDL haircut plus beard
+2026-04-01 verdict Best fade I got in Chișinău
+
+# services | Plumber | instalator; сантехник; pipe repair
+2026-05-12 contact Nicu, 079xxxxxx, came the same day
+2026-05-12 price 600 MDL to replace the kitchen mixer, parts extra
+2026-05-13 verdict Clean work, explains what he does
+
+# services | Electrician | electrician; электрик; wiring
+2026-06-03 contact Sergiu, 068xxxxxx, certified, gives a guarantee paper
+2026-06-03 price 150 MDL per socket installed
+2026-06-04 how-to Turn off the main breaker before he arrives, the panel is in the hallway
+
+# services | Internet provider | provider internet; интернет; Starnet; Moldtelecom
+2026-01-09 fact Starnet 500 Mbps costs 180 MDL per month
+2026-01-09 verdict Starnet more stable than Moldtelecom, fewer evening drops
+2026-03-22 contact Starnet support 022xxxxxx, answers in under a minute
+
+# services | Dentist | stomatolog; dantist; стоматолог; teeth cleaning
+2026-02-18 contact Dr. Ionescu, DentaPlus clinic, 069xxxxxx
+2026-02-18 price 600 MDL professional cleaning
+2026-02-18 verdict Painless, explained everything, booked next check in 6 months
+
+# services | Notary | notar; нотариус; document certification
+2026-04-15 contact Notary Cebotari near the center, 022xxxxxx
+2026-04-15 price 350 MDL for a power of attorney
+2026-04-15 how-to Bring passport and the original property document
+
+# services | Moving company | mutări; перевозка; transport mobilă; movers
+2026-07-02 contact MoveIt, 3 workers plus truck, 078xxxxxx
+2026-07-02 price 1800 MDL for a 2 room flat inside Chișinău
+2026-07-03 verdict On time, careful with the fridge, tip appreciated
+
+# services | Tailor | croitorie; ателье; hemming trousers; ушить
+2026-03-30 contact Atelier Maria behind the market, 067xxxxxx
+2026-03-30 price 80 MDL to shorten trousers
+2026-03-30 verdict Ready in 24 hours, neat seams
+
+# services | Window cleaning | spălat geamuri; мойка окон; windows
+2026-05-25 contact SparkleWin, 069xxxxxx, brings own ladder
+2026-05-25 price 400 MDL for 6 windows
+2026-05-25 verdict Streak free, did the balcony too
+
+# services | Pest control | deratizare; dezinsecție; дезинсекция; cockroaches
+2026-08-07 contact SanitarPro, 060xxxxxx, odorless gel method
+2026-08-07 price 700 MDL for the whole apartment, 1 year guarantee
+2026-08-20 verdict Cockroaches gone in a week
+
+# services | Locksmith | lăcătuș; слесарь; open the door; lock change
+2026-09-11 contact Vasile, 24h, 079xxxxxx
+2026-09-11 price 500 MDL to open a locked door, lock change extra
+2026-09-11 how-to Keep the receipt, insurer asks for it
+
+# services | Car wash | spălătorie auto; автомойка; washing the car
+2026-04-02 contact Crystal Wash near Ciocana, 022xxxxxx
+2026-04-02 price 120 MDL exterior plus interior vacuum
+2026-04-02 verdict No scratches, wax option worth it before winter
+
+# services | Tire shop | vulcanizare; шиномонтаж; tyre change; balancing wheels
+2026-10-12 contact Vulcanizare 24, Tăbăcăriei street, 068xxxxxx
+2026-10-12 price 80 MDL per wheel swap, balancing included
+2026-10-12 how-to Book on Saturdays at least two days ahead, queue is long
+
+# services | Courier | curier; курьер; delivery; Nova Poshta
+2026-02-11 fact Nova Poshta parcel to Chișinău takes 2 days
+2026-02-11 price 60 MDL for a 2 kg parcel
+2026-02-11 verdict Nova Poshta more reliable than the local post
+
+# services | Pharmacy | farmacie; аптека; Felicia; Catena
+2026-03-03 fact Felicia open 24h on Ștefan cel Mare
+2026-03-03 verdict Catena cheaper for vitamins, Felicia better stocked
+
+# services | Physiotherapist | kinetoterapeut; массажист; back pain; masaj
+2026-06-17 contact Ana, Kinetic clinic, 078xxxxxx
+2026-06-17 price 300 MDL per session, 8 sessions recommended
+2026-07-30 verdict Back pain much better after the course
+
+# services | Photographer | fotograf; фотограф; photo session
+2026-08-15 contact Dumitru, 067xxxxxx, portfolio on Instagram
+2026-08-15 price 1500 MDL for a 1 hour session, 30 edited photos
+2026-08-16 verdict Good with kids, delivered in 5 days
+
+# services | Language school | școală de limbi; курсы английского; English lessons
+2026-09-05 contact Speak Up, Botanica, 022xxxxxx
+2026-09-05 price 900 MDL per month, groups of 6
+2026-10-05 verdict Teacher good, schedule changes too often
+
+# car | Engine oil | ulei motor; моторное масло; 5W-30; oil change
+2026-01-20 fact Passat B8 needs 5W-30 VW 504.00, 4.3 liters
+2026-01-20 verdict Castrol Edge 5W-30 quieter than Mobil 1 on cold starts
+2026-01-20 price 1100 MDL for 5 liters at Autodoc
+2026-09-02 fact Next change at 135000 km
+
+# car | Oil filter | filtru ulei; масляный фильтр; Mann
+2026-01-20 fact Mann HU 7008 z fits the Passat B8
+2026-01-20 price 160 MDL, original is 380 MDL
+
+# car | Air filter | filtru aer; воздушный фильтр; engine air filter
+2026-03-12 fact Bosch S0399 air filter for Passat B8
+2026-03-12 how-to Clips on the side, no tools needed, 2 minutes
+
+# car | Cabin filter | filtru habitaclu; салонный фильтр; pollen filter
+2026-03-12 fact Mann CUK 26009 charcoal cabin filter
+2026-03-12 how-to Behind the glove box, press the side tabs
+
+# car | Brake pads | plăcuțe frână; тормозные колодки; brake discs
+2026-05-20 fact Front pads ATE ceramic, discs Brembo
+2026-05-20 price 1400 MDL pads plus labour
+2026-05-20 verdict Less dust than the old pads, no squeal
+
+# car | Windshield washer fluid | lichid parbriz; омывайка; winter washer
+2026-11-02 fact Winter fluid rated minus 25, Sonax from Kaufland
+2026-11-02 price 45 MDL per 5 liters
+
+# car | Wiper blades | ștergătoare; дворники; wipers
+2026-10-01 fact 600 and 475 mm, Bosch Aerotwin flat blades
+2026-10-01 verdict Silent, last a full year, better than the cheap ones
+
+# car | Car battery | baterie auto; аккумулятор; accumulator
+2025-12-10 fact Varta Blue Dynamic 70Ah bought, 3 year warranty
+2025-12-10 price 2300 MDL with old battery returned
+2026-11-05 how-to Check terminals every autumn, apply grease
+
+# car | Tire pressure | presiunea în anvelope; давление в шинах; tyre pressure
+2026-04-04 fact 2.4 bar front, 2.6 bar rear when loaded
+2026-04-04 how-to Sticker is inside the fuel flap
+
+# car | Winter tires | anvelope de iarnă; зимняя резина; Michelin
+2025-11-15 fact Michelin Alpin 6, 205/55 R16
+2025-11-15 price 6800 MDL for four
+2025-11-15 verdict Grip on ice noticeably better than Continental
+
+# car | Car insurance | asigurare auto; RCA; страховка; Green Card
+2026-02-01 fact RCA with Asito, 1100 MDL per year
+2026-02-01 how-to Renew a week before expiry, the app sends a reminder
+2026-02-01 verdict Claims process simple, they paid in 10 days
+
+# car | Technical inspection | inspecția tehnică; техосмотр; ITP
+2026-03-05 fact ITP station at Aeroport, 250 MDL
+2026-03-05 how-to Bring registration, insurance and the fire extinguisher
+
+# car | Car polish | polish auto; полировка; wax; ceramic coating
+2026-06-14 contact Detail Studio, 060xxxxxx
+2026-06-14 price 2500 MDL full polish plus wax
+2026-06-14 verdict Paint looks new, holds up after 3 washes
+
+# car | Fuel | benzină; бензин; petrol station; Petrom
+2026-04-18 verdict Petrom 98 gives smoother idle than the cheap stations
+2026-04-18 fact Tank 66 liters, average 7.2 l per 100 km
+
+# home | Washing detergent | detergent rufe; стиральный порошок; laundry powder; Ariel
+2026-02-08 verdict Ariel powder cleans better than Persil on cold wash
+2026-02-08 price 175 MDL for 4 kg at Metro
+2026-03-01 verdict Skip Dixi gel, leaves residue on dark clothes
+
+# home | Fabric softener | balsam de rufe; ополаскиватель; Lenor
+2026-02-08 verdict Lenor with the blue label smells best, a little goes a long way
+
+# home | Dishwasher tablets | tablete mașina de spălat vase; таблетки для посудомойки; Finish
+2026-03-14 verdict Finish Quantum good, Somat leaves white film
+2026-03-14 price 220 MDL for 60 tablets
+2026-03-14 how-to Use rinse aid and salt together for hard water
+
+# home | Dish soap | detergent de vase; средство для мытья посуды; Fairy
+2026-01-25 verdict Fairy lasts twice as long as Pur
+2026-01-25 price 48 MDL per 900 ml
+
+# home | Descaler | anticalcar; средство от накипи; limescale; citric acid
+2026-04-10 how-to Citric acid 50 g per liter, run the kettle once, rinse twice
+2026-04-10 verdict Cheaper than branded descaler, works the same
+
+# home | Bathroom mold | mucegai baie; плесень в ванной; mold removal
+2026-05-02 how-to Spray Cillit Bang mold remover, wait 15 minutes, scrub, ventilate
+2026-05-02 verdict Bleach did nothing on the silicone, replace the silicone instead
+
+# home | Paint | vopsea; краска; wall paint; Dulux
+2026-08-20 fact Dulux Diamond matt white for the bedroom, 2.5 liters per 12 sqm
+2026-08-20 price 780 MDL for 5 liters
+2026-08-22 verdict Covers in two coats, no smell after a day
+
+# home | Light bulbs | becuri; лампочки; LED; E27
+2026-01-30 fact Bedroom E27 warm white 2700K 9W, hallway GU10 4000K
+2026-01-30 verdict Philips holds up, no-name ones flicker after months
+
+# home | Curtains | perdele; шторы; blackout curtains
+2026-09-18 fact Blackout curtains from IKEA Majgull 2 pieces 145x250
+2026-09-18 price 640 MDL pair, hemmed at the tailor
+
+# home | Mattress | saltea; матрас; sleeping
+2026-10-22 fact Medium firm 160x200 pocket spring, Dormeo
+2026-10-22 price 6200 MDL on sale
+2026-11-10 verdict Back pain gone after a month
+
+# home | Garbage bags | saci de gunoi; мусорные пакеты; trash bags
+2026-02-02 fact 60 liter, strong ones from Linella do not rip
+2026-02-02 price 32 MDL per roll of 20
+
+# home | Air freshener | odorizant; освежитель воздуха; room scent
+2026-06-06 verdict Glade sticks last a month, sprays fade in a day
+
+# home | Fire extinguisher | extinctor; огнетушитель; safety
+2026-03-09 fact 2 kg powder ABC, expires March 2029, kept in the hallway
+2026-03-09 price 280 MDL
+
+# home | Water filter | filtru de apă; фильтр для воды; Brita
+2026-07-07 fact Brita Marella, cartridge Maxtra Pro every 4 weeks
+2026-07-07 price 95 MDL per cartridge
+
+# home | Heating | încălzire; отопление; radiators; bleeding radiators
+2026-10-15 how-to Bleed the radiators with the small key before the first cold week
+2026-10-15 fact Heating starts mid October, bill about 900 MDL per month in winter
+
+# home | Pillows | perne; подушки; sleeping pillow
+2026-09-30 verdict Memory foam pillow too hot in summer, buckwheat husk one is better
+
+# appliances | Dishwasher | mașină de spălat vase; посудомоечная машина; Bosch
+2026-02-12 fact Bosch SMS46 bought, 45 cm slim, model from 2024
+2026-02-12 price 9800 MDL at Darwin
+2026-02-12 how-to Run the self clean cycle monthly with citric acid
+
+# appliances | Washing machine | mașină de spălat; стиральная машина; Samsung
+2025-10-03 fact Samsung WW80, 8 kg, bought 2025-10
+2025-10-03 how-to Clean the drain filter every two months, bottom right panel
+2026-04-30 verdict Quiet on spin, uses less water than the old LG
+
+# appliances | Robot vacuum | aspirator robot; робот-пылесос; Roborock
+2026-03-27 fact Roborock S8, brush replaced every 6 months
+2026-03-27 price 11500 MDL
+2026-03-27 verdict Maps the flat well, struggles with thick rugs
+
+# appliances | Kettle | fierbător; чайник; Philips
+2026-01-05 verdict Philips glass kettle 1.7 L, scale visible but easy to clean
+2026-01-05 price 520 MDL
+
+# appliances | Coffee machine | espressor; кофемашина; De'Longhi; coffee
+2026-05-30 fact De'Longhi Magnifica, descale every 2 months
+2026-05-30 how-to Beans from Cafea Moldova, grind setting 4 for espresso
+2026-05-30 verdict Better than the capsule machine, cheaper per cup
+
+# appliances | Fridge | frigider; холодильник; Atlant
+2025-08-19 fact Atlant 2 door, 340 liters, no frost
+2025-08-19 how-to Defrost the freezer drawer once a year even with no frost
+
+# appliances | Air conditioner | aer condiționat; кондиционер; AC service
+2026-04-22 contact Frigo Service, 069xxxxxx, cleans the indoor unit
+2026-04-22 price 350 MDL yearly service per unit
+2026-04-22 how-to Service in April before the season, not July
+
+# appliances | Microwave | cuptor cu microunde; микроволновка; Samsung
+2025-12-01 fact Samsung 23 L solo, grill model was not needed
+2025-12-01 price 1900 MDL
+
+# appliances | Vacuum cleaner | aspirator; пылесос; Dyson
+2026-02-25 verdict Dyson V11 battery lasts 40 minutes, enough for the flat
+2026-02-25 price 8900 MDL on sale at Darwin
+
+# appliances | Iron | fier de călcat; утюг; steam iron
+2026-03-18 verdict Tefal Easy Steam works well, descale monthly
+
+# appliances | Air purifier | purificator de aer; очиститель воздуха; Xiaomi
+2026-01-28 fact Xiaomi Air Purifier 4, filter lasts 6 months
+2026-01-28 price 140 MDL for a filter on AliExpress
+
+# garden | Lawn mower | mașină de tuns iarba; газонокосилка; mowing
+2026-05-09 fact Bosch Rotak 34, cable, enough for 200 sqm
+2026-05-09 how-to Cut at 4 cm in summer, never more than a third at once
+
+# garden | Fertilizer | îngrășământ; удобрение; tomatoes
+2026-04-28 how-to Tomatoes: Kristalon every 2 weeks from flowering
+2026-04-28 verdict Manure only in autumn, otherwise too much green and few fruit
+
+# garden | Tomato seeds | semințe de roșii; семена помидоров; varieties
+2026-03-15 fact Bought Inima de Bou, Cherry Red and Moldavskii Rannii
+2026-03-15 price 15 MDL per pack at Agro Market
+2026-08-30 verdict Inima de Bou best taste, cherry gave the most
+
+# garden | Garden tools | unelte de grădină; садовые инструменты; Fiskars
+2026-04-02 verdict Fiskars pruners worth the price, cheap ones bend
+2026-04-02 price 420 MDL
+
+# garden | Watering | irigare; полив; drip irrigation
+2026-05-15 fact Drip line 16 mm, timer Gardena set for 6:00, 20 minutes
+2026-05-15 verdict Saved a lot of time, water bill unchanged
+
+# garden | Apple trees | meri; яблони; spraying
+2026-03-20 how-to Spray with copper sulfate before buds open, then again after flowering
+2026-03-20 fact Varieties: Golden, Idared, Florina
+
+# garden | Pest spray | insecticid; средство от вредителей; aphids
+2026-06-12 how-to Soap water plus a little oil against aphids, repeat after rain
+2026-06-12 verdict Chemical sprays were not needed this year
+
+# garden | Firewood | lemne de foc; дрова; delivery
+2026-10-09 contact Ion, 078xxxxxx, delivers dry oak
+2026-10-09 price 1400 MDL per cubic meter, 3 delivered
+2026-10-09 verdict Dry as promised, correct volume
+
+# shops | Groceries | alimente; продукты; Linella; Kaufland; Metro
+2026-02-03 verdict Linella cheapest for dairy, Kaufland best for meat
+2026-02-03 fact Metro needs a card but sells in bulk at lower prices
+
+# shops | Electronics store | magazin de electronice; магазин электроники; Darwin; Enter
+2026-02-12 verdict Darwin has the best warranty service, Enter cheaper on small items
+2026-02-12 how-to Always ask for the price match
+
+# shops | Hardware store | magazin de construcții; строительный магазин; Bricostore; Nr.1
+2026-08-18 verdict Nr.1 cheaper for screws and fittings, Bricostore better paint selection
+
+# shops | Bakery | brutărie; пекарня; bread; Franzeluța
+2026-03-04 verdict Best bread from the corner bakery on Albișoara, fresh until 10:00
+2026-03-04 price 9 MDL per loaf
+
+# shops | Pet shop | magazin zoologic; зоомагазин; Zoo Planet
+2026-09-14 fact Zoo Planet carries the dog food I use, delivery free over 500 MDL
+2026-09-14 price 520 MDL for a 12 kg bag
+
+# shops | Wine shop | magazin de vinuri; винный магазин; Cricova; wine
+2026-12-02 verdict Cricova Cabernet reserve reliable gift, 280 MDL
+2026-12-02 contact Vinoteca at Ștefan cel Mare has tastings on Fridays
+
+# pets | Dog food | hrană pentru câini; корм для собак; kibble; Acana
+2026-09-14 fact Acana Adult medium breed, 12 kg bag lasts 7 weeks
+2026-09-14 verdict Better coat than with Pedigree, less shedding
+
+# pets | Veterinarian | veterinar; ветеринар; vaccination
+2026-06-20 contact Dr. Popa, VetLife clinic, 069xxxxxx
+2026-06-20 fact Rabies and complex vaccine every year in June
+2026-06-20 price 450 MDL for both vaccines
+
+# pets | Dog walker | plimbare câini; выгул собак; dog sitter
+2026-07-10 contact Alina, 068xxxxxx, 100 MDL per walk
+2026-07-10 verdict Dog loves her, sends photos
+
+# pets | Flea treatment | tratament purici; средство от блох; Bravecto
+2026-04-05 fact Bravecto chew tablet every 3 months
+2026-04-05 price 520 MDL
+
+# health | Vitamin D | vitamina D; витамин Д; supplement
+2026-11-12 fact Vitamin D3 2000 IU daily from October to April
+2026-11-12 verdict Solgar drops easier than tablets
+2026-11-12 price 190 MDL for 60 ml at Catena
+
+# health | Sunscreen | cremă de protecție solară; солнцезащитный крем; SPF
+2026-06-02 verdict La Roche Posay Anthelios SPF 50 does not sting the eyes
+2026-06-02 price 310 MDL
+
+# health | Blood test lab | laborator analize; лаборатория анализы; Synevo
+2026-03-25 contact Synevo Chișinău, book online, results in 1 day
+2026-03-25 how-to Fasting 8 hours, water only
+2026-03-25 price 520 MDL for the basic panel
+
+# electronics | Phone charger | încărcător telefon; зарядка; USB-C
+2026-01-17 verdict Anker 65W GaN charges laptop and phone, better than the original
+2026-01-17 price 420 MDL
+
+# electronics | Router | router wifi; роутер; TP-Link
+2026-02-14 fact TP-Link Archer AX55, set 5 GHz channel 36, 2.4 GHz channel 6
+2026-02-14 how-to Reset button is a pinhole at the back, hold 10 seconds
+
+# electronics | Laptop | laptop; ноутбук; MacBook
+2026-10-08 fact Work laptop MacBook Pro 14 M3, 32 GB RAM
+2026-10-08 how-to Battery calibrated monthly, keep charge between 20 and 80
+
+# electronics | Headphones | căști; наушники; Sony
+2026-05-05 verdict Sony WH-1000XM5 best noise cancelling on the train, battery 30 hours
+2026-05-05 price 5200 MDL
+
+# electronics | Printer | imprimantă; принтер; HP
+2026-01-22 verdict Brother laser printer cheaper per page than HP inkjet
+2026-01-22 fact Toner TN-1050 refill at a service costs 120 MDL
+
+# kids | Baby formula | lapte praf; детская смесь; Nan
+2026-02-27 verdict Nan Optipro worked, Humana gave colic
+2026-02-27 price 380 MDL per box
+
+# kids | Kindergarten | grădiniță; детский сад; enrollment
+2026-08-01 fact Enrollment opens in August, bring birth certificate and vaccination card
+2026-08-01 contact Kindergarten number 25 secretary, 022xxxxxx
+
+# kids | Toys | jucării; игрушки; Lego
+2026-12-01 verdict Lego Duplo best for 2 years old, wooden puzzles second
+2026-12-01 price 650 MDL for the large Duplo box
+
+# travel | Airport taxi | taxi aeroport; такси в аэропорт; transfer
+2026-05-22 fact Yandex Go to the airport about 220 MDL, fixed price in the app
+2026-05-22 how-to Order 10 minutes before leaving, arrivals area is busy
+
+# travel | Luggage | bagaj; чемодан; suitcase
+2026-04-12 verdict Samsonite cabin suitcase survived 3 years, wheels still fine
+2026-04-12 fact Wizz Air cabin bag 40x30x20 free, bigger one paid
+
+# food | Pizza place | pizzerie; пиццерия; takeaway pizza
+2026-03-29 verdict Il Patio best thin crust, delivery 40 minutes
+2026-03-29 price 190 MDL for a large Margherita
+
+# food | Coffee beans | cafea boabe; кофе в зернах; Lavazza
+2026-05-30 verdict Lavazza Crema e Aroma good for the machine, Illy too sour
+2026-05-30 price 380 MDL per kg
+
+# food | Honey | miere; мёд; local apiary
+2026-08-12 contact Beekeeper from Orhei, 078xxxxxx, acacia honey
+2026-08-12 price 160 MDL per kg, he delivers
+2026-08-12 verdict Best acacia honey, stays liquid for months

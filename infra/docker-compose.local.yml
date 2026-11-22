@@ -24,13 +24,30 @@ services:
       TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
       TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
+      # Notes MCP: Markdown repo on a volume + pgvector index + local embeddings (docs/notes-mcp-spec.md).
+      NOTES_DATABASE_URL: postgresql://notes:${NOTES_DB_PASSWORD}@notes-db:5432/notes
+      NOTES_ROOT: /app/data/notes
+      EMBEDDINGS_PROVIDER: ${EMBEDDINGS_PROVIDER:-e5}
+      EMBEDDINGS_CACHE_DIR: /app/data/model-cache
       SES_FROM_EMAIL: ${SES_FROM_EMAIL:?SES_FROM_EMAIL is required}
       UNSUBSCRIBE_SECRET: ${UNSUBSCRIBE_SECRET:?UNSUBSCRIBE_SECRET is required}
       EMAIL_VERIFICATION_SECRET: ${EMAIL_VERIFICATION_SECRET:?EMAIL_VERIFICATION_SECRET is required}
+    depends_on:
+      # Not required: if notes-db is down, the other MCP servers still start and notes tools return an error.
+      notes-db:
+        condition: service_healthy
+        required: false
+    # Mirrors the VPS so benchmark numbers from a dev box and from the server are comparable.
+    cpus: ${MCP_CPUS:-2}
+    mem_limit: ${MCP_MEM_LIMIT:-2g}
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     volumes:
       - ./data/travel-documents:/app/data/travel-documents
+      # Named volume, not a bind mount: it inherits the image's node-owned /app/data/notes, while a missing
+      # ./data/notes bind directory would be created root-owned on Linux and fail the first write.
+      - notes_data:/app/data/notes
+      - notes_model_cache:/app/data/model-cache
     ports:
       - '3001:3001'
 
@@ -79,6 +96,7 @@ services:
       DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://${POSTGRES_USER:-myhub}:${POSTGRES_PASSWORD}@host.docker.internal:5432/${POSTGRES_DB:-myhub}}
       HUB_URL: ${HUB_URL:-http://localhost:3000}
       NEXT_PUBLIC_MCP_URL: ${NEXT_PUBLIC_MCP_URL:-http://localhost:3001}
+      MCP_INTERNAL_URL: http://mcp:3001
       TRAVEL_FILES_ROOT: ${TRAVEL_FILES_ROOT:-/app/data/travel-documents}
       TRAVEL_FILES_MAX_MB: ${TRAVEL_FILES_MAX_MB:-15}
       TRAVEL_FILES_ALLOWED_MIME: ${TRAVEL_FILES_ALLOWED_MIME:-application/pdf,image/jpeg,image/png,image/webp}
@@ -91,3 +109,29 @@ services:
       - ./data/travel-documents:/app/data/travel-documents
     ports:
       - '3000:3000'
+
+  # ---------------------------------------------------------------------------
+  # Notes index — PostgreSQL 18 + pgvector. Disposable: rebuilt from the Markdown files by `reindex`.
+  # ---------------------------------------------------------------------------
+  notes-db:
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:5433:5432' # psql / bench against the local notes index
+    environment:
+      POSTGRES_DB: notes
+      POSTGRES_USER: notes
+      POSTGRES_PASSWORD: ${NOTES_DB_PASSWORD:?NOTES_DB_PASSWORD is required}
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - notes_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U notes -d notes']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  notes_data:
+  notes_db_data:
+  notes_model_cache:

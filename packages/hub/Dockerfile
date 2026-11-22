@@ -37,6 +37,7 @@ ENV UNSUBSCRIBE_SECRET=build-placeholder
 ENV EMAIL_VERIFICATION_SECRET=build-placeholder
 ENV SES_FROM_EMAIL=noreply@placeholder.dev
 ENV HUB_URL=http://localhost:3000
+ENV MCP_INTERNAL_URL=
 ENV E2E_TEST_EMAILS=
 
 RUN pnpm --filter @my-hub/hub build

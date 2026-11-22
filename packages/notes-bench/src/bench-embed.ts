@@ -1,0 +1,48 @@
+import { createEmbeddingProvider, type EmbeddingProvider } from '@my-hub/notes';
+import { loadCorpus } from './corpus';
+import { flagNum, printTable, providerMeta, stats, timed, type Args } from './lib';
+import { benchEnv } from './config/env';
+
+/** Cold load, single-line latency and batch throughput of the embedding provider. */
+export async function benchEmbed(args: Args, shared?: EmbeddingProvider): Promise<Record<string, unknown>> {
+  const kind = args.flags.get('provider') ?? benchEnv.EMBEDDINGS_PROVIDER;
+  const embedder = shared ?? createEmbeddingProvider(kind);
+  const corpus = await loadCorpus();
+  const lines = corpus.flatMap(n => n.entries.map(e => e.text));
+  const line = (i: number) => lines[i % lines.length]!;
+
+  const cold = await timed(async () => {
+    await embedder.ready();
+    await embedder.embedQueries(['warmup']);
+  });
+
+  const n = flagNum(args, 'n', 1000);
+  const single: number[] = [];
+  for (let i = 0; i < n; i++) single.push((await timed(() => embedder.embedPassages([line(i)]))).ms);
+
+  const batches = 20;
+  const batchSize = 32;
+  const t = performance.now();
+  for (let b = 0; b < batches; b++) {
+    await embedder.embedPassages(Array.from({ length: batchSize }, (_, i) => line(b * batchSize + i)));
+  }
+  const linesPerSec = Math.round(((batches * batchSize) / (performance.now() - t)) * 1000);
+  const singleLineMs = stats(single);
+
+  printTable(
+    `embed (${embedder.name})`,
+    ['metric', 'value'],
+    [
+      ['cold load (ms)', Math.round(cold.ms)],
+      ['single line p50 / p95 (ms)', `${singleLineMs.p50} / ${singleLineMs.p95}`],
+      ['batch of 32 (lines/s)', linesPerSec],
+    ],
+  );
+
+  return {
+    ...providerMeta(embedder),
+    coldLoadMs: Math.round(cold.ms),
+    singleLineMs,
+    batch32LinesPerSec: linesPerSec,
+  };
+}

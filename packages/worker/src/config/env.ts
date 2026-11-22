@@ -48,4 +48,8 @@ export const workerEnvConfig = {
   get DOCKER_LOGS_DIR() {
     return getEnvVar('DOCKER_LOGS_DIR', '/host/containers');
   },
+  /** Mounted notes directory (read-only) to back up; empty disables the notes backup. */
+  get NOTES_DIR() {
+    return getEnvVar('NOTES_DIR', '');
+  },
 };

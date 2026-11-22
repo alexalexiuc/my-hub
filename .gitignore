@@ -77,3 +77,6 @@ vitest.shims.d.ts
 
 # Copied from node_modules by packages/hub/scripts/copy-maplibre-worker.mjs
 packages/hub/public/maplibre/
+
+# Embedding model weights (notes bench / local runs)
+.model-cache
