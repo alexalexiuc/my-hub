@@ -20,6 +20,16 @@ export function assertNotePath(path: string): void {
   if (!ok) throw new UserInputError(`Invalid note path "${path}". Expected "<category>/<slug>.md".`);
 }
 
+/** The title a note without a `title:` gets: its file name without `.md` (`misc/foo.md` -> `foo`). */
+export function defaultTitle(path: string): string {
+  return path.replace(/^.*\//, '').replace(/\.md$/, '');
+}
+
+/** Directory name for a user's notes under the notes root. */
+export function userDirName(userId: string): string {
+  return userId.replace(/[^A-Za-z0-9_-]/g, '_');
+}
+
 /** The category of a note path: its first folder, or `misc` for a file at the repo root. */
 export function categoryOf(path: string): string {
   const slash = path.indexOf('/');

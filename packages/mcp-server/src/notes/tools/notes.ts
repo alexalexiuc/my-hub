@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ENTRY_TYPES } from '@my-hub/notes';
-import { currentDateString } from '@my-hub/shared/utils';
+import { currentDateString, isIsoDateStr } from '@my-hub/shared/utils';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import { toolResponse } from '../../shared/toolsUtils';
 import type { ToolHandler } from '../../shared/types';
@@ -67,7 +67,10 @@ export const RememberSchema = z.object({
     .max(10)
     .optional()
     .describe('Other names for this subject (RO / RU / EN) so later searches find it.'),
-  date: yyyyMmDdSchema.optional().describe('When it happened (YYYY-MM-DD). Defaults to today.'),
+  date: yyyyMmDdSchema
+    .refine(isIsoDateStr, 'Must be a real calendar date (YYYY-MM-DD)')
+    .optional()
+    .describe('When it happened (YYYY-MM-DD). Defaults to today.'),
 });
 
 export const rememberTool: ToolHandler<typeof RememberSchema.shape> = async (input, { userId, timezone }) => {

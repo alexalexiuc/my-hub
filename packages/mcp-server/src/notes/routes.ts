@@ -3,7 +3,7 @@ import { verifyToken } from '@my-hub/shared/auth';
 import { NOTES_DELETE_ALL_PATH, NOTES_DELETE_ALL_PURPOSE } from '@my-hub/shared/constants';
 import { logger } from '@my-hub/shared/utils';
 import { envConfig } from '../config/env.js';
-import { getNotesRuntime, notesConfigured } from './runtime.js';
+import { deleteNotesOf, notesConfigured } from './runtime.js';
 
 /**
  * Internal routes the Hub calls server to server. Notes live only here (files + their index), so the Hub's
@@ -20,7 +20,7 @@ export async function notesInternalRoutes(app: FastifyInstance) {
     }
     if (!notesConfigured()) return { deleted: false, reason: 'notes are not configured on this server' };
 
-    await (await getNotesRuntime()).forUser(payload.userId).deleteAll();
+    await deleteNotesOf(payload.userId);
     logger.info(`[notes] deleted all notes of user ${payload.userId}`);
     return { deleted: true };
   });

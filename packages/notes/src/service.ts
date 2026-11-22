@@ -1,6 +1,6 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { UserInputError, dedupeTrimmed, logger, omitUndefined } from '@my-hub/shared/utils';
+import { UserInputError, dedupeTrimmed, isIsoDateStr, logger, omitUndefined } from '@my-hub/shared/utils';
 import { ensureSchema, type Db } from './db';
 import { type EmbeddingProvider } from './embeddings';
 import { fetchHeaders, type HeaderFilter, type NoteHeader } from './headers';
@@ -23,7 +23,7 @@ import {
 import { findExactNote } from './resolve';
 import { searchNotes, type SearchHit, type SearchOptions, type SearchResult } from './search';
 import { slugify } from './slug';
-import { NoteStore, assertNotePath, categoryOf } from './store';
+import { NoteStore, assertNotePath, categoryOf, defaultTitle, userDirName } from './store';
 
 export interface NotesRuntimeConfig {
   db: Db;
@@ -93,10 +93,9 @@ export interface MergeResult {
   aliases: string[];
 }
 
-const safeUserDir = (userId: string) => userId.replace(/[^A-Za-z0-9_-]/g, '_');
 const utcToday = () => new Date().toISOString().slice(0, 10);
 /** The later of two YYYY-MM-DD dates, so `updated` never moves backwards. */
-const laterDate = (a: string | null, b: string): string => (a && /^\d{4}-\d{2}-\d{2}$/.test(a) && a > b ? a : b);
+const laterDate = (a: string | null, b: string): string => (a && isIsoDateStr(a) && a > b ? a : b);
 
 /** `existing` plus the `extra` values not already in it (case-insensitive, whitespace collapsed to one line). */
 const mergeUnique = (existing: string[], extra: string[]): string[] => [
@@ -131,13 +130,37 @@ export class NotesRuntime {
     await this.embedder.ready();
     const dirs = await readdir(this.config.root, { withFileTypes: true }).catch(() => []);
     for (const d of dirs) {
-      if (d.isDirectory() && !d.name.startsWith('.')) await this.forUser(d.name).sync();
+      if (!d.isDirectory() || d.name.startsWith('.')) continue;
+      // One user's broken directory must not keep the others (or the server) from starting.
+      try {
+        await this.forUser(d.name).sync();
+      } catch (err) {
+        logger.warn(
+          `[notes] initial sync of user ${d.name} failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     }
   }
 
   async close(): Promise<void> {
     await this.db.end();
   }
+}
+
+async function deleteUserData(db: Db, store: NoteStore, userId: string): Promise<void> {
+  // 42P01: the index tables were never created, so there are no rows to delete.
+  await db.query('DELETE FROM notes WHERE user_id = $1', [userId]).catch((err: { code?: string }) => {
+    if (err.code !== '42P01') throw err;
+  });
+  await store.destroy();
+}
+
+/**
+ * Deletes a user's notes (index rows and files) with only a database pool, without loading the embedding model or
+ * syncing anyone. Use `NotesService.deleteAll` instead when the runtime is up, so the user's writes stay serialised.
+ */
+export function deleteAllUserNotes(opts: { db: Db; root: string; userId: string }): Promise<void> {
+  return deleteUserData(opts.db, new NoteStore(join(opts.root, userDirName(opts.userId))), opts.userId);
 }
 
 /** Opens the schema (rebuilding it if the embedding model changed) and returns a runtime. */
@@ -157,26 +180,39 @@ export class NotesService {
     private readonly rt: NotesRuntime,
     readonly userId: string,
   ) {
-    this.store = new NoteStore(join(rt.config.root, safeUserDir(userId)));
+    this.store = new NoteStore(join(rt.config.root, userDirName(userId)));
     this.indexer = new Indexer(rt.db, this.store, rt.embedder, userId);
   }
 
   /** Indexes files that changed outside the app (Obsidian, a restored backup). Runs once; later calls reuse it. */
   sync(opts: { full?: boolean } = {}): Promise<{ files: number; embedded: number; removedNotes: number }> {
     const run = this.store.serialize(() => this.indexer.syncAll(opts));
-    this.synced = run.then(() => undefined);
+    this.track(run);
     return run;
+  }
+
+  /**
+   * Remembers `run` as the current sync. The stored copy has its own handler (it clears itself on failure so the
+   * next call retries) and so can never be an unhandled rejection; callers that await it still see the error.
+   */
+  private track(run: Promise<unknown>): Promise<void> {
+    const p = run.then(() => undefined);
+    p.catch(() => {
+      if (this.synced === p) this.synced = null;
+    });
+    this.synced = p;
+    return p;
   }
 
   private async ready(): Promise<void> {
     await this.store.init();
-    this.synced ??= this.sync().then(() => undefined);
-    try {
-      await this.synced;
-    } catch (err) {
-      this.synced = null; // retry on the next call instead of failing until restart
-      throw err;
-    }
+    if (this.synced) await this.synced;
+    else await this.sync();
+  }
+
+  /** Inside the write queue: re-syncs from the files when an earlier write could not index (a stale index). */
+  private async ensureFresh(): Promise<void> {
+    if (this.synced === null) await this.track(this.indexer.syncAll());
   }
 
   /**
@@ -220,8 +256,10 @@ export class NotesService {
     if (!subject) throw new UserInputError('subject must not be empty');
     if (!input.text.trim()) throw new UserInputError('text must not be empty');
     const date = input.date ?? utcToday();
+    if (!isIsoDateStr(date)) throw new UserInputError(`date must be a real calendar date (YYYY-MM-DD), got "${date}".`);
 
     return this.store.serialize(async () => {
+      await this.ensureFresh();
       let path: string;
       let created = false;
       let matchedBy: RememberResult['matchedBy'] = null;
@@ -310,7 +348,7 @@ export class NotesService {
     if (!value) throw new UserInputError('alias must not be empty');
     let aliases: string[] = [];
     await this.mutate(path, `+alias ${value}`, opts, note => {
-      const fm = readFrontmatter(note, { title: path, category: '' });
+      const fm = readFrontmatter(note, { title: defaultTitle(path), category: '' });
       aliases = mergeUnique(fm.aliases, [value]);
       setFrontmatterList(note, 'aliases', aliases);
     });
@@ -397,8 +435,8 @@ export class NotesService {
       if (intoSource === null) throw new UserInputError(`No note at "${into}".`);
       const src = parseNote(fromSource);
       const dst = parseNote(intoSource);
-      const srcFm = readFrontmatter(src, { title: from, category: categoryOf(from) });
-      const dstFm = readFrontmatter(dst, { title: into, category: categoryOf(into) });
+      const srcFm = readFrontmatter(src, { title: defaultTitle(from), category: categoryOf(from) });
+      const dstFm = readFrontmatter(dst, { title: defaultTitle(into), category: categoryOf(into) });
 
       const moved = listEntries(src);
       for (const e of moved) appendEntry(dst, { date: e.date, type: e.type, text: e.text });
@@ -447,7 +485,7 @@ export class NotesService {
         notes.set(path, parseNote(source));
       }
       for (const [path, note] of notes) {
-        if (readFrontmatter(note, { title: path, category: '' }).reviewed) continue;
+        if (readFrontmatter(note, { title: defaultTitle(path), category: '' }).reviewed) continue;
         setFrontmatterKey(note, 'reviewed', 'true');
         await this.store.write(path, serializeNote(note));
       }
@@ -471,10 +509,7 @@ export class NotesService {
 
   /** Removes all of the user's notes and index rows. */
   async deleteAll(): Promise<void> {
-    await this.store.serialize(async () => {
-      await this.rt.db.query('DELETE FROM notes WHERE user_id = $1', [this.userId]);
-      await this.store.destroy();
-    });
+    await this.store.serialize(() => deleteUserData(this.rt.db, this.store, this.userId));
     this.synced = null;
   }
 
@@ -511,7 +546,7 @@ export class NotesService {
       if (fn(note) === 'remove') {
         await this.store.remove(path);
       } else {
-        const { updated } = readFrontmatter(note, { title: path, category: categoryOf(path) });
+        const { updated } = readFrontmatter(note, { title: defaultTitle(path), category: categoryOf(path) });
         setFrontmatterKey(note, 'updated', laterDate(updated, opts.today ?? utcToday()));
         await this.store.write(path, serializeNote(note));
       }

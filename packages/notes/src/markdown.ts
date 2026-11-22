@@ -1,4 +1,5 @@
 import { randomInt } from 'node:crypto';
+import { isIsoDateStr } from '@my-hub/shared/utils';
 
 /** Entry kinds the MCP tools accept. Hand-edited files may use others; the parser keeps them as-is. */
 export const ENTRY_TYPES = ['fact', 'verdict', 'contact', 'price', 'how-to'] as const;
@@ -138,7 +139,8 @@ export function parseNote(source: string): ParsedNote {
 
 function parseBodyLine(raw: string): BodyLine {
   const m = ENTRY_RE.exec(raw);
-  if (!m) return { kind: 'text', raw };
+  // A calendar-invalid date (2026-02-30) is not an entry: it stays free text and can never reach the date column.
+  if (!m || !isIsoDateStr(m[1]!)) return { kind: 'text', raw };
   const [, date, type, text, id] = m;
   const tags = [...(text ?? '').matchAll(TAG_RE)].map(t => t[1]!.toLowerCase());
   return { kind: 'entry', raw, date: date!, type: type!, text: text!, tags, id: id ?? null };

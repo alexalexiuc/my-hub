@@ -1,9 +1,10 @@
 import type pg from 'pg';
+import { isIsoDateStr, logger } from '@my-hub/shared/utils';
 import { bodyText, listEntries, parseNote, readFrontmatter, type Frontmatter } from './markdown';
 import { toVectorLiteral, type Db } from './db';
 import type { EmbeddingProvider } from './embeddings';
 import { normalizeForMatch } from './slug';
-import { categoryOf, sha1, type NoteStore } from './store';
+import { categoryOf, defaultTitle, sha1, type NoteStore } from './store';
 
 const BODY_KEY = '_body';
 
@@ -56,7 +57,7 @@ export class Indexer {
 
     const note = parseNote(source);
     const category = categoryOf(path);
-    const fm = readFrontmatter(note, { title: path.replace(/^.*\//, '').replace(/\.md$/, ''), category });
+    const fm = readFrontmatter(note, { title: defaultTitle(path), category });
     const entries = listEntries(note);
     const body = bodyText(note);
 
@@ -144,7 +145,7 @@ export class Indexer {
         namesText(fm.title, fm.aliases),
         toVectorLiteral(nameVector),
         fm.reviewed,
-        fm.updated && /^\d{4}-\d{2}-\d{2}$/.test(fm.updated) ? fm.updated : null,
+        fm.updated && isIsoDateStr(fm.updated) ? fm.updated : null,
         hash,
       ],
     );
@@ -160,7 +161,14 @@ export class Indexer {
     if (opts.full) await this.db.query('DELETE FROM notes WHERE user_id = $1', [this.userId]);
     const paths = await this.store.listPaths();
     let embedded = 0;
-    for (const p of paths) embedded += (await this.indexFile(p)).embedded;
+    for (const p of paths) {
+      // One unreadable or un-embeddable file must not stop the rest; it is retried on the next sync.
+      try {
+        embedded += (await this.indexFile(p)).embedded;
+      } catch (err) {
+        logger.warn(`[notes] skipping ${this.userId}/${p}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
 
     const indexed = await this.db.query<{ path: string }>('SELECT path FROM notes WHERE user_id = $1', [this.userId]);
     const onDisk = new Set(paths);
