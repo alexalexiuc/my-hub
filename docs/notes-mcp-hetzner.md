@@ -73,4 +73,4 @@ The index now lives in a `notes` database inside the main `db` container (image 
 
 - [ ] Fresh DB backup (worker backup job or `pg_dump`) before deploying.
 - [ ] Deploy. Check `docker compose --project-name my-hub -f infra/docker-compose.prod.yml ps -a db-init` shows `Exited (0)`, and the mcp logs show the notes reindex running.
-- [ ] After a few days of normal use: `docker volume rm my-hub_notes_db_data` and delete the `notes_db_data` entry from `infra/docker-compose.prod.yml`.
+- [x] (2026-11-23) After a few days of normal use: `docker volume rm my-hub_notes_db_data` and delete the `notes_db_data` entry from `infra/docker-compose.prod.yml`.
