@@ -72,6 +72,8 @@ async function connect(token = 'good-token'): Promise<Client> {
 const flushLogs = () => new Promise(resolve => setTimeout(resolve, 20));
 
 beforeAll(async () => {
+  // Read once when the logger is attached: store payloads, as prod does.
+  process.env.LOG_PAYLOADS = 'true';
   mcpSubServers.length = 0;
   app = Fastify();
   registerMcpSubServer(app, ENDPOINT, McpServerNames.Calories, factory);
@@ -81,6 +83,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  delete process.env.LOG_PAYLOADS;
   await app.close();
   mcpSubServers.length = 0;
 });
@@ -233,6 +236,24 @@ describe('attachMcpRequestLogger', () => {
     expect(putLog).toHaveBeenCalledWith(
       expect.objectContaining({ method: 'tools/call', path: `${ENDPOINT}#fail`, statusCode: 422, error: 'Nope' }),
     );
+  });
+
+  it('stores payloads for tool calls but not for protocol boilerplate such as tools/list', async () => {
+    const client = await connect();
+    await client.listTools();
+    await client.callTool({ name: 'echo', arguments: { text: 'hi' } });
+    await client.close();
+    await flushLogs();
+
+    const entries = vi.mocked(putLog).mock.calls.map(([entry]) => entry);
+    const list = entries.find(e => e.method === 'tools/list');
+    expect(list).toBeDefined();
+    expect(list).not.toHaveProperty('requestBody');
+    expect(list).not.toHaveProperty('responseBody');
+
+    const call = entries.find(e => e.method === 'tools/call');
+    expect(call?.requestBody).toMatchObject({ method: 'tools/call', params: { name: 'echo' } });
+    expect(call?.responseBody).toBeDefined();
   });
 
   it('logs rejected requests with their HTTP status and no identity', async () => {

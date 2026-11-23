@@ -7,8 +7,20 @@ import { getRequestHubAuthExtra } from '../shared/toolsUtils.js';
 import { capPayload, redactSensitiveFields } from './payload-logging.js';
 import { isJSONRPCCallable } from '../utils/jsonrpc.js';
 
-// Methods whose full JSON payload is protocol boilerplate — identical across every client.
-const BOILERPLATE_METHODS = new Set(['server/discover']);
+/**
+ * Protocol methods whose payloads are boilerplate (tool/resource listings, discovery, keep-alive streams). They are
+ * logged as rows but their request/response bodies are neither printed nor stored: a single `tools/list` result is
+ * ~4 KB and clients call it constantly, which made these bodies most of `api_request_logs`.
+ */
+const BOILERPLATE_METHODS = new Set([
+  'initialize',
+  'server/discover',
+  'subscriptions/listen',
+  'tools/list',
+  'resources/list',
+  'resources/templates/list',
+  'prompts/list',
+]);
 
 /** Response bodies above this size are not buffered for inspection (tool results are far smaller). */
 const MAX_CAPTURED_RESPONSE_BYTES = 1_048_576;
@@ -136,10 +148,10 @@ export function attachMcpRequestLogger(scope: FastifyInstance, endpoint: string)
         error,
       };
 
-      if (LOG_PAYLOADS || PRINT_PAYLOADS) {
+      if ((LOG_PAYLOADS || PRINT_PAYLOADS) && !BOILERPLATE_METHODS.has(method)) {
         const requestPayload = capPayload(redactSensitiveFields(message));
         const responsePayload = capPayload(redactSensitiveFields(responseBody));
-        if (PRINT_PAYLOADS && !BOILERPLATE_METHODS.has(method)) {
+        if (PRINT_PAYLOADS) {
           scope.log[level](`\tMCP Message: ${JSON.stringify(requestPayload, null, 2)}`);
           scope.log[level](`\tMCP Response: ${JSON.stringify(responsePayload, null, 2)}`);
         }
