@@ -35,15 +35,15 @@ variable "GHA_CACHE" {
 }
 
 group "default" {
-  targets = ["migrate", "worker", "mcp-server", "hub"]
+  targets = ["migrate", "postgres", "worker", "mcp-server", "hub"]
 }
 
 group "prod" {
-  targets = ["migrate", "worker", "mcp-server", "hub"]
+  targets = ["migrate", "postgres", "worker", "mcp-server", "hub"]
 }
 
 group "staging" {
-  targets = ["migrate", "worker", "mcp-server", "hub", "e2e-seeds"]
+  targets = ["migrate", "postgres", "worker", "mcp-server", "hub", "e2e-seeds"]
 }
 
 function "tags" {
@@ -78,6 +78,19 @@ target "migrate" {
   tags       = tags("migrate")
   cache-from = cache_from("migrate")
   cache-to   = cache_to("migrate")
+}
+
+# Postgres 18 Alpine + pgvector (the `db` service). Own small context: it does not use the repo-root one.
+target "postgres" {
+  context    = "infra/postgres"
+  dockerfile = "Dockerfile"
+  labels = {
+    "org.opencontainers.image.source"   = SOURCE_URL
+    "org.opencontainers.image.revision" = SHA
+  }
+  tags       = tags("postgres")
+  cache-from = cache_from("postgres")
+  cache-to   = cache_to("postgres")
 }
 
 target "worker" {

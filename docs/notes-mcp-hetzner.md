@@ -23,13 +23,13 @@ Everything below is for the VPS. Sandbox numbers (FakeProvider, 4 vCPU) are in `
 
 The mcp image ships only the production build and the host has no Node, so run the bench in a throwaway Node container
 from a copy of the branch (no push needed). Before the merge use a throwaway pgvector on another port; after it, prod
-`notes-db` on `127.0.0.1:5433` works too. The bench builds its own schema (`bench_<ts>`) and temp directory and drops
+`db` on `127.0.0.1:5432` (database `notes`, role `notes`) works too. The bench builds its own schema (`bench_<ts>`) and temp directory and drops
 them at the end, so the real notes repo and index are untouched. The prod mcp container is `my-hub-mcp-1`.
 
 ```bash
 # from a checkout on your machine
 git archive --format=tar HEAD | ssh myhub 'rm -rf /opt/notes-bench-src && mkdir -p /opt/notes-bench-src && tar -x -C /opt/notes-bench-src'
-# on the VPS: throwaway index DB (skip after the merge and use 5433 + $NOTES_DB_PASSWORD instead)
+# on the VPS: throwaway index DB (skip after the merge and use 5432 + $NOTES_DB_PASSWORD instead)
 docker run -d --name notes-bench-db -p 127.0.0.1:5434:5432 -e POSTGRES_DB=notes -e POSTGRES_USER=notes -e POSTGRES_PASSWORD=benchpw pgvector/pgvector:pg18
 # build once without limits (turbo needs .git, which git archive drops, so build the two packages directly)
 docker run --rm -v /opt/notes-bench-src:/work -w /work node:26-bookworm-slim bash -c   'npm i -g corepack@0.36.0 && corepack enable && export CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 &&
@@ -65,4 +65,12 @@ files back).
 
 ## 3. What to send back
 
-The result JSON files (`all-e5`, `resolve-e5`, the `--target` relevance and search runs), plus `docker stats` idle RAM of the `mcp` and `notes-db` containers.
+The result JSON files (`all-e5`, `resolve-e5`, the `--target` relevance and search runs), plus `docker stats` idle RAM of the `mcp` and `db` containers.
+
+## 4. Rollout: notes index moved into the main Postgres
+
+The index now lives in a `notes` database inside the main `db` container (image `my-hub-postgres`); the old `notes-db` container is gone.
+
+- [ ] Fresh DB backup (worker backup job or `pg_dump`) before deploying.
+- [ ] Deploy. Check `docker compose --project-name my-hub -f infra/docker-compose.prod.yml ps -a db-init` shows `Exited (0)`, and the mcp logs show the notes reindex running.
+- [ ] After a few days of normal use: `docker volume rm my-hub_notes_db_data` and delete the `notes_db_data` entry from `infra/docker-compose.prod.yml`.

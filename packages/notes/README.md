@@ -35,15 +35,16 @@ never show up in the review queue.
 
 ## Run locally
 
-You need Postgres with the `vector`, `pg_trgm` and `unaccent` extensions (the compose `notes-db` service is
-`pgvector/pgvector:pg18`).
+You need a `notes` database in a Postgres with the `vector`, `pg_trgm` and `unaccent` extensions. In compose it lives
+in the main Postgres instance (`db`, our `infra/postgres` image: `postgres:18-alpine` + pgvector); the one-shot
+`db-init` service creates the `notes` role, database and extensions from `infra/postgres/init-notes-db.sql`.
 
 ```bash
 # 1. Database + MCP server through compose (builds the mcp image; first model start downloads ~120 MB)
-docker compose -f infra/docker-compose.local.yml up --build notes-db mcp     # needs the root .env (see .env.example)
+docker compose -f infra/docker-compose.local.yml up --build db db-init mcp     # needs the root .env (see .env.example)
 
 # 2. Or run the server on the host against any pgvector Postgres
-export NOTES_DATABASE_URL=postgres://notes:notes@localhost:5433/notes
+export NOTES_DATABASE_URL=postgres://notes:$NOTES_DB_PASSWORD@localhost:5433/notes   # the local compose `db`
 export NOTES_ROOT=./data/notes EMBEDDINGS_PROVIDER=fake     # fake = no model download, no semantic search
 pnpm --filter @my-hub/mcp-server dev
 ```

@@ -35,6 +35,13 @@ Prod and staging share the VPS and the `proxy` network; E2E CI deploys the stagi
   real values come from compose env files at runtime. Reproduce the Docker build's env locally with
   `pnpm ui:sandbox --prod --skip-seed` (same placeholder approach).
 
+## Postgres image
+
+`db` runs our own `infra/postgres` image (`postgres:18-alpine` + pgvector, bake target `postgres`), never the Debian
+pgvector image: that would change collation on the existing data directory. The one-shot `db-init` service runs
+`infra/postgres/init-notes-db.sql` (idempotent) to create the `notes` role, database and extensions; `mcp` points
+`NOTES_DATABASE_URL` at `db:5432/notes`.
+
 ## Env vars
 
 New runtime variable → package `src/config/env.ts` getter, the package `.env.example`, the root `.env.example` if
