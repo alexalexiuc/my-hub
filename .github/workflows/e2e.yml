@@ -211,7 +211,7 @@ jobs:
             # This run's sha-tagged images stay tagged after `down`, so `image prune`
             # alone would never reclaim them. Untag them (no -f: an image still tagged
             # elsewhere, e.g. by production, is kept), then prune dangling layers.
-            for name in migrate e2e-seeds worker mcp-server hub; do
+            for name in migrate e2e-seeds postgres worker mcp-server hub; do
               docker image rm "ghcr.io/$IMAGE_OWNER/my-hub-$name:$IMAGE_TAG" 2>/dev/null || true
             done
             docker image prune -f

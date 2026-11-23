@@ -60,18 +60,18 @@ A single Linux VPS (Ubuntu 24.04 LTS) managing all services via Docker Compose.
 
 **Key tables (current):**
 
-| Table                     | Purpose                                                                                                                                              |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `users`                   | Platform accounts (Google OAuth, provisioned on first Hub login)                                                                                     |
-| `oauth_clients`           | OAuth 2.1 credentials for MCP clients                                                                                                                |
-| `mcp_servers`             | Per-user enable/disable flags for each MCP sub-server                                                                                                |
-| `calorie_profiles`        | Dietary profile: age, sex, activity level, calorie goal override                                                                                     |
-| `meal_logs`               | Time-stamped meal entries with kcal and macros                                                                                                       |
-| `body_measurements`       | Time-series body measurements (weight, height, waist, etc.) per user; metadata comes from shared constants                                           |
-| `trips` + `trip_*`        | Travel domain tables for reservations, places, checklist, companions, and documents                                                                  |
-| `vacation_*`              | Vacation planner: profile, leave-law rule sets, tax regimes, monthly salaries, holidays, leave periods                                               |
-| _(notes: not in this DB)_ | The notes server keeps Markdown files on a volume and a disposable search index in its own pgvector Postgres (`notes-db`), not in the Drizzle schema |
-| `api_request_logs`        | HTTP request/response audit log (`service`=app, `server`=MCP sub-server) with trigram-indexed error field                                            |
+| Table                     | Purpose                                                                                                                                                                                 |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`                   | Platform accounts (Google OAuth, provisioned on first Hub login)                                                                                                                        |
+| `oauth_clients`           | OAuth 2.1 credentials for MCP clients                                                                                                                                                   |
+| `mcp_servers`             | Per-user enable/disable flags for each MCP sub-server                                                                                                                                   |
+| `calorie_profiles`        | Dietary profile: age, sex, activity level, calorie goal override                                                                                                                        |
+| `meal_logs`               | Time-stamped meal entries with kcal and macros                                                                                                                                          |
+| `body_measurements`       | Time-series body measurements (weight, height, waist, etc.) per user; metadata comes from shared constants                                                                              |
+| `trips` + `trip_*`        | Travel domain tables for reservations, places, checklist, companions, and documents                                                                                                     |
+| `vacation_*`              | Vacation planner: profile, leave-law rule sets, tax regimes, monthly salaries, holidays, leave periods                                                                                  |
+| _(notes: not in this DB)_ | The notes server keeps Markdown files on a volume and a disposable search index in its own `notes` database in the main (pgvector-enabled) Postgres instance, not in the Drizzle schema |
+| `api_request_logs`        | HTTP request/response audit log (`service`=app, `server`=MCP sub-server) with trigram-indexed error field                                                                               |
 
 ---
 

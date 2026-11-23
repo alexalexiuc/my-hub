@@ -360,7 +360,8 @@ packages/notes-bench/
    (`McpServerNames.Notes`) there; the heavy logic is in its own package (`@my-hub/notes`) so it can be split into its own
    service later without rewriting. Cost: the embedding model (~300-500 MB RSS) lives in the same process as the other
    MCPs; compose limits (`MCP_CPUS`, `MCP_MEM_LIMIT`, default 2 CPUs / 2 GB) cover it.
-2. **Own Postgres, not the Drizzle DB.** `notes-db` (`pgvector/pgvector:pg18`) avoids swapping the production DB image.
+2. **Own database, not the Drizzle schema.** Originally a separate `notes-db` container (`pgvector/pgvector:pg18`) to avoid swapping the production DB image.
+   _Changed 2026-11-23:_ the index now lives in a `notes` database in the main instance, whose image is `postgres:18-alpine` + pgvector built in `infra/postgres` (a Debian pgvector image would change collation on the existing Alpine/musl data directory).
    Notes tables are raw SQL in `packages/notes/src/db.ts` (the index is disposable; the schema version rebuilds it).
 3. **Tool names are prefixed** (`notes_search`...) per the repo's `<domain>_<intent>` convention.
 4. **Per-user stores.** Files at `<NOTES_ROOT>/<userId>/`, index rows keyed by `user_id`. One user never sees another's notes.
