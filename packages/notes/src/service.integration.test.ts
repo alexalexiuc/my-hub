@@ -108,6 +108,42 @@ describe.skipIf(!url)('NotesService (integration, FakeProvider)', () => {
     );
   });
 
+  describe('English full-text search', () => {
+    const seed = async () => {
+      await remember(
+        'Miele dryer fragrance voucher',
+        'Code ABC123: 1 free dryer fragrance flacon for Miele tumble dryers, redeem at miele.ro/voucher',
+        { category: 'home' },
+      );
+      await remember('Dryer repair', 'The dryer drum belt was replaced for 300 MDL', { category: 'home' });
+      await remember('Washer', 'We have the washer for the flat, the manual is in the drawer', { category: 'home' });
+      await remember('Tickets', 'Do we have the tickets for the concert? Ask for the date', { category: 'home' });
+    };
+    const lexical = { vec: false, namesVec: false, trgm: false, namesTrgm: false };
+
+    it('ranks the voucher note first for "voucher for the dryer"', async () => {
+      await seed();
+      const res = await svc().search({ queries: ['voucher for the dryer'], legs: lexical });
+      expect(res.hits[0]?.path).toBe('home/miele-dryer-fragrance-voucher.md');
+    });
+
+    it('stems plurals and ignores stopwords when browsing "vouchers I have"', async () => {
+      await seed();
+      const res = await svc().browse({ queries: ['vouchers I have'] });
+      expect(res[0]?.path).toBe('home/miele-dryer-fragrance-voucher.md');
+      const fts = await svc().search({ queries: ['vouchers I have'], legs: lexical });
+      // "have" is a stopword: it must not pull in every note that merely contains it.
+      expect(fts.hits.map(h => h.path)).not.toContain('home/washer.md');
+      expect(fts.hits.map(h => h.path)).not.toContain('home/tickets.md');
+    });
+
+    it('returns nothing, without an error, for a stopword-only query', async () => {
+      await seed();
+      const res = await svc().search({ queries: ['the and for'], legs: lexical });
+      expect(res.hits).toEqual([]);
+    });
+  });
+
   it('reports timings and honours the leg switches', async () => {
     await remember('Carpet cleaning', 'CleanPro');
     const res = await svc().search({ queries: ['cleanpro'], legs: { vec: false, namesVec: false } });

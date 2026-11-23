@@ -27,8 +27,9 @@ import {
 
 const SCOPE =
   "The user's personal notebook: anything they want written down and found again later, such as practical " +
-  'facts, vendors and verdicts, prices, how-tos, part sizes, ideas and short notes on any topic. Notes are mixed ' +
-  'Romanian / Russian / English.';
+  'facts, vendors and verdicts, prices, how-tos, part sizes, ideas and short notes on any topic. Notes are written in ' +
+  'English (titles, entries, aliases, tags), even when the user writes in another language; keep proper names, ' +
+  'codes and shop names as they are.';
 
 const notesTools = [
   defineTool({
@@ -36,7 +37,7 @@ const notesTools = [
     description:
       `${SCOPE} Search it before answering recall questions ("what was…", "did I note…", "what did I write ` +
       'about…", "which X did I use…", "how much did it cost"); never say you don\'t know before searching. ' +
-      'Pass 2-4 query variants of the same question: synonyms and RO/RU/EN translations. Typos and vague ' +
+      'Pass 2-4 query variants of the same question: English synonyms and broader or narrower terms, no translations. Typos and vague ' +
       'wording are fine. Returns the best notes (path, title, category, score) each with its best matching entry lines ' +
       '(id, date, type, text) - usually enough to answer without notes_read. `matchedBy` shows which search ' +
       'legs hit; a hit matched only by "vec"/"namesVec" with a low score may be unrelated, so say when nothing ' +
@@ -65,7 +66,7 @@ const notesTools = [
       'HOW: appends to the note whose title or alias is exactly `subject` (case and accents ignored); otherwise ' +
       'creates a new note. It does not guess: near-duplicates are fine and get cleaned up in a review pass, so ' +
       'reuse the exact existing title when you know it (notes_search / notes_browse first if unsure). ' +
-      'Give `aliases` in RO/RU/EN for new subjects, and `category` for new notes: reuse an existing one (call ' +
+      'Give a few English synonyms as `aliases` for new subjects, and `category` for new notes: reuse an existing one (call ' +
       'notes_browse to see them with counts) rather than inventing a new one. One fact or note per call. ' +
       '`path` = write to exactly this note. After a call with created: true, tell the user the new note title. ' +
       'A result with newCategory: true created a new category folder and lists the `existingCategories`; there is ' +
@@ -96,8 +97,7 @@ const notesTools = [
   defineTool({
     name: 'notes_add_alias',
     description:
-      'Teach the index another name for a note (e.g. a Russian or Romanian name), when a search needed several ' +
-      'tries to find it.',
+      'Teach the index another name for a note (another English name or synonym), when a search needed several tries to find it.',
     inputSchema: AddAliasSchema.shape,
     annotations: { idempotentHint: true, destructiveHint: false },
     callback: addAliasTool,

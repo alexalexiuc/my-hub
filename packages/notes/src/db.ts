@@ -4,7 +4,7 @@ import { logger } from '@my-hub/shared/utils';
 export type Db = pg.Pool;
 
 /** Bumped when the table layout changes. The index is disposable, so a mismatch rebuilds it from the files. */
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 export interface DbOptions {
   connectionString: string;
@@ -105,7 +105,7 @@ export async function ensureSchema(db: Db, embedding: { model: string; dimension
         text       text NOT NULL,
         line_hash  text NOT NULL,
         norm       text GENERATED ALWAYS AS (lower(immutable_unaccent(text))) STORED,
-        tsv        tsvector GENERATED ALWAYS AS (to_tsvector('simple', immutable_unaccent(text))) STORED,
+        tsv        tsvector GENERATED ALWAYS AS (to_tsvector('english', immutable_unaccent(text))) STORED,
         embedding  vector(${dim}) NOT NULL,
         UNIQUE (note_id, entry_key)
       );
