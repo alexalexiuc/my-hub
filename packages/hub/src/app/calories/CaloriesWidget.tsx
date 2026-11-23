@@ -1,7 +1,7 @@
 'use client';
 
 import { FeatureTheme } from '@/components';
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import {
   dateToString,
   calculateMacroKcal,
@@ -12,24 +12,17 @@ import {
 } from '@my-hub/shared/utils';
 import { SectionCard } from '@/components';
 import { PlusOutlineIcon, ScaleIcon } from '@/components/icons';
-import { apiFetch } from '@/lib/utils';
+import { useRefetchOnVisible } from '@/hooks/useRefetchOnVisible';
 import { CaloriesDonut } from './CaloriesDonut';
 import { MealModal } from './MealModal';
 import { MeasurementModal } from './MeasurementModal';
 import { mealEvents } from './mealEvents';
 import { sumMealTotals } from './calories.utils';
-import { STREAK_LOOKBACK_DAYS } from './constants';
+import { MACRO_COLORS, STREAK_LOOKBACK_DAYS } from './constants';
 import { useCalendarDays } from './calendar/useCalendarDays';
+import { useCalorieProfile } from './useCalorieProfile';
+import { useMealsForDate } from './useMealsForDate';
 import { measurementTypeDefinitions } from '@my-hub/shared/constants';
-import type { GymTime } from '@my-hub/shared/constants';
-import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
-import type { MeasurementWithType } from '@my-hub/shared/services';
-
-interface Macros {
-  protein: number;
-  carbs: number;
-  fat: number;
-}
 
 function MacroBar({
   label,
@@ -64,9 +57,10 @@ function MacroBar({
         <p className="text-sm font-semibold">{value}g</p>
       )}
       <div className="mt-1 h-1 w-full rounded-full bg-[var(--card2)] overflow-hidden">
+        {/* Inline colour: the macro palette is shared with the Today page's chart. */}
         <div
-          className={`h-full rounded-full ${reached ? 'bg-[var(--green)]' : color}`}
-          style={{ width: `${barPct}%` }}
+          className="h-full rounded-full"
+          style={{ width: `${barPct}%`, backgroundColor: reached ? 'var(--green)' : color }}
         />
       </div>
     </div>
@@ -74,81 +68,50 @@ function MacroBar({
 }
 
 export function CaloriesWidget() {
-  const [loading, setLoading] = useState(true);
-  const [todayKcal, setTodayKcal] = useState(0);
-  const [todayTarget, setTodayTarget] = useState<number | null>(null);
-  const [minCalories, setMinCalories] = useState<number | null>(null);
-  // Held so the Add-meal modal doesn't re-fetch the profile this widget has already loaded.
-  const [gymTime, setGymTime] = useState<GymTime | null>(null);
-  const [macros, setMacros] = useState<Macros>({ protein: 0, carbs: 0, fat: 0 });
-  const [macroGoals, setMacroGoals] = useState<Macros | null>(null);
+  const {
+    profile,
+    measurements,
+    loading: profileLoading,
+    error: profileError,
+    reload: reloadProfile,
+  } = useCalorieProfile();
+  const today = dateToString(new Date());
+  const { meals, error: mealsError } = useMealsForDate(today);
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [showAddWeight, setShowAddWeight] = useState(false);
-  const today = dateToString(new Date());
   const { days: recentDays } = useCalendarDays({
     dateFrom: shiftDateStr(today, -(STREAK_LOOKBACK_DAYS - 1)),
     dateTo: today,
   });
   const streak = recentDays ? summariseTargetAdherence(recentDays, today, null).currentStreak : 0;
 
-  const load = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    try {
-      const today = dateToString(new Date());
-      const [profileData, mealsData] = await Promise.all([
-        apiFetch<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>(
-          '/api/calories/profile',
-        ).catch(() => null),
-        apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date: today, limit: 200 } }).catch(() => null),
-      ]);
+  // Meals logged by Claude while the dashboard sits open (the profile hook reloads itself);
+  // `changed` also refreshes the streak. `today` is re-read on that render, so a dashboard left
+  // open overnight moves on to the new day.
+  useRefetchOnVisible(async () => {
+    mealEvents.emit('changed');
+  });
 
-      const profile: CalorieProfile | null = profileData?.profile ?? null;
-      const measurements: MeasurementWithType[] = profileData?.measurements ?? [];
-      const meals: MealLog[] = mealsData?.meals ?? [];
+  const loading = profileLoading || (meals === null && mealsError === null);
+  const failed = profileError !== null || (meals === null && mealsError !== null);
 
-      const { kcal, protein, carbs, fat } = sumMealTotals(meals);
+  const { kcal: todayKcal, protein, carbs, fat } = sumMealTotals(meals ?? []);
+  // Same resolver as the Today tab and the weekly menu, gym-day bonus included.
+  const { target: cap, min: minCalories } = dayCalorieTargets(profile, latestWeightKg(measurements), today);
+  const macroGoals =
+    profile?.goalProtein != null || profile?.goalCarbs != null || profile?.goalFat != null
+      ? { protein: profile.goalProtein ?? 0, carbs: profile.goalCarbs ?? 0, fat: profile.goalFat ?? 0 }
+      : null;
 
-      // Same resolver as the Today tab and the weekly menu — this widget is a fourth surface
-      // showing today's target, and it used to omit the gym-day bonus the others apply.
-      const { target, min } = dayCalorieTargets(profile, latestWeightKg(measurements), today);
-
-      setTodayKcal(kcal);
-      setTodayTarget(target);
-      setMinCalories(min);
-      setGymTime(profile?.gymTime ?? null);
-      setMacros({ protein, carbs, fat });
-      setMacroGoals(
-        profile?.goalProtein != null || profile?.goalCarbs != null || profile?.goalFat != null
-          ? { protein: profile?.goalProtein ?? 0, carbs: profile?.goalCarbs ?? 0, fat: profile?.goalFat ?? 0 }
-          : null,
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useEffect(() => {
-    const handler = () => load(true);
-    mealEvents.on('changed', handler);
-    return () => mealEvents.off('changed', handler);
-  }, [load]);
-
-  const totalMacroKcal = calculateMacroKcal(macros.protein, macros.carbs, macros.fat);
+  const totalMacroKcal = calculateMacroKcal(protein, carbs, fat);
   const sharePct = (kcal: number) => (totalMacroKcal > 0 ? Math.round((kcal / totalMacroKcal) * 100) : 0);
-
-  // `dayCalorieTargets` already resolves the one ceiling for the day, bonus included.
-  const cap = todayTarget;
 
   return (
     <FeatureTheme feature="calories">
       {showAddMeal && (
         <MealModal
           date={today}
-          gymTime={gymTime}
+          gymTime={profile?.gymTime ?? null}
           onClose={() => setShowAddMeal(false)}
           onSaved={() => {
             setShowAddMeal(false);
@@ -163,7 +126,7 @@ export function CaloriesWidget() {
           onClose={() => setShowAddWeight(false)}
           onSaved={() => {
             setShowAddWeight(false);
-            load(true);
+            void reloadProfile(true);
           }}
         />
       )}
@@ -206,6 +169,15 @@ export function CaloriesWidget() {
               <div className="flex-1 h-8 bg-[var(--card2)] rounded-sm" />
             </div>
           </div>
+        ) : failed ? (
+          // Not "No goal set": a failed load says nothing about the profile, and the link would
+          // send the user to set up a profile they already have.
+          <p className="py-6 text-center text-sm text-[var(--muted)]">
+            Couldn&apos;t load today&apos;s calories.{' '}
+            <a href="/calories" className="underline underline-offset-2 hover:text-[var(--text)]">
+              Open Calories
+            </a>
+          </p>
         ) : (
           <div className="flex flex-col items-center">
             <CaloriesDonut eaten={todayKcal} cap={cap} min={minCalories} innerRadius={45} />
@@ -221,14 +193,10 @@ export function CaloriesWidget() {
               kcal
             </p>
             {(minCalories !== null || cap !== null) && (
+              // Red only past the ceiling. Below the floor is not flagged: the day is still in
+              // progress, the same reason the seven-day strip leaves today's dot neutral.
               <p
-                className={`text-xs mt-1 ${
-                  cap !== null && todayKcal > cap
-                    ? 'text-[var(--red)]'
-                    : minCalories !== null && todayKcal < minCalories
-                      ? 'text-[var(--amber)]'
-                      : 'text-[var(--muted)]'
-                }`}
+                className={`text-xs mt-1 ${cap !== null && todayKcal > cap ? 'text-[var(--red)]' : 'text-[var(--muted)]'}`}
               >
                 {minCalories !== null && cap !== null
                   ? `Target range: ${minCalories}-${cap} kcal`
@@ -253,27 +221,28 @@ export function CaloriesWidget() {
               </p>
             )}
 
+            {/* Same order and colours as the Today page's macro chart. */}
             <div className="flex gap-4 w-full mt-4 pt-3 border-t border-[var(--border)]">
               <MacroBar
                 label="Carbs"
-                value={macros.carbs}
+                value={carbs}
                 goal={macroGoals?.carbs ?? null}
-                sharePct={sharePct(macros.carbs * 4)}
-                color="bg-amber-400"
+                sharePct={sharePct(carbs * 4)}
+                color={MACRO_COLORS.carbs}
               />
               <MacroBar
                 label="Protein"
-                value={macros.protein}
+                value={protein}
                 goal={macroGoals?.protein ?? null}
-                sharePct={sharePct(macros.protein * 4)}
-                color="bg-sky-400"
+                sharePct={sharePct(protein * 4)}
+                color={MACRO_COLORS.protein}
               />
               <MacroBar
                 label="Fat"
-                value={macros.fat}
+                value={fat}
                 goal={macroGoals?.fat ?? null}
-                sharePct={sharePct(macros.fat * 9)}
-                color="bg-rose-400"
+                sharePct={sharePct(fat * 9)}
+                color={MACRO_COLORS.fat}
               />
             </div>
           </div>

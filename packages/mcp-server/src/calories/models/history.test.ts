@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MealEntry } from '../types';
+import { calendarDays, dayCalorieTargets } from '@my-hub/shared/utils';
 import { summariseHistoryDays } from './history';
 
 // Mon, Wed, Thu, Fri train: 3,200–3,300 there, 2,900–3,000 on the other days.
@@ -8,8 +9,13 @@ const meal = (date: string, calories: number) =>
   ({ date, calories, proteinG: null, carbsG: null, fatG: null }) as MealEntry;
 
 // 2026-11-02 is a Monday; "today" is Wednesday 2026-11-04.
-const run = (meals: MealEntry[], p: object = profile) =>
-  summariseHistoryDays(meals, p, null, '2026-11-01', '2026-11-04', '2026-11-04');
+const run = (meals: MealEntry[], p: object = profile) => {
+  // What `getDayTargetsForRange` returns for days nothing has frozen yet.
+  const dayTargets = new Map(
+    calendarDays(new Date('2026-11-01'), new Date('2026-11-04')).map(d => [d, dayCalorieTargets(p, null, d)]),
+  );
+  return summariseHistoryDays(meals, dayTargets, '2026-11-01', '2026-11-04', '2026-11-04');
+};
 
 describe('summariseHistoryDays', () => {
   it('judges each finished day against its own range and gives today no verdict', () => {

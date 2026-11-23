@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { localDateString } from '@my-hub/shared/utils';
-import { dayTargetFields } from './targets';
+import { dayCalorieTargets, localDateString } from '@my-hub/shared/utils';
+import { toDayTargetFields } from './targets';
+
+const dayTargetFields = (p: object, weightKg: number, date: string) =>
+  toDayTargetFields(dayCalorieTargets(p, weightKg, date));
 
 // The profile from the gym/recovery bug report: Mon, Wed, Thu, Fri training, 2900–3000 overrides.
 const profile = {
@@ -16,7 +19,7 @@ const profile = {
   gymDayCalorieBonus: 300,
 };
 
-describe('dayTargetFields', () => {
+describe('toDayTargetFields', () => {
   afterEach(() => {
     vi.useRealTimers();
   });

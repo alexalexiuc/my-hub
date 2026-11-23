@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { apiFetch } from '@/lib/utils';
 import { Button } from '@/components';
 import { PlusOutlineIcon } from '@/components/icons';
 import { GetMenuResponseSchema, GetMenusResponseSchema } from '@/app/api/calories/menu/menu.schemas';
 import type { GymTime } from '@my-hub/shared/constants';
+import { formatWeekRangeStr } from '@my-hub/shared/utils';
+import { useRefetchOnVisible } from '@/hooks/useRefetchOnVisible';
 import { WeekNavigator } from './WeekNavigator';
 import { EmptyState } from './EmptyState';
 import { MenuDetail } from './MenuDetail';
 import { CreateMenuModal } from './CreateMenuModal';
-import { toLoggedMeals, nextMenuWeekStart, latestMenu, currentWeekMonday } from './menu.utils';
+import { toLoggedMeals, nextMenuWeekStart, initialMenuWeek, currentWeekMonday } from './menu.utils';
 import type { DayTarget, LoggedMeals } from './menu.utils';
 import type { WeeklyMenu, WeeklyMenuSummary } from './types';
 
@@ -24,51 +26,88 @@ export default function WeeklyMenuPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  /** Week the create modal opens on — null while it's closed. */
+  const [createWeek, setCreateWeek] = useState<string | null>(null);
 
   // Stable for the component's lifetime — recomputing on every render would only churn
   // the loadMenus useCallback identity and re-trigger its effect.
   const currentWeekStart = useMemo(() => currentWeekMonday(), []);
+  /** The week on screen — with or without a menu. The first load moves it to `initialMenuWeek`. */
+  const [selectedWeek, setSelectedWeek] = useState(currentWeekStart);
+  const selectedHasMenu = menus.some(m => m.weekStart === selectedWeek);
+  // The loaded menu only counts once it is the selected week's: while another week loads, the old one
+  // isn't shown (or copied) under the new label.
+  const shownMenu = selectedMenu?.weekStart === selectedWeek ? selectedMenu : null;
+  const canPlan = selectedWeek >= currentWeekStart;
 
-  const loadMenus = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await apiFetch('/api/calories/menu', { responseSchema: GetMenusResponseSchema });
-      setMenus(data.menus);
-      setGymDays(data.gymDays);
-      setDayTargets(data.dayTargets);
-      setGymTime(data.gymTime);
-      const toSelect = data.menus.find(m => m.weekStart === currentWeekStart) ?? latestMenu(data.menus);
-      if (toSelect) {
-        const detail = await apiFetch(`/api/calories/menu/${toSelect.menuId}`, {
-          responseSchema: GetMenuResponseSchema,
-        });
-        setSelectedMenu(detail.menu);
-        setLoggedMeals(toLoggedMeals(detail.loggedDays));
-      } else {
-        setSelectedMenu(null);
-        setLoggedMeals({});
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load menus');
-    } finally {
-      setLoading(false);
+  // Bumped by every navigation. A response that comes back for an older one is dropped, so a slow
+  // week (or a background refresh started before the click) can't overwrite the week on screen.
+  const navToken = useRef(0);
+
+  /**
+   * Shows a week: loads its menu when one is saved, or the empty week otherwise. `silent` (a
+   * background refresh) fails quietly — no toast, no banner for a fetch the user didn't start.
+   */
+  const showWeek = useCallback(async (weekStart: string, menuList: WeeklyMenuSummary[], silent = false) => {
+    const token = ++navToken.current;
+    setSelectedWeek(weekStart);
+    const summary = menuList.find(m => m.weekStart === weekStart);
+    if (!summary) {
+      setSelectedMenu(null);
+      setLoggedMeals({});
+      return;
     }
-  }, [currentWeekStart]);
+    try {
+      const detail = await apiFetch(`/api/calories/menu/${summary.menuId}`, {
+        responseSchema: GetMenuResponseSchema,
+        silentToast: silent,
+      });
+      if (token !== navToken.current) return;
+      setSelectedMenu(detail.menu);
+      setLoggedMeals(toLoggedMeals(detail.loggedDays));
+    } catch {
+      if (!silent && token === navToken.current) setError('Failed to load menu details');
+    }
+  }, []);
+
+  /**
+   * Fetches the menu list and targets, then shows the week the page opens on (`initialMenuWeek`).
+   * Given `refreshWeek`, it's a background refresh instead: no loading screen, no error shown, and
+   * it stays on that week — unless the user moved to another week while it ran.
+   */
+  const loadMenus = useCallback(
+    async (refreshWeek?: string) => {
+      const silent = refreshWeek !== undefined;
+      const startToken = navToken.current;
+      try {
+        if (!silent) setLoading(true);
+        const data = await apiFetch('/api/calories/menu', {
+          responseSchema: GetMenusResponseSchema,
+          silentToast: silent,
+        });
+        setError(null);
+        setMenus(data.menus);
+        setGymDays(data.gymDays);
+        setDayTargets(data.dayTargets);
+        setGymTime(data.gymTime);
+        if (silent && navToken.current !== startToken) return;
+        await showWeek(refreshWeek ?? initialMenuWeek(data.menus, currentWeekStart), data.menus, silent);
+      } catch (e) {
+        if (!silent) setError(e instanceof Error ? e.message : 'Failed to load menus');
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [currentWeekStart, showWeek],
+  );
 
   useEffect(() => {
     void loadMenus();
   }, [loadMenus]);
 
-  async function handleSelect(menu: WeeklyMenuSummary) {
-    try {
-      const detail = await apiFetch(`/api/calories/menu/${menu.menuId}`, { responseSchema: GetMenuResponseSchema });
-      setSelectedMenu(detail.menu);
-      setLoggedMeals(toLoggedMeals(detail.loggedDays));
-    } catch {
-      setError('Failed to load menu details');
-    }
-  }
+  // Menus are often written by Claude while this tab sits open, so a week planned elsewhere shows
+  // up when the tab comes back into view — staying on the week on screen.
+  useRefetchOnVisible(() => loadMenus(selectedWeek));
 
   async function handleDelete(menuId: string) {
     setDeleting(true);
@@ -88,6 +127,8 @@ export default function WeeklyMenuPage() {
       const rest = prev.filter(m => m.weekStart !== createdMenu.weekStart);
       return [summary, ...rest].sort((a, b) => a.weekStart.localeCompare(b.weekStart));
     });
+    navToken.current += 1; // a menu still loading for another week must not replace this one
+    setSelectedWeek(createdMenu.weekStart);
     setSelectedMenu(createdMenu);
     setLoggedMeals({});
   }
@@ -108,7 +149,7 @@ export default function WeeklyMenuPage() {
         <Button
           variant="accent"
           size="sm"
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => setCreateWeek(nextMenuWeekStart(menus, currentWeekStart))}
           className="shrink-0 flex items-center"
         >
           <PlusOutlineIcon className="w-4 h-4 mr-1.5" />
@@ -127,14 +168,14 @@ export default function WeeklyMenuPage() {
         </Button>
       </div>
 
-      {showCreateModal && (
+      {createWeek !== null && (
         <CreateMenuModal
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => setCreateWeek(null)}
           onCreated={menu => void handleCreated(menu)}
           gymDays={gymDays}
-          defaultWeekStart={nextMenuWeekStart(menus, currentWeekStart)}
+          defaultWeekStart={createWeek}
           existingWeekStarts={menus.map(m => m.weekStart)}
-          copyFrom={selectedMenu}
+          copyFrom={shownMenu}
         />
       )}
 
@@ -145,21 +186,63 @@ export default function WeeklyMenuPage() {
       )}
 
       {menus.length === 0 ? (
-        <EmptyState />
+        <EmptyState
+          title="No weekly menus yet"
+          hint={
+            <>
+              Ask Claude: <span className="italic">&quot;Plan my meals for next week&quot;</span> or use the Create
+              button above.
+            </>
+          }
+        />
       ) : (
         <div className="flex flex-col gap-6">
-          <WeekNavigator menus={menus} selectedMenu={selectedMenu} onSelect={handleSelect} />
+          <WeekNavigator
+            menus={menus}
+            selectedWeek={selectedWeek}
+            currentWeekStart={currentWeekStart}
+            onSelectWeek={week => void showWeek(week, menus)}
+          />
 
-          {selectedMenu && (
+          {!selectedHasMenu && (
+            <EmptyState
+              title={`No menu for ${formatWeekRangeStr(selectedWeek)}`}
+              hint={
+                canPlan ? (
+                  <>
+                    Ask Claude: <span className="italic">&quot;Plan my meals for this week&quot;</span>, or plan it
+                    here.
+                  </>
+                ) : (
+                  'Nothing was planned for this week.'
+                )
+              }
+              action={
+                canPlan && (
+                  <Button
+                    variant="accent"
+                    size="sm"
+                    onClick={() => setCreateWeek(selectedWeek)}
+                    className="flex items-center"
+                  >
+                    <PlusOutlineIcon className="mr-1.5 h-4 w-4" />
+                    Plan this week
+                  </Button>
+                )
+              }
+            />
+          )}
+
+          {shownMenu && (
             <MenuDetail
-              menu={selectedMenu}
+              menu={shownMenu}
               loggedMeals={loggedMeals}
               gymDays={gymDays}
               dayTargets={dayTargets}
               gymTime={gymTime}
               onMetaUpdated={meta => {
                 setSelectedMenu(prev => (prev ? { ...prev, ...meta } : prev));
-                setMenus(prev => prev.map(m => (m.menuId === selectedMenu.menuId ? { ...m, ...meta } : m)));
+                setMenus(prev => prev.map(m => (m.menuId === shownMenu.menuId ? { ...m, ...meta } : m)));
               }}
               onMealLogChanged={(day, mealType, logged) =>
                 setLoggedMeals(prev => {
@@ -193,7 +276,7 @@ export default function WeeklyMenuPage() {
               }
               onDelete={handleDelete}
               deleting={deleting}
-              isCurrentWeek={selectedMenu.weekStart === currentWeekStart}
+              isCurrentWeek={shownMenu.weekStart === currentWeekStart}
             />
           )}
         </div>

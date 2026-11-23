@@ -4,6 +4,7 @@ import { mealLogs } from '../../db/schema/calories';
 import type { MealLog, NewMealLog } from '../../types';
 import { MealType } from '../../constants';
 import { omitUndefined } from '../../utils/objects';
+import { UserInputError } from '../../utils/errors';
 
 export interface GetMealsFilter {
   date?: string;
@@ -151,4 +152,59 @@ export async function getRecentMealSuggestions(userId: string, limit = 12): Prom
     .limit(limit);
 
   return rows;
+}
+
+/** Thrown when a copy would land on a day that must be empty but already has meals. */
+export class MealCopyError extends UserInputError {}
+
+/**
+ * Copies every meal logged on `fromDate` onto `toDate`, in one transaction, keeping the source
+ * day's order — the quick fill for the days you eat the same as some day before. With
+ * `onlyIfEmpty` the copy is refused (`MealCopyError`) when `toDate` already has meals, so a
+ * double click or a stale screen can't double a day up. Copies onto the same user and day are
+ * serialised by an advisory lock, so two at once can't both find the day empty. A copy onto the
+ * source day itself is refused too.
+ *
+ * @returns The new meal logs, empty when `fromDate` had nothing to copy.
+ */
+export async function copyMealsToDate(
+  userId: string,
+  fromDate: string,
+  toDate: string,
+  { onlyIfEmpty = false }: { onlyIfEmpty?: boolean } = {},
+): Promise<MealLog[]> {
+  if (fromDate === toDate) throw new MealCopyError("Can't copy a day's meals onto the same day");
+  return db.transaction(async tx => {
+    // Held until the transaction ends: a concurrent copy onto this day waits, then sees these rows.
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`meal-copy:${userId}:${toDate}`}))`);
+    const ofDay = (date: string) =>
+      and(eq(mealLogs.userId, userId), eq(mealLogs.date, date), isNotNull(mealLogs.mealId));
+    if (onlyIfEmpty) {
+      const [existing] = await tx.select({ id: mealLogs.id }).from(mealLogs).where(ofDay(toDate)).limit(1);
+      if (existing) throw new MealCopyError(`${toDate} already has meals logged — nothing was copied`);
+    }
+    const source = await tx.select().from(mealLogs).where(ofDay(fromDate)).orderBy(mealLogs.loggedAt);
+    if (source.length === 0) return [];
+
+    // One timestamp per row, a millisecond apart: `loggedAt` is what orders a day's meals.
+    const base = Date.now();
+    return tx
+      .insert(mealLogs)
+      .values(
+        source.map((meal, i) => ({
+          mealId: crypto.randomUUID(),
+          userId,
+          date: toDate,
+          loggedAt: new Date(base + i),
+          mealType: meal.mealType,
+          description: meal.description,
+          kcal: meal.kcal,
+          protein: meal.protein,
+          carbs: meal.carbs,
+          fat: meal.fat,
+          notes: meal.notes,
+        })),
+      )
+      .returning();
+  });
 }

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { deleteAllUserMeals, deleteMeal, getMeals, logMeal, updateMeal } from './meals';
+import { MealCopyError, copyMealsToDate, deleteAllUserMeals, deleteMeal, getMeals, logMeal, updateMeal } from './meals';
 
 vi.mock('../../db/client.js', () => ({
   db: { select: vi.fn(), insert: vi.fn(), update: vi.fn(), delete: vi.fn(), transaction: vi.fn() },
@@ -163,5 +163,86 @@ describe('deleteMeal', () => {
   it('counts the rows removed for a full wipe', async () => {
     mockDelete([{ id: 1 }, { id: 2 }, { id: 3 }]);
     expect(await deleteAllUserMeals('user-1')).toBe(3);
+  });
+});
+
+describe('copyMealsToDate', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  /**
+   * A transaction whose `select`s answer in order (the emptiness check first, when asked for,
+   * then the source day) and whose insert echoes the rows it was given.
+   */
+  function mockTransaction(selects: unknown[][]) {
+    const inserted = vi.fn();
+    const tx = {
+      execute: vi.fn(() => Promise.resolve()),
+      select: vi.fn(() => {
+        const rows = selects.shift() ?? [];
+        const chain: any = {
+          from: () => chain,
+          where: () => chain,
+          limit: () => Promise.resolve(rows),
+          orderBy: () => Promise.resolve(rows),
+        };
+        return chain;
+      }),
+      insert: vi.fn(() => ({
+        values: (values: unknown[]) => {
+          inserted(values);
+          return { returning: () => Promise.resolve(values) };
+        },
+      })),
+    };
+    vi.mocked(db).transaction.mockImplementationOnce((fn: any) => fn(tx));
+    return { tx, inserted };
+  }
+
+  it('re-logs every meal of the source day on the target day, in order, as new entries', async () => {
+    const second = { ...MEAL_ROW, id: 2, mealId: 'meal-def', mealType: 'dinner', description: 'Soup', notes: 'hot' };
+    const { inserted } = mockTransaction([[MEAL_ROW, second]]);
+
+    const copied = await copyMealsToDate('user-1', '2026-08-01', '2026-08-02');
+
+    expect(copied).toHaveLength(2);
+    const rows = inserted.mock.calls[0]![0] as any[];
+    expect(rows.map(r => [r.date, r.description, r.kcal, r.notes])).toEqual([
+      ['2026-08-02', 'Chicken and rice', 600, null],
+      ['2026-08-02', 'Soup', 600, 'hot'],
+    ]);
+    // Fresh ids, and logged-at times a millisecond apart so the day keeps its order.
+    expect(rows.every(r => r.mealId && r.mealId !== 'meal-abc' && r.mealId !== 'meal-def')).toBe(true);
+    expect(rows[1].loggedAt.getTime() - rows[0].loggedAt.getTime()).toBe(1);
+  });
+
+  it('returns nothing and writes nothing when the source day is empty', async () => {
+    const { tx } = mockTransaction([[]]);
+    await expect(copyMealsToDate('user-1', '2026-08-01', '2026-08-02')).resolves.toEqual([]);
+    expect(tx.insert).not.toHaveBeenCalled();
+  });
+
+  it('with onlyIfEmpty, refuses a target day that already has meals', async () => {
+    const { tx } = mockTransaction([[{ id: 9 }], [MEAL_ROW]]);
+    await expect(copyMealsToDate('user-1', '2026-08-01', '2026-08-02', { onlyIfEmpty: true })).rejects.toBeInstanceOf(
+      MealCopyError,
+    );
+    expect(tx.insert).not.toHaveBeenCalled();
+  });
+
+  it('with onlyIfEmpty, copies onto an empty target day', async () => {
+    mockTransaction([[], [MEAL_ROW]]);
+    await expect(copyMealsToDate('user-1', '2026-08-01', '2026-08-02', { onlyIfEmpty: true })).resolves.toHaveLength(1);
+  });
+
+  it('takes the per-day lock before reading, so concurrent copies run one after the other', async () => {
+    const { tx } = mockTransaction([[MEAL_ROW]]);
+    await copyMealsToDate('user-1', '2026-08-01', '2026-08-02');
+    expect(tx.execute).toHaveBeenCalledTimes(1);
+    expect(tx.execute.mock.invocationCallOrder[0]).toBeLessThan(tx.select.mock.invocationCallOrder[0]!);
+  });
+
+  it('refuses to copy a day onto itself, without opening a transaction', async () => {
+    await expect(copyMealsToDate('user-1', '2026-08-01', '2026-08-01')).rejects.toBeInstanceOf(MealCopyError);
+    expect(vi.mocked(db).transaction).not.toHaveBeenCalled();
   });
 });

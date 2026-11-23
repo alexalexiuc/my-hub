@@ -24,6 +24,7 @@ import {
   deleteAllUserMeasurements,
   deleteAllUserMeals,
   deleteAllUserCalorieProfiles,
+  deleteAllUserCalorieDayTargets,
   applyVacationSetup,
   applyLeaveChanges,
   deleteAllUserVacationData,
@@ -179,6 +180,7 @@ async function seedCaloriesFixtures(userId: string): Promise<void> {
   await deleteAllUserWeeklyMenus(userId);
   await deleteAllUserMeasurements(userId);
   await deleteAllUserCalorieProfiles(userId);
+  await deleteAllUserCalorieDayTargets(userId);
 
   // Local date, not UTC: the Hub judges "today" in local time, and a UTC date seeds tomorrow's
   // meals for anyone east of Greenwich after midnight.

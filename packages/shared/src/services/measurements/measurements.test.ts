@@ -12,7 +12,10 @@ vi.mock('../../db/client.js', () => ({
   db: { select: vi.fn(), insert: vi.fn(), update: vi.fn(), delete: vi.fn(), transaction: vi.fn() },
 }));
 
+vi.mock('../calories/day-targets', () => ({ freezeDayTargets: vi.fn().mockResolvedValue(0) }));
+
 import { db } from '../../db/client.js';
+import { freezeDayTargets } from '../calories/day-targets';
 
 const ROW = {
   id: 7,
@@ -93,6 +96,19 @@ describe('logMeasurement', () => {
     await logMeasurement({ ...ROW, value: 77.5 } as any);
 
     expect(values).toHaveBeenCalledWith(expect.objectContaining({ value: 77.5 }));
+  });
+
+  it('freezes past calorie ranges before a weigh-in, and not for other measurements', async () => {
+    const insertReturning = (row: unknown) =>
+      ({ values: vi.fn().mockReturnThis(), returning: vi.fn().mockResolvedValue([row]) }) as any;
+    vi.mocked(db).insert.mockReturnValueOnce(insertReturning(ROW));
+    await logMeasurement(ROW as any);
+    expect(freezeDayTargets).toHaveBeenCalledWith('user-1');
+
+    vi.mocked(freezeDayTargets).mockClear();
+    vi.mocked(db).insert.mockReturnValueOnce(insertReturning({ ...ROW, typeKey: 'waist' }));
+    await logMeasurement({ ...ROW, typeKey: 'waist' } as any);
+    expect(freezeDayTargets).not.toHaveBeenCalled();
   });
 
   it('throws rather than returning nothing when the insert reports no row', async () => {

@@ -2,18 +2,20 @@
 
 import { useState } from 'react';
 import type { MealLog } from '@my-hub/shared/types';
-import { apiFetch } from '@/lib/utils';
+import { apiFetch, ApiError } from '@/lib/utils';
 import { dateToString, mealOrder, shiftDateStr } from '@my-hub/shared/utils';
 import { Button, Card, ConfirmModal, SwipeRow } from '@/components';
 import { PencilIcon, PlusOutlineIcon, TrashOutlineIcon } from '@/components/icons';
 import type { GymTime } from '@my-hub/shared/constants';
 import { MACRO_COLORS, MEAL_LABEL } from './constants';
 import { formatDateLabel, groupByMealType, sumMealTotals } from './calories.utils';
-import { relogMeals } from './relogMeals';
 import { MealModal } from './MealModal';
+import { copyMeals } from './copyMeals';
 
 type MealsSectionProps = {
   meals: MealLog[];
+  /** The day's meals are still being fetched — no empty state (or copy offer) until they arrive. */
+  loading?: boolean;
   selectedDate: string;
   /** When the user trains — orders the logged groups the same way every other meal list is ordered. */
   gymTime: GymTime | null;
@@ -26,6 +28,7 @@ type MealsSectionProps = {
 
 export function MealsSection({
   meals,
+  loading = false,
   selectedDate,
   gymTime,
   onChanged,
@@ -48,21 +51,25 @@ export function MealsSection({
 
   /**
    * Re-logs everything from the day before onto this one — the quickest fill for the days you
-   * eat the same thing. Only offered while this day is empty, so it can't double a day up.
+   * eat the same thing. Only offered while this day is empty, and the server refuses it otherwise
+   * (`onlyIfEmpty`), so a stale screen can't double a day up. One transaction: it copies all of
+   * the day or none of it.
    */
   async function copyPreviousDay() {
     setCopying(true);
     setCopyNote(null);
     try {
-      const { meals: previous } = await apiFetch<{ meals: MealLog[] }>('/api/calories/meals', {
-        query: { date: previousDay, limit: 100 },
-        silentToast: true,
-      });
-      if (previous.length === 0) {
+      const copied = await copyMeals(previousDay, selectedDate, true);
+      if (copied.length === 0) {
         setCopyNote(`Nothing logged on ${formatDateLabel(previousDay).toLowerCase()} to copy.`);
         return;
       }
-      await relogMeals(previous, selectedDate);
+      onChanged();
+    } catch (e) {
+      setCopyNote(
+        e instanceof ApiError && e.status === 400 ? e.message : "Couldn't copy the meals — nothing was changed.",
+      );
+      // A refusal means the day has meals this screen hasn't seen yet.
       onChanged();
     } finally {
       setCopying(false);
@@ -121,7 +128,9 @@ export function MealsSection({
 
       <Card compact={compact} className="p-0! overflow-hidden">
         {/* Meal list */}
-        {meals.length === 0 ? (
+        {loading ? (
+          <p className="px-5 py-5 text-sm text-[var(--subtle)]">Loading meals…</p>
+        ) : meals.length === 0 ? (
           <div className="flex flex-col items-start gap-2 px-5 py-5">
             <p className="text-sm text-[var(--subtle)]">No meals logged{selectedDate === today ? ' today' : ''}.</p>
             <button
@@ -227,7 +236,7 @@ function MealRowContent({ meal }: { meal: MealLog }) {
     <div className="min-w-0 flex-1">
       <span className="text-sm font-medium text-[var(--text)]">{meal.description}</span>
       {meal.kcal ? <span className="ml-2 text-sm text-[var(--muted)]">{meal.kcal} kcal</span> : null}
-      {(meal.protein || meal.carbs || meal.fat) && (
+      {(!!meal.protein || !!meal.carbs || !!meal.fat) && (
         <span className="ml-2 text-xs text-[var(--subtle)]">
           {[
             meal.protein ? `P ${meal.protein}g` : null,

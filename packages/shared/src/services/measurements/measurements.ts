@@ -17,6 +17,8 @@ import type { MeasurementTypeKey, MeasurementEntrySource } from '../../db/schema
 import type { BodyMeasurement, NewBodyMeasurement } from '../../types';
 import { measurementTypeDefinitionsByKey } from '../../constants';
 import { omitUndefined } from '../../utils/objects';
+import { MeasurementTypes } from '../../constants';
+import { freezeDayTargets } from '../calories/day-targets';
 
 export interface GetMeasurementsFilter {
   typeKey?: MeasurementTypeKey;
@@ -47,6 +49,8 @@ function roundMeasurementValue(value: number): number {
 }
 
 export async function logMeasurement(data: Omit<NewBodyMeasurement, 'id' | 'createdAt'>): Promise<BodyMeasurement> {
+  // A new weigh-in moves every live calorie range; past days keep the one they had.
+  if (data.typeKey === MeasurementTypes.Weight) await freezeDayTargets(data.userId);
   const [row] = await db
     .insert(bodyMeasurements)
     .values({ ...data, value: roundMeasurementValue(data.value) })
@@ -64,6 +68,7 @@ export async function logMeasurementsBatch(
   items: Array<{ typeKey: MeasurementTypeKey; value: number; date: string; notes?: string }>,
   entrySource: MeasurementEntrySource,
 ): Promise<BodyMeasurement[]> {
+  if (items.some(i => i.typeKey === MeasurementTypes.Weight)) await freezeDayTargets(userId);
   const now = new Date();
   const rows = await db
     .insert(bodyMeasurements)
@@ -164,6 +169,9 @@ export async function updateMeasurement(
   userId: string,
   data: Partial<Pick<BodyMeasurement, 'typeKey' | 'value' | 'date' | 'notes'>>,
 ): Promise<BodyMeasurement | null> {
+  // The row may be (or become) a weigh-in, which only a read would tell; freezing first keeps past
+  // ranges put, and after the first freeze it stores at most the days since the last one.
+  await freezeDayTargets(userId);
   const [row] = await db
     .update(bodyMeasurements)
     .set(omitUndefined(data))
@@ -173,6 +181,7 @@ export async function updateMeasurement(
 }
 
 export async function deleteMeasurement(id: number, userId: string): Promise<BodyMeasurement | null> {
+  await freezeDayTargets(userId);
   const [row] = await db
     .delete(bodyMeasurements)
     .where(and(eq(bodyMeasurements.id, id), eq(bodyMeasurements.userId, userId)))

@@ -1,17 +1,19 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { apiFetch, ApiError } from '@/lib/utils';
-import type { CalorieProfile } from '@my-hub/shared/types';
+import { apiFetch } from '@/lib/utils';
 import type { MeasurementWithType } from '@my-hub/shared/services';
 import { dateToString, shiftDateStr } from '@my-hub/shared/utils';
 import { measurementTypeDefinitions } from '@my-hub/shared/constants';
+import { useRefetchOnVisible } from '@/hooks/useRefetchOnVisible';
 import { GoalProgressCard } from '../GoalProgressCard';
 import { WeightChart } from '../WeightChart';
 import { MeasurementsSection } from '../MeasurementsSection';
-import { NOT_SIGNED_IN, PageError, PageLoading } from '../ui';
+import { PageError, PageLoading } from '../ui';
 import { DEFAULT_TREND_RANGE, WEIGHT_RANGE_OPTIONS, type WeightRangeKey } from '../constants';
 import { LastSevenDays } from '../LastSevenDays';
+import { mealEvents } from '../mealEvents';
+import { loadErrorMessage, useCalorieProfile } from '../useCalorieProfile';
 import { MonthSummary } from './MonthSummary';
 import { MonthCalendarModal } from './MonthCalendarModal';
 
@@ -22,43 +24,55 @@ import { MonthCalendarModal } from './MonthCalendarModal';
  * chart has its own range, since a goal runs over months rather than one calendar month.
  */
 export default function ProgressPage() {
-  const [profile, setProfile] = useState<CalorieProfile | null>(null);
-  const [latestMeasurements, setLatestMeasurements] = useState<MeasurementWithType[]>([]);
-  const [weightHistory, setWeightHistory] = useState<MeasurementWithType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    profile,
+    measurements: latestMeasurements,
+    loading: profileLoading,
+    error: profileError,
+    reload: reloadProfile,
+  } = useCalorieProfile();
+  const [weightHistory, setWeightHistory] = useState<MeasurementWithType[] | null>(null);
+  const [weightError, setWeightError] = useState<string | null>(null);
   const [trendRange, setTrendRange] = useState<WeightRangeKey>(DEFAULT_TREND_RANGE);
 
   const [showMonth, setShowMonth] = useState(false);
 
   /**
-   * Profile and the whole weight history, fetched once and windowed client-side: smoothing needs
-   * the readings before a window to enter it warm, and weigh-in rows are small.
+   * The whole weight history, fetched once and windowed client-side: smoothing needs the readings
+   * before a window to enter it warm, and weigh-in rows are small. A background refresh keeps
+   * what's on screen if it fails.
    */
-  const loadProfile = useCallback(async () => {
+  const loadWeights = useCallback(async (background = false) => {
     try {
-      const [profileData, weightData] = await Promise.all([
-        apiFetch<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>('/api/calories/profile'),
-        apiFetch<{ measurements: MeasurementWithType[] }>('/api/calories/measurements', {
-          query: { type: 'weight', limit: 2000 },
-        }),
-      ]);
-      setProfile(profileData.profile);
-      setLatestMeasurements(profileData.measurements);
-      setWeightHistory(weightData.measurements);
+      const data = await apiFetch<{ measurements: MeasurementWithType[] }>('/api/calories/measurements', {
+        query: { type: 'weight', limit: 2000 },
+        silentToast: background,
+      });
+      setWeightHistory(data.measurements);
     } catch (e) {
-      setError(e instanceof ApiError && e.status === 401 ? NOT_SIGNED_IN : String(e));
-    } finally {
-      setLoading(false);
+      if (!background) setWeightError(loadErrorMessage(e));
     }
   }, []);
 
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+    void loadWeights();
+  }, [loadWeights]);
 
-  if (loading) return <PageLoading />;
+  /** Profile and weights together, quietly — after a weigh-in or a baseline reset. */
+  async function reloadAll() {
+    await Promise.all([reloadProfile(true), loadWeights(true)]);
+  }
+
+  // Weigh-ins arrive from Claude and the automation API while this page sits open (the profile
+  // hook reloads itself); `changed` refreshes the month summary and the seven-day strip.
+  useRefetchOnVisible(async () => {
+    mealEvents.emit('changed');
+    await loadWeights(true);
+  });
+
+  const error = profileError ?? (weightHistory === null ? weightError : null);
   if (error) return <PageError error={error} />;
+  if (profileLoading || weightHistory === null) return <PageLoading />;
 
   const today = dateToString(new Date());
   const weightSamples = weightHistory.map(m => ({ date: m.date, value: m.value }));
@@ -77,7 +91,7 @@ export default function ProgressPage() {
       method: 'PUT',
       body: { goalStartDate: today, goalStartWeightKg: latest.value },
     });
-    await loadProfile();
+    await reloadAll();
   };
 
   return (
@@ -111,7 +125,7 @@ export default function ProgressPage() {
       <MeasurementsSection
         latestMeasurements={latestMeasurements}
         measurementTypes={measurementTypeDefinitions}
-        onChanged={loadProfile}
+        onChanged={() => void reloadAll()}
       />
     </main>
   );

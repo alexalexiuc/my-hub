@@ -1,24 +1,24 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { apiFetch, ApiError } from '@/lib/utils';
-import Link from 'next/link';
-import type { CalorieProfile, MealLog } from '@my-hub/shared/types';
-import type { MeasurementWithType } from '@my-hub/shared/services';
+import { useState, useEffect, useRef } from 'react';
 import { MeasurementTypes, measurementTypeDefinitions } from '@my-hub/shared/constants';
-import { dateToString, dayCalorieTargets, latestWeightKg } from '@my-hub/shared/utils';
-import { Button, Card, DatePicker, ProgressBar } from '@/components';
+import { dateToString, dayCalorieTargets, latestWeightKg, shiftDateStr } from '@my-hub/shared/utils';
+import { Button, DatePicker } from '@/components';
 import { mealEvents } from './mealEvents';
 import { MealsSection } from './MealsSection';
 import { NextMealCard } from './NextMealCard';
 import { MacroChart } from './MacroChart';
-import { CaloriesDonut } from './CaloriesDonut';
+import { DayTotalsCard } from './DayTotalsCard';
 import { LastSevenDays } from './LastSevenDays';
 import { MeasurementModal } from './MeasurementModal';
 import { sumMealTotals } from './calories.utils';
-import { MACRO_COLORS } from './constants';
+import { STREAK_LOOKBACK_DAYS } from './constants';
 import { setCaloriesSelectedDate } from './selectedDate';
-import { NOT_SIGNED_IN, PageError, PageLoading } from './ui';
+import { useRefetchOnVisible } from '@/hooks/useRefetchOnVisible';
+import { PageError, PageLoading } from './ui';
+import { useCalorieProfile } from './useCalorieProfile';
+import { useMealsForDate } from './useMealsForDate';
+import { useCalendarDays } from './calendar/useCalendarDays';
 
 function greeting() {
   const h = new Date().getHours();
@@ -28,16 +28,21 @@ function greeting() {
 }
 
 export default function TodayPage() {
-  const [profile, setProfile] = useState<CalorieProfile | null>(null);
-  const [latestMeasurements, setLatestMeasurements] = useState<MeasurementWithType[]>([]);
-  const [meals, setMeals] = useState<MealLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    profile,
+    measurements: latestMeasurements,
+    loading: profileLoading,
+    error: profileError,
+    reload: reloadProfile,
+  } = useCalorieProfile();
   const [loggingWeight, setLoggingWeight] = useState(false);
 
   const today = dateToString(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
-  const selectedDateRef = useRef(selectedDate);
+  const { meals: dayMeals, error: mealsError } = useMealsForDate(selectedDate);
+  // True while the user is on "today" rather than a day they picked: a page left open overnight
+  // then moves on to the new day instead of showing yesterday as if it were still today.
+  const followsToday = useRef(true);
 
   // The layout's Add meal buttons log to the day on screen; cleared on leave so they fall back
   // to today everywhere else.
@@ -46,64 +51,45 @@ export default function TodayPage() {
   }, [selectedDate]);
   useEffect(() => () => setCaloriesSelectedDate(null), []);
 
-  const loadMeals = useCallback(async (date: string) => {
-    try {
-      const data = await apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date, limit: 100 } });
-      if (selectedDateRef.current === date) setMeals(data.meals);
-    } catch {
-      // ignore
-    }
-  }, []);
+  function handleDateChange(date: string) {
+    followsToday.current = date === dateToString(new Date());
+    setSelectedDate(date);
+  }
 
-  const loadData = useCallback(async () => {
-    try {
-      const date = selectedDateRef.current;
-      const [profileData, mealsData] = await Promise.all([
-        apiFetch<{ profile: CalorieProfile | null; measurements: MeasurementWithType[] }>('/api/calories/profile'),
-        apiFetch<{ meals: MealLog[] }>('/api/calories/meals', { query: { date, limit: 100 } }),
-      ]);
-      setProfile(profileData.profile);
-      setLatestMeasurements(profileData.measurements);
-      if (selectedDateRef.current === date) setMeals(mealsData.meals);
-    } catch (e) {
-      setError(e instanceof ApiError && e.status === 401 ? NOT_SIGNED_IN : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Claude logs meals while this page sits open — catch up when the user comes back (the
+  // profile hook reloads itself). A new day already loads everything for that day, so only an
+  // unchanged day needs the `changed` nudge.
+  useRefetchOnVisible(async () => {
+    const now = dateToString(new Date());
+    if (followsToday.current && selectedDate !== now) handleDateChange(now);
+    else mealEvents.emit('changed');
+  });
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-  useEffect(() => {
-    const handler = () => loadMeals(selectedDateRef.current);
-    mealEvents.on('changed', handler);
-    return () => mealEvents.off('changed', handler);
-  }, [loadMeals]);
-
-  const handleDateChange = useCallback(
-    (date: string) => {
-      setSelectedDate(date);
-      selectedDateRef.current = date;
-      setMeals([]);
-      loadMeals(date);
-    },
-    [loadMeals],
+  // The day's range as the server resolves it — the one rule, with finished days frozen. Within the
+  // streak window this is the same request the seven-day strip makes (`useCalendarDays` shares it),
+  // so picking a recent day needs no request at all; an older day loads just itself.
+  const windowFrom = shiftDateStr(today, -(STREAK_LOOKBACK_DAYS - 1));
+  const { days: calendarDays, error: calendarError } = useCalendarDays(
+    selectedDate >= windowFrom
+      ? { dateFrom: windowFrom, dateTo: today }
+      : { dateFrom: selectedDate, dateTo: selectedDate },
   );
+  // Matched by date, so the previous day's range never shows under a new one while it loads.
+  const serverRange = calendarDays?.find(d => d.date === selectedDate);
 
-  if (loading) return <PageLoading />;
-  if (error) return <PageError error={error} />;
+  if (profileError) return <PageError error={profileError} />;
+  if (profileLoading) return <PageLoading />;
 
-  const {
-    target: cap,
-    min: minTarget,
-    isGymDay,
-    gymDayBonus,
-  } = dayCalorieTargets(profile, latestWeightKg(latestMeasurements), selectedDate);
-  const totals = sumMealTotals(meals);
-  const remainingKcal = cap === null ? null : cap - totals.kcal;
+  // Null while the day loads or after it failed: its totals are then unknown, not zero. Showing
+  // "0 kcal" and offering to log an already-logged meal would invite a duplicate.
+  const totals = dayMeals && sumMealTotals(dayMeals);
+  const range =
+    serverRange ??
+    // Until it arrives: today follows the live rule anyway, while a past day may be frozen at another
+    // range, so its goal stays unknown (null) rather than one that would then jump.
+    (selectedDate >= today ? dayCalorieTargets(profile, latestWeightKg(latestMeasurements), selectedDate) : null);
+  const remainingKcal = totals && range?.target != null ? range.target - totals.kcal : null;
   const goalProtein = profile?.goalProtein ?? null;
-  const proteinLeft = goalProtein === null ? null : Math.max(0, Math.round(goalProtein - totals.protein));
   const isToday = selectedDate === today;
   const weighedToday = latestMeasurements.some(m => m.typeKey === MeasurementTypes.Weight && m.date === today);
 
@@ -116,7 +102,9 @@ export default function TodayPage() {
           onClose={() => setLoggingWeight(false)}
           onSaved={() => {
             setLoggingWeight(false);
-            void loadData();
+            void reloadProfile(true);
+            // A weigh-in can move a TDEE-based target, which the day's range comes from.
+            mealEvents.emit('changed');
           }}
         />
       )}
@@ -149,80 +137,46 @@ export default function TodayPage() {
               </Button>
             </div>
           )}
-          <NextMealCard date={selectedDate} loggedMeals={meals} remainingKcal={remainingKcal} />
-          <MealsSection
-            meals={meals}
-            selectedDate={selectedDate}
-            gymTime={profile?.gymTime ?? null}
-            onChanged={loadData}
-          />
+          {dayMeals && <NextMealCard date={selectedDate} loggedMeals={dayMeals} remainingKcal={remainingKcal} />}
+          {mealsError ? (
+            <p className="rounded-xl border border-[var(--red)] bg-[var(--red-d)] px-4 py-3 text-sm text-[var(--red)]">
+              Couldn&apos;t load this day&apos;s meals: {mealsError}
+            </p>
+          ) : (
+            // Keyed on the day, so its local notes ("nothing to copy") don't follow you to another.
+            <MealsSection
+              key={selectedDate}
+              meals={dayMeals ?? []}
+              loading={dayMeals === null}
+              selectedDate={selectedDate}
+              gymTime={profile?.gymTime ?? null}
+              onChanged={() => mealEvents.emit('changed')}
+            />
+          )}
         </div>
 
         {/* Left column (col-span-1): what's left, the week so far, macro split */}
         <div className="flex flex-col gap-4 md:col-start-1 md:row-start-1">
-          <Card className="flex flex-col gap-4 p-5">
-            <div className="flex items-center gap-4">
-              <CaloriesDonut eaten={totals.kcal} cap={cap} min={minTarget} textSize="text-2xl" />
-              <div className="flex min-w-0 flex-col gap-1">
-                <p className="text-sm text-[var(--muted)]">
-                  <span className="text-lg font-bold text-[var(--text)]">{totals.kcal.toLocaleString()}</span>
-                  {cap !== null && <span> of {cap.toLocaleString()}</span>}
-                  <span className="ml-1">kcal</span>
-                </p>
-                {cap !== null && (
-                  <p className="text-xs text-[var(--subtle)]">
-                    {minTarget !== null ? `Aim for ${minTarget.toLocaleString()}–${cap.toLocaleString()}` : 'Daily cap'}
-                    {isGymDay && <span className="text-[var(--accent)]"> · gym day · +{gymDayBonus} kcal</span>}
-                  </p>
-                )}
-                {cap === null && (
-                  <p className="text-xs text-[var(--subtle)]">
-                    No goal set.{' '}
-                    <Link href="/calories/settings" className="underline underline-offset-2 hover:text-[var(--text)]">
-                      Set up profile
-                    </Link>
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {goalProtein !== null && proteinLeft !== null && (
-              <div className="flex flex-col gap-1">
-                <div className="flex items-baseline justify-between text-xs">
-                  <span className="font-semibold" style={{ color: MACRO_COLORS.protein }}>
-                    Protein
-                  </span>
-                  <span className="text-[var(--muted)]">
-                    {proteinLeft > 0 ? (
-                      <>
-                        <strong className="text-[var(--text)]">{proteinLeft} g</strong> left of {goalProtein} g
-                      </>
-                    ) : (
-                      <strong className="text-[var(--green)]">Goal reached · {totals.protein} g</strong>
-                    )}
-                  </span>
-                </div>
-                <ProgressBar
-                  value={totals.protein}
-                  max={goalProtein}
-                  thresholds={false}
-                  color={MACRO_COLORS.protein}
-                  height={6}
-                />
-              </div>
-            )}
-          </Card>
+          <DayTotalsCard
+            totals={totals}
+            mealsError={mealsError}
+            range={range}
+            rangeFailed={calendarError}
+            goalProtein={goalProtein}
+          />
 
           <LastSevenDays proteinGoalG={goalProtein} />
 
-          <MacroChart
-            protein={totals.protein}
-            carbs={totals.carbs}
-            fat={totals.fat}
-            goalProtein={goalProtein}
-            goalCarbs={profile?.goalCarbs ?? null}
-            goalFat={profile?.goalFat ?? null}
-          />
+          {totals && (
+            <MacroChart
+              protein={totals.protein}
+              carbs={totals.carbs}
+              fat={totals.fat}
+              goalProtein={goalProtein}
+              goalCarbs={profile?.goalCarbs ?? null}
+              goalFat={profile?.goalFat ?? null}
+            />
+          )}
         </div>
       </div>
     </main>

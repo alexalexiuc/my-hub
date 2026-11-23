@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { dateToString, shiftDateStr } from '@my-hub/shared/utils';
 import { deleteFeatures } from './helpers';
 
 function uniqueMeal(prefix: string) {
@@ -230,5 +231,49 @@ test.describe('Calories — Today page', () => {
 
     await expect(page.getByText('Total')).toBeVisible();
     await expect(page.getByText('550 kcal')).toBeVisible();
+  });
+
+  test('copies yesterday onto an empty day in one go, and only onto an empty day', async ({ page }) => {
+    const name = uniqueMeal('Black coffee');
+    // The local day, as the page computes it — not UTC, which differs around midnight.
+    const today = dateToString(new Date());
+    const yesterday = shiftDateStr(today, -1);
+    // Zero macros: the row used to print a stray "0" for them.
+    await page.request.post('/api/calories/meals', {
+      data: { description: name, mealType: 'breakfast', date: yesterday, kcal: 5, protein: 0, carbs: 0, fat: 0 },
+    });
+
+    await page.getByRole('button', { name: /copy meals from yesterday/i }).click();
+    const row = page.locator('[data-layout="desktop"]').filter({ hasText: name });
+    await expect(row).toBeVisible({ timeout: 8_000 });
+    await expect(row).toHaveText(`${name}5 kcal`);
+
+    // The day has meals now: a second copy is refused instead of doubling it up.
+    const again = await page.request.post('/api/calories/meals/copy', {
+      data: { fromDate: yesterday, toDate: today, onlyIfEmpty: true },
+    });
+    expect(again.status()).toBe(400);
+    const { meals } = await (await page.request.get('/api/calories/meals', { params: { date: today } })).json();
+    expect(meals).toHaveLength(1);
+  });
+
+  test('left open past midnight, moves on to the new day when you come back', async ({ page }) => {
+    const today = dateToString(new Date());
+    const tomorrow = shiftDateStr(today, 1);
+    const name = uniqueMeal('First thing tomorrow');
+    await page.request.post('/api/calories/meals', {
+      data: { description: name, mealType: 'breakfast', date: tomorrow, kcal: 300 },
+    });
+
+    // ── 1. Open the page a minute before midnight: today, with nothing logged ──
+    await page.clock.install({ time: new Date(`${today}T23:59:00`) });
+    await page.goto('/calories');
+    await expect(page.getByText(/no meals logged today/i)).toBeVisible();
+    await expect(page.locator('[data-layout="desktop"]').getByText(name)).toHaveCount(0);
+
+    // ── 2. Two minutes later the user comes back: the page shows the new day ──
+    await page.clock.fastForward('02:00');
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await expect(page.locator('[data-layout="desktop"]').getByText(name)).toBeVisible({ timeout: 8_000 });
   });
 });

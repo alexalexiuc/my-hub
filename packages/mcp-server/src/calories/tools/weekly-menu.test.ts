@@ -18,6 +18,7 @@ import {
   setPrepNotesTool,
   setShoppingListTool,
   planWeekTool,
+  calorieWarningNote,
 } from './weekly-menu';
 import { caloriesContext, parseToolPayload } from './test-utils';
 
@@ -544,5 +545,27 @@ describe('setShoppingListTool', () => {
     const payload = parsePayload(result) as { success: boolean; message: string };
     expect(payload.success).toBe(false);
     expect(payload.message).toContain('not found');
+  });
+});
+
+const OVER = { status: 'over' as const };
+const UNDER = { status: 'under' as const };
+
+describe('calorieWarningNote', () => {
+  it('says nothing when every day is in range', () => {
+    expect(calorieWarningNote([])).toBe('');
+  });
+
+  it('names the direction of the miss', () => {
+    expect(calorieWarningNote([OVER, OVER])).toContain('above');
+    expect(calorieWarningNote([OVER, OVER])).not.toContain('below');
+    expect(calorieWarningNote([UNDER])).toContain('below');
+    expect(calorieWarningNote([UNDER])).not.toContain('above');
+  });
+
+  it('names both when days miss either way', () => {
+    const note = calorieWarningNote([OVER, UNDER]);
+    expect(note).toContain('above');
+    expect(note).toContain('below');
   });
 });

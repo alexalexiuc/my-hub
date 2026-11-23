@@ -1,11 +1,11 @@
 import { getMealsForDateRange } from './meals.js';
 import { getCalorieProfile } from './profile.js';
+import { getDayTargetsForRange } from './day-targets.js';
 import { getMeasurements } from '../measurements/measurements.js';
 import { findUserById } from '../users/users.js';
 import {
   calculateBMR,
   calculateCalorieTargets,
-  dayCalorieTargets,
   goalDirection,
   signedWeeklyRateKg,
   toUTCDateStr,
@@ -84,6 +84,9 @@ export async function fetchWeeklyReportCaloriesData(userId: string, weekStart: D
     }
   }
   const latestWeight = latestMeasurements[MeasurementTypes.Weight] ?? null;
+  // Frozen days as stored, so a goal changed since doesn't re-judge them; the rest against the same
+  // profile and week-end weight as the rest of the report.
+  const dayTargets = await getDayTargetsForRange(userId, weekStartStr, weekEndStr, { profile, weightKg: latestWeight });
 
   // BMR / TDEE — use latest weight measurement
   const bmr = calculateBMR(profile?.age ?? null, profile?.sex ?? null, profile?.heightCm ?? null, latestWeight);
@@ -109,7 +112,7 @@ export async function fetchWeeklyReportCaloriesData(userId: string, weekStart: D
     const agg = dayMap.get(date);
     // The same per-day rule every Hub screen uses, so a gym day is judged against its own
     // raised ceiling here too rather than against a flat weekly figure.
-    const dayTarget = dayCalorieTargets(profile, latestWeight, date).target ?? goalMaxCalories;
+    const dayTarget = dayTargets.get(date)!.target ?? goalMaxCalories;
     days.push(
       agg
         ? {
@@ -237,6 +240,11 @@ export async function fetchMonthlyReportCaloriesData(
   // BMR / TDEE
   const latestWeight =
     weightMeasurements.length > 0 ? weightMeasurements.sort((a, b) => b.date.localeCompare(a.date))[0]!.value : null;
+  // Each day against its own ceiling (gym-day bonus included); frozen days as stored.
+  const dayTargets = await getDayTargetsForRange(userId, monthStartStr, monthEndStr, {
+    profile,
+    weightKg: latestWeight,
+  });
 
   const bmr = calculateBMR(profile?.age ?? null, profile?.sex ?? null, profile?.heightCm ?? null, latestWeight);
   const targets = calculateCalorieTargets({
@@ -253,19 +261,18 @@ export async function fetchMonthlyReportCaloriesData(
 
   const goalMaxCalories = profile?.goalMaxCalories ?? targets.maxCalories ?? 2000;
   const tdee = targets.tdee ?? bmr ?? 2000;
-
   // Totals across logged days
   let totalKcal = 0;
   let totalProtein = 0;
   let totalCarbs = 0;
   let totalFat = 0;
   let daysOnTarget = 0;
-  for (const [, agg] of dayMap) {
+  for (const [date, agg] of dayMap) {
     totalKcal += agg.kcal;
     totalProtein += agg.protein;
     totalCarbs += agg.carbs;
     totalFat += agg.fat;
-    if (Math.round(agg.kcal) <= goalMaxCalories) daysOnTarget++;
+    if (Math.round(agg.kcal) <= (dayTargets.get(date)!.target ?? goalMaxCalories)) daysOnTarget++;
   }
 
   const avgDailyKcal = daysLogged > 0 ? Math.round(totalKcal / daysLogged) : 0;

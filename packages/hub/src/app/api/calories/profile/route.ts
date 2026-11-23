@@ -28,7 +28,7 @@ const ProfileUpdateSchema = z.object({
   goalCarbs: z.number().nonnegative().nullable().optional(),
   goalFat: z.number().nonnegative().nullable().optional(),
   gymDays: z.array(z.number().int().min(0).max(6)).nullable().optional(),
-  gymDayCalorieBonus: z.number().nonnegative().nullable().optional(),
+  gymDayCalorieBonus: z.number().int().nonnegative().nullable().optional(),
   gymTime: z
     .enum(GymTimesValues as [string, ...string[]])
     .nullable()

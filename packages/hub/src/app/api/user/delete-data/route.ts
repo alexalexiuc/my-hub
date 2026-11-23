@@ -4,6 +4,7 @@ import {
   deleteAllUserMeals,
   deleteAllUserMeasurements,
   deleteAllUserCalorieProfiles,
+  deleteAllUserCalorieDayTargets,
   deleteAllUserTripShares,
   deleteAllUserTripDocuments,
   deleteAllUserTripCompanions,
@@ -51,8 +52,12 @@ export const POST = route({ body: PostBodySchema })(async ({ user, body }) => {
         break;
       }
       case 'calories_profile': {
-        const deleted = await deleteAllUserCalorieProfiles(user.id);
-        results.calories_profile = { deleted };
+        // The frozen day ranges are the profile's history: a fresh profile starts with none.
+        const [profiles, dayTargets] = await Promise.all([
+          deleteAllUserCalorieProfiles(user.id),
+          deleteAllUserCalorieDayTargets(user.id),
+        ]);
+        results.calories_profile = { deleted: profiles + dayTargets };
         break;
       }
       case 'finances': {

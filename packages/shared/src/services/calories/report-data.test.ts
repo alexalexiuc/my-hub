@@ -4,6 +4,16 @@ import { fetchWeeklyReportCaloriesData, fetchMonthlyReportCaloriesData } from '.
 
 vi.mock('./meals.js', () => ({ getMealsForDateRange: vi.fn() }));
 vi.mock('./profile.js', () => ({ getCalorieProfile: vi.fn() }));
+// Frozen ranges are a DB concern; here no day has a target, so the reports' flat fallback applies.
+vi.mock('./day-targets.js', async () => {
+  const { calendarDays } = await import('../../utils/dates');
+  return {
+    getDayTargetsForRange: vi.fn(async (_userId: string, start: string, end: string) => {
+      const noTarget = { target: null, min: null, isGymDay: false, gymDayBonus: 0 };
+      return new Map(calendarDays(new Date(start), new Date(end)).map(date => [date, noTarget]));
+    }),
+  };
+});
 vi.mock('../measurements/measurements.js', () => ({
   getMeasurements: vi.fn(),
 }));

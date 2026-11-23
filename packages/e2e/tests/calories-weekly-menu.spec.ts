@@ -274,8 +274,17 @@ test.describe('Calories — Weekly Menu page', () => {
     await expect(desktop.getByText(addedDesc)).toBeVisible({ timeout: 8_000 });
     await expect(desktop.getByText(swappedDesc)).toBeVisible();
 
-    // ── 13. Second menu (next week) → week navigation ──────────────────────────
+    // ── 12c. Next week is reachable before it has a menu ──────────────────────
+    // The arrows step through calendar weeks, so an unplanned next week is a place to land and plan.
     const nextMonday = shiftWeek(monday, 1);
+    await page.goto('/calories/menu');
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: 'Next week' }).click();
+    await expectSelectedWeek(page, nextMonday);
+    await expect(page.getByText(/No menu for/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Plan this week' })).toBeVisible();
+
+    // ── 13. Second menu (next week) → week navigation ──────────────────────────
     const nextWeekDesc = uniqueDesc('Next week lunch');
     await page.request.post('/api/calories/menu', {
       data: {

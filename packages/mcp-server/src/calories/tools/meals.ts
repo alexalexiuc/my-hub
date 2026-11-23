@@ -6,6 +6,7 @@ import {
   logMeal,
   getMeals,
   deleteMeal,
+  getDayTargets,
 } from '@my-hub/shared/services';
 import { z } from 'zod';
 import { MAX_MEAL_LIMIT, DEFAULT_MEAL_LIMIT } from '../constants';
@@ -13,11 +14,11 @@ import { rowToProfile, profileToTargets } from '../models/profile';
 import { toolResponse } from '../../shared/toolsUtils';
 import { yyyyMmDdSchema } from '../../shared/schemas';
 import { ToolHandler } from '../../shared/types';
-import { omitNullish, localDateString, localHour } from '@my-hub/shared/utils';
+import { omitNullish, latestWeightKg, localDateString, localHour } from '@my-hub/shared/utils';
 import { rowToMealEntry } from '../models/meals';
-import { dayTargetFields } from '../models/targets';
+import { toDayTargetFields } from '../models/targets';
 import { MealEntry } from '../types';
-import { MealTypes, MeasurementTypes } from '@my-hub/shared/constants';
+import { MealTypes } from '@my-hub/shared/constants';
 
 export const MealItemSchema = z.object({
   name: z.string().describe('Name of the food item, e.g. "grilled chicken breast"'),
@@ -135,11 +136,13 @@ export const logMealTool: ToolHandler<typeof LogMealSchema.shape> = async (input
     getMealsForDate(userId, date),
     getLatestMeasurementsPerType(userId),
   ]);
+  const weightKg = latestWeightKg(latestMeasurements);
+  // A meal back-filled onto a finished day counts against the range that day had.
+  const dayRange = await getDayTargets(userId, date, { profile: profileRow, weightKg });
 
   const profile = profileRow ? rowToProfile(profileRow) : {};
-  const weightM = latestMeasurements.find(m => m.typeKey === MeasurementTypes.Weight);
-  const targets = profileToTargets(profile, weightM?.value);
-  const day = dayTargetFields(profile, weightM?.value, date);
+  const targets = profileToTargets(profile, weightKg ?? undefined);
+  const day = toDayTargetFields(dayRange);
   const caloriesConsumed = dayRows.reduce((s, r) => s + (r.kcal ?? 0), 0);
   const remainingCalories = day.dayTarget !== null ? day.dayTarget - caloriesConsumed : null;
 

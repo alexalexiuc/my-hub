@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { DAY_LABELS_SHORT } from '@my-hub/shared/constants';
-import { dateToString, dayOfWeekMon0 } from '@my-hub/shared/utils';
+import { dateToString, dayOfWeekMon0, shiftDateStr } from '@my-hub/shared/utils';
 import { deleteFeatures } from './helpers';
 
 /**
@@ -201,5 +201,52 @@ test.describe('Calories — Settings page', () => {
     await card.getByRole('button', { name: /^edit$/i }).click();
     await expect(page.getByRole('textbox', { name: /notes/i })).toHaveValue('');
     await expect(page.getByRole('combobox', { name: /goal type/i })).toHaveValue('');
+  });
+
+  test('refuses a minimum above the maximum, in the form and on the server', async ({ page }) => {
+    const card = profileCard(page);
+
+    // ── 1. The form says why, on the field, and does not save ─────────────────
+    await card.getByRole('button', { name: /^edit$/i }).click();
+    await page.getByRole('spinbutton', { name: /min calories/i }).fill('2400');
+    await page.getByRole('spinbutton', { name: /max calories/i }).fill('1900');
+    await card.getByRole('button', { name: /^save$/i }).click();
+    await expect(card.getByRole('alert')).toHaveText(/min can.t be above max/i);
+    await expect(card.getByRole('button', { name: /^save$/i })).toBeVisible();
+
+    // ── 2. The API refuses it too, whichever client sends it ──────────────────
+    const refused = await page.request.put('/api/calories/profile', {
+      data: { goalMinCalories: 2400, goalMaxCalories: 1900 },
+    });
+    expect(refused.status()).toBe(400);
+    expect((await refused.json()).error).toMatch(/can't be above the maximum/);
+  });
+
+  test('a finished day keeps its target when the profile changes; today follows it', async ({ page }) => {
+    // A profile change freezes every finished day that has meals; `beforeEach` cleared the profile
+    // (and with it any frozen ranges), so nothing is frozen when this starts.
+    const today = dateToString(new Date());
+    const pastDay = shiftDateStr(today, -10);
+    const calendar = async () => {
+      const res = await page.request.get('/api/calories/calendar', { params: { dateFrom: pastDay, dateTo: today } });
+      const { days } = (await res.json()) as { days: { date: string; target: number | null }[] };
+      return { past: days[0]!, today: days.at(-1)! };
+    };
+
+    // ── 1. A past day with a meal, judged against a plain 2000 kcal max ────────
+    await page.request.post('/api/calories/meals', {
+      data: { description: `Frozen-day check ${Date.now()}`, mealType: 'lunch', date: pastDay, kcal: 500 },
+    });
+    await page.request.put('/api/calories/profile', { data: { goalMaxCalories: 2000, gymDays: null } });
+    const before = await calendar();
+    expect(before.past.date).toBe(pastDay);
+    expect(before.past.target).toBe(2000);
+
+    // ── 2. Change the max: the past day keeps 2000, today follows ──────────────
+    const newMax = 2137;
+    await page.request.put('/api/calories/profile', { data: { goalMaxCalories: newMax } });
+    const after = await calendar();
+    expect(after.past.target).toBe(before.past.target);
+    expect(after.today.target).toBe(newMax);
   });
 });
