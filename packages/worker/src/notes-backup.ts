@@ -7,18 +7,18 @@ import { workerEnvConfig } from './config/env.js';
 /**
  * Caveats:
  * - Each daily backup is a full snapshot of the whole notes directory (notes are tiny, so no change detection).
- *   Configure an S3 lifecycle rule on S3_BACKUP_BUCKET (prefix `notes/`) to expire old objects.
+ *   Configure an S3 lifecycle rule on S3_NOTES_BUCKET (prefix `notes/`) to expire old objects.
  * - Restore: untar into the notes volume (`tar -xzf <file> -C <NOTES_ROOT>`), then run `notes-cli reindex <userId>`
  *   per user, or just restart the mcp container: the index re-syncs changed files at startup.
  */
 
 /**
- * Archives the notes directory (`NOTES_DIR`) as a tar.gz and uploads it to `S3_BACKUP_BUCKET` under
+ * Archives the notes directory (`NOTES_DIR`) as a tar.gz and uploads it to `S3_NOTES_BUCKET` under
  * `notes/notes-backup-<timestamp>.tar.gz`. Does nothing when `NOTES_DIR`, the bucket or the region is unset,
  * or when the directory is missing or empty.
  */
 export async function backupNotesToS3(): Promise<void> {
-  const { NOTES_DIR: notesDir, S3_BACKUP_BUCKET: bucketName, AWS_REGION: awsRegion } = workerEnvConfig;
+  const { NOTES_DIR: notesDir, S3_NOTES_BUCKET: bucketName, AWS_REGION: awsRegion } = workerEnvConfig;
 
   if (!notesDir || !bucketName || !awsRegion) {
     // Worker is functional but won't back up until all three vars are provided.

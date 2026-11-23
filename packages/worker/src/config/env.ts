@@ -41,6 +41,13 @@ export const workerEnvConfig = {
   get AWS_REGION() {
     return getEnvVar('AWS_REGION', '');
   },
+  /**
+   * S3 bucket for the notes backup. Falls back to `S3_BACKUP_BUCKET` while the dedicated bucket isn't
+   * configured; both empty disables the notes backup.
+   */
+  get S3_NOTES_BUCKET() {
+    return getEnvVar('S3_NOTES_BUCKET', '') || getEnvVar('S3_BACKUP_BUCKET', '');
+  },
   get S3_LOGS_BUCKET() {
     return getEnvVar('S3_LOGS_BUCKET', '');
   },

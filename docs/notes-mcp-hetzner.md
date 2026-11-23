@@ -9,7 +9,7 @@ Everything below is for the VPS. Sandbox numbers (FakeProvider, 4 vCPU) are in `
 - [x] `docker volume create my-hub_notes_data` (external volume that holds the Markdown repos; `down -v` can never delete it). Done 2026-11-21.
 - [ ] The mcp image is now Debian (`node:26-bookworm-slim`), 1.06 GB built locally (onnxruntime, transformers). It builds and
       `download-model` works in it; CI's "build-and-push" / e2e job is its first CI build, watch it.
-- [ ] Backup: the worker's `notes-backup` job needs `S3_BACKUP_BUCKET` / `AWS_REGION` (already used by `db-backup`).
+- [ ] Backup: the worker's `notes-backup` job writes to its own bucket: set `S3_NOTES_BUCKET` (e.g. `hub-alexiuc-notes-backup`) in the server `.env`; the `my-hub` IAM user needs `s3:PutObject` on `<bucket>/notes/*`. Until set, it falls back to `S3_BACKUP_BUCKET`.
 
 ## 1. Deploy
 
