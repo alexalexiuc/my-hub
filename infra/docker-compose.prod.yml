@@ -240,8 +240,6 @@ volumes:
     external: true
     name: my-hub_notes_data
   # Disposable: the downloaded embedding model.
-  # UNUSED: the old notes-db volume, kept a few days for rollback. Remove after: docker volume rm my-hub_notes_db_data
-  notes_db_data:
   notes_model_cache:
 
 networks:
