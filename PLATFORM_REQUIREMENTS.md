@@ -166,8 +166,10 @@ npm workspaces (or pnpm workspaces) manage inter-package dependencies.
 **GitHub Actions** for automated CI/CD:
 
 - `ci.yml` (PRs and pushes to `main`/`staging`) → one parallel `turbo run typecheck lint test:unit`
-  with the Turborepo cache persisted between runs, plus the palette drift check.
-- `e2e.yml` (PRs to `main`) → build and push `staging-latest` images, deploy the staging stack on
+  with the Turborepo cache persisted between runs, plus the palette drift check. PRs add `--affected`
+  (only packages changed vs the base branch); pushes run everything.
+- `e2e.yml` (PRs to `main`) → a `changes` job skips everything below when the PR only touches `docs/**`,
+  `.claude/**` or `*.md` (the skipped `E2EExpected` still counts as passing); otherwise build and push `staging-latest` images, deploy the staging stack on
   the VPS, run both E2E suites, tear the stack down. E2E jobs never interleave on the one staging
   stack; GitHub keeps only one waiting job, so a job superseded in the queue must be re-run.
 - `deploy.yml` (push to `main`) → build and push `latest` images, then `docker compose pull && up`
