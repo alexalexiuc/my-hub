@@ -97,7 +97,7 @@ export async function buildServer() {
   await app.register(monitorRoute);
 
   // Silently absorb requests to unknown paths (scanner/bot probes).
-  // The logLevel:'silent' flag causes requestLoggerPlugin to skip both console + DB logging.
+  // Unmatched requests have no routeOptions.url, so requestLoggerPlugin skips both console + DB logging.
   app.setNotFoundHandler(async (_req, reply) => {
     return reply.status(404).send();
   });

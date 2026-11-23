@@ -64,4 +64,5 @@ analytics while enforcing bounded retention.
 - [x] MCP exchanges (tool calls, resource reads, etc.) are logged once per HTTP request with method, tool, identity, duration and outcome.
 - [x] MCP request logger honors `LOG_PAYLOADS` and `PRINT_PAYLOADS` for DB payload persistence and console payload output.
 - [x] MCP request logger skips payloads for protocol boilerplate methods (e.g. `tools/list`), keeping `api_request_logs` small.
+- [x] Requests that match no route (scanner/bot probes such as `/.env`, answered 404 by the not-found handler) are not logged to the console or DB.
 - [ ] Documentation includes retention policy and cleanup query guidance.

@@ -12,6 +12,15 @@ function isMcpEndpoint(url: string): boolean {
   return /\/api\/[^/]+\/mcp(\?|$)/.test(url);
 }
 
+/**
+ * Requests this plugin ignores: routes marked `logLevel: 'silent'`, requests that matched no route (scanner/bot
+ * probes answered by the not-found handler; Fastify 5 leaves `routeOptions.url` undefined for them), and MCP
+ * endpoints, which mcp-request-logger covers.
+ */
+function isSkipped(req: FastifyRequest): boolean {
+  return req.routeOptions.logLevel === 'silent' || !req.routeOptions.url || isMcpEndpoint(req.url);
+}
+
 function redactHeaders(headers: Record<string, unknown>): Record<string, unknown> {
   const redacted: Record<string, unknown> = {};
   for (const [name, value] of Object.entries(headers)) {
@@ -37,11 +46,7 @@ declare module 'fastify' {
 
 async function requestLoggerPlugin(app: FastifyInstance) {
   app.addHook('onRequest', async req => {
-    // logLevel:'silent' set on known routes; empty url means no route matched (setNotFoundHandler)
-    if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
-
-    // MCP endpoints are fully covered by mcp-request-logger — skip HTTP-level logging entirely.
-    if (isMcpEndpoint(req.url)) return;
+    if (isSkipped(req)) return;
 
     logger.info(`--> ${req.method} ${req.url}`);
     if (envConfig.PRINT_PAYLOADS) {
@@ -53,8 +58,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
   // Capture it onto the request for use in onResponse (where it is no longer accessible).
   // Return undefined so Fastify keeps the original payload untouched.
   app.addHook('onSend', async (req: FastifyRequest, _reply, payload) => {
-    if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
-    if (isMcpEndpoint(req.url)) return;
+    if (isSkipped(req)) return;
 
     if (envConfig.LOG_PAYLOADS || envConfig.PRINT_PAYLOADS) {
       try {
@@ -67,10 +71,7 @@ async function requestLoggerPlugin(app: FastifyInstance) {
   });
 
   app.addHook('onResponse', async (req, reply) => {
-    if (req.routeOptions.logLevel === 'silent' || req.routeOptions.url === '') return;
-
-    // MCP endpoints are fully covered by mcp-request-logger.
-    if (isMcpEndpoint(req.url)) return;
+    if (isSkipped(req)) return;
 
     const durationMs = Math.round(reply.elapsedTime);
     const bodySize = Number(reply.getHeader('content-length') ?? 0);
