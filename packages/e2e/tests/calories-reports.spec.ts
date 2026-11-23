@@ -49,6 +49,9 @@ async function seedGymWeekProfile(page: Page) {
   const tues = new Date(`${monday}T12:00:00`);
   tues.setDate(tues.getDate() + 1);
 
+  // A fresh profile: saving over an older one freezes this week's finished days at the older range,
+  // and the report must judge them against this one.
+  await deleteFeatures(page, ['calories_profile']);
   await page.request.put('/api/calories/profile', {
     data: {
       age: 34,

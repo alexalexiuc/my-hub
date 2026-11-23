@@ -2,9 +2,9 @@
  * Date utilities
  * - isValidDate(d) — type guard: true if d is a non-NaN Date object
  * - dateToString(d) — format Date as YYYY-MM-DD using local time
- * - currentDateString(timezone?) — explicit alias for localDateString(timezone)
+ * - currentDateString(timezone?, now?) — explicit alias for localDateString(timezone, now)
  * - dateStringDaysAgo(daysAgo, timezone?) — YYYY-MM-DD for N calendar days ago in resolved timezone
- * - localDateString(timezone?) — today as YYYY-MM-DD, resolved via UTC offset / IANA / local
+ * - localDateString(timezone?, now?) — today (or `now`'s date) as YYYY-MM-DD, resolved via UTC offset / IANA / local
  * - localHour(timezone?) — current hour (0-23) in the resolved timezone
  * - toUTCDateStr(d) — format Date as YYYY-MM-DD using UTC components
  * - addDays(d, n) — new Date shifted by n calendar days (UTC arithmetic)
@@ -77,9 +77,9 @@ export function dateToString(d: Date = new Date(), format: SupportedDateFormat =
   return format.replace('YYYY', YYYY).replace('MM', MM).replace('DD', DD);
 }
 
-/** Returns today's date string (YYYY-MM-DD) in the provided timezone. */
-export function currentDateString(timezone?: string | null): string {
-  return localDateString(timezone);
+/** Returns today's date string (YYYY-MM-DD) in the provided timezone, as of `now` (default: the current time). */
+export function currentDateString(timezone?: string | null, now: Date = new Date()): string {
+  return localDateString(timezone, now);
 }
 
 /** Returns the date string for N calendar days ago in the provided timezone. */
@@ -113,8 +113,10 @@ function offsetToMinutes(offsetStr: string): number | null {
  * 1. UTC offset string ("+2", "-5", "+5:30") — computed directly from UTC epoch.
  * 2. IANA timezone identifier ("Europe/Bucharest") — resolved via Intl.DateTimeFormat.
  * 3. Environment local time (browser local time in client components).
+ *
+ * @param now - The moment to read the date at; defaults to the current time.
  */
-export function localDateString(timezone?: string | null): string {
+export function localDateString(timezone?: string | null, now: Date = new Date()): string {
   if (timezone) {
     if (isOffsetString(timezone)) {
       const offsetMinutes = offsetToMinutes(timezone);
@@ -123,19 +125,18 @@ export function localDateString(timezone?: string | null): string {
         // components. Because UTC + offsetMs gives a Date whose UTC components equal
         // the local date/time in the target timezone (no DST adjustments needed for a
         // fixed offset).
-        return toUTCDateStr(new Date(Date.now() + offsetMinutes * 60000));
+        return toUTCDateStr(new Date(now.getTime() + offsetMinutes * 60000));
       }
     } else {
       try {
         // 'en-CA' locale reliably formats dates as YYYY-MM-DD (ISO 8601)
-        return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date());
+        return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
       } catch {
         // Invalid IANA timezone — fall through to local time
       }
     }
   }
-  const d = new Date();
-  return dateToString(d);
+  return dateToString(now);
 }
 
 /**

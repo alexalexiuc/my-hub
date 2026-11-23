@@ -62,6 +62,32 @@ describe('useMealsForDate', () => {
     expect(result.current.error).toBeNull();
   });
 
+  it('keeps the latest of two reloads of the same day, whichever answers last', async () => {
+    fetchMock.mockResolvedValueOnce({ meals: [meal('oats'), meal('apple'), meal('soup')] });
+    const { result } = renderHook(() => useMealsForDate('2026-11-22'));
+    await waitFor(() => expect(result.current.meals).toHaveLength(3));
+
+    const afterFirstDelete = deferred<{ meals: unknown[] }>();
+    fetchMock.mockReturnValueOnce(afterFirstDelete.promise).mockResolvedValueOnce({ meals: [meal('soup')] });
+    await act(async () => mealEvents.emit('changed'));
+    await act(async () => mealEvents.emit('changed'));
+    await waitFor(() => expect(result.current.meals).toEqual([meal('soup')]));
+
+    await act(async () => afterFirstDelete.resolve({ meals: [meal('apple'), meal('soup')] }));
+    expect(result.current.meals).toEqual([meal('soup')]);
+  });
+
+  it('reports the failure when a reload overtakes the first load and fails', async () => {
+    const first = deferred<{ meals: unknown[] }>();
+    fetchMock.mockReturnValueOnce(first.promise).mockRejectedValueOnce(new Error('offline'));
+    const { result } = renderHook(() => useMealsForDate('2026-11-22'));
+    await act(async () => mealEvents.emit('changed'));
+    await act(async () => first.resolve({ meals: [meal('oats')] }));
+
+    await waitFor(() => expect(result.current.error).toBe('offline'));
+    expect(result.current.meals).toBeNull();
+  });
+
   it('reports a day that never loaded', async () => {
     fetchMock.mockRejectedValueOnce(new Error('Server down'));
     const { result } = renderHook(() => useMealsForDate('2026-11-22'));

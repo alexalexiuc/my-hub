@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { currentDateString, shiftDateStr } from '../../utils/dates';
 import { deleteAllUserCalorieDayTargets, freezeDayTargets, getDayTargetsForRange } from './day-targets';
 
 vi.mock('../../db/client', () => ({
   db: {
     select: vi.fn(),
-    selectDistinct: vi.fn(),
     insert: vi.fn(),
     delete: vi.fn(),
     query: { calorieProfiles: { findFirst: vi.fn() } },
@@ -62,40 +62,78 @@ describe('getDayTargetsForRange', () => {
 });
 
 describe('freezeDayTargets', () => {
-  /** The user's timezone row, then the latest weigh-in (when the freeze gets that far). */
-  function mockSelects(timezone: string | null) {
+  /**
+   * The freeze's reads, in the order it makes them: the user's timezone, their first meal date, the
+   * profile (created at `createdAt`; `null` for none), the latest weigh-in and the frozen dates.
+   */
+  function mockFreeze({
+    timezone = '+2' as string | null,
+    firstMeal = null as string | null,
+    createdAt = '2026-11-21',
+    frozen = [] as string[],
+    profile = PROFILE as object | null,
+  }) {
     vi.mocked(db)
       .select.mockReturnValueOnce(chain([{ timezone }]))
-      .mockReturnValueOnce(chain([]));
+      .mockReturnValueOnce(chain([{ date: firstMeal }]))
+      .mockReturnValueOnce(chain([]))
+      .mockReturnValueOnce(chain(frozen.map(date => ({ date }))));
+    vi.mocked(db.query.calorieProfiles.findFirst).mockResolvedValue(
+      profile && ({ ...profile, createdAt: new Date(`${createdAt}T08:00:00Z`) } as any),
+    );
+    return mockInsert();
   }
+  const frozenDates = (values: ReturnType<typeof mockInsert>) =>
+    (values.mock.calls[0]![0] as { date: string }[]).map(r => r.date);
+  const day = (date: string) => ({ userId: 'u', date, target: 2300, min: 1800, isGymDay: false, gymDayBonus: 300 });
 
-  it('stores the current range of each unfrozen day with meals', async () => {
-    mockSelects('+2');
-    vi.mocked(db).selectDistinct.mockReturnValueOnce(chain([{ date: '2026-11-20' }, { date: '2026-11-21' }]));
-    const values = mockInsert();
+  it('stores every unfrozen finished day from the first meal, empty days included', async () => {
+    const values = mockFreeze({ firstMeal: '2026-11-18', createdAt: '2026-11-19', frozen: ['2026-11-20'] });
 
-    await expect(freezeDayTargets('u', NOW)).resolves.toBe(2);
+    // 10:00 UTC is 12:00 at +2, so the 22nd is today and the 21st the last finished day.
+    await expect(freezeDayTargets('u', NOW)).resolves.toBe(3);
+    expect(values.mock.calls[0]![0]).toEqual([day('2026-11-18'), day('2026-11-19'), day('2026-11-21')]);
+  });
+
+  it('starts at the profile when it predates the first meal, and with no meals at all', async () => {
+    const values = mockFreeze({ createdAt: '2026-11-20' });
+    await freezeDayTargets('u', NOW);
+    expect(frozenDates(values)).toEqual(['2026-11-20', '2026-11-21']);
+  });
+
+  it('ends the day before today in an IANA zone already past midnight', async () => {
+    const values = mockFreeze({ timezone: 'Pacific/Auckland' });
+    // 12:00 UTC on the 22nd is 01:00 on the 23rd in Auckland, so the 22nd is finished there.
+    await freezeDayTargets('u', new Date('2026-11-22T12:00:00Z'));
+    expect(frozenDates(values)).toEqual(['2026-11-21', '2026-11-22']);
+  });
+
+  it('with no timezone, ends the day before the today the readers use', async () => {
+    const values = mockFreeze({ timezone: null, createdAt: '2026-11-20' });
+    const at = new Date('2026-11-22T12:00:00Z');
+    await freezeDayTargets('u', at);
+    expect(frozenDates(values).at(-1)).toBe(shiftDateStr(currentDateString(null, at), -1));
+  });
+
+  it('freezes a day with only a floor, so changing the floor later leaves it be', async () => {
+    const values = mockFreeze({
+      profile: { goalMinCalories: 1800, goalMaxCalories: null, gymDays: [], gymDayCalorieBonus: 0 },
+    });
+    await freezeDayTargets('u', NOW);
     expect(values.mock.calls[0]![0]).toEqual([
-      { userId: 'u', date: '2026-11-20', target: 2300, min: 1800, isGymDay: false, gymDayBonus: 300 },
-      { userId: 'u', date: '2026-11-21', target: 2300, min: 1800, isGymDay: false, gymDayBonus: 300 },
+      { userId: 'u', date: '2026-11-21', target: null, min: 1800, isGymDay: false, gymDayBonus: 0 },
     ]);
   });
 
-  it("doesn't freeze a day the profile gives no target, so setting one up later still applies", async () => {
-    mockSelects('+2');
-    vi.mocked(db).selectDistinct.mockReturnValueOnce(chain([{ date: '2026-11-20' }]));
-    vi.mocked(db.query.calorieProfiles.findFirst).mockResolvedValueOnce(undefined);
-
+  it('writes nothing without a profile', async () => {
+    mockFreeze({ firstMeal: '2026-11-20', profile: null });
     await expect(freezeDayTargets('u', NOW)).resolves.toBe(0);
     expect(db.insert).not.toHaveBeenCalled();
   });
 
-  it('loads nothing more and writes nothing when every past day is already frozen', async () => {
-    mockSelects(null);
-    vi.mocked(db).selectDistinct.mockReturnValueOnce(chain([]));
-
+  it('writes nothing when every finished day is frozen', async () => {
+    mockFreeze({ createdAt: '2026-11-20', frozen: ['2026-11-20', '2026-11-21'] });
     await expect(freezeDayTargets('u', NOW)).resolves.toBe(0);
-    expect(db.query.calorieProfiles.findFirst).not.toHaveBeenCalled();
     expect(db.insert).not.toHaveBeenCalled();
   });
 });

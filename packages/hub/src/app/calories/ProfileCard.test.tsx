@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { CalorieProfile } from '@my-hub/shared/types';
+import { apiFetch } from '@/lib/utils';
 import { ProfileCard } from './ProfileCard';
 
 vi.mock('@/lib/utils', async () => {
@@ -107,6 +108,23 @@ describe('ProfileCard', () => {
     expect(screen.queryByRole('tooltip')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'About Goal weight (kg)' }));
     expect(screen.getByRole('tooltip').textContent).toMatch(/estimates a finish date/i);
+  });
+
+  it("doesn't re-post the opened weight over a newer weigh-in that arrived while editing", async () => {
+    const onUpdated = vi.fn();
+    const { rerender } = render(
+      <ProfileCard profile={PROFILE} latestMeasurements={MEASUREMENTS} onUpdated={onUpdated} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+    // A weigh-in logged through Claude lands while the form is open (the profile reloads on focus).
+    const newer = [{ ...(MEASUREMENTS as unknown as object[])[0], value: 89.4, date: '2026-09-19' }] as never;
+    rerender(<ProfileCard profile={PROFILE} latestMeasurements={newer} onUpdated={onUpdated} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalled());
+    const paths = vi.mocked(apiFetch).mock.calls.map(([path]) => path);
+    expect(paths).toEqual(['/api/calories/profile']);
   });
 
   it('offers no goal weight for a maintain goal, which has no finish line', () => {

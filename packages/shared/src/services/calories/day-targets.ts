@@ -3,7 +3,7 @@
  *
  * A finished day keeps the range it had, rather than being re-judged against whatever the
  * profile says today. Ranges are frozen at the writes that would move them: before a profile
- * update or a weigh-in change, every finished day with meals that isn't frozen yet is stored with
+ * update or a weigh-in change, every finished day that isn't frozen yet is stored with
  * the range it has right then. Reads only look the frozen rows up; every other day follows the
  * live rule.
  *
@@ -13,11 +13,11 @@
  * Exports:
  *   getDayTargetsForRange           — each date's range, frozen ones as stored
  *   getDayTargets                   — the same for one date
- *   freezeDayTargets                — store the current range of every finished, unfrozen day with meals
+ *   freezeDayTargets                — store the current range of every finished, unfrozen day
  *   queryLatestWeightKg             — the latest weigh-in, one-row query
  *   deleteAllUserCalorieDayTargets  — bulk delete for account wipes
  */
-import { and, between, desc, eq, isNull, lt } from 'drizzle-orm';
+import { and, between, desc, eq, min } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { calorieDayTargets, calorieProfiles, mealLogs } from '../../db/schema/calories';
 import { bodyMeasurements } from '../../db/schema/measurements';
@@ -105,46 +105,48 @@ export async function getDayTargets(
 }
 
 /**
- * The first date that may still be in progress for the user. With no timezone saved it steps back
- * a day from UTC's, which no timezone (down to UTC-12) is behind.
- */
-function firstOpenDate(timezone: string | null | undefined, now: Date): string {
-  return timezone ? currentDateString(timezone) : shiftDateStr(toUTCDateStr(now), -1);
-}
-
-/**
- * Stores the current range of every finished day that has meals and isn't frozen yet. Call it
- * before any write that would move a range (profile update, weigh-in logged, edited or deleted),
- * so past days keep the range they were lived against. A day with no target (no profile or no
- * weigh-in yet) isn't frozen, so setting one up later still applies to it. Idempotent; concurrent
+ * Stores the current range of every finished day that isn't frozen yet, from the user's first meal
+ * (or the profile's creation, if that is earlier) up to yesterday. Call it before any write that
+ * would move a range (profile update, weigh-in logged, edited or deleted), so past days keep the
+ * range they were lived against, including empty days that get meals back-filled later.
+ * "Yesterday" is the day before `currentDateString(timezone)`, the same today the readers use, so a
+ * day already shown with a verdict is never re-judged. A day with neither a target nor a floor (no
+ * goal set yet) isn't frozen, so setting one up later still applies to it. Idempotent; concurrent
  * calls are safe (first insert wins). Returns how many days were frozen.
  *
  * @param userId - Owner of the days.
- * @param now    - Clock, for tests.
+ * @param now    - The moment "today" is read at; defaults to the current time.
  */
 export async function freezeDayTargets(userId: string, now: Date = new Date()): Promise<number> {
-  const [user] = await db.select({ timezone: users.timezone }).from(users).where(eq(users.id, userId));
-  const openFrom = firstOpenDate(user?.timezone, now);
+  // One round trip: the frozen dates are read for the whole history (one short date per day) rather
+  // than waiting for the range, which needs the first three answers.
+  const [[user], [firstMeal], { profile, weightKg }, frozenRows] = await Promise.all([
+    db.select({ timezone: users.timezone }).from(users).where(eq(users.id, userId)),
+    db
+      .select({ date: min(mealLogs.date) })
+      .from(mealLogs)
+      .where(eq(mealLogs.userId, userId)),
+    loadDayTargetInputs(userId),
+    db.select({ date: calorieDayTargets.date }).from(calorieDayTargets).where(eq(calorieDayTargets.userId, userId)),
+  ]);
+  if (!profile) return 0;
 
-  const unfrozen = await db
-    .selectDistinct({ date: mealLogs.date })
-    .from(mealLogs)
-    .leftJoin(
-      calorieDayTargets,
-      and(eq(calorieDayTargets.userId, mealLogs.userId), eq(calorieDayTargets.date, mealLogs.date)),
-    )
-    .where(and(eq(mealLogs.userId, userId), lt(mealLogs.date, openFrom), isNull(calorieDayTargets.id)));
-  if (unfrozen.length === 0) return 0;
+  const lastFinished = shiftDateStr(currentDateString(user?.timezone, now), -1);
+  const profileStart = toUTCDateStr(profile.createdAt);
+  const from = firstMeal?.date && firstMeal.date < profileStart ? firstMeal.date : profileStart;
+  if (from > lastFinished) return 0;
+  const frozen = new Set(frozenRows.map(r => r.date));
 
-  const { profile, weightKg } = await loadDayTargetInputs(userId);
-  const rows = unfrozen.flatMap(({ date }) => {
+  const days = calendarDays(new Date(`${from}T00:00:00Z`), new Date(`${lastFinished}T00:00:00Z`));
+  const rows = days.flatMap(date => {
+    if (frozen.has(date)) return [];
     const day = dayCalorieTargets(profile, weightKg, date);
-    if (day.target === null) return [];
+    if (day.target === null && day.min === null) return [];
     return [
       {
         userId,
         date,
-        target: Math.round(day.target),
+        target: day.target === null ? null : Math.round(day.target),
         min: day.min === null ? null : Math.round(day.min),
         isGymDay: day.isGymDay,
         gymDayBonus: Math.round(day.gymDayBonus),

@@ -1,27 +1,24 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { MeasurementTypes, measurementTypeDefinitions } from '@my-hub/shared/constants';
 import { dateToString, dayCalorieTargets, latestWeightKg, shiftDateStr } from '@my-hub/shared/utils';
-import { Button, Card, DatePicker, ProgressBar } from '@/components';
+import { Button, DatePicker } from '@/components';
 import { mealEvents } from './mealEvents';
 import { MealsSection } from './MealsSection';
 import { NextMealCard } from './NextMealCard';
 import { MacroChart } from './MacroChart';
-import { CaloriesDonut } from './CaloriesDonut';
+import { DayTotalsCard } from './DayTotalsCard';
 import { LastSevenDays } from './LastSevenDays';
 import { MeasurementModal } from './MeasurementModal';
 import { sumMealTotals } from './calories.utils';
-import { MACRO_COLORS, STREAK_LOOKBACK_DAYS } from './constants';
+import { STREAK_LOOKBACK_DAYS } from './constants';
 import { setCaloriesSelectedDate } from './selectedDate';
 import { useRefetchOnVisible } from '@/hooks/useRefetchOnVisible';
 import { PageError, PageLoading } from './ui';
 import { useCalorieProfile } from './useCalorieProfile';
 import { useMealsForDate } from './useMealsForDate';
 import { useCalendarDays } from './calendar/useCalendarDays';
-
-const NO_RANGE = { target: null, min: null, isGymDay: false, gymDayBonus: 0 };
 
 function greeting() {
   const h = new Date().getHours();
@@ -72,7 +69,7 @@ export default function TodayPage() {
   // streak window this is the same request the seven-day strip makes (`useCalendarDays` shares it),
   // so picking a recent day needs no request at all; an older day loads just itself.
   const windowFrom = shiftDateStr(today, -(STREAK_LOOKBACK_DAYS - 1));
-  const { days: calendarDays } = useCalendarDays(
+  const { days: calendarDays, error: calendarError } = useCalendarDays(
     selectedDate >= windowFrom
       ? { dateFrom: windowFrom, dateTo: today }
       : { dateFrom: selectedDate, dateTo: selectedDate },
@@ -83,20 +80,16 @@ export default function TodayPage() {
   if (profileError) return <PageError error={profileError} />;
   if (profileLoading) return <PageLoading />;
 
-  const meals = dayMeals ?? [];
-  const {
-    target: cap,
-    min: minTarget,
-    isGymDay,
-    gymDayBonus,
-  } = serverRange ??
-  // Until it arrives: today follows the live rule anyway, while a past day may be frozen at another
-  // range, so it shows none rather than one that would then jump.
-  (selectedDate >= today ? dayCalorieTargets(profile, latestWeightKg(latestMeasurements), selectedDate) : NO_RANGE);
-  const totals = sumMealTotals(meals);
-  const remainingKcal = cap === null ? null : cap - totals.kcal;
+  // Null while the day loads or after it failed: its totals are then unknown, not zero. Showing
+  // "0 kcal" and offering to log an already-logged meal would invite a duplicate.
+  const totals = dayMeals && sumMealTotals(dayMeals);
+  const range =
+    serverRange ??
+    // Until it arrives: today follows the live rule anyway, while a past day may be frozen at another
+    // range, so its goal stays unknown (null) rather than one that would then jump.
+    (selectedDate >= today ? dayCalorieTargets(profile, latestWeightKg(latestMeasurements), selectedDate) : null);
+  const remainingKcal = totals && range?.target != null ? range.target - totals.kcal : null;
   const goalProtein = profile?.goalProtein ?? null;
-  const proteinLeft = goalProtein === null ? null : Math.max(0, Math.round(goalProtein - totals.protein));
   const isToday = selectedDate === today;
   const weighedToday = latestMeasurements.some(m => m.typeKey === MeasurementTypes.Weight && m.date === today);
 
@@ -144,7 +137,7 @@ export default function TodayPage() {
               </Button>
             </div>
           )}
-          <NextMealCard date={selectedDate} loggedMeals={meals} remainingKcal={remainingKcal} />
+          {dayMeals && <NextMealCard date={selectedDate} loggedMeals={dayMeals} remainingKcal={remainingKcal} />}
           {mealsError ? (
             <p className="rounded-xl border border-[var(--red)] bg-[var(--red-d)] px-4 py-3 text-sm text-[var(--red)]">
               Couldn&apos;t load this day&apos;s meals: {mealsError}
@@ -153,7 +146,7 @@ export default function TodayPage() {
             // Keyed on the day, so its local notes ("nothing to copy") don't follow you to another.
             <MealsSection
               key={selectedDate}
-              meals={meals}
+              meals={dayMeals ?? []}
               loading={dayMeals === null}
               selectedDate={selectedDate}
               gymTime={profile?.gymTime ?? null}
@@ -164,69 +157,26 @@ export default function TodayPage() {
 
         {/* Left column (col-span-1): what's left, the week so far, macro split */}
         <div className="flex flex-col gap-4 md:col-start-1 md:row-start-1">
-          <Card className="flex flex-col gap-4 p-5">
-            <div className="flex items-center gap-4">
-              <CaloriesDonut eaten={totals.kcal} cap={cap} min={minTarget} textSize="text-2xl" />
-              <div className="flex min-w-0 flex-col gap-1">
-                <p className="text-sm text-[var(--muted)]">
-                  <span className="text-lg font-bold text-[var(--text)]">{totals.kcal.toLocaleString()}</span>
-                  {cap !== null && <span> of {cap.toLocaleString()}</span>}
-                  <span className="ml-1">kcal</span>
-                </p>
-                {cap !== null && (
-                  <p className="text-xs text-[var(--subtle)]">
-                    {minTarget !== null ? `Aim for ${minTarget.toLocaleString()}–${cap.toLocaleString()}` : 'Daily cap'}
-                    {isGymDay && <span className="text-[var(--accent)]"> · gym day · +{gymDayBonus} kcal</span>}
-                  </p>
-                )}
-                {cap === null && (
-                  <p className="text-xs text-[var(--subtle)]">
-                    No goal set.{' '}
-                    <Link href="/calories/settings" className="underline underline-offset-2 hover:text-[var(--text)]">
-                      Set up profile
-                    </Link>
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {goalProtein !== null && proteinLeft !== null && (
-              <div className="flex flex-col gap-1">
-                <div className="flex items-baseline justify-between text-xs">
-                  <span className="font-semibold" style={{ color: MACRO_COLORS.protein }}>
-                    Protein
-                  </span>
-                  <span className="text-[var(--muted)]">
-                    {proteinLeft > 0 ? (
-                      <>
-                        <strong className="text-[var(--text)]">{proteinLeft} g</strong> left of {goalProtein} g
-                      </>
-                    ) : (
-                      <strong className="text-[var(--green)]">Goal reached · {totals.protein} g</strong>
-                    )}
-                  </span>
-                </div>
-                <ProgressBar
-                  value={totals.protein}
-                  max={goalProtein}
-                  thresholds={false}
-                  color={MACRO_COLORS.protein}
-                  height={6}
-                />
-              </div>
-            )}
-          </Card>
+          <DayTotalsCard
+            totals={totals}
+            mealsError={mealsError}
+            range={range}
+            rangeFailed={calendarError}
+            goalProtein={goalProtein}
+          />
 
           <LastSevenDays proteinGoalG={goalProtein} />
 
-          <MacroChart
-            protein={totals.protein}
-            carbs={totals.carbs}
-            fat={totals.fat}
-            goalProtein={goalProtein}
-            goalCarbs={profile?.goalCarbs ?? null}
-            goalFat={profile?.goalFat ?? null}
-          />
+          {totals && (
+            <MacroChart
+              protein={totals.protein}
+              carbs={totals.carbs}
+              fat={totals.fat}
+              goalProtein={goalProtein}
+              goalCarbs={profile?.goalCarbs ?? null}
+              goalFat={profile?.goalFat ?? null}
+            />
+          )}
         </div>
       </div>
     </main>

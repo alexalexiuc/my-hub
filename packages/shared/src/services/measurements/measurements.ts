@@ -169,7 +169,8 @@ export async function updateMeasurement(
   userId: string,
   data: Partial<Pick<BodyMeasurement, 'typeKey' | 'value' | 'date' | 'notes'>>,
 ): Promise<BodyMeasurement | null> {
-  // The row may be (or become) a weigh-in; freezing first is cheap and keeps past ranges put.
+  // The row may be (or become) a weigh-in, which only a read would tell; freezing first keeps past
+  // ranges put, and after the first freeze it stores at most the days since the last one.
   await freezeDayTargets(userId);
   const [row] = await db
     .update(bodyMeasurements)

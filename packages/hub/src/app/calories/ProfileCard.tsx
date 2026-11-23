@@ -44,7 +44,7 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
     setValue,
     control,
     reset,
-    formState: { isSubmitting, errors },
+    formState: { isSubmitting, errors, dirtyFields },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(ProfileFormSchema),
     defaultValues: buildFormValues(profile, currentWeight),
@@ -76,10 +76,12 @@ export function ProfileCard({ profile, latestMeasurements, onUpdated }: Props) {
   async function save(values: ProfileFormValues) {
     // A new weight is a measurement, not a profile field, so it goes to its own endpoint — and
     // only when it actually changed, so re-saving the form doesn't stamp a duplicate entry into
-    // the weight history and flatten the trend chart.
+    // the weight history and flatten the trend chart. "Changed" is against the weight the form opened
+    // with, not the live one: the profile reloads on tab focus, and a newer weigh-in logged through
+    // Claude meanwhile must not be overwritten by the one the form still holds.
     const enteredWeight = values.weightKg ? Number(values.weightKg) : null;
     const weightWrite =
-      enteredWeight !== null && enteredWeight !== currentWeight
+      enteredWeight !== null && dirtyFields.weightKg
         ? apiFetch('/api/calories/measurements', {
             method: 'POST',
             body: { typeKey: MeasurementTypes.Weight, value: enteredWeight, date: dateToString(new Date()) },

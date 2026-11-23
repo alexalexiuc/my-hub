@@ -11,25 +11,30 @@ import { loadErrorMessage } from './useCalorieProfile';
  *
  * `meals` is null until `date`'s meals arrive — after a date change too, so the previous day's
  * list is never shown (or offered "Copy meals from yesterday") as if it were the new day's.
- * `error` is set when `date` never loaded; a failed background reload keeps the list shown.
+ * `error` is set when `date` never loaded; a failed reload keeps the list already shown.
  */
 export function useMealsForDate(date: string) {
   const [loaded, setLoaded] = useState<{ date: string; meals: MealLog[] } | null>(null);
   const [failed, setFailed] = useState<{ date: string; error: string } | null>(null);
   const dateRef = useRef(date);
   dateRef.current = date;
+  // Only the latest request may land: two quick reloads of the same day (deleting two meals in a row)
+  // can answer out of order, and the older answer would bring the first deleted meal back.
+  const latestRequest = useRef(0);
 
   const load = useCallback(async (forDate: string, background: boolean) => {
+    const request = ++latestRequest.current;
+    const isCurrent = () => request === latestRequest.current && dateRef.current === forDate;
     try {
       const data = await apiFetch<{ meals: MealLog[] }>('/api/calories/meals', {
         query: { date: forDate, limit: 100 },
         silentToast: background,
       });
-      if (dateRef.current !== forDate) return;
+      if (!isCurrent()) return;
       setLoaded({ date: forDate, meals: data.meals });
       setFailed(null);
     } catch (e) {
-      if (!background && dateRef.current === forDate) setFailed({ date: forDate, error: loadErrorMessage(e) });
+      if (isCurrent()) setFailed({ date: forDate, error: loadErrorMessage(e) });
     }
   }, []);
 
@@ -45,6 +50,6 @@ export function useMealsForDate(date: string) {
 
   return {
     meals: loaded?.date === date ? loaded.meals : null,
-    error: failed?.date === date ? failed.error : null,
+    error: failed?.date === date && loaded?.date !== date ? failed.error : null,
   };
 }

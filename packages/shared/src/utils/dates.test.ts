@@ -72,6 +72,13 @@ describe('currentDateString', () => {
   it('falls back to local date for an invalid IANA timezone', () => {
     expect(currentDateString('Invalid/Timezone')).toBe(currentDateString());
   });
+
+  it('reads the date at a given moment instead of the clock', () => {
+    const at = new Date('2026-11-22T23:30:00.000Z');
+    expect(currentDateString('+2', at)).toBe('2026-11-23');
+    expect(currentDateString('Pacific/Auckland', at)).toBe('2026-11-23');
+    expect(currentDateString('America/New_York', at)).toBe('2026-11-22');
+  });
 });
 
 describe('dateStringDaysAgo', () => {

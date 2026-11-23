@@ -34,37 +34,42 @@ function fetchCalendarDays(query: { month?: string; dateFrom?: string; dateTo?: 
 /**
  * Per-day totals and targets for a month or range, refetched whenever a meal changes anywhere
  * (`mealEvents`). `days` is null until the first response, so callers can tell "loading" from
- * "nothing logged"; a failed first load settles on an empty list rather than loading forever.
+ * "nothing logged"; a failed first load settles on an empty list with `error` set, so a caller can
+ * say the load failed rather than show "no goal" or "nothing logged".
  */
-export function useCalendarDays(range: CalendarRange): { days: CalendarDay[] | null } {
-  const [days, setDays] = useState<CalendarDay[] | null>(null);
+export function useCalendarDays(range: CalendarRange): { days: CalendarDay[] | null; error: boolean } {
+  const [state, setState] = useState<{ days: CalendarDay[] | null; error: boolean }>({ days: null, error: false });
   const month = 'month' in range ? range.month : undefined;
   const dateFrom = 'dateFrom' in range ? range.dateFrom : undefined;
   const dateTo = 'dateTo' in range ? range.dateTo : undefined;
 
   useEffect(() => {
     // Set on range change or unmount, so a slow response for a range already left (paging
-    // months quickly) can't land after the current one and overwrite it.
+    // months quickly) can't land after the current one and overwrite it. Within one range only
+    // the latest request lands, so two quick refreshes can't answer out of order.
     let cancelled = false;
-    const load = (isFirst: boolean) =>
+    let latest = 0;
+    const load = () => {
+      const request = ++latest;
+      const isCurrent = () => !cancelled && request === latest;
       fetchCalendarDays({ month, dateFrom, dateTo })
-        .then(loaded => {
-          if (!cancelled) setDays(loaded);
+        .then(days => {
+          if (isCurrent()) setState({ days, error: false });
         })
         .catch(() => {
           // A failed refresh keeps the totals already shown; a failed first load shows none.
-          if (!cancelled && isFirst) setDays([]);
+          if (isCurrent()) setState(s => (s.days ? s : { days: [], error: true }));
         });
-    const refresh = () => void load(false);
+    };
 
-    setDays(null);
-    void load(true);
-    mealEvents.on('changed', refresh);
+    setState({ days: null, error: false });
+    load();
+    mealEvents.on('changed', load);
     return () => {
       cancelled = true;
-      mealEvents.off('changed', refresh);
+      mealEvents.off('changed', load);
     };
   }, [month, dateFrom, dateTo]);
 
-  return { days };
+  return state;
 }
