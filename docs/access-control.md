@@ -47,6 +47,8 @@ Runs `lint`, `typecheck`, and `test` on:
 - Every **pull request** targeting `main` or `staging`
 - Every **direct push** to `main` or `staging`
 
+On pull requests turbo runs only the packages affected vs the base branch (`--affected`); pushes run everything.
+
 Running CI on direct pushes ensures the status check is always present on the branch tip, satisfying the required-status-checks rule even if a commit lands outside a PR flow.
 
 ## Deployment guard (`deploy.yml`)

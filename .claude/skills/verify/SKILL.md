@@ -18,8 +18,8 @@ metadata:
    ```
 
    `--affected` compares against `main` (plus uncommitted changes); only failing tasks print logs. A change to
-   root config (`tsconfig.base.json`, `eslint.config.mjs`, `prettier.config.mjs`) affects everything — drop
-   `--affected` then. Before pushing a large change, run it once without `--affected`.
+   root config (`package.json`, `tsconfig.base.json`, `eslint.config.mjs`, `prettier.config.mjs`)
+   affects everything. Before pushing a large change, run it once without `--affected`.
 
 2. **Lint failures**: `pnpm exec eslint --fix <files>` and `pnpm exec prettier --write <files>` on the files you
    touched (never a whole directory — unrelated docs get reformatted). The pre-commit hook runs lint-staged anyway.

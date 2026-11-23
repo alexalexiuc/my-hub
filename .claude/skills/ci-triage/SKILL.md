@@ -15,9 +15,12 @@ metadata:
 
 | Workflow (file)       | When         | Jobs / steps that fail in practice                                                                                                                                                                      |
 | --------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CI (`ci.yml`)         | PR + push    | `lint-typecheck-test`: `pnpm turbo run typecheck lint test:unit`, then `gen:palettes:check`                                                                                                             |
+| CI (`ci.yml`)         | PR + push    | `lint-typecheck-test`: `pnpm turbo run typecheck lint test:unit` (`--affected` on PRs, full on push), then `gen:palettes:check`                                                                         |
 | E2E Tests (`e2e.yml`) | PRs only     | `build-and-push` (bake staging images) → E2E job: deploy staging stack, provision user, **Run E2E tests** (`pnpm test:e2e` = MCP vitest suites **and** Hub Playwright, against `staging.*.alexiuc.dev`) |
 | Deploy (`deploy.yml`) | push to main | bake prod images → SSH deploy                                                                                                                                                                           |
+
+A docs-only PR (`docs/**`, `.claude/**`, `*.md`) skips `build-and-push` and `E2EExpected` via the `changes` job; a
+skipped job counts as passing.
 
 E2E never runs on `main`, so there is no main baseline: compare with the latest E2E runs of other PRs instead.
 The E2E job (`E2EExpected`) shares one staging stack (`concurrency: staging-stack`): with three PRs in flight the

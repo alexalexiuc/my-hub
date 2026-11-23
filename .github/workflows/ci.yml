@@ -38,6 +38,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # --affected diffs against the PR base, which a shallow clone doesn't have.
+          fetch-depth: 0
 
       - name: Setup pnpm
         # No explicit version: pnpm/action-setup reads the pinned version from the
@@ -65,9 +68,10 @@ jobs:
           restore-keys: turbo-${{ runner.os }}-
 
       # One turbo invocation so type-check, lint and tests run in parallel and share a
-      # single shared-package build, instead of three sequential runs.
+      # single shared-package build, instead of three sequential runs. PRs only run the
+      # packages they affect (turbo reads GITHUB_BASE_REF); pushes to main/staging run everything.
       - name: Type-check / Lint / Test
-        run: pnpm turbo run typecheck lint test:unit
+        run: pnpm turbo run typecheck lint test:unit ${{ github.event_name == 'pull_request' && '--affected' || '' }}
         env:
           NOTES_TEST_DATABASE_URL: postgres://notes:notes@localhost:5432/notes_test
 
