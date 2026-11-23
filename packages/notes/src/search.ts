@@ -8,7 +8,7 @@ export const SEARCH_LEGS = ['fts', 'trgm', 'vec', 'namesTrgm', 'namesVec'] as co
 export type SearchLeg = (typeof SEARCH_LEGS)[number];
 
 export interface SearchOptions {
-  /** 1–5 phrasings of the same question (synonyms, RO/RU/EN translations). */
+  /** 1–5 phrasings of the same question (synonyms, broader/narrower English terms). */
   queries: string[];
   category?: string;
   /** Notes to return (default 5, max 200; the notes_search tool caps it at 20). */
@@ -65,7 +65,11 @@ const ENTRY_COLS = `e.id::text, n.id::text AS note_id, n.path, n.title, n.catego
 const NOTE_COLS = `n.id::text AS note_id, n.path, n.title, n.category`;
 const CATEGORY_FILTER = `AND ($2::text IS NULL OR n.category = $2)`;
 
-/** Builds an OR-ed prefix tsquery (`rugs | wash:*`) from free text; empty when no usable word remains. */
+/**
+ * Builds an OR-ed prefix tsquery (`rugs | wash:*`) from free text; empty when no usable word remains. Parsed with
+ * the 'english' config, so words are stemmed (`vouchers:*` → `voucher:*`) and stopwords drop out; a query of
+ * only stopwords parses to an empty tsquery and matches nothing.
+ */
 export function buildTsQuery(q: string): string {
   const words = normalizeForMatch(q)
     .split(/[^\p{L}\p{N}]+/u)
@@ -122,8 +126,8 @@ export async function searchNotes(
         queryEntries(
           'fts',
           `SELECT ${ENTRY_COLS} FROM entries e JOIN notes n ON n.id = e.note_id
-           WHERE n.user_id = $1 ${CATEGORY_FILTER} AND e.tsv @@ to_tsquery('simple', immutable_unaccent($3))
-           ORDER BY ts_rank_cd(e.tsv, to_tsquery('simple', immutable_unaccent($3))) DESC LIMIT ${ENTRY_LIMIT}`,
+           WHERE n.user_id = $1 ${CATEGORY_FILTER} AND e.tsv @@ to_tsquery('english', immutable_unaccent($3))
+           ORDER BY ts_rank_cd(e.tsv, to_tsquery('english', immutable_unaccent($3))) DESC LIMIT ${ENTRY_LIMIT}`,
           [userId, category, ts],
         ),
       );

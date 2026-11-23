@@ -156,7 +156,7 @@ CREATE TABLE entries (
   type        text NOT NULL,
   text        text NOT NULL,
   line_hash   text NOT NULL,           -- skip re-embedding unchanged lines
-  tsv         tsvector NOT NULL,       -- to_tsvector('simple', unaccent(text)), see note
+  tsv         tsvector NOT NULL,       -- to_tsvector('english', unaccent(text)), see note
   embedding   vector(384) NOT NULL,
   UNIQUE (note_id, entry_key)
 );
@@ -555,3 +555,5 @@ the `push` command are gone; the earlier git sections above are historical.
   and low scores. The tool description tells Claude to say so; a similarity cut-off should be calibrated on real e5 scores (section 13).
 - `remember` no longer resolves fuzzily (see "Raw writes and a review pass"): a wrong merge silently mixes two subjects, while a duplicate
   note is visible and cheap to merge later. Re-run `bench:resolve` (review-suggestion recall) and `bench:lists` when the model or search changes.
+
+_Changed 2026-11-23:_ notes are English-only, and the full-text leg now uses the `'english'` config (stemming, stopwords) instead of `'simple'`; `SCHEMA_VERSION` 4 rebuilds the disposable index on the next start. The `'simple'` / RO-RU-EN wording in §2, §6 and §8 is superseded.

@@ -25,7 +25,7 @@ export const SearchNotesSchema = z.object({
     .array(z.string().trim().min(1))
     .min(1)
     .max(5)
-    .describe('2-4 phrasings of the same question: synonyms plus Romanian / Russian / English translations.'),
+    .describe('2-4 phrasings of the same question: English synonyms and broader or narrower terms, no translations.'),
   category: z.string().trim().optional().describe('Restrict to one category folder.'),
   limit: z.number().int().min(1).max(20).optional().describe('Notes to return. Default 5.'),
 });
@@ -72,7 +72,7 @@ export const RememberSchema = z.object({
     .array(z.string().trim().min(1))
     .max(10)
     .optional()
-    .describe('Other names for this subject (RO / RU / EN) so later searches find it.'),
+    .describe('Other names for this subject (English synonyms) so later searches find it.'),
   date: yyyyMmDdSchema
     .refine(isIsoDateStr, 'Must be a real calendar date (YYYY-MM-DD)')
     .optional()
@@ -111,7 +111,7 @@ export const deleteEntryTool: ToolHandler<typeof DeleteEntrySchema.shape> = asyn
 
 export const AddAliasSchema = z.object({
   path: pathSchema,
-  alias: z.string().trim().min(1).describe('Another name for the note, e.g. its Romanian or Russian name.'),
+  alias: z.string().trim().min(1).describe('Another name for the note, e.g. an English synonym.'),
 });
 
 export const addAliasTool: ToolHandler<typeof AddAliasSchema.shape> = async ({ path, alias }, { userId, timezone }) =>
@@ -132,7 +132,9 @@ export const BrowseNotesSchema = z.object({
     .min(1)
     .max(5)
     .optional()
-    .describe('1-5 phrasings (RO/RU/EN) to rank the headers by relevance. Omit to list by category and title.'),
+    .describe(
+      '1-5 English phrasings (synonyms, broader or narrower terms) to rank the headers by relevance. Omit to list by category and title.',
+    ),
   category: z.string().trim().optional().describe('Only this category folder.'),
   tag: z.string().trim().optional().describe('Only notes with this tag.'),
   updatedSince: yyyyMmDdSchema.optional().describe('Only notes updated on or after this date (YYYY-MM-DD).'),
